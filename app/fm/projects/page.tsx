@@ -155,7 +155,7 @@ export default function ProjectsPage() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {(projects as ProjectItem[]).map((project) => (
-              <ProjectCard key={project._id} project={project} onUpdated={mutate} />
+              <ProjectCard key={project._id} project={project} orgId={orgId} onUpdated={mutate} />
             ))}
           </div>
 
@@ -179,7 +179,25 @@ export default function ProjectsPage() {
   );
 }
 
-function ProjectCard({ project }: { project: ProjectItem; onUpdated: () => void }) {
+function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgId?: string; onUpdated: () => void }) {
+  const handleDelete = async () => {
+    if (!confirm(`Delete project "${project.name}"? This cannot be undone.`)) return;
+    if (!orgId) return toast.error('Organization ID missing');
+
+    const toastId = toast.loading('Deleting project...');
+    try {
+      const res = await fetch(`/api/projects/${project._id}`, {
+        method: 'DELETE',
+        headers: { 'x-tenant-id': orgId }
+      });
+      if (!res.ok) throw new Error('Failed to delete project');
+      toast.success('Project deleted successfully', { id: toastId });
+      onUpdated();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete project', { id: toastId });
+    }
+  };
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'NEW_CONSTRUCTION':
@@ -288,13 +306,26 @@ function ProjectCard({ project }: { project: ProjectItem; onUpdated: () => void 
             </span>
           </div>
           <div className="flex space-x-2">
-            <Button variant="ghost" size="sm">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => window.location.href = `/fm/projects/${project._id}`}
+            >
               <Eye className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => window.location.href = `/fm/projects/${project._id}/edit`}
+            >
               <Edit className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]"
+              onClick={handleDelete}
+            >
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>

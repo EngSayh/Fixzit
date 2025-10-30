@@ -1,6 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { Card, CardContent} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,115 +12,122 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CardGridSkeleton } from '@/components/skeletons';
 import {
   Search, Download, Eye, Edit, Trash2,
-  ShoppingCart, DollarSign, Calendar, Package, Truck
+  ShoppingCart, DollarSign, Calendar, Package
 } from 'lucide-react';
 
-interface PurchaseOrder {
-  id: string;
-  orderNumber: string;
-  vendor: string;
-  total: string;
-  date: string;
-  status: 'Draft' | 'Submitted' | 'Approved' | 'Ordered' | 'Delivered' | 'Cancelled';
-  items: string[];
-  deliveryDate: string;
-  priority: 'Low' | 'Medium' | 'High';
+interface Order {
+  _id: string;
+  orderNumber?: string;
+  vendorId?: string;
+  vendorName?: string;
+  buyerUserId?: string;
+  total?: number;
+  status?: string;
+  items?: Array<{
+    name?: string;
+    quantity?: number;
+    price?: number;
+  }>;
+  deliveryDate?: string;
+  createdAt?: string;
+  type?: 'PURCHASE' | 'SERVICE';
+  description?: string;
+  location?: string;
 }
 
-interface ServiceOrder {
-  id: string;
-  orderNumber: string;
-  service: string;
-  vendor: string;
-  amount: string;
-  date: string;
-  status: 'Requested' | 'Approved' | 'In Progress' | 'Completed' | 'Cancelled';
-  description: string;
-  location: string;
-}
-
-const PURCHASE_ORDERS: PurchaseOrder[] = [
-  {
-    id: 'PO-001',
-    orderNumber: 'PO-2025-001',
-    vendor: 'CoolAir Co.',
-    total: '24,000',
-    date: '2025-09-12',
-    status: 'Approved',
-    items: ['AC Maintenance - Tower A', 'Filter Replacement x 10'],
-    deliveryDate: '2025-09-20',
-    priority: 'Medium'
-  },
-  {
-    id: 'PO-002',
-    orderNumber: 'PO-2025-002',
-    vendor: 'Spark Electric',
-    total: '15,500',
-    date: '2025-09-10',
-    status: 'Delivered',
-    items: ['Electrical Inspection', 'Outlet Installation x 5'],
-    deliveryDate: '2025-09-15',
-    priority: 'High'
-  },
-  {
-    id: 'PO-003',
-    orderNumber: 'PO-2025-003',
-    vendor: 'AquaFlow',
-    total: '8,750',
-    date: '2025-09-08',
-    status: 'Draft',
-    items: ['Plumbing Repairs', 'Pipe Replacement'],
-    deliveryDate: '2025-09-25',
-    priority: 'Low'
+const fetcher = async (url: string, orgId?: string) => {
+  if (!orgId) {
+    throw new Error('Organization ID required');
   }
-];
-
-const SERVICE_ORDERS: ServiceOrder[] = [
-  {
-    id: 'SO-001',
-    orderNumber: 'SO-2025-001',
-    service: 'AC Maintenance',
-    vendor: 'CoolAir Co.',
-    amount: '3,500',
-    date: '2025-09-12',
-    status: 'In Progress',
-    description: 'Monthly AC maintenance for Tower A',
-    location: 'Tower A - Floors 1-5'
-  },
-  {
-    id: 'SO-002',
-    orderNumber: 'SO-2025-002',
-    service: 'Cleaning Services',
-    vendor: 'CleanPro Services',
-    amount: '2,800',
-    date: '2025-09-11',
-    status: 'Completed',
-    description: 'Weekly cleaning service for common areas',
-    location: 'Building 1 - Common Areas'
-  }
-];
+  const res = await fetch(url, {
+    headers: { 'x-tenant-id': orgId }
+  });
+  if (!res.ok) throw new Error('Failed to fetch orders');
+  const json = await res.json();
+  return json.data || json.orders || json.items || [];
+};
 
 export default function OrdersPage() {
   const { t } = useTranslation();
+  const router = useRouter();
+  const { data: session } = useSession();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const purchaseOrders = PURCHASE_ORDERS;
-  const serviceOrders = SERVICE_ORDERS;
+  const orgId = session?.user?.orgId;
 
-  const filteredPurchaseOrders = useMemo(() => {
-    return purchaseOrders.filter(order => {
-      const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           order.vendor.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || order.status.toLowerCase() === statusFilter.toLowerCase();
-      return matchesSearch && matchesStatus;
-    });
-  }, [purchaseOrders, searchTerm, statusFilter]);
+  // Fetch orders
+  const ordersUrl = orgId
+    ? `/api/marketplace/orders${statusFilter !== 'all' ? `?status=${statusFilter.toUpperCase()}` : ''}`
+    : null;
+
+  const { data: ordersData, error, isLoading, mutate } = useSWR(
+    ordersUrl ? [ordersUrl, orgId] : null,
+    ([url, id]) => fetcher(url, id)
+  );
+
+  const orders = Array.isArray(ordersData) ? ordersData : [];
+
+  // Client-side search filter
+  const filteredOrders = orders.filter((order: Order) => {
+    const matchesSearch = 
+      order.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.vendorName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    return searchTerm === '' || matchesSearch;
+  });
+
+  // Separate by type (if type field exists)
+  const purchaseOrders = filteredOrders.filter((o: Order) => !o.type || o.type === 'PURCHASE');
+  const serviceOrders = filteredOrders.filter((o: Order) => o.type === 'SERVICE');
+
+  const handleDelete = async (orderId: string, orderNumber: string) => {
+    if (!confirm(`Delete order "${orderNumber}"? This cannot be undone.`)) return;
+    if (!orgId) return toast.error('Organization ID missing');
+
+    const toastId = toast.loading('Deleting order...');
+    try {
+      const res = await fetch(`/api/marketplace/orders/${orderId}`, {
+        method: 'DELETE',
+        headers: { 'x-tenant-id': orgId }
+      });
+      if (!res.ok) throw new Error('Failed to delete order');
+      toast.success('Order deleted successfully', { id: toastId });
+      mutate();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete order', { id: toastId });
+    }
+  };
+
+  const exportOrdersCsv = (ordersList: Order[], type: string) => {
+    if (ordersList.length === 0) return toast(`No ${type} orders to export`);
+    const rows = [['Order Number', 'Vendor', 'Total', 'Status', 'Date', 'Delivery Date']];
+    for (const o of ordersList) {
+      rows.push([
+        o.orderNumber || o._id || '',
+        o.vendorName || 'N/A',
+        o.total ? `SAR ${o.total.toLocaleString()}` : 'N/A',
+        o.status || '',
+        o.createdAt ? new Date(o.createdAt).toLocaleDateString() : '',
+        o.deliveryDate ? new Date(o.deliveryDate).toLocaleDateString() : '',
+      ]);
+    }
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${type}-orders-export-${new Date().toISOString()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${ordersList.length} orders`);
+  };
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case 'completed': return 'bg-green-100 text-green-800 border-green-200';
       case 'delivered': return 'bg-green-100 text-green-800 border-green-200';
       case 'approved': return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -125,10 +136,16 @@ export default function OrdersPage() {
       case 'in progress': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'draft': return 'bg-gray-100 text-gray-800 border-gray-200';
       case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
-      case 'requested': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
+
+  // Loading state
+  if (!session) return <CardGridSkeleton count={4} />;
+  if (!orgId) return <div className="p-6 text-center text-red-600">Error: Organization ID missing from session</div>;
+  if (isLoading) return <CardGridSkeleton count={4} />;
+  if (error) return <div className="p-6 text-center text-red-600">Failed to load orders: {error.message}</div>;
 
   return (
     <div className="space-y-6">
@@ -161,170 +178,229 @@ export default function OrdersPage() {
               <SelectItem value="draft">{t('status.draft', 'Draft')}</SelectItem>
               <SelectItem value="submitted">{t('status.submitted', 'Submitted')}</SelectItem>
               <SelectItem value="approved">{t('status.approved', 'Approved')}</SelectItem>
-              <SelectItem value="ordered">{t('status.ordered', 'Ordered')}</SelectItem>
-              <SelectItem value="delivered">{t('status.delivered', 'Delivered')}</SelectItem>
+              <SelectItem value="completed">{t('status.completed', 'Completed')}</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            {t('common.export', 'Export')}
-          </Button>
         </div>
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="purchase-orders">
+      <Tabs defaultValue="purchase">
         <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="purchase-orders" className="flex items-center gap-2">
+          <TabsTrigger value="purchase" className="flex items-center gap-2">
             <ShoppingCart className="h-4 w-4" />
-            {t('orders.purchaseOrders', 'Purchase Orders')}
+            {t('orders.tabs.purchase', 'Purchase Orders')} ({purchaseOrders.length})
           </TabsTrigger>
-          <TabsTrigger value="service-orders" className="flex items-center gap-2">
+          <TabsTrigger value="service" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
-            {t('orders.serviceOrders', 'Service Orders')}
+            {t('orders.tabs.service', 'Service Orders')} ({serviceOrders.length})
           </TabsTrigger>
         </TabsList>
 
         {/* Purchase Orders Tab */}
-        <TabsContent value="purchase-orders" className="mt-6">
-          <div className="space-y-4">
-            {filteredPurchaseOrders.map((order) => (
-              <Card key={order.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {t('orders.purchaseOrder', 'PO')} {order.orderNumber}
-                        </h3>
-                        <Badge className={getStatusColor(order.status)}>
-                          {order.status}
-                        </Badge>
-                        <Badge variant="outline">
-                          {order.priority} {t('orders.priority', 'Priority')}
-                        </Badge>
-                      </div>
+        <TabsContent value="purchase" className="mt-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Purchase Orders</h2>
+            <Button variant="outline" size="sm" onClick={() => exportOrdersCsv(purchaseOrders, 'purchase')}>
+              <Download className="h-4 w-4 mr-2" />
+              {t('common.export', 'Export')}
+            </Button>
+          </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <span className="font-medium">{t('orders.vendor', 'Vendor')}:</span>
-                          {order.vendor}
+          {purchaseOrders.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <p className="text-gray-500 mb-4">No purchase orders found</p>
+                <Button onClick={() => router.push('/marketplace')}>Create Order</Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {purchaseOrders.map((order: Order) => (
+                <Card key={order._id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {order.orderNumber || `Order ${order._id.slice(-8)}`}
+                          </h3>
+                          <Badge className={getStatusColor(order.status || '')}>
+                            {order.status || 'PENDING'}
+                          </Badge>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Calendar className="h-4 w-4" />
-                          {t('orders.orderDate', 'Order Date')}: {new Date(order.date).toLocaleDateString()}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <DollarSign className="h-4 w-4" />
-                          {t('orders.total', 'Total')}: SAR {order.total}
-                        </div>
-                      </div>
 
-                      <div className="mb-4">
-                        <h4 className="font-medium text-gray-900 mb-2">{t('orders.items', 'Items')}:</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {order.items.map((item) => (
-                            <Badge key={item} variant="outline">
-                              {item}
-                            </Badge>
-                          ))}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <span className="font-medium">{t('order.vendor', 'Vendor')}:</span>
+                            {order.vendorName || 'N/A'}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Calendar className="h-4 w-4" />
+                            {t('order.date', 'Order Date')}: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <DollarSign className="h-4 w-4" />
+                            {t('order.total', 'Total')}: SAR {order.total ? order.total.toLocaleString() : '0'}
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Truck className="h-4 w-4" />
-                          {t('orders.delivery', 'Delivery')}: {new Date(order.deliveryDate).toLocaleDateString()}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4 mr-2" />
-                            {t('common.view', 'View')}
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4 mr-2" />
-                            {t('common.edit', 'Edit')}
-                          </Button>
-                          <Button variant="outline" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]">
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            {t('common.delete', 'Delete')}
-                          </Button>
+                        {order.items && order.items.length > 0 && (
+                          <div className="mb-4">
+                            <h4 className="font-medium text-gray-900 mb-2">{t('order.items', 'Items')}:</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {order.items.slice(0, 5).map((item, idx) => (
+                                <Badge key={idx} variant="outline">
+                                  {item.name || `Item ${idx + 1}`} {item.quantity ? `x${item.quantity}` : ''}
+                                </Badge>
+                              ))}
+                              {order.items.length > 5 && (
+                                <Badge variant="outline">+{order.items.length - 5} more</Badge>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            {order.deliveryDate && (
+                              <>
+                                <Calendar className="h-4 w-4" />
+                                {t('order.delivery', 'Delivery')}: {new Date(order.deliveryDate).toLocaleDateString()}
+                              </>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => router.push(`/marketplace/orders/${order._id}`)}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              {t('common.view', 'View')}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => router.push(`/marketplace/orders/${order._id}/edit`)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              {t('common.edit', 'Edit')}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => handleDelete(order._id, order.orderNumber || order._id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              {t('common.delete', 'Delete')}
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         {/* Service Orders Tab */}
-        <TabsContent value="service-orders" className="mt-6">
-          <div className="space-y-4">
-            {serviceOrders.map((order) => (
-              <Card key={order.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {t('orders.serviceOrder', 'SO')} {order.orderNumber}
-                        </h3>
-                        <Badge className={getStatusColor(order.status)}>
-                          {order.status}
-                        </Badge>
-                      </div>
+        <TabsContent value="service" className="mt-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Service Orders</h2>
+            <Button variant="outline" size="sm" onClick={() => exportOrdersCsv(serviceOrders, 'service')}>
+              <Download className="h-4 w-4 mr-2" />
+              {t('common.export', 'Export')}
+            </Button>
+          </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <span className="font-medium">{t('orders.service', 'Service')}:</span>
-                          {order.service}
+          {serviceOrders.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <p className="text-gray-500 mb-4">No service orders found</p>
+                <Button onClick={() => router.push('/marketplace')}>Create Order</Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {serviceOrders.map((order: Order) => (
+                <Card key={order._id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {order.orderNumber || `Service Order ${order._id.slice(-8)}`}
+                          </h3>
+                          <Badge className={getStatusColor(order.status || '')}>
+                            {order.status || 'PENDING'}
+                          </Badge>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <span className="font-medium">{t('orders.vendor', 'Vendor')}:</span>
-                          {order.vendor}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <DollarSign className="h-4 w-4" />
-                          {t('orders.amount', 'Amount')}: SAR {order.amount}
-                        </div>
-                      </div>
 
-                      <div className="mb-4">
-                        <h4 className="font-medium text-gray-900 mb-2">{t('orders.description', 'Description')}:</h4>
-                        <p className="text-gray-600 text-sm">{order.description}</p>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <span className="font-medium">{t('orders.location', 'Location')}:</span>
-                          {order.location}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <span className="font-medium">{t('order.vendor', 'Vendor')}:</span>
+                            {order.vendorName || 'N/A'}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Calendar className="h-4 w-4" />
+                            {t('order.date', 'Order Date')}: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <DollarSign className="h-4 w-4" />
+                            {t('order.amount', 'Amount')}: SAR {order.total ? order.total.toLocaleString() : '0'}
+                          </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
+
+                        {order.description && (
+                          <p className="text-gray-600 mb-4">{order.description}</p>
+                        )}
+
+                        {order.location && (
+                          <div className="text-sm text-gray-600 mb-4">
+                            <span className="font-medium">Location:</span> {order.location}
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/marketplace/orders/${order._id}`)}
+                          >
                             <Eye className="h-4 w-4 mr-2" />
                             {t('common.view', 'View')}
                           </Button>
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/marketplace/orders/${order._id}/edit`)}
+                          >
                             <Edit className="h-4 w-4 mr-2" />
                             {t('common.edit', 'Edit')}
                           </Button>
-                          <Button variant="outline" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleDelete(order._id, order.orderNumber || order._id)}
+                          >
                             <Trash2 className="h-4 w-4 mr-2" />
                             {t('common.delete', 'Delete')}
                           </Button>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
   );
 }
-
