@@ -2,11 +2,13 @@
 import useSWR from "swr";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
+import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { CardGridSkeleton } from '@/components/skeletons';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function FinancePage() {
@@ -24,13 +26,13 @@ export default function FinancePage() {
     }).then(r => r.json());
   };
 
-  const { data, mutate } = useSWR(
+  const { data, mutate, isLoading } = useSWR(
     orgId ? `/api/finance/invoices?q=${encodeURIComponent(q)}` : null,
     fetcher
   );
 
   if (!session) {
-    return <p>Loading session...</p>;
+    return <CardGridSkeleton count={6} />;
   }
 
   if (!orgId) {
@@ -55,27 +57,31 @@ export default function FinancePage() {
         <Button onClick={()=>mutate()}>{t('common.search', 'Search')}</Button>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {list.map((inv: { id: string; number: string; status: string; issueDate: string; dueDate: string; total: number; currency: string; vatAmount: number }) =>(
-          <Card key={inv.id}>
-            <CardContent className="p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="font-semibold">{inv.number}</div>
-                <span className="text-xs rounded-full px-2 py-1 border">{inv.status}</span>
-              </div>
-              <div className="text-sm text-slate-600">
-                {t('finance.issue', 'Issue')}: {new Date(inv.issueDate).toLocaleDateString()} • {t('finance.due', 'Due')}: {new Date(inv.dueDate).toLocaleDateString()}
-              </div>
-              <Separator />
-              <div className="text-sm">{t('finance.total', 'Total')}: {inv.total} {inv.currency} ({t('finance.vat', 'VAT')} {inv.vatAmount})</div>
-              <div className="flex gap-2 pt-2">
-                <Action id={inv.id} action="POST" disabled={inv.status!=="DRAFT"} onDone={()=>mutate()} orgId={orgId} />
-                <Action id={inv.id} action="VOID" disabled={inv.status==="VOID"} onDone={()=>mutate()} orgId={orgId} />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {isLoading ? (
+        <CardGridSkeleton count={6} />
+      ) : (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {list.map((inv: { id: string; number: string; status: string; issueDate: string; dueDate: string; total: number; currency: string; vatAmount: number }) =>(
+            <Card key={inv.id}>
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold">{inv.number}</div>
+                  <span className="text-xs rounded-full px-2 py-1 border">{inv.status}</span>
+                </div>
+                <div className="text-sm text-slate-600">
+                  {t('finance.issue', 'Issue')}: {new Date(inv.issueDate).toLocaleDateString()} • {t('finance.due', 'Due')}: {new Date(inv.dueDate).toLocaleDateString()}
+                </div>
+                <Separator />
+                <div className="text-sm">{t('finance.total', 'Total')}: {inv.total} {inv.currency} ({t('finance.vat', 'VAT')} {inv.vatAmount})</div>
+                <div className="flex gap-2 pt-2">
+                  <Action id={inv.id} action="POST" disabled={inv.status!=="DRAFT"} onDone={()=>mutate()} orgId={orgId} />
+                  <Action id={inv.id} action="VOID" disabled={inv.status==="VOID"} onDone={()=>mutate()} orgId={orgId} />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -83,9 +89,11 @@ export default function FinancePage() {
 function Action({ id, action, disabled, onDone, orgId }:{ id:string; action:"POST"|"VOID"; disabled?:boolean; onDone:()=>void; orgId:string }) {
   async function go() {
     if (!orgId) {
-      alert('Error: No organization ID found');
+      toast.error('No organization ID found');
       return;
     }
+
+    const toastId = toast.loading(`${action === 'POST' ? 'Posting' : 'Voiding'} invoice...`);
 
     try {
       const response = await fetch(`/api/finance/invoices/${id}`, {
@@ -99,13 +107,14 @@ function Action({ id, action, disabled, onDone, orgId }:{ id:string; action:"POS
 
       if (!response.ok) {
         const error = await response.json();
-        alert(`Failed to ${action} invoice: ${error.error || 'Unknown error'}`);
+        toast.error(`Failed to ${action} invoice: ${error.error || 'Unknown error'}`, { id: toastId });
       } else {
+        toast.success(`Invoice ${action === 'POST' ? 'posted' : 'voided'} successfully`, { id: toastId });
         onDone();
       }
     } catch (error) {
       console.error(`Error ${action} invoice:`, error);
-      alert(`Error: Failed to ${action} invoice`);
+      toast.error(`Error: Failed to ${action} invoice`, { id: toastId });
     }
   }
   return <Button variant="secondary" disabled={disabled} onClick={go}>{action}</Button>;
@@ -124,9 +133,11 @@ function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }
 
   async function submit() {
     if (!orgId) {
-      alert('Error: No organization ID found');
+      toast.error('No organization ID found');
       return;
     }
+
+    const toastId = toast.loading('Creating invoice...');
 
     try {
       const response = await fetch("/api/finance/invoices", {
@@ -143,15 +154,16 @@ function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }
 
       if (!response.ok) {
         const error = await response.json();
-        alert(`Failed to create invoice: ${error.error || 'Unknown error'}`);
+        toast.error(`Failed to create invoice: ${error.error || 'Unknown error'}`, { id: toastId });
         return;
       }
 
+      toast.success('Invoice created successfully', { id: toastId });
       setOpen(false); 
       onCreated();
     } catch (error) {
       console.error('Error creating invoice:', error);
-      alert('Error: Failed to create invoice');
+      toast.error('Error: Failed to create invoice', { id: toastId });
     }
   }
 
