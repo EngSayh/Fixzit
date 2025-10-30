@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { CardGridSkeleton } from '@/components/skeletons';
 import { Building2, Plus, Search, Settings, Eye, Edit, Trash2, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
 interface MaintenanceRecord {
@@ -50,7 +52,7 @@ export default function AssetsPage() {
     }).then(r => r.json());
   };
 
-  const { data, mutate } = useSWR(
+  const { data, mutate, isLoading } = useSWR(
     orgId ? `/api/assets?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}` : null,
     fetcher
   );
@@ -59,11 +61,7 @@ export default function AssetsPage() {
 
   // Show loading state if no session yet
   if (!session) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Loading...</p>
-      </div>
-    );
+    return <CardGridSkeleton count={6} />;
   }
 
   if (!orgId) {
@@ -148,25 +146,31 @@ export default function AssetsPage() {
       </Card>
 
       {/* Assets Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {(assets as AssetItem[]).map((asset) => (
-          <AssetCard key={asset._id} asset={asset} onUpdated={mutate} />
-        ))}
-      </div>
+      {isLoading ? (
+        <CardGridSkeleton count={6} />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(assets as AssetItem[]).map((asset) => (
+              <AssetCard key={asset._id} asset={asset} onUpdated={mutate} />
+            ))}
+          </div>
 
-      {/* Empty State */}
-      {assets.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Building2 className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Assets Found</h3>
-            <p className="text-gray-600 mb-4">Get started by adding your first asset to the registry.</p>
-            <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)]">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Asset
-            </Button>
-          </CardContent>
-        </Card>
+          {/* Empty State */}
+          {assets.length === 0 && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Building2 className="w-12 h-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Assets Found</h3>
+                <p className="text-gray-600 mb-4">Get started by adding your first asset to the registry.</p>
+                <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)]">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Asset
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );
@@ -187,15 +191,13 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete ${asset.name}?`)) {
+    const orgId = session?.user?.orgId;
+    if (!orgId) {
+      toast.error('No organization ID found');
       return;
     }
 
-    const orgId = session?.user?.orgId;
-    if (!orgId) {
-      alert('Error: No organization ID found');
-      return;
-    }
+    const toastId = toast.loading(`Deleting ${asset.name}...`);
     
     try {
       const response = await fetch(`/api/assets/${asset._id}`, {
@@ -204,14 +206,15 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
       });
       
       if (response.ok) {
+        toast.success('Asset deleted successfully', { id: toastId });
         onUpdated();
       } else {
         const error = await response.json();
-        alert(`Failed to delete asset: ${error.error || 'Unknown error'}`);
+        toast.error(`Failed to delete asset: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
       console.error('Delete error:', error);
-      alert('Error deleting asset');
+      toast.error('Error deleting asset. Please try again.', { id: toastId });
     }
   };
 
@@ -361,9 +364,11 @@ function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
 
     const orgId = session?.user?.orgId;
     if (!orgId) {
-      alert('Error: No organization ID found');
+      toast.error('No organization ID found');
       return;
     }
+
+    const toastId = toast.loading('Creating asset...');
 
     try {
       const response = await fetch('/api/assets', {
@@ -376,14 +381,15 @@ function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
       });
 
       if (response.ok) {
+        toast.success('Asset created successfully', { id: toastId });
         onCreated();
       } else {
         const error = await response.json();
-        alert(`Failed to create asset: ${error.error || 'Unknown error'}`);
+        toast.error(`Failed to create asset: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
       console.error('Error creating asset:', error);
-      alert('Error creating asset. Please try again.');
+      toast.error('Error creating asset. Please try again.', { id: toastId });
     }
   };
 
