@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 // ============================================================================
 // INTERFACES
@@ -314,10 +315,11 @@ export default function NewInvoicePage() {
       }
 
       const data = await response.json();
+      toast.success(t('finance.invoice.draftSaved', 'Invoice draft saved successfully'));
       router.push(`/finance/invoices/${data.invoice._id}`);
     } catch (error) {
       console.error('Error saving draft:', error);
-      alert(t('common.error', 'An error occurred'));
+      toast.error(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);
     }
@@ -389,10 +391,11 @@ export default function NewInvoicePage() {
         setJournalPosted(true);
       }
 
+      toast.success(t('finance.invoice.created', 'Invoice created successfully'));
       router.push(`/finance/invoices/${data.invoice._id}`);
     } catch (error) {
       console.error('Error creating invoice:', error);
-      alert(t('common.error', 'An error occurred'));
+      toast.error(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);
     }
