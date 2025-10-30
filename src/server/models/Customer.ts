@@ -1,5 +1,5 @@
-import { Schema, model, models, Document, Types } from 'mongoose';
-import { tenantIsolationPlugin } from '../../../server/plugins/tenantIsolation';
+import { Schema, model, models } from 'mongoose';
+import tenantIsolationPlugin from '../plugins/tenantIsolation';
 import { auditPlugin } from '../../../server/plugins/auditPlugin';
 
 export interface ICustomer extends Document {

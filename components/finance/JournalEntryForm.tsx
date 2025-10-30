@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 // ============================================================================
@@ -106,11 +106,7 @@ export default function JournalEntryForm({
   // LIFECYCLE & DATA LOADING
   // ============================================================================
 
-  useEffect(() => {
-    loadChartOfAccounts();
-  }, []);
-
-  const loadChartOfAccounts = async () => {
+  const loadChartOfAccounts = useCallback(async () => {
     try {
       setLoadingAccounts(true);
       const response = await fetch('/api/finance/accounts?active=true');
@@ -131,7 +127,11 @@ export default function JournalEntryForm({
     } finally {
       setLoadingAccounts(false);
     }
-  };
+  }, [errors, lines]);
+
+  useEffect(() => {
+    loadChartOfAccounts();
+  }, [loadChartOfAccounts]);
 
   // ============================================================================
   // LINE MANAGEMENT
