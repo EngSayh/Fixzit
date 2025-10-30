@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,8 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Truck, Plus, Search, Star, MapPin, Eye, Edit, Trash2, Building2, Wrench, ShoppingCart, Users } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
-
-const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 // Helper functions
 const getTypeIcon = (type: string) => {
@@ -91,15 +90,34 @@ interface Vendor {
 
 export default function VendorsPage() {
   const { t } = useTranslation();
+  const { data: session } = useSession();
+  const orgId = session?.user?.orgId;
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
+  const fetcher = (url: string) => {
+    if (!orgId) {
+      return Promise.reject(new Error('No organization ID'));
+    }
+    return fetch(url, { 
+      headers: { 'x-tenant-id': orgId } 
+    }).then(r => r.json());
+  };
+
   const { data, mutate} = useSWR(
-    `/api/vendors?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}`,
+    orgId ? `/api/vendors?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}` : null,
     fetcher
   );
+
+  if (!session) {
+    return <p>Loading session...</p>;
+  }
+
+  if (!orgId) {
+    return <p>Error: No organization ID found in session</p>;
+  }
 
   const vendors = data?.items || [];
 
@@ -122,7 +140,7 @@ export default function VendorsPage() {
             <DialogHeader>
               <DialogTitle>{t('fm.vendors.addVendor', 'Add New Vendor')}</DialogTitle>
             </DialogHeader>
-            <CreateVendorForm onCreated={() => { mutate(); setCreateOpen(false); }} />
+            <CreateVendorForm orgId={orgId} onCreated={() => { mutate(); setCreateOpen(false); }} />
           </DialogContent>
         </Dialog>
       </div>
@@ -299,7 +317,7 @@ function VendorCard({ vendor }: { vendor: Vendor; onUpdated: () => void }) {
   }
 }
 
-function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
+function CreateVendorForm({ onCreated, orgId }: { onCreated: () => void; orgId: string }) {
   const { t } = useTranslation();
   
   const [formData, setFormData] = useState({
@@ -341,10 +359,19 @@ function CreateVendorForm({ onCreated }: { onCreated: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!orgId) {
+      alert('Error: No organization ID found');
+      return;
+    }
+
     try {
       const response = await fetch('/api/vendors', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'demo-tenant' },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'x-tenant-id': orgId 
+        },
         body: JSON.stringify(formData)
       });
 
