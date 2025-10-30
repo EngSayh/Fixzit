@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { CardGridSkeleton } from '@/components/skeletons';
 import { Users, Plus, Search, Mail, Phone, MapPin, Eye, Edit, Trash2, User, Building, Shield } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
@@ -59,13 +61,13 @@ export default function TenantsPage() {
     }).then(r => r.json());
   };
 
-  const { data, mutate } = useSWR(
+  const { data, mutate, isLoading } = useSWR(
     orgId ? `/api/tenants?search=${encodeURIComponent(search)}&type=${typeFilter}` : null,
     fetcher
   );
 
   if (!session) {
-    return <p>Loading session...</p>;
+    return <CardGridSkeleton count={6} />;
   }
 
   if (!orgId) {
@@ -129,25 +131,31 @@ export default function TenantsPage() {
       </Card>
 
       {/* Tenants Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {(tenants as Tenant[]).map((tenant) => (
-          <TenantCard key={tenant._id} tenant={tenant} onUpdated={mutate} />
-        ))}
-      </div>
+      {isLoading ? (
+        <CardGridSkeleton count={6} />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(tenants as Tenant[]).map((tenant) => (
+              <TenantCard key={tenant._id} tenant={tenant} onUpdated={mutate} />
+            ))}
+          </div>
 
-      {/* Empty State */}
-      {tenants.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Users className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.tenants.noTenants', 'No Tenants Found')}</h3>
-            <p className="text-gray-600 mb-4">{t('fm.tenants.noTenantsText', 'Get started by adding your first tenant.')}</p>
-            <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-secondary)] hover:bg-[var(--fixzit-secondary-dark)]">
-              <Plus className="w-4 h-4 mr-2" />
-              {t('fm.tenants.addTenant', 'Add Tenant')}
-            </Button>
-          </CardContent>
-        </Card>
+          {/* Empty State */}
+          {tenants.length === 0 && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Users className="w-12 h-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.tenants.noTenants', 'No Tenants Found')}</h3>
+                <p className="text-gray-600 mb-4">{t('fm.tenants.noTenantsText', 'Get started by adding your first tenant.')}</p>
+                <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-secondary)] hover:bg-[var(--fixzit-secondary-dark)]">
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t('fm.tenants.addTenant', 'Add Tenant')}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );
@@ -336,9 +344,11 @@ function CreateTenantForm({ onCreated, orgId }: { onCreated: () => void; orgId: 
     e.preventDefault();
 
     if (!orgId) {
-      alert('Error: No organization ID found');
+      toast.error('No organization ID found');
       return;
     }
+
+    const toastId = toast.loading('Creating tenant...');
 
     try {
       const response = await fetch('/api/tenants', {
@@ -351,14 +361,15 @@ function CreateTenantForm({ onCreated, orgId }: { onCreated: () => void; orgId: 
       });
 
       if (response.ok) {
+        toast.success('Tenant created successfully', { id: toastId });
         onCreated();
       } else {
         const error = await response.json();
-        alert(`Failed to create tenant: ${error.error || 'Unknown error'}`);
+        toast.error(`Failed to create tenant: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
       console.error('Error creating tenant:', error);
-      alert('Error creating tenant. Please try again.');
+      toast.error('Error creating tenant. Please try again.', { id: toastId });
     }
   };
 

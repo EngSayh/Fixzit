@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { CardGridSkeleton } from '@/components/skeletons';
 import { 
   FileText, Plus, Search, DollarSign, 
   MapPin, Eye, Send, Clock,
@@ -64,13 +66,13 @@ export default function RFQsPage() {
     }).then(r => r.json());
   };
 
-  const { data, mutate } = useSWR(
+  const { data, mutate, isLoading } = useSWR(
     orgId ? `/api/rfqs?search=${encodeURIComponent(search)}&status=${statusFilter}&category=${categoryFilter}` : null,
     fetcher
   );
 
   if (!session) {
-    return <p>Loading session...</p>;
+    return <CardGridSkeleton count={6} />;
   }
 
   if (!orgId) {
@@ -150,25 +152,31 @@ export default function RFQsPage() {
       </Card>
 
       {/* RFQs Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {(rfqs as RFQItem[]).map((rfq) => (
-          <RFQCard key={rfq._id} rfq={rfq} onUpdated={mutate} />
-        ))}
-      </div>
+      {isLoading ? (
+        <CardGridSkeleton count={6} />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(rfqs as RFQItem[]).map((rfq) => (
+              <RFQCard key={rfq._id} rfq={rfq} onUpdated={mutate} />
+            ))}
+          </div>
 
-      {/* Empty State */}
-      {rfqs.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No RFQs Found</h3>
-            <p className="text-gray-600 mb-4">Get started by creating your first request for quotation.</p>
-            <Button onClick={() => setCreateOpen(true)} className="bg-teal-600 hover:bg-teal-700">
-              <Plus className="w-4 h-4 mr-2" />
-              Create RFQ
-            </Button>
-          </CardContent>
-        </Card>
+          {/* Empty State */}
+          {rfqs.length === 0 && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <FileText className="w-12 h-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No RFQs Found</h3>
+                <p className="text-gray-600 mb-4">Get started by creating your first request for quotation.</p>
+                <Button onClick={() => setCreateOpen(true)} className="bg-teal-600 hover:bg-teal-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create RFQ
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );
@@ -373,9 +381,11 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
     e.preventDefault();
 
     if (!orgId) {
-      alert('Error: No organization ID found');
+      toast.error('No organization ID found');
       return;
     }
+
+    const toastId = toast.loading('Creating RFQ...');
 
     try {
       const response = await fetch('/api/rfqs', {
@@ -388,14 +398,15 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
       });
 
       if (response.ok) {
+        toast.success('RFQ created successfully', { id: toastId });
         onCreated();
       } else {
         const error = await response.json();
-        alert(`Failed to create RFQ: ${error.error || 'Unknown error'}`);
+        toast.error(`Failed to create RFQ: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
       console.error('Error creating RFQ:', error);
-      alert('Error creating RFQ. Please try again.');
+      toast.error('Error creating RFQ. Please try again.', { id: toastId });
     }
   };
 
