@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Pagination } from '@/components/ui/pagination';
+import { CardGridSkeleton } from '@/components/skeletons';
 import { 
   FileText, Plus, Search, DollarSign, 
   QrCode, Send, Eye, Download, Mail, CheckCircle,
@@ -71,6 +74,8 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   const fetcher = (url: string) => {
     if (!orgId) {
@@ -81,23 +86,31 @@ export default function InvoicesPage() {
     }).then(r => r.json());
   };
 
-  const { data, mutate } = useSWR(
-    orgId ? `/api/finance/invoices?q=${encodeURIComponent(search)}&status=${statusFilter}&type=${typeFilter}` : null,
+  const { data, mutate, isLoading } = useSWR(
+    orgId ? `/api/finance/invoices?q=${encodeURIComponent(search)}&status=${statusFilter}&type=${typeFilter}&page=${currentPage}&limit=${itemsPerPage}` : null,
     fetcher
   );
 
   if (!session) {
-    return <p>Loading session...</p>;
+    return <CardGridSkeleton count={6} />;
   }
 
   if (!orgId) {
-    return <p>Error: No organization ID found in session</p>;
+    return (
+      <div className="text-center py-12">
+        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <p className="text-red-600">Error: No organization ID found in session</p>
+      </div>
+    );
   }
 
   const invoices: Invoice[] = (data?.data || []).map((inv: Invoice) => ({
     ...inv,
     _id: inv.id
   }));
+  
+  const totalPages = data?.pagination?.pages || 1;
+  const totalItems = data?.pagination?.total || 0;
 
   return (
     <div className="space-y-6">
@@ -236,25 +249,42 @@ export default function InvoicesPage() {
       </Card>
 
       {/* Invoices Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {invoices.map((invoice: Invoice) => (
-          <InvoiceCard key={invoice._id} invoice={invoice} onUpdated={mutate} orgId={orgId} />
-        ))}
-      </div>
+      {isLoading ? (
+        <CardGridSkeleton count={itemsPerPage} />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {invoices.map((invoice: Invoice) => (
+              <InvoiceCard key={invoice._id} invoice={invoice} onUpdated={mutate} orgId={orgId} />
+            ))}
+          </div>
 
-      {/* Empty State */}
-      {invoices.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.invoices.noInvoices', 'No Invoices Found')}</h3>
-            <p className="text-gray-600 mb-4">{t('fm.invoices.noInvoicesText', 'Get started by creating your first invoice.')}</p>
-            <Button onClick={() => setCreateOpen(true)} className="bg-emerald-600 hover:bg-emerald-700">
-              <Plus className="w-4 h-4 mr-2" />
-              {t('fm.invoices.createInvoice', 'Create Invoice')}
-            </Button>
-          </CardContent>
-        </Card>
+          {/* Empty State */}
+          {invoices.length === 0 && !isLoading && (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <FileText className="w-12 h-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.invoices.noInvoices', 'No Invoices Found')}</h3>
+                <p className="text-gray-600 mb-4">{t('fm.invoices.noInvoicesText', 'Get started by creating your first invoice.')}</p>
+                <Button onClick={() => setCreateOpen(true)} className="bg-emerald-600 hover:bg-emerald-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  {t('fm.invoices.createInvoice', 'Create Invoice')}
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Pagination */}
+          {totalItems > itemsPerPage && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+            />
+          )}
+        </>
       )}
     </div>
   );
@@ -264,33 +294,36 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
   const { t } = useTranslation();
   
   const _handleView = () => {
-    // Placeholder: Navigate to invoice detail or open modal
-    console.log('View invoice:', invoice._id);
+    toast.info('Invoice detail view coming soon');
   };
 
   const _handleDownload = () => {
-    // Placeholder: Download invoice PDF
-    console.log('Download invoice:', invoice._id);
+    toast.info('PDF download coming soon');
   };
 
   const _handleSend = async () => {
     if (!orgId) {
-      console.error('No organization ID found');
+      toast.error('No organization ID found');
       return;
     }
 
+    const toastId = toast.loading('Sending invoice...');
+    
     try {
       const response = await fetch(`/api/finance/invoices/${invoice._id}/send`, {
         method: 'POST',
         headers: { 'x-tenant-id': orgId }
       });
+      
       if (response.ok) {
+        toast.success('Invoice sent successfully', { id: toastId });
         onUpdated();
       } else {
         const error = await response.json();
-        console.error('Send failed:', error);
+        toast.error(`Failed to send invoice: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
+      toast.error('An error occurred while sending the invoice', { id: toastId });
       console.error('Send error:', error);
     }
   };

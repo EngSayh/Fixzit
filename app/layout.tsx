@@ -3,6 +3,7 @@
 import "./globals.css";
 import Providers from "@/providers/Providers";
 import ClientLayout from "@/components/ClientLayout";
+import { Toaster } from 'sonner';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -12,6 +13,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ClientLayout>
             {children}
           </ClientLayout>
+          <Toaster 
+            position="top-right"
+            richColors
+            closeButton
+            duration={4000}
+          />
         </Providers>
       </body>
     </html>
