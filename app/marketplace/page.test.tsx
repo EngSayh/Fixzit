@@ -1,18 +1,8 @@
 import { vi } from 'vitest';
 /**
- * Tests for app/marketplace/page.tsx
- *
- * Testing framework: Jest
- * Testing library: React Testing Library (@testing-library/react) with @testing-library/jest-dom
- *
- * Focus:
- * - Ensures the page renders without errors.
- * - Verifies next/dynamic is called with { ssr: false }.
- * - Confirms the page renders the dynamic CatalogView placeholder (mock).
- *
- * Notes:
- * - We mock next/dynamic to avoid executing the dynamic import and to assert its call args.
- * - We do NOT execute the loader fn, avoiding the need to resolve path aliases (e.g., "@/").
+ * @file Marketplace homepage test
+ * @description Verifies Marketplace page rendering, CatalogView props, dynamic import ssr:false
+ * Testing framework: Vitest
  */
 
 import React from 'react';

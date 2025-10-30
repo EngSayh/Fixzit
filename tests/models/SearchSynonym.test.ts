@@ -1,5 +1,5 @@
 // Tests for SearchSynonym model selection and schema behavior
-// Framework: Jest (adapt if project uses Vitest by replacing jest with vi and expect APIs as needed)
+// Framework: Vitest by replacing jest with vi and expect APIs as needed)
 
 import path from "path"
 

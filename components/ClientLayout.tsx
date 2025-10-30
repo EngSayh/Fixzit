@@ -158,7 +158,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     }
   );
 
-  // Public/landing pages => full layout with widgets but no sidebar
+  // Public/landing pages => full layout with TopBar and Footer but no sidebar
   if (isLandingPage) {
     return (
       <>
@@ -167,7 +167,9 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           <AutoFixInitializer />
           <AutoIncidentReporter />
           <PreferenceBroadcast />
+          <TopBar />
           {children}
+          <Footer />
           <CopilotWidget />
         </div>
       </>

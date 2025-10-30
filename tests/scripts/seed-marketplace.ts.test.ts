@@ -1,7 +1,9 @@
+import { vi } from 'vitest';
+
 /**
  * Tests for scripts/seed-marketplace.ts
  *
- * Test framework: Jest (TypeScript). If this repo uses Vitest, replace jest.* with vi.* and adjust imports accordingly.
+ * Test framework: Vitest (TypeScript)
  *
  * These tests validate:
  * - Idempotent seeding behavior (upsert create vs update).
@@ -15,7 +17,7 @@
  * - Dynamically import the seed script after configuring mocks, as the script invokes main() at module load.
  */
 
-type AnyRec = Record<string, any>;
+type AnyRec = Record<string, unknown>;
 
 // Utilities for a controllable in-memory mock of MockDatabase collections
 const makeCollections = () => ({

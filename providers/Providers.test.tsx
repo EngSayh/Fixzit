@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 /**
- * Test framework: Jest with React Testing Library (RTL) + JSDOM
+ * Test framework: Vitest with React Testing Library (RTL) + JSDOM
  * If this project uses Vitest, replace jest import aliases with vitest and keep RTL usage.
  */
 import React from 'react';

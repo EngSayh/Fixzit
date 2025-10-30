@@ -1,7 +1,7 @@
 /**
- * Test framework: Jest + TypeScript
+ * Test framework: Vitest
  * These tests validate computeSlaMinutes and computeDueAt, covering happy paths, edge cases, and failure-like inputs.
- * If your project uses Vitest, you can run them as-is in most cases, or replace jest-specific globals accordingly.
+ * Tests use Vitest APIs (describe, it, expect)
  */
 
 import { computeSlaMinutes, computeDueAt } from '../sla';
