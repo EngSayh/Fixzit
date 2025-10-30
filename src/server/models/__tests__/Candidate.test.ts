@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Test framework: Jest (TypeScript via ts-jest if configured).
  *
@@ -39,7 +40,7 @@ describe('Candidate model - findByEmail', () => {
           Schema: SchemaCtor,
           // Candidate.ts references these but won't use in mock path:
           models: {},
-          model: jest.fn((_name: string, _schema: unknown) => ({ findOne: jest.fn() })),
+          model: vi.fn((_name: string, _schema: unknown) => ({ findOne: vi.fn() })),
           // Export type helper symbol, unused at runtime:
           InferSchemaType: {} as any,
         };
@@ -48,7 +49,7 @@ describe('Candidate model - findByEmail', () => {
       // Mock MockModel to capture interactions
       class FakeMockModel {
         public storeName: string;
-        static find = jest.fn();
+        static find = vi.fn();
         constructor(name: string) {
           this.storeName = name;
         }
@@ -70,7 +71,7 @@ describe('Candidate model - findByEmail', () => {
 
       jest.doMock('@/lib/mockDb', () => {
         return {
-          MockModel: jest.fn().mockImplementation(instanceFactory),
+          MockModel: vi.fn().mockImplementation(instanceFactory),
         };
       }, { virtual: true });
     });
@@ -93,7 +94,7 @@ describe('Candidate model - findByEmail', () => {
 
       // We set the mock to resolve to array
       // We need access to the mocked find. Locate via Candidate since we did not export it, but we can rely on our mock captured function.
-      // As we mocked MockModel to return an instance where find is a jest.fn, we can retrieve it by spying on (Candidate as any).find
+      // As we mocked MockModel to return an instance where find is a vi.fn, we can retrieve it by spying on (Candidate as any).find
       const findFn = (Candidate as any).find;
 
       findFn.mockResolvedValueOnce([first, second]);
@@ -137,12 +138,12 @@ describe('Candidate model - findByEmail', () => {
         constructor(..._args: any[]) {}
       };
 
-      findOneSpy = jest.fn() as any;
+      findOneSpy = vi.fn() as any;
 
       // The module under test will set:
       // const RealCandidate = models.Candidate || model('Candidate', CandidateSchema);
       // We choose models.Candidate undefined so it uses model(...).
-      const modelMock = jest.fn((_name: string, _schema: unknown) => ({ findOne: findOneSpy }));
+      const modelMock = vi.fn((_name: string, _schema: unknown) => ({ findOne: findOneSpy }));
 
       jest.doMock('mongoose', () => {
         return {
@@ -191,9 +192,9 @@ describe('Candidate schema defaults (smoke via mocked mongoose)', () => {
       };
 
       // Simulate a simple in-memory doc creation applying defaults
-      const modelMock = jest.fn((_name: string, _schema: unknown) => {
+      const modelMock = vi.fn((_name: string, _schema: unknown) => {
         return {
-          create: jest.fn((doc: any) => {
+          create: vi.fn((doc: any) => {
             return {
               skills: [],
               experience: 0,
@@ -238,15 +239,15 @@ describe('Candidate schema defaults (smoke via mocked mongoose)', () => {
         constructor(..._args: any[]) {}
       };
 
-      const createSpy = jest.fn((doc: any) => ({
+      const createSpy = vi.fn((doc: any) => ({
         skills: [],
         experience: 0,
         ...doc,
       }));
 
-      const modelMock = jest.fn((_name: string, _schema: unknown) => ({
+      const modelMock = vi.fn((_name: string, _schema: unknown) => ({
         create: createSpy,
-        findOne: jest.fn(),
+        findOne: vi.fn(),
       }));
 
       jest.doMock('mongoose', () => ({

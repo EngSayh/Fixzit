@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Tests for app/marketplace/page.tsx
  *
@@ -19,7 +20,7 @@ import { render, screen } from '@testing-library/react';
 // If the project does not have a global setup importing jest-dom, uncomment the next line:
 // import '@testing-library/jest-dom';
 
-const dynamicMock = jest.fn(() => {
+const dynamicMock = vi.fn(() => {
   // Return a stub component; attach metadata for validation if needed
   const Stub: React.FC = () => <div data-testid="catalog-view-stub" />;
   // Preserve options for further assertions via the mock.calls array
@@ -27,7 +28,7 @@ const dynamicMock = jest.fn(() => {
   return Stub;
 });
 
-jest.mock('next/dynamic', () => ({
+vi.mock('next/dynamic', () => ({
   __esModule: true,
   default: dynamicMock,
 }));

@@ -7,6 +7,7 @@
  */
 
 import { NextRequest } from 'next/server';
+import { vi } from 'vitest';
 
 // Module under test: we import the GET handler from the route module sitting next to this test file.
 // If your route file name differs (e.g., route.ts), adjust the import accordingly.
@@ -17,7 +18,7 @@ import { GET } from './route';
 // We mock the db to avoid real connections, and RFQ model methods used in the handler:
 // - RFQ.find(...).sort(...).skip(...).limit(...).lean()
 // - RFQ.countDocuments(...)
-jest.mock('@/lib/mongo', () => ({
+vi.mock('@/lib/mongo', () => ({
   db: Promise.resolve()
 }));
 
@@ -26,10 +27,10 @@ type RFQDoc = Record<string, any>;
 const findExecChain = () => {
   // Build a chainable mock for Mongoose-like query:
   const chain: any = {
-    sort: jest.fn().mockReturnThis(),
-    skip: jest.fn().mockReturnThis(),
-    limit: jest.fn().mockReturnThis(),
-    lean: jest.fn()
+    sort: vi.fn().mockReturnThis(),
+    skip: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    lean: vi.fn()
   };
   return chain;
 };
@@ -37,11 +38,11 @@ const findExecChain = () => {
 const mockFindChain = findExecChain();
 
 const RFQMock = {
-  find: jest.fn(() => mockFindChain),
-  countDocuments: jest.fn()
+  find: vi.fn(() => mockFindChain),
+  countDocuments: vi.fn()
 };
 
-jest.mock('@/server/models/RFQ', () => ({
+vi.mock('@/server/models/RFQ', () => ({
   RFQ: RFQMock
 }));
 

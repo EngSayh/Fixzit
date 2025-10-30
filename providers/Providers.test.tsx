@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Test framework: Jest with React Testing Library (RTL) + JSDOM
  * If this project uses Vitest, replace jest import aliases with vitest and keep RTL usage.
@@ -8,25 +9,25 @@ import Providers from './Providers';
 
 // Mock nested providers and ErrorBoundary to isolate Providers behavior.
 // We mock minimal render output to assert nesting and prop passing.
-jest.mock('@/contexts/ResponsiveContext', () => ({
+vi.mock('@/contexts/ResponsiveContext', () => ({
   ResponsiveProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="responsive-provider">{children}</div>
   ),
 }));
 
-jest.mock('@/contexts/TranslationContext', () => ({
+vi.mock('@/contexts/TranslationContext', () => ({
   TranslationProvider: ({ children, initialLocale }: { children: React.ReactNode; initialLocale?: string }) => (
     <div data-testid="translation-provider" data-locale={initialLocale || ''}>{children}</div>
   ),
 }));
 
-jest.mock('@/contexts/CurrencyContext', () => ({
+vi.mock('@/contexts/CurrencyContext', () => ({
   CurrencyProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="currency-provider">{children}</div>
   ),
 }));
 
-jest.mock('@/contexts/ThemeContext', () => ({
+vi.mock('@/contexts/ThemeContext', () => ({
   ThemeProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="theme-provider">{children}</div>
   ),
@@ -48,7 +49,7 @@ afterAll(() => {
   console.error = ConsoleError;
 });
 
-jest.mock('@/components/ErrorBoundary', () => {
+vi.mock('@/components/ErrorBoundary', () => {
   const React = require('react');
   const Fallback = ({ error }: { error?: Error }) => (
     <div role="alert" data-testid="error-fallback">

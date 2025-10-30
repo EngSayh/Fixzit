@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -6,11 +7,11 @@ import { SWRConfig, mutate as globalMutate } from 'swr';
 // Import the component from its actual location
 import WorkOrdersViewDefault, { WorkOrdersView } from '../WorkOrdersView';
 
-jest.mock('date-fns', () => {
+vi.mock('date-fns', () => {
   const actual = jest.requireActual('date-fns');
   return {
     ...actual,
-    formatDistanceToNowStrict: jest.fn((date: Date) => {
+    formatDistanceToNowStrict: vi.fn((date: Date) => {
       // Provide a deterministic label for tests based on timestamp relation to "now"
       const now = Date.now();
       const diffMs = date.getTime() - now;
@@ -31,9 +32,9 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => (
 // JSDOM has localStorage; ensure clean state
 beforeEach(() => {
   jest.useFakeTimers();
-  (global as any).fetch = jest.fn();
+  (global as any).fetch = vi.fn();
   (window.localStorage as any).clear();
-  (window as any).alert = jest.fn();
+  (window as any).alert = vi.fn();
   // Clear SWR cache before each test
   globalMutate(() => true, undefined, { revalidate: false });
 });

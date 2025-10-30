@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 // Tests for GET handler in search route
 // Framework: Jest (TypeScript)
 // These tests mock Mongoose-like models and Next.js Response behavior.

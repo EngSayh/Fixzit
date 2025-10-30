@@ -1,7 +1,8 @@
+import { vi } from 'vitest';
 /**
  * Tests for PayTabs callback API route.
  *
- * Framework: Jest-style (describe/it/expect). If using Vitest, replace jest.fn with vi.fn and adjust mocks accordingly.
+ * Framework: Jest-style (describe/it/expect). If using Vitest, replace vi.fn with vi.fn and adjust mocks accordingly.
  *
  * Scenarios covered:
  * - Invalid signature -> 401 with { ok: false, error: 'Invalid signature' }

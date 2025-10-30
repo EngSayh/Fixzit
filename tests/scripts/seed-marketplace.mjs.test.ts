@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Test framework: Jest (with ts-jest for TypeScript).
  * If using a different runner (e.g., Vitest), adapt the mock and assertion APIs accordingly.
