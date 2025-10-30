@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { StatsCardSkeleton } from '@/components/skeletons';
 import { 
   Building2, Users, Wrench, DollarSign, 
   ClipboardList,
@@ -73,13 +74,15 @@ export default function DashboardPage() {
   };
 
   // Fetch dashboard data
-  const { data: workOrders } = useSWR(orgId ? '/api/work-orders?limit=5' : null, fetcher);
-  const { data: properties } = useSWR(orgId ? '/api/properties?limit=5' : null, fetcher);
-  const { data: assets } = useSWR(orgId ? '/api/assets?status=MAINTENANCE&limit=5' : null, fetcher);
-  const { data: invoices } = useSWR(orgId ? '/api/finance/invoices?status=OVERDUE&limit=5' : null, fetcher);
+  const { data: workOrders, isLoading: woLoading } = useSWR(orgId ? '/api/work-orders?limit=5' : null, fetcher);
+  const { data: properties, isLoading: propsLoading } = useSWR(orgId ? '/api/properties?limit=5' : null, fetcher);
+  const { data: assets, isLoading: assetsLoading } = useSWR(orgId ? '/api/assets?status=MAINTENANCE&limit=5' : null, fetcher);
+  const { data: invoices, isLoading: invoicesLoading } = useSWR(orgId ? '/api/finance/invoices?status=OVERDUE&limit=5' : null, fetcher);
+
+  const isLoading = woLoading || propsLoading || assetsLoading || invoicesLoading;
 
   if (!session) {
-    return <p>Loading session...</p>;
+    return <StatsCardSkeleton count={4} />;
   }
 
   if (!orgId) {
