@@ -3,7 +3,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, LogIn, Mail, Lock, AlertCircle, Check, AlertTriangle } from 'lucide-react';
+import { 
+  Eye, EyeOff, LogIn, Mail, Lock, AlertCircle, Check, AlertTriangle,
+  User, Shield, Building2, Users, ArrowRight, Apple
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -17,8 +20,72 @@ interface FormErrors {
   general?: string;
 }
 
+const DEMO_CREDENTIALS = [
+  {
+    role: 'Super Admin',
+    email: 'superadmin@fixzit.co',
+    password: 'password123',
+    description: 'Full system access',
+    icon: Shield,
+    color: 'bg-red-100 text-red-800'
+  },
+  {
+    role: 'Admin',
+    email: 'admin@fixzit.co',
+    password: 'password123',
+    description: 'Administrative access',
+    icon: User,
+    color: 'bg-blue-100 text-blue-800'
+  },
+  {
+    role: 'Property Manager',
+    email: 'manager@fixzit.co',
+    password: 'password123',
+    description: 'Property management',
+    icon: Building2,
+    color: 'bg-green-100 text-green-800'
+  },
+  {
+    role: 'Tenant',
+    email: 'tenant@fixzit.co',
+    password: 'password123',
+    description: 'Tenant portal access',
+    icon: Users,
+    color: 'bg-purple-100 text-purple-800'
+  },
+  {
+    role: 'Vendor',
+    email: 'vendor@fixzit.co',
+    password: 'password123',
+    description: 'Vendor marketplace access',
+    icon: Users,
+    color: 'bg-orange-100 text-orange-800'
+  }
+];
+
+const CORPORATE_CREDENTIALS = [
+  {
+    role: 'Property Manager (Corporate)',
+    employeeNumber: 'EMP001',
+    password: 'password123',
+    description: 'Corporate account access',
+    icon: Building2,
+    color: 'bg-green-100 text-green-800'
+  },
+  {
+    role: 'Admin (Corporate)',
+    employeeNumber: 'EMP002',
+    password: 'password123',
+    description: 'Corporate administrative access',
+    icon: User,
+    color: 'bg-blue-100 text-blue-800'
+  }
+];
+
 export default function LoginPage() {
-  const [identifier, setIdentifier] = useState('');
+  const [loginMethod, setLoginMethod] = useState<'personal' | 'corporate' | 'sso'>('personal');
+  const [email, setEmail] = useState('');
+  const [employeeNumber, setEmployeeNumber] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -31,65 +98,66 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const { t, isRTL } = useTranslation();
 
-  // Get redirect target from query params (?next= or ?callbackUrl=)
   const redirectTarget = searchParams.get('next') || searchParams.get('callbackUrl') || null;
-
-  const showDemoLink =
-    process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true' || process.env.NODE_ENV === 'development';
+  const showDemoCredentials = process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true' || process.env.NODE_ENV === 'development';
 
   const emailRegex = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
   const empRegex = useMemo(() => /^EMP\d+$/i, []);
 
-  // Detect identifier type for dynamic inputMode
-  const identifierType: 'email' | 'text' | 'numeric' = useMemo(() => {
-    const trimmed = identifier.trim();
-    if (!trimmed) return 'text';
-    if (emailRegex.test(trimmed)) return 'email';
-    if (/^\d+$/.test(trimmed)) return 'numeric';
-    return 'text';
-  }, [identifier, emailRegex]);
+  // Quick login helper
+  const quickLogin = (credential: typeof DEMO_CREDENTIALS[0] | typeof CORPORATE_CREDENTIALS[0]) => {
+    if ('email' in credential) {
+      setEmail(credential.email);
+      setLoginMethod('personal');
+    } else {
+      setEmployeeNumber(credential.employeeNumber);
+      setLoginMethod('corporate');
+    }
+    setPassword(credential.password);
+    setErrors({});
+  };
 
-  // Caps lock detection on password field
+  // Caps lock detection
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.getModifierState && e.getModifierState('CapsLock')) {
-        setCapsLockOn(true);
+    const handleKeyEvent = (e: KeyboardEvent) => {
+      if (e.getModifierState) {
+        setCapsLockOn(e.getModifierState('CapsLock'));
       }
     };
 
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.getModifierState && !e.getModifierState('CapsLock')) {
-        setCapsLockOn(false);
-      }
-    };
-
-    // Attach listeners to password field when it's focused
     const passwordInput = document.getElementById('password');
     if (passwordInput) {
-      passwordInput.addEventListener('keydown', handleKeyDown as EventListener);
-      passwordInput.addEventListener('keyup', handleKeyUp as EventListener);
+      passwordInput.addEventListener('keydown', handleKeyEvent as EventListener);
+      passwordInput.addEventListener('keyup', handleKeyEvent as EventListener);
     }
 
     return () => {
       if (passwordInput) {
-        passwordInput.removeEventListener('keydown', handleKeyDown as EventListener);
-        passwordInput.removeEventListener('keyup', handleKeyUp as EventListener);
+        passwordInput.removeEventListener('keydown', handleKeyEvent as EventListener);
+        passwordInput.removeEventListener('keyup', handleKeyEvent as EventListener);
       }
     };
   }, []);
 
   const clearError = (field: keyof FormErrors) => {
     if (errors[field]) setErrors(prev => {
-      const copy = { ...prev }; delete copy[field]; return copy;
+      const copy = { ...prev };
+      delete copy[field];
+      return copy;
     });
   };
 
-  const validateIdentifier = (value: string): string | null => {
+  const validateEmail = (value: string): string | null => {
     const v = value.trim();
-    if (!v) return t('login.errors.identifierRequired', 'Email or employee number is required');
-    if (!emailRegex.test(v) && !empRegex.test(v)) {
-      return t('login.errors.identifierInvalid', 'Enter a valid email or employee number (e.g., EMP001)');
-    }
+    if (!v) return t('login.errors.emailRequired', 'Email is required');
+    if (!emailRegex.test(v)) return t('login.errors.emailInvalid', 'Enter a valid email address');
+    return null;
+  };
+
+  const validateEmployeeNumber = (value: string): string | null => {
+    const v = value.trim();
+    if (!v) return t('login.errors.employeeRequired', 'Employee number is required');
+    if (!empRegex.test(v)) return t('login.errors.employeeInvalid', 'Enter a valid employee number (e.g., EMP001)');
     return null;
   };
 
@@ -101,21 +169,25 @@ export default function LoginPage() {
 
   const validateForm = (): boolean => {
     const next: FormErrors = {};
-    const idErr = validateIdentifier(identifier);
-    if (idErr) next.identifier = idErr;
+    
+    if (loginMethod === 'personal') {
+      const emailErr = validateEmail(email);
+      if (emailErr) next.identifier = emailErr;
+    } else if (loginMethod === 'corporate') {
+      const empErr = validateEmployeeNumber(employeeNumber);
+      if (empErr) next.identifier = empErr;
+    }
+    
     const pwErr = validatePassword(password);
     if (pwErr) next.password = pwErr;
+    
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
   const postLoginRouteFor = (role?: string): string => {
-    // Prioritize redirectTarget from query params
-    if (redirectTarget) {
-      // Security: Validate that redirect is relative (starts with /) to prevent open redirects
-      if (redirectTarget.startsWith('/') && !redirectTarget.startsWith('//')) {
-        return redirectTarget;
-      }
+    if (redirectTarget && redirectTarget.startsWith('/') && !redirectTarget.startsWith('//')) {
+      return redirectTarget;
     }
 
     const r = (role || '').toUpperCase();
@@ -127,17 +199,17 @@ export default function LoginPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loginMethod === 'sso') return;
+
     if (!validateForm()) return;
 
     setLoading(true);
     setErrors({});
+
     try {
-      const id = identifier.trim();
-      // Build payload explicitly for backend contract
-      const payload =
-        emailRegex.test(id)
-          ? { email: id, password, rememberMe, loginType: 'personal' as const }
-          : { employeeNumber: id, password, rememberMe, loginType: 'corporate' as const };
+      const payload = loginMethod === 'personal'
+        ? { email: email.trim(), password, rememberMe, loginType: 'personal' as const }
+        : { employeeNumber: employeeNumber.trim(), password, rememberMe, loginType: 'corporate' as const };
 
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -146,13 +218,16 @@ export default function LoginPage() {
         body: JSON.stringify(payload),
       });
 
-      // Try JSON, fall back to generic object
       let data: { ok?: boolean; status?: number; error?: string; fieldErrors?: FormErrors; user?: { role?: string }; redirectTo?: string; preferredPath?: string } = {};
-      try { data = await res.json(); } catch { data = { ok: res.ok, status: res.status }; }
+      try {
+        data = await res.json();
+      } catch {
+        data = { ok: res.ok, status: res.status };
+      }
 
       if (!res.ok) {
         if (res.status === 401) {
-          setErrors({ general: data.error || t('login.errors.invalidCredentials', 'Invalid email/employee number or password') });
+          setErrors({ general: data.error || t('login.errors.invalidCredentials', 'Invalid credentials') });
         } else if (res.status === 429) {
           setErrors({ general: t('login.errors.tooManyAttempts', 'Too many login attempts. Please try again later.') });
         } else if (res.status === 400 && data.fieldErrors) {
@@ -165,23 +240,23 @@ export default function LoginPage() {
 
       if (data?.ok !== false) {
         if (data.user?.role) {
-          try { localStorage.setItem('fixzit-role', data.user.role); } catch { /* ignore */ }
+          try {
+            localStorage.setItem('fixzit-role', data.user.role);
+          } catch {
+            /* ignore */
+          }
         }
         setSuccess(true);
 
-        const redirectTo: string =
-          data?.redirectTo ||
-          data?.preferredPath ||
-          postLoginRouteFor(data?.user?.role);
+        const redirectTo = data?.redirectTo || data?.preferredPath || postLoginRouteFor(data?.user?.role);
 
         setTimeout(() => {
-          // replace to avoid leaving /login in history
           router.replace(redirectTo);
         }, 800);
       }
     } catch (err) {
       console.error('Login error:', err);
-      setErrors({ general: t('login.errors.networkError', 'Network error. Please check your connection and try again.') });
+      setErrors({ general: t('login.errors.networkError', 'Network error. Please check your connection.') });
     } finally {
       setLoading(false);
     }
@@ -233,170 +308,317 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={onSubmit} className="space-y-5" noValidate data-testid="login-form">
-            {/* Identifier */}
-            <div>
-              <label htmlFor="identifier" className="block text-sm font-medium text-gray-700 mb-2">
-                {t('login.identifier', 'Email or Employee Number')}
-              </label>
-              <div className="relative">
-                <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400`} />
-                <Input
-                  id="identifier"
-                  data-testid="login-email"
-                  name="identifier"
-                  type="text"
-                  inputMode={identifierType}
-                  enterKeyHint="next"
-                  autoComplete="username email"
-                  placeholder={t('login.identifierPlaceholder', 'you@example.com or EMP001')}
-                  value={identifier}
-                  onChange={(e) => { setIdentifier(e.target.value); clearError('identifier'); clearError('general'); }}
-                  className={`${isRTL ? 'pr-10 text-right' : 'pl-10'} h-12 ${errors.identifier ? 'border-red-500 focus:ring-red-500' : ''}`}
-                  aria-invalid={!!errors.identifier}
-                  aria-describedby={errors.identifier ? 'identifier-error' : 'identifier-hint'}
-                  disabled={loading}
-                  autoFocus
-                  required
-                />
-              </div>
-              <p id="identifier-hint" className="mt-1 text-xs text-gray-500">
-                {t('login.identifierHint', 'Enter your email address or employee number (EMP001, EMP002, etc.)')}
-              </p>
-              {empRegex.test(identifier.trim()) && !errors.identifier && (
-                <p className="mt-1 text-xs text-blue-600 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  {t('login.corporateHelp', 'Use Employee Number + Password. No separate Corporate Number field needed.')}
-                </p>
-              )}
-              {errors.identifier && (
-                <p id="identifier-error" className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  {errors.identifier}
-                </p>
-              )}
-            </div>
+          {/* Login Method Tabs */}
+          <div className={`flex bg-gray-100 rounded-lg p-1 mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <button
+              type="button"
+              onClick={() => setLoginMethod('personal')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                loginMethod === 'personal'
+                  ? 'bg-brand-500 text-white'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              {t('login.personalEmailTab', 'Personal Email')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginMethod('corporate')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                loginMethod === 'corporate'
+                  ? 'bg-brand-500 text-white'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              {t('login.corporateAccountTab', 'Corporate Account')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginMethod('sso')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                loginMethod === 'sso'
+                  ? 'bg-brand-500 text-white'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              {t('login.ssoLoginTab', 'SSO Login')}
+            </button>
+          </div>
 
-            {/* Password */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  {t('common.password', 'Password')}
+          {/* Form - Personal & Corporate */}
+          {(loginMethod === 'personal' || loginMethod === 'corporate') && (
+            <form onSubmit={onSubmit} className="space-y-5" noValidate data-testid="login-form">
+              {/* Email or Employee Number */}
+              <div>
+                <label htmlFor={loginMethod === 'personal' ? 'email' : 'employeeNumber'} className="block text-sm font-medium text-gray-700 mb-2">
+                  {loginMethod === 'personal' 
+                    ? t('login.personalEmail', 'Personal Email Address')
+                    : t('login.employeeNumber', 'Employee Number')}
                 </label>
-                <Link href="/forgot-password" className="text-sm text-brand-500 hover:text-brand-600 transition-colors">
-                  {t('common.forgotPassword', 'Forgot?')}
-                </Link>
+                <div className="relative">
+                  {loginMethod === 'personal' ? (
+                    <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400`} />
+                  ) : (
+                    <User className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400`} />
+                  )}
+                  <Input
+                    id={loginMethod === 'personal' ? 'email' : 'employeeNumber'}
+                    data-testid="login-email"
+                    type="text"
+                    inputMode={loginMethod === 'personal' ? 'email' : 'text'}
+                    enterKeyHint="next"
+                    autoComplete={loginMethod === 'personal' ? 'email' : 'username'}
+                    placeholder={loginMethod === 'personal' 
+                      ? t('login.enterEmail', 'Enter your personal email')
+                      : t('login.enterEmployeeNumber', 'Enter your employee number')}
+                    value={loginMethod === 'personal' ? email : employeeNumber}
+                    onChange={(e) => {
+                      if (loginMethod === 'personal') {
+                        setEmail(e.target.value);
+                      } else {
+                        setEmployeeNumber(e.target.value);
+                      }
+                      clearError('identifier');
+                      clearError('general');
+                    }}
+                    className={`${isRTL ? 'pr-10 text-right' : 'pl-10'} h-12 ${errors.identifier ? 'border-red-500 focus:ring-red-500' : ''}`}
+                    aria-invalid={!!errors.identifier}
+                    disabled={loading}
+                    autoFocus
+                    required
+                  />
+                </div>
+                {loginMethod === 'corporate' && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    {t('login.corporateHelp', 'Use your employee number and password. No separate corporate ID needed.')}
+                  </p>
+                )}
+                {errors.identifier && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.identifier}
+                  </p>
+                )}
               </div>
-              <div className="relative">
-                <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400`} />
-                <Input
-                  id="password"
-                  data-testid="login-password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  inputMode="text"
-                  enterKeyHint="send"
-                  autoComplete="current-password"
-                  placeholder={t('login.passwordPlaceholder', 'Enter your password')}
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); clearError('password'); clearError('general'); }}
-                  className={`${isRTL ? 'pr-10 pl-10' : 'pl-10 pr-10'} h-12 ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
-                  style={{ direction: 'ltr', textAlign: isRTL ? 'right' : 'left' }}
-                  aria-invalid={!!errors.password}
-                  aria-describedby={errors.password ? 'password-error' : capsLockOn ? 'caps-lock-warning' : undefined}
+
+              {/* Password */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    {t('common.password', 'Password')}
+                  </label>
+                  <Link href="/forgot-password" className="text-sm text-brand-500 hover:text-brand-600 transition-colors">
+                    {t('common.forgotPassword', 'Forgot?')}
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400`} />
+                  <Input
+                    id="password"
+                    data-testid="login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    inputMode="text"
+                    enterKeyHint="send"
+                    autoComplete="current-password"
+                    placeholder={t('login.enterPassword', 'Enter your password')}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      clearError('password');
+                      clearError('general');
+                    }}
+                    className={`${isRTL ? 'pr-10 pl-10' : 'pl-10 pr-10'} h-12 ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
+                    style={{ direction: 'ltr', textAlign: isRTL ? 'right' : 'left' }}
+                    aria-invalid={!!errors.password}
+                    disabled={loading}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(s => !s)}
+                    className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600`}
+                    aria-label={showPassword ? t('login.hidePassword', 'Hide password') : t('login.showPassword', 'Show password')}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                {capsLockOn && (
+                  <p className="mt-1 text-sm text-yellow-600 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    {t('login.capsLockOn', 'Caps Lock is on')}
+                  </p>
+                )}
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.password}
+                  </p>
+                )}
+              </div>
+
+              {/* Remember Me */}
+              <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 text-brand-500 border-gray-300 rounded focus:ring-brand-500"
                   disabled={loading}
-                  required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(s => !s)}
-                  className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600`}
-                  aria-label={showPassword ? t('login.hidePassword', 'Hide password') : t('login.showPassword', 'Show password')}
+                <label htmlFor="rememberMe" className="text-sm text-gray-700 cursor-pointer select-none">
+                  {t('login.rememberMe', 'Remember me for 30 days')}
+                </label>
+              </div>
+
+              {/* General Error */}
+              {errors.general && (
+                <div
+                  role="alert"
+                  aria-live="assertive"
+                  className={`flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 ${isRTL ? 'flex-row-reverse' : ''}`}
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                  <span className="text-sm">{errors.general}</span>
+                </div>
+              )}
+
+              {/* Submit */}
+              <Button
+                type="submit"
+                data-testid="login-submit"
+                disabled={loading || !password || (loginMethod === 'personal' ? !email : !employeeNumber)}
+                className="w-full h-12 bg-brand-500 hover:bg-brand-600 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    {t('login.signingIn', 'Signing in...')}
+                  </div>
+                ) : (
+                  <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <LogIn className="h-5 w-5" />
+                    {t('login.signIn', 'Sign In')}
+                  </div>
+                )}
+              </Button>
+            </form>
+          )}
+
+          {/* SSO Login Options */}
+          {loginMethod === 'sso' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-3">
+                <GoogleSignInButton />
+                <button 
+                  type="button"
+                  className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+                >
+                  <Apple className="h-5 w-5 text-gray-900" />
+                  <span>{t('login.continueWith', 'Continue with')} Apple</span>
                 </button>
               </div>
-              {capsLockOn && (
-                <p id="caps-lock-warning" className="mt-1 text-sm text-yellow-600 flex items-center gap-1">
-                  <AlertTriangle className="h-3 w-3" />
-                  {t('login.capsLockOn', 'Caps Lock is on')}
-                </p>
-              )}
-              {errors.password && (
-                <p id="password-error" className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  {errors.password}
-                </p>
-              )}
-            </div>
 
-            {/* Remember Me */}
-            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <input
-                type="checkbox"
-                id="rememberMe"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 text-brand-500 border-gray-300 rounded focus:ring-brand-500"
-                disabled={loading}
-              />
-              <label htmlFor="rememberMe" className="text-sm text-gray-700 cursor-pointer select-none">
-                {t('login.rememberMe', 'Remember me for 30 days')}
-              </label>
-            </div>
-
-            {/* General Error */}
-            {errors.general && (
-              <div
-                role="alert"
-                aria-live="assertive"
-                className={`flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 ${isRTL ? 'flex-row-reverse' : ''}`}
-              >
-                <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                <span className="text-sm">{errors.general}</span>
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">{t('login.orUseAccount', 'Or use account')}</span>
+                </div>
               </div>
-            )}
 
-            {/* Submit */}
-            <Button
-              type="submit"
-              data-testid="login-submit"
-              disabled={loading || !identifier || !password}
-              className="w-full h-12 bg-brand-500 hover:bg-brand-600 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  {t('login.signingIn', 'Signing in...')}
-                </div>
-              ) : (
-                <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <LogIn className="h-5 w-5" />
-                  {t('login.signIn', 'Sign In')}
+              <button
+                type="button"
+                onClick={() => setLoginMethod('personal')}
+                className="w-full py-2 text-brand-500 hover:text-brand-600 font-medium transition-colors"
+              >
+                {t('login.usePersonalEmail', 'Use Personal Email')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setLoginMethod('corporate')}
+                className="w-full py-2 text-brand-500 hover:text-brand-600 font-medium transition-colors"
+              >
+                {t('login.useCorporateAccount', 'Use Corporate Account')}
+              </button>
+            </div>
+          )}
+
+          {/* Demo Credentials */}
+          {showDemoCredentials && loginMethod !== 'sso' && (
+            <div className="mt-6 space-y-4">
+              {/* Personal Email Credentials */}
+              {loginMethod === 'personal' && (
+                <div className={`p-4 bg-gray-50 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">
+                    {t('login.personalEmailAccounts', 'Personal Email Accounts:')}
+                  </h3>
+                  <div className="space-y-2">
+                    {DEMO_CREDENTIALS.map((cred) => {
+                      const Icon = cred.icon;
+                      return (
+                        <button
+                          key={cred.role}
+                          type="button"
+                          onClick={() => quickLogin(cred)}
+                          className={`w-full p-3 rounded-lg border transition-colors hover:shadow-md ${cred.color}`}
+                        >
+                          <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <Icon size={18} />
+                            <div className="flex-1 text-left">
+                              <div className="font-medium text-sm">{cred.role}</div>
+                              <div className="text-xs opacity-80">{cred.description}</div>
+                            </div>
+                            <ArrowRight size={16} className={isRTL ? 'rotate-180' : ''} />
+                          </div>
+                          <div className="text-xs mt-1 opacity-75">
+                            {cred.email} / {cred.password}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
-            </Button>
-          </form>
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
+              {/* Corporate Account Credentials */}
+              {loginMethod === 'corporate' && (
+                <div className={`p-4 bg-blue-50 rounded-lg border border-blue-200 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <h3 className="text-sm font-medium text-blue-800 mb-3">
+                    {t('login.corporateAccountEmployee', 'Corporate Account (Employee Number):')}
+                  </h3>
+                  <div className="space-y-2">
+                    {CORPORATE_CREDENTIALS.map((cred) => {
+                      const Icon = cred.icon;
+                      return (
+                        <button
+                          key={cred.role}
+                          type="button"
+                          onClick={() => quickLogin(cred)}
+                          className={`w-full p-3 rounded-lg border transition-colors hover:shadow-md ${cred.color}`}
+                        >
+                          <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <Icon size={18} />
+                            <div className="flex-1 text-left">
+                              <div className="font-medium text-sm">{cred.role}</div>
+                              <div className="text-xs opacity-80">{cred.description}</div>
+                            </div>
+                            <ArrowRight size={16} className={isRTL ? 'rotate-180' : ''} />
+                          </div>
+                          <div className="text-xs mt-1 opacity-75">
+                            {t('login.employeeHash', 'Employee #:')} {cred.employeeNumber} / {cred.password}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">
-                {t('login.orContinueWith', 'Or continue with')}
-              </span>
-            </div>
-          </div>
+          )}
 
-          {/* SSO */}
-          <div className="space-y-3">
-            <GoogleSignInButton />
-          </div>
-
-          {/* Sign Up */}
+          {/* Sign Up Link */}
           <div className="mt-6 text-center">
             <p className="text-gray-600 text-sm">
               {t('login.noAccount', "Don't have an account?")}{' '}
@@ -405,19 +627,6 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
-
-          {/* Dev Helpers (dev only) */}
-          {showDemoLink && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <Link
-                href="/login-helpers"
-                className="text-xs text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-1"
-              >
-                <span>🔧</span>
-                {t('login.devHelpers', 'Developer? Access test accounts')}
-              </Link>
-            </div>
-          )}
         </div>
 
         {/* Footer Link */}
@@ -427,17 +636,7 @@ export default function LoginPage() {
             className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
             aria-label={t('common.backToHome', 'Back to Home')}
           >
-            {isRTL ? (
-              <>
-                <span>{t('common.backToHome', 'العودة إلى الصفحة الرئيسية')}</span>
-                <span aria-hidden="true">←</span>
-              </>
-            ) : (
-              <>
-                <span aria-hidden="true">←</span>
-                <span>{t('common.backToHome', 'Back to Home')}</span>
-              </>
-            )}
+            {isRTL ? '→' : '←'} {t('common.backToHome', 'Back to Home')}
           </Link>
         </div>
       </div>
