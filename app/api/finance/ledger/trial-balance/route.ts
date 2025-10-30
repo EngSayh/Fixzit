@@ -11,7 +11,7 @@ import { runWithContext } from '@/server/lib/authContext';
 import { requirePermission } from '@/server/lib/rbac.config';
 
 import { dbConnect } from '@/lib/mongodb-unified';
-import LedgerEntry from '@/server/models/finance/LedgerEntry';
+import LedgerEntry, { type TrialBalanceEntry } from '@/server/models/finance/LedgerEntry';
 
 import { Types } from 'mongoose';
 
