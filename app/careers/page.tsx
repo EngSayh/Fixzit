@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +33,7 @@ interface Job {
 
 export default function CareersPage() {
   const { t: _t } = useTranslation();
+  const { data: session } = useSession();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showApplyForm, setShowApplyForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -310,21 +313,10 @@ export default function CareersPage() {
 
       if (response.ok) {
         // Show success message with application details
-        const successMessage = `
-🎉 Application Submitted Successfully!
-
-Application ID: ${result.applicationId}
-Position: ${selectedJob?.title}
-Department: ${selectedJob?.department}
-
-Next Steps:
-${result.nextSteps.map((step: string, index: number) => `${index + 1}. ${step}`).join('\n')}
-
-You will receive a confirmation email shortly.
-Thank you for your interest in joining Fixzit Enterprise!
-        `;
-
-        alert(successMessage);
+        toast.success(
+          `Application Submitted Successfully! Application ID: ${result.applicationId} for ${selectedJob?.title}. You will receive a confirmation email shortly.`,
+          { duration: 5000 }
+        );
 
         // Reset form and close modal
         setShowApplyForm(false);
@@ -339,10 +331,10 @@ Thank you for your interest in joining Fixzit Enterprise!
       console.error('Application submission error:', error);
 
       const errorMessage = error instanceof Error
-        ? `Error: ${error.message}\n\nPlease check your internet connection and try again.`
+        ? `Error: ${error.message}. Please check your internet connection and try again.`
         : 'An unexpected error occurred. Please try again.';
 
-      alert(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -656,6 +648,7 @@ Thank you for your interest in joining Fixzit Enterprise!
                     name="firstName"
                     required
                     placeholder="Enter your first name"
+                    defaultValue={session?.user?.name?.split(' ')[0] || ''}
                   />
                 </div>
                 <div>
@@ -665,6 +658,7 @@ Thank you for your interest in joining Fixzit Enterprise!
                     name="lastName"
                     required
                     placeholder="Enter your last name"
+                    defaultValue={session?.user?.name?.split(' ').slice(1).join(' ') || ''}
                   />
                 </div>
               </div>
@@ -678,6 +672,7 @@ Thank you for your interest in joining Fixzit Enterprise!
                     type="email"
                     required
                     placeholder="Enter your email"
+                    defaultValue={session?.user?.email || ''}
                   />
                 </div>
                 <div>
