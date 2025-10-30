@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,8 +15,6 @@ import {
   Briefcase, Plus, Search, Calendar, DollarSign, Users, Eye, Edit, Trash2, 
   Construction, Hammer, PaintBucket, Building 
 } from 'lucide-react';
-
-const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
 
 interface ProjectItem {
   _id: string;
@@ -40,17 +39,45 @@ interface ProjectItem {
 }
 
 export default function ProjectsPage() {
+  const { data: session } = useSession();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
+  const orgId = session?.user?.orgId;
+
+  // Fetcher with dynamic tenant ID from session
+  const fetcher = (url: string) => {
+    if (!orgId) return Promise.reject(new Error('No organization ID'));
+    return fetch(url, { 
+      headers: { 'x-tenant-id': orgId } 
+    }).then(r => r.json());
+  };
+
   const { data, mutate } = useSWR(
-    `/api/projects?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}`,
+    orgId ? `/api/projects?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}` : null,
     fetcher
   );
 
   const projects = data?.items || [];
+
+  // Show loading state if no session yet
+  if (!session) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!orgId) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-red-500">Error: No organization ID found. Please contact support.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -71,7 +98,7 @@ export default function ProjectsPage() {
             <DialogHeader>
               <DialogTitle>Create New Project</DialogTitle>
             </DialogHeader>
-            <CreateProjectForm onCreated={() => { mutate(); setCreateOpen(false); }} />
+            <CreateProjectForm orgId={orgId} onCreated={() => { mutate(); setCreateOpen(false); }} />
           </DialogContent>
         </Dialog>
       </div>
@@ -273,7 +300,7 @@ function ProjectCard({ project }: { project: ProjectItem; onUpdated: () => void 
   );
 }
 
-function CreateProjectForm({ onCreated }: { onCreated: () => void }) {
+function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId: string }) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -298,20 +325,31 @@ function CreateProjectForm({ onCreated }: { onCreated: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!orgId) {
+      alert('Error: No organization ID found');
+      return;
+    }
+
     try {
       const response = await fetch('/api/projects', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-tenant-id': 'demo-tenant' },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'x-tenant-id': orgId 
+        },
         body: JSON.stringify(formData)
       });
 
       if (response.ok) {
         onCreated();
       } else {
-        alert('Failed to create project');
+        const error = await response.json();
+        alert(`Failed to create project: ${error.error || 'Unknown error'}`);
       }
-    } catch {
-      alert('Error creating project');
+    } catch (error) {
+      console.error('Error creating project:', error);
+      alert('Error creating project. Please try again.');
     }
   };
 
