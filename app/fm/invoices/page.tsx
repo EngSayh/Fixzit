@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,19 +63,36 @@ interface Invoice {
   payments?: InvoicePayment[];
 }
 
-const fetcher = (url: string) => fetch(url, { headers: { "x-tenant-id": "demo-tenant" } }).then(r => r.json());
-
 export default function InvoicesPage() {
   const { t } = useTranslation();
+  const { data: session } = useSession();
+  const orgId = session?.user?.orgId;
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
 
+  const fetcher = (url: string) => {
+    if (!orgId) {
+      return Promise.reject(new Error('No organization ID'));
+    }
+    return fetch(url, { 
+      headers: { 'x-tenant-id': orgId } 
+    }).then(r => r.json());
+  };
+
   const { data, mutate } = useSWR(
-    `/api/finance/invoices?q=${encodeURIComponent(search)}&status=${statusFilter}&type=${typeFilter}`,
+    orgId ? `/api/finance/invoices?q=${encodeURIComponent(search)}&status=${statusFilter}&type=${typeFilter}` : null,
     fetcher
   );
+
+  if (!session) {
+    return <p>Loading session...</p>;
+  }
+
+  if (!orgId) {
+    return <p>Error: No organization ID found in session</p>;
+  }
 
   const invoices: Invoice[] = (data?.data || []).map((inv: Invoice) => ({
     ...inv,
@@ -220,7 +238,7 @@ export default function InvoicesPage() {
       {/* Invoices Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {invoices.map((invoice: Invoice) => (
-          <InvoiceCard key={invoice._id} invoice={invoice} onUpdated={mutate} />
+          <InvoiceCard key={invoice._id} invoice={invoice} onUpdated={mutate} orgId={orgId} />
         ))}
       </div>
 
@@ -242,7 +260,7 @@ export default function InvoicesPage() {
   );
 }
 
-function InvoiceCard({ invoice, onUpdated }: { invoice: Invoice; onUpdated: () => void }) {
+function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdated: () => void; orgId: string }) {
   const { t } = useTranslation();
   
   const _handleView = () => {
@@ -256,13 +274,21 @@ function InvoiceCard({ invoice, onUpdated }: { invoice: Invoice; onUpdated: () =
   };
 
   const _handleSend = async () => {
+    if (!orgId) {
+      console.error('No organization ID found');
+      return;
+    }
+
     try {
       const response = await fetch(`/api/finance/invoices/${invoice._id}/send`, {
         method: 'POST',
-        headers: { 'x-tenant-id': 'demo-tenant' }
+        headers: { 'x-tenant-id': orgId }
       });
       if (response.ok) {
         onUpdated();
+      } else {
+        const error = await response.json();
+        console.error('Send failed:', error);
       }
     } catch (error) {
       console.error('Send error:', error);
