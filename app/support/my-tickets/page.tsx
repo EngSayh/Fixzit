@@ -3,6 +3,8 @@
 import { useState} from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
+import { TableSkeleton } from '@/components/skeletons';
 
 interface TicketMessage {
   from: string;
@@ -36,13 +38,13 @@ export default function MyTicketsPage() {
     return fetch(url).then(r => r.json());
   };
 
-  const { data, mutate } = useSWR(
+  const { data, mutate, isLoading } = useSWR(
     userId ? '/api/support/tickets/my' : null, 
     fetcher
   );
 
   if (!session) {
-    return <p>Loading session...</p>;
+    return <TableSkeleton rows={5} />;
   }
 
   if (!userId) {
@@ -51,9 +53,11 @@ export default function MyTicketsPage() {
 
   const sendReply = async () => {
     if (!selectedTicket || !replyText.trim()) {
-      alert('Please enter a reply message.');
+      toast.error('Please enter a reply message.');
       return;
     }
+    
+    const toastId = toast.loading('Sending reply...');
     
     try {
       const res = await fetch(`/api/support/tickets/${selectedTicket._id}/reply`, {
@@ -66,6 +70,7 @@ export default function MyTicketsPage() {
       });
       
       if (res.ok) {
+        toast.success('Reply sent successfully', { id: toastId });
         setReplyText('');
         await mutate();
         // Refresh selected ticket
@@ -75,11 +80,11 @@ export default function MyTicketsPage() {
         }
       } else {
         const error = await res.json();
-        alert(`Failed to send reply: ${error.error || 'Please try again.'}`);
+        toast.error(`Failed to send reply: ${error.error || 'Please try again.'}`, { id: toastId });
       }
     } catch (error) {
       console.error('Error sending reply:', error);
-      alert('An error occurred. Please try again.');
+      toast.error('An error occurred. Please try again.', { id: toastId });
     }
   };
 
@@ -102,18 +107,21 @@ export default function MyTicketsPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Tickets List */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-md border border-gray-200">
-            <div className="p-4 border-b border-gray-200">
-              <h2 className="font-semibold text-gray-900">Your Tickets</h2>
-            </div>
-            <div className="divide-y divide-gray-200">
-              {data?.items?.length === 0 ? (
-                <p className="p-4 text-gray-500 text-center">No tickets yet</p>
-              ) : (
-                data?.items?.map((ticket: Ticket) => (
+      {isLoading ? (
+        <TableSkeleton rows={5} />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Tickets List */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-md border border-gray-200">
+              <div className="p-4 border-b border-gray-200">
+                <h2 className="font-semibold text-gray-900">Your Tickets</h2>
+              </div>
+              <div className="divide-y divide-gray-200">
+                {data?.items?.length === 0 ? (
+                  <p className="p-4 text-gray-500 text-center">No tickets yet</p>
+                ) : (
+                  data?.items?.map((ticket: Ticket) => (
                   <div
                     key={ticket._id}
                     onClick={() => setSelectedTicket(ticket)}
@@ -218,6 +226,7 @@ export default function MyTicketsPage() {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }
