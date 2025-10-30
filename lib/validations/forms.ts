@@ -17,9 +17,9 @@ const saudiPhoneRegex = /^\+966[0-9]{9}$/;
 // Email validation (with common patterns)
 const emailSchema = z.string().email('Invalid email format');
 
-// Optional email (can be empty string or valid email)
+// Optional email (allows undefined or valid email, but not empty string)
 const optionalEmailSchema = z.string().optional().refine(
-  (val) => !val || z.string().email().safeParse(val).success,
+  (val) => val === undefined || z.string().email().safeParse(val).success,
   { message: 'Invalid email format' }
 );
 
@@ -29,9 +29,9 @@ const saudiPhoneSchema = z.string().regex(
   'Phone must be in +966XXXXXXXXX format (e.g., +966501234567)'
 );
 
-// Optional Saudi phone
+// Optional Saudi phone (allows undefined or valid phone, but not empty string)
 const optionalSaudiPhoneSchema = z.string().optional().refine(
-  (val) => !val || saudiPhoneRegex.test(val),
+  (val) => val === undefined || saudiPhoneRegex.test(val),
   { message: 'Phone must be in +966XXXXXXXXX format' }
 );
 
@@ -77,7 +77,7 @@ export const CreateVendorSchema = z.object({
   status: z.enum(['PENDING', 'APPROVED', 'SUSPENDED', 'REJECTED', 'BLACKLISTED']),
   contact: z.object({
     primary: z.object({
-      name: z.string().min(1, 'Contact name is required').optional(),
+      name: z.string().min(1, 'Contact name is required'),
       email: optionalEmailSchema,
       phone: optionalSaudiPhoneSchema,
       mobile: optionalSaudiPhoneSchema,
@@ -176,7 +176,19 @@ export const CreateRFQSchema = z.object({
     min: z.number().min(0, 'Minimum budget must be a positive number').optional(),
     max: z.number().min(0, 'Maximum budget must be a positive number').optional(),
     currency: z.string().default('SAR'),
-  }),
+  }).refine(
+    (budget) => {
+      // Only validate min <= max if both are provided
+      if (budget.min !== undefined && budget.max !== undefined) {
+        return budget.min <= budget.max;
+      }
+      return true;
+    },
+    {
+      message: 'Minimum budget must be less than or equal to maximum budget',
+      path: ['min'], // Attach error to the min field
+    }
+  ),
   timeline: z.object({
     submissionDeadline: z.string().min(1, 'Submission deadline is required'),
     projectStartDate: z.string().optional(),
