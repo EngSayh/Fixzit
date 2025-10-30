@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -173,7 +174,12 @@ export default function SupportTicketsPage() {
                     {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">View</button>
+                    <Link 
+                      href={`/fm/support/tickets/${ticket._id}`} 
+                      className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)] hover:underline"
+                    >
+                      View
+                    </Link>
                   </td>
                 </tr>
               ))}

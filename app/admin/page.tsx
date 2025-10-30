@@ -119,8 +119,8 @@ export default function Page() {
       setEditUserOpen(false);
       setEditingUser(null);
       mutateUsers();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to update user', { id: toastId });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update user', { id: toastId });
     }
   };
 
@@ -146,8 +146,8 @@ export default function Page() {
       toast.success(`${selectedUserIds.length} users deleted`, { id: toastId });
       setSelectedUserIds([]);
       mutateUsers();
-    } catch (err) {
-      toast.error('Failed to delete some users', { id: toastId });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete some users', { id: toastId });
     }
   };
 
@@ -186,6 +186,25 @@ export default function Page() {
           </CardHeader>
           <CardContent>
             <p className="text-gray-600">You must be signed in to access admin pages.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Enforce Super Admin role
+  const userRole = session.user?.role?.toLowerCase();
+  if (userRole !== 'super_admin' && userRole !== 'superadmin') {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-red-600 font-semibold mb-2">Insufficient Permissions</p>
+            <p className="text-gray-600">You must have Super Admin privileges to access this page.</p>
+            <p className="text-sm text-gray-500 mt-4">Current role: {session.user?.role || 'Unknown'}</p>
           </CardContent>
         </Card>
       </div>

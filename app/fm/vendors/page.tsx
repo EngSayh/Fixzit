@@ -3,498 +3,311 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { CardGridSkeleton } from '@/components/skeletons';
-import { Truck, Plus, Search, Star, MapPin, Eye, Edit, Trash2, Building2, Wrench, ShoppingCart, Users } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
-
-// Helper functions
-const getTypeIcon = (type: string) => {
-  switch (type) {
-    case 'SUPPLIER':
-      return <ShoppingCart className="w-5 h-5" />;
-    case 'CONTRACTOR':
-      return <Wrench className="w-5 h-5" />;
-    case 'SERVICE_PROVIDER':
-      return <Users className="w-5 h-5" />;
-    case 'CONSULTANT':
-      return <Building2 className="w-5 h-5" />;
-    default:
-      return <Truck className="w-5 h-5" />;
-  }
-};
-
-const getTypeColor = (type: string) => {
-  switch (type) {
-    case 'SUPPLIER':
-      return 'bg-blue-100 text-blue-800';
-    case 'CONTRACTOR':
-      return 'bg-green-100 text-green-800';
-    case 'SERVICE_PROVIDER':
-      return 'bg-purple-100 text-purple-800';
-    case 'CONSULTANT':
-      return 'bg-orange-100 text-orange-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'APPROVED':
-      return 'bg-green-100 text-green-800';
-    case 'PENDING':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'SUSPENDED':
-      return 'bg-red-100 text-red-800';
-    case 'REJECTED':
-      return 'bg-gray-100 text-gray-800';
-    case 'BLACKLISTED':
-      return 'bg-black text-white';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
+import { Card, CardContent} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CardGridSkeleton } from '@/components/skeletons';
+import {
+  Search, Download, Eye, Edit, Trash2,
+  Star, Phone, Mail, MapPin
+} from 'lucide-react';
 
 interface Vendor {
   _id: string;
-  name?: string;
-  code?: string;
-  type?: string;
-  status?: string;
-  contact?: { 
-    email?: string; 
-    phone?: string;
+  code: string;
+  name: string;
+  type: string;
+  status: 'PENDING' | 'APPROVED' | 'SUSPENDED' | 'REJECTED' | 'BLACKLISTED';
+  contact?: {
+    primary?: {
+      name?: string;
+      email?: string;
+      phone?: string;
+      mobile?: string;
+    };
     address?: {
+      street?: string;
       city?: string;
       region?: string;
+      postalCode?: string;
     };
   };
-  performance?: { 
-    successRate?: number; 
-    averageResponseTime?: number;
-    rating?: number;
-    completedProjects?: number;
-  };
-  business?: { 
+  business?: {
     specializations?: string[];
   };
   rating?: number;
-  address?: { city?: string };
+  responseTime?: string;
 }
 
-export default function VendorsPage() {
+const fetcher = async (url: string, orgId?: string) => {
+  if (!orgId) {
+    throw new Error('Organization ID required');
+  }
+  const res = await fetch(url, {
+    headers: { 'x-tenant-id': orgId }
+  });
+  if (!res.ok) throw new Error('Failed to fetch vendors');
+  return res.json();
+};
+
+export default function FMVendorsPage() {
   const { t } = useTranslation();
+  const router = useRouter();
   const { data: session } = useSession();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const limit = 20;
+
   const orgId = session?.user?.orgId;
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [createOpen, setCreateOpen] = useState(false);
 
-  const fetcher = (url: string) => {
-    if (!orgId) {
-      return Promise.reject(new Error('No organization ID'));
-    }
-    return fetch(url, { 
-      headers: { 'x-tenant-id': orgId } 
-    }).then(r => r.json());
-  };
+  // Fetch vendors with pagination
+  const vendorsUrl = orgId
+    ? `/api/vendors?page=${page}&limit=${limit}${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}${statusFilter !== 'all' ? `&status=${statusFilter.toUpperCase()}` : ''}`
+    : null;
 
-  const { data, mutate, isLoading } = useSWR(
-    orgId ? `/api/vendors?search=${encodeURIComponent(search)}&type=${typeFilter}&status=${statusFilter}` : null,
-    fetcher
+  const { data: vendorsData, error, isLoading, mutate } = useSWR(
+    vendorsUrl ? [vendorsUrl, orgId] : null,
+    ([url, id]) => fetcher(url, id)
   );
 
-  if (!session) {
-    return <CardGridSkeleton count={6} />;
-  }
+  const vendors = vendorsData?.items || [];
+  const totalPages = vendorsData?.pages || 1;
 
-  if (!orgId) {
-    return <p>Error: No organization ID found in session</p>;
-  }
+  const handleDelete = async (vendorId: string, vendorName: string) => {
+    if (!confirm(`Delete vendor "${vendorName}"? This cannot be undone.`)) return;
+    if (!orgId) return toast.error('Organization ID missing');
 
-  const vendors = data?.items || [];
+    const toastId = toast.loading('Deleting vendor...');
+    try {
+      const res = await fetch(`/api/vendors/${vendorId}`, {
+        method: 'DELETE',
+        headers: { 'x-tenant-id': orgId }
+      });
+      if (!res.ok) throw new Error('Failed to delete vendor');
+      toast.success('Vendor deleted successfully', { id: toastId });
+      mutate();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete vendor', { id: toastId });
+    }
+  };
+
+  const exportVendorsCsv = () => {
+    if (vendors.length === 0) return toast('No vendors to export');
+    const rows = [['Code', 'Name', 'Type', 'Status', 'Contact', 'Email', 'Location']];
+    for (const v of vendors) {
+      rows.push([
+        v.code || '',
+        v.name || '',
+        v.type || '',
+        v.status || '',
+        v.contact?.primary?.phone || v.contact?.primary?.mobile || '',
+        v.contact?.primary?.email || '',
+        v.contact?.address?.city || '',
+      ]);
+    }
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vendors-export-${new Date().toISOString()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${vendors.length} vendors`);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'suspended': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
+      case 'blacklisted': return 'bg-gray-900 text-white border-gray-900';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  // Loading state
+  if (!session) return <CardGridSkeleton count={6} />;
+  if (!orgId) return <div className="p-6 text-center text-red-600">Error: Organization ID missing from session</div>;
+  if (isLoading) return <CardGridSkeleton count={6} />;
+  if (error) return <div className="p-6 text-center text-red-600">Failed to load vendors: {error.message}</div>;
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{t('fm.vendors.title', 'Vendor Management')}</h1>
-          <p className="text-gray-600">{t('fm.vendors.subtitle', 'Supplier network and performance management')}</p>
-        </div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-orange-600 hover:bg-orange-700">
-              <Plus className="w-4 h-4 mr-2" />
-              {t('fm.vendors.newVendor', 'New Vendor')}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl">
-            <DialogHeader>
-              <DialogTitle>{t('fm.vendors.addVendor', 'Add New Vendor')}</DialogTitle>
-            </DialogHeader>
-            <CreateVendorForm orgId={orgId} onCreated={() => { mutate(); setCreateOpen(false); }} />
-          </DialogContent>
-        </Dialog>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('nav.vendors', 'Vendors')}</h1>
+        <p className="text-gray-600">{t('vendors.description', 'Manage your vendor relationships and service providers')}</p>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-64">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder={t('fm.vendors.searchVendors', 'Search vendors...')}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder={t('fm.vendors.vendorType', 'Vendor Type')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">{t('fm.properties.allTypes', 'All Types')}</SelectItem>
-                <SelectItem value="SUPPLIER">{t('fm.vendors.supplier', 'Supplier')}</SelectItem>
-                <SelectItem value="CONTRACTOR">{t('fm.vendors.contractor', 'Contractor')}</SelectItem>
-                <SelectItem value="SERVICE_PROVIDER">{t('fm.vendors.serviceProvider', 'Service Provider')}</SelectItem>
-                <SelectItem value="CONSULTANT">{t('fm.vendors.consultant', 'Consultant')}</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder={t('fm.properties.status', 'Status')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">{t('common.all', 'All Status')}</SelectItem>
-                <SelectItem value="PENDING">{t('fm.vendors.pending', 'Pending')}</SelectItem>
-                <SelectItem value="APPROVED">{t('fm.vendors.approved', 'Approved')}</SelectItem>
-                <SelectItem value="SUSPENDED">{t('fm.vendors.suspended', 'Suspended')}</SelectItem>
-                <SelectItem value="REJECTED">{t('fm.vendors.rejected', 'Rejected')}</SelectItem>
-                <SelectItem value="BLACKLISTED">{t('fm.vendors.blacklisted', 'Blacklisted')}</SelectItem>
-              </SelectContent>
-            </Select>
+      {/* Search and Filters */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder={t('common.search', 'Search vendors...')}
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1); // Reset to page 1 on search
+              }}
+              className="pl-10"
+            />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="flex gap-2">
+          <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t('common.all', 'All Status')}</SelectItem>
+              <SelectItem value="approved">{t('status.approved', 'Approved')}</SelectItem>
+              <SelectItem value="pending">{t('status.pending', 'Pending')}</SelectItem>
+              <SelectItem value="suspended">{t('status.suspended', 'Suspended')}</SelectItem>
+              <SelectItem value="rejected">{t('status.rejected', 'Rejected')}</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={exportVendorsCsv}>
+            <Download className="h-4 w-4 mr-2" />
+            {t('common.export', 'Export')}
+          </Button>
+        </div>
+      </div>
 
-      {/* Vendors Grid */}
-      {isLoading ? (
-        <CardGridSkeleton count={6} />
+      {/* Vendors List */}
+      {vendors.length === 0 ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <p className="text-gray-500 mb-4">No vendors found</p>
+            <Button onClick={() => router.push('/fm/vendors/new')}>Add First Vendor</Button>
+          </CardContent>
+        </Card>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {(vendors as Vendor[]).map((vendor) => (
-              <VendorCard key={vendor._id} vendor={vendor} onUpdated={mutate} />
+          <div className="space-y-4">
+            {vendors.map((vendor: Vendor) => (
+              <Card key={vendor._id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className="text-lg font-semibold text-gray-900">{vendor.name}</h3>
+                        <Badge className={getStatusColor(vendor.status)}>
+                          {vendor.status}
+                        </Badge>
+                        {vendor.rating && (
+                          <div className="flex items-center gap-1">
+                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm font-medium">{vendor.rating.toFixed(1)}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <span className="font-medium">{t('vendor.type', 'Type')}:</span>
+                          {vendor.type?.replace('_', ' ')}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <MapPin className="h-4 w-4" />
+                          {vendor.contact?.address?.city || 'N/A'}, {vendor.contact?.address?.region || ''}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Phone className="h-4 w-4" />
+                          {vendor.contact?.primary?.phone || vendor.contact?.primary?.mobile || 'N/A'}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Mail className="h-4 w-4" />
+                          {vendor.contact?.primary?.email || 'N/A'}
+                        </div>
+                      </div>
+
+                      {vendor.business?.specializations && vendor.business.specializations.length > 0 && (
+                        <div className="mb-4">
+                          <h4 className="font-medium text-gray-900 mb-2">{t('vendor.services', 'Services')}:</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {vendor.business.specializations.map((service) => (
+                              <Badge key={service} variant="outline">
+                                {service}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <span className="font-medium">{t('vendor.code', 'Code')}:</span>
+                          {vendor.code}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/fm/vendors/${vendor._id}`)}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            {t('common.view', 'View')}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/fm/vendors/${vendor._id}/edit`)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            {t('common.edit', 'Edit')}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleDelete(vendor._id, vendor.name)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            {t('common.delete', 'Delete')}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
 
-          {/* Empty State */}
-          {vendors.length === 0 && (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Truck className="w-12 h-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.vendors.noVendors', 'No Vendors Found')}</h3>
-                <p className="text-gray-600 mb-4">{t('fm.vendors.noVendorsText', 'Get started by adding your first vendor to the network.')}</p>
-                <Button onClick={() => setCreateOpen(true)} className="bg-orange-600 hover:bg-orange-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  {t('fm.vendors.addVendor', 'Add Vendor')}
-                </Button>
-              </CardContent>
-            </Card>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-between items-center mt-6">
+              <Button
+                variant="outline"
+                disabled={page === 1}
+                onClick={() => setPage(p => p - 1)}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-gray-600">
+                Page {page} of {totalPages} ({vendorsData?.total || 0} total vendors)
+              </span>
+              <Button
+                variant="outline"
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => p + 1)}
+              >
+                Next
+              </Button>
+            </div>
           )}
         </>
       )}
     </div>
-  );
-}
-
-function VendorCard({ vendor }: { vendor: Vendor; onUpdated: () => void }) {
-  const { t } = useTranslation();
-
-  return (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-2">
-            {getTypeIcon(vendor.type || '')}
-            <div className="flex-1">
-              <CardTitle className="text-lg">{vendor.name}</CardTitle>
-              <p className="text-sm text-gray-600">{vendor.code}</p>
-            </div>
-          </div>
-          <div className="flex flex-col items-end space-y-1">
-            <Badge className={getTypeColor(vendor.type || '')}>
-              {getTypeLabel(vendor.type || '')}
-            </Badge>
-            <Badge className={getStatusColor(vendor.status || '')}>
-              {getStatusLabel(vendor.status || '')}
-            </Badge>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center text-sm text-gray-600">
-          <MapPin className="w-4 h-4 mr-1" />
-          <span>{vendor.contact?.address?.city}, {vendor.contact?.address?.region}</span>
-        </div>
-
-        <div className="flex items-center text-sm">
-          <Star className="w-4 h-4 mr-1 text-[var(--fixzit-accent-light)]" />
-          <span className="font-medium">{vendor.performance?.rating || t('common.na', 'N/A')}</span>
-          <span className="text-gray-600 ml-2">
-            ({vendor.performance?.completedProjects || 0} {t('fm.vendors.projects', 'projects')})
-          </span>
-        </div>
-
-        <Separator />
-
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <span className="text-sm text-gray-600">{t('fm.vendors.successRate', 'Success Rate')}:</span>
-            <span className="text-sm font-medium">{vendor.performance?.successRate || 0}%</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-gray-600">{t('fm.vendors.responseTime', 'Response Time')}:</span>
-            <span className="text-sm font-medium">{vendor.performance?.averageResponseTime || t('common.na', 'N/A')} hrs</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-gray-600">{t('fm.vendors.specializations', 'Specializations')}:</span>
-            <span className="text-sm font-medium">{vendor.business?.specializations?.length || 0}</span>
-          </div>
-        </div>
-
-        <div className="flex justify-end space-x-2 pt-2">
-          <Button variant="ghost" size="sm">
-            <Eye className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="sm">
-            <Edit className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]">
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  function getTypeLabel(type: string) {
-    switch (type) {
-      case 'SUPPLIER':
-        return t('fm.vendors.supplier', 'Supplier');
-      case 'CONTRACTOR':
-        return t('fm.vendors.contractor', 'Contractor');
-      case 'SERVICE_PROVIDER':
-        return t('fm.vendors.serviceProvider', 'Service Provider');
-      case 'CONSULTANT':
-        return t('fm.vendors.consultant', 'Consultant');
-      default:
-        return type?.toLowerCase() || '';
-    }
-  }
-
-  function getStatusLabel(status: string) {
-    switch (status) {
-      case 'PENDING':
-        return t('fm.vendors.pending', 'Pending');
-      case 'APPROVED':
-        return t('fm.vendors.approved', 'Approved');
-      case 'SUSPENDED':
-        return t('fm.vendors.suspended', 'Suspended');
-      case 'REJECTED':
-        return t('fm.vendors.rejected', 'Rejected');
-      case 'BLACKLISTED':
-        return t('fm.vendors.blacklisted', 'Blacklisted');
-      default:
-        return status?.toLowerCase() || '';
-    }
-  }
-}
-
-function CreateVendorForm({ onCreated, orgId }: { onCreated: () => void; orgId: string }) {
-  const { t } = useTranslation();
-  
-  const [formData, setFormData] = useState({
-    name: '',
-    type: '',
-    contact: {
-      primary: {
-        name: '',
-        title: '',
-        email: '',
-        phone: '',
-        mobile: ''
-      },
-      secondary: {
-        name: '',
-        email: '',
-        phone: ''
-      },
-      address: {
-        street: '',
-        city: '',
-        region: '',
-        postalCode: ''
-      }
-    },
-    business: {
-      registrationNumber: '',
-      taxId: '',
-      licenseNumber: '',
-      establishedDate: '',
-      employees: 0,
-      annualRevenue: 0,
-      specializations: [] as string[],
-      certifications: [] as string[]
-    },
-    status: 'PENDING',
-    tags: [] as string[]
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!orgId) {
-      toast.error('No organization ID found');
-      return;
-    }
-
-    const toastId = toast.loading('Creating vendor...');
-
-    try {
-      const response = await fetch('/api/vendors', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'x-tenant-id': orgId 
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (response.ok) {
-        toast.success('Vendor created successfully', { id: toastId });
-        onCreated();
-      } else {
-        const error = await response.json();
-        toast.error(`Failed to create vendor: ${error.error || 'Unknown error'}`, { id: toastId });
-      }
-    } catch (error) {
-      console.error('Error creating vendor:', error);
-      toast.error('Error creating vendor. Please try again.', { id: toastId });
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-96 overflow-y-auto">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.vendors.companyName', 'Company Name')} *</label>
-          <Input
-            value={formData.name}
-            onChange={(e) => setFormData({...formData, name: e.target.value})}
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.type', 'Type')} *</label>
-          <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('fm.properties.selectType', 'Select type')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="SUPPLIER">{t('fm.vendors.supplier', 'Supplier')}</SelectItem>
-              <SelectItem value="CONTRACTOR">{t('fm.vendors.contractor', 'Contractor')}</SelectItem>
-              <SelectItem value="SERVICE_PROVIDER">{t('fm.vendors.serviceProvider', 'Service Provider')}</SelectItem>
-              <SelectItem value="CONSULTANT">{t('fm.vendors.consultant', 'Consultant')}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.vendors.contactName', 'Contact Name')} *</label>
-          <Input
-            value={formData.contact.primary.name}
-            onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, name: e.target.value}}})}
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.tenants.email', 'Email')} *</label>
-          <Input
-            type="email"
-            value={formData.contact.primary.email}
-            onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, email: e.target.value}}})}
-            required
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.tenants.phone', 'Phone')}</label>
-          <Input
-            value={formData.contact.primary.phone}
-            onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, phone: e.target.value}}})}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.tenants.mobile', 'Mobile')}</label>
-          <Input
-            value={formData.contact.primary.mobile}
-            onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, mobile: e.target.value}}})}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.city', 'City')} *</label>
-          <Input
-            value={formData.contact.address.city}
-            onChange={(e) => setFormData({...formData, contact: {...formData.contact, address: {...formData.contact.address, city: e.target.value}}})}
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.region', 'Region')} *</label>
-          <Input
-            value={formData.contact.address.region}
-            onChange={(e) => setFormData({...formData, contact: {...formData.contact, address: {...formData.contact.address, region: e.target.value}}})}
-            required
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">{t('fm.properties.streetAddress', 'Street Address')} *</label>
-        <Input
-          value={formData.contact.address.street}
-          onChange={(e) => setFormData({...formData, contact: {...formData.contact, address: {...formData.contact.address, street: e.target.value}}})}
-          required
-        />
-      </div>
-
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-orange-600 hover:bg-orange-700">
-          {t('fm.vendors.createVendor', 'Create Vendor')}
-        </Button>
-      </div>
-    </form>
   );
 }
