@@ -422,8 +422,22 @@ export default function LoginPage() {
 
         {/* Footer Link */}
         <div className="mt-6 text-center">
-          <Link href="/" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-            {t('login.backToHome', isRTL ? 'العودة للرئيسية ←' : '← Back to Home')}
+          <Link 
+            href="/" 
+            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            aria-label={t('common.backToHome', 'Back to Home')}
+          >
+            {isRTL ? (
+              <>
+                <span>{t('common.backToHome', 'العودة إلى الصفحة الرئيسية')}</span>
+                <span aria-hidden="true">←</span>
+              </>
+            ) : (
+              <>
+                <span aria-hidden="true">←</span>
+                <span>{t('common.backToHome', 'Back to Home')}</span>
+              </>
+            )}
           </Link>
         </div>
       </div>

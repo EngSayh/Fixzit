@@ -1,6 +1,6 @@
-import { Schema, model, models } from 'mongoose';
-import tenantIsolationPlugin from '../plugins/tenantIsolation';
-import auditPlugin from '../plugins/auditPlugin';
+import { Schema, model, models, InferSchemaType } from 'mongoose';
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 // Asset types for equipment registry
 const AssetType = ["HVAC", "ELECTRICAL", "PLUMBING", "SECURITY", "ELEVATOR", "GENERATOR", "FIRE_SYSTEM", "IT_EQUIPMENT", "VEHICLE", "OTHER"] as const;
