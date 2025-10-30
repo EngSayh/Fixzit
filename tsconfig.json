@@ -44,10 +44,15 @@
       // See: COMPREHENSIVE_FIXES_SUMMARY.md for details on this PR's scope
       "jest"
     ],
-    // NOTE: baseUrl is deprecated and will stop functioning in TypeScript 7.0
-    // Cannot use ignoreDeprecations: "6.0" - causes TS5103 error with TypeScript 5.9.3
-    // This is an informational warning only (TS 7.0 not released yet)
-    // Will migrate when TypeScript 7.0 is released using https://aka.ms/ts6
+    // ⚠️ DEPRECATION WARNING - TypeScript 7.0 (Future)
+    // baseUrl is deprecated and will be removed in TypeScript 7.0
+    // Cannot silence with ignoreDeprecations: "6.0" - TS5103 error (current TS version: 5.9.3)
+    // This is an informational warning only - TS 7.0 is not released yet
+    // Migration guide: https://aka.ms/ts6
+    // Action required: When upgrading to TypeScript 6.x+, migrate to moduleResolution strategy
+    //   - Remove baseUrl and paths
+    //   - Use package.json "imports" or "exports" fields instead
+    //   - Or use relative imports throughout the codebase
     "baseUrl": ".",
     "paths": {
       "@/*": [
