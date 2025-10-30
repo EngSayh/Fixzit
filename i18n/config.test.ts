@@ -1,4 +1,4 @@
-// Testing library/framework: Jest with TypeScript (ts-jest or babel-jest assumed)
+// Testing framework: Vitest
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES, LOCALE_META, Locale } from './config';
 
 describe('i18n config', () => {

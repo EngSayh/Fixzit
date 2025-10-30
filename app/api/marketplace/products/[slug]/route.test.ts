@@ -1,7 +1,8 @@
 // Tests for app/api/marketplace/products/[slug]/route.ts
-// Framework: Jest
+// Framework: Vitest
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from 'next/server'
+import { vi } from 'vitest'
 
 // IMPORTANT: We import the route implementation.
 // If your project alias resolution differs, adjust the relative path accordingly.
@@ -9,15 +10,15 @@ import { GET } from './route'
 
 // Mock the MarketplaceProduct model imported in the route implementation.
 // The route imports: "@/server/models/MarketplaceProduct"
-jest.mock('@/server/models/MarketplaceProduct', () => {
+vi.mock('@/server/models/MarketplaceProduct', () => {
   return {
     MarketplaceProduct: {
-      findOne: jest.fn()
+      findOne: vi.fn()
     }
   }
 })
 
-const { MarketplaceProduct } = jest.requireMock('@/server/models/MarketplaceProduct')
+import { MarketplaceProduct } from '@/server/models/MarketplaceProduct'
 
 // Helper to read JSON body from a NextResponse (web-standard Response compatible)
 async function readJson(res: Response) {
@@ -30,7 +31,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
   const tenantId = 'demo-tenant'
 
   afterEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   test('returns 404 when product is not found', async () => {

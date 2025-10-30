@@ -1,4 +1,4 @@
-import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { Schema, model, models, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 

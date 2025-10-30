@@ -1,15 +1,13 @@
 // Tests for src/utils/format.ts
-// Framework: Compatible with Vitest or Jest (describe/it/expect API).
-// If using Vitest, run with: vitest. If using Jest, run with: jest.
+// Framework: Vitest with TypeScript
 // These tests avoid brittle locale assertions by checking patterns and Unicode ranges.
 
-import { describe, it, expect } from 'vitest'; // If Jest is used, its globals provide describe/it/expect as well.
-// If your test runner doesn't auto-inject globals, keep the import above for Vitest. Jest users can ignore it.
+import { describe, it, expect } from 'vitest';
+import { vi } from 'vitest';
 
 import { fmtNumber, fmtDate } from './format';
 
-import type { Locale } from '@/i18n/config';
-
+import type { Locale } from '../i18n/config';
 const isArabicIndicDigits = (s: string) => /^[\u0660-\u0669\s\u066B\u066C\u200f\u200e\u061C\u2212\-,./()+:]+$/.test(s);
 // Notes:
 // - \u0660-\u0669 Arabic-Indic digits

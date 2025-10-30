@@ -39,7 +39,7 @@ const baseDoc = {
 };
 
 // We will mock the real Mongoose model module where the RealCandidate is created
-// by intercepting mongoose.model('Candidate', ...) usage via jest.spyOn once imported.
+// by intercepting mongoose.model('Candidate', ...) usage via vi.spyOn once imported.
 // To do this cleanly, we will mock mongoose before importing the module.
 
 describe('Candidate with Mock DB', () => {

@@ -1,4 +1,4 @@
-import { Schema, model, models, Document, Types } from 'mongoose';
+import { Schema, model, models, Document } from 'mongoose';
 import { tenantIsolationPlugin } from '../../../server/plugins/tenantIsolation';
 import { auditPlugin } from '../../../server/plugins/auditPlugin';
 

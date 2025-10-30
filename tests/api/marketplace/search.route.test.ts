@@ -1,5 +1,6 @@
+import { vi } from 'vitest';
 // Tests for GET handler in search route
-// Framework: Jest (TypeScript)
+// Framework: Vitest (TypeScript)
 // These tests mock Mongoose-like models and Next.js Response behavior.
 
 import { GET } from '@/tests/api/marketplace/search.route.impl'; // Fallback: will be replaced below if path differs

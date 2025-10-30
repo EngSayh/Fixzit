@@ -1,5 +1,5 @@
 // Tests for Arabic i18n dictionary
-// Framework: Jest/Vitest style (describe/it/expect)
+// Framework: Vitest (describe/it/expect)
 
 type Dict = Record<string, any>;
 

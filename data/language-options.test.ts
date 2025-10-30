@@ -16,7 +16,7 @@ describe('language-options data integrity', () => {
   });
 
   it('every item should be a well-formed language descriptor', () => {
-    for (const [idx, lang] of LANGUAGE_OPTIONS.entries()) {
+    for (const lang of LANGUAGE_OPTIONS) {
       expect(typeof lang).toBe('object');
       expect(lang).not.toBeNull();
 

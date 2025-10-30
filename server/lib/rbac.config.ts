@@ -104,10 +104,12 @@ export function checkPermission(permission: keyof typeof FinancePermissions) {
   };
 }
 
-export default {
+const rbacConfig = {
   UserRole,
   FinancePermissions,
   hasPermission,
   requirePermission,
   checkPermission,
 };
+
+export default rbacConfig;

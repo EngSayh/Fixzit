@@ -1,7 +1,7 @@
 /**
  * Tests for MarketplacePage
  *
- * Assumed framework: Jest + @testing-library/react + TypeScript
+ * Framework: Vitest + @testing-library/react
  * - We mock global fetch for API calls
  * - We mock next/link to render simple anchors for ease of assertion
  * - We render the async component by awaiting its resolution if necessary

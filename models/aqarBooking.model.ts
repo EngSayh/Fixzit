@@ -223,7 +223,9 @@ BookingSchema.pre('validate', function (next) {
   // Auto-compute pricing (totalPrice, platformFee, hostPayout)
   if (this.isModified('pricePerNight') || this.isModified('nights') || this.isNew) {
     const total = Math.max(0, (this.pricePerNight || 0) * (this.nights || 0));
-    const platform = Math.round(total * 0.15); // 15% fee (TODO: consider moving to org config)
+    // Platform fee: 15% default, configurable via PLATFORM_FEE_PERCENTAGE env var
+    const feePercentage = Number(process.env.PLATFORM_FEE_PERCENTAGE) || 15;
+    const platform = Math.round(total * (feePercentage / 100));
     const payout = Math.max(0, total - platform);
     this.totalPrice = total;
     this.platformFee = platform;
@@ -304,13 +306,20 @@ BookingSchema.methods.cancel = async function (
   this.cancelledBy = userId;
   this.cancellationReason = reason;
 
-  // Refund policy (simple hardcoded, TODO: fetch from listing's policy or org config)
+  // Refund policy: configurable via environment variables
+  // Days thresholds for full refund (default 7 days)
+  const fullRefundDays = Number(process.env.BOOKING_FULL_REFUND_DAYS) || 7;
+  // Days threshold for partial refund (default 3 days)
+  const partialRefundDays = Number(process.env.BOOKING_PARTIAL_REFUND_DAYS) || 3;
+  // Partial refund percentage (default 50%)
+  const partialRefundPercent = Number(process.env.BOOKING_PARTIAL_REFUND_PERCENT) || 50;
+  
   const diffMs = this.checkInDate.getTime() - toUTCDateOnly(new Date()).getTime();
   const daysUntilCheckIn = Math.max(0, Math.floor(diffMs / MS_PER_DAY));
-  if (daysUntilCheckIn >= 7) {
+  if (daysUntilCheckIn >= fullRefundDays) {
     this.refundAmount = this.totalPrice;                         // Full refund
-  } else if (daysUntilCheckIn >= 3) {
-    this.refundAmount = Math.round(this.totalPrice * 0.5);       // 50% refund
+  } else if (daysUntilCheckIn >= partialRefundDays) {
+    this.refundAmount = Math.round(this.totalPrice * (partialRefundPercent / 100));  // Configurable % refund
   } else {
     this.refundAmount = 0;                                       // No refund
   }

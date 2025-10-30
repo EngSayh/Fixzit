@@ -11,7 +11,7 @@ import { runWithContext } from '@/server/lib/authContext';
 import { requirePermission } from '@/server/lib/rbac.config';
 
 import { dbConnect } from '@/lib/mongodb-unified';
-import LedgerEntry from '@/server/models/finance/LedgerEntry';
+import LedgerEntry, { type TrialBalanceEntry } from '@/server/models/finance/LedgerEntry';
 
 import { Types } from 'mongoose';
 
@@ -77,13 +77,13 @@ export async function GET(req: NextRequest) {
         );
         
         // Calculate totals
-        const totalDebits = trialBalance.reduce((sum: number, account: { totalDebits: number; totalCredits: number; accountType: string }) => sum + account.totalDebits, 0);
-        const totalCredits = trialBalance.reduce((sum: number, account: { totalDebits: number; totalCredits: number; accountType: string }) => sum + account.totalCredits, 0);
+        const totalDebits = trialBalance.reduce((sum: number, account: TrialBalanceEntry) => sum + account.debit, 0);
+        const totalCredits = trialBalance.reduce((sum: number, account: TrialBalanceEntry) => sum + account.credit, 0);
         const totalBalance = totalDebits - totalCredits;
         
         // Group by account type
-        const byType: Record<string, typeof trialBalance> = {};
-        trialBalance.forEach((account: { accountType: string }) => {
+        const byType: Record<string, TrialBalanceEntry[]> = {};
+        trialBalance.forEach((account: TrialBalanceEntry) => {
           if (!byType[account.accountType]) {
             byType[account.accountType] = [];
           }

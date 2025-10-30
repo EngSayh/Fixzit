@@ -60,7 +60,7 @@
 
   // Chat Agent Settings
   "chat.agent.enabled": true,
-  "chat.agent.maxRequests": 50,
+  "chat.agent.maxRequests": 999,
   "chat.tools.global.autoApprove": false,
   "chat.tools.terminal.autoReplyToPrompts": true,
   "chat.notifyWindowOnConfirmation": false,

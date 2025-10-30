@@ -30,18 +30,20 @@ const ApprovalSchema = z.object({
   comments: z.string().optional(),
 });
 
+import type { RouteContext } from '@/lib/types/route-context';
+
 /**
  * POST /api/finance/expenses/:id/submit|approve|reject
  */
 export async function POST(
   req: NextRequest,
-  context: any
+  context: RouteContext<{ id: string; action: string }>
 ) {
   try {
     const user = await getUserSession(req);
 
-    // Resolve params
-    const _params = context?.params ? (typeof context.params.then === 'function' ? await context.params : context.params) : {};
+    // Resolve params (Next.js 15 provides params as a Promise)
+    const _params = await Promise.resolve(context.params);
 
     if (!Types.ObjectId.isValid(_params.id)) {
       return NextResponse.json(
@@ -50,9 +52,8 @@ export async function POST(
       );
     }
 
-    // Determine action from URL path
-    const url = new URL(req.url);
-    const action = url.pathname.split('/').pop();
+    // Use typed action parameter from route context
+    const action = _params.action;
 
     // Authorization check based on action
     if (action === 'submit') {

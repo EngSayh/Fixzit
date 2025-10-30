@@ -45,10 +45,30 @@ export interface ILedgerEntry {
   updatedAt: Date;
 }
 
+export interface TrialBalanceEntry {
+  accountId: Types.ObjectId;
+  accountCode: string;
+  accountName: string;
+  accountType: string;
+  debit: number;
+  credit: number;
+  balance: number;
+}
+
+export interface AccountActivityEntry extends Omit<ILedgerEntry, 'journalId' | 'createdAt' | 'updatedAt'> {
+  journalId?: {
+    journalNumber: string;
+    sourceType: string;
+    sourceNumber: string;
+  } | Types.ObjectId;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export interface ILedgerEntryModel extends Model<ILedgerEntry> {
   getAccountBalance(orgId: Types.ObjectId, accountId: Types.ObjectId, asOfDate?: Date): Promise<number>;
-  getTrialBalance(orgId: Types.ObjectId, fiscalYear: number, fiscalPeriod: number): Promise<any[]>;
-  getAccountActivity(orgId: Types.ObjectId, accountId: Types.ObjectId, startDate: Date, endDate: Date): Promise<any[]>;
+  getTrialBalance(orgId: Types.ObjectId, fiscalYear: number, fiscalPeriod: number): Promise<TrialBalanceEntry[]>;
+  getAccountActivity(orgId: Types.ObjectId, accountId: Types.ObjectId, startDate: Date, endDate: Date): Promise<AccountActivityEntry[]>;
 }
 
 const LedgerEntrySchema = new Schema<ILedgerEntry, ILedgerEntryModel>(

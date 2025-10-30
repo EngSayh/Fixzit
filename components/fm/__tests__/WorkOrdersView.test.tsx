@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -6,11 +7,11 @@ import { SWRConfig, mutate as globalMutate } from 'swr';
 // Import the component from its actual location
 import WorkOrdersViewDefault, { WorkOrdersView } from '../WorkOrdersView';
 
-jest.mock('date-fns', () => {
-  const actual = jest.requireActual('date-fns');
+vi.mock('date-fns', async () => {
+  const actual = await vi.importActual<typeof import('date-fns')>('date-fns');
   return {
     ...actual,
-    formatDistanceToNowStrict: jest.fn((date: Date) => {
+    formatDistanceToNowStrict: vi.fn((date: Date) => {
       // Provide a deterministic label for tests based on timestamp relation to "now"
       const now = Date.now();
       const diffMs = date.getTime() - now;
@@ -30,17 +31,17 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => (
 
 // JSDOM has localStorage; ensure clean state
 beforeEach(() => {
-  jest.useFakeTimers();
-  (global as any).fetch = jest.fn();
+  vi.useFakeTimers();
+  (global as any).fetch = vi.fn();
   (window.localStorage as any).clear();
-  (window as any).alert = jest.fn();
+  (window as any).alert = vi.fn();
   // Clear SWR cache before each test
   globalMutate(() => true, undefined, { revalidate: false });
 });
 
 afterEach(() => {
-  jest.useRealTimers();
-  jest.clearAllMocks();
+  vi.useRealTimers();
+  vi.clearAllMocks();
 });
 
 const makeApiResponse = (items: any[], page = 1, limit = 10, total?: number) => ({
@@ -49,7 +50,7 @@ const makeApiResponse = (items: any[], page = 1, limit = 10, total?: number) => 
 
 describe('WorkOrdersView', () => {
   test('renders default heading and description', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => makeApiResponse([]),
     });
@@ -65,7 +66,7 @@ describe('WorkOrdersView', () => {
   });
 
   test('renders custom heading and description via props', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => makeApiResponse([]),
     });
@@ -87,7 +88,7 @@ describe('WorkOrdersView', () => {
   });
 
   test('shows error card when error is present', async () => {
-    (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network broken'));
+    (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Network broken'));
 
     render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
     
@@ -97,7 +98,7 @@ describe('WorkOrdersView', () => {
   });
 
   test('shows empty state when no work orders and no error', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => makeApiResponse([]),
     });
@@ -111,7 +112,7 @@ describe('WorkOrdersView', () => {
 
   test('renders list items with badges and computed meta including overdue styling', async () => {
     const now = Date.now();
-    jest.spyOn(Date, 'now').mockReturnValue(now);
+    vi.spyOn(Date, 'now').mockReturnValue(now);
 
     const past = new Date(now - 60 * 60 * 1000).toISOString(); // 1h ago
     const future = new Date(now + 60 * 60 * 1000).toISOString(); // in 1h
@@ -121,7 +122,7 @@ describe('WorkOrdersView', () => {
       { _id: '2', code: 'WO-2', title: 'Check HVAC', status: 'COMPLETED', priority: 'LOW', dueAt: future, slaMinutes: undefined, description: undefined, propertyId: '', assigneeVendorId: 'VND-9', category: undefined, createdAt: undefined },
     ];
 
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => makeApiResponse(items),
     });
@@ -172,7 +173,7 @@ describe('WorkOrdersView', () => {
 
   test('pagination controls reflect page and total pages; enabling/disabling works', async () => {
     // total=25, limit=10 => totalPages=3
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => makeApiResponse([{ _id: '1', code: 'C', title: 'T', status: 'SUBMITTED', priority: 'MEDIUM' }], 1, 10, 25),
     });
@@ -190,7 +191,7 @@ describe('WorkOrdersView', () => {
     expect(next).not.toBeDisabled();
 
     // Mock the fetch for page 2
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: true,
       json: async () => makeApiResponse([{ _id: '2', code: 'C2', title: 'T2', status: 'SUBMITTED', priority: 'MEDIUM' }], 2, 10, 25),
     });
@@ -204,7 +205,7 @@ describe('WorkOrdersView', () => {
 
   test('refresh button calls mutate', async () => {
     let fetchCallCount = 0;
-    (global.fetch as jest.Mock).mockImplementation(async () => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(async () => {
       fetchCallCount++;
       return {
         ok: true,
@@ -229,7 +230,7 @@ describe('WorkOrdersView', () => {
   test('status and priority filters update query (via SWR key) when changed', async () => {
     // Track fetch URLs to verify query parameters
     const fetchedUrls: string[] = [];
-    (global.fetch as jest.Mock).mockImplementation(async (url: string) => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(async (url: string) => {
       fetchedUrls.push(url);
       return {
         ok: true,
@@ -271,7 +272,7 @@ describe('WorkOrdersView', () => {
 
   test('search input debounces and updates query only after 350ms', async () => {
     const fetchedUrls: string[] = [];
-    (global.fetch as jest.Mock).mockImplementation(async (url: string) => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(async (url: string) => {
       fetchedUrls.push(url);
       return {
         ok: true,
@@ -293,11 +294,11 @@ describe('WorkOrdersView', () => {
     expect(fetchedUrls[fetchedUrls.length - 1]).not.toMatch(/q=leak/);
 
     // Advance time by 349ms => still not updated
-    await act(async () => { jest.advanceTimersByTime(349); });
+    await act(async () => { vi.advanceTimersByTime(349); });
     expect(fetchedUrls[fetchedUrls.length - 1]).not.toMatch(/q=leak/);
 
     // Advance to 350ms => update should include q=leak
-    await act(async () => { jest.advanceTimersByTime(1); });
+    await act(async () => { vi.advanceTimersByTime(1); });
     
     await waitFor(() => {
       const lastUrl = fetchedUrls[fetchedUrls.length - 1];
@@ -308,7 +309,7 @@ describe('WorkOrdersView', () => {
   test('POST create: success closes dialog, resets form, and calls onCreated (via mutate)', async () => {
     let fetchCallCount = 0;
     // Mock fetch for both GET (initial) and POST
-    (global.fetch as jest.Mock).mockImplementation(async (url: string, init?: RequestInit) => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(async (url: string, init?: RequestInit) => {
       if (typeof url === 'string' && url.startsWith('/api/work-orders') && init?.method === 'POST') {
         return new Response('{}', { status: 200 });
       }
@@ -344,7 +345,7 @@ describe('WorkOrdersView', () => {
   });
 
   test('POST create: failure shows alert with error message', async () => {
-    (global.fetch as jest.Mock).mockImplementation(async (url: string, init?: RequestInit) => {
+    (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(async (url: string, init?: RequestInit) => {
       if (typeof url === 'string' && url.startsWith('/api/work-orders') && init?.method === 'POST') {
         return new Response('Bad Request: Missing stuff', { status: 400 });
       }
@@ -372,7 +373,7 @@ describe('WorkOrdersView', () => {
     window.localStorage.setItem('fixzit_token', 'tkn-123');
     window.localStorage.setItem('x-user', JSON.stringify({ id: 'u1', role: 'ADMIN', tenantId: 'demo-tenant' }));
 
-    (global.fetch as jest.Mock).mockResolvedValue(new Response(JSON.stringify(makeApiResponse([])), { status: 200 }));
+    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(new Response(JSON.stringify(makeApiResponse([])), { status: 200 }));
 
     render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
 
@@ -382,7 +383,7 @@ describe('WorkOrdersView', () => {
     });
 
     // Verify fetch called with headers containing Authorization and x-user
-    const lastCall = (global.fetch as jest.Mock).mock.calls[0];
+    const lastCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(lastCall).toBeTruthy();
     const options = lastCall[1] as RequestInit;
     const headers = (options?.headers ?? {}) as Record<string, string>;
