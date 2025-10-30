@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 // ============================================================================
 // INTERFACES
@@ -374,10 +375,11 @@ export default function NewExpensePage() {
         await uploadReceipts(data.expense._id);
       }
 
+      toast.success(t('finance.expense.draftSaved', 'Expense draft saved successfully'));
       router.push(`/finance/expenses/${data.expense._id}`);
     } catch (error) {
       console.error('Error saving draft:', error);
-      alert(t('common.error', 'An error occurred'));
+      toast.error(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);
     }
@@ -437,10 +439,11 @@ export default function NewExpensePage() {
         await uploadReceipts(data.expense._id);
       }
 
+      toast.success(t('finance.expense.submitted', 'Expense submitted for approval'));
       router.push(`/finance/expenses/${data.expense._id}`);
     } catch (error) {
       console.error('Error submitting expense:', error);
-      alert(t('common.error', 'An error occurred'));
+      toast.error(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);
     }
