@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Search, Plus, ShoppingCart } from 'lucide-react';
 import { useParams } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface PartItem {
   _id: string;
@@ -98,7 +99,7 @@ export default function WorkOrderPartsPage() {
     
     console.log('Creating PO:', po);
     // In production, send to API
-    alert('Purchase Order created successfully!');
+    toast.success('Purchase Order created successfully!');
   };
   
   return (
