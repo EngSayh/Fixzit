@@ -63,7 +63,7 @@ function makeReq(url: string): any {
 }
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
 
   // Reset chain for each test
   productFindMock.mockImplementation(() => ({

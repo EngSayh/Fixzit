@@ -39,7 +39,7 @@ import MarketplacePage from './page';
 
 describe('MarketplacePage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders without crashing and shows the CatalogView stub', () => {

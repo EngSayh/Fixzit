@@ -28,6 +28,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event'
 
+import { vi } from 'vitest';
 // Use conditional jest/vi globals without importing to fit either runner
 const jestLike = (global as any).vi ?? (global as any).jest
 
@@ -48,7 +49,7 @@ type SWRProductsState = {
   data?: any
   error?: any
   isLoading?: boolean
-  mutate?: jest.Mock | ((...args: any[]) => any)
+  mutate?: vi.Mock | ((...args: any[]) => any)
 }
 type SWRCategoriesState = {
   data?: any
@@ -92,6 +93,7 @@ jestLike.mock('swr', () => {
 // After SWR mock is set up above, import component under test
 import CatalogView from './CatalogView'
 
+import { vi } from 'vitest';
 // Utility: set SWR states for a given test
 function setSWRProducts(state: Partial<SWRProductsState>) {
   productsState.data = state.data

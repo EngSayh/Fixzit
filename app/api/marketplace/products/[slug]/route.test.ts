@@ -31,7 +31,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
   const tenantId = 'demo-tenant'
 
   afterEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   test('returns 404 when product is not found', async () => {

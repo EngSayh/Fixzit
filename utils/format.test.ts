@@ -4,12 +4,14 @@
 // These tests avoid brittle locale assertions by checking patterns and Unicode ranges.
 
 import { describe, it, expect } from 'vitest'; // If Jest is used, its globals provide describe/it/expect as well.
+import { vi } from 'vitest';
 // If your test runner doesn't auto-inject globals, keep the import above for Vitest. Jest users can ignore it.
 
 import { fmtNumber, fmtDate } from './format';
 
 import type { Locale } from '@/i18n/config';
 
+import { vi } from 'vitest';
 const isArabicIndicDigits = (s: string) => /^[\u0660-\u0669\s\u066B\u066C\u200f\u200e\u061C\u2212\-,./()+:]+$/.test(s);
 // Notes:
 // - \u0660-\u0669 Arabic-Indic digits

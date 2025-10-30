@@ -80,7 +80,7 @@ describe('Candidate model - findByEmail', () => {
       jest.dontMock('@/lib/mongo');
       jest.dontMock('mongoose');
       jest.dontMock('@/lib/mockDb');
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     test('returns the first element when MockModel.find resolves to an array', async () => {
@@ -158,7 +158,7 @@ describe('Candidate model - findByEmail', () => {
     afterEach(() => {
       jest.dontMock('@/lib/mongo');
       jest.dontMock('mongoose');
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     test('delegates to RealCandidate.findOne with correct filter', async () => {
@@ -218,7 +218,7 @@ describe('Candidate schema defaults (smoke via mocked mongoose)', () => {
   afterEach(() => {
     jest.dontMock('mongoose');
     jest.dontMock('@/lib/mongo');
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('applies defaults for skills [] and experience 0 on create', async () => {

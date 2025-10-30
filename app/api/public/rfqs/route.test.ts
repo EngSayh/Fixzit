@@ -67,7 +67,7 @@ describe('GET /api/public/rfqs', () => {
   const OLD_ENV = process.env;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     process.env = { ...OLD_ENV };
     delete process.env.NEXT_PUBLIC_MARKETPLACE_TENANT;
 
