@@ -87,7 +87,7 @@ export default function DevLoginClient() {
     return (
       <div
         key={key}
-        className={`${cred.color ?? 'border-gray-700'} border rounded-2xl p-6 hover:shadow-xl transition-all`}
+        className={`${cred.color ?? 'border-border'} border rounded-2xl p-6 hover:shadow-xl transition-all`}
         data-testid={`dev-card-${cred.role}`}
       >
         <div className="flex items-start gap-4 mb-4">
@@ -115,7 +115,7 @@ export default function DevLoginClient() {
           <button
             onClick={() => autoLogin(cred.role)}
             disabled={isLoading}
-            className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-2xl hover:bg-gray-800 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             data-testid={`dev-autologin-${cred.role}`}
           >
             {isLoading ? (
@@ -152,7 +152,7 @@ export default function DevLoginClient() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white">
       {/* Header */}
-      <div className="border-b border-gray-700 bg-black/50 backdrop-blur">
+      <div className="border-b border-border bg-black/50 backdrop-blur">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold">🔧 Developer Login Helpers</h1>
@@ -184,7 +184,7 @@ export default function DevLoginClient() {
       {/* Main */}
       <div className="max-w-6xl mx-auto px-4 py-8">
         {isEmpty ? (
-          <div className="bg-gray-800/50 border border-gray-700 rounded-2xl p-8 text-center">
+          <div className="bg-card/50 border border-border rounded-2xl p-8 text-center">
             <p className="text-muted-foreground mb-4">No demo credentials found.</p>
             <p className="text-sm text-muted-foreground">
               Copy <code className="bg-black/30 px-2 py-1 rounded">dev/credentials.example.ts</code> to{' '}
@@ -220,7 +220,7 @@ export default function DevLoginClient() {
         )}
 
         {/* Instructions */}
-        <section className="mt-12 bg-gray-800/50 border border-gray-700 rounded-2xl p-6">
+        <section className="mt-12 bg-card/50 border border-border rounded-2xl p-6">
           <h3 className="text-xl font-bold mb-4">📖 Usage Instructions</h3>
           <ul className="space-y-2 text-muted-foreground">
             <li className="flex gap-2">

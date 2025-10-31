@@ -219,7 +219,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
                   className="rounded-full"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                   <span className="text-xs font-semibold text-muted-foreground">
                     {property.agentId.firstName?.[0]}{property.agentId.lastName?.[0]}
                   </span>

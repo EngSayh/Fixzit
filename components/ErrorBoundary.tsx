@@ -530,7 +530,7 @@ ${errorReport.error.componentStack || 'No component stack available'}
 
                   <button
                     onClick={this.handleManualRefresh}
-                    className="w-full px-4 py-2 bg-gray-600 text-white rounded-2xl hover:bg-gray-700"
+                    className="w-full px-4 py-2 bg-secondary text-secondary-foreground rounded-2xl hover:bg-secondary/90"
                   >
                     🔄 Force Refresh
                   </button>

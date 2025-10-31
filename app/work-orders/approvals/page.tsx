@@ -179,7 +179,7 @@ export default function WorkOrderApprovalsPage() {
                   <button className="px-4 py-2 bg-[var(--fixzit-danger)] text-white rounded-2xl hover:bg-[var(--fixzit-danger-dark)] transition-colors">
                     {t('common.reject', 'Reject')}
                   </button>
-                  <button className="px-4 py-2 bg-muted text-foreground rounded-2xl hover:bg-gray-300 transition-colors">
+                  <button className="px-4 py-2 bg-muted text-foreground rounded-2xl hover:bg-muted/80 transition-colors">
                     {t('common.review', 'Review')}
                   </button>
                 </div>
