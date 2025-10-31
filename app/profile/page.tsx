@@ -240,30 +240,30 @@ export default function ProfilePage() {
       <Toaster position="top-right" />
       
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('profile.title', 'My Profile')}</h1>
-        <p className="text-gray-600">{t('profile.subtitle', 'Manage your account settings and preferences')}</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{t('profile.title', 'My Profile')}</h1>
+        <p className="text-muted-foreground">{t('profile.subtitle', 'Manage your account settings and preferences')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile Card */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-card text-card-foreground rounded-2xl shadow-md p-6">
             {loading ? (
               <div className="text-center py-8">
-                <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                  <User size={32} className="text-gray-400" />
+                <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                  <User size={32} className="text-muted-foreground" />
                 </div>
-                <div className="h-6 bg-gray-200 rounded w-3/4 mx-auto mb-2 animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto mb-4 animate-pulse"></div>
-                <div className="h-6 bg-gray-200 rounded w-24 mx-auto animate-pulse"></div>
+                <div className="h-6 bg-muted rounded w-3/4 mx-auto mb-2 animate-pulse"></div>
+                <div className="h-4 bg-muted rounded w-1/2 mx-auto mb-4 animate-pulse"></div>
+                <div className="h-6 bg-muted rounded w-24 mx-auto animate-pulse"></div>
               </div>
             ) : (
               <div className="text-center">
                 <div className="w-20 h-20 bg-brand-500 rounded-full flex items-center justify-center mx-auto mb-4">
                   <User size={32} className="text-white" />
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900">{user.name}</h2>
-                <p className="text-gray-600">{user.email}</p>
+                <h2 className="text-xl font-semibold text-foreground">{user.name}</h2>
+                <p className="text-muted-foreground">{user.email}</p>
                 <span className="inline-block mt-2 px-3 py-1 bg-success text-white text-sm rounded-full">
                   {user.role}
                 </span>
@@ -271,13 +271,13 @@ export default function ProfilePage() {
             )}
 
             <div className="mt-6 space-y-4">
-              <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                <span className="text-sm text-gray-600">{t('profile.card.memberSince', 'Member Since')}</span>
+              <div className="flex justify-between items-center py-2 border-b border-border">
+                <span className="text-sm text-muted-foreground">{t('profile.card.memberSince', 'Member Since')}</span>
                 <span className="text-sm font-medium">{user.joinDate}</span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                <span className="text-sm text-gray-600">{t('profile.card.accountStatus', 'Account Status')}</span>
-                <span className="text-sm font-medium text-[var(--fixzit-success)]">{t('profile.card.active', 'Active')}</span>
+              <div className="flex justify-between items-center py-2 border-b border-border">
+                <span className="text-sm text-muted-foreground">{t('profile.card.accountStatus', 'Account Status')}</span>
+                <span className="text-sm font-medium text-green-600">{t('profile.card.active', 'Active')}</span>
               </div>
             </div>
           </div>
@@ -285,15 +285,15 @@ export default function ProfilePage() {
 
         {/* Settings Tabs */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow-md">
-            <div className="border-b border-gray-200">
+          <div className="bg-card text-card-foreground rounded-2xl shadow-md">
+            <div className="border-b border-border">
               <div className="flex">
                 <button
                   onClick={() => setActiveTab('account')}
                   className={`px-6 py-3 text-sm font-medium transition-colors ${
                     activeTab === 'account'
                       ? 'text-brand-500 border-b-2 border-brand-500'
-                      : 'text-gray-500 hover:text-gray-700'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   {t('profile.tabs.account', 'Account Settings')}
@@ -303,7 +303,7 @@ export default function ProfilePage() {
                   className={`px-6 py-3 text-sm font-medium transition-colors ${
                     activeTab === 'notifications'
                       ? 'text-brand-500 border-b-2 border-brand-500'
-                      : 'text-gray-500 hover:text-gray-700'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   {t('profile.tabs.notifications', 'Notifications')}
@@ -313,7 +313,7 @@ export default function ProfilePage() {
                   className={`px-6 py-3 text-sm font-medium transition-colors ${
                     activeTab === 'security'
                       ? 'text-brand-500 border-b-2 border-brand-500'
-                      : 'text-gray-500 hover:text-gray-700'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   {t('profile.tabs.security', 'Security')}
@@ -326,31 +326,31 @@ export default function ProfilePage() {
               {activeTab === 'account' && (
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       {t('profile.account.fullName', 'Full Name')}
                     </label>
                     <input
                       type="text"
                       value={user.name}
                       onChange={(e) => setUser({ ...user, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-background text-foreground"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       {t('profile.account.email', 'Email Address')}
                     </label>
                     <input
                       type="email"
                       value={user.email}
                       onChange={(e) => setUser({ ...user, email: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-background text-foreground"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       {t('profile.account.phone', 'Phone Number')}
                     </label>
                     <input
@@ -358,21 +358,21 @@ export default function ProfilePage() {
                       value={user.phone}
                       onChange={(e) => setUser({ ...user, phone: e.target.value })}
                       placeholder="+966 50 123 4567"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-background text-foreground"
                     />
                   </div>
 
                   <div className="flex justify-end gap-3">
                     <button
                       onClick={handleCancelAccount}
-                      className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="px-4 py-2 text-foreground border border-border rounded-2xl hover:bg-muted transition-colors"
                     >
                       {t('profile.account.cancel', 'Cancel')}
                     </button>
                     <button
                       onClick={handleSaveAccount}
                       disabled={loading}
-                      className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors disabled:opacity-50"
+                      className="px-4 py-2 bg-brand-500 text-white rounded-2xl hover:bg-brand-600 transition-colors disabled:opacity-50"
                     >
                       {t('profile.account.save', 'Save Changes')}
                     </button>
@@ -384,10 +384,10 @@ export default function ProfilePage() {
               {activeTab === 'notifications' && (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">{t('profile.notifications.channels', 'Notification Channels')}</h3>
+                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.notifications.channels', 'Notification Channels')}</h3>
                     <div className="space-y-3">
-                      <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <span className="text-sm font-medium text-gray-700">{t('profile.notifications.email', 'Email Notifications')}</span>
+                      <label className="flex items-center justify-between p-3 border border-border rounded-2xl hover:bg-muted cursor-pointer">
+                        <span className="text-sm font-medium text-foreground">{t('profile.notifications.email', 'Email Notifications')}</span>
                         <input
                           type="checkbox"
                           checked={notificationSettings.emailNotifications}
@@ -398,8 +398,8 @@ export default function ProfilePage() {
                           className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
                         />
                       </label>
-                      <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <span className="text-sm font-medium text-gray-700">{t('profile.notifications.push', 'Push Notifications')}</span>
+                      <label className="flex items-center justify-between p-3 border border-border rounded-2xl hover:bg-muted cursor-pointer">
+                        <span className="text-sm font-medium text-foreground">{t('profile.notifications.push', 'Push Notifications')}</span>
                         <input
                           type="checkbox"
                           checked={notificationSettings.pushNotifications}
@@ -410,8 +410,8 @@ export default function ProfilePage() {
                           className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
                         />
                       </label>
-                      <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <span className="text-sm font-medium text-gray-700">{t('profile.notifications.sms', 'SMS Notifications')}</span>
+                      <label className="flex items-center justify-between p-3 border border-border rounded-2xl hover:bg-muted cursor-pointer">
+                        <span className="text-sm font-medium text-foreground">{t('profile.notifications.sms', 'SMS Notifications')}</span>
                         <input
                           type="checkbox"
                           checked={notificationSettings.smsNotifications}
@@ -426,10 +426,10 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">{t('profile.notifications.events', 'Event Notifications')}</h3>
+                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.notifications.events', 'Event Notifications')}</h3>
                     <div className="space-y-3">
-                      <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <span className="text-sm font-medium text-gray-700">{t('profile.notifications.workOrders', 'Work Order Updates')}</span>
+                      <label className="flex items-center justify-between p-3 border border-border rounded-2xl hover:bg-muted cursor-pointer">
+                        <span className="text-sm font-medium text-foreground">{t('profile.notifications.workOrders', 'Work Order Updates')}</span>
                         <input
                           type="checkbox"
                           checked={notificationSettings.workOrderUpdates}
@@ -440,8 +440,8 @@ export default function ProfilePage() {
                           className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
                         />
                       </label>
-                      <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <span className="text-sm font-medium text-gray-700">{t('profile.notifications.maintenance', 'Maintenance Alerts')}</span>
+                      <label className="flex items-center justify-between p-3 border border-border rounded-2xl hover:bg-muted cursor-pointer">
+                        <span className="text-sm font-medium text-foreground">{t('profile.notifications.maintenance', 'Maintenance Alerts')}</span>
                         <input
                           type="checkbox"
                           checked={notificationSettings.maintenanceAlerts}
@@ -452,8 +452,8 @@ export default function ProfilePage() {
                           className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
                         />
                       </label>
-                      <label className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                        <span className="text-sm font-medium text-gray-700">{t('profile.notifications.invoices', 'Invoice Reminders')}</span>
+                      <label className="flex items-center justify-between p-3 border border-border rounded-2xl hover:bg-muted cursor-pointer">
+                        <span className="text-sm font-medium text-foreground">{t('profile.notifications.invoices', 'Invoice Reminders')}</span>
                         <input
                           type="checkbox"
                           checked={notificationSettings.invoiceReminders}
@@ -470,7 +470,7 @@ export default function ProfilePage() {
                   <div className="flex justify-end">
                     <button
                       onClick={handleSaveNotifications}
-                      className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
+                      className="px-4 py-2 bg-brand-500 text-white rounded-2xl hover:bg-brand-600 transition-colors"
                     >
                       {t('profile.notifications.save', 'Save Preferences')}
                     </button>
@@ -482,10 +482,10 @@ export default function ProfilePage() {
               {activeTab === 'security' && (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">{t('profile.security.changePassword', 'Change Password')}</h3>
+                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.security.changePassword', 'Change Password')}</h3>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-foreground mb-2">
                           {t('profile.security.currentPassword', 'Current Password')}
                         </label>
                         <input
@@ -495,11 +495,11 @@ export default function ProfilePage() {
                             ...securitySettings,
                             currentPassword: e.target.value
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-background text-foreground"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-foreground mb-2">
                           {t('profile.security.newPassword', 'New Password')}
                         </label>
                         <input
@@ -509,11 +509,11 @@ export default function ProfilePage() {
                             ...securitySettings,
                             newPassword: e.target.value
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-background text-foreground"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-foreground mb-2">
                           {t('profile.security.confirmPassword', 'Confirm New Password')}
                         </label>
                         <input
@@ -523,18 +523,18 @@ export default function ProfilePage() {
                             ...securitySettings,
                             confirmPassword: e.target.value
                           })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-background text-foreground"
                         />
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">{t('profile.security.twoFactor', 'Two-Factor Authentication')}</h3>
-                    <label className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.security.twoFactor', 'Two-Factor Authentication')}</h3>
+                    <label className="flex items-center justify-between p-4 border border-border rounded-2xl hover:bg-muted cursor-pointer">
                       <div>
-                        <span className="text-sm font-medium text-gray-700 block">{t('profile.security.enable2FA', 'Enable 2FA')}</span>
-                        <span className="text-xs text-gray-500">{t('profile.security.2FADesc', 'Add an extra layer of security to your account')}</span>
+                        <span className="text-sm font-medium text-foreground block">{t('profile.security.enable2FA', 'Enable 2FA')}</span>
+                        <span className="text-xs text-muted-foreground">{t('profile.security.2FADesc', 'Add an extra layer of security to your account')}</span>
                       </div>
                       <input
                         type="checkbox"
@@ -551,7 +551,7 @@ export default function ProfilePage() {
                   <div className="flex justify-end">
                     <button
                       onClick={handleSaveSecurity}
-                      className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
+                      className="px-4 py-2 bg-brand-500 text-white rounded-2xl hover:bg-brand-600 transition-colors"
                     >
                       {t('profile.security.update', 'Update Security')}
                     </button>
@@ -565,24 +565,24 @@ export default function ProfilePage() {
 
       {/* Quick Actions */}
       <div className="mt-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('profile.quickActions.title', 'Quick Actions')}</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">{t('profile.quickActions.title', 'Quick Actions')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link href="/settings" className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+          <Link href="/settings" className="bg-card text-card-foreground p-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow">
             <Settings className="h-6 w-6 text-brand-500 mb-2" />
-            <h3 className="font-medium text-gray-900">{t('profile.quickActions.system', 'System Settings')}</h3>
-            <p className="text-sm text-gray-600">{t('profile.quickActions.systemDesc', 'Configure application preferences')}</p>
+            <h3 className="font-medium text-foreground">{t('profile.quickActions.system', 'System Settings')}</h3>
+            <p className="text-sm text-muted-foreground">{t('profile.quickActions.systemDesc', 'Configure application preferences')}</p>
           </Link>
 
-          <Link href="/notifications" className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+          <Link href="/notifications" className="bg-card text-card-foreground p-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow">
             <Bell className="h-6 w-6 text-success mb-2" />
-            <h3 className="font-medium text-gray-900">{t('profile.quickActions.notifications', 'Notification Settings')}</h3>
-            <p className="text-sm text-gray-600">{t('profile.quickActions.notificationsDesc', 'Manage alerts and notifications')}</p>
+            <h3 className="font-medium text-foreground">{t('profile.quickActions.notifications', 'Notification Settings')}</h3>
+            <p className="text-sm text-muted-foreground">{t('profile.quickActions.notificationsDesc', 'Manage alerts and notifications')}</p>
           </Link>
 
-          <Link href="/security" className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+          <Link href="/security" className="bg-card text-card-foreground p-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow">
             <Shield className="h-6 w-6 text-accent mb-2" />
-            <h3 className="font-medium text-gray-900">{t('profile.quickActions.security', 'Security Settings')}</h3>
-            <p className="text-sm text-gray-600">{t('profile.quickActions.securityDesc', 'Password and access management')}</p>
+            <h3 className="font-medium text-foreground">{t('profile.quickActions.security', 'Security Settings')}</h3>
+            <p className="text-sm text-muted-foreground">{t('profile.quickActions.securityDesc', 'Password and access management')}</p>
           </Link>
         </div>
       </div>
