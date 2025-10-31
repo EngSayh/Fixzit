@@ -1,0 +1,799 @@
+'use client';
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Bell, User, ChevronDown, Search } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
+import LanguageSelector from './i18n/LanguageSelector';
+import CurrencySelector from './i18n/CurrencySelector';
+import AppSwitcher from './topbar/AppSwitcher';
+import GlobalSearch from './topbar/GlobalSearch';
+import QuickActions from './topbar/QuickActions';
+import Portal from './Portal';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter, usePathname } from 'next/navigation';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { useResponsive } from '@/contexts/ResponsiveContext';
+import { useFormState } from '@/contexts/FormStateContext';
+
+// Type definitions
+interface OrgSettings {
+  name: string;
+  logo: string | null;
+}
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  priority: 'high' | 'medium' | 'low';
+  timestamp: string;
+  read: boolean;
+  targetUrl?: string; // Optional deep link URL
+}
+
+// Fallback translations for when context is not available
+const fallbackTranslations: Record<string, string> = {
+  'common.brand': 'FIXZIT ENTERPRISE',
+  'common.search.placeholder': 'Search Work Orders, Properties, Tenants...',
+  'nav.notifications': 'Notifications',
+  'common.unread': 'unread',
+  'common.noNotifications': 'No new notifications',
+  'common.loading': 'Loading...',
+  'common.allCaughtUp': "You're all caught up!",
+  'common.viewAll': 'View all notifications',
+  'nav.profile': 'Profile',
+  'nav.settings': 'Settings',
+  'common.preferences': 'Preferences',
+  'common.logout': 'Sign out'
+};
+
+// Extracted fallback translation function for clarity and reusability
+const fallbackT = (key: string, fallback?: string) =>
+  fallbackTranslations[key] || fallback || key;
+
+/**
+ * Top navigation bar for the application, including brand, search, quick actions,
+ * language/currency selectors, notifications, and user menu.
+ *
+ * Renders responsive, RTL-aware UI with:
+ * - Brand and app switcher
+ * - Global search (hidden on mobile) and a mobile search button
+ * - Quick actions, compact language and currency selectors
+ * - Notification bell with dropdown (loads notifications on open, shows loading/empty states,
+ *   marks unread items with a dot, navigates to /notifications)
+ * - User menu with Profile, Settings, and Sign out (clears client storage and redirects to /login)
+ *
+ * @returns {JSX.Element} The TopBar React element.
+ */
+export default function TopBar() {
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState(false);
+  const [orgSettings, setOrgSettings] = useState<OrgSettings>({
+    name: 'FIXZIT ENTERPRISE',
+    logo: null,
+  });
+
+  // ── Anchor refs for dropdown positioning
+  const notifBtnRef = useRef<HTMLButtonElement>(null);
+  const userBtnRef = useRef<HTMLButtonElement>(null);
+
+  // ── Panel rect state
+  type Pos = { top: number; left: number; width: number };
+  const [notifPos, setNotifPos] = useState<Pos>({ top: 60, left: 16, width: 384 }); // w-96 ≈ 384px
+  const [userPos, setUserPos] = useState<Pos>({ top: 60, left: 16, width: 224 }); // w-56 ≈ 224px
+
+  const clamp = (n: number, min: number, max: number) => Math.min(Math.max(n, min), max);
+
+  // Add missing router and pathname hooks
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Use NextAuth session for authentication (supports both OAuth and JWT)
+  const { data: session, status } = useSession();
+  
+  // Fallback auth check for JWT-based sessions (not using NextAuth)
+  const [authUser, setAuthUser] = useState<{ id?: string; role?: string } | null>(null);
+  
+  // Check for JWT auth if NextAuth session is not available
+  useEffect(() => {
+    let abort = false;
+    // Only fetch if NextAuth isn't authenticated yet
+    if (status !== 'authenticated' && status !== 'loading') {
+      fetch('/api/auth/me', { credentials: 'include' })
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { 
+          if (!abort && data?.user?.id) {
+            setAuthUser({ id: data.user.id, role: data.user.role });
+          }
+        })
+        .catch(() => {/* silently ignore - user is guest */});
+    }
+    return () => { abort = true; };
+  }, [status]);
+  
+  // CRITICAL: Check both NextAuth AND JWT-based auth
+  // This handles users logged in via either method
+  const isAuthenticated = (status === 'authenticated' && session != null) || !!authUser;
+
+  // Use FormStateContext for unsaved changes detection
+  const { hasUnsavedChanges, clearAllUnsavedChanges } = useFormState();
+
+  // Get translation context
+  const translationContext = useTranslation();
+
+  // Close all popups helper
+  const closeAllPopups = useCallback(() => {
+    setNotifOpen(false);
+    setUserOpen(false);
+  }, []);
+
+  // Close dropdowns when route changes
+  useEffect(() => {
+    closeAllPopups();
+  }, [pathname, closeAllPopups]);
+
+  // Fetch organization settings on mount (only for authenticated users)
+  useEffect(() => {
+    // Don't fetch org settings for guest users
+    if (!isAuthenticated) {
+      return;
+    }
+
+    const fetchOrgSettings = async () => {
+      try {
+        const response = await fetch('/api/organization/settings', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setOrgSettings(data);
+        } else if (response.status === 401) {
+          // Silently handle 401 - user is not logged in
+          // Keep default settings
+        }
+      } catch (error) {
+        console.error('Failed to fetch organization settings:', error);
+        // Keep default settings
+      }
+    };
+    fetchOrgSettings();
+  }, [isAuthenticated]);
+
+  // Get responsive context for screen size
+  const { isMobile, isTablet, isDesktop } = useResponsive();
+  // Get direction from translation context
+  const { isRTL } = useTranslation();
+  
+  // Place dropdown panel under anchor, clamped inside viewport (after isRTL is defined)
+  const placeDropdown = useCallback((anchor: HTMLElement, panelWidth: number) => {
+    const r = anchor.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const top = r.bottom + 8; // 8px gap under button
+    // LTR: align panel right edge with button right; RTL: align left edges
+    let left = isRTL ? r.left : r.right - panelWidth;
+    left = clamp(left, 8, vw - panelWidth - 8);
+    return { top, left, width: panelWidth };
+  }, [isRTL]);
+  
+  // Build responsive classes
+  const responsiveClasses = {
+    container: isMobile ? 'px-2' : 'px-4'
+  };
+  
+  // Build screen info
+  const screenInfo = {
+    isMobile,
+    isTablet,
+    isDesktop
+  };
+
+  // Call useTranslation unconditionally at top level (React Rules of Hooks)
+  const t = translationContext?.t ?? fallbackT;
+
+  // Debug RTL positioning (remove after issue is resolved)
+
+
+  // Handle logo click with unsaved changes check
+  const handleLogoClick = (e: React.MouseEvent) => {
+    if (hasUnsavedChanges) {
+      e.preventDefault();
+      setShowUnsavedDialog(true);
+      setPendingNavigation('/');
+    } else {
+      router.push('/');
+    }
+  };
+
+  // Handle save and navigate - use event-driven pattern with proper error handling
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  
+  const handleSaveAndNavigate = async () => {
+    setIsSaving(true);
+    setSaveError(null);
+    
+    try {
+      // Set up event listeners for save confirmation
+      // ⚡ IMPROVED: Promise aggregation pattern for save coordination
+      const promises: Promise<void>[] = [];
+      const saveEvent = new CustomEvent('fixzit:save-forms', { 
+        detail: { promises, timestamp: Date.now() } 
+      });
+      window.dispatchEvent(saveEvent);
+      
+      // Await all registered saves instead of fixed timeout
+      await Promise.all(promises);
+      
+      // Clear all unsaved changes flags only after successful saves
+      clearAllUnsavedChanges();
+      
+      // Success - close dialog and navigate
+      setShowUnsavedDialog(false);
+      if (pendingNavigation) {
+        router.push(pendingNavigation);
+        setPendingNavigation(null);
+      }
+    } catch (error) {
+      console.error('Failed to save form:', error);
+      // Keep flags intact so user can retry or discard
+      setSaveError(
+        error instanceof Error 
+          ? error.message 
+          : 'Failed to save changes. Please try again or discard changes.'
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Handle discard and navigate
+  const handleDiscardAndNavigate = () => {
+    // Clear all unsaved changes flags
+    clearAllUnsavedChanges();
+    setShowUnsavedDialog(false);
+    if (pendingNavigation) {
+      router.push(pendingNavigation);
+      setPendingNavigation(null);
+    }
+  };
+
+  // Define fetchNotifications before using it
+  const fetchNotifications = useCallback(async () => {
+    // Don't fetch notifications for guest users
+    if (!isAuthenticated) {
+      setNotifications([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/notifications?limit=5&read=false', {
+        credentials: 'include' // Use session cookies instead of hardcoded guest
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data.items || []);
+      } else if (response.status === 401) {
+        // 401 is expected for guests - silently set empty notifications
+        setNotifications([]);
+      } else {
+        // Other errors - log them
+        console.error('Failed to fetch notifications:', response.status);
+        setNotifications([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+      // Don't show mock notifications - just empty for guests
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  // Fetch notifications when dropdown opens (only if authenticated)
+  useEffect(() => {
+    if (notifOpen && notifications.length === 0 && isAuthenticated) {
+      fetchNotifications();
+    }
+  }, [notifOpen, notifications.length, isAuthenticated, fetchNotifications]);
+
+  // Reposition dropdowns on resize/scroll while open
+  useEffect(() => {
+    if (!notifOpen && !userOpen) return;
+    const onReflow = () => {
+      if (notifOpen && notifBtnRef.current) setNotifPos(placeDropdown(notifBtnRef.current, 384));
+      if (userOpen && userBtnRef.current) setUserPos(placeDropdown(userBtnRef.current, 224));
+    };
+    window.addEventListener('resize', onReflow);
+    window.addEventListener('scroll', onReflow, true);
+    return () => {
+      window.removeEventListener('resize', onReflow);
+      window.removeEventListener('scroll', onReflow, true);
+    };
+  }, [notifOpen, userOpen, placeDropdown]);
+
+  // Close notification popup when clicking outside or pressing Escape
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+
+      // Check if the click is inside any popup container
+      const isInsideNotification = target.closest('.notification-container');
+      const isInsideUserMenu = target.closest('.user-menu-container');
+
+      // Close notification if click is outside and it's open
+      if (notifOpen && !isInsideNotification) {
+        setNotifOpen(false);
+      }
+
+      // Close user menu if click is outside and it's open
+      if (userOpen && !isInsideUserMenu) {
+        setUserOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeAllPopups();
+      }
+    };
+
+    // Add listeners if any popup is open
+    if (notifOpen || userOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [notifOpen, userOpen, closeAllPopups]);
+
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
+
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    return `${Math.floor(diffInMinutes / 1440)}d ago`;
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'text-red-600';
+      case 'medium': return 'text-yellow-600';
+      case 'low': return 'text-green-600';
+      default: return 'text-gray-600';
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      // Save language and locale preferences before clearing storage
+      const savedLang = localStorage.getItem('fxz.lang');
+      const savedLocale = localStorage.getItem('fxz.locale');
+
+      // Clear client-side storage
+      localStorage.removeItem('fixzit-role');
+      localStorage.removeItem('fixzit-currency');
+      localStorage.removeItem('fixzit-theme');
+
+      // Clear any other localStorage items related to the app, BUT preserve language settings
+      const keysToRemove = Object.keys(localStorage).filter(
+        key =>
+          (key.startsWith('fixzit-') || key.startsWith('fxz-')) &&
+          key !== 'fxz.lang' &&
+          key !== 'fxz.locale'
+      );
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+      });
+
+      // Restore language preferences
+      if (savedLang) localStorage.setItem('fxz.lang', savedLang);
+      if (savedLocale) localStorage.setItem('fxz.locale', savedLocale);
+
+      // Use NextAuth signOut for both OAuth and JWT sessions
+      // This properly clears both NextAuth session and server-side JWT
+      await signOut({ callbackUrl: '/login', redirect: true });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still redirect even if signOut fails
+      window.location.href = '/login';
+    }
+  };
+
+  // Calculate unread notifications count once
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  return (
+    <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-brand-500 via-brand-500 to-accent-500 text-white ${responsiveClasses.container} shadow-sm border-b border-white/10`}>
+      <div className={`h-full flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        {/* Left Section: Logo & App Switcher */}
+        <div className={`flex items-center gap-2 sm:gap-3 flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          {/* Logo with unsaved changes handler */}
+          <button
+            type="button"
+            onClick={handleLogoClick}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            aria-label="Go to home"
+          >
+            {orgSettings.logo && !logoError ? (
+              <Image
+                src={orgSettings.logo}
+                alt={orgSettings.name}
+                width={32}
+                height={32}
+                className="rounded-md object-cover"
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <div 
+                className="w-8 h-8 rounded-md bg-gradient-to-br from-[#0061A8] to-[#004d86] flex items-center justify-center text-white font-bold text-sm"
+                aria-hidden="true"
+              >
+                {orgSettings?.name?.substring(0, 2).toUpperCase() || 'FX'}
+              </div>
+            )}
+            <span className={`font-bold ${screenInfo.isMobile ? 'hidden' : 'text-lg'} whitespace-nowrap ${isRTL ? 'text-right' : ''}`}>
+              {orgSettings?.name || 'FIXZIT ENTERPRISE'}
+            </span>
+          </button>
+          <AppSwitcher />
+        </div>
+        
+        {/* Center Section: Global Search */}
+        {!screenInfo.isMobile && (
+          <div className="flex-1 max-w-2xl mx-2 sm:mx-4 min-w-0">
+            <GlobalSearch />
+          </div>
+        )}
+        
+        {/* Right Section: Actions & User Menu */}
+        <div className={`flex items-center gap-1 sm:gap-2 flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          {/* Mobile search button */}
+          {screenInfo.isMobile && (
+            <button
+              type="button"
+              className="p-2 hover:bg-white/10 rounded-md"
+              aria-label="Open search"
+              onClick={() => setMobileSearchOpen(true)}
+            >
+              <Search className="w-4 h-4" />
+            </button>
+          )}
+        {/* Only show QuickActions for authenticated users */}
+        {isAuthenticated && <QuickActions />}
+        
+        {/* Only show notifications for authenticated users */}
+        {isAuthenticated && (
+          <div className="notification-container relative">
+            <button
+              ref={notifBtnRef}
+              type="button"
+              onClick={() => {
+                setUserOpen(false); // Close user menu when opening notifications
+                setNotifOpen(o => {
+                  const next = !o;
+                  if (next && notifBtnRef.current) {
+                    setNotifPos(placeDropdown(notifBtnRef.current, 384)); // w-96 ≈ 384px
+                  }
+                  return next;
+                });
+              }}
+              className="p-2 hover:bg-white/10 rounded-md relative"
+              aria-label="Toggle notifications"
+            >
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+              )}
+            </button>
+            {notifOpen && (
+              <div 
+                role="dialog"
+                aria-modal="true"
+                aria-label="Notifications"
+                className="fixed bg-popover text-popover-foreground rounded-2xl shadow-2xl border border-border z-[100] animate-in slide-in-from-top-2 duration-200"
+                style={{ 
+                  top: notifPos.top,
+                  left: notifPos.left,
+                  width: `min(${notifPos.width}px, calc(100vw - 2rem))`,
+                  maxHeight: 'calc(100vh - 80px)',
+                  overflowY: 'auto'
+                }}
+              >
+                  <div className="p-3 border-b border-border flex justify-between items-start">
+                    <div>
+                      <div className="font-semibold">{t('nav.notifications', 'Notifications')}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {unreadCount > 0
+                          ? `${unreadCount} ${t('common.unread', 'unread')}`
+                          : t('common.noNotifications', 'No new notifications')
+                        }
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setNotifOpen(false)}
+                      className="p-1 hover:bg-muted rounded-full"
+                      aria-label="Close notifications"
+                    >
+                      <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-background">
+                    {loading ? (
+                      <div className="p-3 text-center text-muted-foreground">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-muted mx-auto"></div>
+                        <div className="text-xs mt-1">{t('common.loading', 'Loading...')}</div>
+                      </div>
+                    ) : notifications.length > 0 ? (
+                      <div className="space-y-1">
+                        {notifications.map((notification) => (
+                          <div
+                            key={notification.id}
+                            className="p-3 hover:bg-muted border-b border-border last:border-b-0 cursor-pointer transition-colors"
+                            onClick={() => {
+                              setNotifOpen(false);
+                              // Navigate to specific target URL if provided, otherwise go to notifications page
+                              const targetPath = notification.targetUrl || '/notifications';
+                              router.push(targetPath);
+                            }}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="font-medium text-sm text-foreground">
+                                  {notification.title}
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {notification.message}
+                                </div>
+                                <div className="flex items-center justify-between mt-2">
+                                  <span className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(notification.priority)} bg-muted`}>
+                                    {notification.priority.toUpperCase()}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {formatTimeAgo(notification.timestamp)}
+                                  </span>
+                                </div>
+                              </div>
+                              {!notification.read && (
+                                <div className="w-2 h-2 bg-brand-500 rounded-full ml-2 flex-shrink-0"></div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-6 text-center text-muted-foreground">
+                        <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                        <div className="text-sm">{t('common.noNotifications', 'No new notifications')}</div>
+                        <div className="text-xs text-muted-foreground mt-1">{t('common.allCaughtUp', "You're all caught up!")}</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {notifications.length > 0 && (
+                    <div className="p-3 border-t border-border bg-muted">
+                      <Link
+                        href="/notifications"
+                        className="text-xs text-brand-500 hover:text-brand-700 font-medium flex items-center justify-center gap-1"
+                        onClick={() => setNotifOpen(false)}
+                      >
+                        {t('common.viewAll', 'View all notifications')}
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+            )}
+          </div>
+        )}
+        
+        {/* User menu or Sign In button based on auth status */}
+        {isAuthenticated ? (
+          <div className="user-menu-container relative">
+            <button 
+              ref={userBtnRef}
+              type="button"
+              onClick={() => {
+                setNotifOpen(false); // Close notifications when opening user menu
+                setUserOpen(o => {
+                  const next = !o;
+                  if (next && userBtnRef.current) {
+                    setUserPos(placeDropdown(userBtnRef.current, 224)); // w-56 ≈ 224px
+                  }
+                  return next;
+                });
+              }} 
+              className="flex items-center gap-1 p-2 hover:bg-white/10 rounded-md transition-colors"
+              aria-label="Toggle user menu"
+            >
+              <User className="w-5 h-5" /><ChevronDown className="w-4 h-4" />
+            </button>
+            {userOpen && (
+              <div 
+                role="menu"
+                aria-label="User menu"
+                className="fixed bg-popover text-popover-foreground rounded-2xl shadow-2xl border border-border py-1 z-[100] animate-in slide-in-from-top-2 duration-200"
+                style={{
+                  top: userPos.top,
+                  left: userPos.left,
+                  width: `min(${userPos.width}px, calc(100vw - 2rem))`,
+                  maxHeight: 'calc(100vh - 80px)',
+                  overflowY: 'auto',
+                  pointerEvents: 'auto'
+                }}
+              >
+                  <Link
+                    href="/profile"
+                    className="block px-4 py-2 hover:bg-muted rounded transition-colors cursor-pointer"
+                    role="menuitem"
+                    onClick={() => setUserOpen(false)}
+                  >
+                    {t('nav.profile', 'Profile')}
+                  </Link>
+                  <Link
+                    href="/settings"
+                    className="block px-4 py-2 hover:bg-muted rounded transition-colors cursor-pointer"
+                    role="menuitem"
+                    onClick={() => setUserOpen(false)}
+                  >
+                    {t('nav.settings', 'Settings')}
+                  </Link>
+                  
+                  {/* Language & Currency Section */}
+                  <>
+                    <div className="border-t my-1 mx-2" />
+                    <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase">
+                      {t('common.preferences', 'Preferences')}
+                    </div>
+                    <div className="px-4 py-2 space-y-2" role="none">
+                      <LanguageSelector variant="default" />
+                      <CurrencySelector variant="default" />
+                    </div>
+                  </>
+                  
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="block w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded transition-colors cursor-pointer"
+                    onClick={handleLogout}
+                  >
+                    {t('common.logout', 'Sign out')}
+                  </button>
+                </div>
+            )}
+          </div>
+        ) : (
+          <Link
+            href="/login"
+            className="px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors"
+          >
+            {t('common.signIn', 'Sign In')}
+          </Link>
+        )}
+        </div>
+      </div>
+
+      {/* Unsaved Changes Dialog */}
+      {showUnsavedDialog && (
+        <Portal>
+          <div 
+            className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="unsaved-dialog-title"
+          >
+            <div className="bg-popover text-popover-foreground rounded-2xl shadow-2xl max-w-md w-full p-6 border border-border">
+              <h3 
+                id="unsaved-dialog-title"
+                className="text-lg font-semibold text-foreground mb-2"
+              >
+                {t('common.unsavedChanges', 'Unsaved Changes')}
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {t('common.unsavedChangesMessage', 'You have unsaved changes. Do you want to save them before leaving?')}
+              </p>
+              
+              {/* Error message display */}
+              {saveError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-800">{saveError}</p>
+                </div>
+              )}
+              
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowUnsavedDialog(false);
+                    setPendingNavigation(null);
+                    setSaveError(null);
+                  }}
+                  disabled={isSaving}
+                  className="px-4 py-2 text-foreground hover:bg-muted rounded-2xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t('common.cancel', 'Cancel')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDiscardAndNavigate}
+                  disabled={isSaving}
+                  className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t('common.discard', 'Discard')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveAndNavigate}
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isSaving && (
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  {isSaving ? t('common.saving', 'Saving...') : t('common.saveAndContinue', 'Save & Continue')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {/* Mobile Search Modal */}
+      {mobileSearchOpen && (
+        <Portal>
+          <div 
+            className="fixed inset-0 bg-black/50 z-[200] flex flex-col"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mobile-search-title"
+          >
+            <div className="bg-card text-card-foreground w-full flex flex-col h-full">
+              {/* Header */}
+              <div className="flex items-center gap-2 p-4 border-b border-border">
+                <button
+                  type="button"
+                  onClick={() => setMobileSearchOpen(false)}
+                  className="p-2 hover:bg-muted rounded-2xl"
+                  aria-label="Close search"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <h2 id="mobile-search-title" className="text-lg font-semibold text-foreground">
+                  {t('common.search', 'Search')}
+                </h2>
+              </div>
+              
+              {/* Search Content - Use GlobalSearch component */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <GlobalSearch onResultClick={() => setMobileSearchOpen(false)} />
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
+    </header>
+  );
+}
