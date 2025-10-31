@@ -313,7 +313,7 @@ export default function ReferralProgramPage() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto p-6" data-testid="referral-error-page">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
           <div className="flex items-start gap-4">
             <svg className="w-6 h-6 text-red-600 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -326,7 +326,7 @@ export default function ReferralProgramPage() {
                   setError(null);
                   fetchReferralData();
                 }}
-                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
+                className="bg-red-600 text-white px-4 py-2 rounded-2xl hover:bg-red-700 transition-colors"
                 data-testid="retry-button"
               >
                 Try Again
@@ -354,7 +354,7 @@ export default function ReferralProgramPage() {
 
       {/* Error Message Banner */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3" data-testid="error-banner">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3" data-testid="error-banner">
           <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -376,17 +376,17 @@ export default function ReferralProgramPage() {
 
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+        <h1 className="text-3xl font-bold text-foreground dark:text-white">
           Referral Program
         </h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">
+        <p className="mt-2 text-muted-foreground dark:text-muted-foreground">
           Earn rewards by referring friends and family to Fixzit
         </p>
       </div>
 
       {!referralCode ? (
         /* Generate Code CTA */
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-8 text-center text-white" data-testid="generate-code-cta">
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-center text-white" data-testid="generate-code-cta">
           <h2 className="text-2xl font-bold mb-4">Start Earning Rewards!</h2>
           <p className="mb-6">
             Get your unique referral code and earn money when your friends sign up
@@ -394,7 +394,7 @@ export default function ReferralProgramPage() {
           <button
             onClick={generateCode}
             disabled={generating}
-            className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+            className="bg-card text-blue-600 px-8 py-3 rounded-2xl font-semibold hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
             data-testid="generate-code-button"
           >
             {generating ? (
@@ -413,12 +413,12 @@ export default function ReferralProgramPage() {
       ) : (
         <>
           {/* Referral Card */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-8 text-white" data-testid="referral-card">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white" data-testid="referral-card">
             <div className="grid md:grid-cols-2 gap-8">
               {/* Left: Code */}
               <div>
                 <h2 className="text-xl font-semibold mb-4">Your Referral Code</h2>
-                <div className="bg-white/20 rounded-lg p-4 backdrop-blur-sm">
+                <div className="bg-white/20 rounded-2xl p-4 backdrop-blur-sm">
                   <div className="text-3xl font-bold tracking-wider mb-4" data-testid="referral-code">
                     {referralCode.code}
                   </div>
@@ -433,14 +433,14 @@ export default function ReferralProgramPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => copyToClipboard(referralCode.code)}
-                      className="flex-1 bg-white text-blue-600 px-4 py-2 rounded-md font-medium hover:bg-gray-100 transition-colors"
+                      className="flex-1 bg-card text-blue-600 px-4 py-2 rounded-2xl font-medium hover:bg-muted transition-colors"
                       data-testid="copy-code-button"
                     >
                       {copied ? '✓ Copied!' : 'Copy Code'}
                     </button>
                     <button
                       onClick={() => copyToClipboard(referralCode.shortUrl)}
-                      className="flex-1 bg-white text-blue-600 px-4 py-2 rounded-md font-medium hover:bg-gray-100 transition-colors"
+                      className="flex-1 bg-card text-blue-600 px-4 py-2 rounded-2xl font-medium hover:bg-muted transition-colors"
                       data-testid="copy-link-button"
                     >
                       Copy Link
@@ -450,7 +450,7 @@ export default function ReferralProgramPage() {
                     <button
                       onClick={regenerateCode}
                       disabled={generating}
-                      className="w-full mt-3 bg-yellow-500 text-white px-4 py-2 rounded-md font-medium hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full mt-3 bg-yellow-500 text-white px-4 py-2 rounded-2xl font-medium hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       data-testid="regenerate-code-button"
                     >
                       {generating ? 'Regenerating...' : 'Regenerate Code'}
@@ -463,13 +463,13 @@ export default function ReferralProgramPage() {
               <div>
                 <h2 className="text-xl font-semibold mb-4">Rewards</h2>
                 <div className="space-y-3">
-                  <div className="bg-white/20 rounded-lg p-4 backdrop-blur-sm" data-testid="referrer-reward">
+                  <div className="bg-white/20 rounded-2xl p-4 backdrop-blur-sm" data-testid="referrer-reward">
                     <div className="text-sm opacity-90">You Get</div>
                     <div className="text-2xl font-bold">
                       {formatCurrency(referralCode.reward.referrerAmount, referralCode.reward.currency)}
                     </div>
                   </div>
-                  <div className="bg-white/20 rounded-lg p-4 backdrop-blur-sm" data-testid="referred-reward">
+                  <div className="bg-white/20 rounded-2xl p-4 backdrop-blur-sm" data-testid="referred-reward">
                     <div className="text-sm opacity-90">They Get</div>
                     <div className="text-2xl font-bold">
                       {formatCurrency(referralCode.reward.referredAmount, referralCode.reward.currency)}
@@ -485,7 +485,7 @@ export default function ReferralProgramPage() {
               <div className="flex gap-3">
                 <button
                   onClick={shareViaWhatsApp}
-                  className="flex-1 bg-green-500 hover:bg-green-600 px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 bg-green-500 hover:bg-green-600 px-4 py-2 rounded-2xl font-medium transition-colors flex items-center justify-center gap-2"
                   data-testid="share-whatsapp"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -495,7 +495,7 @@ export default function ReferralProgramPage() {
                 </button>
                 <button
                   onClick={shareViaEmail}
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-2xl font-medium transition-colors flex items-center justify-center gap-2"
                   data-testid="share-email"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -509,26 +509,26 @@ export default function ReferralProgramPage() {
 
           {/* Stats */}
           <div className="grid md:grid-cols-4 gap-4" data-testid="referral-stats">
-            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6" data-testid="stat-total-referrals">
-              <div className="text-sm text-gray-500 dark:text-gray-400">Total Referrals</div>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+            <div className="bg-card dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-700 p-6" data-testid="stat-total-referrals">
+              <div className="text-sm text-muted-foreground dark:text-muted-foreground">Total Referrals</div>
+              <div className="text-3xl font-bold text-foreground dark:text-white mt-2">
                 {referralCode.stats.totalReferrals}
               </div>
             </div>
-            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6" data-testid="stat-successful-referrals">
-              <div className="text-sm text-gray-500 dark:text-gray-400">Successful</div>
+            <div className="bg-card dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-700 p-6" data-testid="stat-successful-referrals">
+              <div className="text-sm text-muted-foreground dark:text-muted-foreground">Successful</div>
               <div className="text-3xl font-bold text-green-600 mt-2">
                 {referralCode.stats.successfulReferrals}
               </div>
             </div>
-            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6" data-testid="stat-total-earned">
-              <div className="text-sm text-gray-500 dark:text-gray-400">Total Earned</div>
+            <div className="bg-card dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-700 p-6" data-testid="stat-total-earned">
+              <div className="text-sm text-muted-foreground dark:text-muted-foreground">Total Earned</div>
               <div className="text-3xl font-bold text-blue-600 mt-2">
                 {formatCurrency(referralCode.stats.totalRewardsEarned, referralCode.reward.currency)}
               </div>
             </div>
-            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6" data-testid="stat-conversion-rate">
-              <div className="text-sm text-gray-500 dark:text-gray-400">Conversion Rate</div>
+            <div className="bg-card dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-700 p-6" data-testid="stat-conversion-rate">
+              <div className="text-sm text-muted-foreground dark:text-muted-foreground">Conversion Rate</div>
               <div className="text-3xl font-bold text-purple-600 mt-2">
                 {referralCode.stats.conversionRate.toFixed(1)}%
               </div>
@@ -536,31 +536,31 @@ export default function ReferralProgramPage() {
           </div>
 
           {/* Referrals Table */}
-          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700" data-testid="referrals-table">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <div className="bg-card dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-700" data-testid="referrals-table">
+            <div className="p-6 border-b border-border dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-foreground dark:text-white">
                 Your Referrals
               </h2>
             </div>
             {referrals.length === 0 ? (
-              <div className="p-12 text-center text-gray-500 dark:text-gray-400" data-testid="no-referrals">
+              <div className="p-12 text-center text-muted-foreground dark:text-muted-foreground" data-testid="no-referrals">
                 No referrals yet. Start sharing your code!
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-800">
+                  <thead className="bg-muted dark:bg-gray-800">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
                         Email
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
                         Referred At
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
                         Reward
                       </th>
                     </tr>
@@ -568,10 +568,10 @@ export default function ReferralProgramPage() {
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {referrals.map((referral, index) => (
                       <tr key={index} data-testid={`referral-row-${index}`}>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 text-sm text-foreground dark:text-white">
                           {maskEmail(referral.referredEmail)}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                        <td className="px-6 py-4 text-sm text-muted-foreground dark:text-muted-foreground">
                           {formatDate(referral.referredAt)}
                         </td>
                         <td className="px-6 py-4">
@@ -585,7 +585,7 @@ export default function ReferralProgramPage() {
                             {referral.rewardStatus}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 text-sm text-foreground dark:text-white">
                           {formatCurrency(referral.rewardEarned, referralCode.reward.currency)}
                         </td>
                       </tr>
