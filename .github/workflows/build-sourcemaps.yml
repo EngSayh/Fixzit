@@ -43,7 +43,6 @@ jobs:
 
       - name: 🏗️ Build with source maps
         env:
-          NODE_ENV: production
           SENTRY_RELEASE: ${{ env.SENTRY_RELEASE }}
         run: |
           set -e
@@ -63,12 +62,11 @@ jobs:
           projects: ${{ env.SENTRY_PROJECT }}
           version: ${{ env.SENTRY_RELEASE }}
           environment: ${{ env.SENTRY_ENVIRONMENT }}
-          sourcemaps: |
-            .next/static
+          sourcemaps: .next/static/**/*.map
           url_prefix: "~/_next/static"
           strip_common_prefix: true
           ignore_empty: true
-          set_commits: "skip"
+          set_commits: "auto"
 
       # ----- Upload server sourcemaps (.next/server/**) -----
       - name: 🚀 Upload server sourcemaps
@@ -83,11 +81,10 @@ jobs:
           projects: ${{ env.SENTRY_PROJECT }}
           version: ${{ env.SENTRY_RELEASE }}
           environment: ${{ env.SENTRY_ENVIRONMENT }}
-          sourcemaps: |
-            .next/server
+          sourcemaps: .next/server/**/*.map
           strip_common_prefix: true
           ignore_empty: true
-          set_commits: "skip"
+          set_commits: "auto"
 
       - name: 🧾 Build summary
         if: always()
@@ -95,7 +92,7 @@ jobs:
           echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "✅ Production build completed" >> $GITHUB_STEP_SUMMARY
           MAP_COUNT=$(find .next -name "*.map" -type f | wc -l || echo "0")
-          echo "📊 Source maps: $MAP_COUNT files" >> $GITHUB_STEP_SUMMARY
+          echo "�️ Source maps: $MAP_COUNT files" >> $GITHUB_STEP_SUMMARY
           TOTAL_SIZE=$(find .next -name "*.map" -type f -exec du -ch {} + 2>/dev/null | awk '/total/{print $1}')
           echo "💾 Total .map size: ${TOTAL_SIZE:-0}" >> $GITHUB_STEP_SUMMARY
           if [ -n "${{ env.SENTRY_AUTH_TOKEN }}" ]; then
