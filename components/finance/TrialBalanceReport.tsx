@@ -279,14 +279,14 @@ export default function TrialBalanceReport({
           <div className="flex gap-2">
             <button
               onClick={() => handleExport('csv')}
-              className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+              className="px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700"
               disabled={!data || loading}
             >
               📊 {t('Export CSV')}
             </button>
             <button
               onClick={() => loadTrialBalance()}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
               disabled={loading}
             >
               {loading ? t('Loading...') : '🔄 ' + t('Refresh')}
@@ -337,7 +337,7 @@ export default function TrialBalanceReport({
                 type="checkbox"
                 checked={showZeroBalances}
                 onChange={(e) => setShowZeroBalances(e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded"
+                className="w-4 h-4 text-primary accent-primary rounded"
               />
               <span className="text-sm text-foreground">{t('Show Zero Balances')}</span>
             </label>
@@ -349,7 +349,7 @@ export default function TrialBalanceReport({
                 type="checkbox"
                 checked={groupByType}
                 onChange={(e) => setGroupByType(e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded"
+                className="w-4 h-4 text-primary accent-primary rounded"
               />
               <span className="text-sm text-foreground">{t('Group by Type')}</span>
             </label>
@@ -361,13 +361,13 @@ export default function TrialBalanceReport({
           <div className="flex gap-2 border-t pt-4">
             <button
               onClick={expandAll}
-              className="px-3 py-1 text-sm bg-muted text-foreground rounded hover:bg-muted"
+              className="px-3 py-1 text-sm bg-muted text-foreground rounded-md hover:bg-muted/80"
             >
               {t('Expand All')}
             </button>
             <button
               onClick={collapseAll}
-              className="px-3 py-1 text-sm bg-muted text-foreground rounded hover:bg-muted"
+              className="px-3 py-1 text-sm bg-muted text-foreground rounded-md hover:bg-muted/80"
             >
               {t('Collapse All')}
             </button>
@@ -377,8 +377,8 @@ export default function TrialBalanceReport({
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="bg-destructive/10 border border-destructive/30 rounded-2xl p-4">
+          <p className="text-sm text-destructive">{error}</p>
         </div>
       )}
 
@@ -447,10 +447,10 @@ export default function TrialBalanceReport({
           </div>
 
           {/* Balance Status */}
-          <div className={`p-4 border-t ${data.isBalanced ? 'bg-green-50' : 'bg-red-50'}`}>
+          <div className={`p-4 border-t ${data.isBalanced ? 'bg-green-600/10' : 'bg-destructive/10'}`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className={`font-semibold ${data.isBalanced ? 'text-green-800' : 'text-red-800'}`}>
+                <p className={`font-semibold ${data.isBalanced ? 'text-green-700 dark:text-green-600' : 'text-destructive'}`}>
                   {data.isBalanced ? (
                     <span>✓ {t('Trial Balance is Balanced')}</span>
                   ) : (
@@ -458,7 +458,7 @@ export default function TrialBalanceReport({
                   )}
                 </p>
                 {!data.isBalanced && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-destructive mt-1">
                     {t('Difference')}: {Math.abs(data.difference).toFixed(2)}
                   </p>
                 )}
@@ -482,7 +482,7 @@ export default function TrialBalanceReport({
           <p className="text-muted-foreground">{t('No trial balance data available')}</p>
           <button
             onClick={() => loadTrialBalance()}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
             {t('Load Trial Balance')}
           </button>
