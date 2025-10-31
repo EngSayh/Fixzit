@@ -25,16 +25,16 @@
  * ```
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { z, ZodSchema } from 'zod';
-import { Model } from 'mongoose';
+import { Model, SortOrder } from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { rateLimit } from '@/server/security/rateLimit';
-import { rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { rateLimitError } from '@/server/utils/errorResponses';
 import { createSecureResponse, getClientIP } from '@/server/security/headers';
 
-export interface CrudFactoryOptions<T = any> {
+export interface CrudFactoryOptions<T = unknown> {
   /** Mongoose Model */
   Model: Model<T>;
   /** Zod schema for POST/create validation */
@@ -46,19 +46,21 @@ export interface CrudFactoryOptions<T = any> {
   /** Optional: Function to generate unique code (e.g., VEN-XXX) */
   generateCode?: () => string;
   /** Optional: Default sort field (default: { createdAt: -1 }) */
-  defaultSort?: Record<string, 1 | -1>;
+  defaultSort?: Record<string, SortOrder>;
   /** Optional: Fields to allow search on */
   searchFields?: string[];
   /** Optional: Rate limit config (requests per window) */
   rateLimit?: { requests: number; windowMs: number };
   /** Optional: Custom filter builder */
-  buildFilter?: (searchParams: URLSearchParams, orgId: string) => Record<string, any>;
+  buildFilter?: (searchParams: URLSearchParams, orgId: string) => Record<string, unknown>;
+  /** Optional: Hook to transform data before creation (e.g., add SLA, init state) */
+  onCreate?: (data: Record<string, unknown>, user: { id: string; orgId: string; role: string }) => Promise<Record<string, unknown>> | Record<string, unknown>;
 }
 
 /**
  * Creates GET and POST handlers with standard CRUD logic
  */
-export function createCrudHandlers<T = any>(options: CrudFactoryOptions<T>) {
+export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) {
   const {
     Model,
     createSchema,
@@ -67,56 +69,67 @@ export function createCrudHandlers<T = any>(options: CrudFactoryOptions<T>) {
     defaultSort = { createdAt: -1 },
     rateLimit: rateLimitConfig = { requests: 60, windowMs: 60_000 },
     buildFilter,
+    onCreate,
   } = options;
 
   /**
    * GET handler - List with pagination and filters
    */
   async function GET(req: NextRequest) {
-    try {
-      // Authentication
-      const user = await getSessionUser(req);
-      
-      // Rate limiting
-      const clientIp = getClientIP(req);
-      const rl = rateLimit(
-        `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
-        rateLimitConfig.requests,
-        rateLimitConfig.windowMs
+    // Authentication (MUST be outside try block to properly return 401)
+    const user = await getSessionUser(req);
+    
+    // Tenant context check
+    if (!user?.orgId) {
+      const correlationId = crypto.randomUUID();
+      return createSecureResponse(
+        { error: 'Unauthorized', message: 'Missing tenant context', correlationId },
+        401,
+        req
       );
-      if (!rl.allowed) {
-        return rateLimitError();
-      }
+    }
 
-      // Tenant context check
-      if (!user?.orgId) {
-        return NextResponse.json(
-          { error: 'Unauthorized', message: 'Missing tenant context' },
-          { status: 401 }
-        );
-      }
+    // Rate limiting
+    const clientIp = getClientIP(req);
+    const rl = rateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      rateLimitConfig.requests,
+      rateLimitConfig.windowMs
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
 
+    try {
       await connectToDatabase();
 
       // Parse query parameters
       const { searchParams } = new URL(req.url);
       const page = Math.max(1, Number(searchParams.get('page')) || 1);
       const limit = Math.min(100, Number(searchParams.get('limit')) || 20);
+      const query = searchParams.get('q') || searchParams.get('search') || '';
 
-      // Build filter
-      const match: Record<string, any> = buildFilter
+      // Build base filter
+      const match: Record<string, unknown> = buildFilter
         ? buildFilter(searchParams, user.orgId)
-        : { tenantId: user.orgId };
+        : {};
 
-      // Add default tenant filter if custom builder doesn't include it
-      if (!match.tenantId && !match.$and?.some((f: any) => f.tenantId)) {
+      // RBAC: Super Admin can access all tenants, others are scoped to their orgId
+      if (user.role !== 'SUPER_ADMIN') {
         match.tenantId = user.orgId;
+      }
+
+      // Implement search functionality
+      if (query && options.searchFields && options.searchFields.length > 0) {
+        match.$or = options.searchFields.map(field => ({
+          [field]: { $regex: query, $options: 'i' }
+        }));
       }
 
       // Execute query with pagination
       const [items, total] = await Promise.all([
         Model.find(match)
-          .sort(defaultSort as any)
+          .sort(defaultSort)
           .skip((page - 1) * limit)
           .limit(limit)
           .lean(),
@@ -156,42 +169,52 @@ export function createCrudHandlers<T = any>(options: CrudFactoryOptions<T>) {
    * POST handler - Create new entity
    */
   async function POST(req: NextRequest) {
-    try {
-      // Authentication
-      const user = await getSessionUser(req);
-      
-      // Rate limiting
-      const clientIp = getClientIP(req);
-      const rl = rateLimit(
-        `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
-        rateLimitConfig.requests,
-        rateLimitConfig.windowMs
+    // Authentication (MUST be outside try block to properly return 401)
+    const user = await getSessionUser(req);
+    
+    // Tenant context check
+    if (!user?.orgId) {
+      const correlationId = crypto.randomUUID();
+      return createSecureResponse(
+        { error: 'Unauthorized', message: 'Missing tenant context', correlationId },
+        401,
+        req
       );
-      if (!rl.allowed) {
-        return rateLimitError();
-      }
+    }
 
-      // Tenant context check
-      if (!user?.orgId) {
-        return NextResponse.json(
-          { error: 'Unauthorized', message: 'Missing tenant context' },
-          { status: 401 }
-        );
-      }
+    // Rate limiting
+    const clientIp = getClientIP(req);
+    const rl = rateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      rateLimitConfig.requests,
+      rateLimitConfig.windowMs
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
 
+    try {
       await connectToDatabase();
 
       // Parse and validate request body
       const body = await req.json();
       const data = createSchema ? createSchema.parse(body) : body;
 
-      // Create entity
-      const entity = await Model.create({
+      // Prepare entity data
+      let entityData = {
         tenantId: user.orgId,
         ...(generateCode && { code: generateCode() }),
         ...data,
         createdBy: user.id,
-      });
+      };
+
+      // Apply onCreate hook if provided
+      if (onCreate) {
+        entityData = await onCreate(entityData, user);
+      }
+
+      // Create entity
+      const entity = await Model.create(entityData);
 
       return createSecureResponse(entity, 201, req);
     } catch (error: unknown) {
@@ -221,7 +244,7 @@ export function createCrudHandlers<T = any>(options: CrudFactoryOptions<T>) {
 /**
  * Creates GET, PUT, and DELETE handlers for single entity by ID
  */
-export function createSingleEntityHandlers<T = any>(options: CrudFactoryOptions<T>) {
+export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOptions<T>) {
   const {
     Model,
     updateSchema,
@@ -233,37 +256,47 @@ export function createSingleEntityHandlers<T = any>(options: CrudFactoryOptions<
    * GET handler - Fetch single entity by ID
    */
   async function GET(req: NextRequest, context: { params: { id: string } }) {
-    try {
-      const user = await getSessionUser(req);
-      
-      const clientIp = getClientIP(req);
-      const rl = rateLimit(
-        `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
-        rateLimitConfig.requests,
-        rateLimitConfig.windowMs
+    // Authentication (MUST be outside try block to properly return 401)
+    const user = await getSessionUser(req);
+    
+    // Tenant context check
+    if (!user?.orgId) {
+      const correlationId = crypto.randomUUID();
+      return createSecureResponse(
+        { error: 'Unauthorized', message: 'Missing tenant context', correlationId },
+        401,
+        req
       );
-      if (!rl.allowed) {
-        return rateLimitError();
-      }
+    }
 
-      if (!user?.orgId) {
-        return NextResponse.json(
-          { error: 'Unauthorized', message: 'Missing tenant context' },
-          { status: 401 }
-        );
-      }
+    // Rate limiting
+    const clientIp = getClientIP(req);
+    const rl = rateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      rateLimitConfig.requests,
+      rateLimitConfig.windowMs
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
 
+    try {
       await connectToDatabase();
 
-      const entity = await Model.findOne({
-        _id: context.params.id,
-        tenantId: user.orgId,
-      }).lean();
+      // Build query: Super Admin can access all tenants
+      const query: Record<string, unknown> = { _id: context.params.id };
+      if (user.role !== 'SUPER_ADMIN') {
+        query.tenantId = user.orgId;
+      }
+
+      const entity = await Model.findOne(query).lean();
 
       if (!entity) {
-        return NextResponse.json(
-          { error: `${entityName} not found` },
-          { status: 404 }
+        const correlationId = crypto.randomUUID();
+        return createSecureResponse(
+          { error: `${entityName} not found`, correlationId },
+          404,
+          req
         );
       }
 
@@ -290,36 +323,44 @@ export function createSingleEntityHandlers<T = any>(options: CrudFactoryOptions<
    * PUT handler - Update entity by ID
    */
   async function PUT(req: NextRequest, context: { params: { id: string } }) {
-    try {
-      const user = await getSessionUser(req);
-      
-      const clientIp = getClientIP(req);
-      const rl = rateLimit(
-        `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
-        rateLimitConfig.requests,
-        rateLimitConfig.windowMs
+    // Authentication (MUST be outside try block to properly return 401)
+    const user = await getSessionUser(req);
+    
+    // Tenant context check
+    if (!user?.orgId) {
+      const correlationId = crypto.randomUUID();
+      return createSecureResponse(
+        { error: 'Unauthorized', message: 'Missing tenant context', correlationId },
+        401,
+        req
       );
-      if (!rl.allowed) {
-        return rateLimitError();
-      }
+    }
 
-      if (!user?.orgId) {
-        return NextResponse.json(
-          { error: 'Unauthorized', message: 'Missing tenant context' },
-          { status: 401 }
-        );
-      }
+    // Rate limiting
+    const clientIp = getClientIP(req);
+    const rl = rateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      rateLimitConfig.requests,
+      rateLimitConfig.windowMs
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
 
+    try {
       await connectToDatabase();
 
       const body = await req.json();
       const data = updateSchema ? updateSchema.parse(body) : body;
 
+      // Build query: Super Admin can update any tenant's entity
+      const query: Record<string, unknown> = { _id: context.params.id };
+      if (user.role !== 'SUPER_ADMIN') {
+        query.tenantId = user.orgId;
+      }
+
       const entity = await Model.findOneAndUpdate(
-        {
-          _id: context.params.id,
-          tenantId: user.orgId,
-        },
+        query,
         {
           $set: {
             ...data,
@@ -331,9 +372,11 @@ export function createSingleEntityHandlers<T = any>(options: CrudFactoryOptions<
       ).lean();
 
       if (!entity) {
-        return NextResponse.json(
-          { error: `${entityName} not found` },
-          { status: 404 }
+        const correlationId = crypto.randomUUID();
+        return createSecureResponse(
+          { error: `${entityName} not found`, correlationId },
+          404,
+          req
         );
       }
 
@@ -363,37 +406,47 @@ export function createSingleEntityHandlers<T = any>(options: CrudFactoryOptions<
    * DELETE handler - Delete entity by ID
    */
   async function DELETE(req: NextRequest, context: { params: { id: string } }) {
-    try {
-      const user = await getSessionUser(req);
-      
-      const clientIp = getClientIP(req);
-      const rl = rateLimit(
-        `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
-        rateLimitConfig.requests,
-        rateLimitConfig.windowMs
+    // Authentication (MUST be outside try block to properly return 401)
+    const user = await getSessionUser(req);
+    
+    // Tenant context check
+    if (!user?.orgId) {
+      const correlationId = crypto.randomUUID();
+      return createSecureResponse(
+        { error: 'Unauthorized', message: 'Missing tenant context', correlationId },
+        401,
+        req
       );
-      if (!rl.allowed) {
-        return rateLimitError();
-      }
+    }
 
-      if (!user?.orgId) {
-        return NextResponse.json(
-          { error: 'Unauthorized', message: 'Missing tenant context' },
-          { status: 401 }
-        );
-      }
+    // Rate limiting
+    const clientIp = getClientIP(req);
+    const rl = rateLimit(
+      `${new URL(req.url).pathname}:${user.id}:${clientIp}`,
+      rateLimitConfig.requests,
+      rateLimitConfig.windowMs
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
 
+    try {
       await connectToDatabase();
 
-      const entity = await Model.findOneAndDelete({
-        _id: context.params.id,
-        tenantId: user.orgId,
-      }).lean();
+      // Build query: Super Admin can delete any tenant's entity
+      const query: Record<string, unknown> = { _id: context.params.id };
+      if (user.role !== 'SUPER_ADMIN') {
+        query.tenantId = user.orgId;
+      }
+
+      const entity = await Model.findOneAndDelete(query).lean();
 
       if (!entity) {
-        return NextResponse.json(
-          { error: `${entityName} not found` },
-          { status: 404 }
+        const correlationId = crypto.randomUUID();
+        return createSecureResponse(
+          { error: `${entityName} not found`, correlationId },
+          404,
+          req
         );
       }
 

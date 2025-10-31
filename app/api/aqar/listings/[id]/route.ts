@@ -11,7 +11,7 @@ import { connectDb } from '@/lib/mongo';
 import { AqarListing } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { FurnishingStatus, ListingStatus } from '@/models/aqar/Listing';
-import { withCorrelation, ok, badRequest, notFound } from '@/lib/api/http';
+import { ok, badRequest, notFound } from '@/lib/api/http';
 import { isValidObjectIdSafe } from '@/lib/api/validation';
 
 import mongoose from 'mongoose';
@@ -23,11 +23,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return withCorrelation(async (correlationId) => {
-    try {
-      await connectDb();
-      
-      const { id } = await params;
+  const correlationId = crypto.randomUUID();
+  
+  try {
+    await connectDb();
+    
+    const { id } = await params;
       
       if (!isValidObjectIdSafe(id)) {
         return badRequest('Invalid listing ID', { correlationId });
@@ -57,7 +58,6 @@ export async function GET(
       console.error('Error fetching listing:', error);
       return NextResponse.json({ error: 'Failed to fetch listing' }, { status: 500 });
     }
-  });
 }
 
 // PATCH /api/aqar/listings/[id]

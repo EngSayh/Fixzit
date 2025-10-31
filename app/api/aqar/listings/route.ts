@@ -8,16 +8,17 @@ import { NextRequest } from 'next/server';
 import { connectDb } from '@/lib/mongo';
 import { AqarListing, AqarPackage } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { withCorrelation, ok, badRequest, forbidden, serverError } from '@/lib/api/http';
+import { ok, badRequest, forbidden, serverError } from '@/lib/api/http';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
-  return withCorrelation(async (correlationId) => {
-    try {
-      await connectDb();
-      
-      const user = await getSessionUser(request);
+  const correlationId = crypto.randomUUID();
+  
+  try {
+    await connectDb();
+    
+    const user = await getSessionUser(request);
       
       // JSON validation guard
       const body = await request.json().catch(() => null);
@@ -86,5 +87,4 @@ export async function POST(request: NextRequest) {
       console.error('LISTINGS_POST_ERROR', { correlationId, msg });
       return serverError('Unexpected error', { correlationId });
     }
-  });
 }
