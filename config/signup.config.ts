@@ -1,21 +1,17 @@
 /**
  * Signup Configuration
  * 
- * Centralized configuration for signup page constants
+ * ✅ REFACTORED: Imports from single source of truth
+ * No more DRY violations - all data comes from central config
  */
 
-export type Lang = { 
-  code: string; 
-  native: string; 
-  flag: string; 
-  dir: 'ltr' | 'rtl' 
-};
+// ✅ FIX: Import from central config (single source of truth)
+import { LANGUAGE_OPTIONS, type LanguageOption } from './language-options';
+import { CURRENCIES, type Currency } from './currencies';
+import { APP_DEFAULTS } from './constants';
 
-export type Currency = {
-  code: string;
-  symbol: string;
-  name: string;
-};
+// Re-export types for convenience
+export type { LanguageOption, Currency };
 
 export type UserType = {
   value: 'personal' | 'corporate' | 'vendor';
@@ -23,17 +19,12 @@ export type UserType = {
   descriptionKey: string;
 };
 
-export const SIGNUP_LANGUAGES: Lang[] = [
-  { code: 'ar', native: 'العربية', flag: '🇸🇦', dir: 'rtl' },
-  { code: 'en', native: 'English', flag: '🇬🇧', dir: 'ltr' },
-];
+// ✅ REMOVED: SIGNUP_LANGUAGES (use LANGUAGE_OPTIONS directly)
+// ✅ REMOVED: SIGNUP_CURRENCIES (use CURRENCIES directly)
 
-export const SIGNUP_CURRENCIES: Currency[] = [
-  { code: 'SAR', symbol: 'ر.س', name: 'Saudi Riyal' },
-  { code: 'USD', symbol: '$', name: 'US Dollar' },
-  { code: 'EUR', symbol: '€', name: 'Euro' },
-  { code: 'GBP', symbol: '£', name: 'British Pound' },
-];
+// Re-export for backward compatibility with existing imports
+export { LANGUAGE_OPTIONS as SIGNUP_LANGUAGES };
+export { CURRENCIES as SIGNUP_CURRENCIES };
 
 export const SIGNUP_USER_TYPES: UserType[] = [
   { 
@@ -75,14 +66,13 @@ export const PASSWORD_REQUIREMENTS = {
   minScore: 3,
 } as const;
 
-export const STORAGE_KEYS = {
-  language: 'fxz.lang',
-  currency: 'fixzit-currency',
-} as const;
+// ✅ REMOVED: STORAGE_KEYS (import from config/constants.ts)
+// All components must import STORAGE_KEYS from the central config
 
 export const SIGNUP_DEFAULTS = {
-  language: 'en',
-  currency: 'SAR',
-  userType: 'personal',
+  // ✅ FIX: Changed to 'ar' to match system-wide default from APP_DEFAULTS
+  language: APP_DEFAULTS.language,
+  currency: APP_DEFAULTS.currency,
+  userType: 'personal' as const,
   newsletter: true,
 } as const;
