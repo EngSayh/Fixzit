@@ -150,16 +150,16 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4">
+    <div className="bg-card rounded-2xl shadow-md p-4">
       {/* Search Bar */}
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
         <input
           type="text"
           placeholder={t('aqar.filters.search', 'Search by location, property name, or keyword...')}
           value={filters.search || ''}
           onChange={(e) => updateFilters({ search: e.target.value })}
-          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+          className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
         />
       </div>
 
@@ -170,7 +170,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
             filters.listingType === 'ALL'
               ? 'bg-[#FFB400] text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-muted text-foreground hover:bg-muted'
           }`}
         >
           {t('aqar.filters.all', 'All')}
@@ -180,7 +180,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
             filters.listingType === 'SALE'
               ? 'bg-[#FFB400] text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-muted text-foreground hover:bg-muted'
           }`}
         >
           {t('aqar.filters.forSale', 'For Sale')}
@@ -190,7 +190,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
             filters.listingType === 'RENT'
               ? 'bg-[#FFB400] text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-muted text-foreground hover:bg-muted'
           }`}
         >
           {t('aqar.filters.forRent', 'For Rent')}
@@ -200,7 +200,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
             filters.listingType === 'LEASE'
               ? 'bg-[#FFB400] text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              : 'bg-muted text-foreground hover:bg-muted'
           }`}
         >
           {t('aqar.filters.forLease', 'For Lease')}
@@ -208,7 +208,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
         <div className="flex-1" />
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors whitespace-nowrap"
+          className="flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted transition-colors whitespace-nowrap"
         >
           <SlidersHorizontal className="w-4 h-4" />
           <span>{t('aqar.filters.filtersButton', 'Filters')}</span>
@@ -222,10 +222,10 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
       {/* Advanced Filters */}
       {showAdvanced && (
-        <div className="border-t border-gray-200 pt-4 space-y-6">
+        <div className="border-t border-border pt-4 space-y-6">
           {/* Property Type */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
               <Home className="w-4 h-4" />
               {t('aqar.filters.propertyType', 'Property Type')}
             </h3>
@@ -237,7 +237,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   className={`p-3 rounded-lg border-2 text-center transition-colors ${
                     filters.propertyTypes?.includes(type.value)
                       ? 'border-[#FFB400] bg-orange-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                      : 'border-border hover:border-border'
                   }`}
                 >
                   <div className="text-2xl mb-1">{type.icon}</div>
@@ -249,13 +249,13 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
           {/* Price Range */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
               {t('aqar.filters.priceRange', 'Price Range (SAR)')}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">{t('aqar.filters.minimum', 'Minimum')}</label>
+                <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.minimum', 'Minimum')}</label>
                 <input
                   type="number"
                   placeholder={t('aqar.filters.min', 'Min')}
@@ -271,11 +271,11 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                       }
                     }
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">{t('aqar.filters.maximum', 'Maximum')}</label>
+                <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.maximum', 'Maximum')}</label>
                 <input
                   type="number"
                   placeholder={t('aqar.filters.max', 'Max')}
@@ -291,7 +291,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                       }
                     }
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
                 />
               </div>
             </div>
@@ -299,7 +299,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
           {/* Bedrooms */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
               <Bed className="w-4 h-4" />
               {t('aqar.filters.bedrooms', 'Bedrooms')}
             </h3>
@@ -310,8 +310,8 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   onClick={() => toggleBedrooms(count)}
                   className={`px-4 py-2 rounded-lg border-2 transition-colors ${
                     filters.bedrooms?.includes(count)
-                      ? 'border-[#FFB400] bg-orange-50 text-gray-900'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                      ? 'border-[#FFB400] bg-orange-50 text-foreground'
+                      : 'border-border hover:border-border text-foreground'
                   }`}
                 >
                   {count === 5 ? '5+' : count}
@@ -322,7 +322,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
           {/* Bathrooms */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
               <Bath className="w-4 h-4" />
               {t('aqar.filters.bathrooms', 'Bathrooms')}
             </h3>
@@ -333,8 +333,8 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   onClick={() => toggleBathrooms(count)}
                   className={`px-4 py-2 rounded-lg border-2 transition-colors ${
                     filters.bathrooms?.includes(count)
-                      ? 'border-[#FFB400] bg-orange-50 text-gray-900'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                      ? 'border-[#FFB400] bg-orange-50 text-foreground'
+                      : 'border-border hover:border-border text-foreground'
                   }`}
                 >
                   {count === 4 ? '4+' : count}
@@ -345,13 +345,13 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
           {/* Area Range */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
               <Grid3x3 className="w-4 h-4" />
               {t('aqar.filters.area', 'Area (sqm)')}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">{t('aqar.filters.minimum', 'Minimum')}</label>
+                <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.minimum', 'Minimum')}</label>
                 <input
                   type="number"
                   placeholder={t('aqar.filters.min', 'Min')}
@@ -367,11 +367,11 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                       }
                     }
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">{t('aqar.filters.maximum', 'Maximum')}</label>
+                <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.maximum', 'Maximum')}</label>
                 <input
                   type="number"
                   placeholder={t('aqar.filters.max', 'Max')}
@@ -387,7 +387,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                       }
                     }
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
                 />
               </div>
             </div>
@@ -395,17 +395,17 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
           {/* Location */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
               <MapPin className="w-4 h-4" />
               {t('aqar.filters.location', 'Location')}
             </h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">{t('aqar.filters.city', 'City')}</label>
+                <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.city', 'City')}</label>
                 <select
                   value={filters.city || ''}
                   onChange={(e) => updateFilters({ city: e.target.value || undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
                 >
                   <option value="">{t('aqar.filters.allCities', 'All Cities')}</option>
                   {saudiCities.map((city) => (
@@ -414,13 +414,13 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                 </select>
               </div>
               <div>
-                <label className="text-sm text-gray-600 mb-1 block">{t('aqar.filters.district', 'District')}</label>
+                <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.district', 'District')}</label>
                 <input
                   type="text"
                   placeholder={t('aqar.filters.enterDistrict', 'Enter district')}
                   value={filters.district || ''}
                   onChange={(e) => updateFilters({ district: e.target.value || undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
                 />
               </div>
             </div>
@@ -428,20 +428,20 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
           {/* Amenities */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-3">{t('aqar.filters.amenities', 'Amenities')}</h3>
+            <h3 className="font-semibold text-foreground mb-3">{t('aqar.filters.amenities', 'Amenities')}</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               {amenitiesList.map((amenity) => (
                 <label
                   key={amenity}
-                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer"
+                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted cursor-pointer"
                 >
                   <input
                     type="checkbox"
                     checked={filters.amenities?.includes(amenity)}
                     onChange={() => toggleAmenity(amenity)}
-                    className="w-4 h-4 text-[#FFB400] border-gray-300 rounded focus:ring-[#FFB400]"
+                    className="w-4 h-4 text-[#FFB400] border-border rounded focus:ring-[#FFB400]"
                   />
-                  <span className="text-sm text-gray-700">{amenity}</span>
+                  <span className="text-sm text-foreground">{amenity}</span>
                 </label>
               ))}
             </div>
@@ -449,45 +449,45 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
           {/* Additional Options */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-3">{t('aqar.filters.additionalOptions', 'Additional Options')}</h3>
+            <h3 className="font-semibold text-foreground mb-3">{t('aqar.filters.additionalOptions', 'Additional Options')}</h3>
             <div className="space-y-2">
-              <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+              <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted cursor-pointer">
                 <input
                   type="checkbox"
                   checked={filters.furnished || false}
                   onChange={(e) => updateFilters({ furnished: e.target.checked || null })}
-                  className="w-4 h-4 text-[#FFB400] border-gray-300 rounded focus:ring-[#FFB400]"
+                  className="w-4 h-4 text-[#FFB400] border-border rounded focus:ring-[#FFB400]"
                 />
-                <span className="text-sm text-gray-700">{t('aqar.filters.furnished', 'Furnished')}</span>
+                <span className="text-sm text-foreground">{t('aqar.filters.furnished', 'Furnished')}</span>
               </label>
-              <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+              <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted cursor-pointer">
                 <input
                   type="checkbox"
                   checked={filters.featured || false}
                   onChange={(e) => updateFilters({ featured: e.target.checked })}
-                  className="w-4 h-4 text-[#FFB400] border-gray-300 rounded focus:ring-[#FFB400]"
+                  className="w-4 h-4 text-[#FFB400] border-border rounded focus:ring-[#FFB400]"
                 />
-                <span className="text-sm text-gray-700">{t('aqar.filters.featuredOnly', 'Featured Properties Only')}</span>
+                <span className="text-sm text-foreground">{t('aqar.filters.featuredOnly', 'Featured Properties Only')}</span>
               </label>
-              <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 cursor-pointer">
+              <label className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted cursor-pointer">
                 <input
                   type="checkbox"
                   checked={filters.verified || false}
                   onChange={(e) => updateFilters({ verified: e.target.checked })}
-                  className="w-4 h-4 text-[#FFB400] border-gray-300 rounded focus:ring-[#FFB400]"
+                  className="w-4 h-4 text-[#FFB400] border-border rounded focus:ring-[#FFB400]"
                 />
-                <span className="text-sm text-gray-700">{t('aqar.filters.verifiedOnly', 'Verified Properties Only')}</span>
+                <span className="text-sm text-foreground">{t('aqar.filters.verifiedOnly', 'Verified Properties Only')}</span>
               </label>
             </div>
           </div>
 
           {/* Sort By */}
           <div>
-            <h3 className="font-semibold text-gray-900 mb-3">{t('aqar.filters.sortBy', 'Sort By')}</h3>
+            <h3 className="font-semibold text-foreground mb-3">{t('aqar.filters.sortBy', 'Sort By')}</h3>
             <select
               value={filters.sortBy || 'DATE_DESC'}
               onChange={(e) => updateFilters({ sortBy: e.target.value as PropertyFilters['sortBy'] })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
             >
               <option value="DATE_DESC">{t('aqar.filters.newestFirst', 'Newest First')}</option>
               <option value="PRICE_ASC">{t('aqar.filters.priceLowToHigh', 'Price: Low to High')}</option>
@@ -498,10 +498,10 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
+          <div className="flex gap-3 pt-4 border-t border-border">
             <button
               onClick={clearFilters}
-              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+              className="flex-1 px-6 py-3 border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-semibold"
             >
               {t('aqar.filters.clearAll', 'Clear All')}
             </button>
@@ -517,9 +517,9 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
       {/* Active Filters Summary */}
       {activeFilterCount() > 0 && !showAdvanced && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="mt-4 pt-4 border-t border-border">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-gray-700">{t('aqar.filters.activeFilters', 'Active Filters:')}</span>
+            <span className="text-sm font-medium text-foreground">{t('aqar.filters.activeFilters', 'Active Filters:')}</span>
             {filters.listingType && filters.listingType !== 'ALL' && (
               <span className="px-3 py-1 bg-[#FFB400] text-white text-sm rounded-full flex items-center gap-1">
                 {filters.listingType}
