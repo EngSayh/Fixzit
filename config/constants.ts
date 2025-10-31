@@ -1,15 +1,48 @@
 /**
  * Central Configuration Constants
- * Single source of truth for storage keys and system-wide constants
+ * 
+ * ✅ SINGLE SOURCE OF TRUTH for all application-wide constants
+ * CRITICAL: All providers and components MUST import from this file
  */
 
 export const STORAGE_KEYS = {
+  // Language/Translation
   language: 'fxz.lang',
   locale: 'fxz.locale',
+  
+  // Currency
   currency: 'fixzit-currency',
+  
+  // Theme
   theme: 'fixzit-theme',
+  
+  // UI State
   topbarApp: 'fixzit-topbar-app',
+  sidebarCollapsed: 'fxz.sidebar.collapsed',
+  
+  // Data
   aiChatHistory: 'fxz.ai-chat-history',
+  recentSearches: 'fxz.search.recent',
+} as const;
+
+/**
+ * Cookie keys used for server-side rendering
+ */
+export const COOKIE_KEYS = {
+  language: 'fxz.lang',
+  locale: 'fxz.locale',
+  theme: 'fxz.theme',
+  currency: 'fixzit-currency',
+} as const;
+
+/**
+ * Application defaults (KSA-first)
+ */
+export const APP_DEFAULTS = {
+  language: 'ar' as const,
+  locale: 'ar-SA',
+  currency: 'SAR',
+  theme: 'light' as const,
 } as const;
 
 export const API_TIMEOUTS = {
