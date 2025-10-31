@@ -129,7 +129,7 @@ export default function HelpHome() {
       case 'finance':
         return <DollarSign className="w-5 h-5 text-[var(--fixzit-success)]" />;
       default:
-        return <BookOpen className="w-5 h-5 text-gray-600" />;
+        return <BookOpen className="w-5 h-5 text-muted-foreground" />;
     }
   };
 
@@ -138,7 +138,7 @@ export default function HelpHome() {
       case 'Beginner': return 'bg-green-100 text-green-800';
       case 'Intermediate': return 'bg-yellow-100 text-yellow-800';
       case 'Advanced': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      default: return 'bg-muted text-foreground';
     }
   };
 
@@ -156,21 +156,21 @@ export default function HelpHome() {
           <div className="flex flex-wrap gap-4">
             <button
               onClick={() => setShowAIChat(true)}
-              className="bg-white text-brand-500 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors flex items-center gap-2"
+              className="bg-card text-brand-500 px-6 py-3 rounded-2xl font-semibold hover:bg-muted transition-colors flex items-center gap-2"
             >
               <Bot className="w-5 h-5" />
               Ask AI Assistant
             </button>
             <Link
               href="/help/support-ticket"
-              className="bg-accent text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-accent-dark transition-colors flex items-center gap-2"
+              className="bg-accent text-foreground px-6 py-3 rounded-2xl font-semibold hover:bg-accent-dark transition-colors flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
               Create Support Ticket
             </Link>
             <Link
               href="/support/my-tickets"
-              className="bg-white/10 text-white px-6 py-3 rounded-lg font-semibold hover:bg-white/20 transition-colors flex items-center gap-2 border border-white/20"
+              className="bg-white/10 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-white/20 transition-colors flex items-center gap-2 border border-white/20"
             >
               <MessageSquare className="w-5 h-5" />
               View My Tickets
@@ -183,29 +183,29 @@ export default function HelpHome() {
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Interactive Tutorials</h2>
-            <p className="text-xl text-gray-600">
+            <h2 className="text-3xl font-bold text-foreground mb-4">Interactive Tutorials</h2>
+            <p className="text-xl text-muted-foreground">
               Learn Fixzit step-by-step with our guided tutorials
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {tutorials.map((tutorial) => (
-              <div key={tutorial.id} className="bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+              <div key={tutorial.id} className="bg-card rounded-2xl shadow-md border border-border p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       {getCategoryIcon(tutorial.category)}
-                      <span className="text-sm text-gray-500">{tutorial.category}</span>
+                      <span className="text-sm text-muted-foreground">{tutorial.category}</span>
                       {tutorial.featured && <Star className="w-4 h-4 text-[var(--fixzit-accent-light)]" />}
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{tutorial.title}</h3>
-                    <p className="text-gray-600 text-sm mb-4">{tutorial.description}</p>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">{tutorial.title}</h3>
+                    <p className="text-muted-foreground text-sm mb-4">{tutorial.description}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Play className="w-4 h-4" />
                       {tutorial.duration}
@@ -223,7 +223,7 @@ export default function HelpHome() {
                   </Link>
                 </div>
 
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-muted rounded-full h-2">
                   <div
                     className="bg-[var(--fixzit-primary)] h-2 rounded-full"
                     style={{ width: tutorial.completed ? '100%' : '0%' }}
@@ -241,7 +241,7 @@ export default function HelpHome() {
           <div className="text-center">
             <Link
               href="/help/tutorials"
-              className="inline-block bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              className="inline-block bg-muted text-foreground px-6 py-3 rounded-2xl font-medium hover:bg-muted transition-colors"
             >
               View All Tutorials →
             </Link>
@@ -250,29 +250,29 @@ export default function HelpHome() {
       </section>
 
       {/* Help Articles Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-muted">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Help Articles</h2>
-            <p className="text-xl text-gray-600">
+            <h2 className="text-3xl font-bold text-foreground mb-4">Help Articles</h2>
+            <p className="text-xl text-muted-foreground">
               Quick answers to common questions and detailed guides
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {helpArticles.map((article) => (
-              <div key={article.id} className="bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+              <div key={article.id} className="bg-card rounded-2xl shadow-md border border-border p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
                     {getCategoryIcon(article.category)}
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
                       {article.title}
                     </h3>
-                    <p className="text-gray-600 text-sm mb-3">{article.description}</p>
+                    <p className="text-muted-foreground text-sm mb-3">{article.description}</p>
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span>{article.category}</span>
                         <span>•</span>
                         <span>{article.readTime} read</span>
@@ -294,7 +294,7 @@ export default function HelpHome() {
           <div className="text-center mt-8">
             <Link
               href="/help/articles"
-              className="inline-block bg-white text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors border border-gray-300"
+              className="inline-block bg-card text-foreground px-6 py-3 rounded-2xl font-medium hover:bg-muted transition-colors border border-border"
             >
               View All Articles →
             </Link>
@@ -306,8 +306,8 @@ export default function HelpHome() {
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">System Overview</h2>
-            <p className="text-xl text-gray-600">
+            <h2 className="text-3xl font-bold text-foreground mb-4">System Overview</h2>
+            <p className="text-xl text-muted-foreground">
               Understand how Fixzit Enterprise works
             </p>
           </div>
@@ -317,8 +317,8 @@ export default function HelpHome() {
               <div className="w-16 h-16 bg-[var(--fixzit-primary-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
                 <Building2 className="w-8 h-8 text-[var(--fixzit-primary)]" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Properties</h3>
-              <p className="text-gray-600 text-sm">
+              <h3 className="text-lg font-semibold text-foreground mb-2">Properties</h3>
+              <p className="text-muted-foreground text-sm">
                 Manage residential and commercial properties with comprehensive tools
               </p>
             </div>
@@ -327,8 +327,8 @@ export default function HelpHome() {
               <div className="w-16 h-16 bg-[var(--fixzit-success-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
                 <Wrench className="w-8 h-8 text-[var(--fixzit-success)]" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Work Orders</h3>
-              <p className="text-gray-600 text-sm">
+              <h3 className="text-lg font-semibold text-foreground mb-2">Work Orders</h3>
+              <p className="text-muted-foreground text-sm">
                 Create, assign, and track maintenance requests with SLA management
               </p>
             </div>
@@ -337,8 +337,8 @@ export default function HelpHome() {
               <div className="w-16 h-16 bg-[var(--fixzit-secondary-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users className="w-8 h-8 text-[var(--fixzit-secondary)]" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Vendors</h3>
-              <p className="text-gray-600 text-sm">
+              <h3 className="text-lg font-semibold text-foreground mb-2">Vendors</h3>
+              <p className="text-muted-foreground text-sm">
                 Source materials, manage vendors, and streamline procurement
               </p>
             </div>
@@ -347,8 +347,8 @@ export default function HelpHome() {
               <div className="w-16 h-16 bg-[var(--fixzit-accent-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
                 <DollarSign className="w-8 h-8 text-[var(--fixzit-accent)]" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Finance</h3>
-              <p className="text-gray-600 text-sm">
+              <h3 className="text-lg font-semibold text-foreground mb-2">Finance</h3>
+              <p className="text-muted-foreground text-sm">
                 Handle invoicing, payments, and financial reporting
               </p>
             </div>

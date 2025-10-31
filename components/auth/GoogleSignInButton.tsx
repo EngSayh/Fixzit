@@ -50,7 +50,7 @@ export default function GoogleSignInButton() {
       <button
         onClick={handleGoogleSignIn}
         disabled={isLoading}
-        className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+        className={`flex items-center justify-center gap-3 w-full p-3 border border-border rounded-2xl hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
           isRTL ? 'flex-row-reverse' : ''
         }`}
         type="button"
@@ -67,7 +67,7 @@ export default function GoogleSignInButton() {
         <div 
           role="alert" 
           aria-live="polite"
-          className="text-red-600 text-sm text-center p-2 bg-red-50 rounded-md"
+          className="text-red-600 text-sm text-center p-2 bg-red-50 rounded-2xl"
         >
           {error}
         </div>

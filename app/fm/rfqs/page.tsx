@@ -217,7 +217,7 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DRAFT':
-        return 'bg-muted text-gray-800';
+        return 'bg-muted text-foreground';
       case 'PUBLISHED':
         return 'bg-blue-100 text-blue-800';
       case 'BIDDING':
@@ -229,7 +229,7 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
       case 'CANCELLED':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-muted text-gray-800';
+        return 'bg-muted text-foreground';
     }
   };
 
@@ -277,7 +277,7 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
                 {rfq.bids?.length || 0}/{rfq.bidding?.targetBids || 3} bids
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-muted rounded-full h-2">
               <div 
                 className="bg-teal-600 h-2 rounded-full transition-all"
                 style={{ width: `${bidProgress}%` }}

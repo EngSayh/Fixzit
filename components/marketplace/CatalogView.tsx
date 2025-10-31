@@ -176,10 +176,10 @@ export default function CatalogView({
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
-        <p className="text-gray-600">{subtitle}</p>
+        <h1 className="text-3xl font-bold text-foreground">{title}</h1>
+        <p className="text-muted-foreground">{subtitle}</p>
         {context === 'fm' && (
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <ShieldCheck className="w-4 h-4 text-[#00A859]" />
             <span>Inventory synced with tenant procurement guardrails and 3-bid policy.</span>
           </div>
@@ -190,7 +190,7 @@ export default function CatalogView({
         <CardContent className="pt-6">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
                 value={search}
                 onChange={event => setSearch(event.target.value)}
@@ -231,7 +231,7 @@ export default function CatalogView({
       </Card>
 
       {feedbackMessage && (
-        <div className="rounded-lg border border-green-200 bg-[var(--fixzit-success-lightest)] px-4 py-3 text-sm text-[var(--fixzit-success-darker)]">
+        <div className="rounded-2xl border border-green-200 bg-[var(--fixzit-success-lightest)] px-4 py-3 text-sm text-[var(--fixzit-success-darker)]">
           {feedbackMessage}
         </div>
       )}
@@ -243,10 +243,10 @@ export default function CatalogView({
       ) : products.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="py-16 flex flex-col items-center text-center gap-4">
-            <PackageSearch className="w-12 h-12 text-gray-400" />
+            <PackageSearch className="w-12 h-12 text-muted-foreground" />
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">No products match your filters</h2>
-              <p className="text-gray-600 text-sm">{emptyStateSubtitle}</p>
+              <h2 className="text-lg font-semibold text-foreground">No products match your filters</h2>
+              <p className="text-muted-foreground text-sm">{emptyStateSubtitle}</p>
             </div>
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => { setSearch(''); setCategory(''); setMinPrice(''); setMaxPrice(''); }}>
@@ -265,8 +265,8 @@ export default function CatalogView({
           {products.map(product => (
             <Card key={product.id} className="flex flex-col">
               <CardHeader className="space-y-1">
-                <CardTitle className="text-lg text-gray-900">{product.title}</CardTitle>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+                <CardTitle className="text-lg text-foreground">{product.title}</CardTitle>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Store className="w-4 h-4" />
                   <span>{product.vendor?.name ?? 'Vendor pending onboarding'}</span>
                   {product.vendor?.verified && <BadgeCheck className="w-4 h-4 text-[#00A859]" />}
@@ -274,20 +274,20 @@ export default function CatalogView({
               </CardHeader>
               <CardContent className="flex-1 flex flex-col gap-4">
                 <div className="flex items-start gap-4">
-                  <div className="h-20 w-20 rounded-lg border border-gray-200 flex items-center justify-center bg-gray-50 overflow-hidden">
+                  <div className="h-20 w-20 rounded-2xl border border-border flex items-center justify-center bg-muted overflow-hidden">
                     {product.images?.[0] ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={product.images[0]} alt={product.title} className="h-full w-full object-cover" />
                     ) : (
-                      <span className="text-xs text-gray-400 text-center px-2">Image not provided</span>
+                      <span className="text-xs text-muted-foreground text-center px-2">Image not provided</span>
                     )}
                   </div>
                   <div className="space-y-2 flex-1">
-                    <div className="text-2xl font-semibold text-gray-900">
+                    <div className="text-2xl font-semibold text-foreground">
                       {formatCurrency(product.price, product.currency)}
-                      <span className="text-sm text-gray-500 ml-1">/ {product.unit}</span>
+                      <span className="text-sm text-muted-foreground ml-1">/ {product.unit}</span>
                     </div>
-                    <div className="flex flex-wrap gap-2 text-xs text-gray-500">
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                       <Badge variant="outline" className="border-[#00A859] text-[#00A859]">
                         Stock: {product.stock}
                       </Badge>
@@ -298,11 +298,11 @@ export default function CatalogView({
                   </div>
                 </div>
 
-                <p className="text-sm text-gray-600 line-clamp-3">
+                <p className="text-sm text-muted-foreground line-clamp-3">
                   {product.description || 'Vendor has not provided a detailed description yet.'}
                 </p>
 
-                <div className="flex items-center justify-between text-sm text-gray-500">
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 text-[#FFB400]" />
                     <span>

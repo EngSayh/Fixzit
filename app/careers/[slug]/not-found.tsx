@@ -2,11 +2,11 @@ import Link from 'next/link';
 
 export default function JobNotFound() {
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4">
+    <div className="min-h-screen bg-card flex items-center justify-center px-4">
       <div className="max-w-md text-center">
         <div className="mb-6">
           <svg
-            className="mx-auto h-16 w-16 text-gray-400"
+            className="mx-auto h-16 w-16 text-muted-foreground"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -21,18 +21,18 @@ export default function JobNotFound() {
           </svg>
         </div>
         
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <h1 className="text-3xl font-bold text-foreground mb-2">
           Job Not Found
         </h1>
         
-        <p className="text-gray-600 mb-6">
+        <p className="text-muted-foreground mb-6">
           This job posting may have been closed, removed, or the link may be invalid.
         </p>
         
         <div className="space-y-3">
           <Link
             href="/careers"
-            className="inline-block w-full px-6 py-3 bg-brand-500 text-white rounded-lg 
+            className="inline-block w-full px-6 py-3 bg-brand-500 text-white rounded-2xl 
                      hover:bg-brand-600 transition-colors font-semibold
                      focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
           >
@@ -41,15 +41,15 @@ export default function JobNotFound() {
           
           <Link
             href="/"
-            className="inline-block w-full px-6 py-3 border border-gray-300 text-gray-700 
-                     rounded-lg hover:bg-gray-50 transition-colors font-semibold
+            className="inline-block w-full px-6 py-3 border border-border text-foreground 
+                     rounded-2xl hover:bg-muted transition-colors font-semibold
                      focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
           >
             Go to Homepage
           </Link>
         </div>
         
-        <p className="text-sm text-gray-500 mt-6">
+        <p className="text-sm text-muted-foreground mt-6">
           Looking for something specific?{' '}
           <Link href="/support" className="text-brand-500 hover:text-brand-600 underline">
             Contact our HR team

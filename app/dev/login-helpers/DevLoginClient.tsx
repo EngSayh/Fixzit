@@ -87,11 +87,11 @@ export default function DevLoginClient() {
     return (
       <div
         key={key}
-        className={`${cred.color ?? 'border-gray-700'} border rounded-lg p-6 hover:shadow-xl transition-all`}
+        className={`${cred.color ?? 'border-gray-700'} border rounded-2xl p-6 hover:shadow-xl transition-all`}
         data-testid={`dev-card-${cred.role}`}
       >
         <div className="flex items-start gap-4 mb-4">
-          <div className="p-3 bg-white/10 rounded-lg">
+          <div className="p-3 bg-white/10 rounded-2xl">
             <Icon size={24} />
           </div>
           <div className="flex-1">
@@ -115,7 +115,7 @@ export default function DevLoginClient() {
           <button
             onClick={() => autoLogin(cred.role)}
             disabled={isLoading}
-            className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-2xl hover:bg-gray-800 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             data-testid={`dev-autologin-${cred.role}`}
           >
             {isLoading ? (
@@ -132,7 +132,7 @@ export default function DevLoginClient() {
           </button>
           <button
             onClick={() => copy(copyText, key)}
-            className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+            className="px-4 py-2 bg-white/10 rounded-2xl hover:bg-white/20 transition-colors"
             title="Copy identifier"
             data-testid={`dev-copy-${cred.role}`}
           >
@@ -156,11 +156,11 @@ export default function DevLoginClient() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold">🔧 Developer Login Helpers</h1>
-            <p className="text-sm text-gray-400">Quick access demo credentials (server-safe)</p>
+            <p className="text-sm text-muted-foreground">Quick access demo credentials (server-safe)</p>
           </div>
           <Link
             href="/login"
-            className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors text-sm font-medium"
+            className="px-4 py-2 bg-brand-500 text-white rounded-2xl hover:bg-brand-600 transition-colors text-sm font-medium"
             data-testid="back-to-login"
           >
             ← Back to Login
@@ -184,9 +184,9 @@ export default function DevLoginClient() {
       {/* Main */}
       <div className="max-w-6xl mx-auto px-4 py-8">
         {isEmpty ? (
-          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-8 text-center">
-            <p className="text-gray-400 mb-4">No demo credentials found.</p>
-            <p className="text-sm text-gray-500">
+          <div className="bg-gray-800/50 border border-gray-700 rounded-2xl p-8 text-center">
+            <p className="text-muted-foreground mb-4">No demo credentials found.</p>
+            <p className="text-sm text-muted-foreground">
               Copy <code className="bg-black/30 px-2 py-1 rounded">dev/credentials.example.ts</code> to{' '}
               <code className="bg-black/30 px-2 py-1 rounded">dev/credentials.server.ts</code> and fill in your test credentials.
             </p>
@@ -220,9 +220,9 @@ export default function DevLoginClient() {
         )}
 
         {/* Instructions */}
-        <section className="mt-12 bg-gray-800/50 border border-gray-700 rounded-lg p-6">
+        <section className="mt-12 bg-gray-800/50 border border-gray-700 rounded-2xl p-6">
           <h3 className="text-xl font-bold mb-4">📖 Usage Instructions</h3>
-          <ul className="space-y-2 text-gray-300">
+          <ul className="space-y-2 text-muted-foreground">
             <li className="flex gap-2">
               <span>•</span>
               <span><strong>Auto Login:</strong> Happens server-side; browser never sees passwords.</span>

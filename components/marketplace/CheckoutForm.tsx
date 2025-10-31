@@ -48,36 +48,36 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl bg-white p-6 shadow">
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl bg-card p-6 shadow">
       <div>
         <h2 className="text-lg font-semibold text-[#0F1111]">Delivery details</h2>
-        <p className="text-sm text-gray-600">Ship to your facilities hub with SLA tracking.</p>
+        <p className="text-sm text-muted-foreground">Ship to your facilities hub with SLA tracking.</p>
       </div>
       <div className="space-y-3 text-sm">
         <label className="block">
-          <span className="text-gray-600">Address</span>
+          <span className="text-muted-foreground">Address</span>
           <input
             value={address}
             onChange={event => setAddress(event.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
+            className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
             required
           />
         </label>
         <label className="block">
-          <span className="text-gray-600">Contact</span>
+          <span className="text-muted-foreground">Contact</span>
           <input
             value={contact}
             onChange={event => setContact(event.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
+            className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
             required
           />
         </label>
         <label className="block">
-          <span className="text-gray-600">Phone</span>
+          <span className="text-muted-foreground">Phone</span>
           <input
             value={phone}
             onChange={event => setPhone(event.target.value)}
-            className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
+            className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
           />
         </label>
       </div>

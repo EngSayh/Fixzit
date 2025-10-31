@@ -12,22 +12,22 @@ export default function LandingPage(){
       {/* Hero Section */}
       <section className="py-20 px-4 text-center">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-gray-900">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-foreground">
             {t('landing.title', 'Fixzit Enterprise Platform')}
           </h1>
-          <p className="text-xl mb-8 text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl mb-8 text-muted-foreground max-w-3xl mx-auto">
             {t('landing.subtitle', 'Unified Facility Management + Marketplace Solution for modern property operations')}
           </p>
 
           {/* CTA Buttons */}
           <div className="flex flex-wrap gap-4 justify-center mb-12">
-            <Link href="/fm" role="button" className="px-8 py-4 bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)] text-white font-semibold rounded-lg transition-colors">
+            <Link href="/fm" role="button" className="px-8 py-4 bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)] text-white font-semibold rounded-2xl transition-colors">
               {t('landing.hero.cta1', 'Access Fixzit FM')}
             </Link>
-            <Link href="/souq" role="button" className="px-8 py-4 bg-[var(--fixzit-success)] hover:bg-[var(--fixzit-success-dark)] text-white font-semibold rounded-lg transition-colors">
+            <Link href="/souq" role="button" className="px-8 py-4 bg-[var(--fixzit-success)] hover:bg-[var(--fixzit-success-dark)] text-white font-semibold rounded-2xl transition-colors">
               {t('landing.hero.cta2', 'Fixzit Souq')}
             </Link>
-            <Link href="/aqar" role="button" className="px-8 py-4 bg-[var(--fixzit-accent)] hover:bg-[var(--fixzit-accent-dark)] text-white font-semibold rounded-lg transition-colors">
+            <Link href="/aqar" role="button" className="px-8 py-4 bg-[var(--fixzit-accent)] hover:bg-[var(--fixzit-accent-dark)] text-white font-semibold rounded-2xl transition-colors">
               {t('landing.hero.cta3', 'Aqar Real Estate')}
             </Link>
           </div>
@@ -35,56 +35,56 @@ export default function LandingPage(){
       </section>
 
       {/* Features Section */}
-      <section className="py-16 px-4 bg-white">
+      <section className="py-16 px-4 bg-card">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">
+          <h2 className="text-3xl font-bold text-center mb-12 text-foreground">
             {t('landing.features.title', 'Complete Facility Management Solution')}
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">{t('landing.features.property.title', 'Property Management')}</h3>
-              <p className="text-gray-600 mb-4">{t('landing.features.property.desc', 'Manage your real estate portfolio, track occupancy, and handle tenant relations')}</p>
+            <div className="bg-muted p-6 rounded-2xl">
+              <h3 className="text-xl font-semibold mb-2 text-foreground">{t('landing.features.property.title', 'Property Management')}</h3>
+              <p className="text-muted-foreground mb-4">{t('landing.features.property.desc', 'Manage your real estate portfolio, track occupancy, and handle tenant relations')}</p>
               <Link href="/fm/properties" className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] font-medium">
                 {t('landing.features.property.cta', 'Explore →')}
               </Link>
             </div>
 
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">{t('landing.features.workorders.title', 'Work Orders')}</h3>
-              <p className="text-gray-600 mb-4">{t('landing.features.workorders.desc', 'Create, assign, and track maintenance requests with SLA management')}</p>
+            <div className="bg-muted p-6 rounded-2xl">
+              <h3 className="text-xl font-semibold mb-2 text-foreground">{t('landing.features.workorders.title', 'Work Orders')}</h3>
+              <p className="text-muted-foreground mb-4">{t('landing.features.workorders.desc', 'Create, assign, and track maintenance requests with SLA management')}</p>
               <Link href="/fm/work-orders" className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] font-medium">
                 {t('landing.features.workorders.cta', 'Explore →')}
               </Link>
             </div>
 
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">{t('landing.features.vendors.title', 'Vendors & RFQs')}</h3>
-              <p className="text-gray-600 mb-4">{t('landing.features.vendors.desc', 'Source materials, manage vendors, and streamline procurement')}</p>
+            <div className="bg-muted p-6 rounded-2xl">
+              <h3 className="text-xl font-semibold mb-2 text-foreground">{t('landing.features.vendors.title', 'Vendors & RFQs')}</h3>
+              <p className="text-muted-foreground mb-4">{t('landing.features.vendors.desc', 'Source materials, manage vendors, and streamline procurement')}</p>
               <Link href="/fm/vendors" className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] font-medium">
                 {t('landing.features.vendors.cta', 'Explore →')}
               </Link>
             </div>
 
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">{t('landing.features.finance.title', 'Finance & Billing')}</h3>
-              <p className="text-gray-600 mb-4">{t('landing.features.finance.desc', 'Handle invoicing, payments, and financial reporting')}</p>
+            <div className="bg-muted p-6 rounded-2xl">
+              <h3 className="text-xl font-semibold mb-2 text-foreground">{t('landing.features.finance.title', 'Finance & Billing')}</h3>
+              <p className="text-muted-foreground mb-4">{t('landing.features.finance.desc', 'Handle invoicing, payments, and financial reporting')}</p>
               <Link href="/fm/finance" className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] font-medium">
                 {t('landing.features.finance.cta', 'Explore →')}
               </Link>
             </div>
 
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">{t('landing.features.crm.title', 'CRM & Tenants')}</h3>
-              <p className="text-gray-600 mb-4">{t('landing.features.crm.desc', 'Manage tenant relationships and customer service')}</p>
+            <div className="bg-muted p-6 rounded-2xl">
+              <h3 className="text-xl font-semibold mb-2 text-foreground">{t('landing.features.crm.title', 'CRM & Tenants')}</h3>
+              <p className="text-muted-foreground mb-4">{t('landing.features.crm.desc', 'Manage tenant relationships and customer service')}</p>
               <Link href="/fm/crm" className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] font-medium">
                 {t('landing.features.crm.cta', 'Explore →')}
               </Link>
             </div>
 
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">{t('landing.features.analytics.title', 'Analytics & Reports')}</h3>
-              <p className="text-gray-600 mb-4">{t('landing.features.analytics.desc', 'Gain insights with comprehensive reporting and analytics')}</p>
+            <div className="bg-muted p-6 rounded-2xl">
+              <h3 className="text-xl font-semibold mb-2 text-foreground">{t('landing.features.analytics.title', 'Analytics & Reports')}</h3>
+              <p className="text-muted-foreground mb-4">{t('landing.features.analytics.desc', 'Gain insights with comprehensive reporting and analytics')}</p>
               <Link href="/fm/analytics" className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] font-medium">
                 {t('landing.features.analytics.cta', 'Explore →')}
               </Link>
@@ -105,7 +105,7 @@ export default function LandingPage(){
           <Link
             href="/login"
             role="button"
-            className="inline-flex px-8 py-4 bg-white hover:bg-gray-100 text-[var(--fixzit-primary)] font-semibold rounded-lg transition-colors"
+            className="inline-flex px-8 py-4 bg-card hover:bg-muted text-[var(--fixzit-primary)] font-semibold rounded-2xl transition-colors"
           >
             {t('landing.cta.button', 'Get Started Today')}
           </Link>

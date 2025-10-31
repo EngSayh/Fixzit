@@ -135,7 +135,7 @@ export default function SupportTicketsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-border">
                 {(data?.items as TicketItem[] || []).map((ticket) => (
                 <tr key={ticket._id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
@@ -152,7 +152,7 @@ export default function SupportTicketsPage() {
                       ticket.priority === 'Urgent' ? 'bg-red-100 text-red-800' :
                       ticket.priority === 'High' ? 'bg-orange-100 text-orange-800' :
                       ticket.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-muted text-gray-800'
+                      'bg-muted text-foreground'
                     }`}>
                       {ticket.priority}
                     </span>

@@ -28,20 +28,20 @@ export default function NewWorkOrderPage() {
             <h3 className="text-lg font-semibold mb-4">{t('workOrders.new.basicInfo', 'Basic Information')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('workOrders.title', 'Work Order Title')} *
                 </label>
                 <input
                   type="text"
                   placeholder={t('workOrders.new.titlePlaceholder', 'Enter work order title...')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('workOrders.priority', 'Priority')} *
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+                <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
                   <option value="">{t('workOrders.selectPriority', 'Select Priority')}</option>
                   <option value="P1">{t('workOrders.priority.p1', 'P1 - Critical')}</option>
                   <option value="P2">{t('workOrders.priority.p2', 'P2 - High')}</option>
@@ -56,10 +56,10 @@ export default function NewWorkOrderPage() {
             <h3 className="text-lg font-semibold mb-4">{t('workOrders.new.propertyLocation', 'Property & Location')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('common.property', 'Property')} *
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+                <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
                   <option value="">{t('common.selectProperty', 'Select Property')}</option>
                   <option value="tower-a">Tower A</option>
                   <option value="tower-b">Tower B</option>
@@ -67,13 +67,13 @@ export default function NewWorkOrderPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('common.location', 'Unit/Location')}
                 </label>
                 <input
                   type="text"
                   placeholder={t('workOrders.new.locationPlaceholder', 'Unit number or specific location...')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
             </div>
@@ -82,13 +82,13 @@ export default function NewWorkOrderPage() {
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('common.description', 'Description')}</h3>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 {t('common.description', 'Work Description')} *
               </label>
               <textarea
                 rows={4}
                 placeholder={t('workOrders.new.descriptionPlaceholder', 'Describe the work that needs to be done...')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
               />
             </div>
           </div>
@@ -97,10 +97,10 @@ export default function NewWorkOrderPage() {
             <h3 className="text-lg font-semibold mb-4">{t('workOrders.new.assignmentScheduling', 'Assignment & Scheduling')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('workOrders.assignTo', 'Assign To')}
                 </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+                <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
                   <option value="">{t('workOrders.selectTechnician', 'Select Technician')}</option>
                   <option value="tech-1">Ahmed Al-Rashid</option>
                   <option value="tech-2">Mohammed Al-Saud</option>
@@ -108,12 +108,12 @@ export default function NewWorkOrderPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('common.dueDate', 'Due Date')}
                 </label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
             </div>
@@ -124,9 +124,9 @@ export default function NewWorkOrderPage() {
         <div className="space-y-6">
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('workOrders.attachments', 'Attachments')}</h3>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <div className="text-gray-400 mb-2">📎</div>
-              <p className="text-sm text-gray-600">{t('workOrders.dropFiles', 'Drop files here or click to upload')}</p>
+            <div className="border-2 border-dashed border-border rounded-2xl p-6 text-center">
+              <div className="text-muted-foreground mb-2">📎</div>
+              <p className="text-sm text-muted-foreground">{t('workOrders.dropFiles', 'Drop files here or click to upload')}</p>
               <button className="mt-2 text-sm text-[var(--fixzit-blue)] hover:underline">
                 {t('common.chooseFiles', 'Choose Files')}
               </button>
@@ -153,13 +153,13 @@ export default function NewWorkOrderPage() {
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-[var(--fixzit-success-light)] rounded-full"></div>
-                <span className="text-gray-600">{t('workOrders.formAutoSaved', 'Form auto-saved')}</span>
-                <span className="text-gray-400 ml-auto">2m ago</span>
+                <span className="text-muted-foreground">{t('workOrders.formAutoSaved', 'Form auto-saved')}</span>
+                <span className="text-muted-foreground ml-auto">2m ago</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full"></div>
-                <span className="text-gray-600">{t('workOrders.propertySelected', 'Property selected')}</span>
-                <span className="text-gray-400 ml-auto">5m ago</span>
+                <span className="text-muted-foreground">{t('workOrders.propertySelected', 'Property selected')}</span>
+                <span className="text-muted-foreground ml-auto">5m ago</span>
               </div>
             </div>
           </div>

@@ -163,10 +163,10 @@ We've sent a welcome email to ${email} with registration instructions and next s
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4 overflow-y-auto min-h-screen">
-      <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4 relative mx-auto my-4 md:my-8">
+      <div className="bg-card dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4 relative mx-auto my-4 md:my-8">
         {/* Close button */}
         <button
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl leading-none hover:bg-gray-100 rounded-lg p-2 transition-colors"
+          className="absolute top-4 right-4 text-muted-foreground hover:text-muted-foreground text-2xl leading-none hover:bg-muted rounded-2xl p-2 transition-colors"
           onClick={onClose}
           aria-label="Close"
         >
@@ -175,8 +175,8 @@ We've sent a welcome email to ${email} with registration instructions and next s
 
         {/* Header */}
         <div className="pr-8">
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Create Support Ticket</h3>
-          <p className="text-gray-600 dark:text-gray-300">
+          <h3 className="text-2xl font-bold text-foreground dark:text-white mb-2">Create Support Ticket</h3>
+          <p className="text-muted-foreground dark:text-muted-foreground">
             Fill out the form below and our support team will get back to you within 24 hours.
           </p>
         </div>
@@ -185,12 +185,12 @@ We've sent a welcome email to ${email} with registration instructions and next s
           {/* Subject and Module */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="subject" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label htmlFor="subject" className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
                 Subject *
               </label>
               <input
                 id="subject"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 placeholder="Brief description of your issue"
                 value={subject}
                 onChange={e=>setSubject(e.target.value)}
@@ -198,11 +198,11 @@ We've sent a welcome email to ${email} with registration instructions and next s
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
                 Module
               </label>
               <select
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-card"
                 value={moduleKey}
                 onChange={e=>setModule(e.target.value)}
               >
@@ -214,11 +214,11 @@ We've sent a welcome email to ${email} with registration instructions and next s
           {/* Category and Sub-Category */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
                 Category
               </label>
               <select
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-card"
                 value={category}
                 onChange={e=>setCategory(e.target.value)}
               >
@@ -226,11 +226,11 @@ We've sent a welcome email to ${email} with registration instructions and next s
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
                 Sub-Category
               </label>
               <select
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-card"
                 value={subCategory}
                 onChange={e=>setSubCategory(e.target.value)}
               >
@@ -247,11 +247,11 @@ We've sent a welcome email to ${email} with registration instructions and next s
           {/* Type and Priority */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
                 Type
               </label>
               <select
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-card"
                 value={type}
                 onChange={e=>setType(e.target.value)}
               >
@@ -259,11 +259,11 @@ We've sent a welcome email to ${email} with registration instructions and next s
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
                 Priority
               </label>
               <select
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white"
+                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-card"
                 value={priority}
                 onChange={e=>setPriority(e.target.value)}
               >
@@ -274,12 +274,12 @@ We've sent a welcome email to ${email} with registration instructions and next s
 
           {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="description" className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
               Description *
             </label>
             <textarea
               id="description"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all h-32 resize-none"
+              className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all h-32 resize-none"
               placeholder="Please provide detailed information about your issue or request..."
               value={text}
               onChange={e=>setText(e.target.value)}
@@ -289,13 +289,13 @@ We've sent a welcome email to ${email} with registration instructions and next s
 
           {/* Guest-only fields */}
           {!localStorage.getItem("x-user") && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-neutral-800 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted dark:bg-neutral-800 rounded-2xl">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
                   Your Name *
                 </label>
                 <input
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   placeholder="Enter your full name"
                   value={name}
                   onChange={e=>setName(e.target.value)}
@@ -303,12 +303,12 @@ We've sent a welcome email to ${email} with registration instructions and next s
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
                   Email *
                 </label>
                 <input
                   type="email"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   placeholder="your.email@example.com"
                   value={email}
                   onChange={e=>setEmail(e.target.value)}
@@ -316,12 +316,12 @@ We've sent a welcome email to ${email} with registration instructions and next s
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
                   Phone (optional)
                 </label>
                 <input
                   type="tel"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   placeholder="+966 XX XXX XXXX"
                   value={phone}
                   onChange={e=>setPhone(e.target.value)}
@@ -331,22 +331,22 @@ We've sent a welcome email to ${email} with registration instructions and next s
           )}
 
           {/* Action buttons */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-neutral-700">
+          <div className="flex justify-end gap-3 pt-4 border-t border-border dark:border-neutral-700">
             <button
-              className="px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg font-medium transition-colors"
+              className="px-6 py-3 text-foreground dark:text-muted-foreground hover:bg-muted dark:hover:bg-neutral-800 rounded-2xl font-medium transition-colors"
               onClick={onClose}
             >
               Cancel
             </button>
             <button
-              className="px-6 py-3 bg-gray-100 text-gray-900 rounded-lg font-medium hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-3 bg-muted text-foreground rounded-2xl font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               onClick={copyDetails}
               disabled={!subject.trim() && !text.trim()}
             >
               Copy details
             </button>
             <button
-              className="px-6 py-3 bg-[var(--fixzit-primary)] text-white rounded-lg font-medium hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-3 bg-[var(--fixzit-primary)] text-white rounded-2xl font-medium hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               onClick={submit}
               disabled={!subject.trim() || !text.trim() || submitting}
               data-testid="submit-btn"

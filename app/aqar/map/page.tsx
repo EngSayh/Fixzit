@@ -34,10 +34,10 @@ export default function MapPage() {
 
   return (
     <div className="h-screen flex flex-col">
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-card border-b border-border px-6 py-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Interactive Property Map</h1>
-          <p className="text-gray-600">Explore properties on the map</p>
+          <h1 className="text-2xl font-bold text-foreground">Interactive Property Map</h1>
+          <p className="text-muted-foreground">Explore properties on the map</p>
         </div>
       </div>
 

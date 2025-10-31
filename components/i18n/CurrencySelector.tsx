@@ -110,7 +110,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
         aria-controls={open ? listboxId : undefined}
         onClick={toggle}
         ref={buttonRef}
-        className={`flex items-center gap-2 rounded-md bg-white/10 hover:bg-white/20 transition-colors ${buttonPadding} ${isRTL ? 'flex-row-reverse' : ''}`}
+        className={`flex items-center gap-2 rounded-2xl bg-white/10 hover:bg-white/20 transition-colors ${buttonPadding} ${isRTL ? 'flex-row-reverse' : ''}`}
       >
         <CircleDollarSign className="h-4 w-4" aria-hidden="true" focusable="false" />
         <span className="flex items-center gap-2">
@@ -127,12 +127,12 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
 
       {open && (
         <div
-          className={`absolute z-[100] mt-2 rounded-lg border border-gray-200 bg-white p-3 shadow-2xl ${dropdownWidth} max-w-[calc(100vw-2rem)] ${isRTL ? 'left-0' : 'right-0'} animate-in slide-in-from-top-2 duration-200`}
+          className={`absolute z-[100] mt-2 rounded-2xl border border-border bg-card p-3 shadow-2xl ${dropdownWidth} max-w-[calc(100vw-2rem)] ${isRTL ? 'left-0' : 'right-0'} animate-in slide-in-from-top-2 duration-200`}
         >
           {/* Arrow pointer */}
-          <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45 ${isRTL ? 'left-8' : 'right-8'}`}></div>
+          <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-card border-l border-t border-border transform rotate-45 ${isRTL ? 'left-8' : 'right-8'}`}></div>
           <div className="relative mb-2">
-            <Search className={`pointer-events-none absolute top-2 h-4 w-4 text-gray-400 ${isRTL ? 'right-2' : 'left-2'}`} aria-hidden="true" focusable="false" />
+            <Search className={`pointer-events-none absolute top-2 h-4 w-4 text-muted-foreground ${isRTL ? 'right-2' : 'left-2'}`} aria-hidden="true" focusable="false" />
             <input
               type="text"
               value={query}
@@ -163,7 +163,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
                   }
                 }
               }}
-              className={`w-full rounded border border-gray-300 bg-white ${isRTL ? 'pr-7 pl-2' : 'pl-7 pr-2'} py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500/30`}
+              className={`w-full rounded border border-border bg-card ${isRTL ? 'pr-7 pl-2' : 'pl-7 pr-2'} py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500/30`}
               placeholder={t('i18n.filterCurrencies', 'Type to filter currencies')}
               aria-label={t('i18n.filterCurrencies', 'Type to filter currencies')}
               autoComplete="off"
@@ -181,7 +181,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
               <li key={option.code}>
                 <div
                   id={`${listboxId}-option-${option.code}`}
-                  className={`flex w-full items-center gap-3 rounded-md px-2 py-2 hover:bg-gray-100 ${
+                  className={`flex w-full items-center gap-3 rounded-2xl px-2 py-2 hover:bg-muted ${
                     option.code === current.code ? 'bg-brand-500/10 text-brand-500' : ''
                   } ${idx === activeIndex ? 'ring-1 ring-brand-500/30' : ''} ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
                   role="option"
@@ -194,7 +194,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
                   </span>
                   <div className="flex-1">
                     <div className="font-medium leading-tight">{option.code}</div>
-                    <div className="text-xs text-gray-500">{option.name}</div>
+                    <div className="text-xs text-muted-foreground">{option.name}</div>
                   </div>
                   <span className="text-sm font-semibold" aria-hidden>
                     {option.symbol}

@@ -77,15 +77,15 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
+    <div className="bg-card rounded-2xl shadow-lg p-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-3 bg-gradient-to-br from-[#FFB400] to-[#FF8C00] rounded-lg">
+        <div className="p-3 bg-gradient-to-br from-[#FFB400] to-[#FF8C00] rounded-2xl">
           <Calculator className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">{t('aqar.mortgage.title', 'Mortgage Calculator')}</h2>
-          <p className="text-sm text-gray-600">Calculate your monthly payments</p>
+          <h2 className="text-2xl font-bold text-foreground">{t('aqar.mortgage.title', 'Mortgage Calculator')}</h2>
+          <p className="text-sm text-muted-foreground">Calculate your monthly payments</p>
         </div>
       </div>
 
@@ -94,8 +94,8 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
         {/* Property Price */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-gray-700">{t('aqar.mortgage.propertyPrice', 'Property Price')}</label>
-            <span className="text-lg font-bold text-gray-900">{formatCurrency(price)}</span>
+            <label className="text-sm font-medium text-foreground">{t('aqar.mortgage.propertyPrice', 'Property Price')}</label>
+            <span className="text-lg font-bold text-foreground">{formatCurrency(price)}</span>
           </div>
           <input
             type="range"
@@ -104,9 +104,9 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             step="50000"
             value={price}
             onChange={(e) => setPrice(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#FFB400]"
+            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-[#FFB400]"
           />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>100K</span>
             <span>10M</span>
           </div>
@@ -115,10 +115,10 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
         {/* Down Payment */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-gray-700">
+            <label className="text-sm font-medium text-foreground">
               {t('aqar.mortgage.downPayment', 'Down Payment')} ({downPayment}%)
             </label>
-            <span className="text-lg font-bold text-gray-900">{formatCurrency(downPaymentAmount)}</span>
+            <span className="text-lg font-bold text-foreground">{formatCurrency(downPaymentAmount)}</span>
           </div>
           <input
             type="range"
@@ -127,9 +127,9 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             step="5"
             value={downPayment}
             onChange={(e) => setDownPayment(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#FFB400]"
+            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-[#FFB400]"
           />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>{MIN_DOWN_PAYMENT}% (Min)</span>
             <span>50%</span>
           </div>
@@ -138,8 +138,8 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
         {/* Interest Rate */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-gray-700">{t('aqar.mortgage.interestRate', 'Interest Rate')}</label>
-            <span className="text-lg font-bold text-gray-900">{interestRate.toFixed(2)}%</span>
+            <label className="text-sm font-medium text-foreground">{t('aqar.mortgage.interestRate', 'Interest Rate')}</label>
+            <span className="text-lg font-bold text-foreground">{interestRate.toFixed(2)}%</span>
           </div>
           <input
             type="range"
@@ -148,9 +148,9 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             step="0.1"
             value={interestRate}
             onChange={(e) => setInterestRate(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#FFB400]"
+            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-[#FFB400]"
           />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>3.0%</span>
             <span>8.0%</span>
           </div>
@@ -159,8 +159,8 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
         {/* Loan Term */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-gray-700">{t('aqar.mortgage.loanTerm', 'Loan Term')}</label>
-            <span className="text-lg font-bold text-gray-900">{loanTerm} {t('aqar.mortgage.years', 'years')}</span>
+            <label className="text-sm font-medium text-foreground">{t('aqar.mortgage.loanTerm', 'Loan Term')}</label>
+            <span className="text-lg font-bold text-foreground">{loanTerm} {t('aqar.mortgage.years', 'years')}</span>
           </div>
           <input
             type="range"
@@ -169,9 +169,9 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             step="5"
             value={loanTerm}
             onChange={(e) => setLoanTerm(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#FFB400]"
+            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-[#FFB400]"
           />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>5 {t('aqar.mortgage.years', 'years')}</span>
             <span>{MAX_LOAN_TERM} {t('aqar.mortgage.years', 'years')} (Max)</span>
           </div>
@@ -179,50 +179,50 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
       </div>
 
       {/* Results Section */}
-      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-6 mb-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">{t('aqar.mortgage.monthlyPayment', 'Monthly Payment')}</h3>
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 mb-6">
+        <h3 className="text-lg font-bold text-foreground mb-4">{t('aqar.mortgage.monthlyPayment', 'Monthly Payment')}</h3>
         <div className="text-4xl font-bold text-[#FF8C00] mb-6">
           {formatCurrency(monthlyPayment)}
-          <span className="text-sm font-normal text-gray-600">/{t('aqar.mortgage.months', 'month')}</span>
+          <span className="text-sm font-normal text-muted-foreground">/{t('aqar.mortgage.months', 'month')}</span>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white rounded-lg p-4">
-            <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
+          <div className="bg-card rounded-2xl p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <DollarSign className="w-4 h-4" />
               <span>Loan Amount</span>
             </div>
-            <p className="text-xl font-bold text-gray-900">{formatCurrency(loanAmount)}</p>
+            <p className="text-xl font-bold text-foreground">{formatCurrency(loanAmount)}</p>
           </div>
 
-          <div className="bg-white rounded-lg p-4">
-            <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
+          <div className="bg-card rounded-2xl p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <TrendingUp className="w-4 h-4" />
               <span>Total Interest</span>
             </div>
-            <p className="text-xl font-bold text-gray-900">{formatCurrency(totalInterest)}</p>
+            <p className="text-xl font-bold text-foreground">{formatCurrency(totalInterest)}</p>
           </div>
 
-          <div className="bg-white rounded-lg p-4">
-            <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
+          <div className="bg-card rounded-2xl p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <Calendar className="w-4 h-4" />
               <span>Total Payments</span>
             </div>
-            <p className="text-xl font-bold text-gray-900">{formatNumber(numberOfPayments)}</p>
+            <p className="text-xl font-bold text-foreground">{formatNumber(numberOfPayments)}</p>
           </div>
 
-          <div className="bg-white rounded-lg p-4">
-            <div className="flex items-center gap-2 text-gray-600 text-sm mb-1">
+          <div className="bg-card rounded-2xl p-4">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
               <FileText className="w-4 h-4" />
               <span>Total Cost</span>
             </div>
-            <p className="text-xl font-bold text-gray-900">{formatCurrency(totalCost)}</p>
+            <p className="text-xl font-bold text-foreground">{formatCurrency(totalCost)}</p>
           </div>
         </div>
       </div>
 
       {/* Additional Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4">
         <h4 className="font-semibold text-blue-900 mb-2">Required Monthly Income</h4>
         <p className="text-2xl font-bold text-blue-700">{formatCurrency(requiredMonthlyIncome)}</p>
         <p className="text-sm text-blue-600 mt-1">
@@ -234,17 +234,17 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
       <div>
         <button
           onClick={() => setShowAmortization(!showAmortization)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3 bg-muted hover:bg-muted rounded-2xl transition-colors"
         >
-          <span className="font-semibold text-gray-900">View Amortization Schedule</span>
-          <span className="text-gray-600">{showAmortization ? '−' : '+'}</span>
+          <span className="font-semibold text-foreground">View Amortization Schedule</span>
+          <span className="text-muted-foreground">{showAmortization ? '−' : '+'}</span>
         </button>
 
         {showAmortization && (
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-100">
+                <tr className="bg-muted">
                   <th className="px-3 py-2 text-left">Month</th>
                   <th className="px-3 py-2 text-right">Payment</th>
                   <th className="px-3 py-2 text-right">Principal</th>
@@ -254,7 +254,7 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
               </thead>
               <tbody>
                 {generateAmortizationSchedule(12).map((row) => (
-                  <tr key={row.month} className="border-b border-gray-200">
+                  <tr key={row.month} className="border-b border-border">
                     <td className="px-3 py-2">{row.month}</td>
                     <td className="px-3 py-2 text-right">{formatCurrency(row.payment)}</td>
                     <td className="px-3 py-2 text-right text-green-600">{formatCurrency(row.principal)}</td>
@@ -264,7 +264,7 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
                 ))}
               </tbody>
             </table>
-            <p className="text-xs text-gray-500 mt-2 text-center">
+            <p className="text-xs text-muted-foreground mt-2 text-center">
               Showing first 12 months of {numberOfPayments} total payments
             </p>
           </div>
@@ -272,8 +272,8 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
       </div>
 
       {/* Disclaimers */}
-      <div className="mt-6 pt-6 border-t border-gray-200">
-        <p className="text-xs text-gray-500 leading-relaxed">
+      <div className="mt-6 pt-6 border-t border-border">
+        <p className="text-xs text-muted-foreground leading-relaxed">
           <strong>Note:</strong> This calculator provides estimates based on Saudi Arabia's mortgage regulations. 
           Minimum down payment is 15% for Saudi residents and 30% for non-residents. Maximum loan-to-value (LTV) 
           ratio is 85%. Maximum loan term is 25 years. Actual rates and terms may vary by lender. 

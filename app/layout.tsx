@@ -8,7 +8,7 @@ import { Toaster } from 'sonner';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html suppressHydrationWarning>
-      <body className="min-h-screen bg-gray-50">
+      <body className="min-h-screen bg-muted">
         <Providers>
           <ClientLayout>
             {children}

@@ -60,7 +60,7 @@ export default function MaintenancePage() {
       case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'low': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-muted text-gray-800 border-border';
+      default: return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -68,9 +68,9 @@ export default function MaintenancePage() {
     switch (status.toLowerCase()) {
       case 'completed': return 'bg-green-100 text-green-800 border-green-200';
       case 'in progress': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'scheduled': return 'bg-muted text-gray-800 border-border';
+      case 'scheduled': return 'bg-muted text-foreground border-border';
       case 'overdue': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-muted text-gray-800 border-border';
+      default: return 'bg-muted text-foreground border-border';
     }
   };
 

@@ -130,7 +130,7 @@ export default async function ProductDetail(props: ProductPageProps) {
                     </ul>
                   </div>
                   {attachments.length > 0 && (
-                    <div className="rounded-2xl border border-[#0061A8]/30 bg-white p-4">
+                    <div className="rounded-2xl border border-[#0061A8]/30 bg-card p-4">
                       <h3 className="text-sm font-semibold text-[#0061A8]">Compliance documents</h3>
                       <ul className="mt-2 space-y-2 text-sm text-[#0F1111]">
                         {attachments.map((file: MediaFile) => (

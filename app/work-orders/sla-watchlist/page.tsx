@@ -120,12 +120,12 @@ export default function SLAWatchlistPage() {
               <Link 
                 key={wo.woNumber} 
                 href={`/work-orders/${wo.woNumber}`}
-                className="flex items-center justify-between p-3 bg-white rounded-lg border-2 border-red-300 hover:border-red-400 hover:shadow-md transition-all"
+                className="flex items-center justify-between p-3 bg-card rounded-2xl border-2 border-red-300 hover:border-red-400 hover:shadow-md transition-all"
               >
                 <div className="flex items-center gap-4">
                   <div className="font-mono font-bold text-red-700">{wo.woNumber}</div>
-                  <div className="text-gray-900">{wo.title}</div>
-                  <span className="px-2 py-1 text-xs font-semibold rounded bg-gray-100 border">
+                  <div className="text-foreground">{wo.title}</div>
+                  <span className="px-2 py-1 text-xs font-semibold rounded bg-muted border">
                     {wo.status}
                   </span>
                 </div>
@@ -153,12 +153,12 @@ export default function SLAWatchlistPage() {
               <Link 
                 key={wo.woNumber} 
                 href={`/work-orders/${wo.woNumber}`}
-                className="flex items-center justify-between p-3 bg-white rounded-lg border border-red-200 hover:border-red-300 hover:shadow transition-all"
+                className="flex items-center justify-between p-3 bg-card rounded-2xl border border-red-200 hover:border-red-300 hover:shadow transition-all"
               >
                 <div className="flex items-center gap-4">
                   <div className="font-mono font-semibold text-red-600">{wo.woNumber}</div>
-                  <div className="text-gray-900">{wo.title}</div>
-                  <span className="px-2 py-1 text-xs font-semibold rounded bg-gray-100 border">
+                  <div className="text-foreground">{wo.title}</div>
+                  <span className="px-2 py-1 text-xs font-semibold rounded bg-muted border">
                     {wo.status}
                   </span>
                 </div>
@@ -185,12 +185,12 @@ export default function SLAWatchlistPage() {
               <Link 
                 key={wo.woNumber} 
                 href={`/work-orders/${wo.woNumber}`}
-                className="flex items-center justify-between p-3 bg-white rounded-lg border border-yellow-200 hover:border-yellow-300 hover:shadow transition-all"
+                className="flex items-center justify-between p-3 bg-card rounded-2xl border border-yellow-200 hover:border-yellow-300 hover:shadow transition-all"
               >
                 <div className="flex items-center gap-4">
                   <div className="font-mono font-semibold text-yellow-700">{wo.woNumber}</div>
-                  <div className="text-gray-900">{wo.title}</div>
-                  <span className="px-2 py-1 text-xs font-semibold rounded bg-gray-100 border">
+                  <div className="text-foreground">{wo.title}</div>
+                  <span className="px-2 py-1 text-xs font-semibold rounded bg-muted border">
                     {wo.status}
                   </span>
                 </div>
@@ -217,12 +217,12 @@ export default function SLAWatchlistPage() {
               <Link 
                 key={wo.woNumber} 
                 href={`/work-orders/${wo.woNumber}`}
-                className="flex items-center justify-between p-3 bg-white rounded-lg border border-green-100 hover:border-green-200 hover:shadow transition-all"
+                className="flex items-center justify-between p-3 bg-card rounded-2xl border border-green-100 hover:border-green-200 hover:shadow transition-all"
               >
                 <div className="flex items-center gap-4">
                   <div className="font-mono font-semibold text-green-700">{wo.woNumber}</div>
-                  <div className="text-gray-900">{wo.title}</div>
-                  <span className="px-2 py-1 text-xs font-semibold rounded bg-gray-100 border">
+                  <div className="text-foreground">{wo.title}</div>
+                  <span className="px-2 py-1 text-xs font-semibold rounded bg-muted border">
                     {wo.status}
                   </span>
                 </div>
@@ -234,7 +234,7 @@ export default function SLAWatchlistPage() {
               </Link>
             ))}
             {safe.length > 10 && (
-              <div className="text-center text-sm text-gray-500 pt-2">
+              <div className="text-center text-sm text-muted-foreground pt-2">
                 ... and {safe.length - 10} more
               </div>
             )}
@@ -246,10 +246,10 @@ export default function SLAWatchlistPage() {
       {workOrders.length === 0 && (
         <div className="card text-center py-12">
           <div className="text-6xl mb-4">✓</div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+          <h3 className="text-xl font-semibold text-foreground mb-2">
             {t('workOrders.sla.noActive', 'No Active Work Orders')}
           </h3>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             {t('workOrders.sla.allClear', 'All work orders are either completed or have no SLA deadlines set.')}
           </p>
         </div>

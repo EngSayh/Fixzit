@@ -56,7 +56,7 @@ export default async function OrdersPage() {
                     <p className="text-sm text-muted-foreground">Submitted {new Date(order.createdAt).toLocaleString()}</p>
                   </div>
                   <div className="space-y-2 text-right text-sm">
-                    <span className={`inline-flex rounded-full px-3 py-1 font-semibold ${STATUS_BADGES[order.status] ?? 'bg-gray-200 text-foreground'}`}>
+                    <span className={`inline-flex rounded-full px-3 py-1 font-semibold ${STATUS_BADGES[order.status] ?? 'bg-muted text-foreground'}`}>
                       {order.status}
                     </span>
                     <p className="font-semibold text-[#0061A8]">

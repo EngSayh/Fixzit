@@ -103,25 +103,25 @@ export default function WorkOrderPartsPage() {
   };
   
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-muted">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-6">
           Add Parts to Work Order #{workOrderId}
         </h1>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Parts Search */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-card rounded-2xl shadow p-6">
               <div className="flex gap-2 mb-6">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <input
                     type="text"
                     placeholder="Search parts from marketplace..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-fixzit-blue/30"
+                    className="w-full pl-10 pr-4 py-2 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-fixzit-blue/30"
                   />
                 </div>
               </div>
@@ -131,15 +131,15 @@ export default function WorkOrderPartsPage() {
               ) : (
                 <div className="grid gap-4">
                   {parts.map((part) => (
-                    <div key={part._id} className="border rounded-lg p-4 flex items-center justify-between">
+                    <div key={part._id} className="border rounded-2xl p-4 flex items-center justify-between">
                       <div>
                         <h3 className="font-semibold">{part.title}</h3>
-                        <p className="text-sm text-gray-600">{part.category} • Stock: {part.stock}</p>
+                        <p className="text-sm text-muted-foreground">{part.category} • Stock: {part.stock}</p>
                         <p className="text-lg font-bold text-fixzit-green">SAR {part.price}</p>
                       </div>
                       <button
                         onClick={() => addPart(part)}
-                        className="px-4 py-2 bg-fixzit-blue text-white rounded-lg hover:bg-fixzit-blue/90 flex items-center gap-2"
+                        className="px-4 py-2 bg-fixzit-blue text-white rounded-2xl hover:bg-fixzit-blue/90 flex items-center gap-2"
                       >
                         <Plus className="h-4 w-4" />
                         Add
@@ -153,19 +153,19 @@ export default function WorkOrderPartsPage() {
           
           {/* Selected Parts */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-6 sticky top-4">
+            <div className="bg-card rounded-2xl shadow p-6 sticky top-4">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5" />
                 Selected Parts
               </h2>
               
               {selectedParts.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No parts selected</p>
+                <p className="text-muted-foreground text-center py-8">No parts selected</p>
               ) : (
                 <>
                   <div className="space-y-3 mb-4">
                     {selectedParts.map((part) => (
-                      <div key={part._id} className="border rounded-lg p-3">
+                      <div key={part._id} className="border rounded-2xl p-3">
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-medium text-sm">{part.title}</h4>
                           <button
@@ -179,14 +179,14 @@ export default function WorkOrderPartsPage() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => updateQuantity(part._id, part.quantity - 1)}
-                              className="w-6 h-6 border rounded hover:bg-gray-100"
+                              className="w-6 h-6 border rounded hover:bg-muted"
                             >
                               -
                             </button>
                             <span className="w-8 text-center">{part.quantity}</span>
                             <button
                               onClick={() => updateQuantity(part._id, part.quantity + 1)}
-                              className="w-6 h-6 border rounded hover:bg-gray-100"
+                              className="w-6 h-6 border rounded hover:bg-muted"
                             >
                               +
                             </button>
@@ -208,7 +208,7 @@ export default function WorkOrderPartsPage() {
                     </div>
                     <button
                       onClick={createPurchaseOrder}
-                      className="w-full py-3 bg-fixzit-green text-white rounded-lg hover:bg-fixzit-green/90"
+                      className="w-full py-3 bg-fixzit-green text-white rounded-2xl hover:bg-fixzit-green/90"
                     >
                       Create Purchase Order
                     </button>

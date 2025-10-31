@@ -92,8 +92,8 @@ export default function MyTicketsPage() {
     <div className="mx-auto max-w-6xl p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Support Tickets</h1>
-          <p className="text-gray-600">View and manage your support requests</p>
+          <h1 className="text-2xl font-bold text-foreground">My Support Tickets</h1>
+          <p className="text-muted-foreground">View and manage your support requests</p>
         </div>
         <button 
           onClick={() => {
@@ -101,7 +101,7 @@ export default function MyTicketsPage() {
             const supportBtn = footer?.querySelector('button');
             supportBtn?.click();
           }}
-          className="px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-md hover:bg-[var(--fixzit-primary-dark)] transition-colors"
+          className="px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-2xl hover:bg-[var(--fixzit-primary-dark)] transition-colors"
         >
           New Ticket
         </button>
@@ -113,36 +113,36 @@ export default function MyTicketsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Tickets List */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-md border border-gray-200">
-              <div className="p-4 border-b border-gray-200">
-                <h2 className="font-semibold text-gray-900">Your Tickets</h2>
+            <div className="bg-card rounded-2xl shadow-md border border-border">
+              <div className="p-4 border-b border-border">
+                <h2 className="font-semibold text-foreground">Your Tickets</h2>
               </div>
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y divide-border">
                 {data?.items?.length === 0 ? (
-                  <p className="p-4 text-gray-500 text-center">No tickets yet</p>
+                  <p className="p-4 text-muted-foreground text-center">No tickets yet</p>
                 ) : (
                   data?.items?.map((ticket: Ticket) => (
                   <div
                     key={ticket._id}
                     onClick={() => setSelectedTicket(ticket)}
-                    className={`p-4 cursor-pointer hover:bg-gray-50 ${
+                    className={`p-4 cursor-pointer hover:bg-muted ${
                       selectedTicket?._id === ticket._id ? 'bg-[var(--fixzit-primary-lightest)]' : ''
                     }`}
                   >
                     <div className="flex justify-between items-start mb-1">
-                      <p className="font-medium text-gray-900 text-sm">{ticket.code}</p>
+                      <p className="font-medium text-foreground text-sm">{ticket.code}</p>
                       <span className={`text-xs px-2 py-1 rounded-full ${
                         ticket.status === 'New' ? 'bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)]' :
                         ticket.status === 'Open' ? 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)]' :
                         ticket.status === 'Waiting' ? 'bg-purple-100 text-purple-800' :
                         ticket.status === 'Resolved' ? 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)]' :
-                        'bg-gray-100 text-gray-800'
+                        'bg-muted text-foreground'
                       }`}>
                         {ticket.status}
                       </span>
                     </div>
-                    <p className="text-sm font-medium text-gray-900">{ticket.subject}</p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-sm font-medium text-foreground">{ticket.subject}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
                       {new Date(ticket.createdAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -155,12 +155,12 @@ export default function MyTicketsPage() {
         {/* Ticket Details */}
         <div className="lg:col-span-2">
           {selectedTicket ? (
-            <div className="bg-white rounded-lg shadow-md border border-gray-200">
-              <div className="p-4 border-b border-gray-200">
+            <div className="bg-card rounded-2xl shadow-md border border-border">
+              <div className="p-4 border-b border-border">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h2 className="font-semibold text-gray-900">{selectedTicket.subject}</h2>
-                    <p className="text-sm text-gray-500">
+                    <h2 className="font-semibold text-foreground">{selectedTicket.subject}</h2>
+                    <p className="text-sm text-muted-foreground">
                       {selectedTicket.code} • {selectedTicket.module} • {selectedTicket.type}
                     </p>
                   </div>
@@ -168,7 +168,7 @@ export default function MyTicketsPage() {
                     selectedTicket.priority === 'Urgent' ? 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)]' :
                     selectedTicket.priority === 'High' ? 'bg-[var(--fixzit-warning-lightest)] text-[var(--fixzit-warning-darker)]' :
                     selectedTicket.priority === 'Medium' ? 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)]' :
-                    'bg-gray-100 text-gray-800'
+                    'bg-muted text-foreground'
                   }`}>
                     {selectedTicket.priority} Priority
                   </span>
@@ -181,20 +181,20 @@ export default function MyTicketsPage() {
                   <div key={index} className={`mb-4 ${
                     msg.byRole === 'ADMIN' ? 'ml-8' : ''
                   }`}>
-                    <div className={`p-3 rounded-lg ${
+                    <div className={`p-3 rounded-2xl ${
                       msg.byRole === 'ADMIN' 
                         ? 'bg-[var(--fixzit-primary-lightest)] border border-[var(--fixzit-primary-lighter)]' 
-                        : 'bg-gray-50 border border-gray-200'
+                        : 'bg-muted border border-border'
                     }`}>
                       <div className="flex justify-between items-start mb-1">
-                        <p className="text-xs font-medium text-gray-600">
+                        <p className="text-xs font-medium text-muted-foreground">
                           {msg.byRole === 'ADMIN' ? 'Support Team' : 'You'}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           {msg.at ? new Date(msg.at).toLocaleString() : new Date(msg.timestamp).toLocaleString()}
                         </p>
                       </div>
-                      <p className="text-sm text-gray-900">{msg.text}</p>
+                      <p className="text-sm text-foreground">{msg.text}</p>
                     </div>
                   </div>
                 ))}
@@ -202,17 +202,17 @@ export default function MyTicketsPage() {
 
               {/* Reply */}
               {selectedTicket.status !== 'Closed' && (
-                <div className="p-4 border-t border-gray-200">
+                <div className="p-4 border-t border-border">
                   <textarea
                     aria-label="Type your reply to this support ticket"
                     value={replyText}
                     onChange={e => setReplyText(e.target.value)}
                     placeholder="Type your reply..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md h-24"
+                    className="w-full px-3 py-2 border border-border rounded-2xl h-24"
                   />
                   <button
                     onClick={sendReply}
-                    className="mt-2 px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-md hover:bg-[var(--fixzit-primary-dark)]"
+                    className="mt-2 px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-2xl hover:bg-[var(--fixzit-primary-dark)]"
                   >
                     Send Reply
                   </button>
@@ -220,8 +220,8 @@ export default function MyTicketsPage() {
               )}
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 text-center">
-              <p className="text-gray-500">Select a ticket to view details</p>
+            <div className="bg-card rounded-2xl shadow-md border border-border p-8 text-center">
+              <p className="text-muted-foreground">Select a ticket to view details</p>
             </div>
           )}
         </div>

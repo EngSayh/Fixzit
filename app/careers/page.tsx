@@ -344,12 +344,12 @@ export default function CareersPage() {
     switch (status) {
       case 'Open': return 'bg-green-100 text-green-800 border-green-200';
       case 'Closed': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-muted text-foreground border-border';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-muted flex flex-col">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-[var(--fixzit-primary)] via-[var(--fixzit-primary)] to-[var(--fixzit-success)] text-white py-16">{/* FIXED: Using CSS variables for theming */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -380,8 +380,8 @@ export default function CareersPage() {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Current Openings</h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            <h2 className="text-3xl font-bold text-foreground mb-4">Current Openings</h2>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
               Explore exciting career opportunities and join our growing team of professionals
             </p>
           </div>
@@ -396,16 +396,16 @@ export default function CareersPage() {
                         <div className="w-8 h-8 rounded bg-[var(--fixzit-primary)] text-white flex items-center justify-center font-bold">FZ</div>{/* FIXED: Using CSS variable */}
                         <div className="flex flex-col">
                           <CardTitle className="text-xl leading-tight">{job.title}</CardTitle>
-                          <div className="text-xs text-gray-500">Fixzit Enterprise</div>
+                          <div className="text-xs text-muted-foreground">Fixzit Enterprise</div>
                         </div>
                         {job.urgent && <div title="Urgent Position"><AlertTriangle className="w-5 h-5 text-[var(--fixzit-danger-light)]" /></div>}
                         {job.featured && <div title="Featured Position"><Star className="w-5 h-5 text-[var(--fixzit-accent-light)]" /></div>}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                         <MapPin className="w-4 h-4" />
                         {job.location}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
                           {job.type}
@@ -450,12 +450,12 @@ export default function CareersPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1">
-                  <p className="text-gray-600 mb-4 line-clamp-3">{job.description}</p>
+                  <p className="text-muted-foreground mb-4 line-clamp-3">{job.description}</p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                       <h4 className="font-semibold text-sm mb-2">Requirements:</h4>
-                      <ul className="text-sm text-gray-600 space-y-1">
+                      <ul className="text-sm text-muted-foreground space-y-1">
                         {job.requirements.slice(0, 2).map((req, index) => (
                           <li key={index} className="flex items-start gap-2">
                             <span className="w-1.5 h-1.5 bg-[var(--fixzit-primary)] rounded-full mt-2 flex-shrink-0"></span>
@@ -471,7 +471,7 @@ export default function CareersPage() {
                     </div>
                     <div>
                       <h4 className="font-semibold text-sm mb-2">Benefits:</h4>
-                      <ul className="text-sm text-gray-600 space-y-1">
+                      <ul className="text-sm text-muted-foreground space-y-1">
                         {job.benefits.slice(0, 2).map((benefit, index) => (
                           <li key={index} className="flex items-start gap-2">
                             <span className="w-1.5 h-1.5 bg-[var(--fixzit-success)] rounded-full mt-2 flex-shrink-0"></span>
@@ -488,7 +488,7 @@ export default function CareersPage() {
                   </div>
 
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-muted-foreground">
                       Posted: {new Date(job.postedDate).toLocaleDateString()}
                     </span>
                     <Dialog>
@@ -511,7 +511,7 @@ export default function CareersPage() {
                                 <Badge variant="secondary">{job.department}</Badge>
                                 <Badge variant="outline">{job.type}</Badge>
                                 <Badge variant="outline">{job.experience}</Badge>
-                                <span className="text-sm text-gray-500">
+                                <span className="text-sm text-muted-foreground">
                                   Posted: {new Date(job.postedDate).toLocaleDateString()}
                                 </span>
                               </div>
@@ -524,23 +524,23 @@ export default function CareersPage() {
                         </DialogHeader>
                         <div className="space-y-6">
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div className="bg-[var(--fixzit-primary-lightest)] p-3 rounded-lg">
+                            <div className="bg-[var(--fixzit-primary-lightest)] p-3 rounded-2xl">
                               <Label className="text-sm font-medium text-[var(--fixzit-primary-darker)]">Location</Label>
-                              <p className="text-gray-700 font-medium">{job.location}</p>
+                              <p className="text-foreground font-medium">{job.location}</p>
                             </div>
-                            <div className="bg-[var(--fixzit-success-lightest)] p-3 rounded-lg">
+                            <div className="bg-[var(--fixzit-success-lightest)] p-3 rounded-2xl">
                               <Label className="text-sm font-medium text-[var(--fixzit-success-darker)]">Salary Range</Label>
-                              <p className="text-gray-700 font-medium">{job.salary}</p>
+                              <p className="text-foreground font-medium">{job.salary}</p>
                             </div>
-                            <div className="bg-[var(--fixzit-secondary-lightest)] p-3 rounded-lg">
+                            <div className="bg-[var(--fixzit-secondary-lightest)] p-3 rounded-2xl">
                               <Label className="text-sm font-medium text-[var(--fixzit-secondary-darker)]">Job Type</Label>
-                              <p className="text-gray-700 font-medium">{job.type}</p>
+                              <p className="text-foreground font-medium">{job.type}</p>
                             </div>
                           </div>
 
                           <div>
                             <Label className="text-lg font-semibold">Job Description</Label>
-                            <p className="text-gray-700 mt-2 leading-relaxed">{job.description}</p>
+                            <p className="text-foreground mt-2 leading-relaxed">{job.description}</p>
                           </div>
 
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -550,7 +550,7 @@ export default function CareersPage() {
                                 {job.requirements.map((req, index) => (
                                   <li key={index} className="flex items-start gap-3">
                                     <span className="w-2 h-2 bg-[var(--fixzit-primary)] rounded-full mt-2 flex-shrink-0"></span>
-                                    <span className="text-gray-700">{req}</span>
+                                    <span className="text-foreground">{req}</span>
                                   </li>
                                 ))}
                               </ul>
@@ -561,7 +561,7 @@ export default function CareersPage() {
                                 {job.benefits.map((benefit, index) => (
                                   <li key={index} className="flex items-start gap-3">
                                     <span className="w-2 h-2 bg-[var(--fixzit-success)] rounded-full mt-2 flex-shrink-0"></span>
-                                    <span className="text-gray-700">{benefit}</span>
+                                    <span className="text-foreground">{benefit}</span>
                                   </li>
                                 ))}
                               </ul>
@@ -572,7 +572,7 @@ export default function CareersPage() {
                             <Label className="text-lg font-semibold mb-3 block">Required Skills</Label>
                             <div className="flex flex-wrap gap-2">
                               {job.skills.map((skill, index) => (
-                                <Badge key={index} variant="secondary" className="bg-gray-100 text-gray-800">
+                                <Badge key={index} variant="secondary" className="bg-muted text-foreground">
                                   {skill}
                                 </Badge>
                               ))}
@@ -584,9 +584,9 @@ export default function CareersPage() {
                             <Label className="text-lg font-semibold mb-3 block">Hiring Stages</Label>
                             <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                               {['Applied','Screening','Interview','Offer','Hired'].map((stage, idx) => (
-                                <li key={stage} className="flex items-center gap-3 p-3 rounded border border-gray-200 bg-white">
-                                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx <= 1 ? 'bg-[var(--fixzit-success)] text-white' : 'bg-gray-200 text-gray-600'}`}>{idx+1}</span>
-                                  <span className="text-sm text-gray-800">{stage}</span>
+                                <li key={stage} className="flex items-center gap-3 p-3 rounded border border-border bg-card">
+                                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx <= 1 ? 'bg-[var(--fixzit-success)] text-white' : 'bg-muted text-muted-foreground'}`}>{idx+1}</span>
+                                  <span className="text-sm text-foreground">{stage}</span>
                                 </li>
                               ))}
                             </ol>
@@ -600,10 +600,10 @@ export default function CareersPage() {
                           <div className="border-t pt-4">
                             <div className="flex justify-between items-center">
                               <div>
-                                <p className="text-sm text-gray-600">
+                                <p className="text-sm text-muted-foreground">
                                   <strong>Application Deadline:</strong> Applications are reviewed on a rolling basis
                                 </p>
-                                <p className="text-sm text-gray-600 mt-1">
+                                <p className="text-sm text-muted-foreground mt-1">
                                   <strong>Status:</strong> <span className={job.status === 'Open' ? 'text-green-600' : 'text-red-600'}>{job.status}</span>
                                 </p>
                               </div>
@@ -634,7 +634,7 @@ export default function CareersPage() {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-2xl">Apply for {selectedJob.title}</DialogTitle>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 {selectedJob.department} • {selectedJob.location} • {selectedJob.type}
               </p>
             </DialogHeader>
@@ -700,11 +700,11 @@ export default function CareersPage() {
 
               <div>
                 <Label htmlFor="resume">Resume/CV *</Label>
-                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-border border-dashed rounded-2xl">
                   <div className="space-y-1 text-center">
-                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                    <div className="flex text-sm text-gray-600">
-                      <label htmlFor="resume" className="relative cursor-pointer bg-white rounded-md font-medium text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-dark)]">
+                    <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <div className="flex text-sm text-muted-foreground">
+                      <label htmlFor="resume" className="relative cursor-pointer bg-card rounded-2xl font-medium text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-dark)]">
                         <span>Upload a file</span>
                         <input
                           id="resume"
@@ -717,7 +717,7 @@ export default function CareersPage() {
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    <p className="text-xs text-gray-500">PDF, DOC, DOCX up to 10MB</p>
+                    <p className="text-xs text-muted-foreground">PDF, DOC, DOCX up to 10MB</p>
                   </div>
                 </div>
               </div>

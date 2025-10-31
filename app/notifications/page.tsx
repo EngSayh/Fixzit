@@ -41,7 +41,7 @@ export default function NotificationsPage() {
       case 'high': return 'bg-red-100 text-red-800 border-red-200';
       case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'low': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -61,8 +61,8 @@ export default function NotificationsPage() {
       case 'maintenance': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'vendor': return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'finance': return 'bg-green-100 text-green-800 border-green-200';
-      case 'system': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'system': return 'bg-muted text-foreground border-border';
+      default: return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -374,7 +374,7 @@ export default function NotificationsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Notifications</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Notifications</p>
               <p className="text-2xl font-bold text-[var(--fixzit-primary)]">{notifications.length}</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">📢</div>
@@ -383,7 +383,7 @@ export default function NotificationsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Unread</p>
+              <p className="text-sm font-medium text-muted-foreground">Unread</p>
               <p className="text-2xl font-bold text-[var(--fixzit-danger)]">{unreadCount}</p>
             </div>
             <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
@@ -392,7 +392,7 @@ export default function NotificationsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">High Priority</p>
+              <p className="text-sm font-medium text-muted-foreground">High Priority</p>
               <p className="text-2xl font-bold text-orange-600">
                 {notifications.filter((n: NotificationDoc) => n.priority === 'high').length}
               </p>
@@ -403,7 +403,7 @@ export default function NotificationsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Today</p>
+              <p className="text-sm font-medium text-muted-foreground">Today</p>
               <p className="text-2xl font-bold text-[var(--fixzit-success)]">
                 {notifications.filter((n: NotificationDoc) => new Date(n.timestamp).toDateString() === new Date().toDateString()).length}
               </p>
@@ -418,13 +418,13 @@ export default function NotificationsPage() {
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search notifications..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -432,7 +432,7 @@ export default function NotificationsPage() {
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
             >
               <option value="all">All Notifications</option>
               <option value="unread">Unread Only</option>
@@ -446,13 +446,13 @@ export default function NotificationsPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-gray-200 mt-4">
+        <div className="flex border-b border-border mt-4">
           <button
             onClick={() => setSelectedTab('all')}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
               selectedTab === 'all'
                 ? 'border-brand-500 text-brand-500'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
             All ({tabCounts.all})
@@ -462,7 +462,7 @@ export default function NotificationsPage() {
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
               selectedTab === 'unread'
                 ? 'border-brand-500 text-brand-500'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
             Unread ({tabCounts.unread})
@@ -472,7 +472,7 @@ export default function NotificationsPage() {
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors relative ${
               selectedTab === 'urgent'
                 ? 'border-brand-500 text-brand-500'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
             Urgent ({tabCounts.urgent})
@@ -488,21 +488,21 @@ export default function NotificationsPage() {
         <div className="space-y-4">
           {isLoading ? (
             <div className="text-center py-8">
-              <div className="text-gray-400 mb-2">⏳</div>
-              <p className="text-gray-600">Loading notifications...</p>
+              <div className="text-muted-foreground mb-2">⏳</div>
+              <p className="text-muted-foreground">Loading notifications...</p>
             </div>
           ) : filteredNotifications.length === 0 ? (
             <div className="text-center py-8">
-              <div className="text-gray-400 mb-2">📭</div>
-              <p className="text-gray-600">No notifications found</p>
-              <p className="text-sm text-gray-500">You&apos;re all caught up!</p>
+              <div className="text-muted-foreground mb-2">📭</div>
+              <p className="text-muted-foreground">No notifications found</p>
+              <p className="text-sm text-muted-foreground">You&apos;re all caught up!</p>
             </div>
           ) : (
             filteredNotifications.map((notif: NotificationDoc) => (
               <div
                 key={String(notif._id || '')}
-                className={`p-4 rounded-lg border transition-all hover:shadow-md ${
-                  notif.read ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-200'
+                className={`p-4 rounded-2xl border transition-all hover:shadow-md ${
+                  notif.read ? 'bg-card border-border' : 'bg-blue-50 border-blue-200'
                 }`}
               >
                 <div className="flex items-start justify-between">
@@ -511,12 +511,12 @@ export default function NotificationsPage() {
                       type="checkbox"
                       checked={selectedNotifications.has(String(notif._id || ''))}
                       onChange={() => handleSelectNotification(String(notif._id || ''))}
-                      className="mt-1 h-4 w-4 text-[var(--fixzit-primary)] focus:ring-blue-500 border-gray-300 rounded"
+                      className="mt-1 h-4 w-4 text-[var(--fixzit-primary)] focus:ring-blue-500 border-border rounded"
                     />
                     <div className="text-xl">{getTypeIcon(notif.type)}</div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className={`font-medium ${notif.read ? 'text-gray-900' : 'text-blue-900'}`}>
+                        <h3 className={`font-medium ${notif.read ? 'text-foreground' : 'text-blue-900'}`}>
                           {notif.title}
                         </h3>
                         {!notif.read && (
@@ -529,10 +529,10 @@ export default function NotificationsPage() {
                           {notif.category}
                         </span>
                       </div>
-                      <p className={`text-sm ${notif.read ? 'text-gray-600' : 'text-blue-700'}`}>
+                      <p className={`text-sm ${notif.read ? 'text-muted-foreground' : 'text-blue-700'}`}>
                         {notif.message}
                       </p>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                         <span>{new Date(notif.timestamp).toLocaleString()}</span>
                         <span>•</span>
                         <span>{notif.read ? 'Read' : 'Unread'}</span>
@@ -549,7 +549,7 @@ export default function NotificationsPage() {
                         <Check size={16} />
                       </button>
                     )}
-                    <button className="p-1 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded">
+                    <button className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded">
                       <MoreVertical size={16} />
                     </button>
                   </div>
@@ -565,7 +565,7 @@ export default function NotificationsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-muted-foreground">
                 {selectedNotifications.size > 0
                   ? `${selectedNotifications.size} of ${filteredNotifications.length} selected`
                   : `${filteredNotifications.length} notification${filteredNotifications.length !== 1 ? 's' : ''}`
@@ -652,7 +652,7 @@ export default function NotificationsPage() {
           </button>
           <button
             onClick={handleSettings}
-            className="btn-ghost text-center hover:bg-gray-50 transition-colors"
+            className="btn-ghost text-center hover:bg-muted transition-colors"
           >
             <div className="text-2xl mb-2">⚙️</div>
             <div className="text-sm font-medium">Settings</div>

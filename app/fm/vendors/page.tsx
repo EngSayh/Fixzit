@@ -129,7 +129,7 @@ export default function FMVendorsPage() {
       case 'suspended': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
       case 'blacklisted': return 'bg-gray-900 text-white border-gray-900';
-      default: return 'bg-muted text-gray-800 border-border';
+      default: return 'bg-muted text-foreground border-border';
     }
   };
 

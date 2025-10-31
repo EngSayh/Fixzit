@@ -98,17 +98,17 @@ export default function SupportTicketPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-muted flex flex-col">
       <div className="max-w-2xl mx-auto p-4 flex-1 flex flex-col">
         {toast && (
-          <div className={`mb-4 rounded-lg px-4 py-3 text-sm ${toast.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+          <div className={`mb-4 rounded-2xl px-4 py-3 text-sm ${toast.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
             {toast.message}
           </div>
         )}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-card rounded-2xl shadow-xl p-8">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Create Support Ticket</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-bold text-foreground mb-2">Create Support Ticket</h1>
+            <p className="text-muted-foreground">
               Fill out the form below and our support team will get back to you within 24 hours.
             </p>
           </div>
@@ -122,7 +122,7 @@ export default function SupportTicketPage() {
           >
             {/* Subject */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Subject *
               </label>
               <input
@@ -130,7 +130,7 @@ export default function SupportTicketPage() {
                 name="subject"
                 value={formData.subject}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Brief description of your issue"
                 required
               />
@@ -139,14 +139,14 @@ export default function SupportTicketPage() {
             {/* Module and Type */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Module
                 </label>
                 <select
                   name="module"
                   value={formData.module}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-card"
                 >
                   <option value="FM">Facility Management</option>
                   <option value="Souq">Marketplace</option>
@@ -157,14 +157,14 @@ export default function SupportTicketPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Type
                 </label>
                 <select
                   name="type"
                   value={formData.type}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-card"
                 >
                   <option value="Bug">Bug Report</option>
                   <option value="Feature">Feature Request</option>
@@ -178,14 +178,14 @@ export default function SupportTicketPage() {
 
             {/* Priority */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Priority
               </label>
               <select
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-card"
               >
                 <option value="Low">Low</option>
                 <option value="Medium">Medium</option>
@@ -196,23 +196,23 @@ export default function SupportTicketPage() {
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Description *
               </label>
               <textarea
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32 resize-none"
+                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32 resize-none"
                 placeholder="Please provide detailed information about your issue or request..."
                 required
               />
             </div>
 
             {/* Contact Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted rounded-2xl">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Your Name *
                 </label>
                 <input
@@ -220,13 +220,13 @@ export default function SupportTicketPage() {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter your full name"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Email *
                 </label>
                 <input
@@ -234,16 +234,16 @@ export default function SupportTicketPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="your.email@example.com"
                   required
                 />
               </div>
             </div>
 
-            <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="p-4 bg-muted rounded-2xl">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Phone (optional)
                 </label>
                 <input
@@ -251,7 +251,7 @@ export default function SupportTicketPage() {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="+966 XX XXX XXXX"
                 />
               </div>

@@ -37,12 +37,12 @@ export default function CompactCurrencySelector({ className = '' }: CompactCurre
 
   return (
     <div className={`relative inline-block ${className}`}>
-      <div className="flex items-center gap-2 bg-white/50 backdrop-blur-sm rounded-lg px-3 py-2 border border-gray-200 hover:border-gray-300 transition-colors">
-        <DollarSign className="h-4 w-4 text-gray-600" />
+      <div className="flex items-center gap-2 bg-white/50 backdrop-blur-sm rounded-2xl px-3 py-2 border border-border hover:border-border transition-colors">
+        <DollarSign className="h-4 w-4 text-muted-foreground" />
         <select
           value={currency}
           onChange={(e) => handleChange(e.target.value)}
-          className="bg-transparent border-none outline-none text-sm text-gray-700 font-medium cursor-pointer pr-1"
+          className="bg-transparent border-none outline-none text-sm text-foreground font-medium cursor-pointer pr-1"
           aria-label="Select currency"
         >
           {AUTH_CURRENCIES.map((curr) => (

@@ -56,13 +56,13 @@ export default function PropertyDetailPage() {
   }, [initializeMap]);
   
   return (
-    <div className={`min-h-screen bg-gray-50 ${isRTL ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen bg-muted ${isRTL ? 'rtl' : 'ltr'}`}>
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-card rounded-2xl shadow">
           {/* Header */}
           <div className="p-6 border-b">
-            <h1 className="text-2xl font-bold text-gray-900">{property.name}</h1>
-            <p className={`text-gray-600 flex items-center gap-2 mt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <h1 className="text-2xl font-bold text-foreground">{property.name}</h1>
+            <p className={`text-muted-foreground flex items-center gap-2 mt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <MapPin className="h-4 w-4" />
               {property.address}
             </p>
@@ -71,41 +71,41 @@ export default function PropertyDetailPage() {
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-6 border-b">
             <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <div className="p-3 bg-brand-500/10 rounded-lg">
+              <div className="p-3 bg-brand-500/10 rounded-2xl">
                 <Home className="h-6 w-6 text-brand-500" />
               </div>
               <div className={isRTL ? 'text-right' : ''}>
-                <p className="text-sm text-gray-600">Type</p>
+                <p className="text-sm text-muted-foreground">Type</p>
                 <p className="font-semibold">{property.type}</p>
               </div>
             </div>
             
             <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <div className="p-3 bg-success/10 rounded-lg">
+              <div className="p-3 bg-success/10 rounded-2xl">
                 <Home className="h-6 w-6 text-success" />
               </div>
               <div className={isRTL ? 'text-right' : ''}>
-                <p className="text-sm text-gray-600">Units</p>
+                <p className="text-sm text-muted-foreground">Units</p>
                 <p className="font-semibold">{property.units}</p>
               </div>
             </div>
             
             <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <div className="p-3 bg-accent/10 rounded-lg">
+              <div className="p-3 bg-accent/10 rounded-2xl">
                 <Users className="h-6 w-6 text-accent" />
               </div>
               <div className={isRTL ? 'text-right' : ''}>
-                <p className="text-sm text-gray-600">Occupancy</p>
+                <p className="text-sm text-muted-foreground">Occupancy</p>
                 <p className="font-semibold">{property.occupancy}%</p>
               </div>
             </div>
             
             <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <div className="p-3 bg-[var(--fixzit-danger-lighter)] rounded-lg">
+              <div className="p-3 bg-[var(--fixzit-danger-lighter)] rounded-2xl">
                 <Wrench className="h-6 w-6 text-[var(--fixzit-danger)]" />
               </div>
               <div className={isRTL ? 'text-right' : ''}>
-                <p className="text-sm text-gray-600">Open Work Orders</p>
+                <p className="text-sm text-muted-foreground">Open Work Orders</p>
                 <p className="font-semibold">{property.openWorkOrders}</p>
               </div>
             </div>
@@ -116,20 +116,20 @@ export default function PropertyDetailPage() {
             <h2 className="text-lg font-semibold mb-4">Location</h2>
             <div 
               id="property-map" 
-              className="w-full h-96 rounded-lg border"
+              className="w-full h-96 rounded-2xl border"
               style={{ minHeight: '400px' }}
             />
           </div>
           
           {/* Actions */}
-          <div className={`p-6 border-t bg-gray-50 flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <button className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors">
+          <div className={`p-6 border-t bg-muted flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <button className="px-4 py-2 bg-brand-500 text-white rounded-2xl hover:bg-brand-600 transition-colors">
               View Units
             </button>
-            <button className="px-4 py-2 bg-success text-white rounded-lg hover:bg-success-dark transition-colors">
+            <button className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success-dark transition-colors">
               Create Work Order
             </button>
-            <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors">
+            <button className="px-4 py-2 border border-border rounded-2xl hover:bg-muted transition-colors">
               View Reports
             </button>
           </div>

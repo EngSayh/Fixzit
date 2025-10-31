@@ -28,18 +28,18 @@ export default function RTLTestPage() {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-6 text-center">RTL & Language Test Page</h1>
 
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <div className="bg-card rounded-2xl shadow-lg p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Current Language: {language.toUpperCase()}</h2>
           <div className="flex gap-4 mb-4">
             <button
               onClick={() => setLanguage('ar')}
-              className={`px-4 py-2 rounded ${language === 'ar' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+              className={`px-4 py-2 rounded ${language === 'ar' ? 'bg-blue-500 text-white' : 'bg-muted'}`}
             >
               Arabic (العربية)
             </button>
             <button
               onClick={() => setLanguage('en')}
-              className={`px-4 py-2 rounded ${language === 'en' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+              className={`px-4 py-2 rounded ${language === 'en' ? 'bg-blue-500 text-white' : 'bg-muted'}`}
             >
               English
             </button>
@@ -58,19 +58,19 @@ export default function RTLTestPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="bg-card rounded-2xl shadow-lg p-6">
           <h3 className="text-lg font-semibold mb-4">Translation Test:</h3>
           <div className="space-y-2">
             {testTranslations.map((key) => (
               <div key={key} className="flex justify-between border-b pb-2">
-                <span className="font-mono text-sm text-gray-600">{key}:</span>
+                <span className="font-mono text-sm text-muted-foreground">{key}:</span>
                 <span className={`${isRTL ? 'text-right' : 'text-left'}`}>{t(key, `FALLBACK: ${key}`)}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-6 mt-6">
+        <div className="bg-card rounded-2xl shadow-lg p-6 mt-6">
           <h3 className="text-lg font-semibold mb-4">Layout Test:</h3>
           <div className={`border-2 border-dashed p-4 rounded ${isRTL ? 'text-right' : 'text-left'}`}>
             <p>This text should align {isRTL ? 'right' : 'left'} in {language.toUpperCase()}</p>

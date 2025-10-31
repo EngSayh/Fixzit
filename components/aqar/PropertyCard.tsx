@@ -101,10 +101,10 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
   return (
     <Link 
       href={`/aqar/properties/${property.slug || property.id}`}
-      className="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow overflow-hidden group"
+      className="block bg-card rounded-2xl shadow-md hover:shadow-xl transition-shadow overflow-hidden group"
     >
       {/* Image Section */}
-      <div className="relative h-64 overflow-hidden bg-gray-200">
+      <div className="relative h-64 overflow-hidden bg-muted">
         <Image
           src={primaryImage}
           alt={propertyTitle}
@@ -145,17 +145,17 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
         {/* Favorite Button */}
         <button
           onClick={toggleFavorite}
-          className="absolute top-3 right-3 p-2 bg-white/90 hover:bg-white rounded-full transition-colors"
+          className="absolute top-3 right-3 p-2 bg-white/90 hover:bg-card rounded-full transition-colors"
           aria-label="Add to favorites"
         >
           <Heart
-            className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-700'}`}
+            className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-foreground'}`}
           />
         </button>
 
         {/* Views Counter */}
         {property.views && property.views > 0 && (
-          <div className="absolute bottom-3 right-3 bg-black/60 text-white px-2 py-1 rounded-md text-xs flex items-center gap-1">
+          <div className="absolute bottom-3 right-3 bg-black/60 text-white px-2 py-1 rounded-2xl text-xs flex items-center gap-1">
             <Eye className="w-3 h-3" />
             {property.views}
           </div>
@@ -166,18 +166,18 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
       <div className="p-4">
         {/* Price */}
         <div className="mb-2">
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-2xl font-bold text-foreground">
             {formatPrice(property.pricing.amount, property.pricing.currency, property.pricing.period)}
           </p>
         </div>
 
         {/* Title */}
-        <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-1">
+        <h3 className="text-lg font-semibold text-foreground mb-2 line-clamp-1">
           {propertyTitle}
         </h3>
 
         {/* Location */}
-        <p className="text-gray-600 text-sm mb-3 flex items-center gap-1">
+        <p className="text-muted-foreground text-sm mb-3 flex items-center gap-1">
           <MapPin className="w-4 h-4 flex-shrink-0" />
           <span className="line-clamp-1">
             {property.location.address.district}, {property.location.address.city}
@@ -185,13 +185,13 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
         </p>
 
         {/* Property Type */}
-        <p className="text-gray-500 text-xs mb-3">
+        <p className="text-muted-foreground text-xs mb-3">
           {property.propertyType.replace(/_/g, ' ')}
           {property.features.furnished && ` • ${property.features.furnished.replace(/_/g, ' ')}`}
         </p>
 
         {/* Features */}
-        <div className="flex items-center gap-4 text-gray-700 text-sm mb-4 pb-4 border-b border-gray-200">
+        <div className="flex items-center gap-4 text-foreground text-sm mb-4 pb-4 border-b border-border">
           <div className="flex items-center gap-1">
             <Bed className="w-4 h-4" />
             <span>{property.features.bedrooms}</span>
@@ -220,13 +220,13 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
                 />
               ) : (
                 <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
-                  <span className="text-xs font-semibold text-gray-600">
+                  <span className="text-xs font-semibold text-muted-foreground">
                     {property.agentId.firstName?.[0]}{property.agentId.lastName?.[0]}
                   </span>
                 </div>
               )}
               <div>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-foreground">
                   {property.agentId.firstName} {property.agentId.lastName}
                 </p>
               </div>
@@ -240,10 +240,10 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
                     e.stopPropagation();
                     window.location.href = `tel:${property.agentId?.contact?.phone}`;
                   }}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  className="p-2 hover:bg-muted rounded-full transition-colors"
                   aria-label={t('aqar.propertyCard.call', 'Call agent')}
                 >
-                  <Phone className="w-4 h-4 text-gray-600" />
+                  <Phone className="w-4 h-4 text-muted-foreground" />
                 </button>
               )}
               <button
@@ -252,10 +252,10 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
                   e.stopPropagation();
                   // Open WhatsApp or messaging
                 }}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2 hover:bg-muted rounded-full transition-colors"
                 aria-label={t('aqar.propertyCard.message', 'Message agent')}
               >
-                <MessageSquare className="w-4 h-4 text-gray-600" />
+                <MessageSquare className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
           </div>

@@ -372,7 +372,7 @@ export default function TopBar() {
       case 'high': return 'text-red-600';
       case 'medium': return 'text-yellow-600';
       case 'low': return 'text-green-600';
-      default: return 'text-gray-600';
+      default: return 'text-muted-foreground';
     }
   };
 
@@ -433,12 +433,12 @@ export default function TopBar() {
                 alt={orgSettings.name}
                 width={32}
                 height={32}
-                className="rounded-md object-cover"
+                className="rounded-2xl object-cover"
                 onError={() => setLogoError(true)}
               />
             ) : (
               <div 
-                className="w-8 h-8 rounded-md bg-gradient-to-br from-[#0061A8] to-[#004d86] flex items-center justify-center text-white font-bold text-sm"
+                className="w-8 h-8 rounded-2xl bg-gradient-to-br from-[#0061A8] to-[#004d86] flex items-center justify-center text-white font-bold text-sm"
                 aria-hidden="true"
               >
                 {orgSettings?.name?.substring(0, 2).toUpperCase() || 'FX'}
@@ -464,7 +464,7 @@ export default function TopBar() {
           {screenInfo.isMobile && (
             <button
               type="button"
-              className="p-2 hover:bg-white/10 rounded-md"
+              className="p-2 hover:bg-white/10 rounded-2xl"
               aria-label="Open search"
               onClick={() => setMobileSearchOpen(true)}
             >
@@ -490,7 +490,7 @@ export default function TopBar() {
                   return next;
                 });
               }}
-              className="p-2 hover:bg-white/10 rounded-md relative"
+              className="p-2 hover:bg-white/10 rounded-2xl relative"
               aria-label="Toggle notifications"
             >
               <Bell className="w-5 h-5" />
@@ -621,7 +621,7 @@ export default function TopBar() {
                   return next;
                 });
               }} 
-              className="flex items-center gap-1 p-2 hover:bg-white/10 rounded-md transition-colors"
+              className="flex items-center gap-1 p-2 hover:bg-white/10 rounded-2xl transition-colors"
               aria-label="Toggle user menu"
             >
               <User className="w-5 h-5" /><ChevronDown className="w-4 h-4" />
@@ -683,7 +683,7 @@ export default function TopBar() {
         ) : (
           <Link
             href="/login"
-            className="px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors"
+            className="px-3 py-1.5 rounded-2xl bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors"
           >
             {t('common.signIn', 'Sign In')}
           </Link>
@@ -713,7 +713,7 @@ export default function TopBar() {
               
               {/* Error message display */}
               {saveError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-2xl">
                   <p className="text-sm text-red-800">{saveError}</p>
                 </div>
               )}
@@ -735,7 +735,7 @@ export default function TopBar() {
                   type="button"
                   onClick={handleDiscardAndNavigate}
                   disabled={isSaving}
-                  className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-2xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('common.discard', 'Discard')}
                 </button>
@@ -743,7 +743,7 @@ export default function TopBar() {
                   type="button"
                   onClick={handleSaveAndNavigate}
                   disabled={isSaving}
-                  className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-800 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-800 rounded-2xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isSaving && (
                     <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

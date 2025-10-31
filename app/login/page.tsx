@@ -266,17 +266,17 @@ export default function LoginPage() {
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
+        <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="w-8 h-8 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-foreground mb-2">
             {t('login.success.title', 'Welcome Back!')}
           </h2>
-          <p className="text-gray-600 mb-4">
+          <p className="text-muted-foreground mb-4">
             {t('login.success.message', 'Signing you in...')}
           </p>
-          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
             <div className="h-full bg-brand-500 animate-pulse" style={{ width: '100%' }} />
           </div>
         </div>
@@ -294,29 +294,29 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-card rounded-2xl shadow-xl p-8">
           {/* Logo */}
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-500 rounded-xl mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-500 rounded-2xl mb-4">
               <span className="text-white text-2xl font-bold">F</span>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-3xl font-bold text-foreground mb-2">
               {t('login.welcome', 'Welcome Back')}
             </h1>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               {t('login.subtitle', 'Sign in to your Fixzit account')}
             </p>
           </div>
 
           {/* Login Method Tabs */}
-          <div className={`flex bg-gray-100 rounded-lg p-1 mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex bg-muted rounded-2xl p-1 mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <button
               type="button"
               onClick={() => setLoginMethod('personal')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-4 rounded-2xl text-sm font-medium transition-colors ${
                 loginMethod === 'personal'
                   ? 'bg-brand-500 text-white'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {t('login.personalEmailTab', 'Personal Email')}
@@ -324,10 +324,10 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setLoginMethod('corporate')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-4 rounded-2xl text-sm font-medium transition-colors ${
                 loginMethod === 'corporate'
                   ? 'bg-brand-500 text-white'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {t('login.corporateAccountTab', 'Corporate Account')}
@@ -335,10 +335,10 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setLoginMethod('sso')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-4 rounded-2xl text-sm font-medium transition-colors ${
                 loginMethod === 'sso'
                   ? 'bg-brand-500 text-white'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {t('login.ssoLoginTab', 'SSO Login')}
@@ -350,16 +350,16 @@ export default function LoginPage() {
             <form onSubmit={onSubmit} className="space-y-5" noValidate data-testid="login-form">
               {/* Email or Employee Number */}
               <div>
-                <label htmlFor={loginMethod === 'personal' ? 'email' : 'employeeNumber'} className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor={loginMethod === 'personal' ? 'email' : 'employeeNumber'} className="block text-sm font-medium text-foreground mb-2">
                   {loginMethod === 'personal' 
                     ? t('login.personalEmail', 'Personal Email Address')
                     : t('login.employeeNumber', 'Employee Number')}
                 </label>
                 <div className="relative">
                   {loginMethod === 'personal' ? (
-                    <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400`} />
+                    <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
                   ) : (
-                    <User className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400`} />
+                    <User className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
                   )}
                   <Input
                     id={loginMethod === 'personal' ? 'email' : 'employeeNumber'}
@@ -389,7 +389,7 @@ export default function LoginPage() {
                   />
                 </div>
                 {loginMethod === 'corporate' && (
-                  <p className="mt-2 text-xs text-gray-500">
+                  <p className="mt-2 text-xs text-muted-foreground">
                     {t('login.corporateHelp', 'Use your employee number and password. No separate corporate ID needed.')}
                   </p>
                 )}
@@ -404,7 +404,7 @@ export default function LoginPage() {
               {/* Password */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="password" className="block text-sm font-medium text-foreground">
                     {t('common.password', 'Password')}
                   </label>
                   <Link href="/forgot-password" className="text-sm text-brand-500 hover:text-brand-600 transition-colors">
@@ -412,7 +412,7 @@ export default function LoginPage() {
                   </Link>
                 </div>
                 <div className="relative">
-                  <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400`} />
+                  <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
                   <Input
                     id="password"
                     data-testid="login-password"
@@ -436,7 +436,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(s => !s)}
-                    className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600`}
+                    className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground`}
                     aria-label={showPassword ? t('login.hidePassword', 'Hide password') : t('login.showPassword', 'Show password')}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -463,10 +463,10 @@ export default function LoginPage() {
                   id="rememberMe"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-brand-500 border-gray-300 rounded focus:ring-brand-500"
+                  className="w-4 h-4 text-brand-500 border-border rounded focus:ring-brand-500"
                   disabled={loading}
                 />
-                <label htmlFor="rememberMe" className="text-sm text-gray-700 cursor-pointer select-none">
+                <label htmlFor="rememberMe" className="text-sm text-foreground cursor-pointer select-none">
                   {t('login.rememberMe', 'Remember me for 30 days')}
                 </label>
               </div>
@@ -476,7 +476,7 @@ export default function LoginPage() {
                 <div
                   role="alert"
                   aria-live="assertive"
-                  className={`flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 ${isRTL ? 'flex-row-reverse' : ''}`}
+                  className={`flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 ${isRTL ? 'flex-row-reverse' : ''}`}
                 >
                   <AlertCircle className="h-5 w-5 flex-shrink-0" />
                   <span className="text-sm">{errors.general}</span>
@@ -512,19 +512,19 @@ export default function LoginPage() {
                 <GoogleSignInButton />
                 <button 
                   type="button"
-                  className={`flex items-center justify-center gap-3 w-full p-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+                  className={`flex items-center justify-center gap-3 w-full p-3 border border-border rounded-2xl hover:bg-muted transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
                 >
-                  <Apple className="h-5 w-5 text-gray-900" />
+                  <Apple className="h-5 w-5 text-foreground" />
                   <span>{t('login.continueWith', 'Continue with')} Apple</span>
                 </button>
               </div>
 
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
+                  <div className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">{t('login.orUseAccount', 'Or use account')}</span>
+                  <span className="px-2 bg-card text-muted-foreground">{t('login.orUseAccount', 'Or use account')}</span>
                 </div>
               </div>
 
@@ -550,8 +550,8 @@ export default function LoginPage() {
             <div className="mt-6 space-y-4">
               {/* Personal Email Credentials */}
               {loginMethod === 'personal' && (
-                <div className={`p-4 bg-gray-50 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <h3 className="text-sm font-medium text-gray-700 mb-3">
+                <div className={`p-4 bg-muted rounded-2xl ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <h3 className="text-sm font-medium text-foreground mb-3">
                     {t('login.personalEmailAccounts', 'Personal Email Accounts:')}
                   </h3>
                   <div className="space-y-2">
@@ -562,7 +562,7 @@ export default function LoginPage() {
                           key={cred.role}
                           type="button"
                           onClick={() => quickLogin(cred)}
-                          className={`w-full p-3 rounded-lg border transition-colors hover:shadow-md ${cred.color}`}
+                          className={`w-full p-3 rounded-2xl border transition-colors hover:shadow-md ${cred.color}`}
                         >
                           <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                             <Icon size={18} />
@@ -584,7 +584,7 @@ export default function LoginPage() {
 
               {/* Corporate Account Credentials */}
               {loginMethod === 'corporate' && (
-                <div className={`p-4 bg-blue-50 rounded-lg border border-blue-200 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <div className={`p-4 bg-blue-50 rounded-2xl border border-blue-200 ${isRTL ? 'text-right' : 'text-left'}`}>
                   <h3 className="text-sm font-medium text-blue-800 mb-3">
                     {t('login.corporateAccountEmployee', 'Corporate Account (Employee Number):')}
                   </h3>
@@ -596,7 +596,7 @@ export default function LoginPage() {
                           key={cred.role}
                           type="button"
                           onClick={() => quickLogin(cred)}
-                          className={`w-full p-3 rounded-lg border transition-colors hover:shadow-md ${cred.color}`}
+                          className={`w-full p-3 rounded-2xl border transition-colors hover:shadow-md ${cred.color}`}
                         >
                           <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                             <Icon size={18} />
@@ -620,7 +620,7 @@ export default function LoginPage() {
 
           {/* Sign Up Link */}
           <div className="mt-6 text-center">
-            <p className="text-gray-600 text-sm">
+            <p className="text-muted-foreground text-sm">
               {t('login.noAccount', "Don't have an account?")}{' '}
               <Link href="/signup" className="text-brand-500 hover:text-brand-600 font-medium transition-colors">
                 {t('login.signUp', 'Sign up here')}
@@ -633,7 +633,7 @@ export default function LoginPage() {
         <div className="mt-6 text-center">
           <Link 
             href="/" 
-            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             aria-label={t('common.backToHome', 'Back to Home')}
           >
             {isRTL ? '→' : '←'} {t('common.backToHome', 'Back to Home')}

@@ -70,7 +70,7 @@ export default function WorkOrderApprovalsPage() {
       case 'approved': return 'bg-green-100 text-green-800 border-green-200';
       case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
       case 'under-review': return 'bg-blue-100 text-blue-800 border-blue-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -80,7 +80,7 @@ export default function WorkOrderApprovalsPage() {
       case 'P2': return 'bg-orange-500 text-white';
       case 'P3': return 'bg-yellow-500 text-black';
       case 'P4': return 'bg-green-500 text-white';
-      default: return 'bg-gray-500 text-white';
+      default: return 'bg-muted0 text-white';
     }
   };
 
@@ -103,7 +103,7 @@ export default function WorkOrderApprovalsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">{t('workOrders.approvals.pendingApproval', 'Pending Approval')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('workOrders.approvals.pendingApproval', 'Pending Approval')}</p>
               <p className="text-2xl font-bold text-[var(--fixzit-accent)]">3</p>
             </div>
             <div className="text-[var(--fixzit-accent-lighter)]">⏳</div>
@@ -112,7 +112,7 @@ export default function WorkOrderApprovalsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">{t('workOrders.approvals.approvedToday', 'Approved Today')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('workOrders.approvals.approvedToday', 'Approved Today')}</p>
               <p className="text-2xl font-bold text-[var(--fixzit-success)]">5</p>
             </div>
             <div className="text-[var(--fixzit-success-lighter)]">✅</div>
@@ -121,7 +121,7 @@ export default function WorkOrderApprovalsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">{t('workOrders.approvals.avgTime', 'Avg. Approval Time')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('workOrders.approvals.avgTime', 'Avg. Approval Time')}</p>
               <p className="text-2xl font-bold text-[var(--fixzit-primary)]">2.3h</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">⏱️</div>
@@ -130,7 +130,7 @@ export default function WorkOrderApprovalsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">{t('workOrders.approvals.totalApproved', 'Total Approved')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('workOrders.approvals.totalApproved', 'Total Approved')}</p>
               <p className="text-2xl font-bold text-[var(--fixzit-secondary)]">247</p>
             </div>
             <div className="text-purple-400">📊</div>
@@ -149,11 +149,11 @@ export default function WorkOrderApprovalsPage() {
 
         <div className="space-y-4">
           {pendingApprovals.map(item => (
-            <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+            <div key={item.id} className="border border-border rounded-2xl p-4 hover:bg-muted">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="font-semibold text-gray-900">{item.id}</span>
+                    <span className="font-semibold text-foreground">{item.id}</span>
                     <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(item.priority)}`}>
                       {item.priority}
                     </span>
@@ -161,11 +161,11 @@ export default function WorkOrderApprovalsPage() {
                       {item.status}
                     </span>
                   </div>
-                  <h4 className="font-medium text-gray-900 mb-1">{item.title}</h4>
-                  <p className="text-sm text-gray-600 mb-2">{item.property}</p>
-                  <p className="text-sm text-gray-500 mb-3">{item.reason}</p>
+                  <h4 className="font-medium text-foreground mb-1">{item.title}</h4>
+                  <p className="text-sm text-muted-foreground mb-2">{item.property}</p>
+                  <p className="text-sm text-muted-foreground mb-3">{item.reason}</p>
 
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                  <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                     <span><strong>Requested by:</strong> {item.requestedBy}</span>
                     <span><strong>Date:</strong> {item.requestDate}</span>
                     <span><strong>Estimated Cost:</strong> {item.estimatedCost}</span>
@@ -173,13 +173,13 @@ export default function WorkOrderApprovalsPage() {
                 </div>
 
                 <div className="flex gap-2 ml-4">
-                  <button className="px-4 py-2 bg-[var(--fixzit-success)] text-white rounded-lg hover:bg-[var(--fixzit-success-dark)] transition-colors">
+                  <button className="px-4 py-2 bg-[var(--fixzit-success)] text-white rounded-2xl hover:bg-[var(--fixzit-success-dark)] transition-colors">
                     {t('common.approve', 'Approve')}
                   </button>
-                  <button className="px-4 py-2 bg-[var(--fixzit-danger)] text-white rounded-lg hover:bg-[var(--fixzit-danger-dark)] transition-colors">
+                  <button className="px-4 py-2 bg-[var(--fixzit-danger)] text-white rounded-2xl hover:bg-[var(--fixzit-danger-dark)] transition-colors">
                     {t('common.reject', 'Reject')}
                   </button>
-                  <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                  <button className="px-4 py-2 bg-muted text-foreground rounded-2xl hover:bg-gray-300 transition-colors">
                     {t('common.review', 'Review')}
                   </button>
                 </div>
@@ -198,28 +198,28 @@ export default function WorkOrderApprovalsPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.woId', 'WO ID')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.title', 'Title')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.property', 'Property')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.approvals.approvedBy', 'Approved By')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.approvals.approvalDate', 'Approval Date')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.approvals.estimatedCost', 'Estimated Cost')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.approvals.actualCost', 'Actual Cost')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.status', 'Status')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.woId', 'WO ID')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.title', 'Title')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.property', 'Property')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.approvals.approvedBy', 'Approved By')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.approvals.approvalDate', 'Approval Date')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.approvals.estimatedCost', 'Estimated Cost')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.approvals.actualCost', 'Actual Cost')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.status', 'Status')}</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               {approvedWorkOrders.map(item => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.id}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{item.title}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{item.property}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{item.approvedBy}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{item.approvalDate}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{item.estimatedCost}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{item.actualCost}</td>
+                <tr key={item.id} className="hover:bg-muted">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-foreground">{item.id}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">{item.title}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{item.property}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{item.approvedBy}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{item.approvalDate}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{item.estimatedCost}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{item.actualCost}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(item.status)}`}>
                       {item.status}

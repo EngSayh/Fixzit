@@ -118,7 +118,7 @@ export default async function CartPage() {
                 Proceed to checkout
               </Link>
             </div>
-            <div className="rounded-3xl border border-[#0061A8]/20 bg-white p-6 text-sm text-foreground shadow">
+            <div className="rounded-3xl border border-[#0061A8]/20 bg-card p-6 text-sm text-foreground shadow">
               <h3 className="text-sm font-semibold text-[#0061A8]">Approval policy</h3>
               <p className="mt-2">Orders above SAR {Number(process.env.MARKETPLACE_APPROVAL_THRESHOLD ?? 5000).toLocaleString()} will route to the approvals desk before confirmation.</p>
             </div>

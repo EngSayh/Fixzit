@@ -130,9 +130,9 @@ function renderStructuredData(message: ChatMessage, locale: 'en' | 'ar') {
       return (
         <ul className="mt-3 space-y-2 text-xs">
           {message.data.items.map((item) => (
-            <li key={item.id} className="rounded-lg border border-gray-200 bg-white/70 p-2">
-              <div className="font-semibold text-gray-800">{item.code} · {item.title}</div>
-              <div className="text-gray-500">{item.status} · {item.priority}</div>
+            <li key={item.id} className="rounded-2xl border border-border bg-white/70 p-2">
+              <div className="font-semibold text-foreground">{item.code} · {item.title}</div>
+              <div className="text-muted-foreground">{item.status} · {item.priority}</div>
             </li>
           ))}
         </ul>
@@ -419,9 +419,9 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       case 'createWorkOrder':
         return (
           <div className="space-y-3">
-            <input value={values.title} onChange={(e) => updateForm(tool, 'title', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'عنوان المشكلة' : 'Issue title'} />
-            <textarea value={values.description} onChange={(e) => updateForm(tool, 'description', e.target.value)} rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'تفاصيل إضافية' : 'Additional details'} />
-            <select value={values.priority} onChange={(e) => updateForm(tool, 'priority', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]">
+            <input value={values.title} onChange={(e) => updateForm(tool, 'title', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'عنوان المشكلة' : 'Issue title'} />
+            <textarea value={values.description} onChange={(e) => updateForm(tool, 'description', e.target.value)} rows={3} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'تفاصيل إضافية' : 'Additional details'} />
+            <select value={values.priority} onChange={(e) => updateForm(tool, 'priority', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]">
               <option value="LOW">{locale === 'ar' ? 'منخفض' : 'Low'}</option>
               <option value="MEDIUM">{locale === 'ar' ? 'متوسط' : 'Medium'}</option>
               <option value="HIGH">{locale === 'ar' ? 'مرتفع' : 'High'}</option>
@@ -432,22 +432,22 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       case 'dispatchWorkOrder':
         return (
           <div className="space-y-3">
-            <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
-            <input value={values.assigneeUserId} onChange={(e) => updateForm(tool, 'assigneeUserId', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'معرف الفني (اختياري)' : 'Technician ID (optional)'} />
+            <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
+            <input value={values.assigneeUserId} onChange={(e) => updateForm(tool, 'assigneeUserId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'معرف الفني (اختياري)' : 'Technician ID (optional)'} />
           </div>
         );
       case 'scheduleVisit':
         return (
           <div className="space-y-3">
-            <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
-            <input type="datetime-local" value={values.scheduledFor} onChange={(e) => updateForm(tool, 'scheduledFor', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" />
+            <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
+            <input type="datetime-local" value={values.scheduledFor} onChange={(e) => updateForm(tool, 'scheduledFor', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" />
           </div>
         );
       case 'uploadWorkOrderPhoto':
         return (
           <div className="space-y-3">
-            <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
-            <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500 hover:border-[#0061A8]">
+            <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
+            <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground hover:border-[#0061A8]">
               <Upload className="mb-2 h-5 w-5 text-[#0061A8]" />
               <span>{values.file?.name || t.chooseFile}</span>
               <input type="file" className="hidden" accept="image/*" onChange={(e) => updateForm(tool, 'file', e.target.files?.[0])} />
@@ -457,15 +457,15 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       case 'ownerStatements':
         return (
           <div className="space-y-3">
-            <input value={values.ownerId} onChange={(e) => updateForm(tool, 'ownerId', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'معرف المالك (اختياري)' : 'Owner ID (optional)'} />
-            <select value={values.period} onChange={(e) => updateForm(tool, 'period', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]">
+            <input value={values.ownerId} onChange={(e) => updateForm(tool, 'ownerId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'معرف المالك (اختياري)' : 'Owner ID (optional)'} />
+            <select value={values.period} onChange={(e) => updateForm(tool, 'period', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]">
               <option value="YTD">{locale === 'ar' ? 'منذ بداية العام' : 'Year to date'}</option>
               <option value="Q1">Q1</option>
               <option value="Q2">Q2</option>
               <option value="Q3">Q3</option>
               <option value="Q4">Q4</option>
             </select>
-            <input value={values.year} onChange={(e) => updateForm(tool, 'year', e.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'السنة' : 'Year'} />
+            <input value={values.year} onChange={(e) => updateForm(tool, 'year', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'السنة' : 'Year'} />
           </div>
         );
       default:
@@ -479,7 +479,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       animate={embedded ? undefined : { opacity: 1, scale: 1, y: 0 }}
       exit={embedded ? undefined : { opacity: 0, scale: 0.92, y: 16 }}
       transition={{ duration: 0.2 }}
-      className={`overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl ${embedded ? 'w-full' : 'w-[360px] max-w-[90vw]'}`}
+      className={`overflow-hidden rounded-2xl border border-border bg-card shadow-2xl ${embedded ? 'w-full' : 'w-[360px] max-w-[90vw]'}`}
     >
       <div className="flex items-start justify-between bg-[#0061A8] px-4 py-3 text-white">
         <div>
@@ -493,7 +493,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2 text-[11px] text-gray-500">
+      <div className="flex items-center justify-between gap-2 border-b border-border bg-muted px-4 py-2 text-[11px] text-muted-foreground">
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-[#00A859]" />
           {t.privacy}
@@ -517,12 +517,12 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       >
         {messages.map(message => (
           <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${message.role === 'user' ? 'bg-[#00A859] text-white' : message.role === 'system' ? 'bg-amber-50 text-amber-800' : 'border border-gray-100 bg-white text-gray-800'}`}>
+            <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${message.role === 'user' ? 'bg-[#00A859] text-white' : message.role === 'system' ? 'bg-amber-50 text-amber-800' : 'border border-border bg-card text-foreground'}`}>
               <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
               {renderStructuredData(message, locale)}
               {message.sources && message.sources.length > 0 && (
-                <div className="mt-3 border-t border-gray-200 pt-2 text-[11px] text-gray-500">
-                  <div className="mb-1 font-semibold text-gray-600">{locale === 'ar' ? 'المراجع' : 'Sources'}</div>
+                <div className="mt-3 border-t border-border pt-2 text-[11px] text-muted-foreground">
+                  <div className="mb-1 font-semibold text-muted-foreground">{locale === 'ar' ? 'المراجع' : 'Sources'}</div>
                   <ul className="space-y-1">
                     {message.sources.map(src => (
                       <li key={src.id} className="flex items-center gap-1">
@@ -537,13 +537,13 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
           </div>
         ))}
         {loading && (
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             {t.loading}
           </div>
         )}
         {error && (
-          <div className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+          <div className="flex items-center gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-700">
             <AlertTriangle className="h-4 w-4" />
             {error}
           </div>
@@ -551,14 +551,14 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       </div>
 
       {quickActions.length > 0 && (
-        <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
-          <div className="mb-2 text-xs font-semibold text-gray-500">{t.quickActions}</div>
+        <div className="border-t border-border bg-muted px-4 py-3">
+          <div className="mb-2 text-xs font-semibold text-muted-foreground">{t.quickActions}</div>
           <div className="flex flex-wrap gap-2">
             {quickActions.map(action => (
               <button
                 key={action.name}
                 onClick={() => setActiveTool(prev => prev === action.name ? null : action.name)}
-                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition ${activeTool === action.name ? 'border-[#0061A8] bg-[#0061A8]/10 text-[#0061A8]' : 'border-gray-200 bg-white text-gray-700 hover:border-[#0061A8] hover:text-[#0061A8]'}`}
+                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition ${activeTool === action.name ? 'border-[#0061A8] bg-[#0061A8]/10 text-[#0061A8]' : 'border-border bg-card text-foreground hover:border-[#0061A8] hover:text-[#0061A8]'}`}
               >
                 {toolIcons[action.name] || <ClipboardList className="h-4 w-4" />}
                 {action.label}
@@ -572,12 +572,12 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="mt-3 rounded-xl border border-gray-200 bg-white p-3"
+                className="mt-3 rounded-2xl border border-border bg-card p-3"
               >
-                <div className="mb-2 text-xs font-semibold text-gray-600">{quickActions.find(a => a.name === activeTool)?.label}</div>
+                <div className="mb-2 text-xs font-semibold text-muted-foreground">{quickActions.find(a => a.name === activeTool)?.label}</div>
                 {renderForm(activeTool)}
                 <div className="mt-3 flex items-center justify-end gap-2">
-                  <button type="button" onClick={() => { resetForm(activeTool); setActiveTool(null); }} className="rounded-full px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100">
+                  <button type="button" onClick={() => { resetForm(activeTool); setActiveTool(null); }} className="rounded-full px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted">
                     {t.cancel}
                   </button>
                   <button type="button" onClick={() => submitTool(activeTool)} className="rounded-full bg-[#0061A8] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#004f88]">
@@ -590,7 +590,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
         </div>
       )}
 
-      <div className="border-t border-gray-200 bg-white px-4 py-3">
+      <div className="border-t border-border bg-card px-4 py-3">
         <div className="flex items-center gap-2">
           <input
             value={input}
@@ -602,7 +602,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
               }
             }}
             placeholder={t.placeholder}
-            className="flex-1 rounded-full border border-gray-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]"
+            className="flex-1 rounded-full border border-border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]"
             disabled={loading}
           />
           <button

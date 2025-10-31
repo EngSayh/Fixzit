@@ -70,11 +70,11 @@ export default function EmployeesPage() {
       case 'Active':
         return 'bg-green-100 text-green-800 border-green-300';
       case 'Inactive':
-        return 'bg-muted text-gray-800 border-border';
+        return 'bg-muted text-foreground border-border';
       case 'On Leave':
         return 'bg-orange-100 text-orange-800 border-orange-300';
       default:
-        return 'bg-muted text-gray-800 border-border';
+        return 'bg-muted text-foreground border-border';
     }
   };
 

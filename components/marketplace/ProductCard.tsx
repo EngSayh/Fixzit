@@ -62,27 +62,27 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
 
   return (
     <div
-      className="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+      className="flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
       data-testid="product-card"
       dir={isRTL ? 'rtl' : 'ltr'}
     >
-      <Link href={`/marketplace/product/${product.slug}`} className="relative block aspect-square overflow-hidden bg-gray-100">
+      <Link href={`/marketplace/product/${product.slug}`} className="relative block aspect-square overflow-hidden bg-muted">
         <Image src={image} alt={product.title.en} fill sizes="(max-width:768px) 100vw, 33vw" className="object-cover transition duration-500 hover:scale-105" />
       </Link>
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             {product.brand && <p className="text-xs font-semibold uppercase tracking-wide text-[#00A859]">{product.brand}</p>}
-            <h3 className="text-sm font-semibold text-gray-900">
+            <h3 className="text-sm font-semibold text-foreground">
               <Link href={`/marketplace/product/${product.slug}`}>{product.title.en}</Link>
             </h3>
-            {product.summary && <p className="line-clamp-2 text-xs text-gray-600">{product.summary}</p>}
+            {product.summary && <p className="line-clamp-2 text-xs text-muted-foreground">{product.summary}</p>}
           </div>
           {product.rating && product.rating.count > 0 && (
             <div className="flex items-center gap-1 text-xs text-[#FFB400]">
               <Star size={14} fill="#FFB400" strokeWidth={0} />
               <span>{product.rating.avg.toFixed(1)}</span>
-              <span className="text-gray-400">({product.rating.count})</span>
+              <span className="text-muted-foreground">({product.rating.count})</span>
             </div>
           )}
         </div>
@@ -98,7 +98,7 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
         <div className="mt-auto flex items-end justify-between gap-4">
           <div>
             <p className="text-lg font-semibold text-[#0F1111]">{displayPrice}</p>
-            <p className="text-xs text-gray-500">per {product.buy.uom} · Min {product.buy.minQty ?? 1}</p>
+            <p className="text-xs text-muted-foreground">per {product.buy.uom} · Min {product.buy.minQty ?? 1}</p>
             {product.buy.leadDays != null && (
               <p className="text-xs text-[#00A859]">Lead time {product.buy.leadDays} day(s)</p>
             )}

@@ -53,7 +53,7 @@ export default function PreventiveMaintenancePage() {
       case 'due': return 'bg-[var(--fixzit-warning-lightest)] text-[var(--fixzit-warning-darker)] border-[var(--fixzit-warning-lighter)]';
       case 'overdue': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
       case 'completed': return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)] border-[var(--fixzit-success-lighter)]';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -76,7 +76,7 @@ export default function PreventiveMaintenancePage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">{t('workOrders.scheduled', 'Scheduled')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('workOrders.scheduled', 'Scheduled')}</p>
               <p className="text-2xl font-bold text-[var(--fixzit-primary)]">8</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
@@ -85,7 +85,7 @@ export default function PreventiveMaintenancePage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">{t('workOrders.pm.thisMonth', 'Due This Month')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('workOrders.pm.thisMonth', 'Due This Month')}</p>
               <p className="text-2xl font-bold text-[var(--fixzit-accent)]">3</p>
             </div>
             <div className="text-[var(--fixzit-accent-lighter)]">⚠️</div>
@@ -94,7 +94,7 @@ export default function PreventiveMaintenancePage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">{t('common.overdue', 'Overdue')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('common.overdue', 'Overdue')}</p>
               <p className="text-2xl font-bold text-[var(--fixzit-danger)]">2</p>
             </div>
             <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
@@ -103,7 +103,7 @@ export default function PreventiveMaintenancePage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">{t('workOrders.completed', 'Completed')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('workOrders.completed', 'Completed')}</p>
               <p className="text-2xl font-bold text-[var(--fixzit-success)]">15</p>
             </div>
             <div className="text-[var(--fixzit-success-lighter)]">✅</div>
@@ -119,9 +119,9 @@ export default function PreventiveMaintenancePage() {
             <input
               type="text"
               placeholder="Search schedules..."
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+              className="px-3 py-2 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
             />
-            <select className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="px-3 py-2 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
               <option>All Properties</option>
               <option>Tower A</option>
               <option>Tower B</option>
@@ -132,23 +132,23 @@ export default function PreventiveMaintenancePage() {
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.pm.frequency', 'Frequency')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.pm.lastCompleted', 'Last Done')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('workOrders.pm.nextDue', 'Next Due')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">ID</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Title</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Property</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.pm.frequency', 'Frequency')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.pm.lastCompleted', 'Last Done')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.pm.nextDue', 'Next Due')}</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Assigned</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               {pmSchedules.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
                     No PM plans found. Create your first preventive maintenance schedule.
                   </td>
                 </tr>
@@ -156,19 +156,19 @@ export default function PreventiveMaintenancePage() {
                 pmSchedules.map(schedule => {
                   const planStatus = getStatusForPlan(schedule);
                   return (
-                    <tr key={schedule._id} className="hover:bg-gray-50">
-                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{schedule.planNumber}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{schedule.title}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{schedule.propertyId}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{schedule.recurrencePattern}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatDate(schedule.lastGeneratedDate)}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{formatDate(schedule.nextScheduledDate)}</td>
+                    <tr key={schedule._id} className="hover:bg-muted">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-foreground">{schedule.planNumber}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">{schedule.title}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{schedule.propertyId}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{schedule.recurrencePattern}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{formatDate(schedule.lastGeneratedDate)}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{formatDate(schedule.nextScheduledDate)}</td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(planStatus)}`}>
                           {planStatus}
                         </span>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{schedule.stats?.totalGenerated || 0} WOs</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{schedule.stats?.totalGenerated || 0} WOs</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
                           <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">{t('common.edit', 'Edit')}</button>

@@ -71,13 +71,13 @@ export default function ProductPage(props: { params: Promise<{ slug: string }> }
   return (
     <div className="mx-auto max-w-[1200px] px-4 py-8 grid grid-cols-12 gap-8">
       <div className="col-span-12 md:col-span-6">
-        <div className="aspect-square bg-gray-50 rounded overflow-hidden" />
+        <div className="aspect-square bg-muted rounded overflow-hidden" />
       </div>
       <div className="col-span-12 md:col-span-6 space-y-4">
         <h1 className="text-2xl font-semibold">
           {typeof p?.title === 'object' && p.title?.en ? p.title.en : (typeof p?.title === 'string' ? p.title : '')}
         </h1>
-        <ul className="list-disc pl-5 text-sm text-gray-700">
+        <ul className="list-disc pl-5 text-sm text-foreground">
           {[
             { key: t('product.brand', 'Brand'), value: p?.brand },
             { key: t('product.standards', 'Standards'), value: Array.isArray(p?.standards) ? p?.standards.join(', ') : undefined },
@@ -92,7 +92,7 @@ export default function ProductPage(props: { params: Promise<{ slug: string }> }
         </ul>
         <div className="border rounded p-4">
           <div className="text-2xl font-bold">{bb?.price?.toLocaleString()} {bb?.currency}</div>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             {bb?.inStock ? t('product.inStock', 'In Stock') : t('product.backorder', 'Backorder')} · {t('product.lead', 'Lead')} {bb?.leadDays} {t('product.days', 'days')}
           </div>
           <div className="flex gap-2 mt-3">
@@ -107,7 +107,7 @@ export default function ProductPage(props: { params: Promise<{ slug: string }> }
       </div>
       <section className="col-span-12">
         <h3 className="text-lg font-semibold mb-2">{t('product.aboutTitle', 'About this item')}</h3>
-        <p className="text-sm text-gray-700">{t('product.aboutDesc', 'Technical data sheets (MSDS/COA), installation notes, and compliance info.')}</p>
+        <p className="text-sm text-foreground">{t('product.aboutDesc', 'Technical data sheets (MSDS/COA), installation notes, and compliance info.')}</p>
       </section>
     </div>
   );
