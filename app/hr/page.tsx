@@ -47,7 +47,7 @@ export default function HRDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">{stat.title}</p>
+                  <p className="text-sm text-muted-foreground">{stat.title}</p>
                   <p className="text-2xl font-bold mt-1">{stat.value}</p>
                 </div>
                 <div className={`${stat.bgColor} ${stat.color} p-3 rounded-lg`}>
@@ -66,20 +66,20 @@ export default function HRDashboard() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors">
+            <button className="p-4 border border-border rounded-2xl hover:bg-muted text-left transition-colors">
               <div className="text-2xl mb-2">👤</div>
               <div className="font-semibold">{t('hr.actions.addEmployee', 'Add Employee')}</div>
-              <div className="text-sm text-gray-600">{t('hr.actions.addEmployeeDesc', 'Register a new employee')}</div>
+              <div className="text-sm text-muted-foreground">{t('hr.actions.addEmployeeDesc', 'Register a new employee')}</div>
             </button>
-            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors">
+            <button className="p-4 border border-border rounded-2xl hover:bg-muted text-left transition-colors">
               <div className="text-2xl mb-2">💰</div>
               <div className="font-semibold">{t('hr.actions.processPayroll', 'Process Payroll')}</div>
-              <div className="text-sm text-gray-600">{t('hr.actions.processPayrollDesc', 'Run monthly payroll')}</div>
+              <div className="text-sm text-muted-foreground">{t('hr.actions.processPayrollDesc', 'Run monthly payroll')}</div>
             </button>
-            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors">
+            <button className="p-4 border border-border rounded-2xl hover:bg-muted text-left transition-colors">
               <div className="text-2xl mb-2">📅</div>
               <div className="font-semibold">{t('hr.actions.approveLeave', 'Approve Leave')}</div>
-              <div className="text-sm text-gray-600">{t('hr.actions.approveLeaveDesc', 'Review leave requests')}</div>
+              <div className="text-sm text-muted-foreground">{t('hr.actions.approveLeaveDesc', 'Review leave requests')}</div>
             </button>
           </div>
         </CardContent>
@@ -92,7 +92,7 @@ export default function HRDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <p className="text-sm text-gray-600">{t('hr.comingSoon', 'Recent activity will appear here...')}</p>
+            <p className="text-sm text-muted-foreground">{t('hr.comingSoon', 'Recent activity will appear here...')}</p>
           </div>
         </CardContent>
       </Card>

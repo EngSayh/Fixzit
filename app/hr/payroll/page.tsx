@@ -78,7 +78,7 @@ export default function PayrollPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DRAFT':
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return 'bg-muted text-gray-800 border-border';
       case 'CALCULATED':
         return 'bg-blue-100 text-blue-800 border-blue-300';
       case 'APPROVED':
@@ -86,7 +86,7 @@ export default function PayrollPage() {
       case 'LOCKED':
         return 'bg-purple-100 text-purple-800 border-purple-300';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return 'bg-muted text-gray-800 border-border';
     }
   };
 
@@ -110,7 +110,7 @@ export default function PayrollPage() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">{t('common.loading', 'Loading...')}</p>
+          <p className="mt-4 text-muted-foreground">{t('common.loading', 'Loading...')}</p>
         </div>
       </div>
     );
@@ -121,10 +121,10 @@ export default function PayrollPage() {
       {/* Header with Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-2xl font-bold text-foreground">
             {t('hr.payroll.title', 'Payroll Management')}
           </h2>
-          <p className="text-gray-600 mt-1">
+          <p className="text-muted-foreground mt-1">
             {t('hr.payroll.subtitle', 'Create and manage monthly payroll runs')}
           </p>
         </div>
@@ -139,11 +139,11 @@ export default function PayrollPage() {
         {payrollRuns.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
-              <div className="text-gray-400 text-5xl mb-4">💰</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <div className="text-muted-foreground text-5xl mb-4">💰</div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
                 {t('hr.payroll.noRuns', 'No payroll runs yet')}
               </h3>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 {t('hr.payroll.noRunsDesc', 'Create your first payroll run to get started')}
               </p>
             </CardContent>
@@ -157,7 +157,7 @@ export default function PayrollPage() {
                     <CardTitle className="text-xl font-bold">
                       {formatPeriod(run.period)}
                     </CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {run.employeeCount} {t('hr.payroll.employees', 'employees')}
                     </p>
                   </div>
@@ -171,7 +171,7 @@ export default function PayrollPage() {
                 {run.status !== 'DRAFT' && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
                         {t('hr.payroll.basicPay', 'Basic Pay')}
                       </p>
                       <p className="text-lg font-semibold mt-1">
@@ -179,7 +179,7 @@ export default function PayrollPage() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
                         {t('hr.payroll.allowances', 'Allowances')}
                       </p>
                       <p className="text-lg font-semibold mt-1 text-green-600">
@@ -187,7 +187,7 @@ export default function PayrollPage() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
                         {t('hr.payroll.deductions', 'Deductions')}
                       </p>
                       <p className="text-lg font-semibold mt-1 text-red-600">
@@ -195,7 +195,7 @@ export default function PayrollPage() {
                       </p>
                     </div>
                     <div className="col-span-2 md:col-span-1">
-                      <p className="text-xs text-gray-500 uppercase tracking-wide">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
                         {t('hr.payroll.netPay', 'Net Pay')}
                       </p>
                       <p className="text-xl font-bold mt-1 text-blue-600">
@@ -207,7 +207,7 @@ export default function PayrollPage() {
 
                 {/* Timestamp Info */}
                 {run.calculatedAt && (
-                  <div className="text-xs text-gray-500 mb-4">
+                  <div className="text-xs text-muted-foreground mb-4">
                     {t('hr.payroll.calculatedAt', 'Calculated at')}: {new Date(run.calculatedAt).toLocaleString()}
                   </div>
                 )}

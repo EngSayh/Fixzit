@@ -34,11 +34,11 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="border-b border-gray-200 pb-4">
-        <h1 className="text-3xl font-bold text-gray-900">
+      <div className="border-b border-border pb-4">
+        <h1 className="text-3xl font-bold text-foreground">
           {t('hr.title', 'Human Resources')}
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-muted-foreground mt-1">
           {t('hr.description', 'Manage employees, payroll, leave, and attendance')}
         </p>
       </div>
