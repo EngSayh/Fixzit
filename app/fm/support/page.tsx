@@ -7,44 +7,44 @@ export default function SupportPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Support</h1>
-          <p className="text-gray-600">Get help and manage support requests</p>
+          <h1 className="text-2xl font-bold text-foreground">Support</h1>
+          <p className="text-muted-foreground">Get help and manage support requests</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Help Resources</h2>
+        <div className="bg-card rounded-2xl shadow-md border border-border p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Help Resources</h2>
           <div className="space-y-3">
-            <Link href="/help" className="block border border-gray-200 rounded p-4 hover:bg-gray-50">
-              <h3 className="font-medium text-gray-900">Help Center</h3>
-              <p className="text-sm text-gray-600 mt-1">Browse articles and guides</p>
+            <Link href="/help" className="block border border-border rounded p-4 hover:bg-muted">
+              <h3 className="font-medium text-foreground">Help Center</h3>
+              <p className="text-sm text-muted-foreground mt-1">Browse articles and guides</p>
             </Link>
             
-            <button className="w-full text-left border border-gray-200 rounded p-4 hover:bg-gray-50"
+            <button className="w-full text-left border border-border rounded p-4 hover:bg-muted"
               onClick={() => {
                 const footer = document.querySelector('footer');
                 const supportBtn = footer?.querySelector('button');
                 supportBtn?.click();
               }}
             >
-              <h3 className="font-medium text-gray-900">Create Support Ticket</h3>
-              <p className="text-sm text-gray-600 mt-1">Get help from our team</p>
+              <h3 className="font-medium text-foreground">Create Support Ticket</h3>
+              <p className="text-sm text-muted-foreground mt-1">Get help from our team</p>
             </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Admin Tools</h2>
+        <div className="bg-card rounded-2xl shadow-md border border-border p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Admin Tools</h2>
           <div className="space-y-3">
-            <Link href="/fm/support/tickets" className="block border border-gray-200 rounded p-4 hover:bg-gray-50">
-              <h3 className="font-medium text-gray-900">Manage Tickets</h3>
-              <p className="text-sm text-gray-600 mt-1">View and respond to support tickets</p>
+            <Link href="/fm/support/tickets" className="block border border-border rounded p-4 hover:bg-muted">
+              <h3 className="font-medium text-foreground">Manage Tickets</h3>
+              <p className="text-sm text-muted-foreground mt-1">View and respond to support tickets</p>
             </Link>
             
-            <Link href="/admin/cms" className="block border border-gray-200 rounded p-4 hover:bg-gray-50">
-              <h3 className="font-medium text-gray-900">CMS Editor</h3>
-              <p className="text-sm text-gray-600 mt-1">Edit privacy, terms, and about pages</p>
+            <Link href="/admin/cms" className="block border border-border rounded p-4 hover:bg-muted">
+              <h3 className="font-medium text-foreground">CMS Editor</h3>
+              <p className="text-sm text-muted-foreground mt-1">Edit privacy, terms, and about pages</p>
             </Link>
           </div>
         </div>

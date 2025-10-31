@@ -78,7 +78,7 @@ export default function AssetsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Asset Management</h1>
-          <p className="text-gray-600">Equipment registry and predictive maintenance</p>
+          <p className="text-muted-foreground">Equipment registry and predictive maintenance</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
@@ -102,7 +102,7 @@ export default function AssetsPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-64">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search assets..."
                   value={search}
@@ -160,9 +160,9 @@ export default function AssetsPage() {
           {assets.length === 0 && (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <Building2 className="w-12 h-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Assets Found</h3>
-                <p className="text-gray-600 mb-4">Get started by adding your first asset to the registry.</p>
+                <Building2 className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">No Assets Found</h3>
+                <p className="text-muted-foreground mb-4">Get started by adding your first asset to the registry.</p>
                 <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)]">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Asset
@@ -227,7 +227,7 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
       case 'OUT_OF_SERVICE':
         return <XCircle className="w-4 h-4 text-[var(--fixzit-danger)]" />;
       default:
-        return <Settings className="w-4 h-4 text-gray-600" />;
+        return <Settings className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
@@ -240,7 +240,7 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
       case 'OUT_OF_SERVICE':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-gray-800';
     }
   };
 
@@ -250,7 +250,7 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <CardTitle className="text-lg">{asset.name}</CardTitle>
-            <p className="text-sm text-gray-600 mt-1">{asset.code}</p>
+            <p className="text-sm text-muted-foreground mt-1">{asset.code}</p>
           </div>
           <div className="flex items-center space-x-2">
             {getStatusIcon(asset.status || '')}
@@ -263,27 +263,27 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Type:</span>
+            <span className="text-sm text-muted-foreground">Type:</span>
             <span className="text-sm font-medium">{asset.type}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Category:</span>
+            <span className="text-sm text-muted-foreground">Category:</span>
             <span className="text-sm font-medium">{asset.category}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">Criticality:</span>
+            <span className="text-sm text-muted-foreground">Criticality:</span>
             <Badge variant="outline" className={
               asset.criticality === 'CRITICAL' ? 'border-red-300 text-red-700' :
               asset.criticality === 'HIGH' ? 'border-orange-300 text-orange-700' :
               asset.criticality === 'MEDIUM' ? 'border-yellow-300 text-yellow-700' :
-              'border-gray-300 text-gray-700'
+              'border-border text-foreground'
             }>
               {asset.criticality}
             </Badge>
           </div>
           {asset.location && (
             <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Location:</span>
+              <span className="text-sm text-muted-foreground">Location:</span>
               <span className="text-sm font-medium">
                 {asset.location.building && `${asset.location.building}`}
                 {asset.location.floor && `, Floor ${asset.location.floor}`}
@@ -296,7 +296,7 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
         <Separator />
 
         <div className="flex justify-between items-center">
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-muted-foreground">
             Last Maintenance: {asset.maintenanceHistory && asset.maintenanceHistory.length > 0 && asset.maintenanceHistory[asset.maintenanceHistory.length - 1].date
               ? new Date(asset.maintenanceHistory[asset.maintenanceHistory.length - 1].date as string).toLocaleDateString()
               : 'Never'}

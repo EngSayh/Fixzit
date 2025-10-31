@@ -87,7 +87,7 @@ export default function RFQsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">RFQs & Bidding</h1>
-          <p className="text-gray-600">City-bounded procurement with 3-bid collection</p>
+          <p className="text-muted-foreground">City-bounded procurement with 3-bid collection</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
@@ -111,7 +111,7 @@ export default function RFQsPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-64">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search RFQs..."
                   value={search}
@@ -166,9 +166,9 @@ export default function RFQsPage() {
           {rfqs.length === 0 && (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <FileText className="w-12 h-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No RFQs Found</h3>
-                <p className="text-gray-600 mb-4">Get started by creating your first request for quotation.</p>
+                <FileText className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">No RFQs Found</h3>
+                <p className="text-muted-foreground mb-4">Get started by creating your first request for quotation.</p>
                 <Button onClick={() => setCreateOpen(true)} className="bg-teal-600 hover:bg-teal-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Create RFQ
@@ -217,7 +217,7 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-gray-800';
       case 'PUBLISHED':
         return 'bg-blue-100 text-blue-800';
       case 'BIDDING':
@@ -229,7 +229,7 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
       case 'CANCELLED':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-gray-800';
     }
   };
 
@@ -249,7 +249,7 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
             {getCategoryIcon(rfq.category || '')}
             <div className="flex-1">
               <CardTitle className="text-lg">{rfq.title}</CardTitle>
-              <p className="text-sm text-gray-600">{rfq.code}</p>
+              <p className="text-sm text-muted-foreground">{rfq.code}</p>
             </div>
           </div>
           <Badge className={getStatusColor(rfq.status || '')}>
@@ -258,9 +258,9 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-gray-600 line-clamp-2">{rfq.description}</p>
+        <p className="text-sm text-muted-foreground line-clamp-2">{rfq.description}</p>
 
-        <div className="flex items-center text-sm text-gray-600">
+        <div className="flex items-center text-sm text-muted-foreground">
           <MapPin className="w-4 h-4 mr-1" />
           <span>{rfq.location?.city}</span>
           {rfq.location?.radius && (
@@ -272,7 +272,7 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
         {rfq.status === 'BIDDING' && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Bid Collection</span>
+              <span className="text-muted-foreground">Bid Collection</span>
               <span className="font-medium">
                 {rfq.bids?.length || 0}/{rfq.bidding?.targetBids || 3} bids
               </span>
@@ -290,7 +290,7 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
 
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <div className="flex items-center text-gray-600">
+            <div className="flex items-center text-muted-foreground">
               <Clock className="w-4 h-4 mr-1" />
               Deadline
             </div>
@@ -303,7 +303,7 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
             </p>
           </div>
           <div>
-            <div className="flex items-center text-gray-600">
+            <div className="flex items-center text-muted-foreground">
               <DollarSign className="w-4 h-4 mr-1" />
               Budget
             </div>
@@ -316,13 +316,13 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center space-x-3 text-sm">
             {rfq.bidding?.anonymous && (
-              <div className="flex items-center text-gray-600">
+              <div className="flex items-center text-muted-foreground">
                 <Shield className="w-4 h-4 mr-1" />
                 <span>Anonymous</span>
               </div>
             )}
             {rfq.compliance?.cityBounded && (
-              <div className="flex items-center text-gray-600">
+              <div className="flex items-center text-muted-foreground">
                 <MapPin className="w-4 h-4 mr-1" />
                 <span>City Only</span>
               </div>

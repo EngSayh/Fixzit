@@ -54,7 +54,7 @@ const statusColors: Record<string, string> = {
   APPROVED: 'bg-green-100 text-green-800',
   PENDING: 'bg-yellow-100 text-yellow-800',
   SUSPENDED: 'bg-red-100 text-red-800',
-  REJECTED: 'bg-gray-100 text-gray-800',
+  REJECTED: 'bg-muted text-gray-800',
   BLACKLISTED: 'bg-red-200 text-red-900',
 };
 
@@ -115,11 +115,11 @@ export default function VendorDetailsPage() {
           <div>
             <div className="flex items-center space-x-3">
               <h1 className="text-3xl font-bold">{vendor.name}</h1>
-              <Badge className={statusColors[vendor.status] || 'bg-gray-100'}>
+              <Badge className={statusColors[vendor.status] || 'bg-muted'}>
                 {vendor.status}
               </Badge>
             </div>
-            <p className="text-gray-600">{vendor.code}</p>
+            <p className="text-muted-foreground">{vendor.code}</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -155,18 +155,18 @@ export default function VendorDetailsPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-600">Vendor Type</p>
+                  <p className="text-sm text-muted-foreground">Vendor Type</p>
                   <p className="font-medium">{vendor.type || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Status</p>
-                  <Badge className={statusColors[vendor.status] || 'bg-gray-100'}>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge className={statusColors[vendor.status] || 'bg-muted'}>
                     {vendor.status}
                   </Badge>
                 </div>
                 {vendor.rating && (
                   <div>
-                    <p className="text-sm text-gray-600">Rating</p>
+                    <p className="text-sm text-muted-foreground">Rating</p>
                     <div className="flex items-center">
                       <Star className="w-4 h-4 text-yellow-500 mr-1" />
                       <p className="font-medium">{vendor.rating.toFixed(1)} / 5.0</p>
@@ -175,7 +175,7 @@ export default function VendorDetailsPage() {
                 )}
                 {vendor.responseTime && (
                   <div>
-                    <p className="text-sm text-gray-600">Response Time</p>
+                    <p className="text-sm text-muted-foreground">Response Time</p>
                     <div className="flex items-center">
                       <Clock className="w-4 h-4 text-blue-500 mr-1" />
                       <p className="font-medium">{vendor.responseTime}</p>
@@ -188,7 +188,7 @@ export default function VendorDetailsPage() {
                 <>
                   <Separator />
                   <div>
-                    <p className="text-sm text-gray-600 mb-2">Description</p>
+                    <p className="text-sm text-muted-foreground mb-2">Description</p>
                     <p className="text-gray-800">{vendor.business.description}</p>
                   </div>
                 </>
@@ -209,25 +209,25 @@ export default function VendorDetailsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   {vendor.business.crNumber && (
                     <div>
-                      <p className="text-sm text-gray-600">CR Number</p>
+                      <p className="text-sm text-muted-foreground">CR Number</p>
                       <p className="font-medium">{vendor.business.crNumber}</p>
                     </div>
                   )}
                   {vendor.business.taxNumber && (
                     <div>
-                      <p className="text-sm text-gray-600">Tax Number</p>
+                      <p className="text-sm text-muted-foreground">Tax Number</p>
                       <p className="font-medium">{vendor.business.taxNumber}</p>
                     </div>
                   )}
                   {vendor.business.licenseNumber && (
                     <div>
-                      <p className="text-sm text-gray-600">License Number</p>
+                      <p className="text-sm text-muted-foreground">License Number</p>
                       <p className="font-medium">{vendor.business.licenseNumber}</p>
                     </div>
                   )}
                   {vendor.business.licenseExpiry && (
                     <div>
-                      <p className="text-sm text-gray-600">License Expiry</p>
+                      <p className="text-sm text-muted-foreground">License Expiry</p>
                       <p className="font-medium">
                         {new Date(vendor.business.licenseExpiry).toLocaleDateString()}
                       </p>
@@ -235,7 +235,7 @@ export default function VendorDetailsPage() {
                   )}
                   {vendor.business.insuranceExpiry && (
                     <div>
-                      <p className="text-sm text-gray-600">Insurance Expiry</p>
+                      <p className="text-sm text-muted-foreground">Insurance Expiry</p>
                       <p className="font-medium">
                         {new Date(vendor.business.insuranceExpiry).toLocaleDateString()}
                       </p>
@@ -247,7 +247,7 @@ export default function VendorDetailsPage() {
                   <>
                     <Separator />
                     <div>
-                      <p className="text-sm text-gray-600 mb-2 flex items-center">
+                      <p className="text-sm text-muted-foreground mb-2 flex items-center">
                         <Award className="w-4 h-4 mr-1" />
                         Specializations
                       </p>
@@ -278,18 +278,18 @@ export default function VendorDetailsPage() {
                 <div className="grid grid-cols-1 gap-4">
                   {vendor.contact.primary.name && (
                     <div className="flex items-center">
-                      <User className="w-4 h-4 text-gray-500 mr-2" />
+                      <User className="w-4 h-4 text-muted-foreground mr-2" />
                       <div>
-                        <p className="text-sm text-gray-600">Contact Person</p>
+                        <p className="text-sm text-muted-foreground">Contact Person</p>
                         <p className="font-medium">{vendor.contact.primary.name}</p>
                       </div>
                     </div>
                   )}
                   {vendor.contact.primary.email && (
                     <div className="flex items-center">
-                      <Mail className="w-4 h-4 text-gray-500 mr-2" />
+                      <Mail className="w-4 h-4 text-muted-foreground mr-2" />
                       <div>
-                        <p className="text-sm text-gray-600">Email</p>
+                        <p className="text-sm text-muted-foreground">Email</p>
                         <a 
                           href={`mailto:${vendor.contact.primary.email}`}
                           className="font-medium text-blue-600 hover:underline"
@@ -301,9 +301,9 @@ export default function VendorDetailsPage() {
                   )}
                   {vendor.contact.primary.phone && (
                     <div className="flex items-center">
-                      <Phone className="w-4 h-4 text-gray-500 mr-2" />
+                      <Phone className="w-4 h-4 text-muted-foreground mr-2" />
                       <div>
-                        <p className="text-sm text-gray-600">Phone</p>
+                        <p className="text-sm text-muted-foreground">Phone</p>
                         <a 
                           href={`tel:${vendor.contact.primary.phone}`}
                           className="font-medium text-blue-600 hover:underline"
@@ -315,9 +315,9 @@ export default function VendorDetailsPage() {
                   )}
                   {vendor.contact.primary.mobile && (
                     <div className="flex items-center">
-                      <Phone className="w-4 h-4 text-gray-500 mr-2" />
+                      <Phone className="w-4 h-4 text-muted-foreground mr-2" />
                       <div>
-                        <p className="text-sm text-gray-600">Mobile</p>
+                        <p className="text-sm text-muted-foreground">Mobile</p>
                         <a 
                           href={`tel:${vendor.contact.primary.mobile}`}
                           className="font-medium text-blue-600 hover:underline"
@@ -333,9 +333,9 @@ export default function VendorDetailsPage() {
                   <>
                     <Separator />
                     <div className="flex items-start">
-                      <MapPin className="w-4 h-4 text-gray-500 mr-2 mt-1" />
+                      <MapPin className="w-4 h-4 text-muted-foreground mr-2 mt-1" />
                       <div>
-                        <p className="text-sm text-gray-600">Address</p>
+                        <p className="text-sm text-muted-foreground">Address</p>
                         <p className="font-medium">
                           {[
                             vendor.contact.address.street,
@@ -363,7 +363,7 @@ export default function VendorDetailsPage() {
             <CardContent className="space-y-4">
               {vendor.rating && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Rating</span>
+                  <span className="text-sm text-muted-foreground">Rating</span>
                   <div className="flex items-center">
                     <Star className="w-4 h-4 text-yellow-500 mr-1" />
                     <span className="font-medium">{vendor.rating.toFixed(1)}</span>
@@ -372,7 +372,7 @@ export default function VendorDetailsPage() {
               )}
               {vendor.responseTime && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Avg. Response</span>
+                  <span className="text-sm text-muted-foreground">Avg. Response</span>
                   <div className="flex items-center">
                     <Clock className="w-4 h-4 text-blue-500 mr-1" />
                     <span className="font-medium">{vendor.responseTime}</span>
@@ -381,8 +381,8 @@ export default function VendorDetailsPage() {
               )}
               <Separator />
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Status</span>
-                <Badge className={statusColors[vendor.status] || 'bg-gray-100'}>
+                <span className="text-sm text-muted-foreground">Status</span>
+                <Badge className={statusColors[vendor.status] || 'bg-muted'}>
                   {vendor.status}
                 </Badge>
               </div>
@@ -399,19 +399,19 @@ export default function VendorDetailsPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">CR Verified</span>
+                <span className="text-sm text-muted-foreground">CR Verified</span>
                 <Badge variant={vendor.business?.crNumber ? "default" : "outline"}>
                   {vendor.business?.crNumber ? 'Yes' : 'Pending'}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">License Valid</span>
+                <span className="text-sm text-muted-foreground">License Valid</span>
                 <Badge variant={vendor.business?.licenseNumber ? "default" : "outline"}>
                   {vendor.business?.licenseNumber ? 'Yes' : 'Pending'}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Insurance Active</span>
+                <span className="text-sm text-muted-foreground">Insurance Active</span>
                 <Badge variant={vendor.business?.insuranceExpiry ? "default" : "outline"}>
                   {vendor.business?.insuranceExpiry ? 'Yes' : 'No'}
                 </Badge>
@@ -427,7 +427,7 @@ export default function VendorDetailsPage() {
             <CardContent className="space-y-3">
               {vendor.createdAt && (
                 <div>
-                  <p className="text-sm text-gray-600">Created</p>
+                  <p className="text-sm text-muted-foreground">Created</p>
                   <p className="text-sm font-medium">
                     {new Date(vendor.createdAt).toLocaleDateString()}
                   </p>
@@ -435,7 +435,7 @@ export default function VendorDetailsPage() {
               )}
               {vendor.updatedAt && (
                 <div>
-                  <p className="text-sm text-gray-600">Last Updated</p>
+                  <p className="text-sm text-muted-foreground">Last Updated</p>
                   <p className="text-sm font-medium">
                     {new Date(vendor.updatedAt).toLocaleDateString()}
                   </p>

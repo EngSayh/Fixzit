@@ -84,8 +84,8 @@ export default function SupportTicketsPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Support Tickets</h1>
-          <p className="text-gray-600">Manage customer support requests</p>
+          <h1 className="text-2xl font-bold text-foreground">Support Tickets</h1>
+          <p className="text-muted-foreground">Manage customer support requests</p>
         </div>
       </div>
 
@@ -94,7 +94,7 @@ export default function SupportTicketsPage() {
         <select
           value={status}
           onChange={e => setStatus(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md"
+          className="px-3 py-2 border border-border rounded-2xl"
         >
           <option value="">All Status</option>
           <option value="New">New</option>
@@ -107,7 +107,7 @@ export default function SupportTicketsPage() {
         <select
           value={priority}
           onChange={e => setPriority(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md"
+          className="px-3 py-2 border border-border rounded-2xl"
         >
           <option value="">All Priority</option>
           <option value="Low">Low</option>
@@ -121,30 +121,30 @@ export default function SupportTicketsPage() {
       {isLoading ? (
         <TableSkeleton rows={5} />
       ) : (
-        <div className="bg-white rounded-lg shadow-md border border-gray-200">
+        <div className="bg-card rounded-2xl shadow-md border border-border">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-muted border-b border-border">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Module</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Code</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Subject</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Module</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Priority</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Created</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {(data?.items as TicketItem[] || []).map((ticket) => (
                 <tr key={ticket._id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
                     {ticket.code}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
+                  <td className="px-6 py-4 text-sm text-foreground">
                     {ticket.subject}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {ticket.module}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -152,7 +152,7 @@ export default function SupportTicketsPage() {
                       ticket.priority === 'Urgent' ? 'bg-red-100 text-red-800' :
                       ticket.priority === 'High' ? 'bg-orange-100 text-orange-800' :
                       ticket.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
+                      'bg-muted text-gray-800'
                     }`}>
                       {ticket.priority}
                     </span>
@@ -161,7 +161,7 @@ export default function SupportTicketsPage() {
                     <select
                       value={ticket.status}
                       onChange={e => updateTicket(ticket._id, { status: e.target.value })}
-                      className="text-sm border border-gray-300 rounded px-2 py-1"
+                      className="text-sm border border-border rounded px-2 py-1"
                     >
                       <option value="New">New</option>
                       <option value="Open">Open</option>
@@ -170,7 +170,7 @@ export default function SupportTicketsPage() {
                       <option value="Closed">Closed</option>
                     </select>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
