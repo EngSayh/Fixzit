@@ -188,7 +188,7 @@ export default function SystemVerifier() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <Activity className="w-8 h-8 text-brand-500" />
+                <Activity className="w-8 h-8 text-primary" />
                 <div>
                   <h3 className="font-semibold text-foreground">
                     {t('system.lastCheck', 'Last Check')}
@@ -260,7 +260,7 @@ export default function SystemVerifier() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-brand-500" />
+            <Shield className="w-5 h-5 text-primary" />
             {t('system.components.title', 'System Components')}
           </CardTitle>
           <CardDescription>
@@ -271,7 +271,7 @@ export default function SystemVerifier() {
           {/* TODO: Make dynamic - fetch from autoFixManager.getComponentStatus() */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <SystemSetting
-              icon={<Database className="w-5 h-5 text-brand-500" />}
+              icon={<Database className="w-5 h-5 text-primary" />}
               title={t('system.component.database', 'Database')}
               description={t('system.component.database.desc', 'MongoDB Connection')}
               status="healthy"
@@ -296,7 +296,7 @@ export default function SystemVerifier() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <RefreshCw className="w-5 h-5 text-brand-500" />
+            <RefreshCw className="w-5 h-5 text-primary" />
             {t('system.autofix.title', 'Auto-Fix System')}
           </CardTitle>
           <CardDescription>
