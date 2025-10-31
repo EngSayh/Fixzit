@@ -34,7 +34,7 @@ export default function ResponsiveLayout({
   const showSidebar = sidebar && (screenInfo.isDesktop || screenInfo.isLarge || sidebarOpen);
 
   return (
-    <div className={`min-h-screen flex flex-col bg-gray-50 ${className}`}>
+    <div className={`min-h-screen flex flex-col bg-background ${className}`}>
       {/* Header */}
       {header && (
         <div className="sticky top-0 z-40">
@@ -121,7 +121,7 @@ export function ResponsiveCard({
 
   return (
     <div className={`
-      bg-white rounded-lg shadow-md border border-gray-200
+      bg-card text-card-foreground rounded-2xl shadow-md border border-border
       ${getPaddingClass()}
       ${hover ? 'hover:shadow-lg transition-shadow duration-200' : ''}
       ${className}

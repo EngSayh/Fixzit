@@ -32,15 +32,15 @@ export function CardGridSkeleton({ count = 6 }: { count?: number }) {
  */
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="border rounded-lg overflow-hidden">
-      <div className="bg-gray-50 border-b px-6 py-3 flex gap-4">
+    <div className="border border-border rounded-2xl overflow-hidden">
+      <div className="bg-muted border-b border-border px-6 py-3 flex gap-4">
         <Skeleton className="h-4 w-32" />
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-4 w-20" />
         <Skeleton className="h-4 w-28" />
       </div>
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="border-b px-6 py-4 flex gap-4 items-center">
+        <div key={i} className="border-b border-border px-6 py-4 flex gap-4 items-center">
           <Skeleton className="h-10 w-full" />
         </div>
       ))}
