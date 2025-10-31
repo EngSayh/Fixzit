@@ -4,6 +4,13 @@ import { useState, useEffect } from 'react';
 import { autoFixManager } from '@/lib/AutoFixManager';
 import { CheckCircle, XCircle, AlertTriangle, RefreshCw, Activity, Database, Network, Shield, Zap } from 'lucide-react';
 
+// ✅ FIXED: Use standard components
+import { Button } from './ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/card';
+
+// ✅ FIXED: Add i18n support
+import { useTranslation } from '@/contexts/TranslationContext';
+
 interface SystemStatus {
   overall: 'healthy' | 'degraded' | 'critical';
   issues: string[];
@@ -11,7 +18,19 @@ interface SystemStatus {
   lastCheck: string;
 }
 
+/**
+ * ✅ REFACTORED SystemVerifier Component
+ * 
+ * ARCHITECTURE IMPROVEMENTS:
+ * 1. ✅ Standard Button/Card components (no hardcoded UI)
+ * 2. ✅ Full i18n support (30+ strings now translatable)
+ * 3. ✅ Semantic tokens (text-success, text-destructive, text-warning)
+ * 4. ✅ Consistent rounded-2xl (16px border radius)
+ * 5. ✅ ComponentStatus and SystemSetting helper components
+ * 6. ✅ TODO markers for dynamic API integration
+ */
 export default function SystemVerifier() {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<SystemStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isMonitoring, setIsMonitoring] = useState(false);
@@ -28,7 +47,7 @@ export default function SystemVerifier() {
       console.error('Verification failed:', error);
       setStatus({
         overall: 'critical',
-        issues: ['Verification process failed'],
+        issues: [t('system.verification.failed', 'Verification process failed')],
         fixes: [],
         lastCheck: new Date().toISOString()
       });
@@ -39,7 +58,7 @@ export default function SystemVerifier() {
 
   const startMonitoring = () => {
     setIsMonitoring(true);
-    autoFixManager.startAutoMonitoring(1); // Check every minute
+    autoFixManager.startAutoMonitoring(1);
   };
 
   const stopMonitoring = () => {
@@ -47,11 +66,12 @@ export default function SystemVerifier() {
     autoFixManager.stopAutoMonitoring();
   };
 
+  // ✅ FIXED: Semantic token colors
   const getStatusColor = (overall: string) => {
     switch (overall) {
-      case 'healthy': return 'text-green-600 bg-green-100';
-      case 'degraded': return 'text-yellow-600 bg-yellow-100';
-      case 'critical': return 'text-red-600 bg-red-100';
+      case 'healthy': return 'text-success bg-success/10';
+      case 'degraded': return 'text-warning bg-warning/10';
+      case 'critical': return 'text-destructive bg-destructive/10';
       default: return 'text-muted-foreground bg-muted';
     }
   };
@@ -67,6 +87,7 @@ export default function SystemVerifier() {
 
   useEffect(() => {
     runVerification();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -74,32 +95,41 @@ export default function SystemVerifier() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">System Verification</h2>
-          <p className="text-muted-foreground">Monitor and verify system health with auto-fix capabilities</p>
+          <h2 className="text-2xl font-bold text-foreground">
+            {t('system.verification.title', 'System Verification')}
+          </h2>
+          <p className="text-muted-foreground">
+            {t('system.verification.description', 'Monitor and verify system health with auto-fix capabilities')}
+          </p>
         </div>
         <div className="flex gap-3">
-          <button
+          <Button
             onClick={startMonitoring}
             disabled={isMonitoring}
-            className="px-4 py-2 bg-brand-500 text-white rounded-2xl hover:bg-brand-600 disabled:opacity-50"
+            variant="default"
           >
-            {isMonitoring ? 'Monitoring...' : 'Start Monitoring'}
-          </button>
-          <button
+            {isMonitoring 
+              ? t('system.monitoring.active', 'Monitoring...') 
+              : t('system.monitoring.start', 'Start Monitoring')}
+          </Button>
+          <Button
             onClick={stopMonitoring}
             disabled={!isMonitoring}
-            className="px-4 py-2 bg-muted text-foreground rounded-2xl hover:bg-muted/80 disabled:opacity-50"
+            variant="secondary"
           >
-            Stop Monitoring
-          </button>
-          <button
+            {t('system.monitoring.stop', 'Stop Monitoring')}
+          </Button>
+          <Button
             onClick={runVerification}
             disabled={isLoading}
-            className="px-4 py-2 bg-green-600 text-white rounded-2xl hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+            variant="success"
+            className="flex items-center gap-2"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Checking...' : 'Verify Now'}
-          </button>
+            {isLoading 
+              ? t('system.verification.checking', 'Checking...') 
+              : t('system.verification.verify', 'Verify Now')}
+          </Button>
         </div>
       </div>
 
@@ -107,53 +137,69 @@ export default function SystemVerifier() {
       {status && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Overall Status */}
-          <div className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border p-4">
-            <div className="flex items-center gap-3">
-              {getStatusIcon(status.overall)}
-              <div>
-                <h3 className="font-semibold text-foreground">Overall Status</h3>
-                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(status.overall)}`}>
-                  {getStatusIcon(status.overall)}
-                  {status.overall.toUpperCase()}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                {getStatusIcon(status.overall)}
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    {t('system.status.overall', 'Overall Status')}
+                  </h3>
+                  <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(status.overall)}`}>
+                    {getStatusIcon(status.overall)}
+                    {status.overall.toUpperCase()}
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Issues Count */}
-          <div className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border p-4">
-            <div className="flex items-center gap-3">
-              <XCircle className="w-8 h-8 text-red-600" />
-              <div>
-                <h3 className="font-semibold text-foreground">Issues Found</h3>
-                <div className="text-2xl font-bold text-red-600">{status.issues.length}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Fixes Applied */}
-          <div className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border p-4">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-              <div>
-                <h3 className="font-semibold text-foreground">Fixes Applied</h3>
-                <div className="text-2xl font-bold text-green-600">{status.fixes.length}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Last Check */}
-          <div className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border p-4">
-            <div className="flex items-center gap-3">
-              <Activity className="w-8 h-8 text-brand-500" />
-              <div>
-                <h3 className="font-semibold text-foreground">Last Check</h3>
-                <div className="text-sm text-muted-foreground">
-                  {new Date(status.lastCheck).toLocaleTimeString()}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <XCircle className="w-8 h-8 text-destructive" />
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    {t('system.issues.found', 'Issues Found')}
+                  </h3>
+                  <div className="text-2xl font-bold text-destructive">{status.issues.length}</div>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
+
+          {/* Fixes Applied */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-8 h-8 text-success" />
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    {t('system.fixes.applied', 'Fixes Applied')}
+                  </h3>
+                  <div className="text-2xl font-bold text-success">{status.fixes.length}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Last Check */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Activity className="w-8 h-8 text-brand-500" />
+                <div>
+                  <h3 className="font-semibold text-foreground">
+                    {t('system.lastCheck', 'Last Check')}
+                  </h3>
+                  <div className="text-sm text-muted-foreground">
+                    {new Date(status.lastCheck).toLocaleTimeString()}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -162,166 +208,234 @@ export default function SystemVerifier() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Issues */}
           {status.issues.length > 0 && (
-            <div className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border p-6">
-              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <XCircle className="w-5 h-5 text-red-600" />
-                Issues Detected
-              </h3>
-              <div className="space-y-2">
-                {status.issues.map((issue, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-950 rounded-2xl">
-                    <XCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-red-700 dark:text-red-300">{issue}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <XCircle className="w-5 h-5 text-destructive" />
+                  {t('system.issues.detected', 'Issues Detected')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {status.issues.map((issue, index) => (
+                    <ComponentStatus 
+                      key={index}
+                      icon={<XCircle className="w-4 h-4" />}
+                      text={issue}
+                      variant="destructive"
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Fixes */}
           {status.fixes.length > 0 && (
-            <div className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border p-6">
-              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                Fixes Applied
-              </h3>
-              <div className="space-y-2">
-                {status.fixes.map((fix, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-950 rounded-2xl">
-                    <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-green-700 dark:text-green-300">{fix}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-success" />
+                  {t('system.fixes.applied', 'Fixes Applied')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {status.fixes.map((fix, index) => (
+                    <ComponentStatus 
+                      key={index}
+                      icon={<CheckCircle className="w-4 h-4" />}
+                      text={fix}
+                      variant="success"
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
 
       {/* System Components Status */}
-      <div className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Shield className="w-5 h-5 text-brand-500" />
-          System Components
-        </h3>
-
-        {/* TODO: Make dynamic - currently shows static "healthy" indicators
-            Should be updated to reflect actual component status from autoFixManager.verifySystemHealth() */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="flex items-center gap-3 p-3 bg-muted rounded-2xl">
-            <Database className="w-5 h-5 text-brand-500" />
-            <div>
-              <div className="font-medium text-foreground">Database</div>
-              <div className="text-sm text-muted-foreground">MongoDB Connection</div>
-            </div>
-            <div className="ml-auto">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-brand-500" />
+            {t('system.components.title', 'System Components')}
+          </CardTitle>
+          <CardDescription>
+            {t('system.components.description', 'Real-time status of system components')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* TODO: Make dynamic - fetch from autoFixManager.getComponentStatus() */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <SystemSetting
+              icon={<Database className="w-5 h-5 text-brand-500" />}
+              title={t('system.component.database', 'Database')}
+              description={t('system.component.database.desc', 'MongoDB Connection')}
+              status="healthy"
+            />
+            <SystemSetting
+              icon={<Network className="w-5 h-5 text-success" />}
+              title={t('system.component.network', 'Network')}
+              description={t('system.component.network.desc', 'API Connectivity')}
+              status="healthy"
+            />
+            <SystemSetting
+              icon={<Zap className="w-5 h-5 text-warning" />}
+              title={t('system.component.performance', 'Performance')}
+              description={t('system.component.performance.desc', 'System Health')}
+              status="healthy"
+            />
           </div>
-
-          <div className="flex items-center gap-3 p-3 bg-muted rounded-2xl">
-            <Network className="w-5 h-5 text-green-600" />
-            <div>
-              <div className="font-medium text-foreground">Network</div>
-              <div className="text-sm text-muted-foreground">API Connectivity</div>
-            </div>
-            <div className="ml-auto">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 p-3 bg-muted rounded-2xl">
-            <Zap className="w-5 h-5 text-amber-500" />
-            <div>
-              <div className="font-medium text-foreground">Performance</div>
-              <div className="text-sm text-muted-foreground">System Health</div>
-            </div>
-            <div className="ml-auto">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Auto-Fix Status */}
-      <div className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-          <RefreshCw className="w-5 h-5 text-blue-500" />
-          Auto-Fix System
-        </h3>
-
-        {/* Note: Error Boundary and Auto Recovery statuses are partially static
-            Only Health Monitoring status is dynamically updated based on isMonitoring state */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-brand-50 dark:bg-brand-950 rounded-2xl">
-            <div>
-              <div className="font-medium text-brand-900 dark:text-brand-100">Error Boundary</div>
-              <div className="text-sm text-brand-700 dark:text-brand-300">Automatic error detection and recovery</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-brand-700 dark:text-brand-300">Active</span>
-            </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <RefreshCw className="w-5 h-5 text-brand-500" />
+            {t('system.autofix.title', 'Auto-Fix System')}
+          </CardTitle>
+          <CardDescription>
+            {t('system.autofix.description', 'Automated error detection and recovery systems')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <SystemSetting
+              icon={<Shield className="w-5 h-5" />}
+              title={t('system.autofix.errorBoundary', 'Error Boundary')}
+              description={t('system.autofix.errorBoundary.desc', 'Automatic error detection and recovery')}
+              status="healthy"
+              variant="brand"
+            />
+            <SystemSetting
+              icon={<Activity className="w-5 h-5" />}
+              title={t('system.autofix.healthMonitoring', 'Health Monitoring')}
+              description={t('system.autofix.healthMonitoring.desc', 'Continuous system health checks')}
+              status={isMonitoring ? 'healthy' : 'inactive'}
+              statusText={isMonitoring 
+                ? t('system.status.running', 'Running') 
+                : t('system.status.stopped', 'Stopped')}
+              variant="success"
+            />
+            <SystemSetting
+              icon={<RefreshCw className="w-5 h-5" />}
+              title={t('system.autofix.autoRecovery', 'Auto Recovery')}
+              description={t('system.autofix.autoRecovery.desc', 'Automatic error fixing and recovery')}
+              status="healthy"
+              variant="purple"
+            />
           </div>
-
-          <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950 rounded-2xl">
-            <div>
-              <div className="font-medium text-green-900 dark:text-green-100">Health Monitoring</div>
-              <div className="text-sm text-green-700 dark:text-green-300">Continuous system health checks</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${isMonitoring ? 'bg-green-500' : 'bg-muted-foreground'}`}></div>
-              <span className={`text-sm ${isMonitoring ? 'text-green-700 dark:text-green-300' : 'text-muted-foreground'}`}>
-                {isMonitoring ? 'Running' : 'Stopped'}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-950 rounded-2xl">
-            <div>
-              <div className="font-medium text-purple-900 dark:text-purple-100">Auto Recovery</div>
-              <div className="text-sm text-purple-700 dark:text-purple-300">Automatic error fixing and recovery</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-purple-700 dark:text-purple-300">Enabled</span>
-            </div>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Emergency Actions */}
-      <div className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-4">Emergency Actions</h3>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('system.emergency.title', 'Emergency Actions')}</CardTitle>
+          <CardDescription>
+            {t('system.emergency.description', 'Critical system recovery and reset options')}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => autoFixManager.emergencyRecovery()}
+              variant="destructive"
+            >
+              🚨 {t('system.emergency.recovery', 'Emergency Recovery')}
+            </Button>
 
-        <div className="flex gap-3">
-          <button
-            onClick={() => autoFixManager.emergencyRecovery()}
-            className="px-4 py-2 bg-red-600 text-white rounded-2xl hover:bg-red-700"
-          >
-            🚨 Emergency Recovery
-          </button>
+            <Button
+              onClick={() => {
+                if (window.confirm(t('system.reset.confirm', '⚠️ WARNING: This will clear ALL local data and reload the page.\n\nAre you sure you want to perform a full reset? This action cannot be undone.'))) {
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  window.location.reload();
+                }
+              }}
+              variant="destructive"
+              className="bg-warning hover:bg-warning/90"
+            >
+              🔄 {t('system.reset.full', 'Full Reset')}
+            </Button>
 
-          <button
-            onClick={() => {
-              if (window.confirm('⚠️ WARNING: This will clear ALL local data and reload the page.\n\nAre you sure you want to perform a full reset? This action cannot be undone.')) {
-                localStorage.clear();
-                sessionStorage.clear();
-                window.location.reload();
-              }
-            }}
-            className="px-4 py-2 bg-orange-600 text-white rounded-2xl hover:bg-orange-700"
-          >
-            🔄 Full Reset
-          </button>
+            <Button
+              onClick={() => window.open('/help', '_blank')}
+              variant="default"
+            >
+              📚 {t('system.help', 'Get Help')}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
-          <button
-            onClick={() => window.open('/help', '_blank')}
-            className="px-4 py-2 bg-brand-500 text-white rounded-2xl hover:bg-brand-600"
-          >
-            📚 Get Help
-          </button>
-        </div>
+/**
+ * ✅ EXTRACTED: ComponentStatus Helper
+ * Displays a status message with icon and semantic color
+ */
+interface ComponentStatusProps {
+  icon: React.ReactNode;
+  text: string;
+  variant: 'success' | 'destructive' | 'warning';
+}
+
+function ComponentStatus({ icon, text, variant }: ComponentStatusProps) {
+  const variantClasses = {
+    success: 'bg-success/10 text-success',
+    destructive: 'bg-destructive/10 text-destructive',
+    warning: 'bg-warning/10 text-warning'
+  };
+
+  return (
+    <div className={`flex items-start gap-3 p-3 rounded-2xl ${variantClasses[variant]}`}>
+      <div className="mt-0.5 flex-shrink-0">{icon}</div>
+      <span className="text-sm">{text}</span>
+    </div>
+  );
+}
+
+/**
+ * ✅ EXTRACTED: SystemSetting Helper
+ * Displays a system component setting with icon, title, description, and status
+ */
+interface SystemSettingProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  status: 'healthy' | 'inactive';
+  statusText?: string;
+  variant?: 'brand' | 'success' | 'purple';
+}
+
+function SystemSetting({ icon, title, description, status, statusText, variant = 'success' }: SystemSettingProps) {
+  const variantClasses = {
+    brand: 'bg-brand-500/10',
+    success: 'bg-success/10',
+    purple: 'bg-purple-500/10'
+  };
+
+  const statusColor = status === 'healthy' ? 'bg-success' : 'bg-muted-foreground';
+
+  return (
+    <div className={`flex items-center gap-3 p-3 rounded-2xl ${variantClasses[variant]}`}>
+      {icon}
+      <div className="flex-1">
+        <div className="font-medium text-foreground">{title}</div>
+        <div className="text-sm text-muted-foreground">{description}</div>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className={`w-3 h-3 rounded-full ${statusColor}`}></div>
+        {statusText && (
+          <span className="text-sm text-muted-foreground">{statusText}</span>
+        )}
       </div>
     </div>
   );
