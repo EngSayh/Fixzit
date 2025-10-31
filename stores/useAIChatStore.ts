@@ -16,10 +16,21 @@ const MESSAGE_HISTORY_LIMIT = 10;
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
-  content: string;
+  content: string; // Translation keys for 'system'/'assistant', raw text for 'user'
   timestamp: number;
   correlationId?: string;
 }
+
+/**
+ * Default welcome message with i18n-compliant translation key
+ * Will be rendered by AIChat component using useTranslation hook
+ */
+const WELCOME_MESSAGE: ChatMessage = {
+  id: 'msg-welcome',
+  role: 'assistant',
+  content: 'chat.welcome', // Translation key, not hardcoded text
+  timestamp: Date.now(),
+};
 
 interface AIChatState {
   messages: ChatMessage[];
@@ -28,13 +39,10 @@ interface AIChatState {
   currentCorrelationId: string | null;
   
   // Actions
-  addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
   sendMessage: (content: string) => Promise<void>;
   clearMessages: () => void;
   toggleChat: () => void;
   setOpen: (open: boolean) => void;
-  setLoading: (loading: boolean) => void;
-  generateCorrelationId: () => string;
 }
 
 /**
@@ -45,34 +53,38 @@ const generateCorrelationId = (): string => {
 };
 
 /**
+ * Helper to add a new message to the state (internal function)
+ */
+const addMessage = (
+  set: (fn: (state: AIChatState) => Partial<AIChatState>) => void,
+  message: Omit<ChatMessage, 'id' | 'timestamp'>
+) => {
+  const newMessage: ChatMessage = {
+    ...message,
+    id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    timestamp: Date.now(),
+  };
+  set((state) => ({ messages: [...state.messages, newMessage] }));
+};
+
+/**
  * AI Chat Store with sessionStorage Persistence
  * Persists messages and state across page reloads within the same session
  */
 export const useAIChatStore = create<AIChatState>()(
   persist(
     (set, get) => ({
-      messages: [],
+      // Start with welcome message for better UX
+      messages: [WELCOME_MESSAGE],
       isOpen: false,
       isLoading: false,
       currentCorrelationId: null,
-
-      addMessage: (message) => {
-        const newMessage: ChatMessage = {
-          ...message,
-          id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          timestamp: Date.now(),
-        };
-
-        set((state) => ({
-          messages: [...state.messages, newMessage],
-        }));
-      },
 
       sendMessage: async (content: string) => {
         const correlationId = generateCorrelationId();
         
         // Add user message
-        get().addMessage({
+        addMessage(set, {
           role: 'user',
           content,
           correlationId,
@@ -89,7 +101,7 @@ export const useAIChatStore = create<AIChatState>()(
             },
             body: JSON.stringify({
               message: content,
-              history: get().messages.slice(-MESSAGE_HISTORY_LIMIT), // Send last N messages for context
+              history: get().messages.slice(-MESSAGE_HISTORY_LIMIT),
             }),
           });
 
@@ -99,19 +111,19 @@ export const useAIChatStore = create<AIChatState>()(
 
           const data = await response.json();
 
-          // Add assistant response
-          get().addMessage({
+          // Add assistant response (use translation key if no response)
+          addMessage(set, {
             role: 'assistant',
-            content: data.response || data.message || 'No response received',
+            content: data.response || data.message || 'chat.error.noAnswer',
             correlationId,
           });
         } catch (error) {
-          console.error('[AI Chat] Error sending message:', error);
+          console.error('[AI Chat] Error sending message:', { correlationId, error });
           
-          // Add error message
-          get().addMessage({
+          // Add error message using i18n translation key
+          addMessage(set, {
             role: 'system',
-            content: 'Sorry, I encountered an error. Please try again.',
+            content: 'chat.error.general', // Translation key, not hardcoded text
             correlationId,
           });
         } finally {
@@ -120,7 +132,8 @@ export const useAIChatStore = create<AIChatState>()(
       },
 
       clearMessages: () => {
-        set({ messages: [], currentCorrelationId: null });
+        // Reset to welcome message instead of empty array (better UX)
+        set({ messages: [WELCOME_MESSAGE], currentCorrelationId: null });
       },
 
       toggleChat: () => {
@@ -130,12 +143,6 @@ export const useAIChatStore = create<AIChatState>()(
       setOpen: (open: boolean) => {
         set({ isOpen: open });
       },
-
-      setLoading: (loading: boolean) => {
-        set({ isLoading: loading });
-      },
-
-      generateCorrelationId,
     }),
     {
       name: STORAGE_KEYS.aiChatHistory,
@@ -155,12 +162,10 @@ export const useAIChatStore = create<AIChatState>()(
           sessionStorage.removeItem(name);
         },
       },
-      // Only persist messages and isOpen state, not loading states
+      // Only persist messages and isOpen state (not loading/correlation states)
       partialize: (state) => ({
         messages: state.messages,
         isOpen: state.isOpen,
-        isLoading: false,
-        currentCorrelationId: null,
       }),
     }
   )

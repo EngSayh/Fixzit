@@ -82,6 +82,11 @@ const translations: Record<Language, Record<string, string>> = {
     'common.viewAll': 'عرض جميع الإشعارات',
     'common.backToHome': 'العودة إلى الصفحة الرئيسية',
     
+    // AI Chat
+    'chat.welcome': 'مرحباً! أنا مساعد فيكزيت الذكي. كيف يمكنني مساعدتك اليوم؟',
+    'chat.error.general': 'عذراً، حدث خطأ. يرجى المحاولة مرة أخرى.',
+    'chat.error.noAnswer': 'لم أتلق رداً. يرجى المحاولة مرة أخرى.',
+    
     // Legal Pages
     'terms.title': 'شروط الخدمة',
     'terms.subtitle': 'يرجى قراءة هذه الشروط بعناية قبل استخدام خدماتنا.',
@@ -1016,6 +1021,11 @@ const translations: Record<Language, Record<string, string>> = {
     'common.allCaughtUp': "You're all caught up!",
     'common.viewAll': 'View all notifications',
     'common.backToHome': 'Back to Home',
+    
+    // AI Chat
+    'chat.welcome': 'Hello! I\'m your Fixzit AI assistant. How can I help you today?',
+    'chat.error.general': 'Sorry, I encountered an error. Please try again.',
+    'chat.error.noAnswer': 'I didn\'t receive a response. Please try again.',
     
     // Legal Pages
     'terms.title': 'Terms of Service',
