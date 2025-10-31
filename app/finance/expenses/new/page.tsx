@@ -506,13 +506,13 @@ export default function NewExpensePage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.expense.details', 'Expense Details')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.expense.type', 'Expense Type')} *
                 </label>
                 <select 
                   value={expenseType}
                   onChange={(e) => setExpenseType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 >
                   <option value="OPERATIONAL">{t('finance.expense.operational', 'Operational')}</option>
                   <option value="MAINTENANCE">{t('finance.expense.maintenance', 'Maintenance')}</option>
@@ -523,36 +523,36 @@ export default function NewExpensePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.expense.date', 'Expense Date')} *
                 </label>
                 <input
                   type="date"
                   value={expenseDate}
                   onChange={(e) => setExpenseDate(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.expenseDate ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.expenseDate ? 'border-red-500' : 'border-border'}`}
                 />
                 {errors.expenseDate && <p className="text-red-500 text-xs mt-1">{errors.expenseDate}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.expense.dueDate', 'Due Date')}
                 </label>
                 <input
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('workOrders.property', 'Property')}
                 </label>
                 <select 
                   value={propertyId}
                   onChange={(e) => setPropertyId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 >
                   <option value="">{t('finance.allProperties', 'All Properties')}</option>
                   <option value="prop1">Tower A</option>
@@ -568,7 +568,7 @@ export default function NewExpensePage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.expense.vendorInfo', 'Vendor Information')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.expense.vendorSupplier', 'Vendor/Supplier')} *
                 </label>
                 <select 
@@ -578,7 +578,7 @@ export default function NewExpensePage() {
                     const vendor = vendors.find(v => v._id === e.target.value);
                     if (vendor) setVendorName(vendor.name);
                   }}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.vendorName ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.vendorName ? 'border-red-500' : 'border-border'}`}
                   disabled={loadingVendors}
                 >
                   <option value="">{loadingVendors ? t('common.loading', 'Loading...') : t('finance.expense.selectVendor', 'Select Vendor')}</option>
@@ -589,7 +589,7 @@ export default function NewExpensePage() {
                 {errors.vendorName && <p className="text-red-500 text-xs mt-1">{errors.vendorName}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.expense.vendorName', 'Vendor Name')}
                 </label>
                 <input
@@ -597,7 +597,7 @@ export default function NewExpensePage() {
                   value={vendorName}
                   onChange={(e) => setVendorName(e.target.value)}
                   placeholder={t('finance.expense.vendorNamePlaceholder', 'Enter vendor name')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
             </div>
@@ -608,7 +608,7 @@ export default function NewExpensePage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.expense.information', 'Expense Information')}</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.expense.description', 'Description')} *
                 </label>
                 <input
@@ -616,12 +616,12 @@ export default function NewExpensePage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder={t('finance.expense.descriptionPlaceholder', 'Brief description of the expense...')}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.description ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.description ? 'border-red-500' : 'border-border'}`}
                 />
                 {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.notes', 'Notes')}
                 </label>
                 <textarea
@@ -629,7 +629,7 @@ export default function NewExpensePage() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder={t('finance.notesPlaceholder', 'Additional notes...')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
             </div>
@@ -651,7 +651,7 @@ export default function NewExpensePage() {
 
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50">
+                <thead className="bg-muted">
                   <tr>
                     <th className="px-2 py-2 text-left">{t('finance.expense.description', 'Description')}</th>
                     <th className="px-2 py-2 text-left">{t('finance.expense.category', 'Category')}</th>
@@ -672,14 +672,14 @@ export default function NewExpensePage() {
                           value={item.description}
                           onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
                           placeholder={t('finance.expense.itemDescription', 'Item description')}
-                          className={`w-full px-2 py-1 text-sm border rounded ${errors[`lineItem.${index}.description`] ? 'border-red-500' : 'border-gray-300'}`}
+                          className={`w-full px-2 py-1 text-sm border rounded ${errors[`lineItem.${index}.description`] ? 'border-red-500' : 'border-border'}`}
                         />
                       </td>
                       <td className="px-2 py-2">
                         <select
                           value={item.category}
                           onChange={(e) => updateLineItem(item.id, 'category', e.target.value)}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                          className="w-full px-2 py-1 text-sm border border-border rounded"
                         >
                           <option value="MAINTENANCE_REPAIR">{t('finance.category.maintenance', 'Maintenance')}</option>
                           <option value="UTILITIES">{t('finance.category.utilities', 'Utilities')}</option>
@@ -694,7 +694,7 @@ export default function NewExpensePage() {
                         <select
                           value={item.accountId}
                           onChange={(e) => updateLineItem(item.id, 'accountId', e.target.value)}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                          className="w-full px-2 py-1 text-sm border border-border rounded"
                           disabled={loadingAccounts}
                         >
                           <option value="">{loadingAccounts ? t('common.loading', 'Loading...') : t('finance.selectAccount', 'Select Account')}</option>
@@ -714,7 +714,7 @@ export default function NewExpensePage() {
                           onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 1)}
                           min="1"
                           step="1"
-                          className={`w-20 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.quantity`] ? 'border-red-500' : 'border-gray-300'}`}
+                          className={`w-20 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.quantity`] ? 'border-red-500' : 'border-border'}`}
                         />
                       </td>
                       <td className="px-2 py-2">
@@ -724,7 +724,7 @@ export default function NewExpensePage() {
                           onChange={(e) => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
                           min="0"
                           step="0.01"
-                          className={`w-24 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.unitPrice`] ? 'border-red-500' : 'border-gray-300'}`}
+                          className={`w-24 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.unitPrice`] ? 'border-red-500' : 'border-border'}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-center">
@@ -734,7 +734,7 @@ export default function NewExpensePage() {
                           onChange={(e) => updateLineItem(item.id, 'taxable', e.target.checked)}
                           className="rounded"
                         />
-                        {item.taxable && <span className="text-xs text-gray-500 ml-1">15%</span>}
+                        {item.taxable && <span className="text-xs text-muted-foreground ml-1">15%</span>}
                       </td>
                       <td className="px-2 py-2 text-right font-medium">
                         {currency} {(item.amount + item.taxAmount).toFixed(2)}
@@ -761,9 +761,9 @@ export default function NewExpensePage() {
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('finance.receiptDocumentation', 'Receipts & Documentation')}</h3>
             
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-4">
-              <div className="text-gray-400 mb-2">📎 {t('finance.uploadMultipleReceipts', 'Upload multiple receipts')}</div>
-              <p className="text-sm text-gray-600 mb-2">{t('finance.supportedFormats', 'Supported: Images, PDF')}</p>
+            <div className="border-2 border-dashed border-muted-foreground/30 rounded-2xl p-6 text-center mb-4">
+              <div className="text-muted-foreground mb-2">📎 {t('finance.uploadMultipleReceipts', 'Upload multiple receipts')}</div>
+              <p className="text-sm text-muted-foreground mb-2">{t('finance.supportedFormats', 'Supported: Images, PDF')}</p>
               <input 
                 type="file" 
                 id="receipt-upload" 
@@ -784,18 +784,18 @@ export default function NewExpensePage() {
             {receipts.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {receipts.map((receipt) => (
-                  <div key={receipt.id} className="relative border border-gray-200 rounded-lg p-2">
+                  <div key={receipt.id} className="relative border border-border rounded-2xl p-2">
                     {receipt.file.type.startsWith('image/') ? (
                       <>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={receipt.preview} alt={receipt.file.name} className="w-full h-32 object-cover rounded" />
                       </>
                     ) : (
-                      <div className="w-full h-32 flex items-center justify-center bg-gray-100 rounded">
+                      <div className="w-full h-32 flex items-center justify-center bg-muted rounded">
                         <span className="text-4xl">📄</span>
                       </div>
                     )}
-                    <p className="text-xs text-gray-600 mt-2 truncate">{receipt.file.name}</p>
+                    <p className="text-xs text-muted-foreground mt-2 truncate">{receipt.file.name}</p>
                     <button
                       onClick={() => removeReceipt(receipt.id)}
                       className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
@@ -813,13 +813,13 @@ export default function NewExpensePage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.expense.paymentDetails', 'Payment Details')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.paymentMethod', 'Payment Method')}
                 </label>
                 <select 
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 >
                   <option value="CASH">{t('finance.payment.cash', 'Cash')}</option>
                   <option value="BANK_TRANSFER">{t('finance.payment.bankTransfer', 'Bank Transfer')}</option>
@@ -829,13 +829,13 @@ export default function NewExpensePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.currency', 'Currency')}
                 </label>
                 <select 
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 >
                   <option value="SAR">SAR - Saudi Riyal</option>
                   <option value="USD">USD - US Dollar</option>
@@ -855,18 +855,18 @@ export default function NewExpensePage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.expense.summary', 'Expense Summary')}</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">{t('finance.subtotal', 'Subtotal')}</span>
+                <span className="text-muted-foreground">{t('finance.subtotal', 'Subtotal')}</span>
                 <span className="font-medium">{currency} {subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">{t('finance.vat', 'VAT')} (15%)</span>
+                <span className="text-muted-foreground">{t('finance.vat', 'VAT')} (15%)</span>
                 <span className="font-medium">{currency} {totalTax.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between pt-2 border-t border-gray-200">
-                <span className="text-gray-900 font-semibold">{t('finance.total', 'Total')}</span>
+              <div className="flex justify-between pt-2 border-t border-border">
+                <span className="text-foreground font-semibold">{t('finance.total', 'Total')}</span>
                 <span className="font-bold text-lg">{currency} {totalAmount.toFixed(2)}</span>
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-muted-foreground">
                 {lineItems.length} {t('finance.expense.items', 'item(s)')}
               </div>
             </div>
@@ -880,10 +880,10 @@ export default function NewExpensePage() {
                 {budgetInfo.map((budget) => (
                   <div key={budget.budgetId}>
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm text-gray-600">{t(`finance.category.${budget.category.toLowerCase()}`, budget.category)}</span>
-                      <span className="text-xs text-gray-500">{budget.percentage.toFixed(0)}%</span>
+                      <span className="text-sm text-muted-foreground">{t(`finance.category.${budget.category.toLowerCase()}`, budget.category)}</span>
+                      <span className="text-xs text-muted-foreground">{budget.percentage.toFixed(0)}%</span>
                     </div>
-                    <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                       <div 
                         className={`h-full transition-all ${
                           budget.percentage < 70 
@@ -895,7 +895,7 @@ export default function NewExpensePage() {
                         style={{ width: `${Math.min(budget.percentage, 100)}%` }}
                       />
                     </div>
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
                       <span>{currency} {budget.spentAmount.toFixed(0)} / {budget.budgetedAmount.toFixed(0)}</span>
                       <span>{currency} {budget.remainingAmount.toFixed(0)} {t('finance.remaining', 'remaining')}</span>
                     </div>
@@ -909,21 +909,21 @@ export default function NewExpensePage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.expense.budgetStatus', 'Budget Status')}</h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">{t('finance.expense.maintenanceBudget', 'Maintenance Budget')}</span>
+                <span className="text-sm text-muted-foreground">{t('finance.expense.maintenanceBudget', 'Maintenance Budget')}</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-16 h-2 bg-gray-200 rounded">
+                  <div className="w-16 h-2 bg-muted rounded">
                     <div className="w-3/4 h-full bg-[var(--fixzit-success-light)] rounded"></div>
                   </div>
-                  <span className="text-xs text-gray-500">75%</span>
+                  <span className="text-xs text-muted-foreground">75%</span>
                 </div>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">{t('finance.expense.utilitiesBudget', 'Utilities Budget')}</span>
+                <span className="text-sm text-muted-foreground">{t('finance.expense.utilitiesBudget', 'Utilities Budget')}</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-16 h-2 bg-gray-200 rounded">
+                  <div className="w-16 h-2 bg-muted rounded">
                     <div className="w-1/2 h-full bg-[var(--fixzit-accent-light)] rounded"></div>
                   </div>
-                  <span className="text-xs text-gray-500">50%</span>
+                  <span className="text-xs text-muted-foreground">50%</span>
                 </div>
               </div>
             </div>
@@ -932,24 +932,24 @@ export default function NewExpensePage() {
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('finance.expense.recent', 'Recent Expenses')}</h3>
             <div className="space-y-3">
-              <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
                 <div>
                   <p className="text-sm font-medium">EXP-247</p>
-                  <p className="text-xs text-gray-600">AC Maintenance</p>
+                  <p className="text-xs text-muted-foreground">AC Maintenance</p>
                 </div>
                 <span className="text-sm font-medium text-[var(--fixzit-danger)]">-SAR 150</span>
               </div>
-              <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
                 <div>
                   <p className="text-sm font-medium">EXP-246</p>
-                  <p className="text-xs text-gray-600">Office Supplies</p>
+                  <p className="text-xs text-muted-foreground">Office Supplies</p>
                 </div>
                 <span className="text-sm font-medium text-[var(--fixzit-danger)]">-SAR 85</span>
               </div>
-              <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
                 <div>
                   <p className="text-sm font-medium">EXP-245</p>
-                  <p className="text-xs text-gray-600">Electrical Repair</p>
+                  <p className="text-xs text-muted-foreground">Electrical Repair</p>
                 </div>
                 <span className="text-sm font-medium text-[var(--fixzit-danger)]">-SAR 320</span>
               </div>
@@ -976,13 +976,13 @@ export default function NewExpensePage() {
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-[var(--fixzit-success-light)] rounded-full"></div>
-                <span className="text-gray-600">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
-                <span className="text-gray-400 ml-auto">2m ago</span>
+                <span className="text-muted-foreground">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
+                <span className="text-muted-foreground ml-auto">2m ago</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full"></div>
-                <span className="text-gray-600">{t('finance.expense.category', 'Category')} {t('common.selected', 'selected')}</span>
-                <span className="text-gray-400 ml-auto">4m ago</span>
+                <span className="text-muted-foreground">{t('finance.expense.category', 'Category')} {t('common.selected', 'selected')}</span>
+                <span className="text-muted-foreground ml-auto">4m ago</span>
               </div>
             </div>
           </div>
