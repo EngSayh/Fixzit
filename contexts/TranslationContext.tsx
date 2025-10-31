@@ -142,6 +142,12 @@ const translations: Record<Language, Record<string, string>> = {
     'hr.payroll.exportWPS': 'تصدير ملف WPS',
     'hr.payroll.approve': 'الموافقة',
     
+    // Pagination
+    'pagination.showing': 'عرض',
+    'pagination.to': 'إلى',
+    'pagination.of': 'من',
+    'pagination.results': 'نتيجة',
+    
     // Legal Pages
     'terms.title': 'شروط الخدمة',
     'terms.subtitle': 'يرجى قراءة هذه الشروط بعناية قبل استخدام خدماتنا.',
@@ -1136,6 +1142,12 @@ const translations: Record<Language, Record<string, string>> = {
     'hr.payroll.calculate': 'Calculate Payroll',
     'hr.payroll.exportWPS': 'Export WPS File',
     'hr.payroll.approve': 'Approve',
+    
+    // Pagination
+    'pagination.showing': 'Showing',
+    'pagination.to': 'to',
+    'pagination.of': 'of',
+    'pagination.results': 'results',
     
     // Legal Pages
     'terms.title': 'Terms of Service',
