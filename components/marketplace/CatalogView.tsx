@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { Search, ShoppingCart, Star, Store, PackageSearch, Loader2, ShieldCheck, BadgeCheck } from 'lucide-react';
+import { STORAGE_KEYS } from '@/config/constants';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -139,7 +140,7 @@ export default function CatalogView({
 
   const isAuthenticated = () => {
     if (typeof window === 'undefined') return false;
-    return document.cookie.includes('fixzit_auth=') || Boolean(localStorage.getItem('x-user'));
+    return document.cookie.includes('fixzit_auth=') || Boolean(localStorage.getItem(STORAGE_KEYS.user));
   };
 
   const handleAddToCart = async (product: Product) => {

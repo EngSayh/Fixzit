@@ -20,6 +20,9 @@ export const STORAGE_KEYS = {
   topbarApp: 'fixzit-topbar-app',
   sidebarCollapsed: 'fxz.sidebar.collapsed',
   
+  // Auth/User (used for error reporting and dev fallbacks)
+  user: 'x-user',
+  
   // Data
   aiChatHistory: 'fxz.ai-chat-history',
   recentSearches: 'fxz.search.recent',

@@ -2,6 +2,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { STORAGE_KEYS } from '@/config/constants';
 
 const SupportPopup = dynamic(() => import('@/components/SupportPopup'), { ssr: false });
 
@@ -221,7 +222,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
 
     // Also auto-report an incident so Support gets a ticket without user action
     try {
-      const userStr = typeof localStorage !== 'undefined' ? localStorage.getItem('x-user') : null;
+      const userStr = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.user) : null;
       const user = userStr ? JSON.parse(userStr) : null;
       const truncate = (s?: string, n = 4000) => (s && s.length > n ? `${s.slice(0, n)}…` : s);
       const safeUser = user ? { userId: user.id, tenant: user.tenantId } : undefined;
@@ -348,7 +349,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
       userAgent: navigator.userAgent,
       url: window.location.href,
       viewport: `${window.innerWidth}x${window.innerHeight}`,
-      userId: localStorage.getItem('x-user') ? 'Authenticated User' : 'Guest User',
+      userId: localStorage.getItem(STORAGE_KEYS.user) ? 'Authenticated User' : 'Guest User',
       error: {
         name: error.name,
         message: error.message,
@@ -369,7 +370,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
         } : null
       },
       localStorage: {
-        hasAuth: !!localStorage.getItem('x-user'),
+        hasAuth: !!localStorage.getItem(STORAGE_KEYS.user),
         hasUser: !!localStorage.getItem('fxz.user'),
         hasLang: !!localStorage.getItem('fxz.lang'),
         hasTheme: !!localStorage.getItem('fxz.theme')

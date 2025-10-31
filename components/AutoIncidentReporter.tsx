@@ -1,5 +1,6 @@
 'use client';
 import { useEffect } from 'react';
+import { STORAGE_KEYS } from '@/config/constants';
 
 declare global { interface Window { __incidentReporter?: boolean; __incidentLastAt?: number; } }
 
@@ -14,7 +15,7 @@ export default function AutoIncidentReporter(){
       // Security Note: Only extracts user ID and tenant ID from localStorage
       // Does not log sensitive data like tokens or PII
       // Backend must handle this data securely and in compliance with privacy regulations
-      try { return localStorage.getItem('x-user') ? JSON.parse(localStorage.getItem('x-user') as string) : null; } catch { return null; }
+      try { return localStorage.getItem(STORAGE_KEYS.user) ? JSON.parse(localStorage.getItem(STORAGE_KEYS.user) as string) : null; } catch { return null; }
     };
     const buildCtx = () => ({
       url: typeof window !== 'undefined' ? window.location.href : '',
