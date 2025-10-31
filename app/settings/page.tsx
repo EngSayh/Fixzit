@@ -23,11 +23,11 @@ export default function SettingsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-neutral-900">
+    <div className="min-h-screen bg-muted dark:bg-neutral-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('nav.settings', 'Settings')}</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
+          <h1 className="text-3xl font-bold text-foreground dark:text-white">{t('nav.settings', 'Settings')}</h1>
+          <p className="mt-2 text-muted-foreground dark:text-muted-foreground">
             {t('settings.subtitle', 'Manage your account settings and preferences')}
           </p>
         </div>
@@ -106,7 +106,7 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>{t('settings.security.twoFactor', 'Two-Factor Authentication')}</Label>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {t('settings.security.twoFactorDesc', 'Add an extra layer of security to your account')}
                     </p>
                   </div>

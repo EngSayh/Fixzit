@@ -187,7 +187,7 @@ export default function Page() {
             <CardTitle>Admin</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-600">You must be signed in to access admin pages.</p>
+            <p className="text-muted-foreground">You must be signed in to access admin pages.</p>
           </CardContent>
         </Card>
       </div>
@@ -205,8 +205,8 @@ export default function Page() {
           </CardHeader>
           <CardContent>
             <p className="text-red-600 font-semibold mb-2">Insufficient Permissions</p>
-            <p className="text-gray-600">You must have Super Admin privileges to access this page.</p>
-            <p className="text-sm text-gray-500 mt-4">Current role: {session.user?.role || 'Unknown'}</p>
+            <p className="text-muted-foreground">You must have Super Admin privileges to access this page.</p>
+            <p className="text-sm text-muted-foreground mt-4">Current role: {session.user?.role || 'Unknown'}</p>
           </CardContent>
         </Card>
       </div>
@@ -218,7 +218,7 @@ export default function Page() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">Admin Console</h1>
-          <p className="text-gray-600">Super Admin tools and platform-wide settings.</p>
+          <p className="text-muted-foreground">Super Admin tools and platform-wide settings.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button variant={tab === 'overview' ? 'default' : 'ghost'} onClick={() => setTab('overview')}>Overview</Button>
@@ -236,7 +236,7 @@ export default function Page() {
               <CardTitle>Overview</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700">Quick links to admin modules:</p>
+              <p className="text-foreground">Quick links to admin modules:</p>
               <div className="mt-4 flex gap-3 flex-wrap">
                 <Button onClick={() => setTab('users')}>Manage Users</Button>
                 <Button onClick={() => setTab('roles')}>Manage Roles</Button>
@@ -349,32 +349,32 @@ export default function Page() {
 
           {!usersLoading && usersData?.users && (
             <>
-              <div className="bg-white rounded-lg shadow border overflow-hidden">
+              <div className="bg-card rounded-2xl shadow border overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-muted">
                     <tr>
                       <th className="px-6 py-3 text-left">
                         <input type="checkbox" checked={selectedUserIds.length === usersData.users.length && usersData.users.length > 0} onChange={toggleSelectAll} className="rounded" />
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Username</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Username</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Email</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Role</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
+                  <tbody className="bg-card divide-y divide-gray-100">
                     {usersData.users.map((user: { _id: string; username?: string; email?: string; personal?: { firstName?: string; lastName?: string }; professional?: { role?: string }; status?: string; phone?: string }) => (
                       <tr key={user._id}>
                         <td className="px-6 py-4">
                           <input type="checkbox" checked={selectedUserIds.includes(user._id)} onChange={() => toggleSelect(user._id)} className="rounded" />
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{user.username}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{user.email}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{user.personal?.firstName} {user.personal?.lastName}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{user.professional?.role || '—'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{user.status || 'ACTIVE'}</td>
+                        <td className="px-6 py-4 text-sm text-foreground">{user.username}</td>
+                        <td className="px-6 py-4 text-sm text-foreground">{user.email}</td>
+                        <td className="px-6 py-4 text-sm text-foreground">{user.personal?.firstName} {user.personal?.lastName}</td>
+                        <td className="px-6 py-4 text-sm text-foreground">{user.professional?.role || '—'}</td>
+                        <td className="px-6 py-4 text-sm text-foreground">{user.status || 'ACTIVE'}</td>
                         <td className="px-6 py-4 text-sm text-right space-x-2">
                           <Button variant="ghost" size="sm" onClick={() => openEditUser(user)}>Edit</Button>
                           <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user._id, user.username || user.email || 'user')}>Delete</Button>
@@ -384,7 +384,7 @@ export default function Page() {
                   </tbody>
                 </table>
                 {usersData.total > 0 && (
-                  <div className="px-6 py-3 bg-gray-50 text-sm text-gray-600">
+                  <div className="px-6 py-3 bg-muted text-sm text-muted-foreground">
                     Total: {usersData.total} users
                   </div>
                 )}
@@ -400,7 +400,7 @@ export default function Page() {
                   >
                     Previous
                   </Button>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-muted-foreground">
                     Page {userPage + 1} of {Math.ceil(usersData.total / userLimit)} 
                     ({usersData.total} total users)
                   </span>
@@ -469,8 +469,8 @@ export default function Page() {
           <h2 className="text-xl font-semibold mb-4">Roles & Permissions</h2>
           <Card>
             <CardContent className="pt-6">
-              <p className="text-gray-600 mb-4">Roles and permissions management UI coming soon. Current roles defined in codebase:</p>
-              <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+              <p className="text-muted-foreground mb-4">Roles and permissions management UI coming soon. Current roles defined in codebase:</p>
+              <ul className="list-disc list-inside space-y-1 text-sm text-foreground">
                 <li><strong>SUPER_ADMIN</strong> / super_admin - Full platform access</li>
                 <li><strong>ADMIN</strong> - Organization admin</li>
                 <li><strong>MANAGER</strong> - Department/team manager</li>
@@ -511,23 +511,23 @@ export default function Page() {
 
           {!auditLoading && auditData?.logs && (
             <>
-              <div className="bg-white rounded-lg shadow border overflow-hidden">
+              <div className="bg-card rounded-2xl shadow border overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-muted">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entity</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Time</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">User</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Action</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Entity</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
+                  <tbody className="bg-card divide-y divide-gray-100">
                     {auditData.logs.map((log: { _id: string; timestamp: string; userId?: string; user?: { name?: string }; action?: string; entityType?: string; entityId?: string }) => (
                       <tr key={log._id}>
-                        <td className="px-6 py-4 text-sm text-gray-700">{new Date(log.timestamp).toLocaleString()}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{log.user?.name || log.userId || '—'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{log.action}</td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{log.entityType} {log.entityId ? `(${log.entityId})` : ''}</td>
+                        <td className="px-6 py-4 text-sm text-foreground">{new Date(log.timestamp).toLocaleString()}</td>
+                        <td className="px-6 py-4 text-sm text-foreground">{log.user?.name || log.userId || '—'}</td>
+                        <td className="px-6 py-4 text-sm text-foreground">{log.action}</td>
+                        <td className="px-6 py-4 text-sm text-foreground">{log.entityType} {log.entityId ? `(${log.entityId})` : ''}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -535,7 +535,7 @@ export default function Page() {
               </div>
               <div className="flex justify-between items-center mt-4">
                 <Button variant="ghost" disabled={auditPage === 0} onClick={() => setAuditPage(p => p - 1)}>Previous</Button>
-                <span className="text-sm text-gray-600">Page {auditPage + 1}</span>
+                <span className="text-sm text-muted-foreground">Page {auditPage + 1}</span>
                 <Button variant="ghost" disabled={auditData.logs.length < auditLimit} onClick={() => setAuditPage(p => p + 1)}>Next</Button>
               </div>
             </>
@@ -546,7 +546,7 @@ export default function Page() {
       {tab === 'features' && (
         <div>
           <h2 className="text-xl font-semibold mb-4">Feature Settings</h2>
-          <p className="text-gray-600 mb-4">Manage platform feature toggles.</p>
+          <p className="text-muted-foreground mb-4">Manage platform feature toggles.</p>
           <Button onClick={() => window.location.href = '/admin/feature-settings'}>Open Feature Settings</Button>
         </div>
       )}

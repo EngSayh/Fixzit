@@ -17,8 +17,8 @@ export default function DashboardPage() {
     <div className="p-6">
       {/* Page Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t('dashboard.title', 'Dashboard')}</h1>
-        <p className="text-gray-600">{t('dashboard.welcome', 'Welcome back')}, Eng. Sultan</p>
+        <h1 className="text-2xl font-bold text-foreground">{t('dashboard.title', 'Dashboard')}</h1>
+        <p className="text-muted-foreground">{t('dashboard.welcome', 'Welcome back')}, Eng. Sultan</p>
       </div>
 
         {/* Stats Grid */}
@@ -26,11 +26,11 @@ export default function DashboardPage() {
           {stats.map((stat, index) => {
             const Icon = stat.icon;
             return (
-              <div key={index} className="bg-white rounded-lg shadow p-6">
+              <div key={index} className="bg-card rounded-2xl shadow p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">{t(stat.labelKey, stat.labelKey)}</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                    <p className="text-sm text-muted-foreground">{t(stat.labelKey, stat.labelKey)}</p>
+                    <p className="text-2xl font-bold text-foreground mt-1">{stat.value}</p>
                   </div>
                   <div className={`${stat.color} p-3 rounded-lg`}>
                     <Icon className="w-6 h-6 text-white" />
@@ -44,7 +44,7 @@ export default function DashboardPage() {
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Work Orders */}
-          <div className="bg-white rounded-lg shadow">
+          <div className="bg-card rounded-2xl shadow">
             <div className="p-6 border-b">
               <h2 className="text-lg font-semibold">{t('dashboard.recentWorkOrders', 'Recent Work Orders')}</h2>
             </div>
@@ -54,7 +54,7 @@ export default function DashboardPage() {
                   <div key={i} className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">WO-{1000 + i} - {t('dashboard.acMaintenance', 'AC Maintenance')}</p>
-                      <p className="text-sm text-gray-500">{t('dashboard.propertyTowerA', 'Property Tower A')} - {t('dashboard.unit', 'Unit')} 301</p>
+                      <p className="text-sm text-muted-foreground">{t('dashboard.propertyTowerA', 'Property Tower A')} - {t('dashboard.unit', 'Unit')} 301</p>
                     </div>
                     <span className="px-3 py-1 text-xs font-medium bg-[var(--fixzit-accent-lighter)] text-[var(--fixzit-accent-darker)] rounded-full">
                       {t('dashboard.statusInProgress', 'In Progress')}
@@ -66,7 +66,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Recent Transactions */}
-          <div className="bg-white rounded-lg shadow">
+          <div className="bg-card rounded-2xl shadow">
             <div className="p-6 border-b">
               <h2 className="text-lg font-semibold">{t('dashboard.recentTransactions', 'Recent Transactions')}</h2>
             </div>
@@ -76,7 +76,7 @@ export default function DashboardPage() {
                   <div key={i} className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">INV-{2000 + i} - {t('dashboard.monthlyRent', 'Monthly Rent')}</p>
-                      <p className="text-sm text-gray-500">{t('dashboard.tenant', 'Tenant')}: Acme Corp</p>
+                      <p className="text-sm text-muted-foreground">{t('dashboard.tenant', 'Tenant')}: Acme Corp</p>
                     </div>
                     <span className="font-semibold text-fixzit-green">
                       +SAR {(15000 + i * 1000).toLocaleString()}
