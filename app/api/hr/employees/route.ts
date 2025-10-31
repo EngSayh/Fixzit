@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/auth.config';
-import { dbConnect } from '@/lib/mongo';
+import { auth } from '@/auth';
+import { connectDb } from '@/lib/mongo';
 import { Employee } from '@/models/hr/Employee';
 
 // GET /api/hr/employees - List all employees for the organization
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await dbConnect();
+    await connectDb();
 
     // Parse query parameters
     const { searchParams } = new URL(req.url);
@@ -68,12 +67,12 @@ export async function GET(req: NextRequest) {
 // POST /api/hr/employees - Create a new employee
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await dbConnect();
+    await connectDb();
 
     const body = await req.json();
 

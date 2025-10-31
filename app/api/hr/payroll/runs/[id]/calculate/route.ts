@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/auth.config';
-import { dbConnect } from '@/lib/mongo';
+import { auth } from '@/auth';
+import { connectDb } from '@/lib/mongo';
 import { PayrollRun, Payslip } from '@/models/hr/Payroll';
 import { Employee } from '@/models/hr/Employee';
 import { Timesheet } from '@/models/hr/Attendance';
@@ -10,15 +9,17 @@ import { calculateNetPay } from '@/services/hr/ksaPayrollService';
 // POST /api/hr/payroll/runs/[id]/calculate - Calculate payroll for all active employees
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await dbConnect();
+    await connectDb();
+
+    const params = await props.params;
 
     // Fetch the payroll run
     const run = await PayrollRun.findOne({
