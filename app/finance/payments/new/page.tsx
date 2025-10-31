@@ -601,7 +601,7 @@ export default function NewPaymentPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Main Payment Details Card */}
-        <div className="bg-white shadow-md rounded-2xl p-6 space-y-4">
+        <div className="bg-card shadow-sm rounded-2xl p-6 space-y-4">
           <h2 className="text-xl font-semibold border-b pb-2">{t('Payment Details')}</h2>
 
           {/* Payment Type & Date */}
@@ -785,7 +785,7 @@ export default function NewPaymentPage() {
 
         {/* Invoice Allocation Card (for RECEIVED payments only) */}
         {paymentType === 'RECEIVED' && (
-          <div className="bg-white shadow-md rounded-2xl p-6 space-y-4">
+          <div className="bg-card shadow-sm rounded-2xl p-6 space-y-4">
             <div className="flex items-center justify-between border-b pb-2">
               <h2 className="text-xl font-semibold">{t('Invoice Allocation')}</h2>
               <button
@@ -814,7 +814,7 @@ export default function NewPaymentPage() {
                       <button
                         type="button"
                         onClick={allocateEqually}
-                        className="px-3 py-1 text-sm bg-muted text-foreground rounded hover:bg-gray-200"
+                        className="px-3 py-1 text-sm bg-muted text-foreground rounded hover:bg-muted/80"
                         disabled={allocations.filter(a => a.selected).length === 0}
                       >
                         {t('Allocate Equally')}
@@ -822,7 +822,7 @@ export default function NewPaymentPage() {
                       <button
                         type="button"
                         onClick={allocateByPriority}
-                        className="px-3 py-1 text-sm bg-muted text-foreground rounded hover:bg-gray-200"
+                        className="px-3 py-1 text-sm bg-muted text-foreground rounded hover:bg-muted/80"
                         disabled={allocations.filter(a => a.selected).length === 0}
                       >
                         {t('By Due Date')}
@@ -861,7 +861,7 @@ export default function NewPaymentPage() {
                             </th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-card divide-y divide-border">
                           {allocations.map(allocation => (
                             <tr key={allocation.id} className={allocation.selected ? 'bg-blue-50' : ''}>
                               <td className="px-3 py-2">
@@ -943,7 +943,7 @@ export default function NewPaymentPage() {
         )}
 
         {/* Submit Actions */}
-        <div className="flex justify-end gap-3 bg-white shadow-md rounded-2xl p-6">
+        <div className="flex justify-end gap-3 bg-card shadow-sm rounded-2xl p-6">
           <button
             type="button"
             onClick={() => router.back()}
@@ -954,7 +954,7 @@ export default function NewPaymentPage() {
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="px-6 py-2 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isSubmitting || Object.keys(errors).length > 0}
           >
             {isSubmitting ? t('Creating...') : t('Create Payment')}
