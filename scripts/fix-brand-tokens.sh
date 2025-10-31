@@ -75,7 +75,16 @@ for file in $FILES; do
     # Escape slashes for sed
     escaped_pattern=$(echo "$pattern" | sed 's/\//\\\//g')
     escaped_replacement=$(echo "$replacement" | sed 's/\//\\\//g')
-    sed -i "s/$escaped_pattern/$escaped_replacement/g" "$file"
+    
+    # Platform-specific sed (BSD/macOS vs GNU/Linux)
+    if sed --version >/dev/null 2>&1; then
+      # GNU sed (Linux)
+      sed -i "s/$escaped_pattern/$escaped_replacement/g" "$file"
+    else
+      # BSD sed (macOS) - requires backup extension
+      sed -i.bak "s/$escaped_pattern/$escaped_replacement/g" "$file"
+      rm -f "$file.bak"
+    fi
   done
   
   # Check if file changed

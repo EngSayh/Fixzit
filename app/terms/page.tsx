@@ -150,7 +150,7 @@ export default function TermsPage() {
   return (
     <div className={`min-h-screen bg-gradient-to-b from-white to-gray-50 ${isRTL ? 'rtl' : 'ltr'}`}>
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-brand-500 via-brand-500 to-success text-white py-12">
+      <section className="bg-gradient-to-r from-primary via-primary to-success text-white py-12">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <div className={`flex items-center gap-4 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Scale className="w-12 h-12" />
