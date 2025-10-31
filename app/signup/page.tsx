@@ -1,39 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Eye, EyeOff, UserPlus, Mail, Lock, Building2, Phone,
-  Globe, ChevronDown, ArrowLeft, CheckCircle, AlertCircle
+  Globe, ArrowLeft, CheckCircle, AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
 
-type Lang = { code: string; native: string; flag: string; dir: 'ltr' | 'rtl' };
-const LANGUAGES: Lang[] = [
-  { code: 'ar', native: 'العربية', flag: '🇸🇦', dir: 'rtl' },
-  { code: 'en', native: 'English', flag: '🇬🇧', dir: 'ltr' },
-];
+// ✅ FIXED: Import config instead of redefining
+import { SIGNUP_USER_TYPES } from '@/config/signup.config';
 
-const CURRENCIES = [
-  { code: 'SAR', symbol: 'ر.س', name: 'Saudi Riyal' },
-  { code: 'USD', symbol: '$', name: 'US Dollar' },
-  { code: 'EUR', symbol: '€', name: 'Euro' },
-  { code: 'GBP', symbol: '£', name: 'British Pound' },
-];
+// ✅ FIXED: Import standard components instead of custom dropdowns
+import LanguageSelector from '@/components/i18n/LanguageSelector';
+import CurrencySelector from '@/components/i18n/CurrencySelector';
 
 export default function SignupPage() {
   const { t } = useTranslation();
-  
-  const USER_TYPES = [
-    { value: 'personal', label: t('signup.accountType.personal', 'Personal Account'), description: t('signup.accountType.personalDesc', 'For individual users') },
-    { value: 'corporate', label: t('signup.accountType.corporate', 'Corporate Account'), description: t('signup.accountType.corporateDesc', 'For businesses and organizations') },
-    { value: 'vendor', label: t('signup.accountType.vendor', 'Vendor Account'), description: t('signup.accountType.vendorDesc', 'For service providers and suppliers') },
-  ];
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -53,43 +41,14 @@ export default function SignupPage() {
   const [success, setSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showLangDropdown, setShowLangDropdown] = useState(false);
-  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
-  const [selectedLang, setSelectedLang] = useState<Lang>(LANGUAGES[1]); // Default EN
-  const [selectedCurrency, setSelectedCurrency] = useState(CURRENCIES[0]); // Default SAR
+  // ✅ REMOVED: showLangDropdown, showCurrencyDropdown, selectedLang, selectedCurrency state
+  // Standard components handle their own state internally
 
   const router = useRouter();
 
-  // Load saved preferences
-  useEffect(() => {
-    const savedLang = localStorage.getItem('fxz.lang');
-    const savedCurrency = localStorage.getItem('fixzit-currency');
-
-    if (savedLang) {
-      const found = LANGUAGES.find(l => l.code === savedLang);
-      if (found) setSelectedLang(found);
-    }
-    if (savedCurrency) {
-      const found = CURRENCIES.find(c => c.code === savedCurrency);
-      if (found) setSelectedCurrency(found);
-    }
-  }, []);
-
-  // Handle language change
-  const handleLanguageChange = (lang: Lang) => {
-    setSelectedLang(lang);
-    localStorage.setItem('fxz.lang', lang.code);
-    document.documentElement.dir = lang.dir;
-    document.documentElement.lang = lang.code;
-    setShowLangDropdown(false);
-  };
-
-  // Handle currency change
-  const handleCurrencyChange = (currency: typeof CURRENCIES[0]) => {
-    setSelectedCurrency(currency);
-    localStorage.setItem('fixzit-currency', currency.code);
-    setShowCurrencyDropdown(false);
-  };
+  // ✅ REMOVED: useEffect for loading preferences - components handle internally
+  // ✅ REMOVED: handleLanguageChange - LanguageSelector handles internally
+  // ✅ REMOVED: handleCurrencyChange - CurrencySelector handles internally
 
   // Handle input changes
   const handleChange = (field: string, value: string | boolean) => {
@@ -128,11 +87,15 @@ export default function SignupPage() {
     }
 
     try {
+      // ✅ FIXED: Get language/currency from localStorage (managed by standard components)
+      const preferredLanguage = localStorage.getItem('fxz.lang') || 'en';
+      const preferredCurrency = localStorage.getItem('fixzit-currency') || 'SAR';
+      
       const signupData = {
         ...formData,
         fullName: `${formData.firstName} ${formData.lastName}`,
-        preferredLanguage: selectedLang.code,
-        preferredCurrency: selectedCurrency.code,
+        preferredLanguage,
+        preferredCurrency,
       };
 
       const response = await fetch('/api/auth/signup', {
@@ -242,71 +205,10 @@ export default function SignupPage() {
         <div className="w-full max-w-md">
           {/* Top Bar with Language and Currency */}
           <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              {/* Language Selector */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowLangDropdown(!showLangDropdown)}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/20 rounded-2xl text-white hover:bg-white/30 transition-colors"
-                >
-                  <span className="text-lg">{selectedLang.flag}</span>
-                  <span className="text-sm font-medium">{selectedLang.code.toUpperCase()}</span>
-                  <ChevronDown size={14} />
-                </button>
-
-                {showLangDropdown && (
-                  <div className="absolute top-full mt-2 w-48 bg-popover text-popover-foreground rounded-2xl shadow-xl border border-border py-2 z-50">
-                    {LANGUAGES.map(lang => (
-                      <button
-                        key={lang.code}
-                        onClick={() => handleLanguageChange(lang)}
-                        className={`w-full px-3 py-2 flex items-center gap-3 hover:bg-muted text-foreground ${
-                          lang.code === selectedLang.code ? 'bg-brand-500/10' : ''
-                        }`}
-                      >
-                        <span className="text-xl">{lang.flag}</span>
-                        <div className="flex-1 text-left">
-                          <div className="font-medium">{lang.native}</div>
-                          <div className="text-xs text-muted-foreground">{lang.code.toUpperCase()}</div>
-                        </div>
-                        {lang.code === selectedLang.code && (
-                          <div className="w-2 h-2 rounded-full bg-brand-500" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Currency Selector */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/20 rounded-2xl text-white hover:bg-white/30 transition-colors"
-                >
-                  <span className="font-medium">{selectedCurrency.symbol}</span>
-                  <span className="text-sm">{selectedCurrency.code}</span>
-                  <ChevronDown size={14} />
-                </button>
-
-                {showCurrencyDropdown && (
-                  <div className="absolute top-full mt-2 w-48 bg-popover text-popover-foreground rounded-2xl shadow-xl border border-border py-2 z-50">
-                    {CURRENCIES.map(currency => (
-                      <button
-                        key={currency.code}
-                        onClick={() => handleCurrencyChange(currency)}
-                        className={`w-full px-3 py-2 flex items-center gap-2 hover:bg-muted text-foreground text-sm ${
-                          currency.code === selectedCurrency.code ? 'bg-brand-500/10' : ''
-                        }`}
-                      >
-                        <span className="font-medium">{currency.symbol}</span>
-                        <span>{currency.code}</span>
-                        <span className="text-muted-foreground text-xs ml-auto">{currency.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+            {/* ✅ FIXED: Use standard LanguageSelector and CurrencySelector components */}
+            <div className="flex items-center gap-2">
+              <LanguageSelector variant="compact" />
+              <CurrencySelector variant="compact" />
             </div>
 
             <Link href="/login" className="text-white/80 hover:text-white text-sm flex items-center gap-1">
@@ -333,9 +235,10 @@ export default function SignupPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {USER_TYPES.map((type) => (
+                    {/* ✅ FIXED: Use imported SIGNUP_USER_TYPES with t() for labels */}
+                    {SIGNUP_USER_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
-                        {type.label}{type.description ? ` - ${type.description}` : ''}
+                        {t(type.labelKey)} - {t(type.descriptionKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>

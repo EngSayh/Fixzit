@@ -292,7 +292,7 @@ export default function ProfilePage() {
                   onClick={() => setActiveTab('account')}
                   className={`px-6 py-3 text-sm font-medium transition-colors ${
                     activeTab === 'account'
-                      ? 'text-brand-500 border-b-2 border-brand-500'
+                      ? 'text-primary border-b-2 border-primary'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -302,7 +302,7 @@ export default function ProfilePage() {
                   onClick={() => setActiveTab('notifications')}
                   className={`px-6 py-3 text-sm font-medium transition-colors ${
                     activeTab === 'notifications'
-                      ? 'text-brand-500 border-b-2 border-brand-500'
+                      ? 'text-primary border-b-2 border-primary'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -312,7 +312,7 @@ export default function ProfilePage() {
                   onClick={() => setActiveTab('security')}
                   className={`px-6 py-3 text-sm font-medium transition-colors ${
                     activeTab === 'security'
-                      ? 'text-brand-500 border-b-2 border-brand-500'
+                      ? 'text-primary border-b-2 border-primary'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -333,7 +333,7 @@ export default function ProfilePage() {
                       type="text"
                       value={user.name}
                       onChange={(e) => setUser({ ...user, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-background text-foreground"
+                      className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
                     />
                   </div>
 
@@ -345,7 +345,7 @@ export default function ProfilePage() {
                       type="email"
                       value={user.email}
                       onChange={(e) => setUser({ ...user, email: e.target.value })}
-                      className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-background text-foreground"
+                      className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
                     />
                   </div>
 
@@ -358,7 +358,7 @@ export default function ProfilePage() {
                       value={user.phone}
                       onChange={(e) => setUser({ ...user, phone: e.target.value })}
                       placeholder="+966 50 123 4567"
-                      className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-background text-foreground"
+                      className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
                     />
                   </div>
 
@@ -372,7 +372,7 @@ export default function ProfilePage() {
                     <button
                       onClick={handleSaveAccount}
                       disabled={loading}
-                      className="px-4 py-2 bg-brand-500 text-white rounded-2xl hover:bg-brand-600 transition-colors disabled:opacity-50"
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
                       {t('profile.account.save', 'Save Changes')}
                     </button>
@@ -395,7 +395,7 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             emailNotifications: e.target.checked
                           })}
-                          className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
+                          className="w-4 h-4 text-primary focus:ring-primary rounded"
                         />
                       </label>
                       <label className="flex items-center justify-between p-3 border border-border rounded-2xl hover:bg-muted cursor-pointer">
@@ -407,7 +407,7 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             pushNotifications: e.target.checked
                           })}
-                          className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
+                          className="w-4 h-4 text-primary focus:ring-primary rounded"
                         />
                       </label>
                       <label className="flex items-center justify-between p-3 border border-border rounded-2xl hover:bg-muted cursor-pointer">
@@ -419,7 +419,7 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             smsNotifications: e.target.checked
                           })}
-                          className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
+                          className="w-4 h-4 text-primary focus:ring-primary rounded"
                         />
                       </label>
                     </div>
@@ -437,7 +437,7 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             workOrderUpdates: e.target.checked
                           })}
-                          className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
+                          className="w-4 h-4 text-primary focus:ring-primary rounded"
                         />
                       </label>
                       <label className="flex items-center justify-between p-3 border border-border rounded-2xl hover:bg-muted cursor-pointer">
@@ -449,7 +449,7 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             maintenanceAlerts: e.target.checked
                           })}
-                          className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
+                          className="w-4 h-4 text-primary focus:ring-primary rounded"
                         />
                       </label>
                       <label className="flex items-center justify-between p-3 border border-border rounded-2xl hover:bg-muted cursor-pointer">
@@ -461,7 +461,7 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             invoiceReminders: e.target.checked
                           })}
-                          className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
+                          className="w-4 h-4 text-primary focus:ring-primary rounded"
                         />
                       </label>
                     </div>
@@ -470,7 +470,7 @@ export default function ProfilePage() {
                   <div className="flex justify-end">
                     <button
                       onClick={handleSaveNotifications}
-                      className="px-4 py-2 bg-brand-500 text-white rounded-2xl hover:bg-brand-600 transition-colors"
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors"
                     >
                       {t('profile.notifications.save', 'Save Preferences')}
                     </button>
@@ -495,7 +495,7 @@ export default function ProfilePage() {
                             ...securitySettings,
                             currentPassword: e.target.value
                           })}
-                          className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-background text-foreground"
+                          className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
                         />
                       </div>
                       <div>
@@ -509,7 +509,7 @@ export default function ProfilePage() {
                             ...securitySettings,
                             newPassword: e.target.value
                           })}
-                          className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-background text-foreground"
+                          className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
                         />
                       </div>
                       <div>
@@ -523,7 +523,7 @@ export default function ProfilePage() {
                             ...securitySettings,
                             confirmPassword: e.target.value
                           })}
-                          className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-background text-foreground"
+                          className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
                         />
                       </div>
                     </div>
@@ -543,7 +543,7 @@ export default function ProfilePage() {
                           ...securitySettings,
                           twoFactorEnabled: e.target.checked
                         })}
-                        className="w-4 h-4 text-brand-500 focus:ring-brand-500 rounded"
+                        className="w-4 h-4 text-primary focus:ring-primary rounded"
                       />
                     </label>
                   </div>
@@ -551,7 +551,7 @@ export default function ProfilePage() {
                   <div className="flex justify-end">
                     <button
                       onClick={handleSaveSecurity}
-                      className="px-4 py-2 bg-brand-500 text-white rounded-2xl hover:bg-brand-600 transition-colors"
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors"
                     >
                       {t('profile.security.update', 'Update Security')}
                     </button>
@@ -568,7 +568,7 @@ export default function ProfilePage() {
         <h2 className="text-lg font-semibold text-foreground mb-4">{t('profile.quickActions.title', 'Quick Actions')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link href="/settings" className="bg-card text-card-foreground p-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow">
-            <Settings className="h-6 w-6 text-brand-500 mb-2" />
+            <Settings className="h-6 w-6 text-primary mb-2" />
             <h3 className="font-medium text-foreground">{t('profile.quickActions.system', 'System Settings')}</h3>
             <p className="text-sm text-muted-foreground">{t('profile.quickActions.systemDesc', 'Configure application preferences')}</p>
           </Link>
