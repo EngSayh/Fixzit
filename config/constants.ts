@@ -22,11 +22,26 @@ export const STORAGE_KEYS = {
   
   // Auth/User (used for error reporting and dev fallbacks)
   user: 'x-user',
+  role: 'fixzit-role',
   
   // Data
   aiChatHistory: 'fxz.ai-chat-history',
   recentSearches: 'fxz.search.recent',
 } as const;
+
+/**
+ * Storage key prefixes for pattern-based cleanup
+ */
+export const STORAGE_PREFIXES = {
+  app: 'fixzit-',
+  shortDash: 'fxz-',
+  shortDot: 'fxz.',
+} as const;
+
+/**
+ * Convenience list of all app storage keys for cleanup operations
+ */
+export const APP_STORAGE_KEYS = Object.values(STORAGE_KEYS) as readonly string[];
 
 /**
  * Cookie keys used for server-side rendering

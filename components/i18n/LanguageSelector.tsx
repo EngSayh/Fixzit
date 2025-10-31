@@ -104,8 +104,8 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
     let colors = 'bg-background text-foreground hover:bg-muted'; // Default for settings page
     
     if (variant === 'dark_minimal') {
-      // For TopBar or dark backgrounds
-      colors = 'bg-white/10 text-white hover:bg-white/20';
+      // For TopBar or dark backgrounds - semantic tokens
+      colors = 'bg-primary/10 text-primary-foreground hover:bg-primary/20';
     } else if (variant === 'compact') {
       colors = 'bg-muted text-muted-foreground hover:bg-muted/80';
     }

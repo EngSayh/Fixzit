@@ -22,5 +22,12 @@ export const CURRENCIES: Currency[] = [
  * Get default currency (SAR for KSA-first)
  */
 export function getDefaultCurrency(): Currency {
-  return CURRENCIES.find(c => c.code === 'SAR') || CURRENCIES[0];
+  const preferred = CURRENCIES.find(c => c.code === 'SAR');
+  if (preferred) return preferred;
+  
+  const fallback = CURRENCIES[0];
+  if (!fallback) {
+    throw new Error('No currencies configured. Ensure CURRENCIES is non-empty.');
+  }
+  return fallback;
 }

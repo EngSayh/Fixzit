@@ -16,6 +16,9 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsive } from '@/contexts/ResponsiveContext';
 import { useFormState } from '@/contexts/FormStateContext';
 
+// Constants
+import { APP_STORAGE_KEYS, STORAGE_KEYS, STORAGE_PREFIXES } from '@/config/constants';
+
 // Sub-components
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
@@ -253,20 +256,22 @@ export default function TopBar() {
 
   const handleLogout = async () => {
     try {
-      const savedLang = localStorage.getItem('fxz.lang');
-      const savedLocale = localStorage.getItem('fxz.locale');
+      const savedLang = localStorage.getItem(STORAGE_KEYS.language);
+      const savedLocale = localStorage.getItem(STORAGE_KEYS.locale);
 
-      // Clear app storage but preserve language
-      const keysToRemove = Object.keys(localStorage).filter(
-        key =>
-          (key.startsWith('fixzit-') || key.startsWith('fxz-')) &&
-          key !== 'fxz.lang' &&
-          key !== 'fxz.locale'
-      );
-      keysToRemove.forEach(key => localStorage.removeItem(key));
+      // Clear app storage robustly, preserve language/locale
+      Object.keys(localStorage).forEach(key => {
+        const isAppKey =
+          APP_STORAGE_KEYS.includes(key) ||
+          key.startsWith(STORAGE_PREFIXES.app) ||
+          key.startsWith(STORAGE_PREFIXES.shortDash) ||
+          key.startsWith(STORAGE_PREFIXES.shortDot);
+        const preserve = key === STORAGE_KEYS.language || key === STORAGE_KEYS.locale;
+        if (isAppKey && !preserve) localStorage.removeItem(key);
+      });
 
-      if (savedLang) localStorage.setItem('fxz.lang', savedLang);
-      if (savedLocale) localStorage.setItem('fxz.locale', savedLocale);
+      if (savedLang) localStorage.setItem(STORAGE_KEYS.language, savedLang ?? '');
+      if (savedLocale) localStorage.setItem(STORAGE_KEYS.locale, savedLocale ?? '');
 
       await signOut({ callbackUrl: '/login', redirect: true });
     } catch (error) {
@@ -279,7 +284,7 @@ export default function TopBar() {
 
   // ✅ FIXED: Use semantic colors throughout
   return (
-    <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-brand-500 via-brand-500 to-accent-500 text-white ${isMobile ? 'px-2' : 'px-4'} shadow-sm border-b border-border`}>
+    <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-primary via-primary to-primary/80 text-white ${isMobile ? 'px-2' : 'px-4'} shadow-sm border-b border-border`}>
       <div className={`h-full flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Left Section: Logo & App Switcher */}
         <div className={`flex items-center gap-2 sm:gap-3 flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>

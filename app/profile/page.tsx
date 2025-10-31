@@ -392,10 +392,11 @@ export default function ProfilePage() {
                   <div>
                     <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.notifications.channels')}</h3>
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 border border-border rounded-2xl">
-                        <Label htmlFor="email-notifications" className="text-sm font-medium cursor-pointer">
-                          {t('profile.notifications.email')}
-                        </Label>
+                      <Label
+                        htmlFor="email-notifications"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">{t('profile.notifications.email')}</span>
                         <Switch
                           id="email-notifications"
                           checked={notificationSettings.emailNotifications}
@@ -403,12 +404,14 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             emailNotifications: checked
                           })}
+                          aria-label={t('profile.notifications.email')}
                         />
-                      </div>
-                      <div className="flex items-center justify-between p-3 border border-border rounded-2xl">
-                        <Label htmlFor="push-notifications" className="text-sm font-medium cursor-pointer">
-                          {t('profile.notifications.push')}
-                        </Label>
+                      </Label>
+                      <Label
+                        htmlFor="push-notifications"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">{t('profile.notifications.push')}</span>
                         <Switch
                           id="push-notifications"
                           checked={notificationSettings.pushNotifications}
@@ -416,12 +419,14 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             pushNotifications: checked
                           })}
+                          aria-label={t('profile.notifications.push')}
                         />
-                      </div>
-                      <div className="flex items-center justify-between p-3 border border-border rounded-2xl">
-                        <Label htmlFor="sms-notifications" className="text-sm font-medium cursor-pointer">
-                          {t('profile.notifications.sms')}
-                        </Label>
+                      </Label>
+                      <Label
+                        htmlFor="sms-notifications"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">{t('profile.notifications.sms')}</span>
                         <Switch
                           id="sms-notifications"
                           checked={notificationSettings.smsNotifications}
@@ -429,18 +434,20 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             smsNotifications: checked
                           })}
+                          aria-label={t('profile.notifications.sms')}
                         />
-                      </div>
+                      </Label>
                     </div>
                   </div>
 
                   <div>
                     <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.notifications.events')}</h3>
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between p-3 border border-border rounded-2xl">
-                        <Label htmlFor="work-order-updates" className="text-sm font-medium cursor-pointer">
-                          {t('profile.notifications.workOrders')}
-                        </Label>
+                      <Label
+                        htmlFor="work-order-updates"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">{t('profile.notifications.workOrders')}</span>
                         <Switch
                           id="work-order-updates"
                           checked={notificationSettings.workOrderUpdates}
@@ -448,12 +455,14 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             workOrderUpdates: checked
                           })}
+                          aria-label={t('profile.notifications.workOrders')}
                         />
-                      </div>
-                      <div className="flex items-center justify-between p-3 border border-border rounded-2xl">
-                        <Label htmlFor="maintenance-alerts" className="text-sm font-medium cursor-pointer">
-                          {t('profile.notifications.maintenance')}
-                        </Label>
+                      </Label>
+                      <Label
+                        htmlFor="maintenance-alerts"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">{t('profile.notifications.maintenance')}</span>
                         <Switch
                           id="maintenance-alerts"
                           checked={notificationSettings.maintenanceAlerts}
@@ -461,12 +470,14 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             maintenanceAlerts: checked
                           })}
+                          aria-label={t('profile.notifications.maintenance')}
                         />
-                      </div>
-                      <div className="flex items-center justify-between p-3 border border-border rounded-2xl">
-                        <Label htmlFor="invoice-reminders" className="text-sm font-medium cursor-pointer">
-                          {t('profile.notifications.invoices')}
-                        </Label>
+                      </Label>
+                      <Label
+                        htmlFor="invoice-reminders"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">{t('profile.notifications.invoices')}</span>
                         <Switch
                           id="invoice-reminders"
                           checked={notificationSettings.invoiceReminders}
@@ -474,8 +485,9 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             invoiceReminders: checked
                           })}
+                          aria-label={t('profile.notifications.invoices')}
                         />
-                      </div>
+                      </Label>
                     </div>
                   </div>
 

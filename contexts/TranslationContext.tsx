@@ -2099,8 +2099,9 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     try {
       window.localStorage.setItem(STORAGE_KEYS.locale, currentOption.locale);
       window.localStorage.setItem(STORAGE_KEYS.language, currentOption.language);
-      document.cookie = `${COOKIE_KEYS.language}=${currentOption.language}; path=/; SameSite=Lax`;
-      document.cookie = `${COOKIE_KEYS.locale}=${currentOption.locale}; path=/; SameSite=Lax`;
+      const oneYear = 365 * 24 * 60 * 60; // seconds
+      document.cookie = `${COOKIE_KEYS.language}=${currentOption.language}; path=/; SameSite=Lax; max-age=${oneYear}`;
+      document.cookie = `${COOKIE_KEYS.locale}=${currentOption.locale}; path=/; SameSite=Lax; max-age=${oneYear}`;
       document.documentElement.lang = currentOption.locale.toLowerCase();
       document.documentElement.dir = currentOption.dir;
       document.documentElement.setAttribute('data-locale', currentOption.locale);

@@ -92,7 +92,8 @@ for file in $FILES; do
     # No changes, remove backup
     rm "$file.backup"
   else
-    echo "   ✓ Updated $(diff "$file.backup" "$file" | grep -c "^<" || echo 0) occurrences"
+    changes=$(diff "$file.backup" "$file" | grep "^<" | wc -l || echo 0)
+    echo "   ✓ Updated $changes occurrences"
     rm "$file.backup"
   fi
 done
@@ -101,7 +102,7 @@ echo ""
 echo "✅ Phase 7B Complete!"
 echo ""
 echo "📊 Verification:"
-REMAINING=$(grep -r --include="*.tsx" --include="*.ts" -E "(text-brand-|bg-brand-|border-brand-|ring-brand-)" . 2>/dev/null | grep -v "\.old\." | grep -v "fix-brand-tokens.sh" | wc -l || echo 0)
+REMAINING=$(grep -r --include="*.tsx" --include="*.ts" --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=dist -E "(text-brand-|bg-brand-|border-brand-|ring-brand-)" . 2>/dev/null | grep -v "\.old\." | grep -v "fix-brand-tokens.sh" | wc -l || echo 0)
 echo "   Remaining brand tokens: $REMAINING"
 
 if [ "$REMAINING" -eq 0 ]; then
@@ -110,7 +111,7 @@ else
   echo "   ⚠️  Some tokens may need manual review"
   echo ""
   echo "   Remaining occurrences:"
-  grep -r --include="*.tsx" --include="*.ts" -E "(text-brand-|bg-brand-|border-brand-|ring-brand-)" . 2>/dev/null | grep -v "\.old\." | grep -v "fix-brand-tokens.sh" | head -10
+  grep -r --include="*.tsx" --include="*.ts" --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=dist -E "(text-brand-|bg-brand-|border-brand-|ring-brand-)" . 2>/dev/null | grep -v "\.old\." | grep -v "fix-brand-tokens.sh" | head -10
 fi
 
 echo ""
