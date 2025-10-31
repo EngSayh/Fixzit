@@ -167,17 +167,17 @@ export default function SignupPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-brand-500 via-success to-accent flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
+          <div className="bg-card text-card-foreground rounded-2xl shadow-2xl p-8 text-center">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-[var(--fixzit-success-lighter)] rounded-full flex items-center justify-center">
-                <CheckCircle className="w-8 h-8 text-[var(--fixzit-success)]" />
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('signup.success.title', 'Account Created Successfully!')}</h2>
-            <p className="text-gray-600 mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-2">{t('signup.success.title', 'Account Created Successfully!')}</h2>
+            <p className="text-muted-foreground mb-6">
               {t('signup.success.message', 'Welcome to Fixzit Enterprise! Your account has been created and you can now sign in.')}
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               {t('signup.success.redirecting', 'Redirecting you to the login page...')}
             </p>
           </div>
@@ -193,7 +193,7 @@ export default function SignupPage() {
         <div className="max-w-md text-center">
           <div className="mb-8">
             <div className="flex justify-center mb-6">
-              <div className="bg-white p-6 rounded-2xl shadow-lg">
+              <div className="bg-card p-6 rounded-2xl shadow-lg">
                 <div className="w-20 h-20 bg-brand-500 rounded-xl flex items-center justify-center text-white font-bold text-2xl">
                   F
                 </div>
@@ -207,7 +207,7 @@ export default function SignupPage() {
 
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/20 rounded-lg">
+              <div className="p-3 bg-white/20 rounded-2xl">
                 <Building2 size={24} />
               </div>
               <div>
@@ -216,7 +216,7 @@ export default function SignupPage() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/20 rounded-lg">
+              <div className="p-3 bg-white/20 rounded-2xl">
                 <Globe size={24} />
               </div>
               <div>
@@ -225,7 +225,7 @@ export default function SignupPage() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/20 rounded-lg">
+              <div className="p-3 bg-white/20 rounded-2xl">
                 <Phone size={24} />
               </div>
               <div>
@@ -247,7 +247,7 @@ export default function SignupPage() {
               <div className="relative">
                 <button
                   onClick={() => setShowLangDropdown(!showLangDropdown)}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 bg-white/20 rounded-2xl text-white hover:bg-white/30 transition-colors"
                 >
                   <span className="text-lg">{selectedLang.flag}</span>
                   <span className="text-sm font-medium">{selectedLang.code.toUpperCase()}</span>
@@ -255,19 +255,19 @@ export default function SignupPage() {
                 </button>
 
                 {showLangDropdown && (
-                  <div className="absolute top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+                  <div className="absolute top-full mt-2 w-48 bg-popover text-popover-foreground rounded-2xl shadow-xl border border-border py-2 z-50">
                     {LANGUAGES.map(lang => (
                       <button
                         key={lang.code}
                         onClick={() => handleLanguageChange(lang)}
-                        className={`w-full px-3 py-2 flex items-center gap-3 hover:bg-gray-50 text-gray-900 ${
+                        className={`w-full px-3 py-2 flex items-center gap-3 hover:bg-muted text-foreground ${
                           lang.code === selectedLang.code ? 'bg-brand-500/10' : ''
                         }`}
                       >
                         <span className="text-xl">{lang.flag}</span>
                         <div className="flex-1 text-left">
                           <div className="font-medium">{lang.native}</div>
-                          <div className="text-xs text-gray-500">{lang.code.toUpperCase()}</div>
+                          <div className="text-xs text-muted-foreground">{lang.code.toUpperCase()}</div>
                         </div>
                         {lang.code === selectedLang.code && (
                           <div className="w-2 h-2 rounded-full bg-brand-500" />
@@ -282,7 +282,7 @@ export default function SignupPage() {
               <div className="relative">
                 <button
                   onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 bg-white/20 rounded-2xl text-white hover:bg-white/30 transition-colors"
                 >
                   <span className="font-medium">{selectedCurrency.symbol}</span>
                   <span className="text-sm">{selectedCurrency.code}</span>
@@ -290,18 +290,18 @@ export default function SignupPage() {
                 </button>
 
                 {showCurrencyDropdown && (
-                  <div className="absolute top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+                  <div className="absolute top-full mt-2 w-48 bg-popover text-popover-foreground rounded-2xl shadow-xl border border-border py-2 z-50">
                     {CURRENCIES.map(currency => (
                       <button
                         key={currency.code}
                         onClick={() => handleCurrencyChange(currency)}
-                        className={`w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-50 text-gray-900 text-sm ${
+                        className={`w-full px-3 py-2 flex items-center gap-2 hover:bg-muted text-foreground text-sm ${
                           currency.code === selectedCurrency.code ? 'bg-brand-500/10' : ''
                         }`}
                       >
                         <span className="font-medium">{currency.symbol}</span>
                         <span>{currency.code}</span>
-                        <span className="text-gray-500 text-xs ml-auto">{currency.name}</span>
+                        <span className="text-muted-foreground text-xs ml-auto">{currency.name}</span>
                       </button>
                     ))}
                   </div>
@@ -316,16 +316,16 @@ export default function SignupPage() {
           </div>
 
           {/* Signup Form */}
-          <div className="bg-white rounded-2xl shadow-2xl p-8">
+          <div className="bg-card text-card-foreground rounded-2xl shadow-2xl p-8">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('signup.form.title', 'Create Your Account')}</h2>
-              <p className="text-gray-600">{t('signup.form.subtitle', 'Join Fixzit Enterprise today')}</p>
+              <h2 className="text-2xl font-bold text-foreground mb-2">{t('signup.form.title', 'Create Your Account')}</h2>
+              <p className="text-muted-foreground">{t('signup.form.subtitle', 'Join Fixzit Enterprise today')}</p>
             </div>
 
             <form onSubmit={onSubmit} className="space-y-6">
               {/* User Type Selection */}
               <div>
-                <Label htmlFor="userType" className="block text-sm font-medium text-gray-700 mb-2">
+                <Label htmlFor="userType" className="block text-sm font-medium text-foreground mb-2">
                   {t('signup.fields.accountType', 'Account Type')}
                 </Label>
                 <Select value={formData.userType} onValueChange={(value) => handleChange('userType', value)}>
@@ -345,7 +345,7 @@ export default function SignupPage() {
               {/* Name Fields */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                  <Label htmlFor="firstName" className="block text-sm font-medium text-foreground mb-2">
                     {t('signup.fields.firstName', 'First Name')} *
                   </Label>
                   <Input
@@ -359,7 +359,7 @@ export default function SignupPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                  <Label htmlFor="lastName" className="block text-sm font-medium text-foreground mb-2">
                     {t('signup.fields.lastName', 'Last Name')} *
                   </Label>
                   <Input
@@ -376,11 +376,11 @@ export default function SignupPage() {
 
               {/* Email Field */}
               <div>
-                <Label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <Label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
                   {t('signup.fields.email', 'Email Address')} *
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
@@ -395,11 +395,11 @@ export default function SignupPage() {
 
               {/* Phone Field */}
               <div>
-                <Label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                <Label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
                   {t('signup.fields.phone', 'Phone Number')} *
                 </Label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
                     id="phone"
                     type="tel"
@@ -415,11 +415,11 @@ export default function SignupPage() {
               {/* Company Name (for corporate accounts) */}
               {formData.userType === 'corporate' && (
                 <div>
-                  <Label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">
+                  <Label htmlFor="companyName" className="block text-sm font-medium text-foreground mb-2">
                     {t('signup.fields.companyName', 'Company Name')} *
                   </Label>
                   <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
                       id="companyName"
                       type="text"
@@ -436,11 +436,11 @@ export default function SignupPage() {
               {/* Password Fields */}
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                  <Label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
                     {t('signup.fields.password', 'Password')} *
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
@@ -454,7 +454,7 @@ export default function SignupPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
@@ -462,11 +462,11 @@ export default function SignupPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                  <Label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground mb-2">
                     {t('signup.fields.confirmPassword', 'Confirm Password')} *
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
                       id="confirmPassword"
                       type={showConfirmPassword ? 'text' : 'password'}
@@ -480,7 +480,7 @@ export default function SignupPage() {
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     >
                       {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
@@ -490,7 +490,7 @@ export default function SignupPage() {
 
               {/* Error Message */}
               {error && (
-                <div className="flex items-center gap-2 p-3 bg-[var(--fixzit-danger-lightest)] border border-red-200 rounded-lg text-[var(--fixzit-danger-dark)]">
+                <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950 border border-border rounded-2xl text-red-700 dark:text-red-300">
                   <AlertCircle className="h-5 w-5" />
                   <span className="text-sm">{error}</span>
                 </div>
@@ -503,10 +503,10 @@ export default function SignupPage() {
                     type="checkbox"
                     checked={formData.termsAccepted}
                     onChange={(e) => handleChange('termsAccepted', e.target.checked)}
-                    className="mt-1 h-4 w-4 text-brand-500 border-gray-300 rounded focus:ring-brand-500"
+                    className="mt-1 h-4 w-4 text-brand-500 border-border rounded focus:ring-brand-500"
                     required
                   />
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-muted-foreground">
                     {t('signup.terms.agree', 'I agree to the')}{' '}
                     <Link href="/terms" className="text-brand-500 hover:text-brand-600 transition-colors">
                       {t('signup.terms.service', 'Terms of Service')}
@@ -524,9 +524,9 @@ export default function SignupPage() {
                     type="checkbox"
                     checked={formData.newsletter}
                     onChange={(e) => handleChange('newsletter', e.target.checked)}
-                    className="mt-1 h-4 w-4 text-brand-500 border-gray-300 rounded focus:ring-brand-500"
+                    className="mt-1 h-4 w-4 text-brand-500 border-border rounded focus:ring-brand-500"
                   />
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-muted-foreground">
                     {t('signup.newsletter', "I'd like to receive updates and promotional emails about Fixzit Enterprise")}
                   </span>
                 </label>
@@ -554,7 +554,7 @@ export default function SignupPage() {
 
             {/* Login Link */}
             <div className="mt-6 text-center">
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 {t('signup.login.prompt', 'Already have an account?')}{' '}
                 <Link href="/login" className="text-brand-500 hover:text-brand-600 font-medium transition-colors">
                   {t('signup.login.link', 'Sign in here')}
