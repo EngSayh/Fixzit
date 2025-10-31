@@ -45,13 +45,13 @@ export default function QuickActions() {
     <div ref={dropdownRef} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-        aria-label="Quick actions"
+        className="flex items-center gap-2 px-3 py-2 bg-success text-success-foreground rounded-md hover:bg-success/90 transition-colors"
+        aria-label={t('topbar.quickActions', 'Quick actions')}
         aria-expanded={open}
         aria-haspopup="true"
       >
         <Plus className="w-4 h-4" />
-        <span className="text-sm font-medium">Quick Actions</span>
+        <span className="text-sm font-medium">{t('topbar.quickActions', 'Quick Actions')}</span>
         <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
