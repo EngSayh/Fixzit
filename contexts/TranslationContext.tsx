@@ -9,8 +9,8 @@ import {
   type LanguageCode,
   type LanguageOption
 } from '@/config/language-options';
-// ✅ FIX: Import centralized storage keys
-import { STORAGE_KEYS } from '@/config/constants';
+// ✅ FIX: Import centralized storage and cookie keys
+import { STORAGE_KEYS, COOKIE_KEYS, APP_DEFAULTS } from '@/config/constants';
 
 export type Language = LanguageCode;
 
@@ -2062,8 +2062,8 @@ const translations: Record<Language, Record<string, string>> = {
   },
 };
 
-// Default to Arabic since this is a Saudi Arabian application
-const DEFAULT_LANGUAGE_OPTION = LANGUAGE_OPTIONS.find(opt => opt.language === 'ar') || LANGUAGE_OPTIONS[0];
+// ✅ FIX: Use centralized APP_DEFAULTS instead of hardcoded 'ar'
+const DEFAULT_LANGUAGE_OPTION = LANGUAGE_OPTIONS.find(opt => opt.language === APP_DEFAULTS.language) || LANGUAGE_OPTIONS[0];
 
 export function TranslationProvider({ children }: { children: ReactNode }) {
   const [currentOption, setCurrentOption] = useState<LanguageOption>(DEFAULT_LANGUAGE_OPTION);
@@ -2099,8 +2099,8 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     try {
       window.localStorage.setItem(STORAGE_KEYS.locale, currentOption.locale);
       window.localStorage.setItem(STORAGE_KEYS.language, currentOption.language);
-      document.cookie = `fxz.lang=${currentOption.language}; path=/; SameSite=Lax`;
-      document.cookie = `fxz.locale=${currentOption.locale}; path=/; SameSite=Lax`;
+      document.cookie = `${COOKIE_KEYS.language}=${currentOption.language}; path=/; SameSite=Lax`;
+      document.cookie = `${COOKIE_KEYS.locale}=${currentOption.locale}; path=/; SameSite=Lax`;
       document.documentElement.lang = currentOption.locale.toLowerCase();
       document.documentElement.dir = currentOption.dir;
       document.documentElement.setAttribute('data-locale', currentOption.locale);
@@ -2167,8 +2167,8 @@ export function useTranslation() {
     if (!context) {
       // Create a fallback context object for SSR
       const fallbackContext: TranslationContextType = {
-        language: 'ar',
-        locale: 'ar-SA',
+        language: APP_DEFAULTS.language,
+        locale: APP_DEFAULTS.locale,
         setLanguage: (lang: Language) => {
           try {
             if (typeof window !== 'undefined') {
@@ -2202,8 +2202,8 @@ export function useTranslation() {
     // Ultimate fallback in case of any error
     console.warn('useTranslation error:', error);
     return {
-      language: 'ar' as Language,
-      locale: 'ar-SA',
+      language: APP_DEFAULTS.language as Language,
+      locale: APP_DEFAULTS.locale,
       setLanguage: (_lang: Language) => {},
       setLocale: () => {},
       t: (key: string, fallback: string = key): string => fallback,

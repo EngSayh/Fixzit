@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { STORAGE_KEYS } from '@/config/constants';
 
 export default function LogoutPage() {
   const router = useRouter();
@@ -17,9 +18,9 @@ export default function LogoutPage() {
 
         // Clear client-side storage
         localStorage.removeItem('fixzit-role');
-        localStorage.removeItem('fxz.lang');
-        localStorage.removeItem('fixzit-currency');
-        localStorage.removeItem('fixzit-theme');
+        localStorage.removeItem(STORAGE_KEYS.language);
+        localStorage.removeItem(STORAGE_KEYS.currency);
+        localStorage.removeItem(STORAGE_KEYS.theme);
 
         // Clear any other localStorage items related to the app
         Object.keys(localStorage).forEach(key => {

@@ -15,6 +15,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 
 // ✅ FIXED: Import config instead of redefining
 import { SIGNUP_USER_TYPES } from '@/config/signup.config';
+import { STORAGE_KEYS, APP_DEFAULTS } from '@/config/constants';
 
 // ✅ FIXED: Import standard components instead of custom dropdowns
 import LanguageSelector from '@/components/i18n/LanguageSelector';
@@ -88,8 +89,8 @@ export default function SignupPage() {
 
     try {
       // ✅ FIXED: Get language/currency from localStorage (managed by standard components)
-      const preferredLanguage = localStorage.getItem('fxz.lang') || 'en';
-      const preferredCurrency = localStorage.getItem('fixzit-currency') || 'SAR';
+      const preferredLanguage = localStorage.getItem(STORAGE_KEYS.language) || APP_DEFAULTS.language;
+      const preferredCurrency = localStorage.getItem(STORAGE_KEYS.currency) || APP_DEFAULTS.currency;
       
       const signupData = {
         ...formData,
