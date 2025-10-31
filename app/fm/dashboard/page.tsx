@@ -117,7 +117,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-gray-600">Welcome back, {user?.name || 'User'}</p>
+          <p className="text-muted-foreground">Welcome back, {user?.name || 'User'}</p>
         </div>
         <div className="flex items-center space-x-4">
           <Button variant="outline" className="flex items-center gap-2">
@@ -141,7 +141,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.workOrders.total}</div>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-muted-foreground">
               {stats.workOrders.pending} pending • {stats.workOrders.overdue} overdue
             </p>
             <Link href="/fm/work-orders" className="text-xs text-[var(--fixzit-primary)] hover:underline flex items-center mt-2">
@@ -157,7 +157,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.properties.total}</div>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-muted-foreground">
               {stats.properties.occupied} occupied • {stats.properties.maintenance} need attention
             </p>
             <Link href="/fm/properties" className="text-xs text-[var(--fixzit-success)] hover:underline flex items-center mt-2">
@@ -173,7 +173,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.assets.maintenance}</div>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-muted-foreground">
               {stats.assets.critical} critical assets
             </p>
             <Link href="/fm/assets" className="text-xs text-orange-600 hover:underline flex items-center mt-2">
@@ -189,7 +189,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.finance.overdue}</div>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-muted-foreground">
               {stats.finance.amount.toLocaleString()} SAR pending
             </p>
             <Link href="/fm/finance" className="text-xs text-[var(--fixzit-danger)] hover:underline flex items-center mt-2">
@@ -224,7 +224,7 @@ export default function DashboardPage() {
                     }`} />
                     <div>
                       <p className="font-medium text-sm">{wo.code}</p>
-                      <p className="text-xs text-gray-600">{wo.title}</p>
+                      <p className="text-xs text-muted-foreground">{wo.title}</p>
                     </div>
                   </div>
                   <Badge variant="outline" className="text-xs">
@@ -233,7 +233,7 @@ export default function DashboardPage() {
                 </div>
               ))}
               {(!workOrders?.items || workOrders.items.length === 0) && (
-                <p className="text-sm text-gray-500 text-center py-4">{t('dashboard.noRecentWorkOrders')}</p>
+                <p className="text-sm text-muted-foreground text-center py-4">{t('dashboard.noRecentWorkOrders')}</p>
               )}
             </div>
           </CardContent>
@@ -254,21 +254,21 @@ export default function DashboardPage() {
               {properties?.items?.slice(0, 5).map((property: Property) => (
                 <div key={property._id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <Building2 className="w-4 h-4 text-gray-400" />
+                    <Building2 className="w-4 h-4 text-muted-foreground" />
                     <div>
                       <p className="font-medium text-sm">{property.name}</p>
-                      <p className="text-xs text-gray-600">
+                      <p className="text-xs text-muted-foreground">
                         {property.address?.city} • {property.units?.length || 0} units
                       </p>
                     </div>
                   </div>
-                  <span className="text-xs text-gray-600">
+                  <span className="text-xs text-muted-foreground">
                     {property.details?.occupancyRate || 0}% occupied
                   </span>
                 </div>
               ))}
               {(!properties?.items || properties.items.length === 0) && (
-                <p className="text-sm text-gray-500 text-center py-4">No properties found</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No properties found</p>
               )}
             </div>
           </CardContent>

@@ -222,15 +222,15 @@ export default function FMPage() {
     switch (status.toLowerCase()) {
       case 'active': return 'bg-green-100 text-green-800 border-green-200';
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'inactive': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'inactive': return 'bg-muted text-gray-800 border-border';
       case 'open': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'draft': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'draft': return 'bg-muted text-gray-800 border-border';
       case 'closed': return 'bg-red-100 text-red-800 border-red-200';
       case 'awarded': return 'bg-green-100 text-green-800 border-green-200';
       case 'issued': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'received': return 'bg-green-100 text-green-800 border-green-200';
       case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-muted text-gray-800 border-border';
     }
   };
 
@@ -238,15 +238,15 @@ export default function FMPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('nav.fm', 'Facility Management')}</h1>
-        <p className="text-gray-600">{t('fm.description', 'Manage your facility operations, vendors, and procurement')}</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{t('nav.fm', 'Facility Management')}</h1>
+        <p className="text-muted-foreground">{t('fm.description', 'Manage your facility operations, vendors, and procurement')}</p>
       </div>
 
       {/* Search and Filters */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={t('common.search', 'Search...')}
                   value={searchTerm}
@@ -318,7 +318,7 @@ export default function FMPage() {
                     {service.icon}
                   </div>
                   <h3 className="text-lg font-semibold mb-2">{service.name}</h3>
-                  <p className="text-gray-600 text-sm mb-4">{service.count} {t('common.vendors', 'vendors available')}</p>
+                  <p className="text-muted-foreground text-sm mb-4">{service.count} {t('common.vendors', 'vendors available')}</p>
                   <Button variant="outline" size="sm" className="w-full">
                     {t('common.view', 'View Vendors')}
                   </Button>
@@ -337,7 +337,7 @@ export default function FMPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-lg font-semibold text-gray-900">{vendor.name}</h3>
+                        <h3 className="text-lg font-semibold text-foreground">{vendor.name}</h3>
                         <Badge className={getStatusColor(vendor.status)}>
                           {vendor.status}
                         </Badge>
@@ -348,26 +348,26 @@ export default function FMPage() {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <span className="font-medium">{t('vendor.category', 'Category')}:</span>
                           {vendor.category}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <MapPin className="h-4 w-4" />
                           {vendor.location}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Phone className="h-4 w-4" />
                           {vendor.contact}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Mail className="h-4 w-4" />
                           {vendor.email}
                         </div>
                       </div>
 
                       <div className="mb-4">
-                        <h4 className="font-medium text-gray-900 mb-2">{t('vendor.services', 'Services')}:</h4>
+                        <h4 className="font-medium text-foreground mb-2">{t('vendor.services', 'Services')}:</h4>
                         <div className="flex flex-wrap gap-2">
                           {vendor.services.map((service) => (
                             <Badge key={service} variant="outline">
@@ -378,7 +378,7 @@ export default function FMPage() {
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <span className="font-medium">{t('vendor.responseTime', 'Response Time')}:</span>
                           {vendor.responseTime}
                         </div>
@@ -414,7 +414,7 @@ export default function FMPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-lg font-semibold text-gray-900">{rfq.title}</h3>
+                        <h3 className="text-lg font-semibold text-foreground">{rfq.title}</h3>
                         <Badge className={getStatusColor(rfq.status)}>
                           {rfq.status}
                         </Badge>
@@ -422,24 +422,24 @@ export default function FMPage() {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <span className="font-medium">{t('rfq.category', 'Category')}:</span>
                           {rfq.category}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
                           {t('rfq.due', 'Due')}: {new Date(rfq.dueDate).toLocaleDateString()}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <DollarSign className="h-4 w-4" />
                           {t('rfq.budget', 'Budget')}: {rfq.budget}
                         </div>
                       </div>
 
-                      <p className="text-gray-600 mb-4">{rfq.description}</p>
+                      <p className="text-muted-foreground mb-4">{rfq.description}</p>
 
                       <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-muted-foreground">
                           {t('rfq.id', 'RFQ ID')}: {rfq.id}
                         </div>
                         <div className="flex gap-2">
@@ -474,29 +474,29 @@ export default function FMPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-lg font-semibold text-gray-900">{t('order.po', 'PO')} {order.id}</h3>
+                        <h3 className="text-lg font-semibold text-foreground">{t('order.po', 'PO')} {order.id}</h3>
                         <Badge className={getStatusColor(order.status)}>
                           {order.status}
                         </Badge>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <span className="font-medium">{t('order.vendor', 'Vendor')}:</span>
                           {order.vendor}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
                           {t('order.date', 'Order Date')}: {new Date(order.date).toLocaleDateString()}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <DollarSign className="h-4 w-4" />
                           {t('order.total', 'Total')}: SAR {order.total}
                         </div>
                       </div>
 
                       <div className="mb-4">
-                        <h4 className="font-medium text-gray-900 mb-2">{t('order.items', 'Items')}:</h4>
+                        <h4 className="font-medium text-foreground mb-2">{t('order.items', 'Items')}:</h4>
                         <div className="flex flex-wrap gap-2">
                           {order.items.map((item) => (
                             <Badge key={item} variant="outline">
@@ -507,7 +507,7 @@ export default function FMPage() {
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
                           {t('order.delivery', 'Delivery')}: {new Date(order.deliveryDate).toLocaleDateString()}
                         </div>

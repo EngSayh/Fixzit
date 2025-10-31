@@ -129,7 +129,7 @@ export default function FMVendorsPage() {
       case 'suspended': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
       case 'blacklisted': return 'bg-gray-900 text-white border-gray-900';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-muted text-gray-800 border-border';
     }
   };
 
@@ -143,15 +143,15 @@ export default function FMVendorsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('nav.vendors', 'Vendors')}</h1>
-        <p className="text-gray-600">{t('vendors.description', 'Manage your vendor relationships and service providers')}</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{t('nav.vendors', 'Vendors')}</h1>
+        <p className="text-muted-foreground">{t('vendors.description', 'Manage your vendor relationships and service providers')}</p>
       </div>
 
       {/* Search and Filters */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={t('common.search', 'Search vendors...')}
               value={searchTerm}
@@ -187,7 +187,7 @@ export default function FMVendorsPage() {
       {vendors.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
-            <p className="text-gray-500 mb-4">No vendors found</p>
+            <p className="text-muted-foreground mb-4">No vendors found</p>
             <Button onClick={() => router.push('/fm/vendors/new')}>Add First Vendor</Button>
           </CardContent>
         </Card>
@@ -200,7 +200,7 @@ export default function FMVendorsPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-lg font-semibold text-gray-900">{vendor.name}</h3>
+                        <h3 className="text-lg font-semibold text-foreground">{vendor.name}</h3>
                         <Badge className={getStatusColor(vendor.status)}>
                           {vendor.status}
                         </Badge>
@@ -213,19 +213,19 @@ export default function FMVendorsPage() {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <span className="font-medium">{t('vendor.type', 'Type')}:</span>
                           {vendor.type?.replace('_', ' ')}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <MapPin className="h-4 w-4" />
                           {vendor.contact?.address?.city || 'N/A'}, {vendor.contact?.address?.region || ''}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Phone className="h-4 w-4" />
                           {vendor.contact?.primary?.phone || vendor.contact?.primary?.mobile || 'N/A'}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Mail className="h-4 w-4" />
                           {vendor.contact?.primary?.email || 'N/A'}
                         </div>
@@ -233,7 +233,7 @@ export default function FMVendorsPage() {
 
                       {vendor.business?.specializations && vendor.business.specializations.length > 0 && (
                         <div className="mb-4">
-                          <h4 className="font-medium text-gray-900 mb-2">{t('vendor.services', 'Services')}:</h4>
+                          <h4 className="font-medium text-foreground mb-2">{t('vendor.services', 'Services')}:</h4>
                           <div className="flex flex-wrap gap-2">
                             {vendor.business.specializations.map((service) => (
                               <Badge key={service} variant="outline">
@@ -245,7 +245,7 @@ export default function FMVendorsPage() {
                       )}
 
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <span className="font-medium">{t('vendor.code', 'Code')}:</span>
                           {vendor.code}
                         </div>
@@ -294,7 +294,7 @@ export default function FMVendorsPage() {
               >
                 Previous
               </Button>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-muted-foreground">
                 Page {page} of {totalPages} ({vendorsData?.total || 0} total vendors)
               </span>
               <Button
