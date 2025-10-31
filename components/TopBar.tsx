@@ -287,7 +287,7 @@ export default function TopBar() {
             variant="ghost"
             onClick={handleLogoClick}
             className="flex items-center gap-2 hover:opacity-80 transition-opacity p-0 h-auto"
-            aria-label={t('common.backToHome')}
+            aria-label={t('common.backToHome', 'Go to home')}
           >
             {orgSettings.logo && !logoError ? (
               <Image
