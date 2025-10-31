@@ -30,6 +30,7 @@ interface UpgradeModalProps {
  * 5. ✅ FeatureListItem helper component for DRY code
  * 6. ✅ SuccessView helper component for state management
  * 7. ✅ Internal success state (NO fragile window.toast)
+ * 8. ✅ State reset on close (prevents stale data on reopen)
  */
 export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps) {
   const { t } = useTranslation();
@@ -37,6 +38,17 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // ✅ FIXED: Reset state when modal closes to prevent stale data
+  const handleClose = () => {
+    onClose();
+    // Reset state after animation completes (300ms)
+    setTimeout(() => {
+      setEmail('');
+      setError('');
+      setShowSuccess(false);
+    }, 300);
+  };
 
   const handleContactSales = async () => {
     // Validate email format
@@ -70,7 +82,7 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
       // Auto-close after 3 seconds
       setTimeout(() => {
         setShowSuccess(false);
-        onClose();
+        handleClose();
       }, 3000);
     } catch (error) {
       console.error('Failed to submit contact request:', error);
@@ -83,16 +95,16 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
   // ✅ FIXED: Success view component
   if (showSuccess) {
     return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
         <DialogContent className="bg-popover text-popover-foreground border-border">
-          <SuccessView onClose={onClose} t={t} />
+          <SuccessView onClose={handleClose} t={t} />
         </DialogContent>
       </Dialog>
     );
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="bg-popover text-popover-foreground border-border max-w-md">
         {/* Icon */}
         <div className="flex justify-center mb-4">
@@ -158,7 +170,7 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
         <DialogFooter className="flex-row gap-3 sm:gap-3">
           <Button
             variant="outline"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={submitting}
             className="flex-1"
           >
