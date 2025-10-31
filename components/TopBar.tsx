@@ -492,13 +492,11 @@ function NotificationPopup({
         size="icon"
         onClick={() => {
           setUserOpen(false);
-          setNotifOpen(o => {
-            const next = !o;
-            if (next && notifBtnRef.current) {
-              placeDropdown(notifBtnRef.current, 384);
-            }
-            return next;
-          });
+          const next = !notifOpen;
+          if (next && notifBtnRef.current) {
+            placeDropdown(notifBtnRef.current, 384);
+          }
+          setNotifOpen(next);
         }}
         className="relative text-white hover:bg-white/10"
         aria-label={t('nav.notifications', 'Toggle notifications')}
@@ -650,13 +648,11 @@ function UserMenuPopup({
         size="sm"
         onClick={() => {
           setNotifOpen(false);
-          setUserOpen(o => {
-            const next = !o;
-            if (next && userBtnRef.current) {
-              placeDropdown(userBtnRef.current, 224);
-            }
-            return next;
-          });
+          const next = !userOpen;
+          if (next && userBtnRef.current) {
+            placeDropdown(userBtnRef.current, 224);
+          }
+          setUserOpen(next);
         }}
         className="flex items-center gap-1 text-white hover:bg-white/10"
         aria-label={t('nav.profile', 'Toggle user menu')}
