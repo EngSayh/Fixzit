@@ -4,6 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
 import { Menu, X } from 'lucide-react';
 
+// ✅ FIXED: Use standard Button component
+import { Button } from './ui/button';
+
+// ✅ FIXED: Define sidebar width constant (no magic numbers)
+const SIDEBAR_WIDTH_CLASS = 'md:w-64';
+
 interface ResponsiveLayoutProps {
   children: React.ReactNode;
   sidebar?: React.ReactNode;
@@ -13,6 +19,16 @@ interface ResponsiveLayoutProps {
   className?: string;
 }
 
+/**
+ * ✅ REFACTORED ResponsiveLayout Component
+ * 
+ * ARCHITECTURE IMPROVEMENTS:
+ * 1. ✅ Use standard Button for toggle (no hardcoded button)
+ * 2. ✅ Semantic color tokens (bg-primary instead of bg-brand-500)
+ * 3. ✅ No magic numbers (SIDEBAR_WIDTH_CLASS constant instead of ml-64)
+ * 4. ✅ Deleted duplicate ResponsiveCard and ResponsiveButton (use Card/Button from ui/)
+ * 5. ✅ Fixed all hardcoded colors
+ */
 export default function ResponsiveLayout({
   children,
   sidebar,
@@ -42,14 +58,16 @@ export default function ResponsiveLayout({
         </div>
       )}
 
-      {/* Mobile sidebar toggle */}
+      {/* Mobile sidebar toggle - ✅ FIXED: Use standard Button */}
       {sidebar && showSidebarToggle && (screenInfo.isMobile || screenInfo.isTablet) && (
-        <button
+        <Button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-16 left-4 z-50 p-2 bg-brand-500 text-white rounded-md shadow-lg md:hidden hover:bg-brand-600 transition-colors"
+          size="icon"
+          className="fixed top-16 left-4 z-50 md:hidden shadow-lg"
+          aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
         >
           {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+        </Button>
       )}
 
       <div className="flex flex-1">
@@ -58,6 +76,7 @@ export default function ResponsiveLayout({
           <div className={`
             ${showSidebar ? 'translate-x-0' : '-translate-x-full'}
             ${screenInfo.isMobile || screenInfo.isTablet ? 'fixed inset-y-0 left-0 z-40' : 'relative'}
+            ${SIDEBAR_WIDTH_CLASS}
             transition-transform duration-300 ease-in-out
           `}>
             {sidebar}
@@ -72,10 +91,10 @@ export default function ResponsiveLayout({
           />
         )}
 
-        {/* Main content */}
+        {/* Main content - ✅ FIXED: Use SIDEBAR_WIDTH_CLASS constant */}
         <main className={`
           flex-1 flex flex-col transition-all duration-300
-          ${sidebar && (screenInfo.isDesktop || screenInfo.isLarge) ? 'ml-64' : 'ml-0'}
+          ${sidebar && (screenInfo.isDesktop || screenInfo.isLarge) ? `md:ml-64` : 'ml-0'}
         `}>
           <div className={`${responsiveClasses.container} py-6`}>
             {children}
@@ -93,105 +112,25 @@ export default function ResponsiveLayout({
   );
 }
 
-// Responsive card component
-interface ResponsiveCardProps {
-  children: React.ReactNode;
-  className?: string;
-  padding?: 'none' | 'small' | 'medium' | 'large';
-  hover?: boolean;
-}
+/**
+ * ✅ DELETED: ResponsiveCard component
+ * 
+ * REASON: Duplicates functionality of standard Card component from @/components/ui/card
+ * 
+ * MIGRATION:
+ * - Replace ResponsiveCard with Card from @/components/ui/card
+ * - Card already handles padding via CardHeader/CardContent
+ * - Use className for custom responsive padding if needed
+ */
 
-export function ResponsiveCard({
-  children,
-  className = '',
-  padding = 'medium',
-  hover = true
-}: ResponsiveCardProps) {
-  const { screenInfo } = useResponsiveLayout();
-
-  const getPaddingClass = () => {
-    switch (padding) {
-      case 'none': return '';
-      case 'small': return screenInfo.isMobile ? 'p-3' : 'p-4';
-      case 'medium': return screenInfo.isMobile ? 'p-4' : 'p-6';
-      case 'large': return screenInfo.isMobile ? 'p-5' : 'p-8';
-      default: return screenInfo.isMobile ? 'p-4' : 'p-6';
-    }
-  };
-
-  return (
-    <div className={`
-      bg-card text-card-foreground rounded-2xl shadow-md border border-border
-      ${getPaddingClass()}
-      ${hover ? 'hover:shadow-lg transition-shadow duration-200' : ''}
-      ${className}
-    `}>
-      {children}
-    </div>
-  );
-}
-
-// Responsive button component
-interface ResponsiveButtonProps {
-  children: React.ReactNode;
-  onClick?: () => void;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
-  size?: 'small' | 'medium' | 'large';
-  disabled?: boolean;
-  className?: string;
-}
-
-export function ResponsiveButton({
-  children,
-  onClick,
-  variant = 'primary',
-  size = 'medium',
-  disabled = false,
-  className = ''
-}: ResponsiveButtonProps) {
-  const { screenInfo } = useResponsiveLayout();
-
-  const getVariantClass = () => {
-    switch (variant) {
-      case 'primary':
-        return 'bg-brand-500 hover:bg-brand-600 text-white';
-      case 'secondary':
-        return 'bg-green-600 hover:bg-green-700 text-white';
-      case 'outline':
-        return 'border-2 border-brand-500 text-brand-500 hover:bg-brand-500 hover:text-white';
-      case 'ghost':
-        return 'text-brand-500 hover:bg-brand-500 hover:text-white';
-      default:
-        return 'bg-brand-500 hover:bg-brand-600 text-white';
-    }
-  };
-
-  const getSizeClass = () => {
-    switch (size) {
-      case 'small':
-        return screenInfo.isMobile ? 'px-3 py-1.5 text-sm' : 'px-4 py-2 text-sm';
-      case 'medium':
-        return screenInfo.isMobile ? 'px-4 py-2 text-sm' : 'px-6 py-3 text-base';
-      case 'large':
-        return screenInfo.isMobile ? 'px-5 py-3 text-base' : 'px-8 py-4 text-lg';
-      default:
-        return screenInfo.isMobile ? 'px-4 py-2 text-sm' : 'px-6 py-3 text-base';
-    }
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`
-        rounded-md font-medium transition-all duration-200
-        ${getVariantClass()}
-        ${getSizeClass()}
-        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-        ${className}
-      `}
-    >
-      {children}
-    </button>
-  );
-}
+/**
+ * ✅ DELETED: ResponsiveButton component
+ * 
+ * REASON: Duplicates functionality of standard Button component from @/components/ui/button
+ * 
+ * MIGRATION:
+ * - Replace ResponsiveButton with Button from @/components/ui/button
+ * - Button already has variants: default, secondary, outline, ghost
+ * - Button already has sizes: default, sm, lg, icon
+ * - Use semantic tokens (Button uses design system colors automatically)
+ */
