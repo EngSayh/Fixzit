@@ -3,13 +3,15 @@
  * @module lib/api/validation
  */
 
+import mongoose from 'mongoose';
+
 /**
- * Validates MongoDB ObjectId format (24 hex chars)
- * @param id String to validate
- * @returns True if valid ObjectId format
+ * Validates MongoDB ObjectId format using Mongoose (handles both string and ObjectId types)
+ * @param id Value to validate
+ * @returns True if valid ObjectId
  */
-export function isValidObjectIdSafe(id: string): boolean {
-  return /^[a-f\d]{24}$/i.test(id);
+export function isValidObjectIdSafe(id: unknown): boolean {
+  return mongoose.Types.ObjectId.isValid(id as string);
 }
 
 /**
@@ -31,39 +33,42 @@ export function clampPositiveInt(n: unknown, min = 1, max = 100): number {
 export type ValidationResult = { valid: true } | { valid: false; error: string };
 
 /**
- * Validates positive number field
+ * Validates positive number field (with automatic coercion from strings)
  * @param value Value to validate
  * @param fieldName Field name for error message
  * @returns Validation result
  */
 export function validatePositiveNumber(value: unknown, fieldName: string): ValidationResult {
-  if (typeof value !== 'number' || value <= 0) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) {
     return { valid: false, error: `${fieldName} must be a positive number` };
   }
   return { valid: true };
 }
 
 /**
- * Validates non-negative integer field
+ * Validates non-negative integer field (with automatic coercion from strings)
  * @param value Value to validate
  * @param fieldName Field name for error message
  * @returns Validation result
  */
 export function validateNonNegativeInteger(value: unknown, fieldName: string): ValidationResult {
-  if (typeof value !== 'number' || value < 0 || !Number.isInteger(value)) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0 || !Number.isInteger(num)) {
     return { valid: false, error: `${fieldName} must be a non-negative integer` };
   }
   return { valid: true };
 }
 
 /**
- * Validates non-negative number field
+ * Validates non-negative number field (with automatic coercion from strings)
  * @param value Value to validate
  * @param fieldName Field name for error message
  * @returns Validation result
  */
 export function validateNonNegativeNumber(value: unknown, fieldName: string): ValidationResult {
-  if (typeof value !== 'number' || value < 0) {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) {
     return { valid: false, error: `${fieldName} must be non-negative` };
   }
   return { valid: true };

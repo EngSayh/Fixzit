@@ -10,7 +10,7 @@ import mongoose from 'mongoose';
 import { connectDb } from '@/lib/mongo';
 import { AqarPackage, AqarPayment, PackageType } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { withCorrelation, ok, badRequest, serverError } from '@/lib/api/http';
+import { ok, badRequest, serverError } from '@/lib/api/http';
 
 
 export const runtime = 'nodejs';
@@ -45,11 +45,12 @@ export async function GET(request: NextRequest) {
 
 // POST /api/aqar/packages
 export async function POST(request: NextRequest) {
-  return withCorrelation(async (correlationId) => {
-    try {
-      await connectDb();
-      
-      const user = await getSessionUser(request);
+  const correlationId = crypto.randomUUID();
+  
+  try {
+    await connectDb();
+    
+    const user = await getSessionUser(request);
       
       const body = await request.json().catch(() => null);
       if (!body || typeof body !== 'object') {
@@ -121,5 +122,4 @@ export async function POST(request: NextRequest) {
       console.error('PACKAGES_POST_ERROR', { correlationId, e: String((e as Error)?.message || e) });
       return serverError('Unexpected error', { correlationId });
     }
-  });
 }
