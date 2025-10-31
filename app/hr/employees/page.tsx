@@ -70,11 +70,11 @@ export default function EmployeesPage() {
       case 'Active':
         return 'bg-green-100 text-green-800 border-green-300';
       case 'Inactive':
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return 'bg-muted text-gray-800 border-border';
       case 'On Leave':
         return 'bg-orange-100 text-orange-800 border-orange-300';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return 'bg-muted text-gray-800 border-border';
     }
   };
 
@@ -83,7 +83,7 @@ export default function EmployeesPage() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">{t('common.loading', 'Loading...')}</p>
+          <p className="mt-4 text-muted-foreground">{t('common.loading', 'Loading...')}</p>
         </div>
       </div>
     );
@@ -94,10 +94,10 @@ export default function EmployeesPage() {
       {/* Header with Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-2xl font-bold text-foreground">
             {t('hr.employees.title', 'Employee Directory')}
           </h2>
-          <p className="text-gray-600 mt-1">
+          <p className="text-muted-foreground mt-1">
             {t('hr.employees.subtitle', 'Manage your organization\'s employees')}
           </p>
         </div>
@@ -112,7 +112,7 @@ export default function EmployeesPage() {
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
                 placeholder={t('hr.employees.search', 'Search by name, code, or department...')}
@@ -124,7 +124,7 @@ export default function EmployeesPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="all">{t('hr.employees.filter.allStatus', 'All Status')}</option>
               <option value="Active">{t('hr.employees.status.active', 'Active')}</option>
@@ -136,7 +136,7 @@ export default function EmployeesPage() {
       </Card>
 
       {/* Results Count */}
-      <div className="text-sm text-gray-600">
+      <div className="text-sm text-muted-foreground">
         {t('hr.employees.showing', 'Showing')} {filteredEmployees.length} {t('hr.employees.of', 'of')} {employees.length} {t('hr.employees.employees', 'employees')}
       </div>
 
@@ -145,11 +145,11 @@ export default function EmployeesPage() {
         {filteredEmployees.length === 0 ? (
           <Card>
             <CardContent className="p-12 text-center">
-              <div className="text-gray-400 text-5xl mb-4">👥</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <div className="text-muted-foreground text-5xl mb-4">👥</div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
                 {t('hr.employees.noResults', 'No employees found')}
               </h3>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 {searchQuery || statusFilter !== 'all'
                   ? t('hr.employees.noResultsFiltered', 'Try adjusting your filters')
                   : t('hr.employees.noResultsEmpty', 'Start by adding your first employee')}
@@ -163,7 +163,7 @@ export default function EmployeesPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <h3 className="text-lg font-semibold text-foreground">
                         {employee.personalInfo.firstName} {employee.personalInfo.lastName}
                       </h3>
                       <Badge className={getStatusColor(employee.employment.status)}>
@@ -172,19 +172,19 @@ export default function EmployeesPage() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-500">{t('hr.employees.code', 'Code')}:</span>
+                        <span className="text-muted-foreground">{t('hr.employees.code', 'Code')}:</span>
                         <span className="ml-2 font-medium">{employee.employeeCode}</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">{t('hr.employees.department', 'Department')}:</span>
+                        <span className="text-muted-foreground">{t('hr.employees.department', 'Department')}:</span>
                         <span className="ml-2 font-medium">{employee.employment.department}</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">{t('hr.employees.position', 'Position')}:</span>
+                        <span className="text-muted-foreground">{t('hr.employees.position', 'Position')}:</span>
                         <span className="ml-2 font-medium">{employee.employment.position}</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">{t('hr.employees.joinDate', 'Join Date')}:</span>
+                        <span className="text-muted-foreground">{t('hr.employees.joinDate', 'Join Date')}:</span>
                         <span className="ml-2 font-medium">
                           {new Date(employee.employment.joinDate).toLocaleDateString()}
                         </span>
