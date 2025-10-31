@@ -107,8 +107,8 @@ export default function SupportPopup({ open, onClose, errorDetails }: ISupportPo
   // UI state
   const [submitting, setSubmitting] = useState(false);
 
-  // ✅ FIX: Use STORAGE_KEYS.user instead of hardcoded "x-user"
-  const isAuthenticated = typeof window !== 'undefined' && localStorage.getItem(STORAGE_KEYS.user);
+  // ✅ FIX: Use STORAGE_KEYS.userSession (updated key)
+  const isAuthenticated = typeof window !== 'undefined' && localStorage.getItem(STORAGE_KEYS.userSession);
 
   // Error description generator
   const generateErrorDescription = (errorDetails: ErrorDetails): string => {
@@ -179,8 +179,8 @@ ${errorDetails.error?.componentStack || t('support.noComponentStack', 'No compon
     };
 
     try {
-      // ✅ FIX: Use STORAGE_KEYS.user instead of hardcoded "x-user"
-      const userSession = localStorage.getItem(STORAGE_KEYS.user);
+      // ✅ FIX: Use STORAGE_KEYS.userSession (updated key)
+      const userSession = localStorage.getItem(STORAGE_KEYS.userSession);
       if (!userSession) {
         payload.requester = { name, email, phone };
       }

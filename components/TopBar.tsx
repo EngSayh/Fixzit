@@ -284,7 +284,7 @@ export default function TopBar() {
 
   // ✅ FIXED: Use semantic colors throughout
   return (
-    <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-primary via-primary to-primary/80 text-white ${isMobile ? 'px-2' : 'px-4'} shadow-sm border-b border-border`}>
+    <header className={`sticky top-0 z-40 h-14 bg-card text-card-foreground ${isMobile ? 'px-2' : 'px-4'} shadow-sm border-b border-border`}>
       <div className={`h-full flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Left Section: Logo & App Switcher */}
         <div className={`flex items-center gap-2 sm:gap-3 flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -305,13 +305,13 @@ export default function TopBar() {
               />
             ) : (
               <div 
-                className="w-8 h-8 rounded-md bg-gradient-to-br from-brand-600 to-brand-700 flex items-center justify-center text-white font-bold text-sm"
+                className="w-8 h-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm"
                 aria-hidden="true"
               >
                 {orgSettings?.name?.substring(0, 2).toUpperCase() || 'FX'}
               </div>
             )}
-            <span className={`font-bold ${isMobile ? 'hidden' : 'text-lg'} whitespace-nowrap ${isRTL ? 'text-right' : ''}`}>
+            <span className={`font-bold text-foreground ${isMobile ? 'hidden' : 'text-lg'} whitespace-nowrap ${isRTL ? 'text-right' : ''}`}>
               {orgSettings?.name || t('common.brand')}
             </span>
           </Button>

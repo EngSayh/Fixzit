@@ -5,28 +5,37 @@
  * CRITICAL: All providers and components MUST import from this file
  */
 
+// --- Base Keys (Define once, use everywhere) ---
+const THEME_KEY = 'fixzit-theme';
+const LANGUAGE_KEY = 'fxz.lang';
+const LOCALE_KEY = 'fxz.locale';
+const CURRENCY_KEY = 'fixzit-currency';
+const USER_SESSION_KEY = 'fxz.user-session'; // ✅ FIX: Correct key from AutoIncidentReporter
+const AI_CHAT_KEY = 'fixzit-ai-chat-session'; // ✅ FIX: Correct key from useAIChatStore
+
 export const STORAGE_KEYS = {
   // Language/Translation
-  language: 'fxz.lang',
-  locale: 'fxz.locale',
+  language: LANGUAGE_KEY,
+  locale: LOCALE_KEY,
   
   // Currency
-  currency: 'fixzit-currency',
+  currency: CURRENCY_KEY,
   
   // Theme
-  theme: 'fixzit-theme',
+  theme: THEME_KEY,
   
   // UI State
-  topbarApp: 'fixzit-topbar-app',
   sidebarCollapsed: 'fxz.sidebar.collapsed',
   
   // Auth/User (used for error reporting and dev fallbacks)
-  user: 'x-user',
+  userSession: USER_SESSION_KEY, // ✅ FIX: Renamed from 'user' and correct value
   role: 'fixzit-role',
   
   // Data
-  aiChatHistory: 'fxz.ai-chat-history',
+  aiChatHistory: AI_CHAT_KEY, // ✅ FIX: Correct key
   recentSearches: 'fxz.search.recent',
+
+  // ❌ REMOVED: 'topbarApp' (obsolete, per TopBarProvider refactor)
 } as const;
 
 /**
@@ -47,10 +56,11 @@ export const APP_STORAGE_KEYS = Object.values(STORAGE_KEYS) as readonly string[]
  * Cookie keys used for server-side rendering
  */
 export const COOKIE_KEYS = {
-  language: 'fxz.lang',
-  locale: 'fxz.locale',
-  theme: 'fxz.theme',
-  currency: 'fixzit-currency',
+  // ✅ FIX: Re-use base keys. No duplication.
+  language: LANGUAGE_KEY,
+  locale: LOCALE_KEY,
+  theme: THEME_KEY,
+  currency: CURRENCY_KEY,
 } as const;
 
 /**
@@ -60,7 +70,9 @@ export const APP_DEFAULTS = {
   language: 'ar' as const,
   locale: 'ar-SA',
   currency: 'SAR',
-  theme: 'light' as const,
+  // ✅ FIX: Default to 'auto' to match ThemeProvider
+  theme: 'auto' as const,
+  timezone: 'Asia/Riyadh',
 } as const;
 
 export const API_TIMEOUTS = {
