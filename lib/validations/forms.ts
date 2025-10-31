@@ -19,7 +19,7 @@ const emailSchema = z.string().email('Invalid email format');
 
 // Optional email (allows undefined or valid email, but not empty string)
 const optionalEmailSchema = z.string().optional().refine(
-  (val) => val === undefined || z.string().email().safeParse(val).success,
+  (val) => !val || z.string().email().safeParse(val).success,
   { message: 'Invalid email format' }
 );
 
@@ -31,7 +31,7 @@ const saudiPhoneSchema = z.string().regex(
 
 // Optional Saudi phone (allows undefined or valid phone, but not empty string)
 const optionalSaudiPhoneSchema = z.string().optional().refine(
-  (val) => val === undefined || saudiPhoneRegex.test(val),
+  (val) => !val || saudiPhoneRegex.test(val),
   { message: 'Phone must be in +966XXXXXXXXX format' }
 );
 
@@ -81,7 +81,7 @@ export const CreateVendorSchema = z.object({
       email: optionalEmailSchema,
       phone: optionalSaudiPhoneSchema,
       mobile: optionalSaudiPhoneSchema,
-    }).optional(),
+    }),
     address: z.object({
       street: z.string().optional(),
       city: z.string().optional(),

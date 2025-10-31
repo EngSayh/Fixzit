@@ -13,51 +13,63 @@ export type ErrorPayload = {
 };
 
 /**
- * Wraps handler with correlation ID for request tracing
- * @param fn Handler function that receives correlationId
- * @returns Promise of handler result
+ * Success response with correlation ID
+ * NOTE: correlationId is REQUIRED (no fallback) to force compile-time checks
  */
-export function withCorrelation<T>(fn: (correlationId: string) => Promise<T>): Promise<T> {
-  const correlationId = crypto.randomUUID();
-  return fn(correlationId);
-}
+export function ok(
+  data: unknown,
+  ctx: { correlationId: string },
+  status = 200
+): NextResponse {
+  // Handle arrays and primitives correctly (don't use spread on non-objects)
+  let payload: unknown;
+  
+  if (Array.isArray(data)) {
+    // Wrap arrays in { items: [...] } to maintain structure
+    payload = {
+      items: data,
+      correlationId: ctx.correlationId,
+    };
+  } else if (typeof data === 'object' && data !== null) {
+    // Spread objects and add correlationId
+    payload = {
+      ...(data as Record<string, unknown>),
+      correlationId: ctx.correlationId,
+    };
+  } else {
+    // Wrap primitives in { data: value }
+    payload = {
+      data,
+      correlationId: ctx.correlationId,
+    };
+  }
 
-function json(data: unknown, status = 200, headers: Record<string, string> = {}) {
-  return new NextResponse(JSON.stringify(data), {
-    status,
-    headers: { 'content-type': 'application/json', ...headers },
-  });
-}
-
-/**
- * Success response with optional correlation ID
- */
-export function ok(data: unknown, ctx?: { correlationId?: string }, status = 200) {
-  return json({ ...(data as Record<string, unknown> ?? {}), ...(ctx?.correlationId ? { correlationId: ctx.correlationId } : {}) }, status);
+  return NextResponse.json(payload, { status });
 }
 
 /**
  * Error response with standardized shape
+ * NOTE: correlationId is REQUIRED (no fallback)
  */
 export function error(
   userMessage: string,
   status: number,
-  ctx?: { code?: string; devMessage?: string; correlationId?: string }
-) {
+  ctx: { correlationId: string; code?: string; devMessage?: string }
+): NextResponse {
   const payload: ErrorPayload = {
     name: 'Error',
-    code: ctx?.code ?? status,
+    code: ctx.code ?? status,
     userMessage,
-    devMessage: ctx?.devMessage,
-    correlationId: ctx?.correlationId ?? crypto.randomUUID(),
+    devMessage: ctx.devMessage,
+    correlationId: ctx.correlationId,
   };
-  return json({ error: payload }, status);
+  return NextResponse.json({ error: payload }, { status });
 }
 
-type ErrorContext = { code?: string; devMessage?: string; correlationId?: string };
+type ErrorContext = { correlationId: string; code?: string; devMessage?: string };
 
-export const badRequest = (m: string, ctx?: ErrorContext) => error(m, 400, ctx);
-export const unauthorized = (m: string, ctx?: ErrorContext) => error(m, 401, ctx);
-export const forbidden = (m: string, ctx?: ErrorContext) => error(m, 403, ctx);
-export const notFound = (m: string, ctx?: ErrorContext) => error(m, 404, ctx);
-export const serverError = (m: string, ctx?: ErrorContext) => error(m, 500, ctx);
+export const badRequest = (m: string, ctx: ErrorContext) => error(m, 400, ctx);
+export const unauthorized = (m: string, ctx: ErrorContext) => error(m, 401, ctx);
+export const forbidden = (m: string, ctx: ErrorContext) => error(m, 403, ctx);
+export const notFound = (m: string, ctx: ErrorContext) => error(m, 404, ctx);
+export const serverError = (m: string, ctx: ErrorContext) => error(m, 500, ctx);
