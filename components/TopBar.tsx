@@ -329,7 +329,6 @@ export default function TopBar() {
               size="icon"
               onClick={() => setMobileSearchOpen(true)}
               aria-label={t('common.search')}
-              className="text-white hover:bg-white/10"
             >
               <Search className="w-4 h-4" />
             </Button>
@@ -371,10 +370,9 @@ export default function TopBar() {
             />
           ) : (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               asChild
-              className="text-white hover:bg-white/10"
             >
               <Link href="/login">
                 {t('common.signIn')}
@@ -498,7 +496,7 @@ function NotificationPopup({
           }
           setNotifOpen(next);
         }}
-        className="relative text-white hover:bg-white/10"
+        className="relative"
         aria-label={t('nav.notifications')}
       >
         <Bell className="w-5 h-5" />
@@ -654,7 +652,7 @@ function UserMenuPopup({
           }
           setUserOpen(next);
         }}
-        className="flex items-center gap-1 text-white hover:bg-white/10"
+        className="flex items-center gap-1"
         aria-label={t('nav.profile')}
       >
         <User className="w-5 h-5" />
