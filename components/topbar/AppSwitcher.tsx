@@ -81,7 +81,8 @@ export default function AppSwitcher() {
   // Get translated app name
   const getAppName = (appId: string) => {
     const appConfig = APPS[appId as AppKey];
-    return t(`app.${appId}`, appConfig?.label || 'Unknown App');
+    // FIX: Use labelKey instead of label
+    return t(appConfig?.labelKey || `app.${appId}`, 'Unknown App');
   };
 
   return (

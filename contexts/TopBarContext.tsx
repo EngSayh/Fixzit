@@ -6,11 +6,11 @@ import { APPS, AppKey, detectAppFromPath } from '@/config/topbar-modules';
 
 interface TopBarState {
   app: AppKey;
-  searchPlaceholder: string;
+  searchPlaceholderKey: string; // FIX: Changed to match AppConfig
   searchEntities: string[];
   quickActions: Array<{
     id: string;
-    label: string;
+    labelKey: string; // FIX: Changed to match AppConfig
     href: string;
     permission: string;
   }>;
@@ -35,7 +35,7 @@ export function TopBarProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<TopBarState>(() => ({
     app,
-    searchPlaceholder: appConfig.searchPlaceholder,
+    searchPlaceholderKey: appConfig.searchPlaceholderKey, // FIX: Use new property name
     searchEntities: appConfig.searchEntities,
     quickActions: appConfig.quickActions,
     setApp,

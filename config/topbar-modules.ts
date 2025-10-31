@@ -1,17 +1,18 @@
 // Module configuration for TopBar dynamic behavior
 export type AppKey = 'fm' | 'souq' | 'aqar';
-export type ModuleKey = 'dashboard' | 'work_orders' | 'properties' | 'finance' | 'hr' | 'admin' | 'crm' | 'marketplace' | 'aqar_souq' | 'vendors' | 'support' | 'compliance';
+// FIX: Removed marketplace/aqar_souq (separate apps), added reports
+export type ModuleKey = 'dashboard' | 'work_orders' | 'properties' | 'finance' | 'hr' | 'admin' | 'crm' | 'vendors' | 'support' | 'compliance' | 'reports';
 export type SearchEntity = 'work_orders' | 'properties' | 'units' | 'tenants' | 'vendors' | 'invoices' | 'products' | 'services' | 'rfqs' | 'orders' | 'listings' | 'projects' | 'agents';
 
 export interface AppConfig {
   id: AppKey;
-  label: string;
+  labelKey: string; // FIX: Use labelKey for i18n
   routePrefix: string;
-  searchPlaceholder: string;
+  searchPlaceholderKey: string; // FIX: Use labelKey for i18n
   searchEntities: SearchEntity[];
   quickActions: Array<{
     id: string;
-    label: string;
+    labelKey: string; // FIX: Use labelKey for i18n
     href: string;
     permission: string;
   }>;
@@ -20,37 +21,37 @@ export interface AppConfig {
 export const APPS: Record<AppKey, AppConfig> = {
   fm: {
     id: 'fm',
-    label: 'Fixzit Facility Management (FM)',
+    labelKey: 'app.fm', // FIX: Use translation key
     routePrefix: '/fm',
-    searchPlaceholder: 'Search Work Orders, Properties, Tenants, Vendors, Invoices...',
+    searchPlaceholderKey: 'common.search.placeholder', // FIX: Use translation key
     searchEntities: ['work_orders', 'properties', 'units', 'tenants', 'vendors', 'invoices'],
     quickActions: [
-      { id: 'new_wo', label: 'New Work Order', href: '/work-orders/new', permission: 'wo.create' },
-      { id: 'new_inspection', label: 'New Inspection', href: '/inspections/new', permission: 'inspections.create' },
-      { id: 'new_invoice', label: 'New Invoice', href: '/finance/invoices/new', permission: 'finance.invoice.create' },
+      { id: 'new_wo', labelKey: 'dashboard.newWorkOrder', href: '/fm/work-orders/new', permission: 'wo.create' }, // FIX: Added /fm prefix
+      { id: 'new_property', labelKey: 'dashboard.addProperty', href: '/fm/properties/new', permission: 'properties.create' }, // FIX: Added /fm prefix
+      { id: 'new_invoice', labelKey: 'dashboard.createInvoice', href: '/fm/finance/invoices/new', permission: 'finance.invoice.create' }, // FIX: Added /fm prefix
     ]
   },
   souq: {
     id: 'souq',
-    label: 'Fixizit Souq',
+    labelKey: 'app.souq', // FIX: Use translation key
     routePrefix: '/marketplace',
-    searchPlaceholder: 'Search Products, Services, Vendors, RFQs, Orders...',
+    searchPlaceholderKey: 'souq.search.placeholder', // FIX: Use translation key
     searchEntities: ['products', 'services', 'vendors', 'rfqs', 'orders'],
     quickActions: [
-      { id: 'new_rfq', label: 'New RFQ', href: '/marketplace/rfqs/new', permission: 'souq.rfq.create' },
-      { id: 'new_po', label: 'Create PO', href: '/marketplace/orders/new', permission: 'souq.po.create' },
-      { id: 'add_item', label: 'Add Product/Service', href: '/marketplace/items/new', permission: 'souq.item.create' },
+      { id: 'new_rfq', labelKey: 'souq.newRFQ', href: '/marketplace/rfqs/new', permission: 'souq.rfq.create' },
+      { id: 'new_po', labelKey: 'souq.createPO', href: '/marketplace/orders/new', permission: 'souq.po.create' },
+      { id: 'add_item', labelKey: 'souq.addItem', href: '/marketplace/items/new', permission: 'souq.item.create' },
     ]
   },
   aqar: {
     id: 'aqar',
-    label: 'Aqar Souq',
+    labelKey: 'app.aqar', // FIX: Use translation key
     routePrefix: '/aqar',
-    searchPlaceholder: 'Search Listings, Projects, Agents...',
+    searchPlaceholderKey: 'aqar.search.placeholder', // FIX: Use translation key
     searchEntities: ['listings', 'projects', 'agents'],
     quickActions: [
-      { id: 'post_property', label: 'Post Property', href: '/aqar/listings/new', permission: 'aqar.listing.create' },
-      { id: 'valuation', label: 'New Valuation Request', href: '/aqar/valuation/new', permission: 'aqar.valuation.create' },
+      { id: 'post_property', labelKey: 'aqar.postProperty', href: '/aqar/listings/new', permission: 'aqar.listing.create' },
+      { id: 'valuation', labelKey: 'aqar.newValuation', href: '/aqar/valuation/new', permission: 'aqar.valuation.create' },
     ]
   }
 };
@@ -61,17 +62,28 @@ export function detectAppFromPath(pathname: string): AppKey {
   return 'fm'; // Default to FM for dashboard, work-orders, properties, etc.
 }
 
+/**
+ * Detects the current *Module* (within the FM app) from the pathname.
+ * This is used for highlighting the active item in the FM sidebar.
+ * FIX: Now correctly checks for /fm/ prefix
+ */
 export function getModuleFromPath(pathname: string): ModuleKey {
-  if (pathname.startsWith('/work-orders')) return 'work_orders';
-  if (pathname.startsWith('/properties')) return 'properties';
-  if (pathname.startsWith('/finance')) return 'finance';
-  if (pathname.startsWith('/hr')) return 'hr';
-  if (pathname.startsWith('/admin')) return 'admin';
-  if (pathname.startsWith('/crm')) return 'crm';
-  if (pathname.startsWith('/marketplace') || pathname.startsWith('/souq')) return 'marketplace';
-  if (pathname.startsWith('/aqar')) return 'aqar_souq';
-  if (pathname.startsWith('/vendors')) return 'vendors';
-  if (pathname.startsWith('/support')) return 'support';
-  if (pathname.startsWith('/compliance')) return 'compliance';
+  // FIX: Only detect modules within FM app
+  if (!pathname.startsWith('/fm/')) {
+    return 'dashboard'; // Default for non-FM paths
+  }
+  
+  // FIX: Check for /fm/ prefixed paths
+  if (pathname.startsWith('/fm/work-orders')) return 'work_orders';
+  if (pathname.startsWith('/fm/properties')) return 'properties';
+  if (pathname.startsWith('/fm/finance')) return 'finance';
+  if (pathname.startsWith('/fm/hr')) return 'hr';
+  if (pathname.startsWith('/fm/admin')) return 'admin';
+  if (pathname.startsWith('/fm/crm')) return 'crm';
+  if (pathname.startsWith('/fm/vendors')) return 'vendors';
+  if (pathname.startsWith('/fm/support')) return 'support';
+  if (pathname.startsWith('/fm/compliance')) return 'compliance';
+  if (pathname.startsWith('/fm/reports')) return 'reports'; // FIX: Added missing reports module
+  
   return 'dashboard';
 }

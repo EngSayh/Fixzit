@@ -20,8 +20,8 @@ interface GlobalSearchProps {
 
 export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) {
   const router = useRouter();
-  const { app, searchPlaceholder, searchEntities } = useTopBar();
-  const { isRTL } = useTranslation();
+  const { app, searchPlaceholderKey, searchEntities } = useTopBar(); // FIX: Use searchPlaceholderKey
+  const { t, isRTL } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
@@ -159,7 +159,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => query && setOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder={searchPlaceholder}
+          placeholder={t(searchPlaceholderKey, 'Search...')} // FIX: Translate placeholder
           role="combobox"
           aria-label="Global search"
           aria-expanded={open}
