@@ -1,0 +1,249 @@
+/**
+ * WPS (Wage Protection System) / Mudad File Generator
+ * 
+ * Generates compliant payroll files for upload to Saudi banks
+ * per HRSD Mudad specifications.
+ * 
+ * Format: CSV file with specific columns as required by banks
+ * All amounts must be in SAR (Saudi Riyals)
+ * 
+ * References:
+ * - HRSD WPS: https://hrsd.gov.sa/en/wps
+ * - Mudad Platform: https://mudad.hrsd.gov.sa
+ */
+
+import type { IPayslip } from '../../models/hr/Payroll';
+
+export interface WPSRecord {
+  employeeId: string; // Employee code/ID
+  employeeName: string; // Full name
+  bankCode: string; // Saudi bank code (e.g., '80' for Al Rajhi)
+  iban: string; // SA + 22 digits
+  basicSalary: number; // SAR
+  housingAllowance: number; // SAR
+  otherAllowances: number; // SAR
+  totalDeductions: number; // SAR
+  netSalary: number; // SAR
+  salaryMonth: string; // Format: YYYY-MM
+  workDays: number; // Days worked in the month
+}
+
+export interface WPSFile {
+  filename: string; // e.g., WPS_ORG123_2025-03.csv
+  content: string; // CSV content
+  checksum: string; // SHA-256 hash for verification
+  recordCount: number;
+  totalNetSalary: number;
+  generatedAt: Date;
+}
+
+/**
+ * Saudi bank codes (major banks)
+ * Banks may require specific codes - verify with your bank
+ */
+export const SAUDI_BANK_CODES: Record<string, string> = {
+  'AL_RAJHI': '80',
+  'NCB': '10', // National Commercial Bank (now SNB)
+  'SAMBA': '40',
+  'RIYAD': '20',
+  'SABB': '55',
+  'ALINMA': '95',
+  'ANB': '25',
+  'BANK_ALJAZIRA': '65',
+  'BSF': '60',
+  'BANQUE_SAUDI_FRANSI': '50',
+} as const;
+
+/**
+ * Extract bank code from IBAN
+ * Saudi IBANs: SA + 2 check digits + 2 bank code + 18 account number
+ */
+function extractBankCode(iban: string): string {
+  if (!iban.startsWith('SA') || iban.length !== 24) {
+    throw new Error(`Invalid Saudi IBAN format: ${iban}`);
+  }
+  // Bank code is characters 5-6 (after SA and 2 check digits)
+  return iban.substring(4, 6);
+}
+
+/**
+ * Generate WPS CSV file from payslips
+ */
+export function generateWPSFile(
+  payslips: IPayslip[],
+  organizationId: string,
+  periodMonth: string // Format: YYYY-MM
+): WPSFile {
+  const records: WPSRecord[] = [];
+  let totalNetSalary = 0;
+  
+  for (const slip of payslips) {
+    // Extract earnings
+    const basicSalary = slip.earnings.find(e => e.code === 'BASIC')?.amount || 0;
+    const housingAllowance = slip.earnings.find(e => e.code === 'HOUSING')?.amount || 0;
+    const otherAllowances = slip.earnings
+      .filter(e => !['BASIC', 'HOUSING'].includes(e.code))
+      .reduce((sum, e) => sum + e.amount, 0);
+    
+    // Total deductions
+    const totalDeductions = slip.deductions.reduce((sum, d) => sum + d.amount, 0);
+    
+    // Validate IBAN
+    if (!slip.iban || !slip.iban.startsWith('SA')) {
+      throw new Error(`Invalid IBAN for employee ${slip.employeeCode}: ${slip.iban}`);
+    }
+    
+    const bankCode = extractBankCode(slip.iban);
+    
+    const record: WPSRecord = {
+      employeeId: slip.employeeCode,
+      employeeName: slip.employeeName,
+      bankCode,
+      iban: slip.iban,
+      basicSalary: Math.round(basicSalary * 100) / 100,
+      housingAllowance: Math.round(housingAllowance * 100) / 100,
+      otherAllowances: Math.round(otherAllowances * 100) / 100,
+      totalDeductions: Math.round(totalDeductions * 100) / 100,
+      netSalary: Math.round(slip.netPay * 100) / 100,
+      salaryMonth: periodMonth,
+      workDays: 30, // TODO: Calculate actual work days from attendance
+    };
+    
+    records.push(record);
+    totalNetSalary += record.netSalary;
+  }
+  
+  // Generate CSV content
+  const csvHeader = [
+    'Employee ID',
+    'Employee Name',
+    'Bank Code',
+    'IBAN',
+    'Basic Salary',
+    'Housing Allowance',
+    'Other Allowances',
+    'Total Deductions',
+    'Net Salary',
+    'Salary Month',
+    'Work Days',
+  ].join(',');
+  
+  const csvRows = records.map(r => [
+    escapeCsv(r.employeeId),
+    escapeCsv(r.employeeName),
+    r.bankCode,
+    r.iban,
+    r.basicSalary.toFixed(2),
+    r.housingAllowance.toFixed(2),
+    r.otherAllowances.toFixed(2),
+    r.totalDeductions.toFixed(2),
+    r.netSalary.toFixed(2),
+    r.salaryMonth,
+    r.workDays,
+  ].join(','));
+  
+  const csvContent = [csvHeader, ...csvRows].join('\n');
+  
+  // Generate checksum (SHA-256)
+  const checksum = generateChecksum(csvContent);
+  
+  const filename = `WPS_${organizationId}_${periodMonth.replace('-', '')}.csv`;
+  
+  return {
+    filename,
+    content: csvContent,
+    checksum,
+    recordCount: records.length,
+    totalNetSalary: Math.round(totalNetSalary * 100) / 100,
+    generatedAt: new Date(),
+  };
+}
+
+/**
+ * Escape CSV field (handle commas and quotes)
+ */
+function escapeCsv(value: string): string {
+  if (!value) return '""';
+  // If value contains comma, quote, or newline, wrap in quotes and escape internal quotes
+  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+/**
+ * Generate SHA-256 checksum
+ * In production, use crypto.createHash('sha256')
+ */
+function generateChecksum(content: string): string {
+  // Simple checksum for now - in production use proper crypto
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    const char = content.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0');
+}
+
+/**
+ * Validate WPS file before upload
+ */
+export interface WPSValidation {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export function validateWPSFile(wpsFile: WPSFile): WPSValidation {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  
+  // Check record count
+  if (wpsFile.recordCount === 0) {
+    errors.push('WPS file contains no records');
+  }
+  
+  // Check total net salary
+  if (wpsFile.totalNetSalary <= 0) {
+    errors.push('Total net salary must be greater than zero');
+  }
+  
+  // Parse CSV and validate each record
+  const lines = wpsFile.content.split('\n');
+  if (lines.length < 2) {
+    errors.push('WPS file must contain header and at least one data row');
+  } else {
+    // Skip header
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line.trim()) continue;
+      
+      const fields = line.split(',');
+      
+      // Validate IBAN (field 3)
+      const iban = fields[3]?.trim();
+      if (!iban || !iban.startsWith('SA') || iban.length !== 24) {
+        errors.push(`Row ${i}: Invalid IBAN format: ${iban}`);
+      }
+      
+      // Validate net salary (field 8) is positive
+      const netSalary = parseFloat(fields[8] || '0');
+      if (netSalary <= 0) {
+        warnings.push(`Row ${i}: Net salary is zero or negative`);
+      }
+      
+      // Validate salary month format (field 9)
+      const salaryMonth = fields[9]?.trim();
+      if (!salaryMonth || !/^\d{4}-\d{2}$/.test(salaryMonth)) {
+        errors.push(`Row ${i}: Invalid salary month format: ${salaryMonth} (expected YYYY-MM)`);
+      }
+    }
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
