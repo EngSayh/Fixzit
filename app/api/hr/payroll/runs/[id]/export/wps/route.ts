@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth.config';
 import { dbConnect } from '@/lib/mongo';
-import { PayrollRun, Payslip } from '@/models/hr/Payroll';
+import { PayrollRun, Payslip, IPayslip } from '@/models/hr/Payroll';
 import { generateWPSFile, validateWPSFile } from '@/services/hr/wpsService';
 
 // GET /api/hr/payroll/runs/[id]/export/wps - Generate WPS/Mudad compliant file
@@ -51,8 +51,29 @@ export async function GET(
     // Generate period month in YYYY-MM format
     const periodMonth = new Date(run.periodEnd).toISOString().slice(0, 7);
 
-    // Generate WPS file
-    const wpsFile = generateWPSFile(payslips, session.user.orgId, periodMonth);
+    // Generate WPS file (now returns { file, errors })
+    // Cast to IPayslip[] to work around Mongoose lean() type complexity
+    const { file: wpsFile, errors: generationErrors } = generateWPSFile(
+      payslips as unknown as IPayslip[],
+      session.user.orgId,
+      periodMonth
+    );
+
+    // Check for generation errors (e.g., invalid IBANs)
+    if (generationErrors.length > 0) {
+      console.warn('WPS generation warnings:', generationErrors);
+      // If we have no valid records, return error
+      if (wpsFile.recordCount === 0) {
+        return NextResponse.json(
+          {
+            error: 'Failed to generate WPS file - no valid records',
+            errors: generationErrors,
+          },
+          { status: 400 }
+        );
+      }
+      // Otherwise continue with partial file but log warnings
+    }
 
     // Validate the generated file
     const validation = validateWPSFile(wpsFile);
@@ -64,6 +85,7 @@ export async function GET(
           error: 'WPS file validation failed',
           errors: validation.errors,
           warnings: validation.warnings,
+          generationErrors,
         },
         { status: 400 }
       );
@@ -78,6 +100,9 @@ export async function GET(
         'X-File-Checksum': wpsFile.checksum,
         'X-Record-Count': wpsFile.recordCount.toString(),
         'X-Total-Net-Salary': wpsFile.totalNetSalary.toString(),
+        ...(generationErrors.length > 0 && {
+          'X-Generation-Warnings': generationErrors.length.toString(),
+        }),
       },
     });
   } catch (error) {

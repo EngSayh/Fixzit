@@ -7,6 +7,12 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { STORAGE_KEYS } from '@/config/constants';
 
+/**
+ * Maximum number of messages to send as context window to the AI API.
+ * Limits token usage while providing sufficient conversation history.
+ */
+const MESSAGE_HISTORY_LIMIT = 10;
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -83,7 +89,7 @@ export const useAIChatStore = create<AIChatState>()(
             },
             body: JSON.stringify({
               message: content,
-              history: get().messages.slice(-10), // Send last 10 messages for context
+              history: get().messages.slice(-MESSAGE_HISTORY_LIMIT), // Send last N messages for context
             }),
           });
 

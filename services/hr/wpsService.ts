@@ -12,6 +12,7 @@
  * - Mudad Platform: https://mudad.hrsd.gov.sa
  */
 
+import { createHash } from 'crypto';
 import type { IPayslip } from '../../models/hr/Payroll';
 
 export interface WPSRecord {
@@ -57,10 +58,11 @@ export const SAUDI_BANK_CODES: Record<string, string> = {
 /**
  * Extract bank code from IBAN
  * Saudi IBANs: SA + 2 check digits + 2 bank code + 18 account number
+ * Returns 'INVALID_IBAN' if format is wrong (safer than throwing)
  */
 function extractBankCode(iban: string): string {
-  if (!iban.startsWith('SA') || iban.length !== 24) {
-    throw new Error(`Invalid Saudi IBAN format: ${iban}`);
+  if (!iban || !iban.startsWith('SA') || iban.length !== 24) {
+    return 'INVALID_IBAN';
   }
   // Bank code is characters 5-6 (after SA and 2 check digits)
   return iban.substring(4, 6);
@@ -68,16 +70,30 @@ function extractBankCode(iban: string): string {
 
 /**
  * Generate WPS CSV file from payslips
+ * Returns both the file and any errors encountered (for robust error handling)
  */
 export function generateWPSFile(
   payslips: IPayslip[],
   organizationId: string,
   periodMonth: string // Format: YYYY-MM
-): WPSFile {
+): { file: WPSFile; errors: string[] } {
   const records: WPSRecord[] = [];
+  const errors: string[] = [];
   let totalNetSalary = 0;
   
   for (const slip of payslips) {
+    // Validate IBAN before processing
+    if (!slip.iban || !slip.iban.startsWith('SA') || slip.iban.length !== 24) {
+      errors.push(`Invalid IBAN for employee ${slip.employeeCode}: ${slip.iban || 'missing'}`);
+      continue; // Skip this record but continue processing others
+    }
+    
+    const bankCode = extractBankCode(slip.iban);
+    if (bankCode === 'INVALID_IBAN') {
+      errors.push(`Could not extract bank code for employee ${slip.employeeCode}: ${slip.iban}`);
+      continue;
+    }
+    
     // Extract earnings
     const basicSalary = slip.earnings.find(e => e.code === 'BASIC')?.amount || 0;
     const housingAllowance = slip.earnings.find(e => e.code === 'HOUSING')?.amount || 0;
@@ -87,13 +103,6 @@ export function generateWPSFile(
     
     // Total deductions
     const totalDeductions = slip.deductions.reduce((sum, d) => sum + d.amount, 0);
-    
-    // Validate IBAN
-    if (!slip.iban || !slip.iban.startsWith('SA')) {
-      throw new Error(`Invalid IBAN for employee ${slip.employeeCode}: ${slip.iban}`);
-    }
-    
-    const bankCode = extractBankCode(slip.iban);
     
     const record: WPSRecord = {
       employeeId: slip.employeeCode,
@@ -144,12 +153,12 @@ export function generateWPSFile(
   
   const csvContent = [csvHeader, ...csvRows].join('\n');
   
-  // Generate checksum (SHA-256)
-  const checksum = generateChecksum(csvContent);
+  // Generate checksum using cryptographic SHA-256
+  const checksum = createHash('sha256').update(csvContent, 'utf8').digest('hex');
   
   const filename = `WPS_${organizationId}_${periodMonth.replace('-', '')}.csv`;
   
-  return {
+  const file: WPSFile = {
     filename,
     content: csvContent,
     checksum,
@@ -157,6 +166,8 @@ export function generateWPSFile(
     totalNetSalary: Math.round(totalNetSalary * 100) / 100,
     generatedAt: new Date(),
   };
+  
+  return { file, errors };
 }
 
 /**
@@ -169,21 +180,6 @@ function escapeCsv(value: string): string {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
-}
-
-/**
- * Generate SHA-256 checksum
- * In production, use crypto.createHash('sha256')
- */
-function generateChecksum(content: string): string {
-  // Simple checksum for now - in production use proper crypto
-  let hash = 0;
-  for (let i = 0; i < content.length; i++) {
-    const char = content.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return Math.abs(hash).toString(16).padStart(8, '0');
 }
 
 /**
