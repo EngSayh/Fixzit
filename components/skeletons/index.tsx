@@ -29,19 +29,31 @@ export function CardGridSkeleton({ count = 6 }: { count?: number }) {
 
 /**
  * Skeleton loader for table layouts (invoices, tickets, etc.)
+ * ✅ FIXED: Rows match header column structure for consistent layout
  */
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
+  // ✅ FIXED: Define columns array for consistent header/row structure
+  const columns = [
+    { width: 'w-32' },  // Column 1
+    { width: 'w-24' },  // Column 2
+    { width: 'w-20' },  // Column 3
+    { width: 'w-28' },  // Column 4
+  ];
+
   return (
     <div className="border border-border rounded-2xl overflow-hidden">
+      {/* Header row */}
       <div className="bg-muted border-b border-border px-6 py-3 flex gap-4">
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-4 w-28" />
+        {columns.map((col, i) => (
+          <Skeleton key={`header-${i}`} className={`h-4 ${col.width}`} />
+        ))}
       </div>
-      {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="border-b border-border px-6 py-4 flex gap-4 items-center">
-          <Skeleton className="h-10 w-full" />
+      {/* Data rows */}
+      {Array.from({ length: rows }).map((_, rowIndex) => (
+        <div key={rowIndex} className="border-b border-border px-6 py-4 flex gap-4 items-center">
+          {columns.map((col, colIndex) => (
+            <Skeleton key={`row-${rowIndex}-col-${colIndex}`} className={`h-4 ${col.width}`} />
+          ))}
         </div>
       ))}
     </div>
