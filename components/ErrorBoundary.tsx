@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 
 const SupportPopup = dynamic(() => import('@/components/SupportPopup'), { ssr: false });
 
@@ -554,12 +555,12 @@ ${errorReport.error.componentStack || 'No component stack available'}
                     </button>
                   )}
 
-                  <a
+                  <Link
                     href="/help"
                     className="inline-block w-full px-4 py-2 bg-[var(--fixzit-accent)] text-white rounded-md hover:bg-[var(--fixzit-accent-dark)] text-center"
                   >
                     📚 Get Help
-                  </a>
+                  </Link>
                 </>
               )}
             </div>

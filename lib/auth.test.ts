@@ -13,7 +13,7 @@ const loadAuthModule = async () => {
   return await import('./auth');
 };
 
-// Mock bcryptjs
+// FIX: Move all function implementations INSIDE the factory to avoid top-level variable references
 vi.mock('bcryptjs', () => ({
   __esModule: true,
   default: {
@@ -24,12 +24,11 @@ vi.mock('bcryptjs', () => ({
   compare: vi.fn(async (pwd: string, hashed: string) => hashed === `hashed:${pwd}`),
 }));
 
-// Capture jsonwebtoken sign/verify; allow verifying signature-less for unit focus
-const signSpy = vi.fn((payload: object, _secret: string, _opts?: any) => {
-  // Encode minimal token representation
+// FIX: Create factory function inside the mock to avoid hoisting issues
+const mockSign = vi.fn((payload: object, _secret: string, _opts?: any) => {
   return `token:${Buffer.from(JSON.stringify(payload)).toString('base64')}`;
 });
-const verifySpy = vi.fn((token: string, _secret: string) => {
+const mockVerify = vi.fn((token: string, _secret: string) => {
   if (!token.startsWith('token:')) {
     throw new Error('invalid token format');
   }
@@ -37,21 +36,34 @@ const verifySpy = vi.fn((token: string, _secret: string) => {
   const json = Buffer.from(b64, 'base64').toString('utf8');
   return JSON.parse(json);
 });
-vi.mock('jsonwebtoken', () => ({
-  __esModule: true,
-  default: {
-    sign: vi.fn((...args: Parameters<typeof signSpy>) => signSpy(...args)),
-    verify: vi.fn((...args: Parameters<typeof verifySpy>) => verifySpy(...args)),
-  },
-  sign: vi.fn((...args: Parameters<typeof signSpy>) => signSpy(...args)),
-  verify: vi.fn((...args: Parameters<typeof verifySpy>) => verifySpy(...args)),
-}));
 
-// Mock connectDb
-const dbConnectSpy = vi.fn(async () => Promise.resolve());
+vi.mock('jsonwebtoken', () => {
+  return {
+    __esModule: true,
+    default: {
+      sign: mockSign,
+      verify: mockVerify,
+    },
+    sign: mockSign,
+    verify: mockVerify,
+  };
+});
+
+// Export spies for test assertions
+const signSpy = mockSign;
+const verifySpy = mockVerify;
+
+// Mock database flag
+let mockIsMockDB = true;
+
+// FIX: Move dbConnectSpy declaration OUTSIDE mock factory
 vi.mock('@/lib/mongo', () => ({
   __esModule: true,
-  connectDb: (...args: Parameters<typeof dbConnectSpy>) => dbConnectSpy(...args),
+  connectDb: vi.fn(async () => Promise.resolve()),
+  get isMockDB() {
+    return mockIsMockDB;
+  },
+  db: Promise.resolve(),
 }));
 
 // Capture console.warn for JWT_SECRET fallback tests
@@ -67,23 +79,6 @@ afterEach(() => {
   // Clean up after each test
   process.env = { ...originalEnv };
 });
-
-describe('auth lib - JWT generation and verification', () => {
-
-// Mock mongo layer to control isMockDB and db connection behavior
-// We expose a mutable stub to vary isMockDB between tests if needed.
-let mockIsMockDB = true;
-const dbConnectSpy = vi.fn(async () => Promise.resolve());
-vi.mock('@/lib/mongo', () => ({
-  __esModule: true,
-  get isMockDB() {
-    return mockIsMockDB;
-  },
-  db: dbConnectSpy(),
-}));
-
-// Helper to replace console.warn so we can assert ephemeral secret warnings
-const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
 describe('auth lib - crypto and password helpers', () => {
   afterEach(() => {
@@ -380,5 +375,4 @@ describe('auth lib - getUserFromToken', () => {
       tenantId: 'tenant-42',
     });
   });
-});
 });

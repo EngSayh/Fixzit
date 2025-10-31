@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+import Link from 'next/link'
 
 export default function Reports() {
   const [isRTL, setIsRTL] = useState(false)
@@ -100,20 +101,20 @@ export default function Reports() {
         <aside className="fxz-sidebar">
           <div className="fxz-sidehead">{t.core}</div>
           <nav className="fxz-nav">
-            <a href="/dashboard">🏠 <span>{t.dashboard}</span></a>
-            <a href="/work-orders">🧰 <span>{t.workOrders}</span></a>
-            <a href="/properties">🏢 <span>{t.properties}</span></a>
-            <a href="/finance">💳 <span>{t.finance}</span></a>
-            <a href="/hr">👥 <span>{t.hr}</span></a>
+            <Link href="/dashboard">🏠 <span>{t.dashboard}</span></Link>
+            <Link href="/work-orders">🧰 <span>{t.workOrders}</span></Link>
+            <Link href="/properties">🏢 <span>{t.properties}</span></Link>
+            <Link href="/finance">💳 <span>{t.finance}</span></Link>
+            <Link href="/hr">👥 <span>{t.hr}</span></Link>
           </nav>
           <div className="fxz-sidehead">{t.business}</div>
           <nav className="fxz-nav">
-            <a href="/crm">📇 <span>{t.crm}</span></a>
-            <a href="/marketplace">🛍️ <span>{t.marketplace}</span></a>
-            <a href="/support">🎧 <span>{t.support}</span></a>
-            <a href="/compliance">🛡️ <span>{t.compliance}</span></a>
-            <a href="/reports" className="active">📊 <span>{t.reports}</span></a>
-            <a href="/system">⚙️ <span>{t.system}</span></a>
+            <Link href="/crm">📇 <span>{t.crm}</span></Link>
+            <Link href="/marketplace">🛍️ <span>{t.marketplace}</span></Link>
+            <Link href="/support">🎧 <span>{t.support}</span></Link>
+            <Link href="/compliance">🛡️ <span>{t.compliance}</span></Link>
+            <Link href="/reports" className="active">📊 <span>{t.reports}</span></Link>
+            <Link href="/system">⚙️ <span>{t.system}</span></Link>
           </nav>
         </aside>
 

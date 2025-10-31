@@ -1,21 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/auth.config';
-import { dbConnect } from '@/lib/mongo';
-import { PayrollRun, Payslip } from '@/models/hr/Payroll';
-import { Employee } from '@/models/hr/Employee';
-import { Timesheet } from '@/models/hr/Attendance';
-import { calculateNetPay } from '@/services/hr/ksaPayrollService';
+import { auth } from '@/auth';
+import { connectDb } from '@/lib/mongo';
+import { PayrollRun } from '@/models/hr/Payroll';
 
 // GET /api/hr/payroll/runs - List all payroll runs
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await dbConnect();
+    await connectDb();
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
@@ -41,12 +37,12 @@ export async function GET(req: NextRequest) {
 // POST /api/hr/payroll/runs - Create a new DRAFT payroll run
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await dbConnect();
+    await connectDb();
 
     const body = await req.json();
 

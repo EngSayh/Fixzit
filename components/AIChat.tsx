@@ -8,22 +8,13 @@ export default function AIChat({ onClose }: { onClose: () => void }) {
   const {
     messages,
     isLoading,
-    addMessage,
     sendMessage: sendMessageToStore,
   } = useAIChatStore();
   
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Add initial greeting message if no messages exist
-  useEffect(() => {
-    if (messages.length === 0) {
-      addMessage({
-        role: 'assistant',
-        content: 'Hello! I\'m Fixzit AI Assistant. I can help you with questions about Fixzit Enterprise, guide you through features, and provide support. How can I help you today?',
-      });
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Welcome message is already initialized in the store, no need to add it here
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

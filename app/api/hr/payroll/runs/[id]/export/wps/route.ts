@@ -1,22 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/auth.config';
-import { dbConnect } from '@/lib/mongo';
+import { auth } from '@/auth';
+import { connectDb } from '@/lib/mongo';
 import { PayrollRun, Payslip, IPayslip } from '@/models/hr/Payroll';
 import { generateWPSFile, validateWPSFile } from '@/services/hr/wpsService';
 
 // GET /api/hr/payroll/runs/[id]/export/wps - Generate WPS/Mudad compliant file
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.orgId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await dbConnect();
+    await connectDb();
+
+    const params = await props.params;
 
     // Fetch the payroll run
     const run = await PayrollRun.findOne({
