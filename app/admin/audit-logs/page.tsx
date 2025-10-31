@@ -140,12 +140,12 @@ export default function AuditLogViewer() {
 
   const getActionColor = (action: string) => {
     switch (action) {
-      case 'CREATE': return 'text-green-600 bg-green-100';
-      case 'UPDATE': return 'text-blue-600 bg-blue-100';
-      case 'DELETE': return 'text-red-600 bg-red-100';
-      case 'LOGIN': return 'text-purple-600 bg-purple-100';
-      case 'LOGOUT': return 'text-gray-600 bg-gray-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case 'CREATE': return 'text-green-600 bg-green-100 dark:bg-green-950 dark:text-green-400';
+      case 'UPDATE': return 'text-blue-600 bg-blue-100 dark:bg-blue-950 dark:text-blue-400';
+      case 'DELETE': return 'text-red-600 bg-red-100 dark:bg-red-950 dark:text-red-400';
+      case 'LOGIN': return 'text-purple-600 bg-purple-100 dark:bg-purple-950 dark:text-purple-400';
+      case 'LOGOUT': return 'text-muted-foreground bg-muted';
+      default: return 'text-muted-foreground bg-muted';
     }
   };
 
@@ -166,10 +166,10 @@ export default function AuditLogViewer() {
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+        <h1 className="text-3xl font-bold text-foreground">
           Audit Log
         </h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">
+        <p className="mt-2 text-muted-foreground">
           View all system activity and user actions
         </p>
       </div>
@@ -214,14 +214,14 @@ export default function AuditLogViewer() {
       )}
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+      <div className="bg-card rounded-2xl border border-border p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               Action
             </label>
             <select
-              className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+              className="w-full rounded-2xl border-border bg-background text-foreground"
               value={filters.action || ''}
               onChange={(e) => setFilters({ ...filters, action: e.target.value || undefined })}
             >
@@ -236,11 +236,11 @@ export default function AuditLogViewer() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               Entity Type
             </label>
             <select
-              className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+              className="w-full rounded-2xl border-border bg-background text-foreground"
               value={filters.entityType || ''}
               onChange={(e) => setFilters({ ...filters, entityType: e.target.value || undefined })}
             >
@@ -255,13 +255,13 @@ export default function AuditLogViewer() {
           </div>
 
           <div>
-            <label htmlFor="start-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="start-date" className="block text-sm font-medium text-foreground mb-1">
               Start Date
             </label>
             <input
               id="start-date"
               type="date"
-              className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+              className="w-full rounded-2xl border-border bg-background text-foreground"
               value={filters.startDate?.toISOString().split('T')[0] || ''}
               max={filters.endDate?.toISOString().split('T')[0] || undefined}
               onChange={(e) => setFilters({ ...filters, startDate: e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined })}
@@ -269,13 +269,13 @@ export default function AuditLogViewer() {
           </div>
 
           <div>
-            <label htmlFor="end-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="end-date" className="block text-sm font-medium text-foreground mb-1">
               End Date
             </label>
             <input
               id="end-date"
               type="date"
-              className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+              className="w-full rounded-2xl border-border bg-background text-foreground"
               value={filters.endDate?.toISOString().split('T')[0] || ''}
               min={filters.startDate?.toISOString().split('T')[0] || undefined}
               onChange={(e) => setFilters({ ...filters, endDate: e.target.value ? new Date(e.target.value + 'T23:59:59') : undefined })}
@@ -286,7 +286,7 @@ export default function AuditLogViewer() {
         <div className="mt-4 flex justify-end">
           <button
             onClick={() => setFilters({})}
-            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground rounded-2xl"
           >
             Clear Filters
           </button>
@@ -294,48 +294,48 @@ export default function AuditLogViewer() {
       </div>
 
       {/* Logs Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden">
         {loading ? (
           <div className="p-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading audit logs...</p>
+            <p className="mt-4 text-muted-foreground">Loading audit logs...</p>
           </div>
         ) : logs.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-gray-600 dark:text-gray-400">No audit logs found</p>
+            <p className="text-muted-foreground">No audit logs found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-800">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Timestamp
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Action
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Entity
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     User
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     IP Address
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="bg-card divide-y divide-border">
                 {logs.map((log) => (
-                  <tr key={log._id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  <tr key={log._id} className="hover:bg-muted">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                       {formatDate(log.timestamp)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -343,17 +343,17 @@ export default function AuditLogViewer() {
                         {log.action}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                       <div>{log.entityType}</div>
                       {log.entityName && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{log.entityName}</div>
+                        <div className="text-xs text-muted-foreground">{log.entityName}</div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                       <div>{log.userName}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{log.userEmail}</div>
+                      <div className="text-xs text-muted-foreground">{log.userEmail}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {log.context.ipAddress}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -381,9 +381,9 @@ export default function AuditLogViewer() {
 
       {/* Pagination */}
       {!loading && !error && logs.length > 0 && (
-        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <div className="bg-card rounded-2xl border border-border p-4">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-700 dark:text-gray-300">
+            <div className="text-sm text-foreground">
               Showing <span className="font-medium">{(page - 1) * LOGS_PER_PAGE + 1}</span> to{' '}
               <span className="font-medium">{Math.min(page * LOGS_PER_PAGE, totalLogs)}</span> of{' '}
               <span className="font-medium">{totalLogs}</span> results
@@ -392,7 +392,7 @@ export default function AuditLogViewer() {
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-2xl hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Previous
               </button>
@@ -414,10 +414,10 @@ export default function AuditLogViewer() {
                     <button
                       key={pageNum}
                       onClick={() => setPage(pageNum)}
-                      className={`px-4 py-2 text-sm font-medium rounded-md ${
+                      className={`px-4 py-2 text-sm font-medium rounded-2xl ${
                         page === pageNum
                           ? 'bg-blue-600 text-white'
-                          : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          : 'text-foreground bg-background border border-border hover:bg-muted'
                       }`}
                     >
                       {pageNum}
@@ -428,7 +428,7 @@ export default function AuditLogViewer() {
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-2xl hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
               </button>
@@ -448,15 +448,15 @@ export default function AuditLogViewer() {
             if (e.target === e.currentTarget) setSelectedLog(null);
           }}
         >
-          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-popover rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-border">
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <h2 id="modal-title" className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h2 id="modal-title" className="text-2xl font-bold text-foreground">
                   Audit Log Details
                 </h2>
                 <button
                   onClick={() => setSelectedLog(null)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="text-muted-foreground hover:text-foreground"
                   aria-label="Close modal"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -467,13 +467,13 @@ export default function AuditLogViewer() {
 
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Timestamp</h3>
-                  <p className="mt-1 text-gray-900 dark:text-white">{formatDate(selectedLog.timestamp)}</p>
+                  <h3 className="text-sm font-medium text-muted-foreground">Timestamp</h3>
+                  <p className="mt-1 text-foreground">{formatDate(selectedLog.timestamp)}</p>
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Action</h3>
-                  <p className="mt-1 text-gray-900 dark:text-white">
+                  <h3 className="text-sm font-medium text-muted-foreground">Action</h3>
+                  <p className="mt-1 text-foreground">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${getActionColor(selectedLog.action)}`}>
                       {selectedLog.action}
                     </span>
@@ -481,22 +481,22 @@ export default function AuditLogViewer() {
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">User</h3>
-                  <p className="mt-1 text-gray-900 dark:text-white">
+                  <h3 className="text-sm font-medium text-muted-foreground">User</h3>
+                  <p className="mt-1 text-foreground">
                     {selectedLog.userName} ({selectedLog.userEmail})
-                    <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                    <span className="ml-2 text-xs text-muted-foreground">
                       Role: {selectedLog.userRole}
                     </span>
                   </p>
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Entity</h3>
-                  <p className="mt-1 text-gray-900 dark:text-white">
+                  <h3 className="text-sm font-medium text-muted-foreground">Entity</h3>
+                  <p className="mt-1 text-foreground">
                     {selectedLog.entityType}
                     {selectedLog.entityName && ` - ${selectedLog.entityName}`}
                     {selectedLog.entityId && (
-                      <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                      <span className="ml-2 text-xs text-muted-foreground">
                         ID: {selectedLog.entityId}
                       </span>
                     )}
@@ -504,42 +504,42 @@ export default function AuditLogViewer() {
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Context</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">Context</h3>
                   <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
-                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                    <div className="bg-muted p-2 rounded-2xl">
                       <span className="font-medium">Method:</span> {selectedLog.context.method}
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                    <div className="bg-muted p-2 rounded-2xl">
                       <span className="font-medium">IP:</span> {selectedLog.context.ipAddress}
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                    <div className="bg-muted p-2 rounded-2xl">
                       <span className="font-medium">Browser:</span> {selectedLog.context.browser}
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                    <div className="bg-muted p-2 rounded-2xl">
                       <span className="font-medium">OS:</span> {selectedLog.context.os}
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                    <div className="bg-muted p-2 rounded-2xl">
                       <span className="font-medium">Device:</span> {selectedLog.context.device}
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                    <div className="bg-muted p-2 rounded-2xl">
                       <span className="font-medium">Endpoint:</span> {selectedLog.context.endpoint}
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Result</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">Result</h3>
                   <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
-                    <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                    <div className="bg-muted p-2 rounded-2xl">
                       <span className="font-medium">Success:</span> {selectedLog.result.success ? 'Yes' : 'No'}
                     </div>
                     {selectedLog.result.errorCode && (
-                      <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                      <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded-2xl">
                         <span className="font-medium text-red-600 dark:text-red-400">Error Code:</span> {selectedLog.result.errorCode}
                       </div>
                     )}
                     {selectedLog.result.duration !== undefined && (
-                      <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                      <div className="bg-muted p-2 rounded-2xl">
                         <span className="font-medium">Duration:</span> {selectedLog.result.duration} ms
                       </div>
                     )}
@@ -548,19 +548,19 @@ export default function AuditLogViewer() {
 
                 {selectedLog.changes && selectedLog.changes.length > 0 && (
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Changes</h3>
+                    <h3 className="text-sm font-medium text-muted-foreground">Changes</h3>
                     <div className="mt-1 space-y-2">
                       {selectedLog.changes.map((change, index) => (
-                        <div key={index} className="p-2 rounded bg-gray-50 dark:bg-gray-800">
+                        <div key={index} className="p-2 rounded-2xl bg-muted">
                           <div className="flex gap-2">
                             <span className="font-medium">{change.field}:</span>
-                            <span className="text-gray-900 dark:text-white">
+                            <span className="text-foreground">
                               {JSON.stringify(change.oldValue)}
                             </span>
                           </div>
                           <div className="flex gap-2">
                             <span className="font-medium">→</span>
-                            <span className="text-gray-900 dark:text-white">
+                            <span className="text-foreground">
                               {JSON.stringify(change.newValue)}
                             </span>
                           </div>
