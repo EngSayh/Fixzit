@@ -380,69 +380,69 @@ export default function NewPaymentPage() {
     switch (paymentMethod) {
       case 'BANK_TRANSFER':
         return (
-          <div className="space-y-4 p-4 bg-blue-50 rounded-md">
+          <div className="space-y-4 p-4 bg-blue-50 rounded-2xl">
             <h3 className="font-medium text-blue-900">{t('Bank Transfer Details')}</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {t('Bank Name')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md ${errors.bankName ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.bankName ? 'border-red-500' : 'border-border'}`}
                 />
                 {errors.bankName && <p className="text-xs text-red-500 mt-1">{errors.bankName}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {t('Account Number')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md ${errors.accountNumber ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.accountNumber ? 'border-red-500' : 'border-border'}`}
                 />
                 {errors.accountNumber && <p className="text-xs text-red-500 mt-1">{errors.accountNumber}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {t('Account Holder')}
                 </label>
                 <input
                   type="text"
                   value={accountHolder}
                   onChange={(e) => setAccountHolder(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {t('SWIFT Code')}
                 </label>
                 <input
                   type="text"
                   value={swiftCode}
                   onChange={(e) => setSwiftCode(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {t('IBAN')}
                 </label>
                 <input
                   type="text"
                   value={iban}
                   onChange={(e) => setIban(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
                   placeholder="SA1234567890123456789012"
                 />
               </div>
@@ -452,58 +452,58 @@ export default function NewPaymentPage() {
 
       case 'CHEQUE':
         return (
-          <div className="space-y-4 p-4 bg-purple-50 rounded-md">
+          <div className="space-y-4 p-4 bg-purple-50 rounded-2xl">
             <h3 className="font-medium text-purple-900">{t('Cheque Details')}</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {t('Cheque Number')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={chequeNumber}
                   onChange={(e) => setChequeNumber(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md ${errors.chequeNumber ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.chequeNumber ? 'border-red-500' : 'border-border'}`}
                 />
                 {errors.chequeNumber && <p className="text-xs text-red-500 mt-1">{errors.chequeNumber}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {t('Cheque Date')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
                   value={chequeDate}
                   onChange={(e) => setChequeDate(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md ${errors.chequeDate ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.chequeDate ? 'border-red-500' : 'border-border'}`}
                 />
                 {errors.chequeDate && <p className="text-xs text-red-500 mt-1">{errors.chequeDate}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {t('Bank Name')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={chequeBankName}
                   onChange={(e) => setChequeBankName(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md ${errors.chequeBankName ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.chequeBankName ? 'border-red-500' : 'border-border'}`}
                 />
                 {errors.chequeBankName && <p className="text-xs text-red-500 mt-1">{errors.chequeBankName}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {t('Drawer Name')}
                 </label>
                 <input
                   type="text"
                   value={drawerName}
                   onChange={(e) => setDrawerName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
                   placeholder={t('Name on cheque')}
                 />
               </div>
@@ -513,18 +513,18 @@ export default function NewPaymentPage() {
 
       case 'CARD':
         return (
-          <div className="space-y-4 p-4 bg-green-50 rounded-md">
+          <div className="space-y-4 p-4 bg-green-50 rounded-2xl">
             <h3 className="font-medium text-green-900">{t('Card Payment Details')}</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {t('Card Type')}
                 </label>
                 <select
                   value={cardType}
                   onChange={(e) => setCardType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
                 >
                   <option value="VISA">Visa</option>
                   <option value="MASTERCARD">Mastercard</option>
@@ -535,7 +535,7 @@ export default function NewPaymentPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {t('Last 4 Digits')} <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -544,33 +544,33 @@ export default function NewPaymentPage() {
                   onChange={(e) => setLast4Digits(e.target.value)}
                   maxLength={4}
                   pattern="\d{4}"
-                  className={`w-full px-3 py-2 border rounded-md ${errors.last4Digits ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.last4Digits ? 'border-red-500' : 'border-border'}`}
                   placeholder="1234"
                 />
                 {errors.last4Digits && <p className="text-xs text-red-500 mt-1">{errors.last4Digits}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {t('Transaction ID')}
                 </label>
                 <input
                   type="text"
                   value={transactionId}
                   onChange={(e) => setTransactionId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {t('Authorization Code')}
                 </label>
                 <input
                   type="text"
                   value={authorizationCode}
                   onChange={(e) => setAuthorizationCode(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
                 />
               </div>
             </div>
@@ -592,7 +592,7 @@ export default function NewPaymentPage() {
         <h1 className="text-3xl font-bold">{t('New Payment')}</h1>
         <button
           onClick={() => router.back()}
-          className="px-4 py-2 text-gray-600 hover:text-gray-900"
+          className="px-4 py-2 text-muted-foreground hover:text-foreground"
           disabled={isSubmitting}
         >
           {t('Cancel')}
@@ -601,19 +601,19 @@ export default function NewPaymentPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Main Payment Details Card */}
-        <div className="bg-white shadow-md rounded-lg p-6 space-y-4">
+        <div className="bg-white shadow-md rounded-2xl p-6 space-y-4">
           <h2 className="text-xl font-semibold border-b pb-2">{t('Payment Details')}</h2>
 
           {/* Payment Type & Date */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 {t('Payment Type')} <span className="text-red-500">*</span>
               </label>
               <select
                 value={paymentType}
                 onChange={(e) => setPaymentType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-border rounded-2xl"
               >
                 <option value="RECEIVED">{t('Payment Received')}</option>
                 <option value="MADE">{t('Payment Made')}</option>
@@ -621,28 +621,28 @@ export default function NewPaymentPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 {t('Payment Date')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
                 value={paymentDate}
                 onChange={(e) => setPaymentDate(e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md ${errors.paymentDate ? 'border-red-500' : 'border-gray-300'}`}
+                className={`w-full px-3 py-2 border rounded-2xl ${errors.paymentDate ? 'border-red-500' : 'border-border'}`}
                 required
               />
               {errors.paymentDate && <p className="text-xs text-red-500 mt-1">{errors.paymentDate}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 {t('Reference Number')}
               </label>
               <input
                 type="text"
                 value={referenceNumber}
                 onChange={(e) => setReferenceNumber(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-border rounded-2xl"
                 placeholder={t('Optional')}
               />
             </div>
@@ -651,7 +651,7 @@ export default function NewPaymentPage() {
           {/* Amount & Currency */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 {t('Amount')} <span className="text-red-500">*</span>
               </label>
               <input
@@ -660,20 +660,20 @@ export default function NewPaymentPage() {
                 min="0"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md ${errors.amount ? 'border-red-500' : 'border-gray-300'}`}
+                className={`w-full px-3 py-2 border rounded-2xl ${errors.amount ? 'border-red-500' : 'border-border'}`}
                 required
               />
               {errors.amount && <p className="text-xs text-red-500 mt-1">{errors.amount}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 {t('Currency')} <span className="text-red-500">*</span>
               </label>
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-border rounded-2xl"
               >
                 <option value="SAR">SAR - Saudi Riyal</option>
                 <option value="USD">USD - US Dollar</option>
@@ -686,13 +686,13 @@ export default function NewPaymentPage() {
 
           {/* Payment Method */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               {t('Payment Method')} <span className="text-red-500">*</span>
             </label>
             <select
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="w-full px-3 py-2 border border-border rounded-2xl"
             >
               <option value="CASH">{t('Cash')}</option>
               <option value="CARD">{t('Credit/Debit Card')}</option>
@@ -705,13 +705,13 @@ export default function NewPaymentPage() {
 
           {/* Cash/Bank Account Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               {t('Deposit To Account')} <span className="text-red-500">*</span>
             </label>
             <select
               value={cashAccountId}
               onChange={(e) => setCashAccountId(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md ${errors.cashAccountId ? 'border-red-500' : 'border-gray-300'}`}
+              className={`w-full px-3 py-2 border rounded-2xl ${errors.cashAccountId ? 'border-red-500' : 'border-border'}`}
               disabled={loadingAccounts}
             >
               <option value="">{loadingAccounts ? t('Loading...') : t('Select Account')}</option>
@@ -729,19 +729,19 @@ export default function NewPaymentPage() {
 
           {/* Party Details */}
           <div className="pt-4 border-t">
-            <h3 className="font-medium text-gray-900 mb-3">
+            <h3 className="font-medium text-foreground mb-3">
               {paymentType === 'RECEIVED' ? t('Received From') : t('Paid To')}
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {t('Party Type')}
                 </label>
                 <select
                   value={partyType}
                   onChange={(e) => setPartyType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-border rounded-2xl"
                 >
                   <option value="TENANT">{t('Tenant')}</option>
                   <option value="CUSTOMER">{t('Customer')}</option>
@@ -753,14 +753,14 @@ export default function NewPaymentPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   {t('Party Name')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   value={partyName}
                   onChange={(e) => setPartyName(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-md ${errors.partyName ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.partyName ? 'border-red-500' : 'border-border'}`}
                   required
                 />
                 {errors.partyName && <p className="text-xs text-red-500 mt-1">{errors.partyName}</p>}
@@ -770,14 +770,14 @@ export default function NewPaymentPage() {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               {t('Notes')}
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="w-full px-3 py-2 border border-border rounded-2xl"
               placeholder={t('Optional payment notes...')}
             />
           </div>
@@ -785,13 +785,13 @@ export default function NewPaymentPage() {
 
         {/* Invoice Allocation Card (for RECEIVED payments only) */}
         {paymentType === 'RECEIVED' && (
-          <div className="bg-white shadow-md rounded-lg p-6 space-y-4">
+          <div className="bg-white shadow-md rounded-2xl p-6 space-y-4">
             <div className="flex items-center justify-between border-b pb-2">
               <h2 className="text-xl font-semibold">{t('Invoice Allocation')}</h2>
               <button
                 type="button"
                 onClick={() => setShowInvoiceAllocation(!showInvoiceAllocation)}
-                className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200"
+                className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-2xl hover:bg-blue-200"
               >
                 {showInvoiceAllocation ? t('Hide Invoices') : t('Allocate to Invoices')}
               </button>
@@ -801,11 +801,11 @@ export default function NewPaymentPage() {
               <>
                 {loadingInvoices ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-500">{t('Loading invoices...')}</p>
+                    <p className="text-muted-foreground">{t('Loading invoices...')}</p>
                   </div>
                 ) : allocations.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-500">{t('No unpaid invoices found')}</p>
+                    <p className="text-muted-foreground">{t('No unpaid invoices found')}</p>
                   </div>
                 ) : (
                   <>
@@ -814,7 +814,7 @@ export default function NewPaymentPage() {
                       <button
                         type="button"
                         onClick={allocateEqually}
-                        className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                        className="px-3 py-1 text-sm bg-muted text-foreground rounded hover:bg-gray-200"
                         disabled={allocations.filter(a => a.selected).length === 0}
                       >
                         {t('Allocate Equally')}
@@ -822,7 +822,7 @@ export default function NewPaymentPage() {
                       <button
                         type="button"
                         onClick={allocateByPriority}
-                        className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                        className="px-3 py-1 text-sm bg-muted text-foreground rounded hover:bg-gray-200"
                         disabled={allocations.filter(a => a.selected).length === 0}
                       >
                         {t('By Due Date')}
@@ -839,24 +839,24 @@ export default function NewPaymentPage() {
                     {/* Allocations Table */}
                     <div className="overflow-x-auto">
                       <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-muted">
                           <tr>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
                               {t('Select')}
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
                               {t('Invoice #')}
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
                               {t('Customer')}
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
                               {t('Due Date')}
                             </th>
-                            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                            <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
                               {t('Amount Due')}
                             </th>
-                            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                            <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
                               {t('Allocate')}
                             </th>
                           </tr>
@@ -872,16 +872,16 @@ export default function NewPaymentPage() {
                                   className="w-4 h-4 text-blue-600 rounded"
                                 />
                               </td>
-                              <td className="px-3 py-2 text-sm font-medium text-gray-900">
+                              <td className="px-3 py-2 text-sm font-medium text-foreground">
                                 {allocation.invoiceNumber}
                               </td>
-                              <td className="px-3 py-2 text-sm text-gray-700">
+                              <td className="px-3 py-2 text-sm text-foreground">
                                 {allocation.customerName}
                               </td>
-                              <td className="px-3 py-2 text-sm text-gray-700">
+                              <td className="px-3 py-2 text-sm text-foreground">
                                 {new Date(allocation.dueDate).toLocaleDateString()}
                               </td>
-                              <td className="px-3 py-2 text-sm text-right text-gray-900">
+                              <td className="px-3 py-2 text-sm text-right text-foreground">
                                 {allocation.amountDue.toFixed(2)} {currency}
                               </td>
                               <td className="px-3 py-2">
@@ -892,7 +892,7 @@ export default function NewPaymentPage() {
                                   max={allocation.amountDue}
                                   value={allocation.amountAllocated}
                                   onChange={(e) => updateAllocationAmount(allocation.id, e.target.value)}
-                                  className="w-full px-2 py-1 text-sm text-right border border-gray-300 rounded"
+                                  className="w-full px-2 py-1 text-sm text-right border border-border rounded"
                                   disabled={!allocation.selected}
                                 />
                               </td>
@@ -905,20 +905,20 @@ export default function NewPaymentPage() {
                     {/* Allocation Summary */}
                     <div className="pt-3 border-t">
                       <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div className="bg-gray-50 p-3 rounded">
-                          <p className="text-gray-600">{t('Payment Amount')}</p>
-                          <p className="text-lg font-bold text-gray-900">
+                        <div className="bg-muted p-3 rounded">
+                          <p className="text-muted-foreground">{t('Payment Amount')}</p>
+                          <p className="text-lg font-bold text-foreground">
                             {paymentAmountNum.toFixed(2)} {currency}
                           </p>
                         </div>
                         <div className="bg-blue-50 p-3 rounded">
-                          <p className="text-gray-600">{t('Allocated')}</p>
+                          <p className="text-muted-foreground">{t('Allocated')}</p>
                           <p className="text-lg font-bold text-blue-700">
                             {totalAllocated.toFixed(2)} {currency}
                           </p>
                         </div>
                         <div className={`p-3 rounded ${unallocatedAmount < 0 ? 'bg-red-50' : 'bg-green-50'}`}>
-                          <p className="text-gray-600">{t('Unallocated')}</p>
+                          <p className="text-muted-foreground">{t('Unallocated')}</p>
                           <p className={`text-lg font-bold ${unallocatedAmount < 0 ? 'text-red-700' : 'text-green-700'}`}>
                             {unallocatedAmount.toFixed(2)} {currency}
                           </p>
@@ -937,24 +937,24 @@ export default function NewPaymentPage() {
 
         {/* Error Display */}
         {errors.submit && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
             <p className="text-sm text-red-700">{errors.submit}</p>
           </div>
         )}
 
         {/* Submit Actions */}
-        <div className="flex justify-end gap-3 bg-white shadow-md rounded-lg p-6">
+        <div className="flex justify-end gap-3 bg-white shadow-md rounded-2xl p-6">
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            className="px-6 py-2 border border-border rounded-2xl text-foreground hover:bg-muted"
             disabled={isSubmitting}
           >
             {t('Cancel')}
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="px-6 py-2 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             disabled={isSubmitting || Object.keys(errors).length > 0}
           >
             {isSubmitting ? t('Creating...') : t('Create Payment')}
