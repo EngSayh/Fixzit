@@ -175,7 +175,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
     return (
       <>
         <div className="mb-6">{buttons}</div>
-        <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <div className="mt-6 pt-6 border-t border-border">
           {buttons}
         </div>
       </>
@@ -187,7 +187,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   }
 
   return (
-    <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+    <div className="mt-6 pt-6 border-t border-border">
       {buttons}
     </div>
   );
