@@ -17,16 +17,26 @@ const TabsContext = React.createContext<{
   onValueChange: () => {}
 });
 
-export const Tabs: React.FC<TabsProps & { defaultValue?: string }> = ({ 
+export const Tabs: React.FC<TabsProps & { 
+  defaultValue?: string;
+  value?: string;
+  onValueChange?: (value: string) => void;
+}> = ({ 
   className = '', 
   defaultValue = '',
+  value: controlledValue,
+  onValueChange: controlledOnChange,
   children,
   ...props 
 }) => {
-  const [value, setValue] = React.useState(defaultValue);
+  const [internalValue, setInternalValue] = React.useState(defaultValue);
+  
+  // Use controlled value if provided, otherwise use internal state
+  const value = controlledValue !== undefined ? controlledValue : internalValue;
+  const onValueChange = controlledOnChange || setInternalValue;
 
   return (
-    <TabsContext.Provider value={{ value, onValueChange: setValue }}>
+    <TabsContext.Provider value={{ value, onValueChange }}>
       <div className={`w-full ${className}`} {...props}>
         {children}
       </div>

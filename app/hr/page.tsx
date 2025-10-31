@@ -1,6 +1,101 @@
-export default function Page() {
-  return <div className="space-y-2">
-    <h1 className="text-2xl font-bold">HR</h1>
-    <p>Coming online – UI wired, API scaffolded.</p>
-  </div>;
+'use client';
+
+import { useTranslation } from '@/contexts/TranslationContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Users, DollarSign, Calendar, Clock } from 'lucide-react';
+
+export default function HRDashboard() {
+  const { t } = useTranslation();
+
+  const stats = [
+    {
+      title: t('hr.stats.totalEmployees', 'Total Employees'),
+      value: '142',
+      icon: Users,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-100'
+    },
+    {
+      title: t('hr.stats.monthlyPayroll', 'Monthly Payroll'),
+      value: 'SAR 1.2M',
+      icon: DollarSign,
+      color: 'text-green-600',
+      bgColor: 'bg-green-100'
+    },
+    {
+      title: t('hr.stats.pendingLeave', 'Pending Leave Requests'),
+      value: '8',
+      icon: Calendar,
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-100'
+    },
+    {
+      title: t('hr.stats.attendance', 'Today\'s Attendance'),
+      value: '138/142',
+      icon: Clock,
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-100'
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, index) => (
+          <Card key={index}>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">{stat.title}</p>
+                  <p className="text-2xl font-bold mt-1">{stat.value}</p>
+                </div>
+                <div className={`${stat.bgColor} ${stat.color} p-3 rounded-lg`}>
+                  <stat.icon className="h-6 w-6" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('hr.quickActions', 'Quick Actions')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors">
+              <div className="text-2xl mb-2">👤</div>
+              <div className="font-semibold">{t('hr.actions.addEmployee', 'Add Employee')}</div>
+              <div className="text-sm text-gray-600">{t('hr.actions.addEmployeeDesc', 'Register a new employee')}</div>
+            </button>
+            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors">
+              <div className="text-2xl mb-2">💰</div>
+              <div className="font-semibold">{t('hr.actions.processPayroll', 'Process Payroll')}</div>
+              <div className="text-sm text-gray-600">{t('hr.actions.processPayrollDesc', 'Run monthly payroll')}</div>
+            </button>
+            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-left transition-colors">
+              <div className="text-2xl mb-2">📅</div>
+              <div className="font-semibold">{t('hr.actions.approveLeave', 'Approve Leave')}</div>
+              <div className="text-sm text-gray-600">{t('hr.actions.approveLeaveDesc', 'Review leave requests')}</div>
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('hr.recentActivity', 'Recent Activity')}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600">{t('hr.comingSoon', 'Recent activity will appear here...')}</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
