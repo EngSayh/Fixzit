@@ -69,13 +69,13 @@ export default function AqarPage() {
           <div className="flex flex-wrap gap-4 justify-center">
             <Link
               href="/aqar/map"
-              className="px-6 py-3 bg-white hover:bg-gray-100 text-[#FFB400] font-semibold rounded-lg transition-colors"
+              className="px-6 py-3 bg-card hover:bg-muted/80 text-[#FFB400] font-semibold rounded-2xl transition-colors"
             >
               Explore Map
             </Link>
             <Link
               href="/aqar/search"
-              className="px-6 py-3 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-lg transition-colors"
+              className="px-6 py-3 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-2xl transition-colors"
             >
               Search Properties
             </Link>
@@ -86,7 +86,7 @@ export default function AqarPage() {
       {/* Features Grid */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">
+          <h2 className="text-3xl font-bold text-center mb-12 text-foreground">
             Real Estate Features
           </h2>
 
@@ -97,17 +97,17 @@ export default function AqarPage() {
                 <Link
                   key={feature.title}
                   href={feature.link}
-                  className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow border border-gray-200 group"
+                  className="bg-card p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow border border-border group"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="p-3 bg-[#FFB400]/10 rounded-lg group-hover:bg-[#FFB400]/20 transition-colors">
+                    <div className="p-3 bg-[#FFB400]/10 rounded-2xl group-hover:bg-[#FFB400]/20 transition-colors">
                       <Icon className="h-6 w-6 text-[#FFB400]" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold mb-2 text-gray-900 group-hover:text-[#FFB400]">
+                      <h3 className="text-lg font-semibold mb-2 text-foreground group-hover:text-[#FFB400]">
                         {feature.title}
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         {feature.description}
                       </p>
                     </div>
