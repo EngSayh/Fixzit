@@ -8,7 +8,7 @@ import Link from 'next/link';
 
 export default function QuickActions() {
   const { quickActions } = useTopBar();
-  const { isRTL } = useTranslation();
+  const { t, isRTL } = useTranslation(); // FIX: Add t for translation
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -67,7 +67,7 @@ export default function QuickActions() {
                 role="menuitem"
               >
                 <Plus className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm">{action.label}</span>
+                <span className="text-sm">{t(action.labelKey, action.labelKey)}</span> {/* FIX: Use labelKey and translate */}
               </Link>
             ))}
           </div>
