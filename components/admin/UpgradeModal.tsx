@@ -74,11 +74,11 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
 
       {/* Modal */}
       <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+        <div className="relative bg-popover text-popover-foreground rounded-2xl shadow-xl max-w-md w-full p-6 border border-border">
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
             aria-label="Close modal"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -96,11 +96,11 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
           </div>
 
           {/* Content */}
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white text-center mb-2" id="modal-title">
+          <h3 className="text-xl font-bold text-foreground text-center mb-2" id="modal-title">
             Enterprise Feature
           </h3>
           
-          <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
+          <p className="text-muted-foreground text-center mb-6">
             {featureName ? (
               <>
                 <strong>{featureName}</strong> is available in the Enterprise plan with advanced features and dedicated support.
@@ -111,9 +111,9 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
           </p>
 
           {/* Features included */}
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-6">
-            <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Enterprise includes:</h4>
-            <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+          <div className="bg-muted rounded-2xl p-4 mb-6">
+            <h4 className="font-semibold text-foreground mb-3">Enterprise includes:</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-start">
                 <svg className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -143,7 +143,7 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
 
           {/* Contact form */}
           <div className="mb-6">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
               Email Address
             </label>
             <input
@@ -155,9 +155,9 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
                 if (error) setError(''); // Clear error on change
               }}
               placeholder="your@email.com"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+              className="w-full px-3 py-2 border border-border rounded-2xl 
                        focus:ring-2 focus:ring-brand-500 focus:border-transparent
-                       dark:bg-gray-700 dark:text-white"
+                       bg-background text-foreground"
               disabled={submitting}
             />
             {error && (
@@ -171,8 +171,8 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300
-                       rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex-1 px-4 py-2 border border-border text-foreground
+                       rounded-2xl hover:bg-muted transition-colors"
               disabled={submitting}
             >
               Maybe Later
@@ -180,7 +180,7 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
             <button
               onClick={handleContactSales}
               disabled={submitting}
-              className="flex-1 px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 
+              className="flex-1 px-4 py-2 bg-brand-500 text-white rounded-2xl hover:bg-brand-600 
                        transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
             >
               {submitting ? 'Sending...' : 'Contact Sales'}
@@ -188,7 +188,7 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
           </div>
 
           {/* Alternative contact */}
-          <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">
+          <p className="text-xs text-muted-foreground text-center mt-4">
             Or email us directly at{' '}
             <a href="mailto:sales@fixzit.sa" className="text-brand-500 hover:text-brand-600 underline">
               sales@fixzit.sa
