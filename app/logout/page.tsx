@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { STORAGE_KEYS } from '@/config/constants';
+import { APP_STORAGE_KEYS, STORAGE_KEYS, STORAGE_PREFIXES } from '@/config/constants';
 
 export default function LogoutPage() {
   const router = useRouter();
@@ -16,18 +16,28 @@ export default function LogoutPage() {
           credentials: 'include'
         });
 
-        // Clear client-side storage
-        localStorage.removeItem('fixzit-role');
-        localStorage.removeItem(STORAGE_KEYS.language);
-        localStorage.removeItem(STORAGE_KEYS.currency);
-        localStorage.removeItem(STORAGE_KEYS.theme);
+        // Clear app localStorage items robustly; preserve language + locale
+        const preserve = new Set<string>([STORAGE_KEYS.language, STORAGE_KEYS.locale]);
+        const removed: string[] = [];
 
-        // Clear any other localStorage items related to the app
         Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('fixzit-') || key.startsWith('fxz-')) {
+          const isAppKey =
+            APP_STORAGE_KEYS.includes(key as typeof APP_STORAGE_KEYS[number]) ||
+            key.startsWith(STORAGE_PREFIXES.app) ||
+            key.startsWith(STORAGE_PREFIXES.shortDash) ||
+            key.startsWith(STORAGE_PREFIXES.shortDot);
+          if (isAppKey && !preserve.has(key)) {
             localStorage.removeItem(key);
+            removed.push(key);
           }
         });
+
+        // Optional: emit an audit event (hook up to your logger/analytics if available)
+        try {
+          console.info('[logout] clearedLocalStorage', { removedCount: removed.length });
+        } catch {
+          /* ignore audit log failure */
+        }
 
         // Force a hard reload to clear all state and redirect to login
         window.location.href = '/login';

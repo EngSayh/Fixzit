@@ -10,6 +10,7 @@ import {
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { STORAGE_KEYS } from '@/config/constants';
 import LanguageSelector from '@/components/i18n/LanguageSelector';
 import CurrencySelector from '@/components/i18n/CurrencySelector';
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
@@ -241,7 +242,7 @@ export default function LoginPage() {
       if (data?.ok !== false) {
         if (data.user?.role) {
           try {
-            localStorage.setItem('fixzit-role', data.user.role);
+            localStorage.setItem(STORAGE_KEYS.role, data.user.role);
           } catch {
             /* ignore */
           }
@@ -265,7 +266,7 @@ export default function LoginPage() {
   // Success state
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center p-4">
         <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="w-8 h-8 text-green-600" />

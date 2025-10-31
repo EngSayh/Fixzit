@@ -16,6 +16,7 @@ Completed comprehensive security audit of Fixzit codebase dependencies. Identifi
 
 ### 1. next-auth Email Misdelivery Vulnerability
 
+
 **Severity**: Moderate  
 **CVE**: GHSA-5jpx-9hw9-2fx4  
 **CWE**: CWE-200 (Information Exposure)  
@@ -166,7 +167,7 @@ pnpm outdated
 ## GitHub Dependabot Configuration
 
 Current Dependabot alerts should be reviewed regularly at:
-https://github.com/EngSayh/Fixzit/security/dependabot
+[https://github.com/EngSayh/Fixzit/security/dependabot](https://github.com/EngSayh/Fixzit/security/dependabot)
 
 **Recommended Settings**:
 - Enable automated security updates
