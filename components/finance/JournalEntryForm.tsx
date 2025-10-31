@@ -618,7 +618,7 @@ export default function JournalEntryForm({
         <button
           type="button"
           onClick={handleSubmit}
-          className="px-6 py-2 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="px-6 py-2 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={isSubmitting || !isBalanced || loadingAccounts}
         >
           {isSubmitting ? t('Saving...') : mode === 'create' ? t('Create Journal Entry') : t('Save Changes')}

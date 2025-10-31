@@ -275,7 +275,7 @@ export default function CatalogPage() {
                     className={`flex-1 px-3 py-2 rounded-2xl transition-colors text-sm ${
                       product.inStock
                         ? 'bg-[#00A859] text-white hover:bg-[#00A859]/90'
-                        : 'bg-gray-300 text-muted-foreground cursor-not-allowed'
+                        : 'bg-muted text-muted-foreground cursor-not-allowed'
                     }`}
                   >
                     <ShoppingCart className="w-4 h-4 inline mr-1" />

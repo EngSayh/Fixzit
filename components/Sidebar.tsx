@@ -221,7 +221,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
         <nav className="space-y-6 mb-8" aria-label={t('sidebar.modules', 'Modules')}>
           {Object.entries(groupedModules).map(([category, modules]) => (
             <section key={category} aria-label={getCategoryName(category)}>
-              <div className="text-xs font-medium text-gray-200/80 mb-2 px-3 uppercase tracking-wider">
+              <div className="text-xs font-medium text-sidebar-foreground/80 mb-2 px-3 uppercase tracking-wider">
                 {getCategoryName(category)}
               </div>
               <ul className="space-y-1">
@@ -233,7 +233,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
                       <Link
                         href={m.path}
                         className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl transition-all duration-200
-                          ${isActive ? 'bg-white/10 text-white shadow-md' : 'text-gray-100 hover:bg-white/10 hover:text-white hover:translate-x-1'}
+                          ${isActive ? 'bg-white/10 text-white shadow-md' : 'text-sidebar-foreground hover:bg-white/10 hover:text-white hover:translate-x-1'}
                           ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
                         aria-current={isActive ? 'page' : undefined}
                         data-testid={`nav-${m.id}`}
@@ -265,7 +265,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
 
         {/* User Account Links */}
         <div className="border-t border-white/20 pt-4">
-          <div className={`text-xs font-medium text-gray-200/80 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>
+          <div className={`text-xs font-medium text-sidebar-foreground/80 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>
             {t('sidebar.account', 'Account')}
           </div>
           <ul className="space-y-1" aria-label={t('sidebar.account', 'Account')}>
@@ -277,7 +277,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
                   <Link
                     href={link.path}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl transition-all duration-200
-                      ${isActive ? 'bg-white/10 text-white shadow-md' : 'text-gray-100 hover:bg-white/10 hover:text-white hover:translate-x-1'}
+                      ${isActive ? 'bg-white/10 text-white shadow-md' : 'text-sidebar-foreground hover:bg-white/10 hover:text-white hover:translate-x-1'}
                       ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
                     aria-current={isActive ? 'page' : undefined}
                     data-testid={`account-${link.id}`}
@@ -298,12 +298,12 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
         {/* Help & Support (auth only) */}
         {isAuthenticated && (
           <div className="border-t border-white/20 pt-4 mt-4">
-            <div className={`text-xs font-medium text-gray-200/80 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>
+            <div className={`text-xs font-medium text-sidebar-foreground/80 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>
               {t('sidebar.help', 'Help')}
             </div>
             <Link
               href="/help"
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl transition-all duration-200 text-gray-100 hover:bg-white/10 hover:text-white hover:translate-x-1 ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl transition-all duration-200 text-sidebar-foreground hover:bg-white/10 hover:text-white hover:translate-x-1 ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
               data-testid="nav-help"
               prefetch={false}
             >

@@ -574,7 +574,7 @@ export default function NotificationsPage() {
               {selectedNotifications.size === 0 && (
                 <button
                   onClick={handleSelectAll}
-                  className="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                  className="px-3 py-1 text-sm bg-secondary text-secondary-foreground rounded-2xl hover:bg-secondary/90 transition-colors"
                 >
                   Select All
                 </button>

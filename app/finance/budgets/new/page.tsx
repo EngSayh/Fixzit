@@ -345,7 +345,7 @@ export default function NewBudgetPage() {
 
               <button 
                 onClick={handleAddCategory}
-                className="w-full py-2 border-2 border-dashed border-border rounded-2xl text-muted-foreground hover:text-foreground hover:border-gray-400"
+                className="w-full py-2 border-2 border-dashed border-border rounded-2xl text-muted-foreground hover:text-foreground hover:border-muted-foreground"
               >
                 + {t('finance.budget.addCategory', 'Add Category')}
               </button>
