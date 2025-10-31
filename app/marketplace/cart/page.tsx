@@ -50,10 +50,10 @@ export default async function CartPage() {
           <section className="space-y-4">
             {cart.lines.length ? (
               cart.lines.map((line) => (
-                <article key={line.productId} className="rounded-3xl bg-white p-6 shadow">
+                <article key={line.productId} className="rounded-2xl bg-card p-6 shadow">
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="flex gap-4">
-                      <div className="relative h-24 w-24 rounded-2xl border border-gray-200 overflow-hidden">
+                      <div className="relative h-24 w-24 rounded-2xl border border-border overflow-hidden">
                         <Image
                           src={line.product?.media?.[0]?.url || '/images/marketplace/placeholder-product.svg'}
                           alt={line.product?.title?.en ?? 'Product image'}
@@ -68,12 +68,12 @@ export default async function CartPage() {
                             {line.product?.title?.en ?? 'Marketplace item'}
                           </Link>
                         </h2>
-                        <p className="text-sm text-gray-600">Quantity: {line.qty}</p>
-                        <p className="text-sm text-gray-600">Unit price: {line.price} {line.currency}</p>
+                        <p className="text-sm text-muted-foreground">Quantity: {line.qty}</p>
+                        <p className="text-sm text-muted-foreground">Unit price: {line.price} {line.currency}</p>
                         <p className="text-sm font-semibold text-[#0061A8]">Line total: {line.total.toFixed(2)} {line.currency}</p>
                       </div>
                     </div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-muted-foreground">
                       <p>Lead time: {line.product?.buy?.leadDays ?? 2} day(s)</p>
                       <p>Min order: {line.product?.buy?.minQty ?? 1}</p>
                     </div>
@@ -81,7 +81,7 @@ export default async function CartPage() {
                 </article>
               ))
             ) : (
-              <div className="rounded-3xl border border-dashed border-[#0061A8]/40 bg-white p-10 text-center text-gray-600">
+              <div className="rounded-2xl border border-dashed border-muted-foreground/30 bg-card p-10 text-center text-muted-foreground">
                 <p className="text-lg font-semibold text-[#0F1111]">Your cart is empty</p>
                 <p className="mt-2 text-sm">Browse categories to add ASTM and BS EN compliant items.</p>
                 <Link
@@ -95,9 +95,9 @@ export default async function CartPage() {
           </section>
 
           <aside className="space-y-4">
-            <div className="rounded-3xl bg-white p-6 shadow">
+            <div className="rounded-2xl bg-card p-6 shadow">
               <h2 className="text-lg font-semibold text-[#0F1111]">Order summary</h2>
-              <dl className="mt-4 space-y-2 text-sm text-gray-700">
+              <dl className="mt-4 space-y-2 text-sm text-foreground">
                 <div className="flex justify-between">
                   <dt>Subtotal</dt>
                   <dd>{cart.totals.subtotal.toFixed(2)} {cart.currency}</dd>
@@ -118,7 +118,7 @@ export default async function CartPage() {
                 Proceed to checkout
               </Link>
             </div>
-            <div className="rounded-3xl border border-[#0061A8]/20 bg-white p-6 text-sm text-gray-700 shadow">
+            <div className="rounded-3xl border border-[#0061A8]/20 bg-white p-6 text-sm text-foreground shadow">
               <h3 className="text-sm font-semibold text-[#0061A8]">Approval policy</h3>
               <p className="mt-2">Orders above SAR {Number(process.env.MARKETPLACE_APPROVAL_THRESHOLD ?? 5000).toLocaleString()} will route to the approvals desk before confirmation.</p>
             </div>
