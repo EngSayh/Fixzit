@@ -82,7 +82,7 @@ export default function TenantsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">{t('fm.tenants.title', 'Tenant Management')}</h1>
-          <p className="text-gray-600">{t('fm.tenants.subtitle', 'Customer relationship and lease management')}</p>
+          <p className="text-muted-foreground">{t('fm.tenants.subtitle', 'Customer relationship and lease management')}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
@@ -106,7 +106,7 @@ export default function TenantsPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-64">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder={t('fm.tenants.searchTenants', 'Search tenants...')}
                   value={search}
@@ -145,9 +145,9 @@ export default function TenantsPage() {
           {tenants.length === 0 && (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <Users className="w-12 h-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.tenants.noTenants', 'No Tenants Found')}</h3>
-                <p className="text-gray-600 mb-4">{t('fm.tenants.noTenantsText', 'Get started by adding your first tenant.')}</p>
+                <Users className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">{t('fm.tenants.noTenants', 'No Tenants Found')}</h3>
+                <p className="text-muted-foreground mb-4">{t('fm.tenants.noTenantsText', 'Get started by adding your first tenant.')}</p>
                 <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-secondary)] hover:bg-[var(--fixzit-secondary-dark)]">
                   <Plus className="w-4 h-4 mr-2" />
                   {t('fm.tenants.addTenant', 'Add Tenant')}
@@ -186,7 +186,7 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
       case 'GOVERNMENT':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-gray-800';
     }
   };
 
@@ -214,7 +214,7 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
             {getTypeIcon(tenant.type || '')}
             <div className="flex-1">
               <CardTitle className="text-lg">{tenant.name}</CardTitle>
-              <p className="text-sm text-gray-600">{tenant.code}</p>
+              <p className="text-sm text-muted-foreground">{tenant.code}</p>
             </div>
           </div>
           <Badge className={getTypeColor(tenant.type || '')}>
@@ -223,19 +223,19 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center text-sm text-gray-600">
+        <div className="flex items-center text-sm text-muted-foreground">
           <Mail className="w-4 h-4 mr-1" />
           <span>{tenant.contact?.primary?.email}</span>
         </div>
 
         {tenant.contact?.primary?.phone && (
-          <div className="flex items-center text-sm text-gray-600">
+          <div className="flex items-center text-sm text-muted-foreground">
             <Phone className="w-4 h-4 mr-1" />
             <span>{tenant.contact.primary.phone}</span>
           </div>
         )}
 
-        <div className="flex items-center text-sm text-gray-600">
+        <div className="flex items-center text-sm text-muted-foreground">
           <MapPin className="w-4 h-4 mr-1" />
           <span>{tenant.address?.current?.city}, {tenant.address?.current?.region}</span>
         </div>
@@ -244,17 +244,17 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
 
         <div className="space-y-2">
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">{t('fm.tenants.properties', 'Properties')}:</span>
+            <span className="text-sm text-muted-foreground">{t('fm.tenants.properties', 'Properties')}:</span>
             <span className="text-sm font-medium">{activeProperties}/{totalProperties}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">{t('fm.tenants.leaseStatus', 'Lease Status')}:</span>
+            <span className="text-sm text-muted-foreground">{t('fm.tenants.leaseStatus', 'Lease Status')}:</span>
             <Badge variant="outline" className="text-[var(--fixzit-success-dark)] border-green-300">
               {activeProperties > 0 ? t('properties.leases.active', 'Active') : t('fm.tenants.noActiveLeases', 'No Active Leases')}
             </Badge>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">{t('fm.tenants.outstandingBalance', 'Outstanding Balance')}:</span>
+            <span className="text-sm text-muted-foreground">{t('fm.tenants.outstandingBalance', 'Outstanding Balance')}:</span>
             <span className="text-sm font-medium">
               {tenant.financial?.outstandingBalance?.toLocaleString() || '0'} SAR
             </span>

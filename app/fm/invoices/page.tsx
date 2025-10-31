@@ -118,7 +118,7 @@ export default function InvoicesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">{t('fm.invoices.title', 'Invoices')}</h1>
-          <p className="text-gray-600">{t('fm.invoices.subtitle', 'ZATCA compliant e-invoicing with QR codes')}</p>
+          <p className="text-muted-foreground">{t('fm.invoices.subtitle', 'ZATCA compliant e-invoicing with QR codes')}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
@@ -142,7 +142,7 @@ export default function InvoicesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">{t('fm.invoices.totalOutstanding', 'Total Outstanding')}</p>
+                <p className="text-sm text-muted-foreground">{t('fm.invoices.totalOutstanding', 'Total Outstanding')}</p>
                 <p className="text-2xl font-bold">
                   {invoices
                     .filter((inv: Invoice) => inv.status !== 'PAID' && inv.status !== 'CANCELLED')
@@ -159,7 +159,7 @@ export default function InvoicesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">{t('fm.invoices.overdue', 'Overdue')}</p>
+                <p className="text-sm text-muted-foreground">{t('fm.invoices.overdue', 'Overdue')}</p>
                 <p className="text-2xl font-bold text-[var(--fixzit-danger)]">
                   {invoices.filter((inv: Invoice) => inv.status === 'OVERDUE').length}
                 </p>
@@ -173,7 +173,7 @@ export default function InvoicesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">{t('fm.invoices.pending', 'Pending')}</p>
+                <p className="text-sm text-muted-foreground">{t('fm.invoices.pending', 'Pending')}</p>
                 <p className="text-2xl font-bold text-[var(--fixzit-accent)]">
                   {invoices.filter((inv: Invoice) => inv.status === 'SENT' || inv.status === 'VIEWED').length}
                 </p>
@@ -187,7 +187,7 @@ export default function InvoicesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">{t('fm.invoices.paidThisMonth', 'Paid This Month')}</p>
+                <p className="text-sm text-muted-foreground">{t('fm.invoices.paidThisMonth', 'Paid This Month')}</p>
                 <p className="text-2xl font-bold text-[var(--fixzit-success)]">
                   {invoices.filter((inv: Invoice) => 
                     inv.status === 'PAID' && 
@@ -207,7 +207,7 @@ export default function InvoicesPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-64">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder={t('fm.invoices.searchInvoices', 'Search by invoice number or customer...')}
                   value={search}
@@ -263,9 +263,9 @@ export default function InvoicesPage() {
           {invoices.length === 0 && !isLoading && (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <FileText className="w-12 h-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.invoices.noInvoices', 'No Invoices Found')}</h3>
-                <p className="text-gray-600 mb-4">{t('fm.invoices.noInvoicesText', 'Get started by creating your first invoice.')}</p>
+                <FileText className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">{t('fm.invoices.noInvoices', 'No Invoices Found')}</h3>
+                <p className="text-muted-foreground mb-4">{t('fm.invoices.noInvoicesText', 'Get started by creating your first invoice.')}</p>
                 <Button onClick={() => setCreateOpen(true)} className="bg-emerald-600 hover:bg-emerald-700">
                   <Plus className="w-4 h-4 mr-2" />
                   {t('fm.invoices.createInvoice', 'Create Invoice')}
@@ -331,7 +331,7 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-gray-800';
       case 'SENT':
         return 'bg-blue-100 text-blue-800';
       case 'VIEWED':
@@ -343,9 +343,9 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
       case 'OVERDUE':
         return 'bg-red-100 text-red-800';
       case 'CANCELLED':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-gray-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-gray-800';
     }
   };
 
@@ -380,7 +380,7 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
       case 'PENDING':
         return { icon: Clock, color: 'text-yellow-600' };
       default:
-        return { icon: AlertCircle, color: 'text-gray-600' };
+        return { icon: AlertCircle, color: 'text-muted-foreground' };
     }
   };
 
@@ -397,7 +397,7 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
         <div className="flex items-start justify-between">
           <div>
             <CardTitle className="text-lg">{invoice.number}</CardTitle>
-            <p className="text-sm text-gray-600">{invoice.recipient?.name}</p>
+            <p className="text-sm text-muted-foreground">{invoice.recipient?.name}</p>
           </div>
           <Badge className={getStatusColor(invoice.status)}>
             {getStatusLabel(invoice.status)}
@@ -412,20 +412,20 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
           <div className="flex items-center space-x-2">
             <ZatcaIcon className={`w-5 h-5 ${zatcaStatus.color}`} />
             {invoice.zatca?.qrCode && (
-              <QrCode className="w-5 h-5 text-gray-600" />
+              <QrCode className="w-5 h-5 text-muted-foreground" />
             )}
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <p className="text-gray-600">{t('fm.invoices.issueDate', 'Issue Date')}</p>
+            <p className="text-muted-foreground">{t('fm.invoices.issueDate', 'Issue Date')}</p>
             <p className="font-medium">
               {new Date(invoice.issueDate).toLocaleDateString()}
             </p>
           </div>
           <div>
-            <p className="text-gray-600">{t('fm.invoices.dueDate', 'Due Date')}</p>
+            <p className="text-muted-foreground">{t('fm.invoices.dueDate', 'Due Date')}</p>
             <p className={`font-medium ${daysOverdue > 0 ? 'text-red-600' : ''}`}>
               {new Date(invoice.dueDate).toLocaleDateString()}
               {daysOverdue > 0 && ` (${daysOverdue}${t('fm.invoices.overdueDays', 'd overdue')})`}
@@ -441,7 +441,7 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
               {getTypeLabel(invoice.type)}
             </Badge>
             {invoice.items?.length && (
-              <span className="text-gray-600">
+              <span className="text-muted-foreground">
                 {invoice.items.length} {t('fm.invoices.items', 'items')}
               </span>
             )}

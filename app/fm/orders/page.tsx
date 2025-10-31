@@ -134,10 +134,10 @@ export default function OrdersPage() {
       case 'submitted': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'ordered': return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'in progress': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'draft': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'draft': return 'bg-muted text-gray-800 border-border';
       case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-muted text-gray-800 border-border';
     }
   };
 
@@ -151,15 +151,15 @@ export default function OrdersPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('nav.orders', 'Orders & Purchase Orders')}</h1>
-        <p className="text-gray-600">{t('orders.pageDescription', 'Manage purchase orders and service orders')}</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">{t('nav.orders', 'Orders & Purchase Orders')}</h1>
+        <p className="text-muted-foreground">{t('orders.pageDescription', 'Manage purchase orders and service orders')}</p>
       </div>
 
       {/* Search and Filters */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={t('common.search', 'Search orders...')}
               value={searchTerm}
@@ -210,7 +210,7 @@ export default function OrdersPage() {
           {purchaseOrders.length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
-                <p className="text-gray-500 mb-4">No purchase orders found</p>
+                <p className="text-muted-foreground mb-4">No purchase orders found</p>
                 <Button onClick={() => router.push('/marketplace')}>Create Order</Button>
               </CardContent>
             </Card>
@@ -222,7 +222,7 @@ export default function OrdersPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3">
-                          <h3 className="text-lg font-semibold text-gray-900">
+                          <h3 className="text-lg font-semibold text-foreground">
                             {order.orderNumber || `Order ${order._id.slice(-8)}`}
                           </h3>
                           <Badge className={getStatusColor(order.status || '')}>
@@ -231,15 +231,15 @@ export default function OrdersPage() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <span className="font-medium">{t('order.vendor', 'Vendor')}:</span>
                             {order.vendorName || 'N/A'}
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
                             {t('order.date', 'Order Date')}: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <DollarSign className="h-4 w-4" />
                             {t('order.total', 'Total')}: SAR {order.total ? order.total.toLocaleString() : '0'}
                           </div>
@@ -247,7 +247,7 @@ export default function OrdersPage() {
 
                         {order.items && order.items.length > 0 && (
                           <div className="mb-4">
-                            <h4 className="font-medium text-gray-900 mb-2">{t('order.items', 'Items')}:</h4>
+                            <h4 className="font-medium text-foreground mb-2">{t('order.items', 'Items')}:</h4>
                             <div className="flex flex-wrap gap-2">
                               {order.items.slice(0, 5).map((item, idx) => (
                                 <Badge key={idx} variant="outline">
@@ -262,7 +262,7 @@ export default function OrdersPage() {
                         )}
 
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             {order.deliveryDate && (
                               <>
                                 <Calendar className="h-4 w-4" />
@@ -320,7 +320,7 @@ export default function OrdersPage() {
           {serviceOrders.length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
-                <p className="text-gray-500 mb-4">No service orders found</p>
+                <p className="text-muted-foreground mb-4">No service orders found</p>
                 <Button onClick={() => router.push('/marketplace')}>Create Order</Button>
               </CardContent>
             </Card>
@@ -332,7 +332,7 @@ export default function OrdersPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3">
-                          <h3 className="text-lg font-semibold text-gray-900">
+                          <h3 className="text-lg font-semibold text-foreground">
                             {order.orderNumber || `Service Order ${order._id.slice(-8)}`}
                           </h3>
                           <Badge className={getStatusColor(order.status || '')}>
@@ -341,26 +341,26 @@ export default function OrdersPage() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <span className="font-medium">{t('order.vendor', 'Vendor')}:</span>
                             {order.vendorName || 'N/A'}
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
                             {t('order.date', 'Order Date')}: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <DollarSign className="h-4 w-4" />
                             {t('order.amount', 'Amount')}: SAR {order.total ? order.total.toLocaleString() : '0'}
                           </div>
                         </div>
 
                         {order.description && (
-                          <p className="text-gray-600 mb-4">{order.description}</p>
+                          <p className="text-muted-foreground mb-4">{order.description}</p>
                         )}
 
                         {order.location && (
-                          <div className="text-sm text-gray-600 mb-4">
+                          <div className="text-sm text-muted-foreground mb-4">
                             <span className="font-medium">Location:</span> {order.location}
                           </div>
                         )}
