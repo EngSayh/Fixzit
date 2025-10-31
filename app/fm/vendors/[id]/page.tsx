@@ -54,7 +54,7 @@ const statusColors: Record<string, string> = {
   APPROVED: 'bg-green-100 text-green-800',
   PENDING: 'bg-yellow-100 text-yellow-800',
   SUSPENDED: 'bg-red-100 text-red-800',
-  REJECTED: 'bg-muted text-gray-800',
+  REJECTED: 'bg-muted text-foreground',
   BLACKLISTED: 'bg-red-200 text-red-900',
 };
 
@@ -189,7 +189,7 @@ export default function VendorDetailsPage() {
                   <Separator />
                   <div>
                     <p className="text-sm text-muted-foreground mb-2">Description</p>
-                    <p className="text-gray-800">{vendor.business.description}</p>
+                    <p className="text-foreground">{vendor.business.description}</p>
                   </div>
                 </>
               )}

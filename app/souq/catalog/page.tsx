@@ -123,9 +123,9 @@ export default function CatalogPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-muted flex flex-col">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-card shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
@@ -133,19 +133,19 @@ export default function CatalogPage() {
                 Fixzit Souq
               </Link>
               <div className="hidden md:flex items-center gap-6 text-sm">
-                <Link href="/souq/catalog" className="text-gray-600 hover:text-[#00A859]">Catalog</Link>
-                <Link href="/souq/vendors" className="text-gray-600 hover:text-[#00A859]">Vendors</Link>
-                <Link href="/souq/rfqs" className="text-gray-600 hover:text-[#00A859]">RFQs</Link>
-                <Link href="/souq/orders" className="text-gray-600 hover:text-[#00A859]">Orders</Link>
+                <Link href="/souq/catalog" className="text-muted-foreground hover:text-[#00A859]">Catalog</Link>
+                <Link href="/souq/vendors" className="text-muted-foreground hover:text-[#00A859]">Vendors</Link>
+                <Link href="/souq/rfqs" className="text-muted-foreground hover:text-[#00A859]">RFQs</Link>
+                <Link href="/souq/orders" className="text-muted-foreground hover:text-[#00A859]">Orders</Link>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
-              <Link href="/login" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-[#00A859]">
+              <Link href="/login" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:text-[#00A859]">
                 <User className="w-4 h-4" />
                 Sign In
               </Link>
-              <Link href="/login" className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#00A859] text-white rounded-md hover:bg-[#00A859]/90">
+              <Link href="/login" className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#00A859] text-white rounded-2xl hover:bg-[#00A859]/90">
                 <LogIn className="w-4 h-4" />
                 Sign Up
               </Link>
@@ -159,13 +159,13 @@ export default function CatalogPage() {
         <div className="mb-6">
           <div className="flex flex-col md:flex-row gap-4 mb-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
               <input
                 type="text"
                 placeholder="Search products, categories, or vendors..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00A859] focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-[#00A859] focus:border-transparent"
               />
             </div>
 
@@ -173,7 +173,7 @@ export default function CatalogPage() {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00A859] focus:border-transparent"
+                className="px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-[#00A859] focus:border-transparent"
               >
                 {categories.map(category => (
                   <option key={category} value={category}>
@@ -185,7 +185,7 @@ export default function CatalogPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00A859] focus:border-transparent"
+                className="px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-[#00A859] focus:border-transparent"
               >
                 <option value="relevance">Relevance</option>
                 <option value="price-low">Price: Low to High</option>
@@ -196,7 +196,7 @@ export default function CatalogPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-sm text-gray-600">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span>{filteredProducts.length} results found</span>
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4" />
@@ -208,7 +208,7 @@ export default function CatalogPage() {
         {/* Product Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (
-            <div key={product.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+            <div key={product.id} className="bg-card rounded-2xl shadow-md border border-border overflow-hidden hover:shadow-lg transition-shadow">
               <div className="relative w-full h-48">
                 <Image
                   src={product.image}
@@ -229,28 +229,28 @@ export default function CatalogPage() {
                   )}
                 </div>
 
-                <button className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50">
-                  <Heart className="w-4 h-4 text-gray-400 hover:text-[var(--fixzit-danger-light)]" />
+                <button className="absolute top-2 right-2 p-2 bg-card rounded-full shadow-md hover:bg-muted">
+                  <Heart className="w-4 h-4 text-muted-foreground hover:text-[var(--fixzit-danger-light)]" />
                 </button>
               </div>
 
               <div className="p-4">
-                <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">{product.name}</h3>
-                <p className="text-sm text-gray-600 mb-2">{product.category}</p>
+                <h3 className="font-semibold text-foreground mb-1 line-clamp-2">{product.name}</h3>
+                <p className="text-sm text-muted-foreground mb-2">{product.category}</p>
 
                 <div className="flex items-center gap-2 mb-2">
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 fill-yellow-400 text-[var(--fixzit-accent-lighter)]" />
                     <span className="text-sm font-medium">{product.rating}</span>
                   </div>
-                  <span className="text-sm text-gray-500">({product.reviews})</span>
+                  <span className="text-sm text-muted-foreground">({product.reviews})</span>
                 </div>
 
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-gray-900">{product.price}</span>
+                    <span className="text-lg font-bold text-foreground">{product.price}</span>
                     {product.originalPrice && (
-                      <span className="text-sm text-gray-500 line-through">{product.originalPrice}</span>
+                      <span className="text-sm text-muted-foreground line-through">{product.originalPrice}</span>
                     )}
                   </div>
                   <span className={`text-xs px-2 py-1 rounded-full ${
@@ -265,17 +265,17 @@ export default function CatalogPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleViewDetails(product.id)}
-                    className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm"
+                    className="flex-1 px-3 py-2 bg-muted text-foreground rounded-2xl hover:bg-muted transition-colors text-sm"
                   >
                     View Details
                   </button>
                   <button
                     onClick={() => handleAddToCart(product.id)}
                     disabled={!product.inStock}
-                    className={`flex-1 px-3 py-2 rounded-md transition-colors text-sm ${
+                    className={`flex-1 px-3 py-2 rounded-2xl transition-colors text-sm ${
                       product.inStock
                         ? 'bg-[#00A859] text-white hover:bg-[#00A859]/90'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-300 text-muted-foreground cursor-not-allowed'
                     }`}
                   >
                     <ShoppingCart className="w-4 h-4 inline mr-1" />
@@ -283,7 +283,7 @@ export default function CatalogPage() {
                   </button>
                 </div>
 
-                <div className="mt-2 text-xs text-gray-500">
+                <div className="mt-2 text-xs text-muted-foreground">
                   Sold by: {product.vendor}
                 </div>
               </div>
@@ -294,19 +294,19 @@ export default function CatalogPage() {
         {/* No Results */}
         {filteredProducts.length === 0 && (
           <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
+            <div className="text-muted-foreground mb-4">
               <Search className="w-12 h-12 mx-auto" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
-            <p className="text-gray-600">Try adjusting your search criteria or browse all categories</p>
+            <h3 className="text-lg font-medium text-foreground mb-2">No products found</h3>
+            <p className="text-muted-foreground">Try adjusting your search criteria or browse all categories</p>
           </div>
         )}
       </div>
 
       {/* Footer */}
-      <div className="bg-white border-t mt-12">
+      <div className="bg-card border-t mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="text-center text-sm text-gray-600">
+          <div className="text-center text-sm text-muted-foreground">
             <p>Browse our catalog freely. Sign in to add to cart, place orders, and access exclusive deals.</p>
           </div>
         </div>

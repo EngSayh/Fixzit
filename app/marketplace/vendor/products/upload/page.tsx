@@ -157,7 +157,7 @@ export default function VendorProductUploadPage() {
           <h1 className="text-3xl font-bold text-[#0F1111]">
             {t('marketplace.vendor.uploadProduct', 'Upload Product')}
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-muted-foreground mt-2">
             Add a new product to your catalogue
           </p>
         </header>
@@ -170,94 +170,94 @@ export default function VendorProductUploadPage() {
           position="both"
         >
           {/* Basic Information */}
-          <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200">
+          <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
             <h2 className="text-lg font-semibold text-[#0F1111] mb-4">Basic Information</h2>
             
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Product Title (English) *
                 </label>
                 <input
                   type="text"
                   value={formData.titleEn}
                   onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Product Title (Arabic)
                 </label>
                 <input
                   type="text"
                   value={formData.titleAr}
                   onChange={(e) => setFormData({ ...formData, titleAr: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
                   dir="rtl"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   SKU *
                 </label>
                 <input
                   type="text"
                   value={formData.sku}
                   onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Brand
                 </label>
                 <input
                   type="text"
                   value={formData.brand}
                   onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Summary
                 </label>
                 <textarea
                   value={formData.summary}
                   onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
                   rows={2}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Description
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={4}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
                 />
               </div>
             </div>
           </div>
 
           {/* Images */}
-          <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200">
+          <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
             <h2 className="text-lg font-semibold text-[#0F1111] mb-4">Product Images *</h2>
             
             <div className="grid gap-4 grid-cols-2 md:grid-cols-4 mb-4">
               {images.map((img, index) => (
-                <div key={index} className="relative aspect-square rounded-lg border border-gray-200 overflow-hidden">
+                <div key={index} className="relative aspect-square rounded-2xl border border-border overflow-hidden">
                   <Image src={img.preview} alt="Product" fill className="object-cover" />
                   <button
                     type="button"
@@ -274,9 +274,9 @@ export default function VendorProductUploadPage() {
                 </div>
               ))}
               
-              <label className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:border-[#0061A8] hover:bg-gray-50 transition-colors">
-                <ImageIcon className="h-8 w-8 text-gray-400 mb-2" />
-                <span className="text-sm text-gray-600">Add Image</span>
+              <label className="aspect-square rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-[#0061A8] hover:bg-muted transition-colors">
+                <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
+                <span className="text-sm text-muted-foreground">Add Image</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -287,18 +287,18 @@ export default function VendorProductUploadPage() {
               </label>
             </div>
             
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               Upload up to 8 images. First image will be the main product image.
             </p>
           </div>
 
           {/* Pricing & Inventory */}
-          <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200">
+          <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
             <h2 className="text-lg font-semibold text-[#0F1111] mb-4">Pricing & Inventory</h2>
             
             <div className="grid gap-4 md:grid-cols-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Price *
                 </label>
                 <input
@@ -306,19 +306,19 @@ export default function VendorProductUploadPage() {
                   step="0.01"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Currency
                 </label>
                 <select
                   value={formData.currency}
                   onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
                 >
                   <option value="SAR">SAR</option>
                   <option value="USD">USD</option>
@@ -328,13 +328,13 @@ export default function VendorProductUploadPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Unit of Measure
                 </label>
                 <select
                   value={formData.uom}
                   onChange={(e) => setFormData({ ...formData, uom: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
                 >
                   <option value="EA">Each (EA)</option>
                   <option value="BOX">Box</option>
@@ -345,50 +345,50 @@ export default function VendorProductUploadPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Minimum Quantity
                 </label>
                 <input
                   type="number"
                   value={formData.minQty}
                   onChange={(e) => setFormData({ ...formData, minQty: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Lead Time (days)
                 </label>
                 <input
                   type="number"
                   value={formData.leadDays}
                   onChange={(e) => setFormData({ ...formData, leadDays: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Stock Quantity
                 </label>
                 <input
                   type="number"
                   value={formData.stock}
                   onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
                 />
               </div>
             </div>
           </div>
 
           {/* Technical Details */}
-          <div className="rounded-xl bg-white p-6 shadow-sm border border-gray-200">
+          <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
             <h2 className="text-lg font-semibold text-[#0F1111] mb-4">Technical Details</h2>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Standards (comma-separated)
                 </label>
                 <input
@@ -396,12 +396,12 @@ export default function VendorProductUploadPage() {
                   value={formData.standards}
                   onChange={(e) => setFormData({ ...formData, standards: e.target.value })}
                   placeholder="e.g., ASTM, BS EN, ISO 9001"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Specifications (JSON format)
                 </label>
                 <textarea
@@ -409,7 +409,7 @@ export default function VendorProductUploadPage() {
                   onChange={(e) => setFormData({ ...formData, specifications: e.target.value })}
                   placeholder='{"Material": "Steel", "Size": "100mm", "Weight": "5kg"}'
                   rows={4}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 font-mono text-sm focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
                 />
               </div>
             </div>

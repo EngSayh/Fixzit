@@ -457,8 +457,8 @@ ${errorReport.error.componentStack || 'No component stack available'}
       // Note: CSS variables (--fixzit-*) are defined in app/globals.css
       // Ensure globals.css is imported in root layout
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="max-w-2xl w-full bg-white rounded-lg shadow-lg p-6 text-center">
+        <div className="min-h-screen flex items-center justify-center bg-muted">
+          <div className="max-w-2xl w-full bg-card rounded-2xl shadow-lg p-6 text-center">
             {/* Error Icon */}
             <div className="w-16 h-16 bg-[var(--fixzit-danger-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-[var(--fixzit-danger)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -466,11 +466,11 @@ ${errorReport.error.componentStack || 'No component stack available'}
               </svg>
             </div>
 
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            <h2 className="text-xl font-semibold text-foreground mb-2">
               {this.state.fixSuccessful ? 'Auto-Fix Applied' : 'System Error Detected'}
             </h2>
 
-            <p className="text-gray-600 mb-4">
+            <p className="text-muted-foreground mb-4">
               {this.state.fixSuccessful
                 ? 'The system has automatically fixed the issue and is reloading...'
                 : this.state.fixAttempted
@@ -481,7 +481,7 @@ ${errorReport.error.componentStack || 'No component stack available'}
 
             {/* Error ID */}
             {this.state.errorId && (
-              <div className="mb-4 p-3 bg-[var(--fixzit-primary-lightest)] rounded-lg">
+              <div className="mb-4 p-3 bg-[var(--fixzit-primary-lightest)] rounded-2xl">
                 <div className="text-sm text-[var(--fixzit-primary-darker)]">
                   <strong>Error ID:</strong> <code className="bg-[var(--fixzit-primary-lighter)] px-2 py-1 rounded text-xs">{this.state.errorId}</code>
                 </div>
@@ -515,7 +515,7 @@ ${errorReport.error.componentStack || 'No component stack available'}
             {/* Action Buttons */}
             <div className="space-y-3">
               {this.state.fixSuccessful ? (
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-muted-foreground">
                   🔄 Reloading automatically...
                 </div>
               ) : (
@@ -523,14 +523,14 @@ ${errorReport.error.componentStack || 'No component stack available'}
                   <button
                     onClick={this.handleRetry}
                     disabled={(this.state.retryCount || 0) >= 3}
-                    className="w-full px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-md hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-2xl hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     🔄 Retry ({3 - (this.state.retryCount || 0)} attempts left)
                   </button>
 
                   <button
                     onClick={this.handleManualRefresh}
-                    className="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+                    className="w-full px-4 py-2 bg-gray-600 text-white rounded-2xl hover:bg-gray-700"
                   >
                     🔄 Force Refresh
                   </button>
@@ -539,7 +539,7 @@ ${errorReport.error.componentStack || 'No component stack available'}
                   {this.state.errorReport && (
                     <button
                       onClick={() => this.state.errorReport && this.copyErrorDetails(this.state.errorReport)}
-                      className="w-full px-4 py-2 bg-[var(--fixzit-secondary)] text-white rounded-md hover:bg-[var(--fixzit-secondary-dark)]"
+                      className="w-full px-4 py-2 bg-[var(--fixzit-secondary)] text-white rounded-2xl hover:bg-[var(--fixzit-secondary-dark)]"
                     >
                       📋 Copy Error Details
                     </button>
@@ -549,7 +549,7 @@ ${errorReport.error.componentStack || 'No component stack available'}
                   {this.state.errorReport && !this.state.ticketCreated && (
                     <button
                       onClick={this.openSupport}
-                      className="w-full px-4 py-2 bg-[var(--fixzit-success)] text-white rounded-md hover:bg-[var(--fixzit-success-dark)]"
+                      className="w-full px-4 py-2 bg-[var(--fixzit-success)] text-white rounded-2xl hover:bg-[var(--fixzit-success-dark)]"
                     >
                       📝 Report to Support
                     </button>
@@ -557,7 +557,7 @@ ${errorReport.error.componentStack || 'No component stack available'}
 
                   <Link
                     href="/help"
-                    className="inline-block w-full px-4 py-2 bg-[var(--fixzit-accent)] text-white rounded-md hover:bg-[var(--fixzit-accent-dark)] text-center"
+                    className="inline-block w-full px-4 py-2 bg-[var(--fixzit-accent)] text-white rounded-2xl hover:bg-[var(--fixzit-accent-dark)] text-center"
                   >
                     📚 Get Help
                   </Link>
@@ -567,10 +567,10 @@ ${errorReport.error.componentStack || 'No component stack available'}
 
             {/* Technical Details */}
             <details className="mt-6 text-left">
-              <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+              <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
                 🔍 Technical Details
               </summary>
-              <div className="mt-2 p-3 bg-gray-50 rounded text-xs font-mono text-gray-600 overflow-auto">
+              <div className="mt-2 p-3 bg-muted rounded text-xs font-mono text-muted-foreground overflow-auto">
                 <div><strong>Error:</strong> {this.state.msg}</div>
                 <div><strong>Type:</strong> {this.state.errorType}</div>
                 <div><strong>Time:</strong> {new Date().toISOString()}</div>
@@ -588,10 +588,10 @@ ${errorReport.error.componentStack || 'No component stack available'}
             {/* Stack Trace */}
             {this.state.errorReport && (
               <details className="mt-4 text-left">
-                <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+                <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
                   📋 Stack Trace
                 </summary>
-                <div className="mt-2 p-3 bg-gray-50 rounded text-xs font-mono text-gray-600 overflow-auto max-h-40">
+                <div className="mt-2 p-3 bg-muted rounded text-xs font-mono text-muted-foreground overflow-auto max-h-40">
                   {this.state.errorReport.error.stack || 'No stack trace available'}
                 </div>
               </details>
@@ -600,10 +600,10 @@ ${errorReport.error.componentStack || 'No component stack available'}
             {/* Component Stack */}
             {this.state.errorReport && (
               <details className="mt-4 text-left">
-                <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+                <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
                   📄 Component Stack
                 </summary>
-                <div className="mt-2 p-3 bg-gray-50 rounded text-xs font-mono text-gray-600 overflow-auto max-h-40">
+                <div className="mt-2 p-3 bg-muted rounded text-xs font-mono text-muted-foreground overflow-auto max-h-40">
                   {this.state.errorReport.error.componentStack || 'No component stack available'}
                 </div>
               </details>

@@ -58,33 +58,33 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-semibold text-[#0F1111]">Vendor Catalogue</h1>
-        <p className="text-sm text-gray-600">Publish compliant products for Fixzit Souq buyers.</p>
+        <p className="text-sm text-muted-foreground">Publish compliant products for Fixzit Souq buyers.</p>
       </div>
-      <div className="rounded-3xl bg-white p-6 shadow">
+      <div className="rounded-3xl bg-card p-6 shadow">
         <h2 className="text-lg font-semibold text-[#0F1111]">Add new product</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="text-sm text-gray-600">
+          <label className="text-sm text-muted-foreground">
             Product title
             <input
               value={form.title}
               onChange={event => setForm({ ...form, title: event.target.value })}
-              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
+              className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
             />
           </label>
-          <label className="text-sm text-gray-600">
+          <label className="text-sm text-muted-foreground">
             SKU
             <input
               value={form.sku}
               onChange={event => setForm({ ...form, sku: event.target.value })}
-              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
+              className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
             />
           </label>
-          <label className="text-sm text-gray-600">
+          <label className="text-sm text-muted-foreground">
             Category
             <select
               value={form.categoryId}
               onChange={event => setForm({ ...form, categoryId: event.target.value })}
-              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
+              className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
             >
               <option value="">Select</option>
               {categories.map(category => (
@@ -94,21 +94,21 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
               ))}
             </select>
           </label>
-          <label className="text-sm text-gray-600">
+          <label className="text-sm text-muted-foreground">
             Price (SAR)
             <input
               type="number"
               value={form.price}
               onChange={event => setForm({ ...form, price: event.target.value })}
-              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
+              className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
             />
           </label>
-          <label className="text-sm text-gray-600">
+          <label className="text-sm text-muted-foreground">
             Unit of measure
             <input
               value={form.uom}
               onChange={event => setForm({ ...form, uom: event.target.value })}
-              className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
+              className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
             />
           </label>
         </div>
@@ -127,10 +127,10 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
         {products.length ? (
           <div className="grid gap-4 md:grid-cols-2">
             {products.map(product => (
-              <article key={product._id} className="rounded-3xl bg-white p-5 shadow">
+              <article key={product._id} className="rounded-3xl bg-card p-5 shadow">
                 <h3 className="text-lg font-semibold text-[#0F1111]">{product.title.en}</h3>
-                <p className="text-sm text-gray-600">SKU {product.sku}</p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">SKU {product.sku}</p>
+                <p className="text-sm text-muted-foreground">
                   {product.buy.price} {product.buy.currency} / {product.buy.uom}
                 </p>
                 <span className="mt-2 inline-flex rounded-full bg-[#0061A8]/10 px-3 py-1 text-xs font-semibold text-[#0061A8]">
@@ -140,7 +140,7 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
             ))}
           </div>
         ) : (
-          <div className="rounded-3xl border border-dashed border-[#0061A8]/40 bg-white p-10 text-center text-gray-600">
+          <div className="rounded-3xl border border-dashed border-[#0061A8]/40 bg-card p-10 text-center text-muted-foreground">
             <p className="text-lg font-semibold text-[#0F1111]">No products yet</p>
             <p className="mt-2 text-sm">Add products to appear in the marketplace catalogue.</p>
           </div>

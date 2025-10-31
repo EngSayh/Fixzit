@@ -38,8 +38,8 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
                 type="button"
                 onClick={() => onChange({ category: category.slug })}
                 className={clsx(
-                  'w-full rounded-md px-3 py-2 text-left transition',
-                  selected.category === category.slug ? 'bg-[#0061A8] text-white' : 'hover:bg-gray-100'
+                  'w-full rounded-2xl px-3 py-2 text-left transition',
+                  selected.category === category.slug ? 'bg-[#0061A8] text-white' : 'hover:bg-muted'
                 )}
               >
                 {category.name}
@@ -58,8 +58,8 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
                 type="button"
                 onClick={() => onChange({ brand })}
                 className={clsx(
-                  'w-full rounded-md px-3 py-2 text-left transition',
-                  selected.brand === brand ? 'bg-[#0061A8] text-white' : 'hover:bg-gray-100'
+                  'w-full rounded-2xl px-3 py-2 text-left transition',
+                  selected.brand === brand ? 'bg-[#0061A8] text-white' : 'hover:bg-muted'
                 )}
               >
                 {brand}
@@ -78,8 +78,8 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
                 type="button"
                 onClick={() => onChange({ standard })}
                 className={clsx(
-                  'w-full rounded-md px-3 py-2 text-left transition',
-                  selected.standard === standard ? 'bg-[#0061A8] text-white' : 'hover:bg-gray-100'
+                  'w-full rounded-2xl px-3 py-2 text-left transition',
+                  selected.standard === standard ? 'bg-[#0061A8] text-white' : 'hover:bg-muted'
                 )}
               >
                 {standard}
@@ -96,17 +96,17 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
             type="number"
             inputMode="decimal"
             placeholder="Min"
-            className="w-full rounded-md border border-gray-200 px-3 py-2"
+            className="w-full rounded-2xl border border-border px-3 py-2"
             value={priceMin}
             onChange={event => setPriceMin(event.target.value)}
             onBlur={() => onChange({ minPrice: priceMin ? Number(priceMin) : undefined })}
           />
-          <span className="text-gray-400">—</span>
+          <span className="text-muted-foreground">—</span>
           <input
             type="number"
             inputMode="decimal"
             placeholder="Max"
-            className="w-full rounded-md border border-gray-200 px-3 py-2"
+            className="w-full rounded-2xl border border-border px-3 py-2"
             value={priceMax}
             onChange={event => setPriceMax(event.target.value)}
             onBlur={() => onChange({ maxPrice: priceMax ? Number(priceMax) : undefined })}

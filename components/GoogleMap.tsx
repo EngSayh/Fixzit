@@ -295,19 +295,19 @@ export default function GoogleMap({
   if (error) {
     return (
       <div
-        className="relative flex items-center justify-center bg-gray-100 rounded-lg border-2 border-gray-200"
+        className="relative flex items-center justify-center bg-muted rounded-2xl border-2 border-border"
         style={wrapperStyle}
         data-testid="gmaps-error"
       >
         <div className="text-center p-6 max-w-md">
           <div className="mb-3">
-            <svg className="w-12 h-12 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-12 h-12 text-muted-foreground mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <p className="text-gray-700 font-semibold mb-2">Map Unavailable</p>
-          <p className="text-sm text-gray-600 mb-3">{error}</p>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-foreground font-semibold mb-2">Map Unavailable</p>
+          <p className="text-sm text-muted-foreground mb-3">{error}</p>
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3">
             <p className="text-xs text-blue-800">
               <strong>For Developers:</strong> Set{' '}
               <code className="bg-blue-100 px-1 py-0.5 rounded">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>, restrict by HTTP
@@ -322,14 +322,14 @@ export default function GoogleMap({
   return (
     <div className="relative" style={wrapperStyle} data-testid="gmaps-wrapper">
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg z-10" data-testid="gmaps-loading">
+        <div className="absolute inset-0 flex items-center justify-center bg-muted rounded-2xl z-10" data-testid="gmaps-loading">
           <div className="text-center">
             <Spinner className="w-8 h-8 animate-spin text-[var(--fixzit-primary)] mx-auto mb-2" />
-            <p className="text-sm text-gray-600">Loading map...</p>
+            <p className="text-sm text-muted-foreground">Loading map...</p>
           </div>
         </div>
       )}
-      <div ref={containerRef} className="w-full h-full rounded-lg" data-testid="gmaps-canvas" />
+      <div ref={containerRef} className="w-full h-full rounded-2xl" data-testid="gmaps-canvas" />
     </div>
   );
 }

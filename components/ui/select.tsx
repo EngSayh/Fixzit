@@ -23,7 +23,7 @@ export const Select: React.FC<SelectProps> = ({ className = '', children, onValu
 
   return (
     <select
-      className={`flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+      className={`flex h-10 w-full items-center justify-between rounded-2xl border border-border bg-card px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
       onChange={handleChange}
       {...props}
     >
@@ -60,7 +60,7 @@ export const SelectItem: React.FC<SelectItemProps> = ({ className = '', children
 
   return (
     <option
-      className={`cursor-pointer select-none py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-gray-100 ${className}`}
+      className={`cursor-pointer select-none py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-muted ${className}`}
       {...props}
     >
       <span aria-hidden={false}>

@@ -73,7 +73,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold text-[#0F1111]">Request for Quotations</h1>
-          <p className="text-sm text-gray-600">Coordinate bulk sourcing with approved vendors.</p>
+          <p className="text-sm text-muted-foreground">Coordinate bulk sourcing with approved vendors.</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -84,24 +84,24 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
       </div>
 
       {showForm && (
-        <div className="rounded-3xl bg-white p-6 shadow">
+        <div className="rounded-3xl bg-card p-6 shadow">
           <h2 className="text-lg font-semibold text-[#0F1111]">New RFQ</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <label className="text-sm text-gray-600">
+            <label className="text-sm text-muted-foreground">
               Title
               <input
                 value={form.title}
                 onChange={event => setForm({ ...form, title: event.target.value })}
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
+                className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
                 required
               />
             </label>
-            <label className="text-sm text-gray-600">
+            <label className="text-sm text-muted-foreground">
               Category
               <select
                 value={form.categoryId}
                 onChange={event => setForm({ ...form, categoryId: event.target.value })}
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
+                className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
               >
                 <option value="">Select</option>
                 {categories.map(category => (
@@ -111,40 +111,40 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
                 ))}
               </select>
             </label>
-            <label className="md:col-span-2 text-sm text-gray-600">
+            <label className="md:col-span-2 text-sm text-muted-foreground">
               Description
               <textarea
                 value={form.description}
                 onChange={event => setForm({ ...form, description: event.target.value })}
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
+                className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
                 rows={3}
               />
             </label>
-            <label className="text-sm text-gray-600">
+            <label className="text-sm text-muted-foreground">
               Quantity
               <input
                 type="number"
                 value={form.quantity}
                 onChange={event => setForm({ ...form, quantity: event.target.value })}
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
+                className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
               />
             </label>
-            <label className="text-sm text-gray-600">
+            <label className="text-sm text-muted-foreground">
               Budget (SAR)
               <input
                 type="number"
                 value={form.budget}
                 onChange={event => setForm({ ...form, budget: event.target.value })}
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
+                className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
               />
             </label>
-            <label className="text-sm text-gray-600">
+            <label className="text-sm text-muted-foreground">
               Deadline
               <input
                 type="date"
                 value={form.deadline}
                 onChange={event => setForm({ ...form, deadline: event.target.value })}
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2"
+                className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
               />
             </label>
           </div>
@@ -159,7 +159,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
             </button>
             <button
               onClick={() => setShowForm(false)}
-              className="rounded-full border border-gray-300 px-5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              className="rounded-full border border-border px-5 py-2 text-sm font-semibold text-foreground hover:bg-muted"
             >
               Cancel
             </button>
@@ -170,12 +170,12 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
       <div className="space-y-4">
         {rfqs.length ? (
           rfqs.map(rfq => (
-            <article key={rfq._id} className="rounded-3xl bg-white p-6 shadow">
+            <article key={rfq._id} className="rounded-3xl bg-card p-6 shadow">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-[#0F1111]">{rfq.title}</h3>
-                  <p className="text-sm text-gray-600">Created {new Date(rfq.createdAt).toLocaleDateString()}</p>
-                  <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-600">
+                  <p className="text-sm text-muted-foreground">Created {new Date(rfq.createdAt).toLocaleDateString()}</p>
+                  <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
                     {rfq.categoryId && (
                       <span className="flex items-center gap-1">
                         <Package size={14} />
@@ -203,7 +203,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
             </article>
           ))
         ) : (
-          <div className="rounded-3xl border border-dashed border-[#0061A8]/40 bg-white p-10 text-center text-gray-600">
+          <div className="rounded-3xl border border-dashed border-[#0061A8]/40 bg-card p-10 text-center text-muted-foreground">
             <p className="text-lg font-semibold text-[#0F1111]">No RFQs yet</p>
             <p className="mt-2 text-sm">Create an RFQ to engage approved vendors.</p>
           </div>

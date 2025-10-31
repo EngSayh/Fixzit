@@ -69,7 +69,7 @@ export default function PropertiesDocumentsPage() {
       case 'Expiring Soon': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'Expired': return 'bg-red-100 text-red-800 border-red-200';
       case 'Pending Review': return 'bg-blue-100 text-blue-800 border-blue-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -79,7 +79,7 @@ export default function PropertiesDocumentsPage() {
       case 'Safety': return 'bg-red-100 text-red-800 border-red-200';
       case 'Contract': return 'bg-green-100 text-green-800 border-green-200';
       case 'Insurance': return 'bg-purple-100 text-purple-800 border-purple-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -102,7 +102,7 @@ export default function PropertiesDocumentsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Documents</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Documents</p>
               <p className="text-2xl font-bold text-[var(--fixzit-primary)]">247</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">📄</div>
@@ -111,7 +111,7 @@ export default function PropertiesDocumentsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Expiring Soon</p>
+              <p className="text-sm font-medium text-muted-foreground">Expiring Soon</p>
               <p className="text-2xl font-bold text-[var(--fixzit-accent)]">8</p>
             </div>
             <div className="text-[var(--fixzit-accent-lighter)]">⚠️</div>
@@ -120,7 +120,7 @@ export default function PropertiesDocumentsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Expired</p>
+              <p className="text-sm font-medium text-muted-foreground">Expired</p>
               <p className="text-2xl font-bold text-[var(--fixzit-danger)]">3</p>
             </div>
             <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
@@ -129,7 +129,7 @@ export default function PropertiesDocumentsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Storage Used</p>
+              <p className="text-sm font-medium text-muted-foreground">Storage Used</p>
               <p className="text-2xl font-bold text-[var(--fixzit-secondary)]">2.4 GB</p>
             </div>
             <div className="text-purple-400">💾</div>
@@ -139,14 +139,14 @@ export default function PropertiesDocumentsPage() {
 
       {/* Upload Area */}
       <div className="card">
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-          <div className="text-gray-400 mb-4">📎</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Upload Documents</h3>
-          <p className="text-gray-600 mb-4">Drag and drop files here or click to browse</p>
-          <button className="px-6 py-3 bg-[var(--fixzit-blue)] text-white rounded-lg hover:bg-[var(--fixzit-blue)]/90 transition-colors">
+        <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center">
+          <div className="text-muted-foreground mb-4">📎</div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">Upload Documents</h3>
+          <p className="text-muted-foreground mb-4">Drag and drop files here or click to browse</p>
+          <button className="px-6 py-3 bg-[var(--fixzit-blue)] text-white rounded-2xl hover:bg-[var(--fixzit-blue)]/90 transition-colors">
             Choose Files
           </button>
-          <p className="text-sm text-gray-500 mt-2">Supports PDF, DOC, JPG up to 10MB each</p>
+          <p className="text-sm text-muted-foreground mt-2">Supports PDF, DOC, JPG up to 10MB each</p>
         </div>
       </div>
 
@@ -154,7 +154,7 @@ export default function PropertiesDocumentsPage() {
       <div className="card">
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
               <option>All Properties</option>
               <option>Tower A</option>
               <option>Tower B</option>
@@ -162,7 +162,7 @@ export default function PropertiesDocumentsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
               <option>All Types</option>
               <option>Legal</option>
               <option>Safety</option>
@@ -171,7 +171,7 @@ export default function PropertiesDocumentsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
               <option>All Status</option>
               <option>Active</option>
               <option>Expiring Soon</option>
@@ -195,41 +195,41 @@ export default function PropertiesDocumentsPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploaded By</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Upload Date</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry Date</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Document</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Property</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Uploaded By</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Upload Date</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Expiry Date</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Size</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               {documents.map(doc => (
-                <tr key={doc.id} className="hover:bg-gray-50">
+                <tr key={doc.id} className="hover:bg-muted">
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="text-gray-400 mr-3">📄</div>
+                      <div className="text-muted-foreground mr-3">📄</div>
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{doc.name}</div>
-                        <div className="text-sm text-gray-500">{doc.id}</div>
+                        <div className="text-sm font-medium text-foreground">{doc.name}</div>
+                        <div className="text-sm text-muted-foreground">{doc.id}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{doc.property}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{doc.property}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getTypeColor(doc.type)}`}>
                       {doc.type}
                     </span>
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{doc.uploadedBy}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{doc.uploadDate}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{doc.expiryDate || 'N/A'}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{doc.size}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{doc.uploadedBy}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{doc.uploadDate}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{doc.expiryDate || 'N/A'}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{doc.size}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(doc.status)}`}>
                       {doc.status}
@@ -259,7 +259,7 @@ export default function PropertiesDocumentsPage() {
               <p className="text-sm text-[var(--fixzit-accent)]">8 documents will expire within the next 30 days</p>
             </div>
           </div>
-          <button className="px-4 py-2 bg-[var(--fixzit-accent)] text-white rounded-lg hover:bg-[var(--fixzit-accent-dark)] transition-colors">
+          <button className="px-4 py-2 bg-[var(--fixzit-accent)] text-white rounded-2xl hover:bg-[var(--fixzit-accent-dark)] transition-colors">
             Review Now
           </button>
         </div>
@@ -270,7 +270,7 @@ export default function PropertiesDocumentsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Legal Documents</p>
+              <p className="text-sm font-medium text-muted-foreground">Legal Documents</p>
               <p className="text-2xl font-bold text-[var(--fixzit-primary)]">45</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">⚖️</div>
@@ -279,7 +279,7 @@ export default function PropertiesDocumentsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Safety Certificates</p>
+              <p className="text-sm font-medium text-muted-foreground">Safety Certificates</p>
               <p className="text-2xl font-bold text-[var(--fixzit-danger)]">23</p>
             </div>
             <div className="text-[var(--fixzit-danger-lighter)]">🛡️</div>
@@ -288,7 +288,7 @@ export default function PropertiesDocumentsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Contracts</p>
+              <p className="text-sm font-medium text-muted-foreground">Contracts</p>
               <p className="text-2xl font-bold text-[var(--fixzit-success)]">89</p>
             </div>
             <div className="text-[var(--fixzit-success-lighter)]">📋</div>
@@ -297,7 +297,7 @@ export default function PropertiesDocumentsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Insurance</p>
+              <p className="text-sm font-medium text-muted-foreground">Insurance</p>
               <p className="text-2xl font-bold text-[var(--fixzit-secondary)]">12</p>
             </div>
             <div className="text-purple-400">🛡️</div>

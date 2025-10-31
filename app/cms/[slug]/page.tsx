@@ -39,14 +39,14 @@ export default async function CmsPageScreen(props: { params: Promise<{slug:strin
       
       {/* Content */}
       <div className="mx-auto max-w-4xl px-6 py-10">
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8">
+        <div className="bg-card rounded-2xl shadow-md border border-border p-8">
           <article 
             className="prose prose-lg max-w-none prose-headings:text-[var(--fixzit-text)] prose-a:text-[var(--fixzit-blue)] prose-strong:text-[var(--fixzit-text)]" 
             dangerouslySetInnerHTML={{ __html: await renderMarkdown(page.content) }} 
           />
           
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <div className="flex items-center justify-between text-sm text-gray-600">
+          <div className="mt-8 pt-6 border-t border-border">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
               <div>
                 Last updated {new Date(page.updatedAt).toLocaleDateString()} 
                 {page.updatedBy && ` by ${page.updatedBy}`}

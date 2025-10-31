@@ -179,8 +179,8 @@ export default function FeatureSettingsPage() {
     return (
       <div className="max-w-4xl mx-auto p-6 space-y-8">
         <div>
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-2 animate-pulse"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3 animate-pulse"></div>
+          <div className="h-8 bg-muted dark:bg-gray-700 rounded w-1/3 mb-2 animate-pulse"></div>
+          <div className="h-4 bg-muted dark:bg-gray-700 rounded w-2/3 animate-pulse"></div>
         </div>
         <FeatureToggleGroupSkeleton />
       </div>
@@ -253,8 +253,8 @@ export default function FeatureSettingsPage() {
     return (
       <div className="max-w-4xl mx-auto p-6 space-y-8">
         <div>
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-2 animate-pulse"></div>
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3 animate-pulse"></div>
+          <div className="h-8 bg-muted dark:bg-gray-700 rounded w-1/3 mb-2 animate-pulse"></div>
+          <div className="h-4 bg-muted dark:bg-gray-700 rounded w-2/3 animate-pulse"></div>
         </div>
         <FeatureToggleGroupSkeleton />
         <FeatureToggleGroupSkeleton />

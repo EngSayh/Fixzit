@@ -221,38 +221,38 @@ export default async function AboutPage() {
         </section>
 
         {/* Stats Section */}
-        <section className="py-8 bg-white shadow-sm" aria-label={t('about.statsSection', 'Company Statistics')}>
+        <section className="py-8 bg-card shadow-sm" aria-label={t('about.statsSection', 'Company Statistics')}>
           <div className="mx-auto max-w-7xl px-4 lg:px-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-primary-lightest)] rounded-lg">
+              <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-primary-lightest)] rounded-2xl">
                 <Users className="w-8 h-8 text-[var(--fixzit-primary)] flex-shrink-0" aria-hidden="true" />
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">500+</div>
-                  <div className="text-sm text-gray-600">{t('about.clients', 'Clients Worldwide')}</div>
+                  <div className="text-2xl font-bold text-foreground">500+</div>
+                  <div className="text-sm text-muted-foreground">{t('about.clients', 'Clients Worldwide')}</div>
                 </div>
               </div>
               
-              <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-success-lightest)] rounded-lg">
+              <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-success-lightest)] rounded-2xl">
                 <Target className="w-8 h-8 text-[var(--fixzit-success)] flex-shrink-0" aria-hidden="true" />
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">99.9%</div>
-                  <div className="text-sm text-gray-600">{t('about.uptime', 'Platform Uptime')}</div>
+                  <div className="text-2xl font-bold text-foreground">99.9%</div>
+                  <div className="text-sm text-muted-foreground">{t('about.uptime', 'Platform Uptime')}</div>
                 </div>
               </div>
               
-              <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-secondary-lightest)] rounded-lg">
+              <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-secondary-lightest)] rounded-2xl">
                 <Award className="w-8 h-8 text-[var(--fixzit-secondary)] flex-shrink-0" aria-hidden="true" />
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">15+</div>
-                  <div className="text-sm text-gray-600">{t('about.experience', 'Years Experience')}</div>
+                  <div className="text-2xl font-bold text-foreground">15+</div>
+                  <div className="text-sm text-muted-foreground">{t('about.experience', 'Years Experience')}</div>
                 </div>
               </div>
               
-              <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-accent-lightest)] rounded-lg">
+              <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-accent-lightest)] rounded-2xl">
                 <Building2 className="w-8 h-8 text-[var(--fixzit-accent)] flex-shrink-0" aria-hidden="true" />
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">10K+</div>
-                  <div className="text-sm text-gray-600">{t('about.properties', 'Properties Managed')}</div>
+                  <div className="text-2xl font-bold text-foreground">10K+</div>
+                  <div className="text-sm text-muted-foreground">{t('about.properties', 'Properties Managed')}</div>
                 </div>
               </div>
             </div>
@@ -262,7 +262,7 @@ export default async function AboutPage() {
         {/* Main Content */}
         <section className="py-12" aria-label={t('about.contentSection', 'About Our Company')}>
           <div className="mx-auto max-w-4xl px-4 lg:px-6">
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8 md:p-12">
+            <div className="bg-card rounded-2xl shadow-md border border-border p-8 md:p-12">
               <article className={`prose prose-lg max-w-none ${isRTL ? 'text-right' : 'text-left'} prose-headings:text-[var(--fixzit-text)] prose-a:text-[var(--fixzit-primary)] prose-strong:text-[var(--fixzit-text)]`}>
                 <div dangerouslySetInnerHTML={{ __html: contentWithoutH1 }} />
               </article>
@@ -271,22 +271,22 @@ export default async function AboutPage() {
         </section>
 
         {/* Contact Section */}
-        <section className="py-12 bg-gray-50" aria-label={t('about.contactSection', 'Contact Information')}>
+        <section className="py-12 bg-muted" aria-label={t('about.contactSection', 'Contact Information')}>
           <div className="mx-auto max-w-4xl px-4 lg:px-6">
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+            <div className="bg-card rounded-2xl shadow-md border border-border p-8">
+              <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
                 <MapPin className="w-6 h-6 text-[var(--fixzit-primary)]" aria-hidden="true" />
                 {t('about.contactTitle', 'Get in Touch')}
               </h2>
-              <p className="text-gray-700 mb-6">
+              <p className="text-foreground mb-6">
                 {t('about.contactDesc', 'Have questions about our services? Our team is here to help you get started.')}
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex items-start gap-3">
-                  <Mail className="w-5 h-5 text-gray-600 flex-shrink-0 mt-1" aria-hidden="true" />
+                  <Mail className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" aria-hidden="true" />
                   <div>
-                    <div className="font-semibold text-gray-900 mb-1">{t('about.email', 'Email')}</div>
+                    <div className="font-semibold text-foreground mb-1">{t('about.email', 'Email')}</div>
                     <a 
                       href={`mailto:${CONTACT_INFO.email}`}
                       className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)]"
@@ -298,9 +298,9 @@ export default async function AboutPage() {
                 </div>
                 
                 <div className="flex items-start gap-3">
-                  <Phone className="w-5 h-5 text-gray-600 flex-shrink-0 mt-1" aria-hidden="true" />
+                  <Phone className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" aria-hidden="true" />
                   <div>
-                    <div className="font-semibold text-gray-900 mb-1">{t('about.phone', 'Phone')}</div>
+                    <div className="font-semibold text-foreground mb-1">{t('about.phone', 'Phone')}</div>
                     <a 
                       href={`tel:${CONTACT_INFO.phone.replace(/[^+\d]/g, '')}`}
                       className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)]"

@@ -200,14 +200,14 @@ export default function TrialBalanceReport({
     const indent = account.level * 20;
     
     return (
-      <tr key={account.accountId} className="hover:bg-gray-50">
+      <tr key={account.accountId} className="hover:bg-muted">
         <td className="px-4 py-2 text-sm" style={{ paddingLeft: `${16 + indent}px` }}>
-          <span className={account.level > 0 ? 'text-gray-600' : 'font-medium'}>
+          <span className={account.level > 0 ? 'text-muted-foreground' : 'font-medium'}>
             {account.accountCode}
           </span>
         </td>
         <td className="px-4 py-2 text-sm">
-          <span className={account.level > 0 ? 'text-gray-700' : 'font-medium'}>
+          <span className={account.level > 0 ? 'text-foreground' : 'font-medium'}>
             {account.accountName}
           </span>
         </td>
@@ -238,8 +238,8 @@ export default function TrialBalanceReport({
       return (
         <React.Fragment key={type}>
           {/* Type Header */}
-          <tr className="bg-gray-100 border-t-2 border-gray-300 cursor-pointer" onClick={() => toggleTypeExpansion(type)}>
-            <td colSpan={2} className="px-4 py-3 text-sm font-bold text-gray-900">
+          <tr className="bg-muted border-t-2 border-border cursor-pointer" onClick={() => toggleTypeExpansion(type)}>
+            <td colSpan={2} className="px-4 py-3 text-sm font-bold text-foreground">
               <span className="inline-block mr-2">{isExpanded ? '▼' : '▶'}</span>
               {t(type)}
             </td>
@@ -273,7 +273,7 @@ export default function TrialBalanceReport({
   return (
     <div className="space-y-6">
       {/* Header & Filters */}
-      <div className="bg-white shadow-md rounded-lg p-6 space-y-4">
+      <div className="bg-card shadow-md rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">{t('Trial Balance Report')}</h2>
           <div className="flex gap-2">
@@ -297,13 +297,13 @@ export default function TrialBalanceReport({
         {/* Filters */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 border-t pt-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               {t('Fiscal Year')}
             </label>
             <select
               value={year}
               onChange={(e) => setYear(parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="w-full px-3 py-2 border border-border rounded-2xl"
               disabled={loading}
             >
               {[...Array(5)].map((_, i) => {
@@ -314,13 +314,13 @@ export default function TrialBalanceReport({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               {t('Period')}
             </label>
             <select
               value={period}
               onChange={(e) => setPeriod(parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="w-full px-3 py-2 border border-border rounded-2xl"
               disabled={loading}
             >
               {[...Array(12)].map((_, i) => (
@@ -339,7 +339,7 @@ export default function TrialBalanceReport({
                 onChange={(e) => setShowZeroBalances(e.target.checked)}
                 className="w-4 h-4 text-blue-600 rounded"
               />
-              <span className="text-sm text-gray-700">{t('Show Zero Balances')}</span>
+              <span className="text-sm text-foreground">{t('Show Zero Balances')}</span>
             </label>
           </div>
 
@@ -351,7 +351,7 @@ export default function TrialBalanceReport({
                 onChange={(e) => setGroupByType(e.target.checked)}
                 className="w-4 h-4 text-blue-600 rounded"
               />
-              <span className="text-sm text-gray-700">{t('Group by Type')}</span>
+              <span className="text-sm text-foreground">{t('Group by Type')}</span>
             </label>
           </div>
         </div>
@@ -361,13 +361,13 @@ export default function TrialBalanceReport({
           <div className="flex gap-2 border-t pt-4">
             <button
               onClick={expandAll}
-              className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+              className="px-3 py-1 text-sm bg-muted text-foreground rounded hover:bg-muted"
             >
               {t('Expand All')}
             </button>
             <button
               onClick={collapseAll}
-              className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+              className="px-3 py-1 text-sm bg-muted text-foreground rounded hover:bg-muted"
             >
               {t('Collapse All')}
             </button>
@@ -377,59 +377,59 @@ export default function TrialBalanceReport({
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
           <p className="text-sm text-red-700">{error}</p>
         </div>
       )}
 
       {/* Loading State */}
       {loading && (
-        <div className="bg-white shadow-md rounded-lg p-12 text-center">
-          <p className="text-gray-500">{t('Loading trial balance...')}</p>
+        <div className="bg-card shadow-md rounded-2xl p-12 text-center">
+          <p className="text-muted-foreground">{t('Loading trial balance...')}</p>
         </div>
       )}
 
       {/* Trial Balance Table */}
       {!loading && data && (
-        <div className="bg-white shadow-md rounded-lg overflow-hidden">
+        <div className="bg-card shadow-md rounded-2xl overflow-hidden">
           {/* Report Header */}
-          <div className="bg-gray-50 p-4 border-b">
+          <div className="bg-muted p-4 border-b">
             <h3 className="font-semibold text-lg">{t('Trial Balance')}</h3>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               {t('As of')} {data.asOfDate} | {t('Period')} {period}/{year}
             </p>
           </div>
 
           {/* Table */}
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Account Code')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Account Name')}
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Debit')}
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Credit')}
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Balance')}
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-border">
                 {groupByType ? renderGroupedAccounts() : renderFlatAccounts()}
               </tbody>
               
               {/* Totals Footer */}
-              <tfoot className="bg-gray-100 border-t-2 border-gray-300">
+              <tfoot className="bg-muted border-t-2 border-border">
                 <tr>
-                  <td colSpan={2} className="px-4 py-3 text-sm font-bold text-gray-900">
+                  <td colSpan={2} className="px-4 py-3 text-sm font-bold text-foreground">
                     {t('TOTAL')}
                   </td>
                   <td className="px-4 py-3 text-sm font-bold text-right">
@@ -464,10 +464,10 @@ export default function TrialBalanceReport({
                 )}
               </div>
               <div className="text-right text-sm">
-                <p className="text-gray-600">
+                <p className="text-muted-foreground">
                   {t('Total Accounts')}: {data.accounts.length}
                 </p>
-                <p className="text-gray-600">
+                <p className="text-muted-foreground">
                   {t('Displayed')}: {getFilteredAccounts().length}
                 </p>
               </div>
@@ -478,8 +478,8 @@ export default function TrialBalanceReport({
 
       {/* Empty State */}
       {!loading && !data && !error && (
-        <div className="bg-white shadow-md rounded-lg p-12 text-center">
-          <p className="text-gray-500">{t('No trial balance data available')}</p>
+        <div className="bg-card shadow-md rounded-2xl p-12 text-center">
+          <p className="text-muted-foreground">{t('No trial balance data available')}</p>
           <button
             onClick={() => loadTrialBalance()}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"

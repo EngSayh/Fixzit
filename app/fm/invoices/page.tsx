@@ -331,7 +331,7 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DRAFT':
-        return 'bg-muted text-gray-800';
+        return 'bg-muted text-foreground';
       case 'SENT':
         return 'bg-blue-100 text-blue-800';
       case 'VIEWED':
@@ -343,9 +343,9 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
       case 'OVERDUE':
         return 'bg-red-100 text-red-800';
       case 'CANCELLED':
-        return 'bg-muted text-gray-800';
+        return 'bg-muted text-foreground';
       default:
-        return 'bg-muted text-gray-800';
+        return 'bg-muted text-foreground';
     }
   };
 

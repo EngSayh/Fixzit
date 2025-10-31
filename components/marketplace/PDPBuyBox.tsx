@@ -57,12 +57,12 @@ export default function PDPBuyBox({ product, onAddToCart, onRequestRFQ }: PDPBuy
   const priceLabel = formatCurrency(product.buy.price, product.buy.currency || currency);
 
   return (
-    <aside className="w-full max-w-sm space-y-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
+    <aside className="w-full max-w-sm space-y-4 rounded-2xl border border-border bg-card p-6 shadow-lg">
       <div className="flex items-baseline justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-[#0061A8]">SKU {product.sku}</p>
           <p className="text-2xl font-semibold text-[#0F1111]">{priceLabel}</p>
-          <p className="text-xs text-gray-500">per {product.buy.uom} · Min order {product.buy.minQty ?? 1}</p>
+          <p className="text-xs text-muted-foreground">per {product.buy.uom} · Min order {product.buy.minQty ?? 1}</p>
         </div>
         {product.buy.leadDays != null && (
           <span className="flex items-center gap-1 rounded-full bg-[#0061A8]/10 px-3 py-1 text-xs font-semibold text-[#0061A8]">
@@ -72,13 +72,13 @@ export default function PDPBuyBox({ product, onAddToCart, onRequestRFQ }: PDPBuy
         )}
       </div>
 
-      <div className={clsx('rounded-xl border px-4 py-3 text-sm', available > 0 ? 'border-[#00A859]/40 bg-[#00A859]/10 text-[#004728]' : 'border-red-200 bg-red-50 text-red-700')}>
+      <div className={clsx('rounded-2xl border px-4 py-3 text-sm', available > 0 ? 'border-[#00A859]/40 bg-[#00A859]/10 text-[#004728]' : 'border-red-200 bg-red-50 text-red-700')}>
         <p className="font-semibold">{available > 0 ? 'Available for immediate fulfilment' : 'Currently out of stock'}</p>
         {product.stock?.location && <p className="text-xs opacity-80">Location: {product.stock.location}</p>}
       </div>
 
       <div className="flex items-center gap-3">
-        <label className="text-sm font-medium text-gray-700" htmlFor="quantity-input">
+        <label className="text-sm font-medium text-foreground" htmlFor="quantity-input">
           Quantity
         </label>
         <input
@@ -88,7 +88,7 @@ export default function PDPBuyBox({ product, onAddToCart, onRequestRFQ }: PDPBuy
           step={product.buy.minQty ?? 1}
           value={quantity}
           onChange={event => setQuantity(Number(event.target.value) || (product.buy.minQty ?? 1))}
-          className="h-11 w-24 rounded-lg border border-gray-300 px-3 text-center text-lg font-semibold"
+          className="h-11 w-24 rounded-2xl border border-border px-3 text-center text-lg font-semibold"
         />
       </div>
 
@@ -111,7 +111,7 @@ export default function PDPBuyBox({ product, onAddToCart, onRequestRFQ }: PDPBuy
         </button>
       </div>
 
-      <ul className="space-y-3 text-sm text-gray-700">
+      <ul className="space-y-3 text-sm text-foreground">
         <li className="flex items-center gap-2">
           <Truck size={16} className="text-[#0061A8]" aria-hidden />
           Delivery within {product.buy.leadDays ?? 2} business days across KSA

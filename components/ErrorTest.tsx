@@ -86,7 +86,7 @@ export default function ErrorTest() {
     return (
       <button
         onClick={() => setShowTest(true)}
-        className="fixed bottom-20 right-6 bg-[var(--fixzit-danger)] text-white px-4 py-2 rounded-lg shadow-lg hover:bg-[var(--fixzit-danger-dark)] z-50"
+        className="fixed bottom-20 right-6 bg-[var(--fixzit-danger)] text-white px-4 py-2 rounded-2xl shadow-lg hover:bg-[var(--fixzit-danger-dark)] z-50"
       >
         🧪 Test Error Boundary
       </button>
@@ -94,12 +94,12 @@ export default function ErrorTest() {
   }
 
   return (
-    <div className="fixed bottom-20 right-6 bg-white border border-gray-300 rounded-lg shadow-lg p-4 z-50 max-w-sm">
+    <div className="fixed bottom-20 right-6 bg-card border border-border rounded-2xl shadow-lg p-4 z-50 max-w-sm">
       <div className="flex justify-between items-center mb-3">
-        <h3 className="font-semibold text-gray-900">🧪 Error Testing</h3>
+        <h3 className="font-semibold text-foreground">🧪 Error Testing</h3>
         <button
           onClick={() => setShowTest(false)}
-          className="text-gray-400 hover:text-gray-600"
+          className="text-muted-foreground hover:text-muted-foreground"
         >
           ✕
         </button>
@@ -135,7 +135,7 @@ export default function ErrorTest() {
         </button>
       </div>
 
-      <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
+      <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
         <p>Click any button above to test the enhanced error boundary with:</p>
         <ul className="mt-1 space-y-1">
           <li>• Error ID generation</li>

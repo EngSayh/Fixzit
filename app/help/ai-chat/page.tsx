@@ -107,24 +107,24 @@ export default function AIChatPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-muted flex flex-col">
       <div className="max-w-4xl mx-auto p-4 flex-1 flex flex-col">
-        <div className="bg-white rounded-2xl shadow-xl h-[600px] flex flex-col">
+        <div className="bg-card rounded-2xl shadow-xl h-[600px] flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between p-6 border-b border-border">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[var(--fixzit-primary)] rounded-full flex items-center justify-center">
                 <Bot className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Fixzit AI Assistant</h1>
-                <p className="text-sm text-gray-500">Ask me anything about Fixzit!</p>
+                <h1 className="text-xl font-bold text-foreground">Fixzit AI Assistant</h1>
+                <p className="text-sm text-muted-foreground">Ask me anything about Fixzit!</p>
               </div>
             </div>
             <button
               onClick={() => window.close()}
               aria-label="Close chat"
-              className="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100"
+              className="text-muted-foreground hover:text-muted-foreground p-2 rounded-2xl hover:bg-muted"
             >
               <X className="w-5 h-5" />
             </button>
@@ -146,14 +146,14 @@ export default function AIChatPage() {
                     <Bot className="w-4 h-4 text-white" />
                   )}
                 </div>
-                <div className={`max-w-[80%] p-4 rounded-lg ${
+                <div className={`max-w-[80%] p-4 rounded-2xl ${
                   message.type === 'user'
                     ? 'bg-green-600 text-white'
-                    : 'bg-gray-100 text-gray-900'
+                    : 'bg-muted text-foreground'
                 }`}>
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   {message.type === 'bot' && message.citations && message.citations.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
+                    <div className="mt-3 pt-3 border-t border-border">
                       <p className="text-sm font-medium mb-2">📚 Related Help Articles:</p>
                       <ul className="space-y-1">
                         {message.citations.map((citation, i) => (
@@ -181,15 +181,15 @@ export default function AIChatPage() {
                 <div className="w-8 h-8 bg-[var(--fixzit-primary)] rounded-full flex items-center justify-center">
                   <Bot className="w-4 h-4 text-white" />
                 </div>
-                <div className="bg-gray-100 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">Thinking...</p>
+                <div className="bg-muted p-4 rounded-2xl">
+                  <p className="text-sm text-muted-foreground">Thinking...</p>
                 </div>
               </div>
             )}
           </div>
 
           {/* Input */}
-          <div className="p-6 border-t border-gray-200">
+          <div className="p-6 border-t border-border">
             <div className="flex gap-3">
               <label htmlFor="chat-input" className="sr-only">Chat message</label>
               <input
@@ -199,19 +199,19 @@ export default function AIChatPage() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask me anything about Fixzit..."
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-4 py-3 border border-border rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isLoading}
               />
               <button
                 onClick={sendMessage}
                 disabled={!input.trim() || isLoading}
                 aria-label="Send message"
-                className="px-4 py-3 bg-[var(--fixzit-primary)] text-white rounded-lg hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-3 bg-[var(--fixzit-primary)] text-white rounded-2xl hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Press Enter to send
             </p>
           </div>

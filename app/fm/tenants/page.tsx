@@ -186,7 +186,7 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
       case 'GOVERNMENT':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-muted text-gray-800';
+        return 'bg-muted text-foreground';
     }
   };
 

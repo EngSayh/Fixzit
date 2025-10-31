@@ -58,8 +58,8 @@ export default function PropertiesInspectionsPage() {
       case 'scheduled': return 'bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)] border-[var(--fixzit-primary-lighter)]';
       case 'in-progress': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
       case 'overdue': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
-      case 'cancelled': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'cancelled': return 'bg-muted text-foreground border-border';
+      default: return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -69,7 +69,7 @@ export default function PropertiesInspectionsPage() {
       case 'Fire Safety': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
       case 'Mechanical': return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'Electrical': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -92,7 +92,7 @@ export default function PropertiesInspectionsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Scheduled</p>
+              <p className="text-sm font-medium text-muted-foreground">Scheduled</p>
               <p className="text-2xl font-bold text-[var(--fixzit-primary)]">12</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
@@ -101,7 +101,7 @@ export default function PropertiesInspectionsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">In Progress</p>
+              <p className="text-sm font-medium text-muted-foreground">In Progress</p>
               <p className="text-2xl font-bold text-[var(--fixzit-accent)]">3</p>
             </div>
             <div className="text-[var(--fixzit-accent-lighter)]">🔄</div>
@@ -110,7 +110,7 @@ export default function PropertiesInspectionsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Completed</p>
+              <p className="text-sm font-medium text-muted-foreground">Completed</p>
               <p className="text-2xl font-bold text-[var(--fixzit-success)]">45</p>
             </div>
             <div className="text-[var(--fixzit-success-lighter)]">✅</div>
@@ -119,7 +119,7 @@ export default function PropertiesInspectionsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Overdue</p>
+              <p className="text-sm font-medium text-muted-foreground">Overdue</p>
               <p className="text-2xl font-bold text-[var(--fixzit-danger)]">2</p>
             </div>
             <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
@@ -131,7 +131,7 @@ export default function PropertiesInspectionsPage() {
       <div className="card">
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
               <option>All Properties</option>
               <option>Tower A</option>
               <option>Tower B</option>
@@ -139,7 +139,7 @@ export default function PropertiesInspectionsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
               <option>All Types</option>
               <option>Safety</option>
               <option>Fire Safety</option>
@@ -148,7 +148,7 @@ export default function PropertiesInspectionsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
               <option>All Status</option>
               <option>Scheduled</option>
               <option>In Progress</option>
@@ -172,35 +172,35 @@ export default function PropertiesInspectionsPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inspection ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Inspector</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scheduled Date</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Inspection</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Next Due</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Inspection ID</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Title</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Property</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Inspector</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Scheduled Date</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Last Inspection</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Next Due</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               {inspections.map(inspection => (
-                <tr key={inspection.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{inspection.id}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{inspection.title}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{inspection.property}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{inspection.inspector}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{inspection.scheduledDate}</td>
+                <tr key={inspection.id} className="hover:bg-muted">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-foreground">{inspection.id}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">{inspection.title}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{inspection.property}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{inspection.inspector}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{inspection.scheduledDate}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getTypeColor(inspection.type)}`}>
                       {inspection.type}
                     </span>
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{inspection.lastInspection}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{inspection.nextDue}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{inspection.lastInspection}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{inspection.nextDue}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(inspection.status)}`}>
                       {inspection.status}
@@ -230,7 +230,7 @@ export default function PropertiesInspectionsPage() {
               <p className="text-sm text-[var(--fixzit-danger)]">2 inspections are overdue and require immediate attention</p>
             </div>
           </div>
-          <button className="px-4 py-2 bg-[var(--fixzit-danger)] text-white rounded-lg hover:bg-[var(--fixzit-danger-dark)] transition-colors">
+          <button className="px-4 py-2 bg-[var(--fixzit-danger)] text-white rounded-2xl hover:bg-[var(--fixzit-danger-dark)] transition-colors">
             Reschedule Now
           </button>
         </div>
@@ -244,12 +244,12 @@ export default function PropertiesInspectionsPage() {
         </div>
         <div className="space-y-3">
           {inspections.filter(inspection => inspection.status === 'scheduled').map(inspection => (
-            <div key={inspection.id} className="flex items-center justify-between p-3 bg-[var(--fixzit-primary-lightest)] border border-blue-200 rounded-lg">
+            <div key={inspection.id} className="flex items-center justify-between p-3 bg-[var(--fixzit-primary-lightest)] border border-blue-200 rounded-2xl">
               <div className="flex items-center gap-3">
                 <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
                 <div>
-                  <p className="font-medium text-gray-900">{inspection.title}</p>
-                  <p className="text-sm text-gray-600">{inspection.property} • {inspection.scheduledDate}</p>
+                  <p className="font-medium text-foreground">{inspection.title}</p>
+                  <p className="text-sm text-muted-foreground">{inspection.property} • {inspection.scheduledDate}</p>
                 </div>
               </div>
               <div className="flex gap-2">

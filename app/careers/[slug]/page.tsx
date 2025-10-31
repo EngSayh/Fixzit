@@ -18,7 +18,7 @@ export default async function JobDetailPage({ params }: { params: { slug: string
   }
   
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-card flex flex-col">
       <div className="max-w-4xl mx-auto px-4 py-12 flex-1">
         <Link 
           href="/careers" 
@@ -28,16 +28,16 @@ export default async function JobDetailPage({ params }: { params: { slug: string
           <span>Back to Careers</span>
         </Link>
         <h1 className="text-3xl font-bold mt-3">{job.title}</h1>
-        <div className="text-gray-600 mt-1">{job.department}</div>
+        <div className="text-muted-foreground mt-1">{job.department}</div>
         <div className="mt-6 space-y-4">
           <div>
             <h3 className="font-semibold">Description</h3>
-            <p className="text-gray-700 whitespace-pre-line">{job.description}</p>
+            <p className="text-foreground whitespace-pre-line">{job.description}</p>
           </div>
           {Array.isArray(job.requirements) && job.requirements.length > 0 && (
             <div>
               <h3 className="font-semibold">Requirements</h3>
-              <ul className="list-disc ml-6 text-gray-700">
+              <ul className="list-disc ml-6 text-foreground">
                 {job.requirements.map((r: string, i: number) => <li key={i}>{r}</li>)}
               </ul>
             </div>
@@ -45,7 +45,7 @@ export default async function JobDetailPage({ params }: { params: { slug: string
           {Array.isArray(job.benefits) && job.benefits.length > 0 && (
             <div>
               <h3 className="font-semibold">Benefits</h3>
-              <ul className="list-disc ml-6 text-gray-700">
+              <ul className="list-disc ml-6 text-foreground">
                 {job.benefits.map((b: string, i: number) => <li key={i}>{b}</li>)}
               </ul>
             </div>

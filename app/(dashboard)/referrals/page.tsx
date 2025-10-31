@@ -548,7 +548,7 @@ export default function ReferralProgramPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <table className="min-w-full divide-y divide-border dark:divide-gray-700">
                   <thead className="bg-muted dark:bg-gray-800">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
@@ -565,7 +565,7 @@ export default function ReferralProgramPage() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <tbody className="divide-y divide-border dark:divide-gray-700">
                     {referrals.map((referral, index) => (
                       <tr key={index} data-testid={`referral-row-${index}`}>
                         <td className="px-6 py-4 text-sm text-foreground dark:text-white">

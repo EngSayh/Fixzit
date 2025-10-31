@@ -53,46 +53,46 @@ export default function VendorDashboard() {
   };
   
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-muted flex flex-col">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Vendor Dashboard</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-8">Vendor Dashboard</h1>
         
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-card rounded-2xl shadow p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Products</p>
+                <p className="text-sm text-muted-foreground">Total Products</p>
                 <p className="text-2xl font-bold">{stats.totalProducts}</p>
               </div>
               <Package className="h-8 w-8 text-fixzit-blue" />
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-card rounded-2xl shadow p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Orders</p>
+                <p className="text-sm text-muted-foreground">Total Orders</p>
                 <p className="text-2xl font-bold">{stats.totalOrders}</p>
               </div>
               <Clock className="h-8 w-8 text-fixzit-green" />
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-card rounded-2xl shadow p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Revenue</p>
+                <p className="text-sm text-muted-foreground">Revenue</p>
                 <p className="text-2xl font-bold">SAR {stats.revenue.toFixed(2)}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-fixzit-yellow" />
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-card rounded-2xl shadow p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Rating</p>
+                <p className="text-sm text-muted-foreground">Rating</p>
                 <p className="text-2xl font-bold">{stats.rating}/5.0</p>
               </div>
               <Star className="h-8 w-8 text-[var(--fixzit-accent-lighter)] fill-current" />
@@ -101,22 +101,22 @@ export default function VendorDashboard() {
         </div>
         
         {/* Products Table */}
-        <div className="bg-white rounded-lg shadow mb-8">
+        <div className="bg-card rounded-2xl shadow mb-8">
           <div className="px-6 py-4 border-b">
             <h2 className="text-lg font-semibold">My Products</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sold</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Product</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Stock</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Price</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Sold</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-border">
                 {products.map((product) => (
                   <tr key={product.id}>
                     <td className="px-6 py-4">{product.title}</td>
@@ -134,21 +134,21 @@ export default function VendorDashboard() {
         </div>
         
         {/* Recent Orders */}
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-card rounded-2xl shadow">
           <div className="px-6 py-4 border-b">
             <h2 className="text-lg font-semibold">Recent Orders</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Order ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Customer</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Total</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-border">
                 {orders.map((order) => (
                   <tr key={order.id}>
                     <td className="px-6 py-4">{order.id}</td>

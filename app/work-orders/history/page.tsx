@@ -46,7 +46,7 @@ export default function ServiceHistoryPage() {
       case 'completed': return 'bg-green-100 text-green-800 border-green-200';
       case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -69,7 +69,7 @@ export default function ServiceHistoryPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">{t('workOrders.history.totalCompleted', 'Total Completed')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('workOrders.history.totalCompleted', 'Total Completed')}</p>
               <p className="text-2xl font-bold text-[var(--fixzit-success)]">247</p>
             </div>
             <div className="text-[var(--fixzit-success-lighter)]">✅</div>
@@ -78,7 +78,7 @@ export default function ServiceHistoryPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">{t('common.thisMonth', 'This Month')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('common.thisMonth', 'This Month')}</p>
               <p className="text-2xl font-bold text-[var(--fixzit-primary)]">23</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
@@ -87,7 +87,7 @@ export default function ServiceHistoryPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">{t('common.avgRating', 'Avg. Rating')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('common.avgRating', 'Avg. Rating')}</p>
               <p className="text-2xl font-bold text-[var(--fixzit-accent)]">4.8</p>
             </div>
             <div className="text-[var(--fixzit-accent-lighter)]">⭐</div>
@@ -96,7 +96,7 @@ export default function ServiceHistoryPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">{t('common.totalCost', 'Total Cost')}</p>
+              <p className="text-sm font-medium text-muted-foreground">{t('common.totalCost', 'Total Cost')}</p>
               <p className="text-2xl font-bold text-[var(--fixzit-secondary)]">SAR 45,230</p>
             </div>
             <div className="text-purple-400">💰</div>
@@ -108,7 +108,7 @@ export default function ServiceHistoryPage() {
       <div className="card">
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
               <option>All Properties</option>
               <option>Tower A</option>
               <option>Tower B</option>
@@ -116,7 +116,7 @@ export default function ServiceHistoryPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
               <option>All Technicians</option>
               <option>Ahmed Al-Rashid</option>
               <option>Mohammed Al-Saud</option>
@@ -127,14 +127,14 @@ export default function ServiceHistoryPage() {
             <input
               type="date"
               placeholder="From Date"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
             />
           </div>
           <div className="flex-1 min-w-48">
             <input
               type="date"
               placeholder="To Date"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
             />
           </div>
           <button className="btn-primary">{t('workOrders.filter', 'Filter')}</button>
@@ -153,31 +153,31 @@ export default function ServiceHistoryPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">WO ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Technician</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion Date</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cost</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rating</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">WO ID</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Title</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Property</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Technician</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Completion Date</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Duration</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Cost</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Rating</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               {serviceHistory.map(item => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.id}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">{item.title}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{item.property}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{item.technician}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{item.completionDate}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{item.duration}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{item.cost}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                <tr key={item.id} className="hover:bg-muted">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-foreground">{item.id}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">{item.title}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{item.property}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{item.technician}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{item.completionDate}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{item.duration}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{item.cost}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     <div className="flex items-center">
                       <span className="text-[var(--fixzit-accent-lighter)]">⭐</span>
                       <span className="ml-1">{item.rating}/5</span>

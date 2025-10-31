@@ -111,7 +111,7 @@ export const FeatureToggle: React.FC<FeatureToggleProps> = ({
 
   return (
     <div 
-      className={`flex items-center justify-between py-3 px-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${className}`}
+      className={`flex items-center justify-between py-3 px-4 rounded-2xl hover:bg-muted dark:hover:bg-gray-800 transition-colors ${className}`}
       data-feature-id={id}
     >
       {/* Left Side: Label & Description */}
@@ -119,7 +119,7 @@ export const FeatureToggle: React.FC<FeatureToggleProps> = ({
         <div className="flex items-center gap-2">
           <label 
             htmlFor={id}
-            className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
+            className="text-sm font-medium text-foreground dark:text-white cursor-pointer"
           >
             {label}
           </label>
@@ -134,7 +134,7 @@ export const FeatureToggle: React.FC<FeatureToggleProps> = ({
           {/* Lock Icon */}
           {locked && (
             <svg 
-              className="w-4 h-4 text-gray-400" 
+              className="w-4 h-4 text-muted-foreground" 
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
@@ -152,7 +152,7 @@ export const FeatureToggle: React.FC<FeatureToggleProps> = ({
         
         {/* Description */}
         {description && (
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">
             {description}
           </p>
         )}
@@ -164,7 +164,7 @@ export const FeatureToggle: React.FC<FeatureToggleProps> = ({
           /* Loading Spinner */
           <div className="inline-flex h-6 w-11 items-center justify-center">
             <svg 
-              className="animate-spin h-5 w-5 text-gray-400" 
+              className="animate-spin h-5 w-5 text-muted-foreground" 
               xmlns="http://www.w3.org/2000/svg" 
               fill="none" 
               viewBox="0 0 24 24"
@@ -199,14 +199,14 @@ export const FeatureToggle: React.FC<FeatureToggleProps> = ({
               relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2
               ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
               ${locked ? 'cursor-help' : ''}
-              ${danger && enabled ? 'focus:ring-red-500 bg-red-600' : enabled ? 'focus:ring-green-500 bg-green-600' : 'focus:ring-gray-400 bg-gray-200'}
+              ${danger && enabled ? 'focus:ring-red-500 bg-red-600' : enabled ? 'focus:ring-green-500 bg-green-600' : 'focus:ring-gray-400 bg-muted'}
             `}
           >
             {/* Toggle Knob */}
             <span
               aria-hidden="true"
               className={`
-                pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out
+                pointer-events-none inline-block h-5 w-5 transform rounded-full bg-card shadow ring-0 transition duration-200 ease-in-out
                 ${enabled ? 'translate-x-5' : 'translate-x-0'}
               `}
             />
@@ -238,16 +238,16 @@ export const FeatureToggleGroup: React.FC<FeatureToggleGroupProps> = ({
   return (
     <div className={`space-y-2 ${className}`}>
       <div className="px-4 py-2">
-        <h3 className="text-base font-semibold text-gray-900 dark:text-white">
+        <h3 className="text-base font-semibold text-foreground dark:text-white">
           {title}
         </h3>
         {description && (
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-sm text-muted-foreground dark:text-muted-foreground">
             {description}
           </p>
         )}
       </div>
-      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
+      <div className="bg-card dark:bg-gray-900 rounded-2xl border border-border dark:border-gray-700 divide-y divide-border dark:divide-gray-700">
         {children}
       </div>
     </div>

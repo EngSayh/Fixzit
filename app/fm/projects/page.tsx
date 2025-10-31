@@ -216,7 +216,7 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PLANNING':
-        return 'bg-muted text-gray-800';
+        return 'bg-muted text-foreground';
       case 'APPROVED':
         return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)]';
       case 'IN_PROGRESS':
@@ -230,7 +230,7 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
       case 'CLOSED':
         return 'bg-purple-100 text-purple-800';
       default:
-        return 'bg-muted text-gray-800';
+        return 'bg-muted text-foreground';
     }
   };
 
@@ -263,7 +263,7 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
             <span className="text-muted-foreground">Overall Progress</span>
             <span className="font-medium">{project.progress?.overall || 0}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-muted rounded-full h-2">
             <div 
               className="bg-[var(--fixzit-indigo)] h-2 rounded-full transition-all"
               style={{ width: `${project.progress?.overall || 0}%` }}

@@ -8,17 +8,17 @@ export default function LoginHeader() {
   return (
     <div className="text-center mb-6">
       {/* Logo */}
-      <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-500 rounded-xl mb-4">
+      <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-500 rounded-2xl mb-4">
         <span className="text-white text-2xl font-bold">F</span>
       </div>
       
       {/* Title */}
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <h1 className="text-3xl font-bold text-foreground mb-2">
         {t('login.welcome', 'Welcome Back')}
       </h1>
       
       {/* Subtitle */}
-      <p className="text-gray-600">
+      <p className="text-muted-foreground">
         {t('login.subtitle', 'Sign in to your Fixzit account')}
       </p>
     </div>

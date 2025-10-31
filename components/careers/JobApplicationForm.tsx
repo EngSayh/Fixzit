@@ -169,7 +169,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
 
   const fieldCls = (hasErr?: boolean) =>
     `border p-2 rounded focus:ring-2 focus:ring-brand-500 focus:border-transparent ${
-      hasErr ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
+      hasErr ? 'border-red-500 focus:ring-red-500' : 'border-border'
     }`;
 
   return (
@@ -177,7 +177,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
       onSubmit={handleSubmit}
       noValidate
       encType="multipart/form-data"
-      className="mt-8 bg-gray-50 p-6 rounded-md"
+      className="mt-8 bg-muted p-6 rounded-2xl"
       data-testid="job-apply-form"
     >
       <h3 className="text-xl font-semibold mb-4">{t('careers.applyNow', 'Apply Now')}</h3>
@@ -188,7 +188,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
       <div className="grid md:grid-cols-2 gap-4">
         {/* Full Name */}
         <div className="flex flex-col">
-          <label htmlFor="fullName" className="mb-1 text-sm font-semibold text-gray-700">
+          <label htmlFor="fullName" className="mb-1 text-sm font-semibold text-foreground">
             {t('careers.fullName', 'Full Name')} <span className="text-red-500">*</span>
           </label>
           <input
@@ -210,7 +210,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
 
         {/* Email */}
         <div className="flex flex-col">
-          <label htmlFor="email" className="mb-1 text-sm font-semibold text-gray-700">
+          <label htmlFor="email" className="mb-1 text-sm font-semibold text-foreground">
             {t('careers.email', 'Email Address')} <span className="text-red-500">*</span>
           </label>
           <input
@@ -232,7 +232,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
 
         {/* Phone */}
         <div className="flex flex-col">
-          <label htmlFor="phone" className="mb-1 text-sm font-semibold text-gray-700">
+          <label htmlFor="phone" className="mb-1 text-sm font-semibold text-foreground">
             {t('careers.phone', 'Phone Number')}
           </label>
           <input
@@ -254,7 +254,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
 
         {/* Location */}
         <div className="flex flex-col">
-          <label htmlFor="location" className="mb-1 text-sm font-semibold text-gray-700">
+          <label htmlFor="location" className="mb-1 text-sm font-semibold text-foreground">
             {t('careers.location', 'Location')}
           </label>
           <input
@@ -270,7 +270,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
 
         {/* Years of Experience */}
         <div className="flex flex-col">
-          <label htmlFor="experience" className="mb-1 text-sm font-semibold text-gray-700">
+          <label htmlFor="experience" className="mb-1 text-sm font-semibold text-foreground">
             {t('careers.experience', 'Years of Experience')}
           </label>
           <input
@@ -293,7 +293,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
 
         {/* LinkedIn */}
         <div className="flex flex-col">
-          <label htmlFor="linkedin" className="mb-1 text-sm font-semibold text-gray-700">
+          <label htmlFor="linkedin" className="mb-1 text-sm font-semibold text-foreground">
             {t('careers.linkedin', 'LinkedIn Profile')}
           </label>
           <input
@@ -314,7 +314,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
 
         {/* Skills */}
         <div className="flex flex-col md:col-span-2">
-          <label htmlFor="skills" className="mb-1 text-sm font-semibold text-gray-700">
+          <label htmlFor="skills" className="mb-1 text-sm font-semibold text-foreground">
             {t('careers.skills', 'Key Skills')}
           </label>
           <input
@@ -326,20 +326,20 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
             disabled={isSubmitting}
             data-testid="skills"
           />
-          <p className="text-xs text-gray-500 mt-1">{t('careers.skillsHint', 'Separate skills with commas')}</p>
+          <p className="text-xs text-muted-foreground mt-1">{t('careers.skillsHint', 'Separate skills with commas')}</p>
         </div>
       </div>
 
       {/* Cover Letter */}
       <div className="flex flex-col mt-4">
-        <label htmlFor="coverLetter" className="mb-1 text-sm font-semibold text-gray-700">
+        <label htmlFor="coverLetter" className="mb-1 text-sm font-semibold text-foreground">
           {t('careers.coverLetter', 'Cover Letter')}
         </label>
         <textarea
           id="coverLetter"
           name="coverLetter"
           placeholder={t('careers.coverLetterPh', "Tell us why you're a great fit...")}
-          className={`border p-2 rounded w-full focus:ring-2 focus:ring-brand-500 focus:border-transparent border-gray-300`}
+          className={`border p-2 rounded w-full focus:ring-2 focus:ring-brand-500 focus:border-transparent border-border`}
           rows={5}
           disabled={isSubmitting}
           data-testid="coverLetter"
@@ -348,7 +348,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
 
       {/* Resume Upload */}
       <div className="mt-4">
-        <label htmlFor="resume" className="block text-sm font-semibold text-gray-700 mb-1">
+        <label htmlFor="resume" className="block text-sm font-semibold text-foreground mb-1">
           {t('careers.resume', 'CV / Résumé (PDF)')} <span className="text-red-500">*</span>
         </label>
         <input
@@ -357,7 +357,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
           type="file"
           accept="application/pdf"
           required
-          className="mt-1 block w-full text-sm text-gray-500
+          className="mt-1 block w-full text-sm text-muted-foreground
                      file:mr-4 file:py-2 file:px-4
                      file:rounded file:border-0
                      file:text-sm file:font-semibold
@@ -367,7 +367,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
           disabled={isSubmitting}
           data-testid="resume"
         />
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           {t('careers.resumeHint', 'PDF only · Max 5MB')}
         </p>
         {errors.resume && (
@@ -386,7 +386,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="mt-6 px-6 py-3 bg-brand-500 text-white rounded-lg hover:bg-brand-600
+        className="mt-6 px-6 py-3 bg-brand-500 text-white rounded-2xl hover:bg-brand-600
                    transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed
                    focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
         data-testid="submit-application"
@@ -404,7 +404,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
         )}
       </button>
 
-      <p className="text-xs text-gray-500 mt-3">
+      <p className="text-xs text-muted-foreground mt-3">
         {t('careers.terms', 'By submitting this application, you agree to our privacy policy and terms of service.')}
       </p>
     </form>

@@ -41,14 +41,14 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
       {/* Content */}
       <div className="mx-auto max-w-4xl px-6 py-10 flex-1">
         <div className="grid md:grid-cols-[1fr_280px] gap-8">
-          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-8">
+          <div className="bg-card rounded-2xl shadow-md border border-border p-8">
             <article
               className="prose prose-lg max-w-none prose-headings:text-[var(--fixzit-text)] prose-a:text-[var(--fixzit-blue)] prose-strong:text-[var(--fixzit-text)]"
               dangerouslySetInnerHTML={{ __html: await renderMarkdownSanitized(a.content) }}
             />
             
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="flex items-center justify-between text-sm text-gray-600">
+            <div className="mt-8 pt-6 border-t border-border">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <div>Last updated {a.updatedAt ? new Date(a.updatedAt).toLocaleDateString() : ''}</div>
                 <Link 
                   href="/help" 
@@ -62,24 +62,24 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
           
           {/* Sidebar */}
           <aside className="space-y-4">
-            <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
+            <div className="bg-card rounded-2xl shadow-md border border-border p-4">
               <h3 className="font-semibold text-[var(--fixzit-text)] mb-3">Was this helpful?</h3>
               <div className="flex gap-2">
-                <button aria-label="Mark article as helpful" className="flex-1 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                <button aria-label="Mark article as helpful" className="flex-1 px-3 py-2 border border-border rounded-2xl hover:bg-muted">
                   👍 Yes
                 </button>
-                <button aria-label="Mark article as not helpful" className="flex-1 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
+                <button aria-label="Mark article as not helpful" className="flex-1 px-3 py-2 border border-border rounded-2xl hover:bg-muted">
                   👎 No
                 </button>
               </div>
             </div>
             
-            <div className="bg-[var(--fixzit-blue)] text-white rounded-lg p-4">
+            <div className="bg-[var(--fixzit-blue)] text-white rounded-2xl p-4">
               <h4 className="font-semibold mb-2">Still need help?</h4>
               <p className="text-sm mb-3">Our support team is here to assist you.</p>
               <Link 
                 href="/support/my-tickets"
-                className="block w-full bg-white text-[var(--fixzit-blue)] px-4 py-2 rounded-md font-medium hover:bg-gray-100 text-center"
+                className="block w-full bg-card text-[var(--fixzit-blue)] px-4 py-2 rounded-2xl font-medium hover:bg-muted text-center"
               >
                 Contact Support
               </Link>

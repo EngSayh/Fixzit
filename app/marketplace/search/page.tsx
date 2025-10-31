@@ -94,7 +94,7 @@ export default async function MarketplaceSearch(props: SearchPageProps) {
               ))}
             </div>
           ) : (
-            <div className="rounded-3xl border border-dashed border-[#0061A8]/40 bg-white p-10 text-center text-gray-600">
+            <div className="rounded-3xl border border-dashed border-[#0061A8]/40 bg-card p-10 text-center text-muted-foreground">
               <p className="text-lg font-semibold text-[#0F1111]">No items match your filters</p>
               <p className="mt-2 text-sm">Adjust filters or submit an RFQ for bespoke sourcing.</p>
             </div>

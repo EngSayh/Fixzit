@@ -5,48 +5,48 @@ export default function VendorsPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Vendors</h1>
-          <p className="text-gray-600">Manage approved suppliers and vendors</p>
+          <h1 className="text-2xl font-bold text-foreground">Vendors</h1>
+          <p className="text-muted-foreground">Manage approved suppliers and vendors</p>
         </div>
-        <button className="px-4 py-2 bg-[var(--fixzit-success)] text-white rounded-md hover:bg-[var(--fixzit-success-dark)] transition-colors">
+        <button className="px-4 py-2 bg-[var(--fixzit-success)] text-white rounded-2xl hover:bg-[var(--fixzit-success-dark)] transition-colors">
           Add Vendor
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md border border-gray-200">
+      <div className="bg-card rounded-2xl shadow-md border border-border">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-muted border-b border-border">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Vendor Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Category
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Rating
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               <tr>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">Al-Rashid Steel Co.</div>
-                  <div className="text-sm text-gray-500">Since 2018</div>
+                  <div className="text-sm font-medium text-foreground">Al-Rashid Steel Co.</div>
+                  <div className="text-sm text-muted-foreground">Since 2018</div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                   Construction Materials
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <span className="text-sm text-gray-900">4.8</span>
+                    <span className="text-sm text-foreground">4.8</span>
                     <span className="ml-1 text-[var(--fixzit-accent-lighter)]">★</span>
                   </div>
                 </td>
@@ -62,15 +62,15 @@ export default function VendorsPage() {
               
               <tr>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">Saudi Electric Supply</div>
-                  <div className="text-sm text-gray-500">Since 2020</div>
+                  <div className="text-sm font-medium text-foreground">Saudi Electric Supply</div>
+                  <div className="text-sm text-muted-foreground">Since 2020</div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                   Electrical Equipment
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    <span className="text-sm text-gray-900">4.5</span>
+                    <span className="text-sm text-foreground">4.5</span>
                     <span className="ml-1 text-[var(--fixzit-accent-lighter)]">★</span>
                   </div>
                 </td>

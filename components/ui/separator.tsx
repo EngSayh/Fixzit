@@ -16,7 +16,7 @@ export const Separator: React.FC<SeparatorProps> = ({
 
   return (
     <div
-      className={`shrink-0 bg-gray-200 ${orientationClasses[orientation]} ${className}`}
+      className={`shrink-0 bg-muted ${orientationClasses[orientation]} ${className}`}
       {...props}
     />
   );

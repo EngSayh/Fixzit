@@ -35,7 +35,7 @@ const statusStyles: Record<string, string> = {
   SUBMITTED: 'bg-amber-100 text-amber-800 border border-amber-200',
   DISPATCHED: 'bg-sky-100 text-sky-800 border border-sky-200',
   IN_PROGRESS: 'bg-blue-100 text-blue-800 border border-blue-200',
-  ON_HOLD: 'bg-gray-100 text-gray-700 border border-gray-200',
+  ON_HOLD: 'bg-muted text-foreground border border-border',
   COMPLETED: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
   VERIFIED: 'bg-teal-100 text-teal-800 border border-teal-200',
   CLOSED: 'bg-green-100 text-green-800 border border-green-200',
@@ -155,8 +155,8 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{heading}</h1>
-          <p className="text-gray-600">{description}</p>
+          <h1 className="text-3xl font-bold text-foreground">{heading}</h1>
+          <p className="text-muted-foreground">{description}</p>
         </div>
         <WorkOrderCreateDialog onCreated={() => mutate()} />
       </div>
@@ -165,7 +165,7 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
         <CardContent className="pt-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search by title or description"
                 value={searchInput}
@@ -235,7 +235,7 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
       <div className="space-y-4">
         {isLoading && !data ? (
           <Card className="border border-dashed">
-            <CardContent className="flex items-center gap-3 py-16 text-gray-500">
+            <CardContent className="flex items-center gap-3 py-16 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin" />
               Loading work orders…
             </CardContent>
@@ -245,44 +245,44 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
         {workOrders.map((workOrder) => {
           const dueMeta = getDueMeta(workOrder.dueAt);
           return (
-            <Card key={workOrder._id} className="border border-gray-200 shadow-sm">
+            <Card key={workOrder._id} className="border border-border shadow-sm">
               <CardHeader className="flex flex-col gap-2 pb-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <CardTitle className="text-lg font-semibold text-gray-900">{workOrder.title}</CardTitle>
+                    <CardTitle className="text-lg font-semibold text-foreground">{workOrder.title}</CardTitle>
                     <Badge className={priorityStyles[workOrder.priority] || priorityStyles.MEDIUM}>
                       Priority: {workOrder.priority}
                     </Badge>
-                    <Badge className={statusStyles[workOrder.status] || 'bg-gray-100 text-gray-700 border border-gray-200'}>
+                    <Badge className={statusStyles[workOrder.status] || 'bg-muted text-foreground border border-border'}>
                       {statusLabels[workOrder.status] ?? workOrder.status}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600">Code: {workOrder.code}</p>
+                  <p className="text-sm text-muted-foreground">Code: {workOrder.code}</p>
                 </div>
-                <div className="text-right text-sm text-gray-600">
+                <div className="text-right text-sm text-muted-foreground">
                   <p>SLA window: {workOrder.slaMinutes ? `${Math.round(workOrder.slaMinutes / 60)}h` : 'N/A'}</p>
                   <p className={dueMeta.overdue ? 'text-red-600 font-semibold' : ''}>Due {dueMeta.label}</p>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 {workOrder.description && (
-                  <p className="text-sm text-gray-700">{workOrder.description}</p>
+                  <p className="text-sm text-foreground">{workOrder.description}</p>
                 )}
-                <div className="grid grid-cols-1 gap-3 text-sm text-gray-600 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 text-sm text-muted-foreground md:grid-cols-2">
                   <div>
-                    <span className="font-medium text-gray-700">Property:</span>{' '}
+                    <span className="font-medium text-foreground">Property:</span>{' '}
                     {workOrder.propertyId || 'Not linked'}
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Assigned to:</span>{' '}
+                    <span className="font-medium text-foreground">Assigned to:</span>{' '}
                     {workOrder.assigneeUserId || workOrder.assigneeVendorId || 'Unassigned'}
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Category:</span>{' '}
+                    <span className="font-medium text-foreground">Category:</span>{' '}
                     {workOrder.category || 'General'}
                   </div>
                   <div>
-                    <span className="font-medium text-gray-700">Created:</span>{' '}
+                    <span className="font-medium text-foreground">Created:</span>{' '}
                     {workOrder.createdAt ? new Date(workOrder.createdAt).toLocaleString() : 'Unknown'}
                   </div>
                 </div>
@@ -293,16 +293,16 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
       </div>
 
       {!isLoading && workOrders.length === 0 && !error && (
-        <Card className="border border-gray-200">
-          <CardContent className="py-12 text-center text-gray-600">
-            <p className="font-medium text-gray-900">No work orders match the current filters.</p>
+        <Card className="border border-border">
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <p className="font-medium text-foreground">No work orders match the current filters.</p>
             <p className="text-sm">Adjust filters or create a new work order to get started.</p>
           </CardContent>
         </Card>
       )}
 
       <div className="flex flex-col items-center gap-3 border-t pt-4 sm:flex-row sm:justify-between">
-        <span className="text-sm text-gray-600">
+        <span className="text-sm text-muted-foreground">
           Showing {(data ? data.items.length : 0)} of {data?.total ?? 0} work orders
         </span>
         <div className="flex items-center gap-2">
@@ -314,7 +314,7 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
           >
             Previous
           </Button>
-          <span className="text-sm text-gray-700">
+          <span className="text-sm text-foreground">
             Page {page} of {totalPages}
           </span>
           <Button
@@ -405,7 +405,7 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
         </DialogHeader>
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Title *</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">Title *</label>
             <Input
               required
               value={form.title}
@@ -413,7 +413,7 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">Description</label>
             <Textarea
               rows={4}
               value={form.description}
@@ -422,7 +422,7 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Priority</label>
+              <label className="mb-1 block text-sm font-medium text-foreground">Priority</label>
               <Select
                 value={form.priority}
                 onValueChange={(value) => {
@@ -444,7 +444,7 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
               </Select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Category</label>
+              <label className="mb-1 block text-sm font-medium text-foreground">Category</label>
               <Input
                 value={form.category}
                 onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}
@@ -452,7 +452,7 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Property ID</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">Property ID</label>
             <Input
               placeholder="Optional — link to a property"
               value={form.propertyId}

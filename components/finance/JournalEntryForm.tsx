@@ -340,32 +340,32 @@ export default function JournalEntryForm({
   return (
     <div className="space-y-6">
       {/* Header Information */}
-      <div className="bg-white shadow-md rounded-lg p-6 space-y-4">
+      <div className="bg-card shadow-md rounded-2xl p-6 space-y-4">
         <h3 className="text-lg font-semibold border-b pb-2">{t('Journal Entry Details')}</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               {t('Journal Date')} <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
               value={journalDate}
               onChange={(e) => setJournalDate(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md ${errors.journalDate ? 'border-red-500' : 'border-gray-300'}`}
+              className={`w-full px-3 py-2 border rounded-2xl ${errors.journalDate ? 'border-red-500' : 'border-border'}`}
               required
             />
             {errors.journalDate && <p className="text-xs text-red-500 mt-1">{errors.journalDate}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               {t('Source Type')}
             </label>
             <select
               value={sourceType}
               onChange={(e) => setSourceType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="w-full px-3 py-2 border border-border rounded-2xl"
             >
               <option value="MANUAL">{t('Manual Entry')}</option>
               <option value="ADJUSTMENT">{t('Adjustment')}</option>
@@ -378,14 +378,14 @@ export default function JournalEntryForm({
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               {t('Description')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md ${errors.description ? 'border-red-500' : 'border-gray-300'}`}
+              className={`w-full px-3 py-2 border rounded-2xl ${errors.description ? 'border-red-500' : 'border-border'}`}
               placeholder={t('Brief description of the journal entry')}
               required
             />
@@ -394,14 +394,14 @@ export default function JournalEntryForm({
 
           {sourceType !== 'MANUAL' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 {t('Source Reference Number')}
               </label>
               <input
                 type="text"
                 value={sourceNumber}
                 onChange={(e) => setSourceNumber(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-border rounded-2xl"
                 placeholder={t('Optional')}
               />
             </div>
@@ -410,7 +410,7 @@ export default function JournalEntryForm({
       </div>
 
       {/* Journal Lines */}
-      <div className="bg-white shadow-md rounded-lg p-6 space-y-4">
+      <div className="bg-card shadow-md rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between border-b pb-2">
           <h3 className="text-lg font-semibold">{t('Journal Lines')}</h3>
           <div className="flex gap-2">
@@ -425,7 +425,7 @@ export default function JournalEntryForm({
             <button
               type="button"
               onClick={clearAllAmounts}
-              className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+              className="px-3 py-1 text-sm bg-muted text-foreground rounded hover:bg-muted"
             >
               {t('Clear Amounts')}
             </button>
@@ -447,31 +447,31 @@ export default function JournalEntryForm({
 
         {/* Lines Table */}
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-muted">
               <tr>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase w-12">
+                <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-12">
                   #
                 </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
                   {t('Account')}
                 </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
                   {t('Description')}
                 </th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase w-28">
+                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-28">
                   {t('Debit')}
                 </th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase w-28">
+                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-28">
                   {t('Credit')}
                 </th>
                 <th className="px-2 py-2 w-12"></th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               {lines.map((line, index) => (
                 <tr key={line.id}>
-                  <td className="px-2 py-2 text-sm text-gray-700">
+                  <td className="px-2 py-2 text-sm text-foreground">
                     {line.lineNumber}
                   </td>
                   <td className="px-2 py-2">
@@ -482,7 +482,7 @@ export default function JournalEntryForm({
                         value={searchTerms[line.id] || ''}
                         onChange={(e) => handleAccountSearch(line.id, e.target.value)}
                         placeholder={loadingAccounts ? String(t('Loading...')) : String(t('Search account by code or name'))}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                        className="w-full px-2 py-1 text-sm border border-border rounded"
                         disabled={loadingAccounts}
                         aria-label={String(t('Search account'))}
                       />
@@ -490,7 +490,7 @@ export default function JournalEntryForm({
                       <select
                         value={line.accountId}
                         onChange={(e) => updateLine(line.id, 'accountId', e.target.value)}
-                        className={`w-full px-2 py-1 text-sm border rounded ${errors[`line_${index}_account`] ? 'border-red-500' : 'border-gray-300'}`}
+                        className={`w-full px-2 py-1 text-sm border rounded ${errors[`line_${index}_account`] ? 'border-red-500' : 'border-border'}`}
                         disabled={loadingAccounts}
                       >
                         <option value="">{loadingAccounts ? t('Loading...') : t('Select Account')}</option>
@@ -511,7 +511,7 @@ export default function JournalEntryForm({
                       type="text"
                       value={line.description}
                       onChange={(e) => updateLine(line.id, 'description', e.target.value)}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                      className="w-full px-2 py-1 text-sm border border-border rounded"
                       placeholder={t('Line description')}
                     />
                   </td>
@@ -522,7 +522,7 @@ export default function JournalEntryForm({
                       min="0"
                       value={line.debit || ''}
                       onChange={(e) => updateLine(line.id, 'debit', parseFloat(e.target.value) || 0)}
-                      className={`w-full px-2 py-1 text-sm text-right border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? 'border-red-500' : 'border-gray-300'}`}
+                      className={`w-full px-2 py-1 text-sm text-right border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? 'border-red-500' : 'border-border'}`}
                       disabled={parseFloat(String(line.credit)) > 0}
                     />
                   </td>
@@ -533,7 +533,7 @@ export default function JournalEntryForm({
                       min="0"
                       value={line.credit || ''}
                       onChange={(e) => updateLine(line.id, 'credit', parseFloat(e.target.value) || 0)}
-                      className={`w-full px-2 py-1 text-sm text-right border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? 'border-red-500' : 'border-gray-300'}`}
+                      className={`w-full px-2 py-1 text-sm text-right border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? 'border-red-500' : 'border-border'}`}
                       disabled={parseFloat(String(line.debit)) > 0}
                     />
                   </td>
@@ -552,7 +552,7 @@ export default function JournalEntryForm({
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-gray-50 border-t-2 border-gray-300">
+            <tfoot className="bg-muted border-t-2 border-border">
               <tr>
                 <td colSpan={3} className="px-2 py-2 text-sm font-semibold text-right">
                   {t('Totals')}:
@@ -570,7 +570,7 @@ export default function JournalEntryForm({
         </div>
 
         {/* Balance Status */}
-        <div className={`p-4 rounded-md ${isBalanced ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+        <div className={`p-4 rounded-2xl ${isBalanced ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
           <div className="flex items-center justify-between">
             <div>
               <p className={`font-semibold ${isBalanced ? 'text-green-800' : 'text-red-800'}`}>
@@ -590,8 +590,8 @@ export default function JournalEntryForm({
               )}
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-600">{t('Total Lines')}: {lines.length}</p>
-              <p className="text-sm text-gray-600">{t('Difference')}: {Math.abs(balanceDifference).toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground">{t('Total Lines')}: {lines.length}</p>
+              <p className="text-sm text-muted-foreground">{t('Difference')}: {Math.abs(balanceDifference).toFixed(2)}</p>
             </div>
           </div>
         </div>
@@ -604,12 +604,12 @@ export default function JournalEntryForm({
       </div>
 
       {/* Submit Actions */}
-      <div className="flex justify-end gap-3 bg-white shadow-md rounded-lg p-6">
+      <div className="flex justify-end gap-3 bg-card shadow-md rounded-2xl p-6">
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
-            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            className="px-6 py-2 border border-border rounded-2xl text-foreground hover:bg-muted"
             disabled={isSubmitting}
           >
             {t('Cancel')}
@@ -618,7 +618,7 @@ export default function JournalEntryForm({
         <button
           type="button"
           onClick={handleSubmit}
-          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="px-6 py-2 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           disabled={isSubmitting || !isBalanced || loadingAccounts}
         >
           {isSubmitting ? t('Saving...') : mode === 'create' ? t('Create Journal Entry') : t('Save Changes')}
@@ -626,7 +626,7 @@ export default function JournalEntryForm({
       </div>
 
       {errors.submit && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
           <p className="text-sm text-red-700">{errors.submit}</p>
         </div>
       )}

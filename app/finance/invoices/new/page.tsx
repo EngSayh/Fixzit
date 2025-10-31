@@ -439,13 +439,13 @@ export default function NewInvoicePage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.invoice.details', 'Invoice Details')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.invoice.type', 'Invoice Type')} *
                 </label>
                 <select 
                   value={invoiceType}
                   onChange={(e) => setInvoiceType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 >
                   <option value="SALES">{t('finance.invoice.sales', 'Sales')}</option>
                   <option value="RENTAL">{t('finance.invoice.rental', 'Rental')}</option>
@@ -454,37 +454,37 @@ export default function NewInvoicePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.invoice.issueDate', 'Issue Date')} *
                 </label>
                 <input
                   type="date"
                   value={issueDate}
                   onChange={(e) => setIssueDate(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.issueDate ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.issueDate ? 'border-red-500' : 'border-border'}`}
                 />
                 {errors.issueDate && <p className="text-red-500 text-xs mt-1">{errors.issueDate}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.invoice.dueDate', 'Due Date')} *
                 </label>
                 <input
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.dueDate ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.dueDate ? 'border-red-500' : 'border-border'}`}
                 />
                 {errors.dueDate && <p className="text-red-500 text-xs mt-1">{errors.dueDate}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.currency', 'Currency')}
                 </label>
                 <select 
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 >
                   <option value="SAR">SAR - Saudi Riyal</option>
                   <option value="USD">USD - US Dollar</option>
@@ -501,7 +501,7 @@ export default function NewInvoicePage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.invoice.billTo', 'Bill To')}</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.customer', 'Customer')} *
                 </label>
                 <select 
@@ -512,7 +512,7 @@ export default function NewInvoicePage() {
                       setCustomerName(e.target.options[e.target.selectedIndex].text);
                     }
                   }}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.customerName ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.customerName ? 'border-red-500' : 'border-border'}`}
                 >
                   <option value="">{t('finance.selectCustomer', 'Select Customer')}</option>
                   <option value="cust1">John Smith - Tower A</option>
@@ -522,7 +522,7 @@ export default function NewInvoicePage() {
                 {errors.customerName && <p className="text-red-500 text-xs mt-1">{errors.customerName}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.invoice.customerName', 'Customer Name')}
                 </label>
                 <input
@@ -530,11 +530,11 @@ export default function NewInvoicePage() {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder={t('finance.invoice.customerNamePlaceholder', 'Enter customer name')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.invoice.billingAddress', 'Billing Address')}
                 </label>
                 <textarea
@@ -542,7 +542,7 @@ export default function NewInvoicePage() {
                   value={billingAddress}
                   onChange={(e) => setBillingAddress(e.target.value)}
                   placeholder={t('finance.invoice.billingAddressPlaceholder', 'Enter billing address...')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
             </div>
@@ -564,7 +564,7 @@ export default function NewInvoicePage() {
 
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50">
+                <thead className="bg-muted">
                   <tr>
                     <th className="px-2 py-2 text-left">{t('finance.invoice.description', 'Description')}</th>
                     <th className="px-2 py-2 text-left">{t('finance.invoice.revenueAccount', 'Revenue Account')}</th>
@@ -585,14 +585,14 @@ export default function NewInvoicePage() {
                           value={item.description}
                           onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
                           placeholder={t('finance.invoice.itemDescription', 'Item description')}
-                          className={`w-full px-2 py-1 text-sm border rounded ${errors[`lineItem.${index}.description`] ? 'border-red-500' : 'border-gray-300'}`}
+                          className={`w-full px-2 py-1 text-sm border rounded ${errors[`lineItem.${index}.description`] ? 'border-red-500' : 'border-border'}`}
                         />
                       </td>
                       <td className="px-2 py-2">
                         <select
                           value={item.accountId}
                           onChange={(e) => updateLineItem(item.id, 'accountId', e.target.value)}
-                          className={`w-full px-2 py-1 text-sm border rounded ${errors[`lineItem.${index}.accountId`] ? 'border-red-500' : 'border-gray-300'}`}
+                          className={`w-full px-2 py-1 text-sm border rounded ${errors[`lineItem.${index}.accountId`] ? 'border-red-500' : 'border-border'}`}
                           disabled={loadingAccounts}
                         >
                           <option value="">{loadingAccounts ? t('common.loading', 'Loading...') : t('finance.selectAccount', 'Select Account')}</option>
@@ -612,7 +612,7 @@ export default function NewInvoicePage() {
                           onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 1)}
                           min="1"
                           step="1"
-                          className={`w-16 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.quantity`] ? 'border-red-500' : 'border-gray-300'}`}
+                          className={`w-16 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.quantity`] ? 'border-red-500' : 'border-border'}`}
                         />
                       </td>
                       <td className="px-2 py-2">
@@ -622,7 +622,7 @@ export default function NewInvoicePage() {
                           onChange={(e) => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
                           min="0"
                           step="0.01"
-                          className={`w-24 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.unitPrice`] ? 'border-red-500' : 'border-gray-300'}`}
+                          className={`w-24 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.unitPrice`] ? 'border-red-500' : 'border-border'}`}
                         />
                       </td>
                       <td className="px-2 py-2">
@@ -632,14 +632,14 @@ export default function NewInvoicePage() {
                           onChange={(e) => updateLineItem(item.id, 'discount', parseFloat(e.target.value) || 0)}
                           min="0"
                           step="0.01"
-                          className="w-20 px-2 py-1 text-sm text-right border border-gray-300 rounded"
+                          className="w-20 px-2 py-1 text-sm text-right border border-border rounded"
                         />
                       </td>
                       <td className="px-2 py-2">
                         <select
                           value={item.taxType}
                           onChange={(e) => updateLineItem(item.id, 'taxType', e.target.value)}
-                          className="w-24 px-2 py-1 text-sm border border-gray-300 rounded"
+                          className="w-24 px-2 py-1 text-sm border border-border rounded"
                         >
                           <option value="VAT">VAT 15%</option>
                           <option value="EXEMPT">{t('finance.invoice.exempt', 'Exempt')}</option>
@@ -675,7 +675,7 @@ export default function NewInvoicePage() {
                   <div key={rate} className="flex justify-between items-center py-2 border-b">
                     <div>
                       <span className="font-medium">{t('finance.vat', 'VAT')} {rate}</span>
-                      <span className="text-sm text-gray-500 ml-2">({t('finance.invoice.on', 'on')} {currency} {data.base.toFixed(2)})</span>
+                      <span className="text-sm text-muted-foreground ml-2">({t('finance.invoice.on', 'on')} {currency} {data.base.toFixed(2)})</span>
                     </div>
                     <span className="font-medium">{currency} {data.amount.toFixed(2)}</span>
                   </div>
@@ -704,14 +704,14 @@ export default function NewInvoicePage() {
               </label>
             </div>
             {autoPostJournal && (
-              <div className="mt-3 p-3 bg-blue-50 rounded-lg text-sm">
+              <div className="mt-3 p-3 bg-blue-50 rounded-2xl text-sm">
                 <p className="text-blue-800">
                   ℹ️ {t('finance.invoice.journalPostingInfo', 'Journal entry will be created automatically with DR: Accounts Receivable, CR: Revenue accounts based on line items.')}
                 </p>
               </div>
             )}
             {journalPosted && (
-              <div className="mt-3 p-3 bg-green-50 rounded-lg text-sm">
+              <div className="mt-3 p-3 bg-green-50 rounded-2xl text-sm">
                 <p className="text-green-800">
                   ✓ {t('finance.invoice.journalPosted', 'Journal entry posted successfully')}
                 </p>
@@ -724,13 +724,13 @@ export default function NewInvoicePage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.invoice.notesTerms', 'Notes & Terms')}</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.invoice.paymentTerms', 'Payment Terms')}
                 </label>
                 <select 
                   value={paymentTerms}
                   onChange={(e) => setPaymentTerms(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 >
                   <option value="Net 30">{t('finance.invoice.net30', 'Net 30 days')}</option>
                   <option value="Net 15">{t('finance.invoice.net15', 'Net 15 days')}</option>
@@ -740,7 +740,7 @@ export default function NewInvoicePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.invoice.invoiceNotes', 'Invoice Notes')}
                 </label>
                 <textarea
@@ -748,7 +748,7 @@ export default function NewInvoicePage() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder={t('finance.invoice.notesPlaceholder', 'Add notes or payment instructions...')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
             </div>
@@ -762,7 +762,7 @@ export default function NewInvoicePage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.invoice.summary', 'Invoice Summary')}</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">{t('finance.subtotal', 'Subtotal')}</span>
+                <span className="text-muted-foreground">{t('finance.subtotal', 'Subtotal')}</span>
                 <span className="font-medium">{currency} {subtotal.toFixed(2)}</span>
               </div>
               {totalDiscount > 0 && (
@@ -772,14 +772,14 @@ export default function NewInvoicePage() {
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-gray-600">{t('finance.vat', 'VAT')}</span>
+                <span className="text-muted-foreground">{t('finance.vat', 'VAT')}</span>
                 <span className="font-medium">{currency} {totalTax.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between pt-2 border-t border-gray-200">
-                <span className="text-gray-900 font-semibold">{t('finance.total', 'Total')}</span>
+              <div className="flex justify-between pt-2 border-t border-border">
+                <span className="text-foreground font-semibold">{t('finance.total', 'Total')}</span>
                 <span className="font-bold text-lg">{currency} {totalAmount.toFixed(2)}</span>
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-muted-foreground">
                 {lineItems.length} {t('finance.invoice.items', 'item(s)')}
               </div>
             </div>
@@ -791,15 +791,15 @@ export default function NewInvoicePage() {
               <h3 className="text-lg font-semibold mb-4">{t('finance.invoice.paymentTracking', 'Payment Tracking')}</h3>
               <div className="space-y-3">
                 {paymentAllocations.map((payment) => (
-                  <div key={payment.paymentId} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                  <div key={payment.paymentId} className="flex justify-between items-center p-2 bg-muted rounded">
                     <div>
                       <p className="text-sm font-medium">{payment.paymentNumber}</p>
-                      <p className="text-xs text-gray-600">{payment.paymentDate} • {payment.method}</p>
+                      <p className="text-xs text-muted-foreground">{payment.paymentDate} • {payment.method}</p>
                     </div>
                     <span className="text-sm font-medium text-green-600">+{currency} {payment.amount.toFixed(2)}</span>
                   </div>
                 ))}
-                <div className="pt-2 border-t border-gray-200">
+                <div className="pt-2 border-t border-border">
                   <div className="flex justify-between mb-1">
                     <span className="text-sm font-medium">{t('finance.invoice.totalPaid', 'Total Paid')}</span>
                     <span className="text-sm font-medium text-green-600">{currency} {totalPaid.toFixed(2)}</span>
@@ -835,13 +835,13 @@ export default function NewInvoicePage() {
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-[var(--fixzit-success-light)] rounded-full"></div>
-                <span className="text-gray-600">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
-                <span className="text-gray-400 ml-auto">2m ago</span>
+                <span className="text-muted-foreground">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
+                <span className="text-muted-foreground ml-auto">2m ago</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full"></div>
-                <span className="text-gray-600">{t('finance.invoice.customerSelected', 'Customer selected')}</span>
-                <span className="text-gray-400 ml-auto">5m ago</span>
+                <span className="text-muted-foreground">{t('finance.invoice.customerSelected', 'Customer selected')}</span>
+                <span className="text-muted-foreground ml-auto">5m ago</span>
               </div>
             </div>
           </div>

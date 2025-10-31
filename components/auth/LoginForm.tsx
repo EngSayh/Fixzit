@@ -167,13 +167,13 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       <div>
         <label 
           htmlFor="identifier" 
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-foreground mb-2"
         >
           {t('login.identifier', 'Email or Employee Number')}
           <span className="text-red-500 ml-1" aria-label="required">*</span>
         </label>
         <div className="relative">
-          <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400`} aria-hidden="true" />
+          <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground`} aria-hidden="true" />
           <Input
             id="identifier"
             name="identifier"
@@ -196,7 +196,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
             required
           />
         </div>
-        <p id="identifier-hint" className="mt-1 text-xs text-gray-500">
+        <p id="identifier-hint" className="mt-1 text-xs text-muted-foreground">
           {t('login.identifierHint', 'Enter your email address or employee number (EMP001, EMP002, etc.)')}
         </p>
         {errors.identifier && (
@@ -210,7 +210,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       {/* Password Field */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="password" className="block text-sm font-medium text-foreground">
             {t('common.password', 'Password')}
             <span className="text-red-500 ml-1" aria-label="required">*</span>
           </label>
@@ -222,7 +222,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           </Link>
         </div>
         <div className="relative">
-          <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400`} aria-hidden="true" />
+          <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground`} aria-hidden="true" />
           <Input
             id="password"
             name="password"
@@ -247,7 +247,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-brand-500 rounded`}
+            className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-500 rounded`}
             aria-label={showPassword ? t('login.hidePassword', 'Hide password') : t('login.showPassword', 'Show password')}
             aria-pressed={showPassword}
           >
@@ -269,10 +269,10 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           id="rememberMe"
           checked={rememberMe}
           onChange={(e) => setRememberMe(e.target.checked)}
-          className="w-4 h-4 text-brand-500 border-gray-300 rounded focus:ring-brand-500"
+          className="w-4 h-4 text-brand-500 border-border rounded focus:ring-brand-500"
           disabled={loading}
         />
-        <label htmlFor="rememberMe" className="text-sm text-gray-700 cursor-pointer select-none">
+        <label htmlFor="rememberMe" className="text-sm text-foreground cursor-pointer select-none">
           {t('login.rememberMe', 'Remember me for 30 days')}
         </label>
       </div>
@@ -285,7 +285,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           aria-live="assertive"
           aria-atomic="true"
           tabIndex={-1}
-          className={`flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 focus:outline-none ${isRTL ? 'flex-row-reverse' : ''}`}
+          className={`flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 focus:outline-none ${isRTL ? 'flex-row-reverse' : ''}`}
         >
           <AlertCircle className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
           <span className="text-sm">{errors.general}</span>

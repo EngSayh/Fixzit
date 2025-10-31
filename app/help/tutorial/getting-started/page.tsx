@@ -454,7 +454,7 @@ Continue to learn about tenant relations!
   }, [currentStep, currentStepData]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-muted flex flex-col">
       <div className="max-w-6xl mx-auto p-6 flex-1 flex flex-col">
         {/* Header */}
         <div className="mb-6">
@@ -468,8 +468,8 @@ Continue to learn about tenant relations!
 
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{tutorial.title}</h1>
-              <div className="flex items-center gap-4 text-sm text-gray-600">
+              <h1 className="text-3xl font-bold text-foreground mb-2">{tutorial.title}</h1>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
                   {tutorial.duration}
@@ -488,14 +488,14 @@ Continue to learn about tenant relations!
               </div>
             </div>
             <div className="text-right">
-              <div className="text-sm text-gray-500">Progress</div>
-              <div className="w-32 bg-gray-200 rounded-full h-2 mt-1">
+              <div className="text-sm text-muted-foreground">Progress</div>
+              <div className="w-32 bg-muted rounded-full h-2 mt-1">
                 <div
                   className="bg-[var(--fixzit-primary)] h-2 rounded-full transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 ></div>
               </div>
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-xs text-muted-foreground mt-1">
                 {currentStep + 1} of {tutorial.steps.length}
               </div>
             </div>
@@ -505,19 +505,19 @@ Continue to learn about tenant relations!
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sticky top-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Tutorial Steps</h3>
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-4 sticky top-6">
+              <h3 className="font-semibold text-foreground mb-4">Tutorial Steps</h3>
               <div className="space-y-2">
                 {tutorial.steps.map((step, index) => (
                   <button
                     key={step.id}
                     onClick={() => setCurrentStep(index)}
-                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                    className={`w-full text-left p-3 rounded-2xl border transition-colors ${
                       currentStep === index
                         ? 'border-[var(--fixzit-primary)] bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)]'
                         : completedSteps.has(index)
                         ? 'border-[var(--fixzit-success)] bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)]'
-                        : 'border-gray-200 hover:border-gray-300'
+                        : 'border-border hover:border-border'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -526,11 +526,11 @@ Continue to learn about tenant relations!
                       ) : currentStep === index ? (
                         <Circle className="w-4 h-4 text-[var(--fixzit-primary)] fill-current" />
                       ) : (
-                        <Circle className="w-4 h-4 text-gray-400" />
+                        <Circle className="w-4 h-4 text-muted-foreground" />
                       )}
                       <div>
                         <div className="font-medium text-sm">{step.title}</div>
-                        <div className="text-xs text-gray-500">{step.description}</div>
+                        <div className="text-xs text-muted-foreground">{step.description}</div>
                       </div>
                     </div>
                   </button>
@@ -541,25 +541,25 @@ Continue to learn about tenant relations!
 
           {/* Main Content */}
           <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-8">
               {/* Step Header */}
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-2">
                   <Play className="w-5 h-5 text-[var(--fixzit-primary)]" />
                   <span className="text-sm font-medium text-[var(--fixzit-primary)]">Step {currentStep + 1}</span>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">{currentStepData.title}</h2>
-                <p className="text-gray-600">{currentStepData.description}</p>
+                <h2 className="text-2xl font-bold text-foreground mb-2">{currentStepData.title}</h2>
+                <p className="text-muted-foreground">{currentStepData.description}</p>
               </div>
 
               {/* Step Content */}
-              <div className="prose prose-lg max-w-none prose-headings:text-gray-900 prose-a:text-[var(--fixzit-primary)] prose-strong:text-gray-900">
+              <div className="prose prose-lg max-w-none prose-headings:text-foreground prose-a:text-[var(--fixzit-primary)] prose-strong:text-foreground">
                 <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
               </div>
 
               {/* Tips */}
               {currentStepData.tips && (
-                <div className="mt-8 p-4 bg-[var(--fixzit-primary-lightest)] rounded-lg">
+                <div className="mt-8 p-4 bg-[var(--fixzit-primary-lightest)] rounded-2xl">
                   <h4 className="font-semibold text-[var(--fixzit-primary-darkest)] mb-2">💡 Tips</h4>
                   <ul className="space-y-1">
                     {currentStepData.tips.map((tip, index) => (
@@ -573,18 +573,18 @@ Continue to learn about tenant relations!
               )}
 
               {/* Navigation */}
-              <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-200">
+              <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
                 <button
                   onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
                   disabled={currentStep === 0}
-                  className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-4 py-2 text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   ← Previous
                 </button>
 
                 <button
                   onClick={() => markStepComplete(currentStep)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[var(--fixzit-success)] text-white rounded-lg hover:bg-[var(--fixzit-success-dark)] transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-[var(--fixzit-success)] text-white rounded-2xl hover:bg-[var(--fixzit-success-dark)] transition-colors"
                 >
                   <CheckCircle className="w-4 h-4" />
                   Mark Complete
@@ -593,7 +593,7 @@ Continue to learn about tenant relations!
                 <button
                   onClick={() => setCurrentStep(Math.min(tutorial.steps.length - 1, currentStep + 1))}
                   disabled={currentStep === tutorial.steps.length - 1}
-                  className="flex items-center gap-2 px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-lg hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-2xl hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next →
                 </button>

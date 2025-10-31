@@ -69,7 +69,7 @@ export default async function MarketplaceHome() {
           </div>
           <div className="flex flex-col gap-3 rounded-3xl border border-[#0061A8]/20 bg-white/90 p-6 shadow-lg">
             <h2 className="text-lg font-semibold text-[#0F1111]">Live Operational KPIs</h2>
-            <div className="grid gap-3 text-sm text-gray-700">
+            <div className="grid gap-3 text-sm text-foreground">
               <div className="rounded-2xl bg-[#0061A8]/10 p-4">
                 <p className="text-xs uppercase tracking-wider text-[#0061A8]">Open approvals</p>
                 <p className="text-2xl font-bold text-[#0061A8]">3</p>

@@ -210,7 +210,7 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
       case 'LAND':
         return 'bg-yellow-100 text-yellow-800';
       default:
-        return 'bg-muted text-gray-800';
+        return 'bg-muted text-foreground';
     }
   };
 

@@ -258,12 +258,12 @@ export default function AccountActivityViewer({
   return (
     <div className="space-y-6">
       {/* Header & Filters */}
-      <div className="bg-white shadow-md rounded-lg p-6 space-y-4">
+      <div className="bg-card shadow-md rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold">{t('Account Activity')}</h2>
             {data && (
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 {data.accountCode} - {data.accountName} ({t(data.accountType)})
               </p>
             )}
@@ -289,39 +289,39 @@ export default function AccountActivityViewer({
         {/* Date Range Filters */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               {t('Start Date')}
             </label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="w-full px-3 py-2 border border-border rounded-2xl"
               disabled={loading}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               {t('End Date')}
             </label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="w-full px-3 py-2 border border-border rounded-2xl"
               disabled={loading}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               {t('Source Type')}
             </label>
             <select
               value={sourceTypeFilter}
               onChange={(e) => setSourceTypeFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              className="w-full px-3 py-2 border border-border rounded-2xl"
               disabled={loading}
             >
               <option value="ALL">{t('All Types')}</option>
@@ -338,25 +338,25 @@ export default function AccountActivityViewer({
 
         {/* Date Presets */}
         <div className="flex flex-wrap gap-2 border-t pt-4">
-          <button onClick={() => setDatePreset('today')} className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">
+          <button onClick={() => setDatePreset('today')} className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted">
             {t('Today')}
           </button>
-          <button onClick={() => setDatePreset('this-week')} className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">
+          <button onClick={() => setDatePreset('this-week')} className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted">
             {t('This Week')}
           </button>
-          <button onClick={() => setDatePreset('this-month')} className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">
+          <button onClick={() => setDatePreset('this-month')} className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted">
             {t('This Month')}
           </button>
-          <button onClick={() => setDatePreset('this-quarter')} className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">
+          <button onClick={() => setDatePreset('this-quarter')} className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted">
             {t('This Quarter')}
           </button>
-          <button onClick={() => setDatePreset('this-year')} className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">
+          <button onClick={() => setDatePreset('this-year')} className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted">
             {t('This Year')}
           </button>
-          <button onClick={() => setDatePreset('last-month')} className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">
+          <button onClick={() => setDatePreset('last-month')} className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted">
             {t('Last Month')}
           </button>
-          <button onClick={() => setDatePreset('last-year')} className="px-3 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">
+          <button onClick={() => setDatePreset('last-year')} className="px-3 py-1 text-sm bg-muted rounded hover:bg-muted">
             {t('Last Year')}
           </button>
         </div>
@@ -364,38 +364,38 @@ export default function AccountActivityViewer({
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
           <p className="text-sm text-red-700">{error}</p>
         </div>
       )}
 
       {/* Loading State */}
       {loading && (
-        <div className="bg-white shadow-md rounded-lg p-12 text-center">
-          <p className="text-gray-500">{t('Loading account activity...')}</p>
+        <div className="bg-card shadow-md rounded-2xl p-12 text-center">
+          <p className="text-muted-foreground">{t('Loading account activity...')}</p>
         </div>
       )}
 
       {/* Activity Table */}
       {!loading && data && (
-        <div className="bg-white shadow-md rounded-lg overflow-hidden">
+        <div className="bg-card shadow-md rounded-2xl overflow-hidden">
           {/* Summary Stats */}
-          <div className="bg-gray-50 p-4 border-b">
+          <div className="bg-muted p-4 border-b">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <p className="text-xs text-gray-600">{t('Opening Balance')}</p>
+                <p className="text-xs text-muted-foreground">{t('Opening Balance')}</p>
                 <p className="text-lg font-bold">{data.openingBalance.toFixed(2)}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600">{t('Total Debits')}</p>
+                <p className="text-xs text-muted-foreground">{t('Total Debits')}</p>
                 <p className="text-lg font-bold text-green-700">+{data.totalDebits.toFixed(2)}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600">{t('Total Credits')}</p>
+                <p className="text-xs text-muted-foreground">{t('Total Credits')}</p>
                 <p className="text-lg font-bold text-red-700">-{data.totalCredits.toFixed(2)}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-600">{t('Closing Balance')}</p>
+                <p className="text-xs text-muted-foreground">{t('Closing Balance')}</p>
                 <p className="text-lg font-bold">{data.closingBalance.toFixed(2)}</p>
               </div>
             </div>
@@ -403,33 +403,33 @@ export default function AccountActivityViewer({
 
           {/* Transactions Table */}
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Date')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Journal #')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Source')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Description')}
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Debit')}
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Credit')}
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Balance')}
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-border">
                 {/* Opening Balance Row */}
                 <tr className="bg-blue-50">
                   <td className="px-4 py-2 text-sm" colSpan={4}>
@@ -446,7 +446,7 @@ export default function AccountActivityViewer({
                 {getPaginatedTransactions().map((txn) => (
                   <tr
                     key={txn._id}
-                    className="hover:bg-gray-50 cursor-pointer"
+                    className="hover:bg-muted cursor-pointer"
                     onClick={() => onTransactionClick && onTransactionClick(txn)}
                   >
                     <td className="px-4 py-2 text-sm">
@@ -456,16 +456,16 @@ export default function AccountActivityViewer({
                       {txn.journalNumber}
                     </td>
                     <td className="px-4 py-2 text-sm">
-                      <span className="px-2 py-1 text-xs bg-gray-100 rounded">
+                      <span className="px-2 py-1 text-xs bg-muted rounded">
                         {t(txn.sourceType)}
                       </span>
                       {txn.sourceNumber && (
-                        <span className="ml-1 text-xs text-gray-600">
+                        <span className="ml-1 text-xs text-muted-foreground">
                           ({txn.sourceNumber})
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-2 text-sm text-gray-700">
+                    <td className="px-4 py-2 text-sm text-foreground">
                       {txn.description}
                     </td>
                     <td className="px-4 py-2 text-sm text-right text-green-700 font-medium">
@@ -483,14 +483,14 @@ export default function AccountActivityViewer({
                 {/* No Transactions */}
                 {data.transactions.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                       {t('No transactions found for this period')}
                     </td>
                   </tr>
                 )}
 
                 {/* Closing Balance Row */}
-                <tr className="bg-blue-50 border-t-2 border-gray-300">
+                <tr className="bg-blue-50 border-t-2 border-border">
                   <td className="px-4 py-2 text-sm font-bold" colSpan={4}>
                     {t('Closing Balance')}
                   </td>
@@ -510,22 +510,22 @@ export default function AccountActivityViewer({
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="bg-gray-50 px-4 py-3 border-t flex items-center justify-between">
-              <div className="text-sm text-gray-700">
+            <div className="bg-muted px-4 py-3 border-t flex items-center justify-between">
+              <div className="text-sm text-foreground">
                 {t('Showing')} {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, data.transactions.length)} {t('of')} {data.transactions.length} {t('transactions')}
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => goToPage(1)}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('First')}
                 </button>
                 <button
                   onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('Previous')}
                 </button>
@@ -535,14 +535,14 @@ export default function AccountActivityViewer({
                 <button
                   onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('Next')}
                 </button>
                 <button
                   onClick={() => goToPage(totalPages)}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1 text-sm border border-border rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('Last')}
                 </button>
@@ -554,8 +554,8 @@ export default function AccountActivityViewer({
 
       {/* Empty State */}
       {!loading && !data && !error && (
-        <div className="bg-white shadow-md rounded-lg p-12 text-center">
-          <p className="text-gray-500">{t('Select an account to view activity')}</p>
+        <div className="bg-card shadow-md rounded-2xl p-12 text-center">
+          <p className="text-muted-foreground">{t('Select an account to view activity')}</p>
         </div>
       )}
     </div>

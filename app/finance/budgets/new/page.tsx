@@ -200,7 +200,7 @@ export default function NewBudgetPage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.budget.details', 'Budget Details')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.budget.budgetName', 'Budget Name')} *
                 </label>
                 <input
@@ -208,17 +208,17 @@ export default function NewBudgetPage() {
                   value={budgetName}
                   onChange={(e) => setBudgetName(e.target.value)}
                   placeholder={t('finance.budget.namePlaceholder', 'Q1 2025 Maintenance Budget')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.budget.budgetPeriod', 'Budget Period')} *
                 </label>
                 <select 
                   value={periodType}
                   onChange={(e) => setPeriodType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 >
                   <option value="">{t('finance.budget.selectPeriod', 'Select Period')}</option>
                   <option value="monthly">{t('finance.budget.monthly', 'Monthly')}</option>
@@ -228,35 +228,35 @@ export default function NewBudgetPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.budget.startDate', 'Start Date')} *
                 </label>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.budget.endDate', 'End Date')} *
                 </label>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('workOrders.property', 'Property')}
                 </label>
                 <select 
                   value={propertyId}
                   onChange={(e) => setPropertyId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 >
                   <option value="all">{t('finance.allProperties', 'All Properties')}</option>
                   <option value="tower-a">Tower A</option>
@@ -265,13 +265,13 @@ export default function NewBudgetPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t('finance.budget.budgetOwner', 'Budget Owner')}
                 </label>
                 <select 
                   value={budgetOwner}
                   onChange={(e) => setBudgetOwner(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                 >
                   <option value="">{t('finance.budget.selectOwner', 'Select Owner')}</option>
                   <option value="property-manager">{t('finance.budget.propertyManager', 'Property Manager')}</option>
@@ -285,7 +285,7 @@ export default function NewBudgetPage() {
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('finance.budget.categoriesAmounts', 'Budget Categories & Amounts')}</h3>
             <div className="space-y-4">
-              <div className="grid grid-cols-12 gap-2 text-sm font-medium text-gray-700 border-b pb-2">
+              <div className="grid grid-cols-12 gap-2 text-sm font-medium text-foreground border-b pb-2">
                 <div className="col-span-6">{t('finance.budget.category', 'Category')}</div>
                 <div className="col-span-3">{t('finance.budget.budgetedAmount', 'Budgeted Amount')}</div>
                 <div className="col-span-2">{t('finance.budget.percentage', 'Percentage')}</div>
@@ -298,7 +298,7 @@ export default function NewBudgetPage() {
                     <select 
                       value={cat.category}
                       onChange={(e) => handleCategoryChange(cat.id, 'category', e.target.value)}
-                      className="w-full px-2 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                      className="w-full px-2 py-2 border border-border rounded focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                     >
                       <option value="">{t('finance.budget.selectCategory', 'Select Category')}</option>
                       <option value="maintenance">{t('finance.expense.maintenance', 'Maintenance & Repairs')}</option>
@@ -317,9 +317,9 @@ export default function NewBudgetPage() {
                         value={cat.amount || ''}
                         onChange={(e) => handleCategoryChange(cat.id, 'amount', parseFloat(e.target.value) || 0)}
                         placeholder="0.00"
-                        className="w-full px-2 py-2 pr-12 border border-gray-300 rounded focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                        className="w-full px-2 py-2 pr-12 border border-border rounded focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                       />
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">SAR</span>
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">SAR</span>
                     </div>
                   </div>
                   <div className="col-span-2">
@@ -328,7 +328,7 @@ export default function NewBudgetPage() {
                       value={cat.percentage || ''}
                       onChange={(e) => handleCategoryChange(cat.id, 'percentage', parseFloat(e.target.value) || 0)}
                       placeholder="0"
-                      className="w-full px-2 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                      className="w-full px-2 py-2 border border-border rounded focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
                     />
                   </div>
                   <div className="col-span-1">
@@ -345,7 +345,7 @@ export default function NewBudgetPage() {
 
               <button 
                 onClick={handleAddCategory}
-                className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:text-gray-700 hover:border-gray-400"
+                className="w-full py-2 border-2 border-dashed border-border rounded-2xl text-muted-foreground hover:text-foreground hover:border-gray-400"
               >
                 + {t('finance.budget.addCategory', 'Add Category')}
               </button>
@@ -361,9 +361,9 @@ export default function NewBudgetPage() {
                   id="alerts"
                   checked={enableAlerts}
                   onChange={(e) => setEnableAlerts(e.target.checked)}
-                  className="mr-3 h-4 w-4 text-[var(--fixzit-blue)] focus:ring-[var(--fixzit-blue)] border-gray-300 rounded"
+                  className="mr-3 h-4 w-4 text-[var(--fixzit-blue)] focus:ring-[var(--fixzit-blue)] border-border rounded"
                 />
-                <label htmlFor="alerts" className="text-sm text-gray-700">
+                <label htmlFor="alerts" className="text-sm text-foreground">
                   {t('finance.budget.enableAlerts', 'Enable budget alerts when spending exceeds 80% of category budget')}
                 </label>
               </div>
@@ -373,9 +373,9 @@ export default function NewBudgetPage() {
                   id="approvals"
                   checked={requireApprovals}
                   onChange={(e) => setRequireApprovals(e.target.checked)}
-                  className="mr-3 h-4 w-4 text-[var(--fixzit-blue)] focus:ring-[var(--fixzit-blue)] border-gray-300 rounded"
+                  className="mr-3 h-4 w-4 text-[var(--fixzit-blue)] focus:ring-[var(--fixzit-blue)] border-border rounded"
                 />
-                <label htmlFor="approvals" className="text-sm text-gray-700">
+                <label htmlFor="approvals" className="text-sm text-foreground">
                   {t('finance.budget.requireApprovals', 'Require approval for expenses exceeding SAR 5,000')}
                 </label>
               </div>
@@ -385,9 +385,9 @@ export default function NewBudgetPage() {
                   id="carryover"
                   checked={allowCarryover}
                   onChange={(e) => setAllowCarryover(e.target.checked)}
-                  className="mr-3 h-4 w-4 text-[var(--fixzit-blue)] focus:ring-[var(--fixzit-blue)] border-gray-300 rounded"
+                  className="mr-3 h-4 w-4 text-[var(--fixzit-blue)] focus:ring-[var(--fixzit-blue)] border-border rounded"
                 />
-                <label htmlFor="carryover" className="text-sm text-gray-700">
+                <label htmlFor="carryover" className="text-sm text-foreground">
                   {t('finance.budget.allowCarryover', 'Allow unused budget to carry over to next period')}
                 </label>
               </div>
@@ -397,7 +397,7 @@ export default function NewBudgetPage() {
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('finance.budget.notesDescription', 'Notes & Description')}</h3>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 {t('finance.budget.budgetDescription', 'Budget Description')}
               </label>
               <textarea
@@ -405,7 +405,7 @@ export default function NewBudgetPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={t('finance.budget.descriptionPlaceholder', 'Describe the purpose and scope of this budget...')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
               />
             </div>
           </div>
@@ -417,15 +417,15 @@ export default function NewBudgetPage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.budget.budgetSummary', 'Budget Summary')}</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">{t('finance.budget.totalBudget', 'Total Budget')}</span>
+                <span className="text-muted-foreground">{t('finance.budget.totalBudget', 'Total Budget')}</span>
                 <span className="font-medium">SAR {totalBudget.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">{t('finance.budget.allocated', 'Allocated')}</span>
+                <span className="text-muted-foreground">{t('finance.budget.allocated', 'Allocated')}</span>
                 <span className="font-medium">SAR {allocatedBudget.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">{t('finance.budget.remaining', 'Remaining')}</span>
+                <span className="text-muted-foreground">{t('finance.budget.remaining', 'Remaining')}</span>
                 <span className="font-medium">SAR {remainingBudget.toFixed(2)}</span>
               </div>
               <hr className="my-2" />
@@ -454,24 +454,24 @@ export default function NewBudgetPage() {
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('finance.budget.existingBudgets', 'Existing Budgets')}</h3>
             <div className="space-y-3">
-              <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
                 <div>
                   <p className="text-sm font-medium">Q4 2024 Budget</p>
-                  <p className="text-xs text-gray-600">Oct-Dec 2024</p>
+                  <p className="text-xs text-muted-foreground">Oct-Dec 2024</p>
                 </div>
                 <span className="text-sm font-medium">SAR 500K</span>
               </div>
-              <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
                 <div>
                   <p className="text-sm font-medium">Q3 2024 Budget</p>
-                  <p className="text-xs text-gray-600">Jul-Sep 2024</p>
+                  <p className="text-xs text-muted-foreground">Jul-Sep 2024</p>
                 </div>
                 <span className="text-sm font-medium">SAR 480K</span>
               </div>
-              <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
+              <div className="flex justify-between items-center p-2 bg-muted rounded">
                 <div>
                   <p className="text-sm font-medium">Q2 2024 Budget</p>
-                  <p className="text-xs text-gray-600">Apr-Jun 2024</p>
+                  <p className="text-xs text-muted-foreground">Apr-Jun 2024</p>
                 </div>
                 <span className="text-sm font-medium">SAR 520K</span>
               </div>
@@ -498,13 +498,13 @@ export default function NewBudgetPage() {
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-[var(--fixzit-success-light)] rounded-full"></div>
-                <span className="text-gray-600">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
-                <span className="text-gray-400 ml-auto">1m ago</span>
+                <span className="text-muted-foreground">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
+                <span className="text-muted-foreground ml-auto">1m ago</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full"></div>
-                <span className="text-gray-600">{t('finance.budget.periodSet', 'Budget period set')}</span>
-                <span className="text-gray-400 ml-auto">3m ago</span>
+                <span className="text-muted-foreground">{t('finance.budget.periodSet', 'Budget period set')}</span>
+                <span className="text-muted-foreground ml-auto">3m ago</span>
               </div>
             </div>
           </div>

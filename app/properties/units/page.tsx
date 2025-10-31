@@ -57,8 +57,8 @@ export default function PropertiesUnitsPage() {
       case 'Active': return 'bg-green-100 text-green-800 border-green-200';
       case 'Expiring': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'Expired': return 'bg-red-100 text-red-800 border-red-200';
-      case 'Vacant': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'Vacant': return 'bg-muted text-foreground border-border';
+      default: return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -67,7 +67,7 @@ export default function PropertiesUnitsPage() {
       case 'occupied': return 'bg-green-100 text-green-800 border-green-200';
       case 'vacant': return 'bg-red-100 text-red-800 border-red-200';
       case 'maintenance': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      default: return 'bg-muted text-foreground border-border';
     }
   };
 
@@ -90,7 +90,7 @@ export default function PropertiesUnitsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Units</p>
+              <p className="text-sm font-medium text-muted-foreground">Total Units</p>
               <p className="text-2xl font-bold text-[var(--fixzit-primary)]">156</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">🏢</div>
@@ -99,7 +99,7 @@ export default function PropertiesUnitsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Occupied</p>
+              <p className="text-sm font-medium text-muted-foreground">Occupied</p>
               <p className="text-2xl font-bold text-[var(--fixzit-success)]">142</p>
             </div>
             <div className="text-[var(--fixzit-success-lighter)]">👥</div>
@@ -108,7 +108,7 @@ export default function PropertiesUnitsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Vacant</p>
+              <p className="text-sm font-medium text-muted-foreground">Vacant</p>
               <p className="text-2xl font-bold text-[var(--fixzit-danger)]">14</p>
             </div>
             <div className="text-[var(--fixzit-danger-lighter)]">🏠</div>
@@ -117,7 +117,7 @@ export default function PropertiesUnitsPage() {
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Occupancy Rate</p>
+              <p className="text-sm font-medium text-muted-foreground">Occupancy Rate</p>
               <p className="text-2xl font-bold text-[var(--fixzit-secondary)]">91%</p>
             </div>
             <div className="text-purple-400">📊</div>
@@ -129,7 +129,7 @@ export default function PropertiesUnitsPage() {
       <div className="card">
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
               <option>All Properties</option>
               <option>Tower A</option>
               <option>Tower B</option>
@@ -137,7 +137,7 @@ export default function PropertiesUnitsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
               <option>All Types</option>
               <option>Studio</option>
               <option>1BR Apartment</option>
@@ -147,7 +147,7 @@ export default function PropertiesUnitsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
               <option>All Status</option>
               <option>Occupied</option>
               <option>Vacant</option>
@@ -170,28 +170,28 @@ export default function PropertiesUnitsPage() {
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tenant</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Rent</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lease Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Occupancy</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Unit ID</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Property</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Size</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Tenant</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Monthly Rent</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Lease Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Occupancy</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               {units.map(unit => (
-                <tr key={unit.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{unit.unitNumber}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{unit.property}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{unit.type}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{unit.size}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{unit.tenant}</td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">{unit.monthlyRent}</td>
+                <tr key={unit.id} className="hover:bg-muted">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-foreground">{unit.unitNumber}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{unit.property}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{unit.type}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{unit.size}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{unit.tenant}</td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{unit.monthlyRent}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(unit.leaseStatus)}`}>
                       {unit.leaseStatus}
