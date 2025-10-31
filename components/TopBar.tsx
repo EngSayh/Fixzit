@@ -503,7 +503,7 @@ export default function TopBar() {
                 role="dialog"
                 aria-modal="true"
                 aria-label="Notifications"
-                className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 z-[100] animate-in slide-in-from-top-2 duration-200"
+                className="fixed bg-popover text-popover-foreground rounded-2xl shadow-2xl border border-border z-[100] animate-in slide-in-from-top-2 duration-200"
                 style={{ 
                   top: notifPos.top,
                   left: notifPos.left,
@@ -512,10 +512,10 @@ export default function TopBar() {
                   overflowY: 'auto'
                 }}
               >
-                  <div className="p-3 border-b border-gray-200 flex justify-between items-start">
+                  <div className="p-3 border-b border-border flex justify-between items-start">
                     <div>
                       <div className="font-semibold">{t('nav.notifications', 'Notifications')}</div>
-                      <div className="text-xs text-gray-500 mt-1">
+                      <div className="text-xs text-muted-foreground mt-1">
                         {unreadCount > 0
                           ? `${unreadCount} ${t('common.unread', 'unread')}`
                           : t('common.noNotifications', 'No new notifications')
@@ -525,19 +525,19 @@ export default function TopBar() {
                     <button
                       type="button"
                       onClick={() => setNotifOpen(false)}
-                      className="p-1 hover:bg-gray-100 rounded-full"
+                      className="p-1 hover:bg-muted rounded-full"
                       aria-label="Close notifications"
                     >
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
                   </div>
 
-                  <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                  <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-background">
                     {loading ? (
-                      <div className="p-3 text-center text-gray-500">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-300 mx-auto"></div>
+                      <div className="p-3 text-center text-muted-foreground">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-muted mx-auto"></div>
                         <div className="text-xs mt-1">{t('common.loading', 'Loading...')}</div>
                       </div>
                     ) : notifications.length > 0 ? (
@@ -545,7 +545,7 @@ export default function TopBar() {
                         {notifications.map((notification) => (
                           <div
                             key={notification.id}
-                            className="p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 cursor-pointer transition-colors"
+                            className="p-3 hover:bg-muted border-b border-border last:border-b-0 cursor-pointer transition-colors"
                             onClick={() => {
                               setNotifOpen(false);
                               // Navigate to specific target URL if provided, otherwise go to notifications page
@@ -555,17 +555,17 @@ export default function TopBar() {
                           >
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
-                                <div className="font-medium text-sm text-gray-900">
+                                <div className="font-medium text-sm text-foreground">
                                   {notification.title}
                                 </div>
-                                <div className="text-xs text-gray-600 mt-1">
+                                <div className="text-xs text-muted-foreground mt-1">
                                   {notification.message}
                                 </div>
                                 <div className="flex items-center justify-between mt-2">
-                                  <span className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(notification.priority)} bg-gray-100`}>
+                                  <span className={`text-xs px-2 py-1 rounded-full ${getPriorityColor(notification.priority)} bg-muted`}>
                                     {notification.priority.toUpperCase()}
                                   </span>
-                                  <span className="text-xs text-gray-400">
+                                  <span className="text-xs text-muted-foreground">
                                     {formatTimeAgo(notification.timestamp)}
                                   </span>
                                 </div>
@@ -578,16 +578,16 @@ export default function TopBar() {
                         ))}
                       </div>
                     ) : (
-                      <div className="p-6 text-center text-gray-500">
+                      <div className="p-6 text-center text-muted-foreground">
                         <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
                         <div className="text-sm">{t('common.noNotifications', 'No new notifications')}</div>
-                        <div className="text-xs text-gray-400 mt-1">{t('common.allCaughtUp', "You're all caught up!")}</div>
+                        <div className="text-xs text-muted-foreground mt-1">{t('common.allCaughtUp', "You're all caught up!")}</div>
                       </div>
                     )}
                   </div>
 
                   {notifications.length > 0 && (
-                    <div className="p-3 border-t border-gray-200 bg-gray-50">
+                    <div className="p-3 border-t border-border bg-muted">
                       <Link
                         href="/notifications"
                         className="text-xs text-brand-500 hover:text-brand-700 font-medium flex items-center justify-center gap-1"
@@ -630,7 +630,7 @@ export default function TopBar() {
               <div 
                 role="menu"
                 aria-label="User menu"
-                className="fixed bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-200 py-1 z-[100] animate-in slide-in-from-top-2 duration-200"
+                className="fixed bg-popover text-popover-foreground rounded-2xl shadow-2xl border border-border py-1 z-[100] animate-in slide-in-from-top-2 duration-200"
                 style={{
                   top: userPos.top,
                   left: userPos.left,
@@ -642,7 +642,7 @@ export default function TopBar() {
               >
                   <Link
                     href="/profile"
-                    className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer text-gray-800"
+                    className="block px-4 py-2 hover:bg-muted rounded transition-colors cursor-pointer"
                     role="menuitem"
                     onClick={() => setUserOpen(false)}
                   >
@@ -650,7 +650,7 @@ export default function TopBar() {
                   </Link>
                   <Link
                     href="/settings"
-                    className="block px-4 py-2 hover:bg-gray-50 rounded transition-colors cursor-pointer text-gray-800"
+                    className="block px-4 py-2 hover:bg-muted rounded transition-colors cursor-pointer"
                     role="menuitem"
                     onClick={() => setUserOpen(false)}
                   >
@@ -660,7 +660,7 @@ export default function TopBar() {
                   {/* Language & Currency Section */}
                   <>
                     <div className="border-t my-1 mx-2" />
-                    <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                    <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase">
                       {t('common.preferences', 'Preferences')}
                     </div>
                     <div className="px-4 py-2 space-y-2" role="none">
@@ -700,14 +700,14 @@ export default function TopBar() {
             aria-modal="true"
             aria-labelledby="unsaved-dialog-title"
           >
-            <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
+            <div className="bg-popover text-popover-foreground rounded-2xl shadow-2xl max-w-md w-full p-6 border border-border">
               <h3 
                 id="unsaved-dialog-title"
-                className="text-lg font-semibold text-gray-900 mb-2"
+                className="text-lg font-semibold text-foreground mb-2"
               >
                 {t('common.unsavedChanges', 'Unsaved Changes')}
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-muted-foreground mb-4">
                 {t('common.unsavedChangesMessage', 'You have unsaved changes. Do you want to save them before leaving?')}
               </p>
               
@@ -727,7 +727,7 @@ export default function TopBar() {
                     setSaveError(null);
                   }}
                   disabled={isSaving}
-                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-foreground hover:bg-muted rounded-2xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('common.cancel', 'Cancel')}
                 </button>
@@ -768,20 +768,20 @@ export default function TopBar() {
             aria-modal="true"
             aria-labelledby="mobile-search-title"
           >
-            <div className="bg-white w-full flex flex-col h-full">
+            <div className="bg-card text-card-foreground w-full flex flex-col h-full">
               {/* Header */}
-              <div className="flex items-center gap-2 p-4 border-b border-gray-200">
+              <div className="flex items-center gap-2 p-4 border-b border-border">
                 <button
                   type="button"
                   onClick={() => setMobileSearchOpen(false)}
-                  className="p-2 hover:bg-gray-100 rounded-md"
+                  className="p-2 hover:bg-muted rounded-2xl"
                   aria-label="Close search"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-                <h2 id="mobile-search-title" className="text-lg font-semibold text-gray-900">
+                <h2 id="mobile-search-title" className="text-lg font-semibold text-foreground">
                   {t('common.search', 'Search')}
                 </h2>
               </div>
