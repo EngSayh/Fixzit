@@ -583,7 +583,7 @@ export default function NotificationsPage() {
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={bulkMarkAsRead}
-                    className="px-3 py-1 text-sm bg-[var(--fixzit-primary)] text-white rounded hover:bg-[var(--fixzit-primary-dark)] transition-colors"
+                    className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
                   >
                     Mark as Read ({selectedNotifications.size})
                   </button>
@@ -595,19 +595,19 @@ export default function NotificationsPage() {
                   </button>
                   <button
                     onClick={exportNotifications}
-                    className="px-3 py-1 text-sm bg-[var(--fixzit-secondary)] text-white rounded hover:bg-[var(--fixzit-secondary-dark)] transition-colors"
+                    className="px-3 py-1 text-sm bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 transition-colors"
                   >
                     Export ({selectedNotifications.size})
                   </button>
                   <button
                     onClick={archiveNotifications}
-                    className="px-3 py-1 text-sm bg-[var(--fixzit-success)] text-white rounded hover:bg-[var(--fixzit-success-dark)] transition-colors"
+                    className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
                   >
                     Archive ({selectedNotifications.size})
                   </button>
                   <button
                     onClick={deleteNotifications}
-                    className="px-3 py-1 text-sm bg-[var(--fixzit-danger)] text-white rounded hover:bg-[var(--fixzit-danger-dark)] transition-colors"
+                    className="px-3 py-1 text-sm bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 transition-colors"
                   >
                     Delete ({selectedNotifications.size})
                   </button>

@@ -298,7 +298,7 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4">
-              <span className="text-white text-2xl font-bold">F</span>
+              <span className="text-primary-foreground text-2xl font-bold">F</span>
             </div>
             <h1 className="text-3xl font-bold text-foreground mb-2">
               {t('login.welcome', 'Welcome Back')}
@@ -315,7 +315,7 @@ export default function LoginPage() {
               onClick={() => setLoginMethod('personal')}
               className={`flex-1 py-2 px-4 rounded-2xl text-sm font-medium transition-colors ${
                 loginMethod === 'personal'
-                  ? 'bg-primary text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -326,7 +326,7 @@ export default function LoginPage() {
               onClick={() => setLoginMethod('corporate')}
               className={`flex-1 py-2 px-4 rounded-2xl text-sm font-medium transition-colors ${
                 loginMethod === 'corporate'
-                  ? 'bg-primary text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -337,7 +337,7 @@ export default function LoginPage() {
               onClick={() => setLoginMethod('sso')}
               className={`flex-1 py-2 px-4 rounded-2xl text-sm font-medium transition-colors ${
                 loginMethod === 'sso'
-                  ? 'bg-primary text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >

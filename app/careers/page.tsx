@@ -351,7 +351,7 @@ export default function CareersPage() {
   return (
     <div className="min-h-screen bg-muted flex flex-col">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-[var(--fixzit-primary)] via-[var(--fixzit-primary)] to-[var(--fixzit-success)] text-white py-16">{/* FIXED: Using CSS variables for theming */}
+      <section className="bg-gradient-to-r from-primary via-primary to-success text-primary-foreground py-16">{/* FIXED: Using CSS variables for theming */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Join Our Team</h1>
@@ -393,7 +393,7 @@ export default function CareersPage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded bg-[var(--fixzit-primary)] text-white flex items-center justify-center font-bold">FZ</div>{/* FIXED: Using CSS variable */}
+                        <div className="w-8 h-8 rounded bg-primary text-primary-foreground flex items-center justify-center font-bold">FZ</div>{/* FIXED: Using CSS variable */}
                         <div className="flex flex-col">
                           <CardTitle className="text-xl leading-tight">{job.title}</CardTitle>
                           <div className="text-xs text-muted-foreground">Fixzit Enterprise</div>
@@ -496,7 +496,7 @@ export default function CareersPage() {
                         <Button
                           onClick={() => setSelectedJob(job)}
                           disabled={job.status === 'Closed'}
-                          className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)]"
+                          className="bg-[var(--fixzit-primary)] hover:bg-primary/90"
                         >
                           <FileText className="w-4 h-4 mr-2" />
                           View Details
@@ -585,13 +585,13 @@ export default function CareersPage() {
                             <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                               {['Applied','Screening','Interview','Offer','Hired'].map((stage, idx) => (
                                 <li key={stage} className="flex items-center gap-3 p-3 rounded border border-border bg-card">
-                                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx <= 1 ? 'bg-[var(--fixzit-success)] text-white' : 'bg-muted text-muted-foreground'}`}>{idx+1}</span>
+                                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx <= 1 ? 'bg-green-600 text-white' : 'bg-muted text-muted-foreground'}`}>{idx+1}</span>
                                   <span className="text-sm text-foreground">{stage}</span>
                                 </li>
                               ))}
                             </ol>
                             <div className="flex flex-wrap gap-2 mt-3">
-                              <Button size="sm" className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)]">Schedule Interview</Button>
+                              <Button size="sm" className="bg-[var(--fixzit-primary)] hover:bg-primary/90">Schedule Interview</Button>
                               <Button size="sm" variant="outline">Advance Stage</Button>
                               <Button size="sm" variant="outline">Share with Team</Button>
                             </div>
@@ -610,7 +610,7 @@ export default function CareersPage() {
                               <Button
                                 onClick={() => handleApply(job)}
                                 disabled={job.status === 'Closed'}
-                                className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)] text-white px-6 py-2"
+                                className="bg-[var(--fixzit-primary)] hover:bg-primary/90 text-white px-6 py-2"
                               >
                                 <Send className="w-4 h-4 mr-2" />
                                 Apply Now
@@ -734,7 +734,7 @@ export default function CareersPage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)]"
+                  className="bg-[var(--fixzit-primary)] hover:bg-primary/90"
                 >
                   {isSubmitting ? (
                     <>

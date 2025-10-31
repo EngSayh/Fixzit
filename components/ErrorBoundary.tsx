@@ -35,11 +35,9 @@ type ErrorReport = {
       limit: number;
     } | null;
   };
-  localStorage: {
-    hasAuth: boolean;
-    hasUser: boolean;
-    hasLang: boolean;
-    hasTheme: boolean;
+  // ❌ REMOVED: localStorage object (security/privacy risk)
+  userContext: {
+    isAuthenticated: boolean;
   };
 };
 
@@ -57,141 +55,25 @@ type ErrorState = {
   showSupport?: boolean;
 };
 
-type ErrorFix = {
-  pattern: RegExp;
-  type: string;
-  autoFix: (error: Error) => Promise<boolean>;
-  fallback: () => void;
-};
+// ❌ REMOVED: ErrorFix type (no longer needed with display-only error boundary)
 
 export default class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorState> {
   state: ErrorState = { hasError: false, retryCount: 0 };
 
-  // Auto-fix strategies
-  private errorFixes: ErrorFix[] = [
-    // JSON parsing errors
-    {
-      pattern: /Failed to execute 'json' on 'Response'/,
-      type: 'JSON_PARSE_ERROR',
-      autoFix: async (_error: Error) => {
-        // Clear localStorage cache that might be corrupted
-        // Note: Aggressive approach - clears all storage to ensure clean state
-        // Alternative: Could implement targeted clearing based on error context
-        try {
-          localStorage.clear();
-          sessionStorage.clear();
-
-          // Force page reload to reset state
-          window.location.reload();
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      fallback: () => {
-        this.forceRefresh();
-      }
-    },
-
-    // Module not found errors
-    {
-      pattern: /Module not found|Can't resolve/,
-      type: 'MODULE_NOT_FOUND',
-      autoFix: async (_error: Error) => {
-        // Try to clear module cache
-        try {
-          if (typeof window !== 'undefined') {
-            // Clear any cached imports
-            Object.keys(window).forEach(key => {
-              if (key.startsWith('__webpack') || key.startsWith('__next')) {
-                delete (window as unknown as Record<string, unknown>)[key];
-              }
-            });
-
-            // Force refresh
-            window.location.reload();
-            return true;
-          }
-          return false;
-        } catch {
-          return false;
-        }
-      },
-      fallback: () => {
-        this.showErrorMessage('Module loading failed. Please refresh the page.');
-      }
-    },
-
-    // Network errors
-    {
-      pattern: /fetch.*failed|Network request failed/,
-      type: 'NETWORK_ERROR',
-      autoFix: async (_error: Error) => {
-        try {
-          // Wait and retry
-          await new Promise(resolve => setTimeout(resolve, 2000));
-
-          // Check if online
-          if (!navigator.onLine) {
-            this.showErrorMessage('Please check your internet connection.');
-            return false;
-          }
-
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      fallback: () => {
-        this.showErrorMessage('Network error. Please check your connection and try again.');
-      }
-    },
-
-    // Hydration errors
-    {
-      pattern: /hydration|Hydration failed/,
-      type: 'HYDRATION_ERROR',
-      autoFix: async (_error: Error) => {
-        try {
-          // Force client-side rendering mode
-          localStorage.setItem('fxz.render', 'client');
-          window.location.reload();
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      fallback: () => {
-        this.showErrorMessage('Rendering error. Please refresh the page.');
-      }
-    },
-
-    // Generic runtime errors
-    {
-      pattern: /TypeError|ReferenceError/,
-      type: 'RUNTIME_ERROR',
-      autoFix: async (_error: Error) => {
-        try {
-          // Clear application state
-          localStorage.removeItem('fxz.auth');
-          localStorage.removeItem('fxz.user');
-          localStorage.removeItem('fxz.state');
-
-          // Attempt recovery
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
-
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      fallback: () => {
-        this.showErrorMessage('Application error. Please refresh and try again.');
-      }
-    }
-  ];
+  // ❌ REMOVED: Dangerous auto-fix strategies (localStorage.clear(), sessionStorage.clear())
+  // Security/Privacy Risk: Auto-clearing user data without consent
+  // Architecture Violation: Error boundaries should display errors, not manipulate state
+  // 
+  // ✅ NEW APPROACH: Display-only error boundary
+  // - Show comprehensive error details
+  // - Provide manual recovery options (user-initiated refresh)
+  // - Auto-report to support system (no user data manipulation)
+  // - Copy error details for debugging
+  //
+  // If user wants to clear storage, they can:
+  // 1. Use browser DevTools → Application → Clear Storage
+  // 2. Use Settings → Clear App Data
+  // 3. Logout (which clears auth tokens safely)
 
   static getDerivedStateFromError(error: unknown): Partial<ErrorState> {
     const err = error as Error;
@@ -217,8 +99,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     // Log error to QA system
     this.logErrorToQA(errorReport);
 
-    // Attempt auto-fix
-    this.attemptAutoFix(err);
+    // ❌ REMOVED: attemptAutoFix(err) - no auto-fixes, display-only boundary
 
     // Also auto-report an incident so Support gets a ticket without user action
     try {
@@ -267,69 +148,9 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     }).catch(() => {}); // Fire and forget
   };
 
-  private attemptAutoFix = async (error: Error) => {
-    for (const fix of this.errorFixes) {
-      if (fix.pattern.test(error.message)) {
-        try {
-          const success = await fix.autoFix(error);
-
-          if (success) {
-            this.setState({
-              fixAttempted: true,
-              fixSuccessful: true
-            });
-
-            // Log successful fix
-            this.logFixAttempt(fix.type, true, error);
-            return;
-          }
-        } catch (fixError) {
-          console.error('❌ Auto-fix failed:', fixError);
-        }
-
-        // Apply fallback
-        fix.fallback();
-        this.setState({ fixAttempted: true, fixSuccessful: false });
-        this.logFixAttempt(fix.type, false, error);
-        break;
-      }
-    }
-  };
-
-  private logFixAttempt = (fixType: string, success: boolean, error: Error) => {
-    const logEntry = {
-      timestamp: new Date().toISOString(),
-      fixType,
-      success,
-      error: error.message,
-      userAgent: navigator.userAgent,
-      url: window.location.href
-    };
-
-    // Send to logging API
-    fetch('/api/qa/log', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event: 'AUTO_FIX_ATTEMPT',
-        data: logEntry
-      })
-    }).catch(() => {}); // Fire and forget
-  };
-
-  private forceRefresh = () => {
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
-  };
-
-  private showErrorMessage = (message: string) => {
-    this.setState({
-      msg: message,
-      fixAttempted: true,
-      fixSuccessful: false
-    });
-  };
+  // ❌ REMOVED: attemptAutoFix(), logFixAttempt(), forceRefresh(), showErrorMessage()
+  // These methods performed dangerous operations like localStorage.clear()
+  // Error boundaries should be DISPLAY-ONLY (show errors, don't manipulate state)
 
   // Enhanced error indexing and reporting
   private generateErrorReport = (error: Error, errorInfo: React.ErrorInfo) => {
@@ -369,11 +190,11 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
           limit: (performance.memory as PerformanceMemory).jsHeapSizeLimit
         } : null
       },
-      localStorage: {
-        hasAuth: !!localStorage.getItem(STORAGE_KEYS.user),
-        hasUser: !!localStorage.getItem('fxz.user'),
-        hasLang: !!localStorage.getItem('fxz.lang'),
-        hasTheme: !!localStorage.getItem('fxz.theme')
+      // ❌ REMOVED: localStorage scraping (hasAuth, hasUser, hasLang, hasTheme)
+      // Security/Privacy Risk: Don't collect localStorage keys in error reports
+      // If authentication context needed, use session data from secure API
+      userContext: {
+        isAuthenticated: !!localStorage.getItem(STORAGE_KEYS.user)
       }
     };
 
@@ -399,11 +220,8 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
   Online: ${errorReport.system.onLine}
   ${errorReport.system.memory ? `Memory: ${Math.round(errorReport.system.memory.used / 1024 / 1024)}MB / ${Math.round(errorReport.system.memory.total / 1024 / 1024)}MB` : ''}
 
-🔧 Application State:
-  Authenticated: ${errorReport.localStorage.hasAuth}
-  User Data: ${errorReport.localStorage.hasUser}
-  Language Set: ${errorReport.localStorage.hasLang}
-  Theme Set: ${errorReport.localStorage.hasTheme}
+� User Context:
+  Authenticated: ${errorReport.userContext.isAuthenticated}
 
 📋 Stack Trace:
 ${errorReport.error.stack || 'No stack trace available'}
@@ -413,7 +231,8 @@ ${errorReport.error.componentStack || 'No component stack available'}
     `.trim();
 
     navigator.clipboard.writeText(errorText).then(() => {
-      this.showErrorMessage('Error details copied to clipboard!');
+      // Success - could show toast notification in future
+      console.log('✅ Error details copied to clipboard');
     }).catch(() => {
       // Fallback for older browsers
       const textArea = document.createElement('textarea');
@@ -422,7 +241,7 @@ ${errorReport.error.componentStack || 'No component stack available'}
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      this.showErrorMessage('Error details copied to clipboard!');
+      console.log('✅ Error details copied to clipboard (fallback)');
     });
   };
 
@@ -438,7 +257,11 @@ ${errorReport.error.componentStack || 'No component stack available'}
     const newRetryCount = (this.state.retryCount || 0) + 1;
 
     if (newRetryCount >= 3) {
-      this.showErrorMessage('Maximum retry attempts reached. Please refresh the page manually.');
+      // Max retries reached - user must manually refresh
+      this.setState({ 
+        msg: 'Maximum retry attempts reached. Please refresh the page manually.',
+        retryCount: newRetryCount
+      });
       return;
     }
 

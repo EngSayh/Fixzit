@@ -145,7 +145,7 @@ export default function HelpHome() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-brand-500 via-brand-500 to-success text-white py-16">
+      <section className="bg-gradient-to-r from-primary via-primary to-success text-primary-foreground py-16">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <h1 className="text-4xl font-bold mb-4">Fixzit Knowledge Center</h1>
           <p className="text-xl opacity-90 mb-8">

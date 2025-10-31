@@ -445,7 +445,7 @@ export default function FiltersPage() {
               </button>
               <button
                 type="submit"
-                className="px-6 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors inline-flex items-center gap-2"
+                className="px-6 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors inline-flex items-center gap-2"
                 data-testid="search-btn"
               >
                 <Filter className="w-4 h-4" />

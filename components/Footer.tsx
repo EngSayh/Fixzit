@@ -33,7 +33,7 @@ export default function Footer() {
   const { t, isRTL: translationIsRTL } = useTranslation();
 
   return (
-    <footer className="border-t bg-white/70 dark:bg-neutral-900/70 backdrop-blur">
+    <footer className="border-t bg-card/70 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 lg:px-6 py-6 space-y-6 text-sm">
         <div className={`flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${translationIsRTL ? 'text-right md:flex-row-reverse' : ''}`}>
           <div className="font-semibold mb-2">{t('footer.brand', 'Fixzit')}</div>
@@ -80,7 +80,7 @@ export default function Footer() {
   {/* Bottom bar with copyright and quick links 
       Note: Privacy/Terms/Support links duplicated here for user convenience 
       (mobile users may prefer bottom bar, desktop users may use main grid) */}
-  <div className="flex flex-col gap-2 border-t border-black/5 pt-4 text-xs opacity-60 md:flex-row md:items-center md:justify-between">
+  <div className="flex flex-col gap-2 border-t border-border pt-4 text-xs opacity-60 md:flex-row md:items-center md:justify-between">
           <div>© {new Date().getFullYear()} {t('footer.copyright', 'Fixzit. All rights reserved.')}</div>
           <div className="flex gap-4">
             <Link href="/privacy" className="hover:underline">{t('footer.privacy', 'Privacy')}</Link>

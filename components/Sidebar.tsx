@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
 import { type UserRoleType } from '@/types/user';
@@ -152,26 +152,10 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
   // ⚡ FIXED: GOLD STANDARD unified auth pattern from TopBar.tsx
   // Check BOTH NextAuth session AND JWT-based auth
   const { data: session, status } = useSession();
-  const [authUser, setAuthUser] = useState<{ id?: string; role?: string } | null>(null);
-
-  // Fetch JWT auth if NextAuth isn't authenticated
-  useEffect(() => {
-    let abort = false;
-    if (status !== 'authenticated' && status !== 'loading') {
-      fetch('/api/auth/me', { credentials: 'include' })
-        .then(r => r.ok ? r.json() : null)
-        .then(data => { 
-          if (!abort && data?.user?.id) {
-            setAuthUser({ id: data.user.id, role: data.user.role });
-          }
-        })
-        .catch(() => {/* silently ignore - user is guest */});
-    }
-    return () => { abort = true; };
-  }, [status]);
-
-  // ⚡ FIXED: Unified authentication check
-  const isAuthenticated = (status === 'authenticated' && session != null) || !!authUser;
+  // ✅ SINGLE AUTH SOURCE: Use NextAuth only (removed dual-auth pattern)
+  // Previously: Component had dual-auth system (NextAuth + JWT via fetch('/api/auth/me'))
+  // This caused race conditions, inconsistent state, and violated single-source-of-truth
+  const isAuthenticated = status === 'authenticated' && session != null;
 
   const allowedModules = useMemo(() => {
     const roleModules = ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] ?? [];
@@ -196,22 +180,21 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
 
   return (
     <aside
-      className={`${asideBase} bg-[#0061A8] text-white overflow-y-auto shadow-lg border-[#0061A8]/20 ${translationIsRTL ? 'border-l' : 'border-r'}`}
-      style={{ backgroundColor: '#0061A8' }}
+      className={`${asideBase} bg-primary text-primary-foreground overflow-y-auto shadow-lg border-primary/20 ${translationIsRTL ? 'border-l' : 'border-r'}`}
       aria-label={t('sidebar.mainNav', 'Main navigation')}
       data-testid="sidebar"
     >
       <div className={`${screenInfo.isMobile ? 'p-3' : 'p-4'}`}>
-        <div className={`font-bold text-lg mb-6 text-white ${translationIsRTL ? 'text-right' : ''}`}>
+        <div className={`font-bold text-lg mb-6 ${translationIsRTL ? 'text-right' : ''}`}>
           {t('common.brand', 'Fixzit Enterprise')}
         </div>
 
         {/* Role & Plan */}
         {role !== 'guest' && (
-          <section aria-label={t('sidebar.accountInfo', 'Account info')} className="mb-4 p-3 bg-[#0061A8] rounded-2xl">
-            <div className={`text-xs text-white/80 mb-1 ${translationIsRTL ? 'text-right' : ''}`}>{t('sidebar.role', 'Role')}</div>
-            <div className={`text-sm font-medium text-white ${translationIsRTL ? 'text-right' : ''}`}>{String(role).replace(/_/g, ' ')}</div>
-            <div className={`text-xs text-white/80 mt-1 ${translationIsRTL ? 'text-right' : ''}`}>
+          <section aria-label={t('sidebar.accountInfo', 'Account info')} className="mb-4 p-3 bg-primary/20 rounded-2xl border border-primary/30">
+            <div className={`text-xs opacity-80 mb-1 ${translationIsRTL ? 'text-right' : ''}`}>{t('sidebar.role', 'Role')}</div>
+            <div className={`text-sm font-medium ${translationIsRTL ? 'text-right' : ''}`}>{String(role).replace(/_/g, ' ')}</div>
+            <div className={`text-xs opacity-80 mt-1 ${translationIsRTL ? 'text-right' : ''}`}>
               {t('sidebar.planLabel', 'Plan')}: {subscription}
             </div>
           </section>
@@ -221,7 +204,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
         <nav className="space-y-6 mb-8" aria-label={t('sidebar.modules', 'Modules')}>
           {Object.entries(groupedModules).map(([category, modules]) => (
             <section key={category} aria-label={getCategoryName(category)}>
-              <div className="text-xs font-medium text-sidebar-foreground/80 mb-2 px-3 uppercase tracking-wider">
+              <div className="text-xs font-medium opacity-80 mb-2 px-3 uppercase tracking-wider">
                 {getCategoryName(category)}
               </div>
               <ul className="space-y-1">
@@ -233,7 +216,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
                       <Link
                         href={m.path}
                         className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl transition-all duration-200
-                          ${isActive ? 'bg-white/10 text-white shadow-md' : 'text-sidebar-foreground hover:bg-white/10 hover:text-white hover:translate-x-1'}
+                          ${isActive ? 'bg-primary-foreground/10 shadow-md' : 'opacity-80 hover:bg-primary-foreground/10 hover:opacity-100 hover:translate-x-1'}
                           ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
                         aria-current={isActive ? 'page' : undefined}
                         data-testid={`nav-${m.id}`}
@@ -257,15 +240,15 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
 
           {/* Empty state if nothing is allowed */}
           {Object.keys(groupedModules).length === 0 && (
-            <p className="px-3 text-xs text-white/80" data-testid="sidebar-empty">
+            <p className="px-3 text-xs opacity-80" data-testid="sidebar-empty">
               {t('sidebar.noModules', 'No modules available for your role/plan.')}
             </p>
           )}
         </nav>
 
         {/* User Account Links */}
-        <div className="border-t border-white/20 pt-4">
-          <div className={`text-xs font-medium text-sidebar-foreground/80 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>
+        <div className="border-t border-primary-foreground/20 pt-4">
+          <div className={`text-xs font-medium opacity-80 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>
             {t('sidebar.account', 'Account')}
           </div>
           <ul className="space-y-1" aria-label={t('sidebar.account', 'Account')}>
@@ -277,7 +260,7 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
                   <Link
                     href={link.path}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl transition-all duration-200
-                      ${isActive ? 'bg-white/10 text-white shadow-md' : 'text-sidebar-foreground hover:bg-white/10 hover:text-white hover:translate-x-1'}
+                      ${isActive ? 'bg-primary-foreground/10 shadow-md' : 'opacity-80 hover:bg-primary-foreground/10 hover:opacity-100 hover:translate-x-1'}
                       ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
                     aria-current={isActive ? 'page' : undefined}
                     data-testid={`account-${link.id}`}
@@ -297,13 +280,13 @@ export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenant
 
         {/* Help & Support (auth only) */}
         {isAuthenticated && (
-          <div className="border-t border-white/20 pt-4 mt-4">
-            <div className={`text-xs font-medium text-sidebar-foreground/80 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>
+          <div className="border-t border-primary-foreground/20 pt-4 mt-4">
+            <div className={`text-xs font-medium opacity-80 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>
               {t('sidebar.help', 'Help')}
             </div>
             <Link
               href="/help"
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl transition-all duration-200 text-sidebar-foreground hover:bg-white/10 hover:text-white hover:translate-x-1 ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl transition-all duration-200 opacity-80 hover:bg-primary-foreground/10 hover:opacity-100 hover:translate-x-1 ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
               data-testid="nav-help"
               prefetch={false}
             >

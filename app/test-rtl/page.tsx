@@ -33,13 +33,13 @@ export default function RTLTestPage() {
           <div className="flex gap-4 mb-4">
             <button
               onClick={() => setLanguage('ar')}
-              className={`px-4 py-2 rounded ${language === 'ar' ? 'bg-blue-500 text-white' : 'bg-muted'}`}
+              className={`px-4 py-2 rounded ${language === 'ar' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
             >
               Arabic (العربية)
             </button>
             <button
               onClick={() => setLanguage('en')}
-              className={`px-4 py-2 rounded ${language === 'en' ? 'bg-blue-500 text-white' : 'bg-muted'}`}
+              className={`px-4 py-2 rounded ${language === 'en' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
             >
               English
             </button>
