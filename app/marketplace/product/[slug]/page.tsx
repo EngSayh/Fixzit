@@ -68,22 +68,22 @@ export default async function ProductDetail(props: ProductPageProps) {
           <a href="/marketplace" className="hover:underline">
             Marketplace
           </a>
-          <span className="mx-2 text-gray-400">/</span>
+          <span className="mx-2 text-muted-foreground">/</span>
           {category && (
             <a href={`/marketplace/search?cat=${category.slug}`} className="hover:underline">
               {category.name?.en ?? category.slug}
             </a>
           )}
-          <span className="mx-2 text-gray-400">/</span>
-          <span className="text-gray-600" style={{ color: FIXZIT_COLORS.primary }}>{product.title.en}</span>
+          <span className="mx-2 text-muted-foreground">/</span>
+          <span className="text-muted-foreground" style={{ color: FIXZIT_COLORS.primary }}>{product.title.en}</span>
         </nav>
 
         <section className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div className="space-y-6">
-            <div className="rounded-3xl bg-white p-6 shadow-lg">
+            <div className="rounded-2xl bg-card p-6 shadow-lg">
               <div className="grid gap-4 md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
                 <div className="space-y-4">
-                  <div className="relative overflow-hidden rounded-2xl bg-gray-100 h-96">
+                  <div className="relative overflow-hidden rounded-2xl bg-muted h-96">
                     <Image
                       src={gallery[0]?.url || '/images/marketplace/placeholder-product.svg'}
                       alt={product.title.en}
@@ -94,7 +94,7 @@ export default async function ProductDetail(props: ProductPageProps) {
                   </div>
                   <div className="flex gap-3 overflow-x-auto">
                     {gallery.map((image: MediaFile) => (
-                      <div key={image.url} className="relative h-16 w-16 rounded-xl border border-gray-200 overflow-hidden">
+                      <div key={image.url} className="relative h-16 w-16 rounded-2xl border border-border overflow-hidden">
                         <Image
                           src={image.url}
                           alt={product.title.en}
@@ -108,8 +108,8 @@ export default async function ProductDetail(props: ProductPageProps) {
                 </div>
                 <div className="space-y-4">
                   <h1 className="text-3xl font-semibold text-[#0F1111]">{product.title.en}</h1>
-                  {product.summary && <p className="text-sm text-gray-600">{product.summary}</p>}
-                  <div className="space-y-2 text-sm text-gray-700">
+                  {product.summary && <p className="text-sm text-muted-foreground">{product.summary}</p>}
+                  <div className="space-y-2 text-sm text-foreground">
                     <p><span className="font-semibold">SKU:</span> {product.sku}</p>
                     {product.brand && <p><span className="font-semibold">Brand:</span> {product.brand}</p>}
                     {product.standards?.length ? (
@@ -120,10 +120,10 @@ export default async function ProductDetail(props: ProductPageProps) {
                   </div>
                   <div className="rounded-2xl bg-[#F8FBFF] p-4">
                     <h2 className="text-sm font-semibold uppercase tracking-wide text-[#0061A8]">Key specifications</h2>
-                    <ul className="mt-2 space-y-1 text-sm text-gray-700">
+                    <ul className="mt-2 space-y-1 text-sm text-foreground">
                       {Object.entries(product.specs || {}).map(([key, value]) => (
                         <li key={key} className="flex justify-between gap-4">
-                          <span className="font-medium capitalize text-gray-500">{key.replace(/_/g, ' ')}</span>
+                          <span className="font-medium capitalize text-muted-foreground">{key.replace(/_/g, ' ')}</span>
                           <span>{String(value)}</span>
                         </li>
                       ))}
@@ -147,13 +147,13 @@ export default async function ProductDetail(props: ProductPageProps) {
               </div>
             </div>
 
-            <section className="rounded-3xl bg-white p-6 shadow-lg">
+            <section className="rounded-2xl bg-card p-6 shadow-lg">
               <h2 className="text-xl font-semibold text-[#0F1111]">Related items</h2>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 {product.related?.length ? (
                   product.related.map((related: Product) => <ProductCard key={related._id} product={related} />)
                 ) : (
-                  <p className="text-sm text-gray-600">Additional items will appear as catalogue grows.</p>
+                  <p className="text-sm text-muted-foreground">Additional items will appear as catalogue grows.</p>
                 )}
               </div>
             </section>
