@@ -36,7 +36,7 @@ export interface ITimesheet extends mongoose.Document {
   updatedAt: Date;
 }
 
-// Shift template for rostering
+// Shift template for rostering (time-based template, not location-specific)
 export interface IShift extends mongoose.Document {
   orgId: mongoose.Types.ObjectId;
   name: string;
@@ -45,7 +45,7 @@ export interface IShift extends mongoose.Document {
   endTime: string; // HH:mm format (e.g., "17:00")
   breakMinutes: number;
   daysOfWeek: number[]; // 0=Sunday, 6=Saturday
-  site?: string; // For FM: property/site
+  // Removed 'site': Shifts are templates. Site assignment is on Roster.
   color?: string; // For calendar display
   isActive: boolean;
   createdAt: Date;
@@ -124,7 +124,7 @@ const ShiftSchema = new Schema<IShift>(
     endTime: { type: String, required: true, match: /^([01]\d|2[0-3]):([0-5]\d)$/ },
     breakMinutes: { type: Number, default: 60 },
     daysOfWeek: [{ type: Number, min: 0, max: 6 }],
-    site: String,
+    // Removed 'site' field - belongs on Roster, not Shift template
     color: String,
     isActive: { type: Boolean, default: true },
   },
@@ -140,7 +140,7 @@ const RosterSchema = new Schema<IRoster>(
     employeeId: { type: Schema.Types.ObjectId, ref: 'Employee', required: true, index: true },
     shiftId: { type: Schema.Types.ObjectId, ref: 'Shift', required: true },
     date: { type: Date, required: true, index: true },
-    site: String,
+    site: String, // Site assignment happens here (Roster), not on Shift template
     notes: String,
   },
   {
@@ -149,7 +149,10 @@ const RosterSchema = new Schema<IRoster>(
   }
 );
 
-RosterSchema.index({ orgId: 1, date: 1, employeeId: 1 }, { unique: true });
+// Removed unique index on { orgId, date, employeeId } to allow split shifts
+// (e.g., morning shift 08:00-12:00 + evening shift 18:00-22:00 on same day)
+// Overlap validation should be handled at application/service layer
+RosterSchema.index({ orgId: 1, date: 1, site: 1 }); // Optimize "who's working at this site today?"
 
 export const AttendanceLog: Model<IAttendanceLog> = models.AttendanceLog || model<IAttendanceLog>('AttendanceLog', AttendanceLogSchema);
 export const Timesheet: Model<ITimesheet> = models.Timesheet || model<ITimesheet>('Timesheet', TimesheetSchema);
