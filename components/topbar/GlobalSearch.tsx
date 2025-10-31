@@ -167,7 +167,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
           aria-activedescendant={open && results[activeIndex] ? `${listboxId}-${activeIndex}` : undefined}
           aria-autocomplete="list"
           aria-haspopup="listbox"
-          className={`w-full ${isRTL ? 'pr-10 pl-20' : 'pl-10 pr-20'} py-2 border border-input rounded-md focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-background text-foreground`}
+          className={`w-full ${isRTL ? 'pr-10 pl-20' : 'pl-10 pr-20'} py-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground`}
         />
         <div className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 transform -translate-y-1/2 flex items-center gap-1 text-xs text-muted-foreground`}>
           <Command className="w-3 h-3" />
@@ -184,7 +184,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
         >
           {loading ? (
             <div className="p-4 text-center text-muted-foreground">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand-500 mx-auto"></div>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mx-auto"></div>
               <div className="text-xs mt-2">Searching...</div>
             </div>
           ) : error ? (

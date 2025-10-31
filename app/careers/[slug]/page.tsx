@@ -22,7 +22,7 @@ export default async function JobDetailPage({ params }: { params: { slug: string
       <div className="max-w-4xl mx-auto px-4 py-12 flex-1">
         <Link 
           href="/careers" 
-          className="text-brand-500 hover:text-brand-600 transition-colors inline-flex items-center gap-1"
+          className="text-primary hover:text-primary transition-colors inline-flex items-center gap-1"
         >
           <span aria-hidden="true">&larr;</span>
           <span>Back to Careers</span>

@@ -216,7 +216,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           </label>
           <Link 
             href="/forgot-password" 
-            className="text-sm text-brand-500 hover:text-brand-600 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 rounded"
+            className="text-sm text-primary hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
           >
             {t('common.forgotPassword', 'Forgot?')}
           </Link>
@@ -247,7 +247,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-500 rounded`}
+            className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary rounded`}
             aria-label={showPassword ? t('login.hidePassword', 'Hide password') : t('login.showPassword', 'Show password')}
             aria-pressed={showPassword}
           >
@@ -269,7 +269,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           id="rememberMe"
           checked={rememberMe}
           onChange={(e) => setRememberMe(e.target.checked)}
-          className="w-4 h-4 text-brand-500 border-border rounded focus:ring-brand-500"
+          className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
           disabled={loading}
         />
         <label htmlFor="rememberMe" className="text-sm text-foreground cursor-pointer select-none">
@@ -296,7 +296,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       <Button
         type="submit"
         disabled={loading || !identifier || !password}
-        className="w-full h-12 bg-brand-500 hover:bg-brand-600 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+        className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
         aria-busy={loading}
       >
         {loading ? (

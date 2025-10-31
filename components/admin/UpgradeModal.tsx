@@ -26,7 +26,7 @@ interface UpgradeModalProps {
  * 1. ✅ Standard Dialog/Button components (no hardcoded modal)
  * 2. ✅ Standard Input component (no raw input elements)
  * 3. ✅ Full i18n support (20+ translatable strings)
- * 4. ✅ Semantic tokens (text-success, text-destructive, text-brand-500)
+ * 4. ✅ Semantic tokens (text-success, text-destructive, text-primary)
  * 5. ✅ FeatureListItem helper component for DRY code
  * 6. ✅ SuccessView helper component for state management
  * 7. ✅ Internal success state (NO fragile window.toast)
@@ -108,8 +108,8 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
       <DialogContent className="bg-popover text-popover-foreground border-border max-w-md">
         {/* Icon */}
         <div className="flex justify-center mb-4">
-          <div className="rounded-full bg-brand-500/10 p-3">
-            <Lock className="w-8 h-8 text-brand-500" />
+          <div className="rounded-full bg-primary/10 p-3">
+            <Lock className="w-8 h-8 text-primary" />
           </div>
         </div>
 
@@ -191,7 +191,7 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
         {/* Alternative contact */}
         <p className="text-xs text-muted-foreground text-center mt-4">
           {t('upgrade.alternative.prefix', 'Or email us directly at')}{' '}
-          <a href="mailto:sales@fixzit.sa" className="text-brand-500 hover:text-brand-600 underline">
+          <a href="mailto:sales@fixzit.sa" className="text-primary hover:underline">
             sales@fixzit.sa
           </a>
         </p>

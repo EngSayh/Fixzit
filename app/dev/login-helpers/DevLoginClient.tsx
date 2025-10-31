@@ -160,7 +160,7 @@ export default function DevLoginClient() {
           </div>
           <Link
             href="/login"
-            className="px-4 py-2 bg-brand-500 text-white rounded-2xl hover:bg-brand-600 transition-colors text-sm font-medium"
+            className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors text-sm font-medium"
             data-testid="back-to-login"
           >
             ← Back to Login

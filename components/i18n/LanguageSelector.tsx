@@ -1,21 +1,26 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useId } from 'react';
-import { Globe, Search } from 'lucide-react';
+import { Globe, Search, Check } from 'lucide-react'; // ✅ FIX: Add Check icon
 import { useTranslation } from '@/contexts/TranslationContext';
-import { LANGUAGE_OPTIONS, type LanguageOption, type LanguageCode } from '@/data/language-options';
+// ✅ FIX: Import from central config (single source of truth)
+import { LANGUAGE_OPTIONS, type LanguageOption, type LanguageCode } from '@/config/language-options';
 
 interface LanguageSelectorProps {
-  variant?: 'default' | 'compact';
+  variant?: 'default' | 'compact' | 'dark_minimal'; // ✅ FIX: Add dark variant for TopBar
 }
 
 /**
  * Language selector dropdown for switching the application's locale.
  *
- * Renders a button that opens a searchable list of predefined languages. Allows choosing a language which calls the translation context's setter (when available), updates document `dir` and `lang` immediately to reflect RTL/LTR changes, and falls back to persisting the choice in localStorage + page reload if the translation context is absent or an error occurs.
+ * ✅ ARCHITECTURE FIXES:
+ * 1. Imports LANGUAGE_OPTIONS from config (single source of truth)
+ * 2. Uses semantic tokens (bg-primary, text-primary) instead of hardcoded colors
+ * 3. Fully accessible (keyboard nav, ARIA)
+ * 4. Supports dark_minimal variant for TopBar usage
  *
- * @param {'default' | 'compact'} [variant='default'] - UI density variant; `'default'` shows native name and code badge, `'compact'` shows a minimal code-only display.
- * @returns {JSX.Element} A React element containing the language selector trigger and dropdown.
+ * @param variant - UI variant: 'default' | 'compact' | 'dark_minimal'
+ * @returns Language selector component
  */
 export default function LanguageSelector({ variant = 'default' }: LanguageSelectorProps) {
   const { language, setLanguage, isRTL, t } = useTranslation();
@@ -93,7 +98,20 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
     setActiveIndex(idx >= 0 ? idx : 0);
   }, [open, filtered, current.locale]);
 
-  const buttonPadding = variant === 'compact' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm';
+  // ✅ FIX: Use semantic/variant-based classes
+  const getButtonClasses = () => {
+    const padding = variant === 'compact' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm';
+    let colors = 'bg-background text-foreground hover:bg-muted'; // Default for settings page
+    
+    if (variant === 'dark_minimal') {
+      // For TopBar or dark backgrounds
+      colors = 'bg-white/10 text-white hover:bg-white/20';
+    } else if (variant === 'compact') {
+      colors = 'bg-muted text-muted-foreground hover:bg-muted/80';
+    }
+    return `flex items-center gap-2 rounded-lg transition-colors ${padding} ${colors}`;
+  };
+  
   const dropdownWidth = variant === 'compact' ? 'w-64' : 'w-80';
 
   const toggle = () => setOpen(prev => !prev);
@@ -111,13 +129,11 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
         type="button"
         aria-expanded={open}
         aria-haspopup="listbox"
-        aria-label={`${t('i18n.selectLanguageLabel', 'Select language')} ${current.native} (${current.iso})`}
+        aria-label={t('i18n.selectLanguageLabel', 'Select language')}
         aria-controls={open ? listboxId : undefined}
         onClick={toggle}
         ref={buttonRef}
-        className={`flex items-center gap-2 rounded-2xl bg-white/10 hover:bg-white/20 transition-colors ${
-          isRTL ? 'flex-row-reverse' : ''
-        } ${buttonPadding}`}
+        className={`${getButtonClasses()} ${isRTL ? 'flex-row-reverse' : ''}`}
       >
         <Globe className="h-4 w-4" />
         <span className="flex items-center gap-1">
@@ -134,8 +150,8 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
             </span>
           )}
         </span>
-        {variant !== 'compact' && (
-          <span className="text-xs text-white/80 hidden sm:inline">{current.iso}</span>
+        {variant === 'default' && (
+          <span className="text-xs text-muted-foreground hidden sm:inline">{current.iso}</span>
         )}
       </button>
 
@@ -177,7 +193,7 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
                   }
                 }
               }}
-              className={`w-full rounded border border-border bg-card ${isRTL ? 'pr-7 pl-2 text-right' : 'pl-7 pr-2'} py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500/30`}
+              className={`w-full rounded border border-border bg-card ${isRTL ? 'pr-7 pl-2 text-right' : 'pl-7 pr-2'} py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30`}
               placeholder={t('i18n.filterLanguages', 'Type to filter languages')}
               aria-label={t('i18n.filterLanguages', 'Type to filter languages')}
               autoComplete="off"
@@ -195,9 +211,9 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
               <li key={option.locale}>
                 <div
                   id={`${listboxId}-option-${option.locale}`}
-                  className={`flex w-full items-center gap-3 rounded-2xl px-2 py-2 hover:bg-muted ${
-                    option.locale === current.locale ? 'bg-brand-500/10 text-brand-500' : ''
-                  } ${idx === activeIndex ? 'ring-1 ring-brand-500/30' : ''} ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+                  className={`flex w-full items-center gap-3 rounded-2xl px-2 py-2 hover:bg-muted cursor-pointer transition-colors ${
+                    option.locale === current.locale ? 'bg-primary/10' : ''
+                  } ${idx === activeIndex ? 'ring-1 ring-primary/30' : ''} ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
                   role="option"
                   aria-selected={option.locale === current.locale}
                   tabIndex={-1}
@@ -207,11 +223,15 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
                     {option.flag}
                   </span>
                   <div className="flex-1">
-                    <div className="font-medium leading-tight">{option.native}</div>
+                    <div className={`font-medium leading-tight ${option.locale === current.locale ? 'text-primary' : 'text-foreground'}`}>{option.native}</div>
                     <div className="text-xs text-muted-foreground">
                       {option.country} · {option.iso}
                     </div>
                   </div>
+                  {/* ✅ FIX: Add Check icon for selected item */}
+                  {option.locale === current.locale && (
+                    <Check className="w-4 h-4 text-primary flex-shrink-0" aria-hidden="true" />
+                  )}
                 </div>
               </li>
             ))}

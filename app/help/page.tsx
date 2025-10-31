@@ -156,7 +156,7 @@ export default function HelpHome() {
           <div className="flex flex-wrap gap-4">
             <button
               onClick={() => setShowAIChat(true)}
-              className="bg-card text-brand-500 px-6 py-3 rounded-2xl font-semibold hover:bg-muted transition-colors flex items-center gap-2"
+              className="bg-card text-primary px-6 py-3 rounded-2xl font-semibold hover:bg-muted transition-colors flex items-center gap-2"
             >
               <Bot className="w-5 h-5" />
               Ask AI Assistant

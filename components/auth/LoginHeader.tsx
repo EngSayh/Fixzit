@@ -8,7 +8,7 @@ export default function LoginHeader() {
   return (
     <div className="text-center mb-6">
       {/* Logo */}
-      <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-500 rounded-2xl mb-4">
+      <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4">
         <span className="text-white text-2xl font-bold">F</span>
       </div>
       

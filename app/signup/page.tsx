@@ -157,7 +157,7 @@ export default function SignupPage() {
           <div className="mb-8">
             <div className="flex justify-center mb-6">
               <div className="bg-card p-6 rounded-2xl shadow-lg">
-                <div className="w-20 h-20 bg-brand-500 rounded-xl flex items-center justify-center text-white font-bold text-2xl">
+                <div className="w-20 h-20 bg-primary rounded-xl flex items-center justify-center text-white font-bold text-2xl">
                   F
                 </div>
               </div>
@@ -406,16 +406,16 @@ export default function SignupPage() {
                     type="checkbox"
                     checked={formData.termsAccepted}
                     onChange={(e) => handleChange('termsAccepted', e.target.checked)}
-                    className="mt-1 h-4 w-4 text-brand-500 border-border rounded focus:ring-brand-500"
+                    className="mt-1 h-4 w-4 text-primary border-border rounded focus:ring-primary"
                     required
                   />
                   <span className="text-sm text-muted-foreground">
                     {t('signup.terms.agree', 'I agree to the')}{' '}
-                    <Link href="/terms" className="text-brand-500 hover:text-brand-600 transition-colors">
+                    <Link href="/terms" className="text-primary hover:text-primary transition-colors">
                       {t('signup.terms.service', 'Terms of Service')}
                     </Link>{' '}
                     {t('signup.terms.and', 'and')}{' '}
-                    <Link href="/privacy" className="text-brand-500 hover:text-brand-600 transition-colors">
+                    <Link href="/privacy" className="text-primary hover:text-primary transition-colors">
                       {t('signup.terms.privacy', 'Privacy Policy')}
                     </Link>
                     *
@@ -427,7 +427,7 @@ export default function SignupPage() {
                     type="checkbox"
                     checked={formData.newsletter}
                     onChange={(e) => handleChange('newsletter', e.target.checked)}
-                    className="mt-1 h-4 w-4 text-brand-500 border-border rounded focus:ring-brand-500"
+                    className="mt-1 h-4 w-4 text-primary border-border rounded focus:ring-primary"
                   />
                   <span className="text-sm text-muted-foreground">
                     {t('signup.newsletter', "I'd like to receive updates and promotional emails about Fixzit Enterprise")}
@@ -439,7 +439,7 @@ export default function SignupPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 bg-brand-500 hover:bg-brand-600 text-white font-semibold transition-colors"
+                className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold transition-colors"
               >
                 {loading ? (
                   <div className="flex items-center gap-2">
@@ -459,7 +459,7 @@ export default function SignupPage() {
             <div className="mt-6 text-center">
               <p className="text-muted-foreground">
                 {t('signup.login.prompt', 'Already have an account?')}{' '}
-                <Link href="/login" className="text-brand-500 hover:text-brand-600 font-medium transition-colors">
+                <Link href="/login" className="text-primary hover:text-primary font-medium transition-colors">
                   {t('signup.login.link', 'Sign in here')}
                 </Link>
               </p>

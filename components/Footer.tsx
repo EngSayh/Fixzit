@@ -37,7 +37,7 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-4 lg:px-6 py-6 space-y-6 text-sm">
         <div className={`flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${translationIsRTL ? 'text-right md:flex-row-reverse' : ''}`}>
           <div className="font-semibold mb-2">{t('footer.brand', 'Fixzit')}</div>
-          <Link href="/" className="inline-flex items-center gap-2 text-brand-500 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
+          <Link href="/" className="inline-flex items-center gap-2 text-primary hover:text-primary dark:text-primary/80 dark:hover:text-primary/60">
             <Home className="h-4 w-4" />
             <span>{t('footer.backHome', 'Back to Home')}</span>
           </Link>

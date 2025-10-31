@@ -259,7 +259,7 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="text-center">
-                <div className="w-20 h-20 bg-brand-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
                   <User size={32} className="text-white" />
                 </div>
                 <h2 className="text-xl font-semibold text-foreground">{user.name}</h2>

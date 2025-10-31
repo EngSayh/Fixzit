@@ -24,7 +24,7 @@ interface ResponsiveLayoutProps {
  * 
  * ARCHITECTURE IMPROVEMENTS:
  * 1. ✅ Use standard Button for toggle (no hardcoded button)
- * 2. ✅ Semantic color tokens (bg-primary instead of bg-brand-500)
+ * 2. ✅ Semantic color tokens (bg-primary instead of bg-primary)
  * 3. ✅ No magic numbers (SIDEBAR_WIDTH_CLASS constant instead of ml-64)
  * 4. ✅ Deleted duplicate ResponsiveCard and ResponsiveButton (use Card/Button from ui/)
  * 5. ✅ Fixed all hardcoded colors

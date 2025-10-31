@@ -163,7 +163,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
                   }
                 }
               }}
-              className={`w-full rounded border border-border bg-card ${isRTL ? 'pr-7 pl-2' : 'pl-7 pr-2'} py-1.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500/30`}
+              className={`w-full rounded border border-border bg-card ${isRTL ? 'pr-7 pl-2' : 'pl-7 pr-2'} py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30`}
               placeholder={t('i18n.filterCurrencies', 'Type to filter currencies')}
               aria-label={t('i18n.filterCurrencies', 'Type to filter currencies')}
               autoComplete="off"
@@ -181,9 +181,9 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
               <li key={option.code}>
                 <div
                   id={`${listboxId}-option-${option.code}`}
-                  className={`flex w-full items-center gap-3 rounded-2xl px-2 py-2 hover:bg-muted ${
-                    option.code === current.code ? 'bg-brand-500/10 text-brand-500' : ''
-                  } ${idx === activeIndex ? 'ring-1 ring-brand-500/30' : ''} ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+                  className={`flex w-full items-center gap-3 rounded-2xl px-2 py-2 hover:bg-muted cursor-pointer transition-colors ${
+                    option.code === current.code ? 'bg-primary/10' : ''
+                  } ${idx === activeIndex ? 'ring-1 ring-primary/30' : ''} ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
                   role="option"
                   aria-selected={option.code === current.code}
                   tabIndex={-1}
@@ -193,10 +193,10 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
                     {option.flag}
                   </span>
                   <div className="flex-1">
-                    <div className="font-medium leading-tight">{option.code}</div>
+                    <div className={`font-medium leading-tight ${option.code === current.code ? 'text-primary' : 'text-foreground'}`}>{option.code}</div>
                     <div className="text-xs text-muted-foreground">{option.name}</div>
                   </div>
-                  <span className="text-sm font-semibold" aria-hidden>
+                  <span className={`text-sm font-semibold ${option.code === current.code ? 'text-primary' : 'text-foreground'}`} aria-hidden>
                     {option.symbol}
                   </span>
                 </div>

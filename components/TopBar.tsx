@@ -48,7 +48,7 @@ interface Notification {
  * 2. ✅ NO fallback translation system (uses TranslationContext exclusively)
  * 3. ✅ Standard Button/Dialog components (no hardcoded buttons/modals)
  * 4. ✅ Simplified unsaved changes logic (NO window.dispatchEvent save triggering)
- * 5. ✅ Semantic colors (bg-card, text-foreground, border-border, bg-brand-500)
+ * 5. ✅ Semantic colors (bg-card, text-foreground, border-border, bg-primary)
  * 6. ✅ Extracted sub-components (NotificationPopup, UserMenuPopup)
  * 7. ✅ Fixed all hardcoded colors (removed bg-red-500, bg-white/10, text-red-600)
  */
@@ -581,7 +581,7 @@ function NotificationPopup({
                         </div>
                       </div>
                       {!notification.read && (
-                        <div className="w-2 h-2 bg-brand-500 rounded-full ml-2 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-primary rounded-full ml-2 flex-shrink-0"></div>
                       )}
                     </div>
                   </button>
@@ -601,7 +601,7 @@ function NotificationPopup({
             <div className="p-3 border-t border-border bg-muted">
               <Link
                 href="/notifications"
-                className="text-xs text-brand-500 hover:text-brand-700 font-medium flex items-center justify-center gap-1"
+                className="text-xs text-primary hover:text-primary font-medium flex items-center justify-center gap-1"
                 onClick={() => setNotifOpen(false)}
               >
                 {t('common.viewAll', 'View all notifications')}
