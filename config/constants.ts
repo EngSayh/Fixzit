@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   currency: 'fixzit-currency',
   theme: 'fixzit-theme',
   topbarApp: 'fixzit-topbar-app',
+  aiChatHistory: 'fxz.ai-chat-history',
 } as const;
 
 export const API_TIMEOUTS = {

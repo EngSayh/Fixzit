@@ -105,14 +105,14 @@ export default function AppSwitcher() {
           id="app-switcher-menu"
           role="menu"
           aria-label={t('app.switchApplication', 'Switch Application')}
-          className={`absolute ${isRTL ? 'right-0' : 'left-0'} top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-2xl border border-gray-200 z-[100] animate-in slide-in-from-top-2 duration-200`}
+          className={`absolute ${isRTL ? 'right-0' : 'left-0'} top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-popover rounded-lg shadow-2xl border border-border z-[100] animate-in slide-in-from-top-2 duration-200`}
           style={{ maxWidth: 'calc(100vw - 2rem)' }}
         >
           {/* Arrow pointer */}
-          <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-white border-l border-t border-gray-200 transform rotate-45 ${isRTL ? 'right-8' : 'left-8'}`}></div>
+          <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-popover border-l border-t border-border transform rotate-45 ${isRTL ? 'right-8' : 'left-8'}`}></div>
           
-          <div className="p-3 border-b border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-900">{t('app.switchApplication', 'Switch Application')}</h3>
+          <div className="p-3 border-b border-border">
+            <h3 className="text-sm font-semibold text-foreground">{t('app.switchApplication', 'Switch Application')}</h3>
           </div>
           <div className="p-2 max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             {appList.map((appConfig, idx) => {
@@ -132,19 +132,19 @@ export default function AppSwitcher() {
                     setOpen(false);
                   }}
                   onMouseEnter={() => setActiveIndex(idx)}
-                  className={`flex items-center gap-3 p-3 rounded-md hover:bg-gray-50 transition-colors ${
-                    isActive ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-                  } ${isFocused ? 'ring-2 ring-brand-500 ring-inset' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
+                  className={`flex items-center gap-3 p-3 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors ${
+                    isActive ? 'bg-accent/50 text-primary' : 'text-foreground'
+                  } ${isFocused ? 'ring-2 ring-primary ring-inset' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
                 >
                   <AppIcon className="w-5 h-5" aria-hidden="true" />
                   <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
                     <div className="font-medium text-sm">{getAppName(appConfig.id)}</div>
-                    <div className="text-xs text-gray-500" aria-label={`${Array.isArray(appConfig.searchEntities) ? appConfig.searchEntities.length : 0} ${t('app.searchableEntities', 'searchable entities')}`}>
+                    <div className="text-xs text-muted-foreground" aria-label={`${Array.isArray(appConfig.searchEntities) ? appConfig.searchEntities.length : 0} ${t('app.searchableEntities', 'searchable entities')}`}>
                       {Array.isArray(appConfig.searchEntities) ? appConfig.searchEntities.length : 0} {t('app.searchableEntities', 'modules')}
                     </div>
                   </div>
                   {isActive && (
-                    <div className="w-2 h-2 rounded-full bg-[var(--fixzit-primary-light)]" aria-label={t('app.currentApp', 'Current application')}></div>
+                    <div className="w-2 h-2 rounded-full bg-primary" aria-label={t('app.currentApp', 'Current application')}></div>
                   )}
                 </Link>
               );
