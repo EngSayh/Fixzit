@@ -1,53 +1,98 @@
 import {
   LayoutDashboard, ClipboardList, Building2, DollarSign, Users, Settings,
-  UserCheck, ShoppingBag, Headphones, Shield, BarChart3, Cog
+  UserCheck, Headphones, Shield, BarChart3, Cog, Factory
 } from 'lucide-react';
 
+/**
+ * FM App Sidebar Navigation
+ * NOTE: Sub-pages are implemented as TABS on pages, not nested sidebar items
+ * NOTE: Marketplace is a separate top-level app, not an FM sidebar item
+ */
 export const SIDEBAR_ITEMS = [
-  { id: 'dashboard',    name: 'Dashboard',        icon: LayoutDashboard, path: '/dashboard',    group: 'Core' },
-  { id: 'work-orders',  name: 'Work Orders',      icon: ClipboardList,   path: '/work-orders',  group: 'Operations',
-    children: [
-      { name: 'Create',            path: '/work-orders/create' },
-      { name: 'Assign & Track',    path: '/work-orders/board' },
-      { name: 'Preventive Maint.', path: '/work-orders/preventive' },
-      { name: 'Service History',   path: '/work-orders/history' }
-    ]
+  { 
+    id: 'dashboard', 
+    labelKey: 'nav.dashboard', 
+    icon: LayoutDashboard, 
+    path: '/fm/dashboard', 
+    group: 'Core' 
   },
-  { id: 'properties',   name: 'Properties',       icon: Building2,       path: '/properties',   group: 'Operations',
-    children: [
-      { name: 'Property List',     path: '/properties' },
-      { name: 'Units & Tenants',   path: '/properties/units' },
-      { name: 'Lease Mgmt',        path: '/properties/leases' },
-      { name: 'Inspections',       path: '/properties/inspections' },
-      { name: 'Documents',         path: '/properties/documents' }
-    ]
+  { 
+    id: 'work-orders', 
+    labelKey: 'nav.work_orders', 
+    icon: ClipboardList, 
+    path: '/fm/work-orders', 
+    group: 'Operations' 
   },
-  { id: 'finance',      name: 'Finance',          icon: DollarSign,      path: '/finance',      group: 'Finance',
-    children: [
-      { name: 'Invoices',          path: '/finance/invoices' },
-      { name: 'Payments',          path: '/finance/payments' },
-      { name: 'Expenses',          path: '/finance/expenses' },
-      { name: 'Budgets',           path: '/finance/budgets' },
-      { name: 'Reports',           path: '/finance/reports' }
-    ]
+  { 
+    id: 'properties', 
+    labelKey: 'nav.properties', 
+    icon: Building2, 
+    path: '/fm/properties', 
+    group: 'Operations' 
   },
-  { id: 'hr',           name: 'Human Resources',  icon: Users,           path: '/hr',           group: 'People',
-    children: [
-      { name: 'Directory',         path: '/hr/directory' },
-      { name: 'Attendance & Leave',path: '/hr/leave' },
-      { name: 'Payroll',           path: '/hr/payroll' },
-      { name: 'Recruitment (ATS)', path: '/hr/ats' },
-      { name: 'Training',          path: '/hr/training' },
-      { name: 'Performance',       path: '/hr/performance' }
-    ]
+  { 
+    id: 'vendors', 
+    labelKey: 'nav.vendors', 
+    icon: Factory, 
+    path: '/fm/vendors', 
+    group: 'Operations' 
   },
-  { id: 'administration', name: 'Administration', icon: Settings,        path: '/administration', group: 'Operations' },
-  { id: 'crm',           name: 'CRM',             icon: UserCheck,       path: '/crm',          group: 'Core' },
-  { id: 'marketplace',   name: 'Marketplace',     icon: ShoppingBag,     path: '/marketplace',  group: 'Operations' },
-  { id: 'support',       name: 'Support',         icon: Headphones,      path: '/support',      group: 'Support' },
-  { id: 'compliance',    name: 'Compliance',      icon: Shield,          path: '/compliance',   group: 'Governance' },
-  { id: 'reports',       name: 'Reports',         icon: BarChart3,       path: '/reports',      group: 'Core' },
-  { id: 'system',        name: 'System Mgmt',     icon: Cog,             path: '/system',       group: 'System' }
+  { 
+    id: 'finance', 
+    labelKey: 'nav.finance', 
+    icon: DollarSign, 
+    path: '/fm/finance', 
+    group: 'Finance' 
+  },
+  { 
+    id: 'hr', 
+    labelKey: 'nav.hr', 
+    icon: Users, 
+    path: '/fm/hr', 
+    group: 'People' 
+  },
+  { 
+    id: 'crm', 
+    labelKey: 'nav.crm', 
+    icon: UserCheck, 
+    path: '/fm/crm', 
+    group: 'Core' 
+  },
+  { 
+    id: 'support', 
+    labelKey: 'nav.support', 
+    icon: Headphones, 
+    path: '/fm/support', 
+    group: 'Support' 
+  },
+  { 
+    id: 'compliance', 
+    labelKey: 'nav.compliance', 
+    icon: Shield, 
+    path: '/fm/compliance', 
+    group: 'Governance' 
+  },
+  { 
+    id: 'reports', 
+    labelKey: 'nav.reports', 
+    icon: BarChart3, 
+    path: '/fm/reports', 
+    group: 'Core' 
+  },
+  { 
+    id: 'administration', 
+    labelKey: 'nav.admin', 
+    icon: Settings, 
+    path: '/fm/admin', 
+    group: 'Operations' 
+  },
+  { 
+    id: 'system', 
+    labelKey: 'nav.system', 
+    icon: Cog, 
+    path: '/fm/system', 
+    group: 'System' 
+  }
 ];
 
 

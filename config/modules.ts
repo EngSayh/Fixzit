@@ -1,25 +1,32 @@
-import { Home, Wrench, Banknote, Users, Settings, Building2, Store, Landmark, Factory, LifeBuoy, Contact, LucideIcon } from "lucide-react";
+import { 
+  Home, Wrench, Banknote, Users, Settings, Building2, 
+  Factory, LifeBuoy, Contact, LucideIcon, BarChart3, Shield 
+} from "lucide-react";
 
+/**
+ * FM App Navigation Modules
+ * NOTE: Marketplace and Aqar Souq are separate top-level apps (not FM modules)
+ */
 export type ModuleKey =
   | "dashboard" | "work_orders" | "finance" | "hr" | "admin" | "crm"
-  | "properties" | "marketplace" | "aqar_souq" | "vendors" | "support";
+  | "properties" | "vendors" | "support" | "reports" | "compliance";
 
 export const MODULES: Array<{
   key: ModuleKey;
-  labelKey: string;
-  href: string;
+  labelKey: string; // Translation key in format "nav.{module}"
+  href: string;     // Path within FM app (should start with /fm/)
   icon: LucideIcon;
 }> = [
-  { key:"dashboard",   labelKey:"dashboard",   href:"/dashboard",   icon: Home },
-  { key:"work_orders", labelKey:"work_orders", href:"/work-orders", icon: Wrench },
-  { key:"finance",     labelKey:"finance",     href:"/finance",     icon: Banknote },
-  { key:"hr",          labelKey:"hr",          href:"/hr",          icon: Users },
-  { key:"admin",       labelKey:"admin",       href:"/admin",       icon: Settings },
-  { key:"crm",         labelKey:"crm",         href:"/crm",         icon: Contact },
-  { key:"properties",  labelKey:"properties",  href:"/properties",  icon: Building2 },
-  { key:"marketplace", labelKey:"marketplace", href:"/marketplace", icon: Store },
-  { key:"aqar_souq",   labelKey:"aqar_souq",   href:"/aqar",        icon: Landmark },
-  { key:"vendors",     labelKey:"vendors",     href:"/vendors",     icon: Factory },
-  { key:"support",     labelKey:"support",     href:"/support",     icon: LifeBuoy },
+  { key:"dashboard",   labelKey:"nav.dashboard",    href:"/fm/dashboard",    icon: Home },
+  { key:"work_orders", labelKey:"nav.work_orders",  href:"/fm/work-orders",  icon: Wrench },
+  { key:"finance",     labelKey:"nav.finance",      href:"/fm/finance",      icon: Banknote },
+  { key:"hr",          labelKey:"nav.hr",           href:"/fm/hr",           icon: Users },
+  { key:"admin",       labelKey:"nav.admin",        href:"/fm/admin",        icon: Settings },
+  { key:"crm",         labelKey:"nav.crm",          href:"/fm/crm",          icon: Contact },
+  { key:"properties",  labelKey:"nav.properties",   href:"/fm/properties",   icon: Building2 },
+  { key:"vendors",     labelKey:"nav.vendors",      href:"/fm/vendors",      icon: Factory },
+  { key:"support",     labelKey:"nav.support",      href:"/fm/support",      icon: LifeBuoy },
+  { key:"reports",     labelKey:"nav.reports",      href:"/fm/reports",      icon: BarChart3 },
+  { key:"compliance",  labelKey:"nav.compliance",   href:"/fm/compliance",   icon: Shield },
 ];
 
