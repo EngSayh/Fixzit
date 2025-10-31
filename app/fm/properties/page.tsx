@@ -78,7 +78,7 @@ export default function PropertiesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">{t('fm.properties.title', 'Property Management')}</h1>
-          <p className="text-gray-600">{t('fm.properties.subtitle', 'Real estate portfolio and tenant management')}</p>
+          <p className="text-muted-foreground">{t('fm.properties.subtitle', 'Real estate portfolio and tenant management')}</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
@@ -102,7 +102,7 @@ export default function PropertiesPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-64">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder={t('fm.properties.searchProperties', 'Search properties...')}
                   value={search}
@@ -147,9 +147,9 @@ export default function PropertiesPage() {
           {properties.length === 0 && (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <Building2 className="w-12 h-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('fm.properties.noProperties', 'No Properties Found')}</h3>
-                <p className="text-gray-600 mb-4">{t('fm.properties.noPropertiesText', 'Get started by adding your first property to the portfolio.')}</p>
+                <Building2 className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">{t('fm.properties.noProperties', 'No Properties Found')}</h3>
+                <p className="text-muted-foreground mb-4">{t('fm.properties.noPropertiesText', 'Get started by adding your first property to the portfolio.')}</p>
                 <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-success)] hover:bg-[var(--fixzit-success-dark)]">
                   <Plus className="w-4 h-4 mr-2" />
                   {t('fm.properties.addProperty', 'Add Property')}
@@ -210,7 +210,7 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
       case 'LAND':
         return 'bg-yellow-100 text-yellow-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-gray-800';
     }
   };
 
@@ -243,7 +243,7 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
             {getTypeIcon(property.type || '')}
             <div className="flex-1">
               <CardTitle className="text-lg">{property.name}</CardTitle>
-              <p className="text-sm text-gray-600">{property.code}</p>
+              <p className="text-sm text-muted-foreground">{property.code}</p>
             </div>
           </div>
           <Badge className={getTypeColor(property.type || '')}>
@@ -252,26 +252,26 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center text-sm text-gray-600">
+        <div className="flex items-center text-sm text-muted-foreground">
           <MapPin className="w-4 h-4 mr-1" />
           <span>{property.address?.city}, {property.address?.region}</span>
         </div>
 
         <div className="space-y-2">
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">{t('fm.properties.totalArea', 'Total Area')}:</span>
+            <span className="text-sm text-muted-foreground">{t('fm.properties.totalArea', 'Total Area')}:</span>
             <span className="text-sm font-medium">{property.details?.totalArea || t('common.na', 'N/A')} sqm</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">{t('fm.properties.units', 'Units')}:</span>
+            <span className="text-sm text-muted-foreground">{t('fm.properties.units', 'Units')}:</span>
             <span className="text-sm font-medium">{totalUnits} {t('fm.properties.units', 'units')}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">{t('fm.properties.occupancy', 'Occupancy')}:</span>
+            <span className="text-sm text-muted-foreground">{t('fm.properties.occupancy', 'Occupancy')}:</span>
             <span className="text-sm font-medium">{occupancyRate}%</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-sm text-gray-600">{t('fm.properties.monthlyRent', 'Monthly Rent')}:</span>
+            <span className="text-sm text-muted-foreground">{t('fm.properties.monthlyRent', 'Monthly Rent')}:</span>
             <span className="text-sm font-medium">{property.financial?.monthlyRent?.toLocaleString() || t('common.na', 'N/A')} SAR</span>
           </div>
         </div>
@@ -280,14 +280,14 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
 
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">{t('fm.properties.status', 'Status')}:</span>
+            <span className="text-sm text-muted-foreground">{t('fm.properties.status', 'Status')}:</span>
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-[var(--fixzit-success-light)] rounded-full"></div>
               <span className="text-sm font-medium">{t('fm.properties.active', 'Active')}</span>
             </div>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">{t('fm.properties.tenants', 'Tenants')}:</span>
+            <span className="text-sm text-muted-foreground">{t('fm.properties.tenants', 'Tenants')}:</span>
             <span className="text-sm font-medium">{occupiedUnits}/{totalUnits}</span>
           </div>
         </div>

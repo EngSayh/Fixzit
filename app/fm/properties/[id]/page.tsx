@@ -90,7 +90,7 @@ export default function PropertyDetailsPage() {
           </Link>
           <div>
             <h1 className="text-3xl font-bold">{property.name}</h1>
-            <p className="text-gray-600">{property.code}</p>
+            <p className="text-muted-foreground">{property.code}</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -126,27 +126,27 @@ export default function PropertyDetailsPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-600">Type</p>
+                  <p className="text-sm text-muted-foreground">Type</p>
                   <p className="font-medium">{property.type}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Subtype</p>
+                  <p className="text-sm text-muted-foreground">Subtype</p>
                   <p className="font-medium">{property.subtype || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Total Area</p>
+                  <p className="text-sm text-muted-foreground">Total Area</p>
                   <p className="font-medium">{property.details?.totalArea || 'N/A'} sqm</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Built Area</p>
+                  <p className="text-sm text-muted-foreground">Built Area</p>
                   <p className="font-medium">{property.details?.builtArea || 'N/A'} sqm</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Year Built</p>
+                  <p className="text-sm text-muted-foreground">Year Built</p>
                   <p className="font-medium">{property.details?.yearBuilt || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Floors</p>
+                  <p className="text-sm text-muted-foreground">Floors</p>
                   <p className="font-medium">{property.details?.floors || 'N/A'}</p>
                 </div>
               </div>
@@ -155,7 +155,7 @@ export default function PropertyDetailsPage() {
                 <>
                   <Separator />
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">Description</p>
+                    <p className="text-sm text-muted-foreground mb-1">Description</p>
                     <p className="text-sm">{property.description}</p>
                   </div>
                 </>
@@ -174,15 +174,15 @@ export default function PropertyDetailsPage() {
             <CardContent className="space-y-4">
               <div>
                 <p className="font-medium">{property.address?.street}</p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   {property.address?.district && `${property.address.district}, `}
                   {property.address?.city}, {property.address?.region}
                 </p>
                 {property.address?.postalCode && (
-                  <p className="text-sm text-gray-600">Postal Code: {property.address.postalCode}</p>
+                  <p className="text-sm text-muted-foreground">Postal Code: {property.address.postalCode}</p>
                 )}
                 {property.address?.nationalAddress && (
-                  <p className="text-sm text-gray-600">National Address: {property.address.nationalAddress}</p>
+                  <p className="text-sm text-muted-foreground">National Address: {property.address.nationalAddress}</p>
                 )}
               </div>
 
@@ -218,10 +218,10 @@ export default function PropertyDetailsPage() {
               <CardContent>
                 <div className="space-y-3">
                   {(property.units as PropertyUnit[]).map((unit, index: number) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-2xl">
                       <div>
                         <p className="font-medium">{unit.unitNumber}</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted-foreground">
                           {unit.type} • {unit.area} sqm • {unit.bedrooms}BR/{unit.bathrooms}BA
                         </p>
                       </div>
@@ -229,12 +229,12 @@ export default function PropertyDetailsPage() {
                         <Badge className={
                           unit.status === 'OCCUPIED' ? 'bg-green-100 text-green-800' :
                           unit.status === 'VACANT' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
+                          'bg-muted text-gray-800'
                         }>
                           {unit.status}
                         </Badge>
                         {unit.tenant?.name && (
-                          <p className="text-sm text-gray-600 mt-1">{unit.tenant.name}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{unit.tenant.name}</p>
                         )}
                       </div>
                     </div>
@@ -257,25 +257,25 @@ export default function PropertyDetailsPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Purchase Price</span>
+                <span className="text-sm text-muted-foreground">Purchase Price</span>
                 <span className="font-medium">
                   {property.financial?.purchasePrice?.toLocaleString() || 'N/A'} SAR
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Current Value</span>
+                <span className="text-sm text-muted-foreground">Current Value</span>
                 <span className="font-medium">
                   {property.financial?.currentValue?.toLocaleString() || 'N/A'} SAR
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Monthly Rent</span>
+                <span className="text-sm text-muted-foreground">Monthly Rent</span>
                 <span className="font-medium">
                   {property.financial?.monthlyRent?.toLocaleString() || 'N/A'} SAR
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Annual Yield</span>
+                <span className="text-sm text-muted-foreground">Annual Yield</span>
                 <span className="font-medium">
                   {property.financial?.annualYield || 'N/A'}%
                 </span>
@@ -293,15 +293,15 @@ export default function PropertyDetailsPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-sm text-gray-600">Type</p>
+                <p className="text-sm text-muted-foreground">Type</p>
                 <p className="font-medium">{property.ownership?.type || 'N/A'}</p>
               </div>
               {property.ownership?.owner && (
                 <div>
-                  <p className="text-sm text-gray-600">Owner</p>
+                  <p className="text-sm text-muted-foreground">Owner</p>
                   <p className="font-medium">{property.ownership.owner.name}</p>
                   {property.ownership.owner.contact && (
-                    <p className="text-sm text-gray-500">{property.ownership.owner.contact}</p>
+                    <p className="text-sm text-muted-foreground">{property.ownership.owner.contact}</p>
                   )}
                 </div>
               )}
@@ -348,7 +348,7 @@ export default function PropertyDetailsPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-sm text-gray-600">Last Inspection</p>
+                <p className="text-sm text-muted-foreground">Last Inspection</p>
                 <p className="font-medium">
                   {property.maintenance?.lastInspection 
                     ? new Date(property.maintenance.lastInspection).toLocaleDateString()
@@ -356,7 +356,7 @@ export default function PropertyDetailsPage() {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Next Inspection</p>
+                <p className="text-sm text-muted-foreground">Next Inspection</p>
                 <p className="font-medium">
                   {property.maintenance?.nextInspection 
                     ? new Date(property.maintenance.nextInspection).toLocaleDateString()
@@ -365,7 +365,7 @@ export default function PropertyDetailsPage() {
               </div>
               {property.maintenance?.issues && property.maintenance.issues.length > 0 && (
                 <div>
-                  <p className="text-sm text-gray-600 mb-2">Open Issues</p>
+                  <p className="text-sm text-muted-foreground mb-2">Open Issues</p>
                   {(property.maintenance.issues as MaintenanceIssue[])
                     .filter((issue) => !issue.resolved)
                     .map((issue, index: number) => (
@@ -373,7 +373,7 @@ export default function PropertyDetailsPage() {
                         <AlertCircle className={`w-4 h-4 ${
                           issue.severity === 'HIGH' ? 'text-red-600' :
                           issue.severity === 'MEDIUM' ? 'text-yellow-600' :
-                          'text-gray-600'
+                          'text-muted-foreground'
                         }`} />
                         <span>{issue.description}</span>
                       </div>

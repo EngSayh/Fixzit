@@ -83,7 +83,7 @@ export default function ProjectsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Project Management</h1>
-          <p className="text-gray-600">Gantt tracking, milestones, and resource management</p>
+          <p className="text-muted-foreground">Gantt tracking, milestones, and resource management</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
@@ -107,7 +107,7 @@ export default function ProjectsPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-64">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search projects..."
                   value={search}
@@ -163,9 +163,9 @@ export default function ProjectsPage() {
           {projects.length === 0 && (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <Briefcase className="w-12 h-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Projects Found</h3>
-                <p className="text-gray-600 mb-4">Get started by creating your first project.</p>
+                <Briefcase className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">No Projects Found</h3>
+                <p className="text-muted-foreground mb-4">Get started by creating your first project.</p>
                 <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-indigo)] hover:bg-[var(--fixzit-indigo-dark)]">
                   <Plus className="w-4 h-4 mr-2" />
                   Create Project
@@ -216,7 +216,7 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PLANNING':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-gray-800';
       case 'APPROVED':
         return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)]';
       case 'IN_PROGRESS':
@@ -230,7 +230,7 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
       case 'CLOSED':
         return 'bg-purple-100 text-purple-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-gray-800';
     }
   };
 
@@ -246,7 +246,7 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
             {getTypeIcon(project.type || '')}
             <div className="flex-1">
               <CardTitle className="text-lg">{project.name}</CardTitle>
-              <p className="text-sm text-gray-600">{project.code}</p>
+              <p className="text-sm text-muted-foreground">{project.code}</p>
             </div>
           </div>
           <Badge className={getStatusColor(project.status || '')}>
@@ -255,12 +255,12 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-gray-600 line-clamp-2">{project.description}</p>
+        <p className="text-sm text-muted-foreground line-clamp-2">{project.description}</p>
 
         {/* Progress Indicators */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Overall Progress</span>
+            <span className="text-muted-foreground">Overall Progress</span>
             <span className="font-medium">{project.progress?.overall || 0}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -275,7 +275,7 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
 
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <div className="flex items-center text-gray-600">
+            <div className="flex items-center text-muted-foreground">
               <Calendar className="w-4 h-4 mr-1" />
               Timeline
             </div>
@@ -288,7 +288,7 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
             </p>
           </div>
           <div>
-            <div className="flex items-center text-gray-600">
+            <div className="flex items-center text-muted-foreground">
               <DollarSign className="w-4 h-4 mr-1" />
               Budget
             </div>
@@ -300,8 +300,8 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
 
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center space-x-2">
-            <Users className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-600">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">
               {project.team?.length || 0} team members
             </span>
           </div>
