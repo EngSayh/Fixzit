@@ -233,7 +233,7 @@ export default function DevLoginClient() {
             </li>
             <li className="flex gap-2">
               <span>•</span>
-              <span><strong>Access:</strong> Visible in dev or when <code className="bg-black/30 px-1 rounded">NEXT_PUBLIC_ENABLE_DEMO_LOGIN=true</code>.</span>
+              <span><strong>Access:</strong> This page is only visible in non-production environments.</span>
             </li>
             <li className="flex gap-2">
               <span>•</span>
