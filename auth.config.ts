@@ -1,8 +1,11 @@
 import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
+import Credentials from 'next-auth/providers/credentials';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { User } from '@/server/models/User';
 import { getNextAtomicUserCode } from '@/lib/mongoUtils';
+import { z } from 'zod';
+import { verifyPassword } from '@/lib/auth';
 
 // Validate required environment variables at startup
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -65,6 +68,45 @@ function sanitizeImage(image?: string | null): string | undefined {
   return undefined;
 }
 
+// Validation schema for credentials login (unified identifier field)
+const LoginSchema = z
+  .object({
+    identifier: z.string().trim().min(1, 'Email or employee number is required'),
+    password: z.string().min(1, 'Password is required'),
+    rememberMe: z.boolean().optional().default(false),
+  })
+  .transform((data, ctx) => {
+    const idRaw = data.identifier.trim();
+    const emailOk = z.string().email().safeParse(idRaw).success;
+    const empUpper = idRaw.toUpperCase();
+    const empOk = /^EMP\d+$/.test(empUpper);
+
+    let loginIdentifier = '';
+    let loginType: 'personal' | 'corporate';
+
+    if (emailOk) {
+      loginIdentifier = idRaw.toLowerCase();
+      loginType = 'personal';
+    } else if (empOk) {
+      loginIdentifier = empUpper;
+      loginType = 'corporate';
+    } else {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['identifier'],
+        message: 'Enter a valid email address or employee number (e.g., EMP001)',
+      });
+      return z.NEVER;
+    }
+
+    return {
+      loginIdentifier,
+      loginType,
+      password: data.password,
+      rememberMe: data.rememberMe,
+    };
+  });
+
 export const authConfig = {
   providers: [
     Google({
@@ -78,6 +120,75 @@ export const authConfig = {
         },
       },
     }),
+    Credentials({
+      name: 'Credentials',
+      credentials: {
+        identifier: { label: 'Email or Employee Number', type: 'text' },
+        password: { label: 'Password', type: 'password' },
+        rememberMe: { label: 'Remember Me', type: 'checkbox' },
+      },
+      async authorize(credentials) {
+        try {
+          // 1. Validate credentials schema
+          const parsed = LoginSchema.safeParse(credentials);
+          if (!parsed.success) {
+            console.error('[NextAuth] Credentials validation failed:', parsed.error.flatten());
+            return null;
+          }
+
+          const { loginIdentifier, loginType, password, rememberMe } = parsed.data;
+
+          // 2. Connect to database
+          await connectToDatabase();
+
+          // 3. Find user based on login type
+          let user;
+          if (loginType === 'personal') {
+            user = await User.findOne({ email: loginIdentifier });
+          } else {
+            // Corporate login uses employee number (stored in username field)
+            user = await User.findOne({ username: loginIdentifier });
+          }
+
+          if (!user) {
+            console.error('[NextAuth] User not found:', loginIdentifier);
+            return null;
+          }
+
+          // 4. Verify password
+          const isValid = await verifyPassword(password, user.password);
+          if (!isValid) {
+            console.error('[NextAuth] Invalid password for:', loginIdentifier);
+            return null;
+          }
+
+          // 5. Check if user is active
+          const isUserActive = user.isActive !== undefined ? user.isActive : (user.status === 'ACTIVE');
+          if (!isUserActive) {
+            console.error('[NextAuth] Inactive user attempted login:', loginIdentifier);
+            return null;
+          }
+
+          // 6. Update last login timestamp
+          user.security = user.security || {};
+          user.security.lastLogin = new Date();
+          await user.save();
+
+          // 7. Return user object for NextAuth session
+          return {
+            id: user._id.toString(),
+            email: user.email,
+            name: `${user.personal?.firstName || ''} ${user.personal?.lastName || ''}`.trim() || user.email,
+            role: user.professional?.role || user.role || 'USER',
+            orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || null),
+            sessionId: null, // NextAuth will generate session ID
+          } as any; // Type assertion to bypass rememberMe field
+        } catch (error) {
+          console.error('[NextAuth] Authorize error:', error);
+          return null;
+        }
+      },
+    }),
   ],
   pages: {
     signIn: '/login',
@@ -85,8 +196,13 @@ export const authConfig = {
   },
   callbacks: {
     async signIn({ user: _user, account: _account, profile: _profile }) {
-      // OAuth user provisioning - create/update user in database
-      
+      // Handle Credentials provider (email/employee login)
+      if (_account?.provider === 'credentials') {
+        // User is already validated in authorize() function
+        return true;
+      }
+
+      // Handle OAuth providers (Google, etc.)
       // Validate email exists
       if (!_user?.email) {
         if (process.env.LOG_LEVEL === 'debug') {
@@ -95,7 +211,7 @@ export const authConfig = {
         return false;
       }
       
-      // Only provision OAuth users (not credentials provider)
+      // Provision OAuth users (not credentials provider)
       if (_account?.provider && _account.provider !== 'credentials') {
         try {
           // Connect to database and provision user directly
@@ -195,20 +311,32 @@ export const authConfig = {
       return baseUrl; // Fallback to homepage (not /fm/dashboard to avoid redirect loops)
     },
     async session({ session, token }) {
-      // Add user ID to session
+      // Add custom user data to session
       if (token?.sub) {
         session.user.id = token.sub;
       }
+      if (token?.role) {
+        (session.user as any).role = token.role;
+      }
+      if (token?.orgId) {
+        (session.user as any).orgId = token.orgId;
+      }
       return session;
     },
-    async jwt({ token, user }) {
-      // Add user info to token
+    async jwt({ token, user, account }) {
+      // Add user info to token on first sign-in
       if (user) {
         token.id = user.id;
+        token.role = (user as any).role || 'USER';
+        token.orgId = (user as any).orgId || null;
+        
+        // Handle rememberMe for credentials provider
+        if (account?.provider === 'credentials' && (user as any).rememberMe) {
+          // Extend token lifetime for "remember me"
+          // This is handled by session.maxAge, but we can flag it here
+          token.rememberMe = true;
+        }
       }
-      // Don't persist provider access tokens in long-lived JWT (security risk)
-      // If needed for server-to-server calls, fetch on-demand using backend credential
-      // or store a short-lived opaque reference instead
       return token;
     },
   },
