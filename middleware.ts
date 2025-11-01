@@ -192,9 +192,9 @@ export default auth(async function middleware(request: WrappedReq) {
     return NextResponse.next();
   }
 
-  // Admin RBAC for /admin and /admin/*
+  // Admin RBAC for /admin and /admin/* (consistent with API RBAC)
   if (matchesRoute(pathname, '/admin')) {
-    const adminRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
+    const adminRoles = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN']);
     if (!adminRoles.has(user.role)) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
