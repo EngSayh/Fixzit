@@ -15,7 +15,7 @@ interface TicketMessage {
 }
 
 interface Ticket {
-  _id: string;
+  id: string;
   code: string;
   subject: string;
   status: string;
@@ -60,7 +60,7 @@ export default function MyTicketsPage() {
     const toastId = toast.loading('Sending reply...');
     
     try {
-      const res = await fetch(`/api/support/tickets/${selectedTicket._id}/reply`, {
+      const res = await fetch(`/api/support/tickets/${selectedTicket.id}/reply`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json'
@@ -74,7 +74,7 @@ export default function MyTicketsPage() {
         setReplyText('');
         await mutate();
         // Refresh selected ticket
-        const ticketRes = await fetch(`/api/support/tickets/${selectedTicket._id}`);
+        const ticketRes = await fetch(`/api/support/tickets/${selectedTicket.id}`);
         if (ticketRes.ok) {
           setSelectedTicket(await ticketRes.json());
         }
@@ -123,10 +123,10 @@ export default function MyTicketsPage() {
                 ) : (
                   data?.items?.map((ticket: Ticket) => (
                   <div
-                    key={ticket._id}
+                    key={ticket.id}
                     onClick={() => setSelectedTicket(ticket)}
                     className={`p-4 cursor-pointer hover:bg-muted ${
-                      selectedTicket?._id === ticket._id ? 'bg-[var(--fixzit-primary-lightest)]' : ''
+                      selectedTicket?.id === ticket.id ? 'bg-[var(--fixzit-primary-lightest)]' : ''
                     }`}
                   >
                     <div className="flex justify-between items-start mb-1">
