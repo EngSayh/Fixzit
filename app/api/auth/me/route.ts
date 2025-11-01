@@ -83,18 +83,9 @@ export async function GET(req: NextRequest) {
 
     return createSecureResponse({ ok: true, user }, 200, req);
   } catch (error: unknown) {
-    // Distinguish authentication errors from other errors
-    if (
-      error &&
-      typeof error === 'object' &&
-      ('status' in error && error.status === 401 ||
-       'code' in error && error.code === 'UNAUTHORIZED' ||
-       'type' in error && error.type === 'auth')
-    ) {
-      return unauthorizedError('Invalid or expired token');
-    }
-    // For all other errors, log and return internal server error
+    // Per our architecture, getUserFromToken returns 'null' for auth errors (handled above).
+    // Any *thrown* error is an unexpected 500-level server error.
     console.error('Get current user error:', error instanceof Error ? error.message : 'Unknown error');
-    return internalServerError('Internal server error', error);
+    return internalServerError('An internal server error occurred.');
   }
 }

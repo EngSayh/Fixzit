@@ -6,15 +6,69 @@ import { unauthorizedError, zodValidationError, rateLimitError, handleApiError }
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
 
-const SessionLoginSchema = z.object({
-  email: z.string().email().optional(),
-  employeeNumber: z.string().optional(),
-  password: z.string().min(1, 'Password is required'),
-  loginType: z.enum(['personal', 'corporate']).default('personal')
-}).refine(
-  (data) => data.loginType === 'personal' ? !!data.email : !!data.employeeNumber,
-  { message: 'Email required for personal login or employee number for corporate login' }
-);
+// ✅ FIX: Use the same robust LoginSchema from the primary login route
+// Build one normalized payload: { loginIdentifier, loginType, password, rememberMe }
+const LoginSchema = z
+  .object({
+    email: z.string().email().optional(),
+    employeeNumber: z.string().optional(),
+    identifier: z.string().trim().min(1).optional(),
+    password: z.string().min(1, 'Password is required'),
+    loginType: z.enum(['personal', 'corporate']).optional(),
+    rememberMe: z.boolean().optional().default(false), // This field will be ignored by this route, but keeps payload consistent
+  })
+  .transform((data, ctx) => {
+    // If identifier present, auto-detect. Else honor legacy fields.
+    const idRaw = data.identifier?.trim();
+    const emailOk = idRaw ? z.string().email().safeParse(idRaw).success : false;
+    const empUpper = idRaw?.toUpperCase();
+    const empOk = !!empUpper && /^EMP\d+$/.test(empUpper);
+
+    let loginIdentifier = '';
+    let loginType: 'personal' | 'corporate';
+
+    if (idRaw) {
+      if (emailOk) {
+        loginIdentifier = idRaw.toLowerCase();
+        loginType = 'personal';
+      } else if (empOk) {
+        loginIdentifier = empUpper!;
+        loginType = 'corporate';
+      } else {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['identifier'],
+          message: 'Enter a valid email address or employee number (e.g., EMP001)',
+        });
+        return z.NEVER;
+      }
+    } else {
+      // Legacy path (keep for compatibility if needed)
+      const legacyType =
+        data.loginType ?? (data.employeeNumber ? 'corporate' : 'personal');
+      if (legacyType === 'personal') {
+        if (!data.email) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['email'], message: 'Email is required' });
+          return z.NEVER;
+        }
+        loginIdentifier = data.email.toLowerCase();
+      } else {
+        if (!data.employeeNumber) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['employeeNumber'], message: 'Employee number is required' });
+          return z.NEVER;
+        }
+        loginIdentifier = data.employeeNumber.toUpperCase();
+      }
+      loginType = legacyType;
+    }
+
+    return {
+      loginIdentifier,
+      loginType,
+      password: data.password,
+      rememberMe: data.rememberMe === true,
+    };
+  });
 
 /**
  * @openapi
@@ -61,18 +115,37 @@ const SessionLoginSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const clientIp = getClientIP(req);
-    const rl = rateLimit(`auth-login-session:${clientIp}`, 5, 900000);
-    if (!rl.allowed) {
-      return rateLimitError();
+
+    // ----- Safe JSON parse -----
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return createSecureResponse(
+        { ok: false, error: 'Invalid JSON payload' },
+        400,
+        req
+      );
     }
 
-    const body = await req.json();
-    const validatedData = SessionLoginSchema.parse(body);
+    // ----- Validate & normalize -----
+    const parsed = LoginSchema.safeParse(body);
+    if (!parsed.success) {
+      return zodValidationError(parsed.error);
+    }
+    // Note: We ignore 'rememberMe' as this is a session-only route
+    const { loginIdentifier, loginType, password } = parsed.data;
 
+    // ----- ✅ FIX: Dual Rate limit: per-IP AND per-identifier -----
+    const ipGate = rateLimit(`auth-login:ip:${clientIp}`, 5, 15 * 60 * 1000);
+    if (!ipGate.allowed) return rateLimitError();
+
+    const idGate = rateLimit(`auth-login:id:${loginType}:${loginIdentifier}`, 5, 15 * 60 * 1000);
+    if (!idGate.allowed) return rateLimitError();
+
+    // ----- Authenticate -----
     const result = await authenticateUser(
-      validatedData.loginType === 'corporate' ? validatedData.employeeNumber! : validatedData.email!,
-      validatedData.password,
-      validatedData.loginType
+      loginIdentifier, password, loginType
     );
 
     if (!('token' in result) || !result.token) {
