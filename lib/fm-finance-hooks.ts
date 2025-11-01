@@ -3,7 +3,7 @@
  * Automatically creates financial transactions when work orders are closed
  */
 
-import { FMFinancialTransaction } from '@/src/server/models/FMFinancialTransaction';
+import { FMFinancialTransaction } from '@/server/models/FMFinancialTransaction';
 
 export interface WorkOrderFinancialData {
   workOrderId: string;

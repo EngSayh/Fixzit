@@ -7,6 +7,14 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import Providers from './Providers';
 
+// Silence console.error during ErrorBoundary test (intentional "Boom" error)
+beforeAll(() => {
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+});
+afterAll(() => {
+  (console.error as any).mockRestore?.();
+});
+
 // Mock all nested providers to isolate Providers behavior.
 // Actual nesting order: SessionProvider → I18nProvider → TranslationProvider → ResponsiveProvider → CurrencyProvider → ThemeProvider → TopBarProvider → ErrorBoundary → FormStateProvider
 

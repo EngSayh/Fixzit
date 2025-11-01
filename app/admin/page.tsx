@@ -4,17 +4,20 @@ import { useState } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
+import { useTranslation } from '@/contexts/TranslationContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TableSkeleton } from '@/components/skeletons';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 export default function Page() {
   const { data: session } = useSession();
+  const { t } = useTranslation();
   const [tab, setTab] = useState<'overview'|'users'|'roles'|'audit'|'features'>('overview');
   
   // Users state
@@ -49,7 +52,7 @@ export default function Page() {
 
   // Handlers
   const handleCreateUser = async () => {
-    const toastId = toast.loading('Creating user...');
+    const toastId = toast.loading(t('admin.users.creating', 'Creating user...'));
     try {
       const res = await fetch('/api/admin/users', {
         method: 'POST',
@@ -58,27 +61,28 @@ export default function Page() {
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Failed to create user');
+        throw new Error(err.error || t('admin.users.createFailed', 'Failed to create user'));
       }
-      toast.success('User created successfully', { id: toastId });
+      toast.success(t('admin.users.createSuccess', 'User created successfully'), { id: toastId });
       setCreateUserOpen(false);
       setNewUser({ email: '', username: '', firstName: '', lastName: '', role: 'user', phone: '' });
       mutateUsers();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create user', { id: toastId });
+      toast.error(error instanceof Error ? error.message : t('admin.users.createFailed', 'Failed to create user'), { id: toastId });
     }
   };
 
   const handleDeleteUser = async (userId: string, username: string) => {
-    if (!confirm(`Delete user "${username}"? This cannot be undone.`)) return;
-    const toastId = toast.loading('Deleting user...');
+    const confirmMsg = t('admin.users.deleteConfirm', `Delete user "${username}"? This cannot be undone.`);
+    if (!confirm(confirmMsg.replace('${username}', username))) return;
+    const toastId = toast.loading(t('admin.users.deleting', 'Deleting user...'));
     try {
       const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete user');
-      toast.success('User deleted successfully', { id: toastId });
+      if (!res.ok) throw new Error(t('admin.users.deleteFailed', 'Failed to delete user'));
+      toast.success(t('admin.users.deleteSuccess', 'User deleted successfully'), { id: toastId });
       mutateUsers();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete user', { id: toastId });
+      toast.error(error instanceof Error ? error.message : t('admin.users.deleteFailed', 'Failed to delete user'), { id: toastId });
     }
   };
 
@@ -182,12 +186,12 @@ export default function Page() {
   if (!session) {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader>
-            <CardTitle>Admin</CardTitle>
+            <CardTitle>{t('admin.title', 'Admin')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">You must be signed in to access admin pages.</p>
+            <p className="text-muted-foreground">{t('admin.signInRequired', 'You must be signed in to access admin pages.')}</p>
           </CardContent>
         </Card>
       </div>
@@ -199,14 +203,14 @@ export default function Page() {
   if (userRole !== 'super_admin' && userRole !== 'superadmin') {
     return (
       <div className="max-w-4xl mx-auto p-6">
-        <Card>
+        <Card className="rounded-2xl">
           <CardHeader>
-            <CardTitle>Access Denied</CardTitle>
+            <CardTitle>{t('admin.accessDenied', 'Access Denied')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-red-600 font-semibold mb-2">Insufficient Permissions</p>
-            <p className="text-muted-foreground">You must have Super Admin privileges to access this page.</p>
-            <p className="text-sm text-muted-foreground mt-4">Current role: {session.user?.role || 'Unknown'}</p>
+            <p className="text-destructive font-semibold mb-2">{t('admin.insufficientPerms', 'Insufficient Permissions')}</p>
+            <p className="text-muted-foreground">{t('admin.superAdminRequired', 'You must have Super Admin privileges to access this page.')}</p>
+            <p className="text-sm text-muted-foreground mt-4">{t('admin.currentRole', 'Current role')}: {session.user?.role || t('common.unknown', 'Unknown')}</p>
           </CardContent>
         </Card>
       </div>
@@ -217,31 +221,31 @@ export default function Page() {
     <div className="max-w-7xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Admin Console</h1>
-          <p className="text-muted-foreground">Super Admin tools and platform-wide settings.</p>
+          <h1 className="text-3xl font-bold">{t('admin.console', 'Admin Console')}</h1>
+          <p className="text-muted-foreground">{t('admin.consoleDesc', 'Super Admin tools and platform-wide settings.')}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant={tab === 'overview' ? 'default' : 'ghost'} onClick={() => setTab('overview')}>Overview</Button>
-          <Button variant={tab === 'users' ? 'default' : 'ghost'} onClick={() => setTab('users')}>Users</Button>
-          <Button variant={tab === 'roles' ? 'default' : 'ghost'} onClick={() => setTab('roles')}>Roles</Button>
-          <Button variant={tab === 'audit' ? 'default' : 'ghost'} onClick={() => setTab('audit')}>Audit Logs</Button>
-          <Button variant={tab === 'features' ? 'default' : 'ghost'} onClick={() => setTab('features')}>Features</Button>
+          <Button variant={tab === 'overview' ? 'default' : 'ghost'} onClick={() => setTab('overview')}>{t('admin.tabs.overview', 'Overview')}</Button>
+          <Button variant={tab === 'users' ? 'default' : 'ghost'} onClick={() => setTab('users')}>{t('admin.tabs.users', 'Users')}</Button>
+          <Button variant={tab === 'roles' ? 'default' : 'ghost'} onClick={() => setTab('roles')}>{t('admin.tabs.roles', 'Roles')}</Button>
+          <Button variant={tab === 'audit' ? 'default' : 'ghost'} onClick={() => setTab('audit')}>{t('admin.tabs.audit', 'Audit Logs')}</Button>
+          <Button variant={tab === 'features' ? 'default' : 'ghost'} onClick={() => setTab('features')}>{t('admin.tabs.features', 'Features')}</Button>
         </div>
       </div>
 
       {tab === 'overview' && (
         <div className="space-y-4">
-          <Card>
+          <Card className="rounded-2xl">
             <CardHeader>
-              <CardTitle>Overview</CardTitle>
+              <CardTitle>{t('admin.overview.title', 'Overview')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-foreground">Quick links to admin modules:</p>
+              <p className="text-muted-foreground">{t('admin.overview.quickLinks', 'Quick links to admin modules:')}</p>
               <div className="mt-4 flex gap-3 flex-wrap">
-                <Button onClick={() => setTab('users')}>Manage Users</Button>
-                <Button onClick={() => setTab('roles')}>Manage Roles</Button>
-                <Button onClick={() => setTab('audit')}>View Audit Logs</Button>
-                <Button onClick={() => setTab('features')}>Feature Settings</Button>
+                <Button onClick={() => setTab('users')}>{t('admin.overview.manageUsers', 'Manage Users')}</Button>
+                <Button onClick={() => setTab('roles')}>{t('admin.overview.manageRoles', 'Manage Roles')}</Button>
+                <Button onClick={() => setTab('audit')}>{t('admin.overview.viewLogs', 'View Audit Logs')}</Button>
+                <Button onClick={() => setTab('features')}>{t('admin.overview.featureSettings', 'Feature Settings')}</Button>
               </div>
             </CardContent>
           </Card>
@@ -251,47 +255,47 @@ export default function Page() {
       {tab === 'users' && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Users</h2>
+            <h2 className="text-xl font-semibold">{t('admin.tabs.users', 'Users')}</h2>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={exportUsersCsv}>Export CSV</Button>
+              <Button variant="outline" onClick={exportUsersCsv}>{t('admin.users.exportCsv', 'Export CSV')}</Button>
               <Dialog open={createUserOpen} onOpenChange={setCreateUserOpen}>
                 <DialogTrigger asChild>
-                  <Button>Create User</Button>
+                  <Button>{t('admin.users.createUser', 'Create User')}</Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Create New User</DialogTitle>
+                    <DialogTitle>{t('admin.users.createNewUser', 'Create New User')}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 mt-4">
                     <div>
-                      <Label htmlFor="email">Email*</Label>
+                      <Label htmlFor="email">{t('admin.users.email', 'Email')}*</Label>
                       <Input id="email" value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} />
                     </div>
                     <div>
-                      <Label htmlFor="username">Username*</Label>
+                      <Label htmlFor="username">{t('admin.users.username', 'Username')}*</Label>
                       <Input id="username" value={newUser.username} onChange={(e) => setNewUser({...newUser, username: e.target.value})} />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <Label htmlFor="firstName">First Name</Label>
+                        <Label htmlFor="firstName">{t('admin.users.firstName', 'First Name')}</Label>
                         <Input id="firstName" value={newUser.firstName} onChange={(e) => setNewUser({...newUser, firstName: e.target.value})} />
                       </div>
                       <div>
-                        <Label htmlFor="lastName">Last Name</Label>
+                        <Label htmlFor="lastName">{t('admin.users.lastName', 'Last Name')}</Label>
                         <Input id="lastName" value={newUser.lastName} onChange={(e) => setNewUser({...newUser, lastName: e.target.value})} />
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="phone">Phone</Label>
+                      <Label htmlFor="phone">{t('admin.users.phone', 'Phone')}</Label>
                       <Input id="phone" value={newUser.phone} onChange={(e) => setNewUser({...newUser, phone: e.target.value})} />
                     </div>
                     <div>
-                      <Label htmlFor="role">Role</Label>
-                      <Input id="role" value={newUser.role} onChange={(e) => setNewUser({...newUser, role: e.target.value})} placeholder="user, admin, etc" />
+                      <Label htmlFor="role">{t('admin.users.role', 'Role')}</Label>
+                      <Input id="role" value={newUser.role} onChange={(e) => setNewUser({...newUser, role: e.target.value})} placeholder={t('admin.users.rolePlaceholder', 'user, admin, etc')} />
                     </div>
                     <div className="flex gap-2 justify-end">
-                      <Button variant="ghost" onClick={() => setCreateUserOpen(false)}>Cancel</Button>
-                      <Button onClick={handleCreateUser}>Create</Button>
+                      <Button variant="ghost" onClick={() => setCreateUserOpen(false)}>{t('admin.users.cancel', 'Cancel')}</Button>
+                      <Button onClick={handleCreateUser}>{t('admin.users.create', 'Create')}</Button>
                     </div>
                   </div>
                 </DialogContent>
@@ -302,7 +306,7 @@ export default function Page() {
           <div className="mb-4 flex gap-3 items-end">
             <div className="flex-1">
               <Input 
-                placeholder="Search by email, name, or username..." 
+                placeholder={t('admin.users.searchPlaceholder', 'Search by email, name, or username...')}
                 value={userSearch} 
                 onChange={(e) => {
                   setUserSearch(e.target.value);
@@ -312,7 +316,7 @@ export default function Page() {
             </div>
             <div>
               <Input 
-                placeholder="Filter by role..." 
+                placeholder={t('admin.users.filterRole', 'Filter by role...')}
                 value={roleFilter} 
                 onChange={(e) => {
                   setRoleFilter(e.target.value);
@@ -323,7 +327,7 @@ export default function Page() {
             </div>
             <div>
               <Input 
-                placeholder="Filter by status..." 
+                placeholder={t('admin.users.filterStatus', 'Filter by status...')}
                 value={statusFilter} 
                 onChange={(e) => {
                   setStatusFilter(e.target.value);
@@ -333,8 +337,8 @@ export default function Page() {
               />
             </div>
             {selectedUserIds.length > 0 && (
-              <Button variant="outline" onClick={handleBulkDelete} className="border-red-500 text-red-600 hover:bg-red-50">
-                Delete Selected ({selectedUserIds.length})
+              <Button variant="outline" onClick={handleBulkDelete} className="border-destructive text-destructive hover:bg-destructive/10">
+                {t('admin.users.deleteSelected', 'Delete Selected')} ({selectedUserIds.length})
               </Button>
             )}
           </div>
@@ -342,29 +346,29 @@ export default function Page() {
           {usersLoading && <TableSkeleton rows={8} />}
 
           {usersError && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded">
-              <p className="text-red-700">Failed to load users. {usersError.message || 'You may not have Super Admin access.'}</p>
+            <div className="p-4 bg-destructive/10 border border-destructive rounded-2xl">
+              <p className="text-destructive">{t('admin.users.loadFailed', 'Failed to load users.')} {usersError.message || t('admin.users.noAccess', 'You may not have Super Admin access.')}</p>
             </div>
           )}
 
           {!usersLoading && usersData?.users && (
             <>
               <div className="bg-card rounded-2xl shadow border overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-border">
                   <thead className="bg-muted">
                     <tr>
                       <th className="px-6 py-3 text-left">
                         <input type="checkbox" checked={selectedUserIds.length === usersData.users.length && usersData.users.length > 0} onChange={toggleSelectAll} className="rounded" />
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Username</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Email</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Role</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase">Actions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t('admin.users.username', 'Username')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t('admin.users.email', 'Email')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t('admin.users.name', 'Name')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t('admin.users.role', 'Role')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t('admin.users.status', 'Status')}</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase">{t('admin.users.actions', 'Actions')}</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-card divide-y divide-gray-100">
+                  <tbody className="bg-card divide-y divide-border">
                     {usersData.users.map((user: { _id: string; username?: string; email?: string; personal?: { firstName?: string; lastName?: string }; professional?: { role?: string }; status?: string; phone?: string }) => (
                       <tr key={user._id}>
                         <td className="px-6 py-4">
@@ -376,8 +380,8 @@ export default function Page() {
                         <td className="px-6 py-4 text-sm text-foreground">{user.professional?.role || '—'}</td>
                         <td className="px-6 py-4 text-sm text-foreground">{user.status || 'ACTIVE'}</td>
                         <td className="px-6 py-4 text-sm text-right space-x-2">
-                          <Button variant="ghost" size="sm" onClick={() => openEditUser(user)}>Edit</Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user._id, user.username || user.email || 'user')}>Delete</Button>
+                          <Button variant="ghost" size="sm" onClick={() => openEditUser(user)}>{t('admin.users.edit', 'Edit')}</Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user._id, user.username || user.email || 'user')}>{t('admin.users.delete', 'Delete')}</Button>
                         </td>
                       </tr>
                     ))}
@@ -385,7 +389,7 @@ export default function Page() {
                 </table>
                 {usersData.total > 0 && (
                   <div className="px-6 py-3 bg-muted text-sm text-muted-foreground">
-                    Total: {usersData.total} users
+                    {t('admin.users.total', 'Total')}: {usersData.total} {t('admin.users.usersCount', 'users')}
                   </div>
                 )}
               </div>
@@ -398,18 +402,18 @@ export default function Page() {
                     disabled={userPage === 0}
                     onClick={() => setUserPage(p => p - 1)}
                   >
-                    Previous
+                    {t('admin.users.previous', 'Previous')}
                   </Button>
                   <span className="text-sm text-muted-foreground">
-                    Page {userPage + 1} of {Math.ceil(usersData.total / userLimit)} 
-                    ({usersData.total} total users)
+                    {t('admin.users.page', 'Page')} {userPage + 1} {t('admin.users.of', 'of')} {Math.ceil(usersData.total / userLimit)} 
+                    ({usersData.total} {t('admin.users.totalUsers', 'total users')})
                   </span>
                   <Button
                     variant="ghost"
                     disabled={(userPage + 1) * userLimit >= usersData.total}
                     onClick={() => setUserPage(p => p + 1)}
                   >
-                    Next
+                    {t('admin.users.next', 'Next')}
                   </Button>
                 </div>
               )}
@@ -417,43 +421,43 @@ export default function Page() {
               <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Edit User</DialogTitle>
+                    <DialogTitle>{t('admin.users.editUser', 'Edit User')}</DialogTitle>
                   </DialogHeader>
                   {editingUser && (
                     <div className="space-y-4 mt-4">
                       <div>
-                        <Label htmlFor="edit-email">Email</Label>
+                        <Label htmlFor="edit-email">{t('admin.users.email', 'Email')}</Label>
                         <Input id="edit-email" value={editingUser.email} onChange={(e) => setEditingUser({...editingUser, email: e.target.value})} />
                       </div>
                       <div>
-                        <Label htmlFor="edit-username">Username</Label>
+                        <Label htmlFor="edit-username">{t('admin.users.username', 'Username')}</Label>
                         <Input id="edit-username" value={editingUser.username} onChange={(e) => setEditingUser({...editingUser, username: e.target.value})} />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <Label htmlFor="edit-firstName">First Name</Label>
+                          <Label htmlFor="edit-firstName">{t('admin.users.firstName', 'First Name')}</Label>
                           <Input id="edit-firstName" value={editingUser.firstName} onChange={(e) => setEditingUser({...editingUser, firstName: e.target.value})} />
                         </div>
                         <div>
-                          <Label htmlFor="edit-lastName">Last Name</Label>
+                          <Label htmlFor="edit-lastName">{t('admin.users.lastName', 'Last Name')}</Label>
                           <Input id="edit-lastName" value={editingUser.lastName} onChange={(e) => setEditingUser({...editingUser, lastName: e.target.value})} />
                         </div>
                       </div>
                       <div>
-                        <Label htmlFor="edit-phone">Phone</Label>
+                        <Label htmlFor="edit-phone">{t('admin.users.phone', 'Phone')}</Label>
                         <Input id="edit-phone" value={editingUser.phone} onChange={(e) => setEditingUser({...editingUser, phone: e.target.value})} />
                       </div>
                       <div>
-                        <Label htmlFor="edit-role">Role</Label>
+                        <Label htmlFor="edit-role">{t('admin.users.role', 'Role')}</Label>
                         <Input id="edit-role" value={editingUser.role} onChange={(e) => setEditingUser({...editingUser, role: e.target.value})} />
                       </div>
                       <div>
-                        <Label htmlFor="edit-status">Status</Label>
-                        <Input id="edit-status" value={editingUser.status} onChange={(e) => setEditingUser({...editingUser, status: e.target.value})} placeholder="ACTIVE, SUSPENDED, etc" />
+                        <Label htmlFor="edit-status">{t('admin.users.status', 'Status')}</Label>
+                        <Input id="edit-status" value={editingUser.status} onChange={(e) => setEditingUser({...editingUser, status: e.target.value})} placeholder={t('admin.users.statusPlaceholder', 'ACTIVE, SUSPENDED, etc')} />
                       </div>
                       <div className="flex gap-2 justify-end">
-                        <Button variant="ghost" onClick={() => setEditUserOpen(false)}>Cancel</Button>
-                        <Button onClick={handleUpdateUser}>Save Changes</Button>
+                        <Button variant="ghost" onClick={() => setEditUserOpen(false)}>{t('admin.users.cancel', 'Cancel')}</Button>
+                        <Button onClick={handleUpdateUser}>{t('admin.users.saveChanges', 'Save Changes')}</Button>
                       </div>
                     </div>
                   )}
@@ -466,15 +470,15 @@ export default function Page() {
 
       {tab === 'roles' && (
         <div>
-          <h2 className="text-xl font-semibold mb-4">Roles & Permissions</h2>
-          <Card>
+          <h2 className="text-xl font-semibold mb-4">{t('admin.roles.title', 'Roles & Permissions')}</h2>
+          <Card className="rounded-2xl">
             <CardContent className="pt-6">
-              <p className="text-muted-foreground mb-4">Roles and permissions management UI coming soon. Current roles defined in codebase:</p>
+              <p className="text-muted-foreground mb-4">{t('admin.roles.comingSoon', 'Roles and permissions management UI coming soon. Current roles defined in codebase:')}</p>
               <ul className="list-disc list-inside space-y-1 text-sm text-foreground">
-                <li><strong>SUPER_ADMIN</strong> / super_admin - Full platform access</li>
-                <li><strong>ADMIN</strong> - Organization admin</li>
-                <li><strong>MANAGER</strong> - Department/team manager</li>
-                <li><strong>USER</strong> - Standard user</li>
+                <li><strong>SUPER_ADMIN</strong> / super_admin - {t('admin.roles.superAdminDesc', 'Full platform access')}</li>
+                <li><strong>ADMIN</strong> - {t('admin.roles.adminDesc', 'Organization admin')}</li>
+                <li><strong>MANAGER</strong> - {t('admin.roles.managerDesc', 'Department/team manager')}</li>
+                <li><strong>USER</strong> - {t('admin.roles.userDesc', 'Standard user')}</li>
               </ul>
             </CardContent>
           </Card>
@@ -483,45 +487,45 @@ export default function Page() {
 
       {tab === 'audit' && (
         <div>
-          <h2 className="text-xl font-semibold mb-4">Audit Logs</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('admin.audit.title', 'Audit Logs')}</h2>
 
           <div className="mb-4 flex gap-3">
             <Input 
-              placeholder="Filter by user ID..." 
+              placeholder={t('admin.audit.filterUser', 'Filter by user ID...')}
               value={auditSearch} 
               onChange={(e) => setAuditSearch(e.target.value)} 
               className="max-w-xs"
             />
             <Input 
-              placeholder="Filter by action..." 
+              placeholder={t('admin.audit.filterAction', 'Filter by action...')}
               value={auditAction} 
               onChange={(e) => setAuditAction(e.target.value)} 
               className="max-w-xs"
             />
-            <Button variant="ghost" onClick={() => { setAuditSearch(''); setAuditAction(''); setAuditPage(0); }}>Clear</Button>
+            <Button variant="ghost" onClick={() => { setAuditSearch(''); setAuditAction(''); setAuditPage(0); }}>{t('admin.audit.clear', 'Clear')}</Button>
           </div>
 
           {auditLoading && <TableSkeleton rows={8} />}
 
           {auditError && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded">
-              <p className="text-red-700">Failed to load audit logs.</p>
+            <div className="p-4 bg-destructive/10 border border-destructive rounded-2xl">
+              <p className="text-destructive">{t('admin.audit.loadFailed', 'Failed to load audit logs.')}</p>
             </div>
           )}
 
           {!auditLoading && auditData?.logs && (
             <>
               <div className="bg-card rounded-2xl shadow border overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-border">
                   <thead className="bg-muted">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Time</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">User</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Action</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Entity</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t('admin.audit.time', 'Time')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t('admin.audit.user', 'User')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t('admin.audit.action', 'Action')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t('admin.audit.entity', 'Entity')}</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-card divide-y divide-gray-100">
+                  <tbody className="bg-card divide-y divide-border">
                     {auditData.logs.map((log: { _id: string; timestamp: string; userId?: string; user?: { name?: string }; action?: string; entityType?: string; entityId?: string }) => (
                       <tr key={log._id}>
                         <td className="px-6 py-4 text-sm text-foreground">{new Date(log.timestamp).toLocaleString()}</td>
@@ -534,9 +538,9 @@ export default function Page() {
                 </table>
               </div>
               <div className="flex justify-between items-center mt-4">
-                <Button variant="ghost" disabled={auditPage === 0} onClick={() => setAuditPage(p => p - 1)}>Previous</Button>
-                <span className="text-sm text-muted-foreground">Page {auditPage + 1}</span>
-                <Button variant="ghost" disabled={auditData.logs.length < auditLimit} onClick={() => setAuditPage(p => p + 1)}>Next</Button>
+                <Button variant="ghost" disabled={auditPage === 0} onClick={() => setAuditPage(p => p - 1)}>{t('admin.audit.previous', 'Previous')}</Button>
+                <span className="text-sm text-muted-foreground">{t('admin.audit.page', 'Page')} {auditPage + 1}</span>
+                <Button variant="ghost" disabled={auditData.logs.length < auditLimit} onClick={() => setAuditPage(p => p + 1)}>{t('admin.audit.next', 'Next')}</Button>
               </div>
             </>
           )}
@@ -545,9 +549,9 @@ export default function Page() {
 
       {tab === 'features' && (
         <div>
-          <h2 className="text-xl font-semibold mb-4">Feature Settings</h2>
-          <p className="text-muted-foreground mb-4">Manage platform feature toggles.</p>
-          <Button onClick={() => window.location.href = '/admin/feature-settings'}>Open Feature Settings</Button>
+          <h2 className="text-xl font-semibold mb-4">{t('admin.features.title', 'Feature Settings')}</h2>
+          <p className="text-muted-foreground mb-4">{t('admin.features.desc', 'Manage platform feature toggles.')}</p>
+          <Button onClick={() => window.location.href = '/admin/feature-settings'}>{t('admin.features.open', 'Open Feature Settings')}</Button>
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { WorkOrder } from '@/src/server/models/WorkOrder';
+import { WorkOrder } from '@/server/models/WorkOrder';
 
 /**
  * POST /api/work-orders/sla-check

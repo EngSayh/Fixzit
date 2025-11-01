@@ -54,15 +54,12 @@ jobs:
         continue-on-error: true
         with:
           environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
-          # v3 prefers 'release' (not 'version')
-          release: ${{ github.sha }}
-          projects: ${{ vars.SENTRY_PROJECT }}
+          # v3 uses 'version' for the release name
+          version: ${{ github.sha }}
+          projects: ${{ vars.SENTRY_PROJECT || 'fixzit' }}
           # Upload all Next.js client/server maps; v3 injects Debug IDs by default
-          sourcemaps: |
-            .next/**/*.map
-          url_prefix: "~/_next"          # for browser frames; Debug IDs make this less critical
-          rewrite: true
-          strip_common_prefix: true
+          sourcemaps: .next
+          url_prefix: "~/_next"
           ignore_empty: true
           # Link commits so Sentry can surface suspect commits
           set_commits: "auto"

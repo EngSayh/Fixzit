@@ -6,7 +6,9 @@
  */
 
 import { APPROVAL_POLICIES, Role } from '@/domain/fm/fm.behavior';
-import { FMApproval, type FMApprovalDoc } from '@/src/server/models/FMApproval';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { FMApproval, type FMApprovalDoc } from '@/server/models/FMApproval';
+import type { ObjectId } from 'mongodb';
 import type { Schema } from 'mongoose';
 
 export interface ApprovalRequest {
