@@ -7,6 +7,7 @@ import { Eye, EyeOff, LogIn, Mail, Lock, AlertCircle, Loader2 } from 'lucide-rea
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { signIn } from 'next-auth/react';
 
 interface FormErrors {
   identifier?: string;
@@ -104,51 +105,36 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
     setErrors({});
 
     try {
-      const loginData = {
+      // Use NextAuth signIn with credentials provider
+      const result = await signIn('credentials', {
         identifier: identifier.trim(),
         password,
-        rememberMe
-      };
-
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(loginData)
+        rememberMe,
+        redirect: false, // Handle redirect manually
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 401) {
+      if (result?.error) {
+        // Handle login errors from NextAuth
+        if (result.error === 'CredentialsSignin') {
           setErrors({
-            general: data.error || t('login.errors.invalidCredentials', 'Invalid email/employee number or password')
+            general: t('login.errors.invalidCredentials', 'Invalid email/employee number or password')
           });
-        } else if (response.status === 429) {
-          setErrors({
-            general: t('login.errors.tooManyAttempts', 'Too many login attempts. Please try again later.')
-          });
-        } else if (response.status === 400 && data.fieldErrors) {
-          setErrors(data.fieldErrors);
         } else {
           setErrors({
-            general: data.error || t('login.errors.loginFailed', 'Login failed. Please try again.')
+            general: t('login.errors.loginFailed', 'Login failed. Please try again.')
           });
         }
+        setLoading(false);
         return;
       }
 
-      if (data.ok) {
-        // Role is managed server-side via secure HTTP-only cookies
-        // Do NOT persist role in localStorage for security
-        
+      // Success - NextAuth has created the session
+      if (result?.ok) {
         if (onSuccess) {
           onSuccess();
         } else {
-          setTimeout(() => {
-            router.push('/dashboard');
-          }, 500);
+          // Redirect to dashboard
+          router.push('/fm/dashboard');
         }
       }
     } catch (err) {
