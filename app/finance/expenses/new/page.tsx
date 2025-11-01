@@ -40,13 +40,13 @@ interface IBudgetInfo {
 }
 
 interface IVendor {
-  _id: string;
+  id: string;
   name: string;
   type: string;
 }
 
 interface IChartAccount {
-  _id: string;
+  id: string;
   code: string;
   name: string;
   nameAr?: string;
@@ -176,7 +176,7 @@ export default function NewExpensePage() {
             const data = await response.json();
             if (data.budget) {
               budgets.push({
-                budgetId: data.budget._id,
+                budgetId: data.budget.id,
                 category,
                 budgetedAmount: data.budget.amount,
                 spentAmount: data.budget.spent,
@@ -241,7 +241,7 @@ export default function NewExpensePage() {
 
       // Update account code when account changes
       if (field === 'accountId') {
-        const account = chartAccounts.find(a => a._id === value);
+        const account = chartAccounts.find(a => a.id === value);
         if (account) {
           updated.accountCode = account.code;
         }
@@ -372,11 +372,11 @@ export default function NewExpensePage() {
 
       // Upload receipts if any
       if (receipts.length > 0 && data.expense?._id) {
-        await uploadReceipts(data.expense._id);
+        await uploadReceipts(data.expense.id);
       }
 
       toast.success(t('finance.expense.draftSaved', 'Expense draft saved successfully'));
-      router.push(`/finance/expenses/${data.expense._id}`);
+      router.push(`/finance/expenses/${data.expense.id}`);
     } catch (error) {
       console.error('Error saving draft:', error);
       toast.error(t('common.error', 'An error occurred'));
@@ -436,11 +436,11 @@ export default function NewExpensePage() {
 
       // Upload receipts if any
       if (receipts.length > 0 && data.expense?._id) {
-        await uploadReceipts(data.expense._id);
+        await uploadReceipts(data.expense.id);
       }
 
       toast.success(t('finance.expense.submitted', 'Expense submitted for approval'));
-      router.push(`/finance/expenses/${data.expense._id}`);
+      router.push(`/finance/expenses/${data.expense.id}`);
     } catch (error) {
       console.error('Error submitting expense:', error);
       toast.error(t('common.error', 'An error occurred'));
@@ -575,7 +575,7 @@ export default function NewExpensePage() {
                   value={vendorId}
                   onChange={(e) => {
                     setVendorId(e.target.value);
-                    const vendor = vendors.find(v => v._id === e.target.value);
+                    const vendor = vendors.find(v => v.id === e.target.value);
                     if (vendor) setVendorName(vendor.name);
                   }}
                   className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.vendorName ? 'border-red-500' : 'border-border'}`}
@@ -583,7 +583,7 @@ export default function NewExpensePage() {
                 >
                   <option value="">{loadingVendors ? t('common.loading', 'Loading...') : t('finance.expense.selectVendor', 'Select Vendor')}</option>
                   {vendors.map(vendor => (
-                    <option key={vendor._id} value={vendor._id}>{vendor.name}</option>
+                    <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
                   ))}
                 </select>
                 {errors.vendorName && <p className="text-red-500 text-xs mt-1">{errors.vendorName}</p>}
@@ -701,7 +701,7 @@ export default function NewExpensePage() {
                           {chartAccounts
                             .filter(a => a.type === 'EXPENSE')
                             .map(account => (
-                              <option key={account._id} value={account._id}>
+                              <option key={account.id} value={account.id}>
                                 {account.code} - {account.name}
                               </option>
                             ))}
