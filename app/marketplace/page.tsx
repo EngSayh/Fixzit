@@ -3,13 +3,13 @@ import ProductCard from '@/components/marketplace/ProductCard';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 interface Category {
-  _id: string;
+  id: string;
   slug: string;
   name?: { en: string };
 }
 
 interface Product {
-  _id: string;
+  id: string;
   slug: string;
   title: { en: string };
   media?: Array<{ url: string; alt?: string }>;
@@ -94,7 +94,7 @@ export default async function MarketplaceHome() {
           </div>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {featured.map(product => (
-              <ProductCard key={product._id} product={product} />
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         </section>
@@ -112,7 +112,7 @@ export default async function MarketplaceHome() {
             </div>
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {carousel.items.map((product: Product) => (
-                <ProductCard key={product._id} product={product} />
+                <ProductCard key={product.id} product={product} />
               ))}
             </div>
           </section>
