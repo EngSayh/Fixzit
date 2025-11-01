@@ -74,7 +74,7 @@ const createPropertySchema = z.object({
  * Build Property Filter
  */
 function buildPropertyFilter(searchParams: URLSearchParams, orgId: string) {
-  const filter: Record<string, any> = { orgId };
+  const filter: Record<string, unknown> = { orgId };
 
   const type = searchParams.get('type');
   if (type && ["RESIDENTIAL", "COMMERCIAL", "INDUSTRIAL", "MIXED_USE", "LAND"].includes(type)) {

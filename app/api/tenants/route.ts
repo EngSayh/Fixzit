@@ -70,7 +70,7 @@ const createTenantSchema = z.object({
  * Custom filter logic for tenant search/filtering
  */
 function buildTenantFilter(searchParams: URLSearchParams, orgId: string) {
-  const filter: Record<string, any> = { orgId };
+  const filter: Record<string, unknown> = { orgId };
 
   const type = searchParams.get('type');
   if (type && ['RESIDENTIAL', 'COMMERCIAL'].includes(type)) {
