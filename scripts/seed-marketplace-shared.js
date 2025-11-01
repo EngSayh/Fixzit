@@ -4,7 +4,14 @@ const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { createRequire } = require('node:module');
 
-const { MARKETPLACE_COLLECTIONS } = require('../src/models/utils/collectionNames.js');
+// Define marketplace collection names inline
+const MARKETPLACE_COLLECTIONS = {
+  PRODUCTS: 'marketplace_products',
+  CATEGORIES: 'marketplace_categories',
+  BRANDS: 'marketplace_brands',
+  REVIEWS: 'marketplace_reviews',
+  SEARCH_SYNONYMS: 'searchsynonyms',
+};
 
 const localRequire = createRequire(__filename);
 const compiledTsCache = new Map();
