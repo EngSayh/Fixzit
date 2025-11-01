@@ -32,9 +32,9 @@ export default function JobNotFound() {
         <div className="space-y-3">
           <Link
             href="/careers"
-            className="inline-block w-full px-6 py-3 bg-brand-500 text-white rounded-2xl 
-                     hover:bg-brand-600 transition-colors font-semibold
-                     focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+            className="inline-block w-full px-6 py-3 bg-primary text-primary-foreground rounded-2xl 
+                     hover:bg-primary/90 transition-colors font-semibold
+                     focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             View All Open Positions
           </Link>
@@ -43,7 +43,7 @@ export default function JobNotFound() {
             href="/"
             className="inline-block w-full px-6 py-3 border border-border text-foreground 
                      rounded-2xl hover:bg-muted transition-colors font-semibold
-                     focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+                     focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             Go to Homepage
           </Link>
@@ -51,7 +51,7 @@ export default function JobNotFound() {
         
         <p className="text-sm text-muted-foreground mt-6">
           Looking for something specific?{' '}
-          <Link href="/support" className="text-brand-500 hover:text-brand-600 underline">
+          <Link href="/support" className="text-primary hover:text-primary underline">
             Contact our HR team
           </Link>
         </p>

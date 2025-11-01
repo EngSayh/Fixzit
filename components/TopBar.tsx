@@ -16,6 +16,9 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsive } from '@/contexts/ResponsiveContext';
 import { useFormState } from '@/contexts/FormStateContext';
 
+// Constants
+import { APP_STORAGE_KEYS, STORAGE_KEYS, STORAGE_PREFIXES } from '@/config/constants';
+
 // Sub-components
 import LanguageSelector from './i18n/LanguageSelector';
 import CurrencySelector from './i18n/CurrencySelector';
@@ -48,7 +51,7 @@ interface Notification {
  * 2. ✅ NO fallback translation system (uses TranslationContext exclusively)
  * 3. ✅ Standard Button/Dialog components (no hardcoded buttons/modals)
  * 4. ✅ Simplified unsaved changes logic (NO window.dispatchEvent save triggering)
- * 5. ✅ Semantic colors (bg-card, text-foreground, border-border, bg-brand-500)
+ * 5. ✅ Semantic colors (bg-card, text-foreground, border-border, bg-primary)
  * 6. ✅ Extracted sub-components (NotificationPopup, UserMenuPopup)
  * 7. ✅ Fixed all hardcoded colors (removed bg-red-500, bg-white/10, text-red-600)
  */
@@ -253,20 +256,22 @@ export default function TopBar() {
 
   const handleLogout = async () => {
     try {
-      const savedLang = localStorage.getItem('fxz.lang');
-      const savedLocale = localStorage.getItem('fxz.locale');
+      const savedLang = localStorage.getItem(STORAGE_KEYS.language);
+      const savedLocale = localStorage.getItem(STORAGE_KEYS.locale);
 
-      // Clear app storage but preserve language
-      const keysToRemove = Object.keys(localStorage).filter(
-        key =>
-          (key.startsWith('fixzit-') || key.startsWith('fxz-')) &&
-          key !== 'fxz.lang' &&
-          key !== 'fxz.locale'
-      );
-      keysToRemove.forEach(key => localStorage.removeItem(key));
+      // Clear app storage robustly, preserve language/locale
+      Object.keys(localStorage).forEach(key => {
+        const isAppKey =
+          APP_STORAGE_KEYS.includes(key) ||
+          key.startsWith(STORAGE_PREFIXES.app) ||
+          key.startsWith(STORAGE_PREFIXES.shortDash) ||
+          key.startsWith(STORAGE_PREFIXES.shortDot);
+        const preserve = key === STORAGE_KEYS.language || key === STORAGE_KEYS.locale;
+        if (isAppKey && !preserve) localStorage.removeItem(key);
+      });
 
-      if (savedLang) localStorage.setItem('fxz.lang', savedLang);
-      if (savedLocale) localStorage.setItem('fxz.locale', savedLocale);
+      if (savedLang) localStorage.setItem(STORAGE_KEYS.language, savedLang ?? '');
+      if (savedLocale) localStorage.setItem(STORAGE_KEYS.locale, savedLocale ?? '');
 
       await signOut({ callbackUrl: '/login', redirect: true });
     } catch (error) {
@@ -279,7 +284,7 @@ export default function TopBar() {
 
   // ✅ FIXED: Use semantic colors throughout
   return (
-    <header className={`sticky top-0 z-40 h-14 bg-gradient-to-r from-brand-500 via-brand-500 to-accent-500 text-white ${isMobile ? 'px-2' : 'px-4'} shadow-sm border-b border-border`}>
+    <header className={`sticky top-0 z-40 h-14 bg-card text-card-foreground ${isMobile ? 'px-2' : 'px-4'} shadow-sm border-b border-border`}>
       <div className={`h-full flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Left Section: Logo & App Switcher */}
         <div className={`flex items-center gap-2 sm:gap-3 flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -287,7 +292,7 @@ export default function TopBar() {
             variant="ghost"
             onClick={handleLogoClick}
             className="flex items-center gap-2 hover:opacity-80 transition-opacity p-0 h-auto"
-            aria-label={t('common.backToHome', 'Go to home')}
+            aria-label={t('common.backToHome')}
           >
             {orgSettings.logo && !logoError ? (
               <Image
@@ -300,14 +305,14 @@ export default function TopBar() {
               />
             ) : (
               <div 
-                className="w-8 h-8 rounded-md bg-gradient-to-br from-brand-600 to-brand-700 flex items-center justify-center text-white font-bold text-sm"
+                className="w-8 h-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm"
                 aria-hidden="true"
               >
                 {orgSettings?.name?.substring(0, 2).toUpperCase() || 'FX'}
               </div>
             )}
-            <span className={`font-bold ${isMobile ? 'hidden' : 'text-lg'} whitespace-nowrap ${isRTL ? 'text-right' : ''}`}>
-              {orgSettings?.name || t('common.brand', 'FIXZIT ENTERPRISE')}
+            <span className={`font-bold text-foreground ${isMobile ? 'hidden' : 'text-lg'} whitespace-nowrap ${isRTL ? 'text-right' : ''}`}>
+              {orgSettings?.name || t('common.brand')}
             </span>
           </Button>
           <AppSwitcher />
@@ -328,8 +333,7 @@ export default function TopBar() {
               variant="ghost"
               size="icon"
               onClick={() => setMobileSearchOpen(true)}
-              aria-label={t('common.search', 'Open search')}
-              className="text-white hover:bg-white/10"
+              aria-label={t('common.search')}
             >
               <Search className="w-4 h-4" />
             </Button>
@@ -371,13 +375,12 @@ export default function TopBar() {
             />
           ) : (
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               asChild
-              className="text-white hover:bg-white/10"
             >
               <Link href="/login">
-                {t('common.signIn', 'Sign In')}
+                {t('common.signIn')}
               </Link>
             </Button>
           )}
@@ -389,10 +392,10 @@ export default function TopBar() {
         <DialogContent className="bg-popover text-popover-foreground border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground">
-              {t('common.unsavedChanges', 'Unsaved Changes')}
+              {t('common.unsavedChanges')}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              {t('common.unsavedChangesMessage', 'You have unsaved changes. Do you want to save them before leaving?')}
+              {t('common.unsavedChangesMessage')}
             </DialogDescription>
           </DialogHeader>
           
@@ -402,13 +405,13 @@ export default function TopBar() {
               onClick={handleCancelNavigation}
               className="text-foreground"
             >
-              {t('common.cancel', 'Cancel')}
+              {t('common.cancel')}
             </Button>
             <Button
               variant="destructive"
               onClick={handleDiscardAndNavigate}
             >
-              {t('common.discard', 'Discard')}
+              {t('common.discard')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -434,7 +437,7 @@ export default function TopBar() {
                   <X className="w-5 h-5" />
                 </Button>
                 <h2 id="mobile-search-title" className="text-lg font-semibold text-foreground">
-                  {t('common.search', 'Search')}
+                  {t('common.search')}
                 </h2>
               </div>
               
@@ -498,8 +501,8 @@ function NotificationPopup({
           }
           setNotifOpen(next);
         }}
-        className="relative text-white hover:bg-white/10"
-        aria-label={t('nav.notifications', 'Toggle notifications')}
+        className="relative"
+        aria-label={t('nav.notifications')}
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
@@ -511,7 +514,7 @@ function NotificationPopup({
         <div 
           role="dialog"
           aria-modal="true"
-          aria-label={t('nav.notifications', 'Notifications')}
+          aria-label={t('nav.notifications')}
           className="fixed bg-popover text-popover-foreground rounded-2xl shadow-2xl border border-border z-[100] animate-in slide-in-from-top-2 duration-200"
           style={{ 
             top: notifPos.top,
@@ -524,11 +527,11 @@ function NotificationPopup({
           {/* Header */}
           <div className="p-3 border-b border-border flex justify-between items-start">
             <div>
-              <div className="font-semibold text-foreground">{t('nav.notifications', 'Notifications')}</div>
+              <div className="font-semibold text-foreground">{t('nav.notifications')}</div>
               <div className="text-xs text-muted-foreground mt-1">
                 {unreadCount > 0
-                  ? `${unreadCount} ${t('common.unread', 'unread')}`
-                  : t('common.noNotifications', 'No new notifications')
+                  ? `${unreadCount} ${t('common.unread')}`
+                  : t('common.noNotifications')
                 }
               </div>
             </div>
@@ -548,7 +551,7 @@ function NotificationPopup({
             {loading ? (
               <div className="p-3 text-center text-muted-foreground">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-muted mx-auto"></div>
-                <div className="text-xs mt-1">{t('common.loading', 'Loading...')}</div>
+                <div className="text-xs mt-1">{t('common.loading')}</div>
               </div>
             ) : notifications.length > 0 ? (
               <div className="space-y-1">
@@ -581,7 +584,7 @@ function NotificationPopup({
                         </div>
                       </div>
                       {!notification.read && (
-                        <div className="w-2 h-2 bg-brand-500 rounded-full ml-2 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-primary rounded-full ml-2 flex-shrink-0"></div>
                       )}
                     </div>
                   </button>
@@ -590,8 +593,8 @@ function NotificationPopup({
             ) : (
               <div className="p-6 text-center text-muted-foreground">
                 <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <div className="text-sm">{t('common.noNotifications', 'No new notifications')}</div>
-                <div className="text-xs text-muted-foreground mt-1">{t('common.allCaughtUp', "You're all caught up!")}</div>
+                <div className="text-sm">{t('common.noNotifications')}</div>
+                <div className="text-xs text-muted-foreground mt-1">{t('common.allCaughtUp')}</div>
               </div>
             )}
           </div>
@@ -601,10 +604,10 @@ function NotificationPopup({
             <div className="p-3 border-t border-border bg-muted">
               <Link
                 href="/notifications"
-                className="text-xs text-brand-500 hover:text-brand-700 font-medium flex items-center justify-center gap-1"
+                className="text-xs text-primary hover:text-primary font-medium flex items-center justify-center gap-1"
                 onClick={() => setNotifOpen(false)}
               >
-                {t('common.viewAll', 'View all notifications')}
+                {t('common.viewAll')}
                 <ChevronDown className="w-3 h-3 rotate-[-90deg]" />
               </Link>
             </div>
@@ -654,8 +657,8 @@ function UserMenuPopup({
           }
           setUserOpen(next);
         }}
-        className="flex items-center gap-1 text-white hover:bg-white/10"
-        aria-label={t('nav.profile', 'Toggle user menu')}
+        className="flex items-center gap-1"
+        aria-label={t('nav.profile')}
       >
         <User className="w-5 h-5" />
         <ChevronDown className="w-4 h-4" />
@@ -664,7 +667,7 @@ function UserMenuPopup({
       {userOpen && (
         <div 
           role="menu"
-          aria-label={t('nav.profile', 'User menu')}
+          aria-label={t('nav.profile')}
           className="fixed bg-popover text-popover-foreground rounded-2xl shadow-2xl border border-border py-1 z-[100] animate-in slide-in-from-top-2 duration-200"
           style={{
             top: userPos.top,
@@ -680,7 +683,7 @@ function UserMenuPopup({
             role="menuitem"
             onClick={() => setUserOpen(false)}
           >
-            {t('nav.profile', 'Profile')}
+            {t('nav.profile')}
           </Link>
           <Link
             href="/settings"
@@ -688,13 +691,13 @@ function UserMenuPopup({
             role="menuitem"
             onClick={() => setUserOpen(false)}
           >
-            {t('nav.settings', 'Settings')}
+            {t('nav.settings')}
           </Link>
           
           {/* Language & Currency Section */}
           <div className="border-t my-1 mx-2 border-border" />
           <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase">
-            {t('common.preferences', 'Preferences')}
+            {t('common.preferences')}
           </div>
           <div className="px-4 py-2 space-y-2" role="none">
             <LanguageSelector variant="default" />
@@ -706,7 +709,7 @@ function UserMenuPopup({
             className="w-full text-left px-4 py-2 hover:bg-destructive/10 text-destructive rounded justify-start"
             onClick={handleLogout}
           >
-            {t('common.logout', 'Sign out')}
+            {t('common.logout')}
           </Button>
         </div>
       )}

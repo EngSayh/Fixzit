@@ -29,7 +29,7 @@ export default function HelpArticleNotFound() {
         <div className="space-y-3">
           <Link
             href="/help"
-            className="block w-full bg-[var(--fixzit-blue)] text-white px-6 py-3 rounded-2xl font-medium hover:bg-[var(--fixzit-blue)]/90 transition-colors"
+            className="block w-full bg-primary text-primary-foreground px-6 py-3 rounded-2xl font-medium hover:bg-primary/90 transition-colors"
           >
             Browse All Help Articles
           </Link>

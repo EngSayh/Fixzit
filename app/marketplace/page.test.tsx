@@ -32,8 +32,10 @@ describe('MarketplacePage', () => {
     vi.clearAllMocks();
   });
 
-  it('renders without crashing and shows the CatalogView stub', () => {
-    render(<MarketplacePage />);
+  it('renders without crashing and shows the CatalogView stub', async () => {
+    // MarketplacePage is an async Server Component - must await before rendering
+    const ResolvedPage = await MarketplacePage();
+    render(ResolvedPage);
     expect(screen.getByTestId('catalog-view-stub')).toBeInTheDocument();
   });
 
@@ -55,11 +57,15 @@ describe('MarketplacePage', () => {
     expect(typeof _importer).toBe('function');
   });
 
-  it('consistently renders the dynamic component on re-render', () => {
-    const { rerender } = render(<MarketplacePage />);
+  it('consistently renders the dynamic component on re-render', async () => {
+    // Resolve the async component first
+    const ResolvedPage = await MarketplacePage();
+    const { rerender } = render(ResolvedPage);
     expect(screen.getByTestId('catalog-view-stub')).toBeInTheDocument();
 
-    rerender(<MarketplacePage />);
+    // Re-render with the same resolved component
+    const ResolvedPage2 = await MarketplacePage();
+    rerender(ResolvedPage2);
     // The stub remains visible; dynamic() is not re-invoked because it was called at module init
     expect(dynamicMock).toHaveBeenCalledTimes(1);
     expect(screen.getAllByTestId('catalog-view-stub').length).toBeGreaterThan(0);

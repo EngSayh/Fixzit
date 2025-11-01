@@ -1,12 +1,37 @@
-"use client";
-import React, { useState, useEffect } from "react";
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { toast } from 'react-hot-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Copy, Loader2 } from 'lucide-react';
+import { STORAGE_KEYS } from '@/config/constants';
+
+// ============================================================================
+// API HELPER
+// ============================================================================
 
 const api = async (url: string, opts?: RequestInit) => {
-  const headers: Record<string, string> = { "content-type": "application/json" };
+  const headers: Record<string, string> = { 'content-type': 'application/json' };
   const res = await fetch(url, { ...opts, headers: { ...headers, ...opts?.headers } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 };
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
 
 interface ErrorDetails {
   error?: { name?: string; message?: string; stack?: string; componentStack?: string };
@@ -34,72 +59,115 @@ interface ErrorDetails {
   };
 }
 
+interface ISupportPopupProps {
+  open: boolean;
+  onClose: () => void;
+  errorDetails?: ErrorDetails;
+}
 
-export default function SupportPopup({ onClose, errorDetails }: { onClose: ()=>void, errorDetails?: ErrorDetails }){
-  const [subject,setSubject]=useState(errorDetails ? `Error Report: ${errorDetails.type}` : "");
-  const [moduleKey,setModule]=useState("Other");
-  const [type,setType]=useState("Bug");
-  const [priority,setPriority]=useState("Medium");
-  const [text,setText]=useState("");
-  const [email,setEmail]=useState("");
-  const [name,setName]=useState("");
-  const [phone,setPhone]=useState("");
-  const [category,setCategory]=useState("Technical");
-  const [subCategory,setSubCategory]=useState("Bug Report");
+// ============================================================================
+// MODULE OPTIONS
+// ============================================================================
+
+const MODULES = ['FM', 'Souq', 'Aqar', 'Account', 'Billing', 'Other'];
+const CATEGORIES = ['Technical', 'Feature Request', 'Billing', 'Account', 'General', 'Bug Report'];
+const TYPES = ['Bug', 'Feature', 'Complaint', 'Billing', 'Access', 'Other'];
+const PRIORITIES = ['Low', 'Medium', 'High', 'Urgent'];
+
+const SUB_CATEGORIES: Record<string, string[]> = {
+  Technical: ['Bug Report', 'Performance Issue', 'UI Error', 'API Error', 'Database Error'],
+  'Feature Request': ['New Feature', 'Enhancement', 'Integration', 'Customization', 'Mobile App'],
+  Billing: ['Invoice Issue', 'Payment Error', 'Subscription', 'Refund', 'Pricing'],
+  Account: ['Login Issue', 'Password Reset', 'Profile Update', 'Permissions', 'Access Denied'],
+  General: ['Documentation', 'Training', 'Support', 'Feedback', 'Other'],
+  'Bug Report': ['Critical Bug', 'Minor Bug', 'Cosmetic Issue', 'Data Error', 'Security Issue'],
+};
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+export default function SupportPopup({ open, onClose, errorDetails }: ISupportPopupProps) {
+  const { t } = useTranslation();
+
+  // Form state
+  const [subject, setSubject] = useState(errorDetails ? `${t('support.errorReport', 'Error Report')}: ${errorDetails.type}` : '');
+  const [moduleKey, setModule] = useState('Other');
+  const [type, setType] = useState('Bug');
+  const [priority, setPriority] = useState('Medium');
+  const [text, setText] = useState('');
+  const [category, setCategory] = useState('Technical');
+  const [subCategory, setSubCategory] = useState('Bug Report');
+  
+  // Guest fields
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  
+  // UI state
   const [submitting, setSubmitting] = useState(false);
 
-  // Auto-populate fields if error details are provided
-  useEffect(() => {
-    if (errorDetails) {
-      setSubject(`System Error: ${errorDetails.error?.name || 'Unknown'} - ${errorDetails.error?.message?.substring(0, 50) || ''}...`);
-      setModule("Other");
-      setType("Bug");
-      setPriority("High");
-      setText(generateErrorDescription(errorDetails));
-    }
-  }, [errorDetails]);
+  // ✅ FIX: Use STORAGE_KEYS.userSession (updated key)
+  const isAuthenticated = typeof window !== 'undefined' && localStorage.getItem(STORAGE_KEYS.userSession);
 
-  const generateErrorDescription = (errorDetails: ErrorDetails) => {
-    return `🚨 **Automated Error Report**
+  // Error description generator
+  const generateErrorDescription = (errorDetails: ErrorDetails): string => {
+    const memoryUsed = errorDetails.system?.memory?.used ? Math.round(errorDetails.system.memory.used / 1024 / 1024) : 0;
+    
+    return `🚨 **${t('support.autoErrorReport', 'Automated Error Report')}**
 
-**Error ID:** \`${errorDetails.errorId}\`
-**Timestamp:** ${errorDetails.timestamp}
-**URL:** ${errorDetails.url}
-**User Agent:** ${errorDetails.userAgent}
+**${t('support.errorId', 'Error ID')}:** \`${errorDetails.errorId}\`
+**${t('support.timestamp', 'Timestamp')}:** ${errorDetails.timestamp}
+**${t('support.url', 'URL')}:** ${errorDetails.url}
+**${t('support.userAgent', 'User Agent')}:** ${errorDetails.userAgent}
 
-**Error Details:**
-- **Type:** ${errorDetails.error?.name || 'Unknown'}
-- **Message:** ${errorDetails.error?.message || 'No message available'}
-- **Viewport:** ${errorDetails.viewport}
-- **Platform:** ${errorDetails.system?.platform || 'Unknown'}
+**${t('support.errorDetails', 'Error Details')}:**
+- **${t('support.type', 'Type')}:** ${errorDetails.error?.name || t('common.unknown', 'Unknown')}
+- **${t('support.message', 'Message')}:** ${errorDetails.error?.message || t('support.noMessage', 'No message available')}
+- **${t('support.viewport', 'Viewport')}:** ${errorDetails.viewport}
+- **${t('support.platform', 'Platform')}:** ${errorDetails.system?.platform || t('common.unknown', 'Unknown')}
 
-**System Information:**
-- **Language:** ${errorDetails.system?.language || 'Unknown'}
-- **Online Status:** ${errorDetails.system?.onLine ? 'Online' : 'Offline'}
-${errorDetails.system?.memory ? `- **Memory Usage:** ${Math.round(errorDetails.system.memory.used ?? 0 / 1024 / 1024)}MB used` : ''}
+**${t('support.systemInfo', 'System Information')}:**
+- **${t('support.language', 'Language')}:** ${errorDetails.system?.language || t('common.unknown', 'Unknown')}
+- **${t('support.onlineStatus', 'Online Status')}:** ${errorDetails.system?.onLine ? t('common.online', 'Online') : t('common.offline', 'Offline')}
+${errorDetails.system?.memory ? `- **${t('support.memoryUsage', 'Memory Usage')}:** ${memoryUsed}MB ${t('support.used', 'used')}` : ''}
 
-**Application State:**
-- **Authenticated:** ${errorDetails.localStorage?.hasAuth ? '✅' : '❌'}
-- **User Data:** ${errorDetails.localStorage?.hasUser ? '✅' : '❌'}
-- **Language Set:** ${errorDetails.localStorage?.hasLang ? '✅' : '❌'}
-- **Theme Set:** ${errorDetails.localStorage?.hasTheme ? '✅' : '❌'}
+**${t('support.appState', 'Application State')}:**
+- **${t('support.authenticated', 'Authenticated')}:** ${errorDetails.localStorage?.hasAuth ? '✅' : '❌'}
+- **${t('support.userData', 'User Data')}:** ${errorDetails.localStorage?.hasUser ? '✅' : '❌'}
+- **${t('support.languageSet', 'Language Set')}:** ${errorDetails.localStorage?.hasLang ? '✅' : '❌'}
+- **${t('support.themeSet', 'Theme Set')}:** ${errorDetails.localStorage?.hasTheme ? '✅' : '❌'}
 
-**Stack Trace:**
+**${t('support.stackTrace', 'Stack Trace')}:**
 \`\`\`
-${errorDetails.error?.stack || 'No stack trace available'}
+${errorDetails.error?.stack || t('support.noStackTrace', 'No stack trace available')}
 \`\`\`
 
-**Component Stack:**
+**${t('support.componentStack', 'Component Stack')}:**
 \`\`\`
-${errorDetails.error?.componentStack || 'No component stack available'}
+${errorDetails.error?.componentStack || t('support.noComponentStack', 'No component stack available')}
 \`\`\`
 
 ---
 
-*This ticket was automatically created from an error boundary. Please investigate and resolve the issue.*`;
+*${t('support.autoCreated', 'This ticket was automatically created from an error boundary. Please investigate and resolve the issue.')}*`;
   };
 
-  const submit = async()=>{
+  // Auto-populate fields if error details are provided
+  useEffect(() => {
+    if (errorDetails) {
+      const errorName = errorDetails.error?.name || t('common.unknown', 'Unknown');
+      const errorMsg = errorDetails.error?.message?.substring(0, 50) || '';
+      setSubject(`${t('support.systemError', 'System Error')}: ${errorName} - ${errorMsg}...`);
+      setModule('Other');
+      setType('Bug');
+      setPriority('High');
+      setText(generateErrorDescription(errorDetails));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [errorDetails]);
+
+  const submit = async () => {
     const payload: Record<string, unknown> = {
       subject,
       module: moduleKey,
@@ -107,47 +175,46 @@ ${errorDetails.error?.componentStack || 'No component stack available'}
       priority,
       text,
       category,
-      subCategory
+      subCategory,
     };
 
-    // if not logged in, include requester
     try {
-      const hdr = localStorage.getItem("x-user");
-      if (!hdr) payload.requester = { name, email, phone };
+      // ✅ FIX: Use STORAGE_KEYS.userSession (updated key)
+      const userSession = localStorage.getItem(STORAGE_KEYS.userSession);
+      if (!userSession) {
+        payload.requester = { name, email, phone };
+      }
 
-      // Set loading state
       setSubmitting(true);
 
-      const res = await api("/api/support/tickets", { method:"POST", body: JSON.stringify(payload) });
+      const res = await api('/api/support/tickets', { method: 'POST', body: JSON.stringify(payload) });
 
-      // Success message with better formatting
-      const successMessage = `🎯 Support Ticket Created Successfully!
+      // ✅ FIX: Use react-hot-toast instead of alert()
+      const successMessage = `🎯 ${t('support.ticketCreated', 'Support Ticket Created Successfully')}!
 
-Ticket ID: ${res.code}
-Subject: ${subject}
-Priority: ${priority}
-Module: ${moduleKey}
-Type: ${type}
-Category: ${category}
-Sub-Category: ${subCategory}
+${t('support.ticketId', 'Ticket ID')}: ${res.code}
+${t('support.subject', 'Subject')}: ${subject}
+${t('support.priority', 'Priority')}: ${priority}
+${t('support.module', 'Module')}: ${moduleKey}
+${t('support.type', 'Type')}: ${type}
+${t('support.category', 'Category')}: ${category}
+${t('support.subCategory', 'Sub-Category')}: ${subCategory}
 
-You will receive updates via email. Our support team will respond within 24 hours.
+${t('support.emailUpdates', 'You will receive updates via email. Our support team will respond within 24 hours.')}
 
-Thank you for contacting Fixzit Support!
+${t('support.thankYou', 'Thank you for contacting Fixzit Support!')}
 
-${!hdr && email ? `
+${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Email Sent')}!\n${t('support.welcomeEmailDesc', "We've sent a welcome email to")} ${email} ${t('support.welcomeEmailNext', 'with registration instructions and next steps.')}.` : ''}`;
 
-📧 Welcome Email Sent!
-We've sent a welcome email to ${email} with registration instructions and next steps.` : ''}`;
-
-      alert(successMessage);
+      toast.success(successMessage, { duration: 8000 });
       onClose();
-    } catch(e: unknown) {
-      console.error("Ticket creation error:", e);
-      const errorMessage = e instanceof Error ? e.message : "Please try again or contact support directly.";
-      alert(`❌ Failed to create ticket: ${errorMessage}`);
+    } catch (e: unknown) {
+      console.error('Ticket creation error:', e);
+      const errorMessage = e instanceof Error ? e.message : t('support.tryAgain', 'Please try again or contact support directly.');
+      
+      // ✅ FIX: Use react-hot-toast instead of alert()
+      toast.error(`❌ ${t('support.failedToCreate', 'Failed to create ticket')}: ${errorMessage}`, { duration: 6000 });
     } finally {
-      // Reset loading state
       setSubmitting(false);
     }
   };
@@ -155,208 +222,204 @@ We've sent a welcome email to ${email} with registration instructions and next s
   const copyDetails = async () => {
     try {
       await navigator.clipboard.writeText(text || subject);
-      alert("Details copied to clipboard");
+      // ✅ FIX: Use react-hot-toast instead of alert()
+      toast.success(t('support.copiedToClipboard', 'Details copied to clipboard'), { duration: 2000 });
     } catch {
-      // no-op
+      toast.error(t('support.failedToCopy', 'Failed to copy to clipboard'), { duration: 2000 });
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4 overflow-y-auto min-h-screen">
-      <div className="bg-card dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4 relative mx-auto my-4 md:my-8">
-        {/* Close button */}
-        <button
-          className="absolute top-4 right-4 text-muted-foreground hover:text-muted-foreground text-2xl leading-none hover:bg-muted rounded-2xl p-2 transition-colors"
-          onClick={onClose}
-          aria-label="Close"
-        >
-          ✕
-        </button>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">
+            {t('support.createTicket', 'Create Support Ticket')}
+          </DialogTitle>
+          <DialogDescription>
+            {t('support.description', 'Fill out the form below and our support team will get back to you within 24 hours.')}
+          </DialogDescription>
+        </DialogHeader>
 
-        {/* Header */}
-        <div className="pr-8">
-          <h3 className="text-2xl font-bold text-foreground dark:text-white mb-2">Create Support Ticket</h3>
-          <p className="text-muted-foreground dark:text-muted-foreground">
-            Fill out the form below and our support team will get back to you within 24 hours.
-          </p>
-        </div>
-        {/* Form */}
-        <div className="space-y-4">
+        <div className="space-y-4 mt-4">
           {/* Subject and Module */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="subject" className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
-                Subject *
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="subject">{t('support.subject', 'Subject')} *</Label>
+              <Input
                 id="subject"
-                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="Brief description of your issue"
+                placeholder={t('support.subjectPlaceholder', 'Brief description of your issue')}
                 value={subject}
-                onChange={e=>setSubject(e.target.value)}
+                onChange={(e) => setSubject(e.target.value)}
                 required
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
-                Module
-              </label>
-              <select
-                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-card"
-                value={moduleKey}
-                onChange={e=>setModule(e.target.value)}
-              >
-                {["FM","Souq","Aqar","Account","Billing","Other"].map(m=><option key={m}>{m}</option>)}
-              </select>
+            <div className="space-y-2">
+              <Label htmlFor="module">{t('support.module', 'Module')}</Label>
+              <Select value={moduleKey} onValueChange={setModule}>
+                <SelectTrigger id="module">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MODULES.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {t(`support.modules.${m}`, m)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           {/* Category and Sub-Category */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
-                Category
-              </label>
-              <select
-                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-card"
-                value={category}
-                onChange={e=>setCategory(e.target.value)}
-              >
-                {["Technical","Feature Request","Billing","Account","General","Bug Report"].map(c=><option key={c}>{c}</option>)}
-              </select>
+            <div className="space-y-2">
+              <Label htmlFor="category">{t('support.category', 'Category')}</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger id="category">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {t(`support.categories.${c}`, c)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
-                Sub-Category
-              </label>
-              <select
-                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-card"
-                value={subCategory}
-                onChange={e=>setSubCategory(e.target.value)}
-              >
-                {category === "Technical" && ["Bug Report","Performance Issue","UI Error","API Error","Database Error"].map(s=><option key={s}>{s}</option>)}
-                {category === "Feature Request" && ["New Feature","Enhancement","Integration","Customization","Mobile App"].map(s=><option key={s}>{s}</option>)}
-                {category === "Billing" && ["Invoice Issue","Payment Error","Subscription","Refund","Pricing"].map(s=><option key={s}>{s}</option>)}
-                {category === "Account" && ["Login Issue","Password Reset","Profile Update","Permissions","Access Denied"].map(s=><option key={s}>{s}</option>)}
-                {category === "General" && ["Documentation","Training","Support","Feedback","Other"].map(s=><option key={s}>{s}</option>)}
-                {category === "Bug Report" && ["Critical Bug","Minor Bug","Cosmetic Issue","Data Error","Security Issue"].map(s=><option key={s}>{s}</option>)}
-              </select>
+            <div className="space-y-2">
+              <Label htmlFor="subCategory">{t('support.subCategory', 'Sub-Category')}</Label>
+              <Select value={subCategory} onValueChange={setSubCategory}>
+                <SelectTrigger id="subCategory">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(SUB_CATEGORIES[category] || []).map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {t(`support.subCategories.${s}`, s)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           {/* Type and Priority */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
-                Type
-              </label>
-              <select
-                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-card"
-                value={type}
-                onChange={e=>setType(e.target.value)}
-              >
-                {["Bug","Feature","Complaint","Billing","Access","Other"].map(t=><option key={t}>{t}</option>)}
-              </select>
+            <div className="space-y-2">
+              <Label htmlFor="type">{t('support.type', 'Type')}</Label>
+              <Select value={type} onValueChange={setType}>
+                <SelectTrigger id="type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TYPES.map((t_val) => (
+                    <SelectItem key={t_val} value={t_val}>
+                      {t(`support.types.${t_val}`, t_val)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
-                Priority
-              </label>
-              <select
-                className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-card"
-                value={priority}
-                onChange={e=>setPriority(e.target.value)}
-              >
-                {["Low","Medium","High","Urgent"].map(p=><option key={p}>{p}</option>)}
-              </select>
+            <div className="space-y-2">
+              <Label htmlFor="priority">{t('support.priority', 'Priority')}</Label>
+              <Select value={priority} onValueChange={setPriority}>
+                <SelectTrigger id="priority">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRIORITIES.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {t(`support.priorities.${p}`, p)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           {/* Description */}
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
-              Description *
-            </label>
-            <textarea
+          <div className="space-y-2">
+            <Label htmlFor="description">{t('support.description', 'Description')} *</Label>
+            <Textarea
               id="description"
-              className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all h-32 resize-none"
-              placeholder="Please provide detailed information about your issue or request..."
+              placeholder={t('support.descriptionPlaceholder', 'Please provide detailed information about your issue or request...')}
               value={text}
-              onChange={e=>setText(e.target.value)}
+              onChange={(e) => setText(e.target.value)}
               required
+              className="h-32 resize-none"
             />
           </div>
 
           {/* Guest-only fields */}
-          {!localStorage.getItem("x-user") && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted dark:bg-neutral-800 rounded-2xl">
-              <div>
-                <label className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
-                  Your Name *
-                </label>
-                <input
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="Enter your full name"
+          {!isAuthenticated && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-2xl">
+              <div className="space-y-2">
+                <Label htmlFor="name">{t('support.yourName', 'Your Name')} *</Label>
+                <Input
+                  id="name"
+                  placeholder={t('support.namePlaceholder', 'Enter your full name')}
                   value={name}
-                  onChange={e=>setName(e.target.value)}
+                  onChange={(e) => setName(e.target.value)}
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
-                  Email *
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="email">{t('common.email', 'Email')} *</Label>
+                <Input
+                  id="email"
                   type="email"
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="your.email@example.com"
+                  placeholder={t('support.emailPlaceholder', 'your.email@example.com')}
                   value={email}
-                  onChange={e=>setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-foreground dark:text-muted-foreground mb-1">
-                  Phone (optional)
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="phone">{t('support.phone', 'Phone')} ({t('common.optional', 'optional')})</Label>
+                <Input
+                  id="phone"
                   type="tel"
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="+966 XX XXX XXXX"
+                  placeholder={t('support.phonePlaceholder', '+966 XX XXX XXXX')}
                   value={phone}
-                  onChange={e=>setPhone(e.target.value)}
+                  onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
             </div>
           )}
 
           {/* Action buttons */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-border dark:border-neutral-700">
-            <button
-              className="px-6 py-3 text-foreground dark:text-muted-foreground hover:bg-muted dark:hover:bg-neutral-800 rounded-2xl font-medium transition-colors"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            <button
-              className="px-6 py-3 bg-muted text-foreground rounded-2xl font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button variant="outline" onClick={onClose}>
+              {t('common.cancel', 'Cancel')}
+            </Button>
+            <Button
+              variant="secondary"
               onClick={copyDetails}
               disabled={!subject.trim() && !text.trim()}
             >
-              Copy details
-            </button>
-            <button
-              className="px-6 py-3 bg-[var(--fixzit-primary)] text-white rounded-2xl font-medium hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              <Copy className="w-4 h-4 mr-2" />
+              {t('support.copyDetails', 'Copy details')}
+            </Button>
+            <Button
+              variant="default"
               onClick={submit}
               disabled={!subject.trim() || !text.trim() || submitting}
               data-testid="submit-btn"
             >
-              {submitting ? 'Creating Ticket...' : 'Submit Ticket'}
-            </button>
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {t('support.creating', 'Creating Ticket...')}
+                </>
+              ) : (
+                t('support.submitTicket', 'Submit Ticket')
+              )}
+            </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
-

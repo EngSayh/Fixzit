@@ -19,7 +19,7 @@ export default function LoginSuccess() {
           {t('login.success.message', 'Signing you in...')}
         </p>
         <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-          <div className="h-full bg-brand-500 animate-pulse" style={{ width: '100%' }} />
+          <div className="h-full bg-primary animate-pulse" style={{ width: '100%' }} />
         </div>
       </div>
     </div>

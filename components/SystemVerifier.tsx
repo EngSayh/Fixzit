@@ -417,7 +417,7 @@ interface SystemSettingProps {
 
 function SystemSetting({ icon, title, description, status, statusText, variant = 'success' }: SystemSettingProps) {
   const variantClasses = {
-    brand: 'bg-brand-500/10',
+    brand: 'bg-primary/10',
     success: 'bg-success/10',
     purple: 'bg-purple-500/10'
   };

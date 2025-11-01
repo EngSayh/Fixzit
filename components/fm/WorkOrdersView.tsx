@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { formatDistanceToNowStrict } from 'date-fns';
+import { STORAGE_KEYS } from '@/config/constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,7 @@ function buildHeaders(extra: Record<string, string> = {}) {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('fixzit_token');
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    const sessionUser = localStorage.getItem('x-user');
+    const sessionUser = localStorage.getItem(STORAGE_KEYS.userSession);
     headers['x-user'] = sessionUser || fallbackUser;
   } else {
     headers['x-user'] = fallbackUser;

@@ -5,14 +5,29 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 
 /**
- * Broadcasts user locale/currency preferences to the page and mirrors them into DOM nodes.
+ * Broadcasts user locale/currency preferences to non-React scripts via CustomEvent.
  *
- * Runs only in the browser: reads language, locale, and isRTL from the translation context and currency from the currency context, then dispatches a global `CustomEvent` named `fixzit:preferences` with a detail object `{ language, locale, currency, dir }`. After dispatching, it updates matching DOM nodes:
- * - elements with `data-lang-text` get their `textContent` set to `locale`
- * - elements with `data-currency-text` get their `textContent` set to `currency`
- * - elements with `data-preference-mirror="language"` or `"currency"` are set to `locale` or `currency` respectively
- *
- * The component performs no rendering (returns `null`) and is a no-op on the server (`window` is undefined).
+ * **React Architecture Compliance:**
+ * - This component ONLY dispatches a CustomEvent for legacy non-React scripts
+ * - React components should use `useTranslation()` and `useCurrency()` hooks directly
+ * - DOM manipulation (querySelectorAll, textContent) has been REMOVED
+ * 
+ * **For React Components:**
+ * ```tsx
+ * // ✅ CORRECT - Use hooks
+ * const { language, isRTL } = useTranslation();
+ * const { currency } = useCurrency();
+ * 
+ * // ❌ WRONG - Don't use data attributes
+ * <span data-lang-text>...</span>
+ * ```
+ * 
+ * **Event Details:**
+ * - Event: `fixzit:preferences`
+ * - Payload: `{ language: string, currency: string, dir: 'ltr' | 'rtl' }`
+ * - Target: `window`
+ * 
+ * The component performs no rendering (returns `null`) and is a no-op on the server.
  */
 export default function PreferenceBroadcast() {
   const { language, isRTL } = useTranslation();
@@ -23,28 +38,15 @@ export default function PreferenceBroadcast() {
       return;
     }
 
+    // ✅ ONLY dispatch CustomEvent for non-React scripts (e.g., public/*.js, legacy HTML)
     const detail = { language, currency, dir: isRTL ? 'rtl' : 'ltr' };
     window.dispatchEvent(new CustomEvent('fixzit:preferences', { detail }));
 
-    const langNodes = document.querySelectorAll<HTMLElement>('[data-lang-text]');
-    langNodes.forEach(node => {
-      node.textContent = language;
-    });
-
-    const currencyNodes = document.querySelectorAll<HTMLElement>('[data-currency-text]');
-    currencyNodes.forEach(node => {
-      node.textContent = currency;
-    });
-
-    const mirrorNodes = document.querySelectorAll<HTMLElement>('[data-preference-mirror]');
-    mirrorNodes.forEach(node => {
-      if (node.dataset.preferenceMirror === 'language') {
-        node.textContent = language;
-      }
-      if (node.dataset.preferenceMirror === 'currency') {
-        node.textContent = currency;
-      }
-    });
+    // ❌ REMOVED: DOM manipulation (querySelectorAll, textContent)
+    // React components should use useTranslation() and useCurrency() hooks instead
+    // If you need language/currency in a React component, import the hooks:
+    //   import { useTranslation } from '@/contexts/TranslationContext';
+    //   import { useCurrency } from '@/contexts/CurrencyContext';
   }, [language, currency, isRTL]);
 
   return null;

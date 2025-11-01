@@ -10,6 +10,7 @@ import {
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { STORAGE_KEYS } from '@/config/constants';
 import LanguageSelector from '@/components/i18n/LanguageSelector';
 import CurrencySelector from '@/components/i18n/CurrencySelector';
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
@@ -241,7 +242,7 @@ export default function LoginPage() {
       if (data?.ok !== false) {
         if (data.user?.role) {
           try {
-            localStorage.setItem('fixzit-role', data.user.role);
+            localStorage.setItem(STORAGE_KEYS.role, data.user.role);
           } catch {
             /* ignore */
           }
@@ -265,7 +266,7 @@ export default function LoginPage() {
   // Success state
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center p-4">
         <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="w-8 h-8 text-green-600" />
@@ -277,7 +278,7 @@ export default function LoginPage() {
             {t('login.success.message', 'Signing you in...')}
           </p>
           <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-            <div className="h-full bg-brand-500 animate-pulse" style={{ width: '100%' }} />
+            <div className="h-full bg-primary animate-pulse" style={{ width: '100%' }} />
           </div>
         </div>
       </div>
@@ -297,8 +298,8 @@ export default function LoginPage() {
         <div className="bg-card rounded-2xl shadow-xl p-8">
           {/* Logo */}
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-500 rounded-2xl mb-4">
-              <span className="text-white text-2xl font-bold">F</span>
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4">
+              <span className="text-primary-foreground text-2xl font-bold">F</span>
             </div>
             <h1 className="text-3xl font-bold text-foreground mb-2">
               {t('login.welcome', 'Welcome Back')}
@@ -315,7 +316,7 @@ export default function LoginPage() {
               onClick={() => setLoginMethod('personal')}
               className={`flex-1 py-2 px-4 rounded-2xl text-sm font-medium transition-colors ${
                 loginMethod === 'personal'
-                  ? 'bg-brand-500 text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -326,7 +327,7 @@ export default function LoginPage() {
               onClick={() => setLoginMethod('corporate')}
               className={`flex-1 py-2 px-4 rounded-2xl text-sm font-medium transition-colors ${
                 loginMethod === 'corporate'
-                  ? 'bg-brand-500 text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -337,7 +338,7 @@ export default function LoginPage() {
               onClick={() => setLoginMethod('sso')}
               className={`flex-1 py-2 px-4 rounded-2xl text-sm font-medium transition-colors ${
                 loginMethod === 'sso'
-                  ? 'bg-brand-500 text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -407,7 +408,7 @@ export default function LoginPage() {
                   <label htmlFor="password" className="block text-sm font-medium text-foreground">
                     {t('common.password', 'Password')}
                   </label>
-                  <Link href="/forgot-password" className="text-sm text-brand-500 hover:text-brand-600 transition-colors">
+                  <Link href="/forgot-password" className="text-sm text-primary hover:text-primary transition-colors">
                     {t('common.forgotPassword', 'Forgot?')}
                   </Link>
                 </div>
@@ -463,7 +464,7 @@ export default function LoginPage() {
                   id="rememberMe"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-brand-500 border-border rounded focus:ring-brand-500"
+                  className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
                   disabled={loading}
                 />
                 <label htmlFor="rememberMe" className="text-sm text-foreground cursor-pointer select-none">
@@ -488,7 +489,7 @@ export default function LoginPage() {
                 type="submit"
                 data-testid="login-submit"
                 disabled={loading || !password || (loginMethod === 'personal' ? !email : !employeeNumber)}
-                className="w-full h-12 bg-brand-500 hover:bg-brand-600 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -531,14 +532,14 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setLoginMethod('personal')}
-                className="w-full py-2 text-brand-500 hover:text-brand-600 font-medium transition-colors"
+                className="w-full py-2 text-primary hover:text-primary font-medium transition-colors"
               >
                 {t('login.usePersonalEmail', 'Use Personal Email')}
               </button>
               <button
                 type="button"
                 onClick={() => setLoginMethod('corporate')}
-                className="w-full py-2 text-brand-500 hover:text-brand-600 font-medium transition-colors"
+                className="w-full py-2 text-primary hover:text-primary font-medium transition-colors"
               >
                 {t('login.useCorporateAccount', 'Use Corporate Account')}
               </button>
@@ -622,7 +623,7 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-muted-foreground text-sm">
               {t('login.noAccount', "Don't have an account?")}{' '}
-              <Link href="/signup" className="text-brand-500 hover:text-brand-600 font-medium transition-colors">
+              <Link href="/signup" className="text-primary hover:text-primary font-medium transition-colors">
                 {t('login.signUp', 'Sign up here')}
               </Link>
             </p>

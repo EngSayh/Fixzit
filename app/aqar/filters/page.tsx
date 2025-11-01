@@ -218,7 +218,7 @@ export default function FiltersPage() {
                   'aqar.filters.keywordsPlaceholder',
                   'Search by location, neighborhood, or description...',
                 )}
-                className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 aria-label={t('aqar.filters.keywords', 'Keywords')}
               />
             </div>
@@ -236,7 +236,7 @@ export default function FiltersPage() {
                   data-testid="property-type-select"
                   value={filters.propertyType}
                   onChange={(e) => handleFilterChange('propertyType', e.target.value)}
-                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   {PROPERTY_TYPES.map(({ value, labelKey, fallback }) => (
                     <option key={value || 'any'} value={value}>
@@ -258,7 +258,7 @@ export default function FiltersPage() {
                   data-testid="city-select"
                   value={filters.city}
                   onChange={(e) => handleFilterChange('city', e.target.value)}
-                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   {CITIES.map(({ value, labelKey, fallback }) => (
                     <option key={value || 'any'} value={value}>
@@ -280,7 +280,7 @@ export default function FiltersPage() {
                   data-testid="bedrooms-select"
                   value={filters.bedrooms}
                   onChange={(e) => handleFilterChange('bedrooms', sanitizeInt(e.target.value))}
-                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="">{t('aqar.filters.any', 'Any')}</option>
                   <option value="1">1+</option>
@@ -303,7 +303,7 @@ export default function FiltersPage() {
                   data-testid="bathrooms-select"
                   value={filters.bathrooms}
                   onChange={(e) => handleFilterChange('bathrooms', sanitizeInt(e.target.value))}
-                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="">{t('aqar.filters.any', 'Any')}</option>
                   <option value="1">1+</option>
@@ -331,7 +331,7 @@ export default function FiltersPage() {
                   value={filters.minPrice}
                   onChange={(e) => handleFilterChange('minPrice', sanitizeInt(e.target.value))}
                   placeholder="0"
-                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
 
@@ -353,7 +353,7 @@ export default function FiltersPage() {
                   value={filters.maxPrice}
                   onChange={(e) => handleFilterChange('maxPrice', sanitizeInt(e.target.value))}
                   placeholder="∞"
-                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
 
@@ -372,7 +372,7 @@ export default function FiltersPage() {
                   value={filters.minArea}
                   onChange={(e) => handleFilterChange('minArea', sanitizeInt(e.target.value))}
                   placeholder="0"
-                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
 
@@ -391,7 +391,7 @@ export default function FiltersPage() {
                   value={filters.maxArea}
                   onChange={(e) => handleFilterChange('maxArea', sanitizeInt(e.target.value))}
                   placeholder="∞"
-                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
 
@@ -404,7 +404,7 @@ export default function FiltersPage() {
                   data-testid="furnished-select"
                   value={filters.furnished}
                   onChange={(e) => handleFilterChange('furnished', e.target.value)}
-                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="">{t('aqar.filters.any', 'Any')}</option>
                   <option value="yes">{t('aqar.filters.furnished.yes', 'Furnished')}</option>
@@ -428,7 +428,7 @@ export default function FiltersPage() {
                   value={filters.availableFrom}
                   min={today}
                   onChange={(e) => handleFilterChange('availableFrom', e.target.value)}
-                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
             </div>
@@ -445,7 +445,7 @@ export default function FiltersPage() {
               </button>
               <button
                 type="submit"
-                className="px-6 py-2 bg-brand-500 text-white rounded-2xl hover:bg-brand-600 transition-colors inline-flex items-center gap-2"
+                className="px-6 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors inline-flex items-center gap-2"
                 data-testid="search-btn"
               >
                 <Filter className="w-4 h-4" />

@@ -71,8 +71,8 @@ export default function PropertyDetailPage() {
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-6 border-b">
             <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <div className="p-3 bg-brand-500/10 rounded-2xl">
-                <Home className="h-6 w-6 text-brand-500" />
+              <div className="p-3 bg-primary/10 rounded-2xl">
+                <Home className="h-6 w-6 text-primary" />
               </div>
               <div className={isRTL ? 'text-right' : ''}>
                 <p className="text-sm text-muted-foreground">Type</p>
@@ -123,7 +123,7 @@ export default function PropertyDetailPage() {
           
           {/* Actions */}
           <div className={`p-6 border-t bg-muted flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <button className="px-4 py-2 bg-brand-500 text-white rounded-2xl hover:bg-brand-600 transition-colors">
+            <button className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors">
               View Units
             </button>
             <button className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success-dark transition-colors">
