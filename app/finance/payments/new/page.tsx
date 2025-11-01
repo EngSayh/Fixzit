@@ -23,7 +23,7 @@ interface IInvoiceAllocation {
 }
 
 interface IChartAccount {
-  _id: string;
+  id: string;
   code: string;
   name: string;
   nameAr?: string;
@@ -31,7 +31,7 @@ interface IChartAccount {
 }
 
 interface IAvailableInvoice {
-  _id: string;
+  id: string;
   invoiceNumber: string;
   customer: { name: string };
   issueDate: string;
@@ -129,7 +129,7 @@ export default function NewPaymentPage() {
           
           // Auto-select first cash account if available
           if (cashAccounts.length > 0 && !cashAccountId) {
-            setCashAccountId(cashAccounts[0]._id);
+            setCashAccountId(cashAccounts[0].id);
           }
         }
       } catch (error) {
@@ -159,8 +159,8 @@ export default function NewPaymentPage() {
         
         // Initialize allocations from available invoices
         const newAllocations: IInvoiceAllocation[] = (data.invoices || []).map((inv: IAvailableInvoice) => ({
-          id: inv._id,
-          invoiceId: inv._id,
+          id: inv.id,
+          invoiceId: inv.id,
           invoiceNumber: inv.invoiceNumber,
           customerName: inv.customer?.name || 'Unknown',
           invoiceDate: inv.issueDate,
@@ -716,7 +716,7 @@ export default function NewPaymentPage() {
             >
               <option value="">{loadingAccounts ? t('Loading...') : t('Select Account')}</option>
               {chartAccounts.map(account => (
-                <option key={account._id} value={account._id}>
+                <option key={account.id} value={account.id}>
                   {account.code} - {account.name}
                 </option>
               ))}
