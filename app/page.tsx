@@ -102,13 +102,22 @@ export default function LandingPage(){
           <p className="text-xl mb-8 opacity-90">
             {t('landing.cta.subtitle', 'Join thousands of properties already using Fixzit to streamline operations')}
           </p>
-          <Link
-            href="/login"
-            role="button"
-            className="inline-flex px-8 py-4 bg-card hover:bg-muted text-[var(--fixzit-primary)] font-semibold rounded-2xl transition-colors"
-          >
-            {t('landing.cta.button', 'Get Started Today')}
-          </Link>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link
+              href="/login"
+              role="button"
+              className="inline-flex px-8 py-4 bg-card hover:bg-muted text-[var(--fixzit-primary)] font-semibold rounded-2xl transition-colors"
+            >
+              {t('landing.cta.login', 'Get Started / Login')}
+            </Link>
+            <Link 
+              href="/request-demo" 
+              role="button" 
+              className="inline-flex px-8 py-4 bg-transparent border-2 border-white hover:bg-white/10 text-white font-semibold rounded-2xl transition-colors"
+            >
+              {t('landing.cta.demo', 'Request a Demo')}
+            </Link>
+          </div>
         </div>
       </section>
 
