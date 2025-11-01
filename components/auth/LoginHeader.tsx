@@ -9,7 +9,8 @@ export default function LoginHeader() {
     <div className="text-center mb-6">
       {/* Logo */}
       <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4">
-        <span className="text-white text-2xl font-bold">F</span>
+        {/* TODO: Replace with official <Image> or SVG logo component */}
+        <span className="text-white text-3xl font-bold">Fz</span>
       </div>
       
       {/* Title */}

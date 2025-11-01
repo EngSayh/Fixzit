@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, LogIn, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -301,8 +301,8 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       >
         {loading ? (
           <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" role="status" aria-label="Loading" />
-            <span>{t('login.signingIn', 'Signing in...')}</span>
+            <Loader2 className="w-5 h-5 animate-spin" role="status" aria-label="Loading" />
+            <span>{t('login.signingIn', 'Signing In...')}</span>
           </div>
         ) : (
           <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
