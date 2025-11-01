@@ -57,7 +57,7 @@ export default function LogoutPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background">
       <div className="text-center p-8">
-        <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+        <Loader2 className="w-12 h-12 animate-spin text-[var(--fixzit-primary)] mx-auto mb-4" />
         <h1 className="text-xl font-semibold text-foreground mb-2">
           {t('logout.signingOut', 'Signing you out...')}
         </h1>

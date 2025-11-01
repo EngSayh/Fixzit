@@ -17,10 +17,10 @@ export default function LoginFooter({ showDemoLink = false }: LoginFooterProps) 
         <p className="text-muted-foreground text-sm">
           {t('login.noAccount', "Don't have an account?")}{' '}
           <Link 
-            href="/signup" 
+            href="/request-demo" 
             className="text-primary hover:text-primary font-medium transition-colors"
           >
-            {t('login.signUp', 'Sign up here')}
+            {t('login.requestDemo', 'Request a demo')}
           </Link>
         </p>
       </div>
