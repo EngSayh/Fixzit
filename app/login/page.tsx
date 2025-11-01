@@ -242,9 +242,8 @@ export default function LoginPage() {
 
         // Small delay to ensure session is established
         setTimeout(() => {
-          router.push(redirectTo);
-          // Force a page refresh to ensure middleware recognizes the new session
-          window.location.href = redirectTo;
+          // Use router.replace to maintain SPA navigation
+          router.replace(redirectTo);
         }, 500);
       }
     } catch (err) {
