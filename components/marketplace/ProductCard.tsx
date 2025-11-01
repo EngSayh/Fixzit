@@ -7,8 +7,9 @@ import { useState } from 'react';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { addProductToCart } from '@/lib/marketplace/cartClient';
 
+// [CODE REVIEW]: FIX - Use 'id', not '_id' (Prisma/PostgreSQL convention)
 export interface MarketplaceProductCard {
-  _id: string;
+  id: string;
   slug: string;
   title: { en: string; ar?: string };
   summary?: string;
@@ -47,8 +48,8 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
     setAdding(true);
     try {
       const quantity = Math.max(product.buy.minQty ?? 1, 1);
-      await addProductToCart(product._id, quantity);
-      onAddToCart?.(product._id);
+      await addProductToCart(product.id, quantity);
+      onAddToCart?.(product.id);
     } catch (error) {
       console.error('Failed to add product to cart', error);
       if (typeof window !== 'undefined') {

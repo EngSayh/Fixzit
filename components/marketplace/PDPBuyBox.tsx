@@ -6,9 +6,10 @@ import clsx from 'clsx';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { addProductToCart } from '@/lib/marketplace/cartClient';
 
+// [CODE REVIEW]: FIX - Use 'id', not '_id' (Prisma/PostgreSQL convention)
 interface PDPBuyBoxProps {
   product: {
-    _id: string;
+    id: string;
     sku: string;
     buy: { price: number; currency: string; uom: string; leadDays?: number; minQty?: number };
     stock?: { onHand: number; reserved: number; location?: string };
@@ -41,7 +42,7 @@ export default function PDPBuyBox({ product, onAddToCart, onRequestRFQ }: PDPBuy
       if (effectiveQuantity !== quantity) {
         setQuantity(effectiveQuantity);
       }
-      await addProductToCart(product._id, effectiveQuantity);
+      await addProductToCart(product.id, effectiveQuantity);
       onAddToCart?.(effectiveQuantity);
     } catch (error) {
       console.error('Failed to add product to cart', error);

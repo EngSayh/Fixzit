@@ -17,8 +17,9 @@ interface MediaFile {
   role?: string;
 }
 
+// [CODE REVIEW]: FIX - Use 'id', not '_id' (Prisma/PostgreSQL convention)
 interface Product {
-  _id: string;
+  id: string;
   slug: string;
   title: { en: string };
   summary?: string;
@@ -60,11 +61,11 @@ export default async function ProductDetail(props: ProductPageProps) {
   const attachments = product.media?.filter((file: MediaFile) => file.role === 'MSDS' || file.role === 'COA') ?? [];
   const gallery = product.media?.filter((file: MediaFile) => file.role === 'GALLERY') ?? [];
 
-  const FIXZIT_COLORS = { primary: '#0061A8', success: '#00A859', warning: '#FFB400' } as const;
+  // [CODE REVIEW]: FIX - DELETE FIXZIT_COLORS object, use Tailwind theme classes
   return (
-    <div className="min-h-screen bg-[#F5F6F8] flex flex-col" style={{ direction: 'ltr' }}>
+    <div className="min-h-screen bg-muted flex flex-col" style={{ direction: 'ltr' }}>
       <main className="mx-auto max-w-7xl px-4 py-8">
-        <nav className="text-sm text-[#0061A8]">
+        <nav className="text-sm text-primary">
           <a href="/marketplace" className="hover:underline">
             Marketplace
           </a>
@@ -75,7 +76,7 @@ export default async function ProductDetail(props: ProductPageProps) {
             </a>
           )}
           <span className="mx-2 text-muted-foreground">/</span>
-          <span className="text-muted-foreground" style={{ color: FIXZIT_COLORS.primary }}>{product.title.en}</span>
+          <span className="text-primary">{product.title.en}</span>
         </nav>
 
         <section className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -107,7 +108,7 @@ export default async function ProductDetail(props: ProductPageProps) {
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <h1 className="text-3xl font-semibold text-[#0F1111]">{product.title.en}</h1>
+                  <h1 className="text-3xl font-semibold text-foreground">{product.title.en}</h1>
                   {product.summary && <p className="text-sm text-muted-foreground">{product.summary}</p>}
                   <div className="space-y-2 text-sm text-foreground">
                     <p><span className="font-semibold">SKU:</span> {product.sku}</p>
@@ -118,8 +119,8 @@ export default async function ProductDetail(props: ProductPageProps) {
                       </p>
                     ) : null}
                   </div>
-                  <div className="rounded-2xl bg-[#F8FBFF] p-4">
-                    <h2 className="text-sm font-semibold uppercase tracking-wide text-[#0061A8]">Key specifications</h2>
+                  <div className="rounded-2xl bg-primary/5 p-4">
+                    <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Key specifications</h2>
                     <ul className="mt-2 space-y-1 text-sm text-foreground">
                       {Object.entries(product.specs || {}).map(([key, value]) => (
                         <li key={key} className="flex justify-between gap-4">
@@ -130,9 +131,9 @@ export default async function ProductDetail(props: ProductPageProps) {
                     </ul>
                   </div>
                   {attachments.length > 0 && (
-                    <div className="rounded-2xl border border-[#0061A8]/30 bg-card p-4">
-                      <h3 className="text-sm font-semibold text-[#0061A8]">Compliance documents</h3>
-                      <ul className="mt-2 space-y-2 text-sm text-[#0F1111]">
+                    <div className="rounded-2xl border border-primary/30 bg-card p-4">
+                      <h3 className="text-sm font-semibold text-primary">Compliance documents</h3>
+                      <ul className="mt-2 space-y-2 text-sm text-foreground">
                         {attachments.map((file: MediaFile) => (
                           <li key={file.url}>
                             <a href={file.url} className="hover:underline" target="_blank">
@@ -148,10 +149,10 @@ export default async function ProductDetail(props: ProductPageProps) {
             </div>
 
             <section className="rounded-2xl bg-card p-6 shadow-lg">
-              <h2 className="text-xl font-semibold text-[#0F1111]">Related items</h2>
+              <h2 className="text-xl font-semibold text-foreground">Related items</h2>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 {product.related?.length ? (
-                  product.related.map((related: Product) => <ProductCard key={related._id} product={related} />)
+                  product.related.map((related: Product) => <ProductCard key={related.id} product={related} />)
                 ) : (
                   <p className="text-sm text-muted-foreground">Additional items will appear as catalogue grows.</p>
                 )}
