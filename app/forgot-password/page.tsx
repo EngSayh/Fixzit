@@ -79,7 +79,7 @@ export default function ForgotPassword() {
     <div className="min-h-screen bg-gradient-to-br from-brand-500 via-success to-accent flex items-center justify-center p-4">
       <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-brand-500 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
             <Mail className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-2">Reset Your Password</h1>
@@ -117,7 +117,7 @@ export default function ForgotPassword() {
           <Button
             type="submit"
             disabled={loading || !email}
-            className="w-full h-12 bg-brand-500 hover:bg-brand-600 text-white font-semibold transition-colors"
+            className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold transition-colors"
           >
             {loading ? (
               <div className="flex items-center gap-2">
@@ -131,7 +131,7 @@ export default function ForgotPassword() {
         </form>
 
         <div className="mt-6 text-center">
-          <Link href="/login" className="text-brand-500 hover:text-brand-600 font-medium flex items-center justify-center gap-2 transition-colors">
+          <Link href="/login" className="text-primary hover:text-primary font-medium flex items-center justify-center gap-2 transition-colors">
             <ArrowLeft className="w-4 h-4" />
             Back to Login
           </Link>

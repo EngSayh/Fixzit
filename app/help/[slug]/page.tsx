@@ -27,7 +27,7 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Breadcrumb */}
-      <section className="bg-gradient-to-r from-[#0061A8] to-[#00A859] text-white py-8">
+      <section className="bg-gradient-to-r from-primary to-success text-primary-foreground py-8">
         <div className="mx-auto max-w-4xl px-6">
           <div className="flex items-center gap-2 text-sm mb-2 opacity-90">
             <Link href="/help" className="hover:underline">Help Center</Link>
@@ -74,7 +74,7 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
               </div>
             </div>
             
-            <div className="bg-[var(--fixzit-blue)] text-white rounded-2xl p-4">
+            <div className="bg-primary text-primary-foreground rounded-2xl p-4">
               <h4 className="font-semibold mb-2">Still need help?</h4>
               <p className="text-sm mb-3">Our support team is here to assist you.</p>
               <Link 

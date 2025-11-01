@@ -168,7 +168,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
   };
 
   const fieldCls = (hasErr?: boolean) =>
-    `border p-2 rounded focus:ring-2 focus:ring-brand-500 focus:border-transparent ${
+    `border p-2 rounded focus:ring-2 focus:ring-primary focus:border-transparent ${
       hasErr ? 'border-red-500 focus:ring-red-500' : 'border-border'
     }`;
 
@@ -339,7 +339,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
           id="coverLetter"
           name="coverLetter"
           placeholder={t('careers.coverLetterPh', "Tell us why you're a great fit...")}
-          className={`border p-2 rounded w-full focus:ring-2 focus:ring-brand-500 focus:border-transparent border-border`}
+          className={`border p-2 rounded w-full focus:ring-2 focus:ring-primary focus:border-transparent border-border`}
           rows={5}
           disabled={isSubmitting}
           data-testid="coverLetter"
@@ -361,8 +361,8 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
                      file:mr-4 file:py-2 file:px-4
                      file:rounded file:border-0
                      file:text-sm file:font-semibold
-                     file:bg-brand-50 file:text-brand-700
-                     hover:file:bg-brand-100
+                     file:bg-primary/5 file:text-primary
+                     hover:file:bg-primary/10
                      disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={isSubmitting}
           data-testid="resume"
@@ -386,9 +386,9 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="mt-6 px-6 py-3 bg-brand-500 text-white rounded-2xl hover:bg-brand-600
+        className="mt-6 px-6 py-3 bg-primary text-white rounded-2xl hover:bg-primary/90
                    transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed
-                   focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+                   focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
         data-testid="submit-application"
       >
         {isSubmitting ? (

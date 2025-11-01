@@ -101,7 +101,7 @@ export default function MyTicketsPage() {
             const supportBtn = footer?.querySelector('button');
             supportBtn?.click();
           }}
-          className="px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-2xl hover:bg-[var(--fixzit-primary-dark)] transition-colors"
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors"
         >
           New Ticket
         </button>
@@ -212,7 +212,7 @@ export default function MyTicketsPage() {
                   />
                   <button
                     onClick={sendReply}
-                    className="mt-2 px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-2xl hover:bg-[var(--fixzit-primary-dark)]"
+                    className="mt-2 px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90"
                   >
                     Send Reply
                   </button>

@@ -18,7 +18,7 @@ export default function LoginFooter({ showDemoLink = false }: LoginFooterProps) 
           {t('login.noAccount', "Don't have an account?")}{' '}
           <Link 
             href="/signup" 
-            className="text-brand-500 hover:text-brand-600 font-medium transition-colors"
+            className="text-primary hover:text-primary font-medium transition-colors"
           >
             {t('login.signUp', 'Sign up here')}
           </Link>

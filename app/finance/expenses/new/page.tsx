@@ -798,7 +798,7 @@ export default function NewExpensePage() {
                     <p className="text-xs text-muted-foreground mt-2 truncate">{receipt.file.name}</p>
                     <button
                       onClick={() => removeReceipt(receipt.id)}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-destructive/90"
                     >
                       ✕
                     </button>

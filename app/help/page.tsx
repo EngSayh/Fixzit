@@ -145,7 +145,7 @@ export default function HelpHome() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex flex-col">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-brand-500 via-brand-500 to-success text-white py-16">
+      <section className="bg-gradient-to-r from-primary via-primary to-success text-primary-foreground py-16">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <h1 className="text-4xl font-bold mb-4">Fixzit Knowledge Center</h1>
           <p className="text-xl opacity-90 mb-8">
@@ -156,7 +156,7 @@ export default function HelpHome() {
           <div className="flex flex-wrap gap-4">
             <button
               onClick={() => setShowAIChat(true)}
-              className="bg-card text-brand-500 px-6 py-3 rounded-2xl font-semibold hover:bg-muted transition-colors flex items-center gap-2"
+              className="bg-card text-primary px-6 py-3 rounded-2xl font-semibold hover:bg-muted transition-colors flex items-center gap-2"
             >
               <Bot className="w-5 h-5" />
               Ask AI Assistant

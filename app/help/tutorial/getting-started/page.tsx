@@ -584,7 +584,7 @@ Continue to learn about tenant relations!
 
                 <button
                   onClick={() => markStepComplete(currentStep)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[var(--fixzit-success)] text-white rounded-2xl hover:bg-[var(--fixzit-success-dark)] transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-2xl hover:bg-green-700 transition-colors"
                 >
                   <CheckCircle className="w-4 h-4" />
                   Mark Complete
@@ -593,7 +593,7 @@ Continue to learn about tenant relations!
                 <button
                   onClick={() => setCurrentStep(Math.min(tutorial.steps.length - 1, currentStep + 1))}
                   disabled={currentStep === tutorial.steps.length - 1}
-                  className="flex items-center gap-2 px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-2xl hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next →
                 </button>

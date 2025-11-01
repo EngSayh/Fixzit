@@ -114,7 +114,7 @@ export default function AIChatPage() {
           <div className="flex items-center justify-between p-6 border-b border-border">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[var(--fixzit-primary)] rounded-full flex items-center justify-center">
-                <Bot className="w-5 h-5 text-white" />
+                <Bot className="w-5 h-5 text-primary-foreground" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-foreground">Fixzit AI Assistant</h1>
@@ -141,14 +141,14 @@ export default function AIChatPage() {
                   message.type === 'user' ? 'bg-green-600' : 'bg-blue-600'
                 }`}>
                   {message.type === 'user' ? (
-                    <User className="w-4 h-4 text-white" />
+                    <User className="w-4 h-4 text-primary-foreground" />
                   ) : (
-                    <Bot className="w-4 h-4 text-white" />
+                    <Bot className="w-4 h-4 text-primary-foreground" />
                   )}
                 </div>
                 <div className={`max-w-[80%] p-4 rounded-2xl ${
                   message.type === 'user'
-                    ? 'bg-green-600 text-white'
+                    ? 'bg-green-600 text-primary-foreground'
                     : 'bg-muted text-foreground'
                 }`}>
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -179,7 +179,7 @@ export default function AIChatPage() {
             {isLoading && (
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 bg-[var(--fixzit-primary)] rounded-full flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-white" />
+                  <Bot className="w-4 h-4 text-primary-foreground" />
                 </div>
                 <div className="bg-muted p-4 rounded-2xl">
                   <p className="text-sm text-muted-foreground">Thinking...</p>
@@ -206,7 +206,7 @@ export default function AIChatPage() {
                 onClick={sendMessage}
                 disabled={!input.trim() || isLoading}
                 aria-label="Send message"
-                className="px-4 py-3 bg-[var(--fixzit-primary)] text-white rounded-2xl hover:bg-[var(--fixzit-primary-dark)] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-3 bg-[var(--fixzit-primary)] text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-4 h-4" />
               </button>

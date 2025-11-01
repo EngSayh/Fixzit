@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "ignoreDeprecations": "5.0",
-    "target": "es2017",
+    "target": "es2022",
     "lib": [
       "dom",
       "dom.iterable",
@@ -31,50 +31,13 @@
       "react-dom",
       "next",
       "google.maps",
-      // IMPORTANT: "jest" types retained intentionally
-      // Reason: 10+ test files still use Jest APIs (jest.mock, jest.fn, etc.)
-      // Removing this would cause TypeScript compilation errors in:
-      //   - app/product/[slug]/__tests__/page.spec.tsx
-      //   - app/fm/marketplace/page.test.tsx
-      //   - app/marketplace/page.test.tsx
-      //   - app/api/marketplace/search/route.test.ts
-      //   - Plus more in server/ and lib/
-      // These files are outside the scope of PR #119 (Jest→Vitest hybrid migration)
-      // They will be migrated in a follow-up PR
-      // See: COMPREHENSIVE_FIXES_SUMMARY.md for details on this PR's scope
-      "jest"
+      "jest",
+      "vitest/globals"
     ],
-    // ⚠️ DEPRECATION WARNING - TypeScript 7.0 (Future)
-    // baseUrl is deprecated and will be removed in TypeScript 7.0
-    // Cannot silence with ignoreDeprecations: "6.0" - TS5103 error (current TS version: 5.9.3)
-    // This is an informational warning only - TS 7.0 is not released yet
-    // Migration guide: https://aka.ms/ts6
-    // Action required: When upgrading to TypeScript 6.x+, migrate to moduleResolution strategy
-    //   - Remove baseUrl and paths
-    //   - Use package.json "imports" or "exports" fields instead
-    //   - Or use relative imports throughout the codebase
     "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"
-      ],
-      "@/server/*": [
-        "./server/*"
-      ],
-      "@components/*": [
-        "./components/*"
-      ],
-      "@lib/*": [
-        "./lib/*"
-      ],
-      "@hooks/*": [
-        "./hooks/*"
-      ],
-      "@types/*": [
-        "./types/*"
-      ],
-      "@utils/*": [
-        "./utils/*"
       ]
     }
   },
@@ -82,18 +45,15 @@
     "**/*.ts",
     "**/*.tsx",
     "next-env.d.ts",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "vitest.config.ts",
+    "vitest.setup.ts"
   ],
   "exclude": [
     "node_modules",
-    "tests",
-    "vitest.config.ts",
-    "qa/tests",
-    "vitest.setup.ts",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
-    "**/__tests__/**"
+    ".next",
+    "dist",
+    "build",
+    "out"
   ]
 }

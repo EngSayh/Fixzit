@@ -5,6 +5,10 @@ import { useState, useEffect } from 'react';
 import { User, Settings, Shield, Bell } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 type TabType = 'account' | 'notifications' | 'security';
 
@@ -259,7 +263,7 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="text-center">
-                <div className="w-20 h-20 bg-brand-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
                   <User size={32} className="text-white" />
                 </div>
                 <h2 className="text-xl font-semibold text-foreground">{user.name}</h2>
@@ -288,36 +292,39 @@ export default function ProfilePage() {
           <div className="bg-card text-card-foreground rounded-2xl shadow-md">
             <div className="border-b border-border">
               <div className="flex">
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => setActiveTab('account')}
-                  className={`px-6 py-3 text-sm font-medium transition-colors ${
+                  className={`px-6 py-3 text-sm font-medium transition-colors rounded-none ${
                     activeTab === 'account'
                       ? 'text-primary border-b-2 border-primary'
-                      : 'text-muted-foreground hover:text-foreground'
+                      : 'text-muted-foreground hover:text-foreground border-b-2 border-transparent'
                   }`}
                 >
-                  {t('profile.tabs.account', 'Account Settings')}
-                </button>
-                <button
+                  {t('profile.tabs.account')}
+                </Button>
+                <Button
+                  variant="ghost"
                   onClick={() => setActiveTab('notifications')}
-                  className={`px-6 py-3 text-sm font-medium transition-colors ${
+                  className={`px-6 py-3 text-sm font-medium transition-colors rounded-none ${
                     activeTab === 'notifications'
                       ? 'text-primary border-b-2 border-primary'
-                      : 'text-muted-foreground hover:text-foreground'
+                      : 'text-muted-foreground hover:text-foreground border-b-2 border-transparent'
                   }`}
                 >
-                  {t('profile.tabs.notifications', 'Notifications')}
-                </button>
-                <button
+                  {t('profile.tabs.notifications')}
+                </Button>
+                <Button
+                  variant="ghost"
                   onClick={() => setActiveTab('security')}
-                  className={`px-6 py-3 text-sm font-medium transition-colors ${
+                  className={`px-6 py-3 text-sm font-medium transition-colors rounded-none ${
                     activeTab === 'security'
                       ? 'text-primary border-b-2 border-primary'
-                      : 'text-muted-foreground hover:text-foreground'
+                      : 'text-muted-foreground hover:text-foreground border-b-2 border-transparent'
                   }`}
                 >
-                  {t('profile.tabs.security', 'Security')}
-                </button>
+                  {t('profile.tabs.security')}
+                </Button>
               </div>
             </div>
 
@@ -325,57 +332,56 @@ export default function ProfilePage() {
               {/* Account Settings Tab */}
               {activeTab === 'account' && (
                 <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      {t('profile.account.fullName', 'Full Name')}
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">
+                      {t('profile.account.fullName')}
+                    </Label>
+                    <Input
+                      id="fullName"
                       type="text"
                       value={user.name}
                       onChange={(e) => setUser({ ...user, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      {t('profile.account.email', 'Email Address')}
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="email">
+                      {t('profile.account.email')}
+                    </Label>
+                    <Input
+                      id="email"
                       type="email"
                       value={user.email}
                       onChange={(e) => setUser({ ...user, email: e.target.value })}
-                      className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      {t('profile.account.phone', 'Phone Number')}
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">
+                      {t('profile.account.phone')}
+                    </Label>
+                    <Input
+                      id="phone"
                       type="tel"
                       value={user.phone}
                       onChange={(e) => setUser({ ...user, phone: e.target.value })}
                       placeholder="+966 50 123 4567"
-                      className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
                     />
                   </div>
 
                   <div className="flex justify-end gap-3">
-                    <button
+                    <Button
+                      variant="outline"
                       onClick={handleCancelAccount}
-                      className="px-4 py-2 text-foreground border border-border rounded-2xl hover:bg-muted transition-colors"
                     >
-                      {t('profile.account.cancel', 'Cancel')}
-                    </button>
-                    <button
+                      {t('profile.account.cancel')}
+                    </Button>
+                    <Button
                       onClick={handleSaveAccount}
                       disabled={loading}
-                      className="px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
-                      {t('profile.account.save', 'Save Changes')}
-                    </button>
+                      {t('profile.account.save')}
+                    </Button>
                   </div>
                 </div>
               )}
@@ -384,96 +390,113 @@ export default function ProfilePage() {
               {activeTab === 'notifications' && (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.notifications.channels', 'Notification Channels')}</h3>
+                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.notifications.channels')}</h3>
                     <div className="space-y-3">
-                      <label className="flex items-center justify-between p-3 border border-border rounded-2xl hover:bg-muted cursor-pointer">
-                        <span className="text-sm font-medium text-foreground">{t('profile.notifications.email', 'Email Notifications')}</span>
-                        <input
-                          type="checkbox"
+                      <Label
+                        htmlFor="email-notifications"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">{t('profile.notifications.email')}</span>
+                        <Switch
+                          id="email-notifications"
                           checked={notificationSettings.emailNotifications}
-                          onChange={(e) => setNotificationSettings({
+                          onCheckedChange={(checked) => setNotificationSettings({
                             ...notificationSettings,
-                            emailNotifications: e.target.checked
+                            emailNotifications: checked
                           })}
-                          className="w-4 h-4 text-primary focus:ring-primary rounded"
+                          aria-label={t('profile.notifications.email')}
                         />
-                      </label>
-                      <label className="flex items-center justify-between p-3 border border-border rounded-2xl hover:bg-muted cursor-pointer">
-                        <span className="text-sm font-medium text-foreground">{t('profile.notifications.push', 'Push Notifications')}</span>
-                        <input
-                          type="checkbox"
+                      </Label>
+                      <Label
+                        htmlFor="push-notifications"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">{t('profile.notifications.push')}</span>
+                        <Switch
+                          id="push-notifications"
                           checked={notificationSettings.pushNotifications}
-                          onChange={(e) => setNotificationSettings({
+                          onCheckedChange={(checked) => setNotificationSettings({
                             ...notificationSettings,
-                            pushNotifications: e.target.checked
+                            pushNotifications: checked
                           })}
-                          className="w-4 h-4 text-primary focus:ring-primary rounded"
+                          aria-label={t('profile.notifications.push')}
                         />
-                      </label>
-                      <label className="flex items-center justify-between p-3 border border-border rounded-2xl hover:bg-muted cursor-pointer">
-                        <span className="text-sm font-medium text-foreground">{t('profile.notifications.sms', 'SMS Notifications')}</span>
-                        <input
-                          type="checkbox"
+                      </Label>
+                      <Label
+                        htmlFor="sms-notifications"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">{t('profile.notifications.sms')}</span>
+                        <Switch
+                          id="sms-notifications"
                           checked={notificationSettings.smsNotifications}
-                          onChange={(e) => setNotificationSettings({
+                          onCheckedChange={(checked) => setNotificationSettings({
                             ...notificationSettings,
-                            smsNotifications: e.target.checked
+                            smsNotifications: checked
                           })}
-                          className="w-4 h-4 text-primary focus:ring-primary rounded"
+                          aria-label={t('profile.notifications.sms')}
                         />
-                      </label>
+                      </Label>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.notifications.events', 'Event Notifications')}</h3>
+                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.notifications.events')}</h3>
                     <div className="space-y-3">
-                      <label className="flex items-center justify-between p-3 border border-border rounded-2xl hover:bg-muted cursor-pointer">
-                        <span className="text-sm font-medium text-foreground">{t('profile.notifications.workOrders', 'Work Order Updates')}</span>
-                        <input
-                          type="checkbox"
+                      <Label
+                        htmlFor="work-order-updates"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">{t('profile.notifications.workOrders')}</span>
+                        <Switch
+                          id="work-order-updates"
                           checked={notificationSettings.workOrderUpdates}
-                          onChange={(e) => setNotificationSettings({
+                          onCheckedChange={(checked) => setNotificationSettings({
                             ...notificationSettings,
-                            workOrderUpdates: e.target.checked
+                            workOrderUpdates: checked
                           })}
-                          className="w-4 h-4 text-primary focus:ring-primary rounded"
+                          aria-label={t('profile.notifications.workOrders')}
                         />
-                      </label>
-                      <label className="flex items-center justify-between p-3 border border-border rounded-2xl hover:bg-muted cursor-pointer">
-                        <span className="text-sm font-medium text-foreground">{t('profile.notifications.maintenance', 'Maintenance Alerts')}</span>
-                        <input
-                          type="checkbox"
+                      </Label>
+                      <Label
+                        htmlFor="maintenance-alerts"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">{t('profile.notifications.maintenance')}</span>
+                        <Switch
+                          id="maintenance-alerts"
                           checked={notificationSettings.maintenanceAlerts}
-                          onChange={(e) => setNotificationSettings({
+                          onCheckedChange={(checked) => setNotificationSettings({
                             ...notificationSettings,
-                            maintenanceAlerts: e.target.checked
+                            maintenanceAlerts: checked
                           })}
-                          className="w-4 h-4 text-primary focus:ring-primary rounded"
+                          aria-label={t('profile.notifications.maintenance')}
                         />
-                      </label>
-                      <label className="flex items-center justify-between p-3 border border-border rounded-2xl hover:bg-muted cursor-pointer">
-                        <span className="text-sm font-medium text-foreground">{t('profile.notifications.invoices', 'Invoice Reminders')}</span>
-                        <input
-                          type="checkbox"
+                      </Label>
+                      <Label
+                        htmlFor="invoice-reminders"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
+                      >
+                        <span className="text-sm font-medium">{t('profile.notifications.invoices')}</span>
+                        <Switch
+                          id="invoice-reminders"
                           checked={notificationSettings.invoiceReminders}
-                          onChange={(e) => setNotificationSettings({
+                          onCheckedChange={(checked) => setNotificationSettings({
                             ...notificationSettings,
-                            invoiceReminders: e.target.checked
+                            invoiceReminders: checked
                           })}
-                          className="w-4 h-4 text-primary focus:ring-primary rounded"
+                          aria-label={t('profile.notifications.invoices')}
                         />
-                      </label>
+                      </Label>
                     </div>
                   </div>
 
                   <div className="flex justify-end">
-                    <button
+                    <Button
                       onClick={handleSaveNotifications}
-                      className="px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors"
                     >
-                      {t('profile.notifications.save', 'Save Preferences')}
-                    </button>
+                      {t('profile.notifications.save')}
+                    </Button>
                   </div>
                 </div>
               )}
@@ -482,79 +505,81 @@ export default function ProfilePage() {
               {activeTab === 'security' && (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.security.changePassword', 'Change Password')}</h3>
+                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.security.changePassword')}</h3>
                     <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">
-                          {t('profile.security.currentPassword', 'Current Password')}
-                        </label>
-                        <input
+                      <div className="space-y-2">
+                        <Label htmlFor="current-password">
+                          {t('profile.security.currentPassword')}
+                        </Label>
+                        <Input
+                          id="current-password"
                           type="password"
                           value={securitySettings.currentPassword}
                           onChange={(e) => setSecuritySettings({
                             ...securitySettings,
                             currentPassword: e.target.value
                           })}
-                          className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
                         />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">
-                          {t('profile.security.newPassword', 'New Password')}
-                        </label>
-                        <input
+                      <div className="space-y-2">
+                        <Label htmlFor="new-password">
+                          {t('profile.security.newPassword')}
+                        </Label>
+                        <Input
+                          id="new-password"
                           type="password"
                           value={securitySettings.newPassword}
                           onChange={(e) => setSecuritySettings({
                             ...securitySettings,
                             newPassword: e.target.value
                           })}
-                          className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
                         />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">
-                          {t('profile.security.confirmPassword', 'Confirm New Password')}
-                        </label>
-                        <input
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm-password">
+                          {t('profile.security.confirmPassword')}
+                        </Label>
+                        <Input
+                          id="confirm-password"
                           type="password"
                           value={securitySettings.confirmPassword}
                           onChange={(e) => setSecuritySettings({
                             ...securitySettings,
                             confirmPassword: e.target.value
                           })}
-                          className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
                         />
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.security.twoFactor', 'Two-Factor Authentication')}</h3>
-                    <label className="flex items-center justify-between p-4 border border-border rounded-2xl hover:bg-muted cursor-pointer">
-                      <div>
-                        <span className="text-sm font-medium text-foreground block">{t('profile.security.enable2FA', 'Enable 2FA')}</span>
-                        <span className="text-xs text-muted-foreground">{t('profile.security.2FADesc', 'Add an extra layer of security to your account')}</span>
+                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.security.twoFactor')}</h3>
+                    <div className="flex items-center justify-between p-4 border border-border rounded-2xl">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="two-factor-auth" className="text-sm font-medium cursor-pointer">
+                          {t('profile.security.enable2FA')}
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          {t('profile.security.2FADesc')}
+                        </p>
                       </div>
-                      <input
-                        type="checkbox"
+                      <Switch
+                        id="two-factor-auth"
                         checked={securitySettings.twoFactorEnabled}
-                        onChange={(e) => setSecuritySettings({
+                        onCheckedChange={(checked) => setSecuritySettings({
                           ...securitySettings,
-                          twoFactorEnabled: e.target.checked
+                          twoFactorEnabled: checked
                         })}
-                        className="w-4 h-4 text-primary focus:ring-primary rounded"
                       />
-                    </label>
+                    </div>
                   </div>
 
                   <div className="flex justify-end">
-                    <button
+                    <Button
                       onClick={handleSaveSecurity}
-                      className="px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors"
                     >
-                      {t('profile.security.update', 'Update Security')}
-                    </button>
+                      {t('profile.security.update')}
+                    </Button>
                   </div>
                 </div>
               )}

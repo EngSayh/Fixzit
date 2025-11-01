@@ -1,4 +1,5 @@
 // AutoFixManager for system health monitoring - MongoDB only
+import { STORAGE_KEYS } from '@/config/constants';
 
 export interface SystemCheck {
   id: string;
@@ -368,7 +369,7 @@ export class AutoFixManager {
       sessionStorage.clear();
 
       // Reset application state
-      const keysToKeep = ['fxz.lang', 'fxz.theme'];
+      const keysToKeep: string[] = [STORAGE_KEYS.language, STORAGE_KEYS.theme];
       Object.keys(localStorage).forEach(key => {
         if (!keysToKeep.includes(key)) {
           localStorage.removeItem(key);
