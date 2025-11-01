@@ -11,6 +11,7 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),
+    prefetch: vi.fn(),
     back: vi.fn(),
     forward: vi.fn(),
     refresh: vi.fn(),
@@ -19,6 +20,10 @@ vi.mock('next/navigation', () => ({
   }),
   usePathname: () => '/',
   useSearchParams: () => new URLSearchParams(),
+  useParams: () => ({}),
+  notFound: vi.fn(),
+  redirect: vi.fn(),
+  permanentRedirect: vi.fn(),
 }));
 
 // Mock IntersectionObserver for UI tests
