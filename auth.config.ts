@@ -1,11 +1,10 @@
 import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
-import { connectToDatabase } from '@/lib/mongodb-unified';
-import { User } from '@/server/models/User';
-import { getNextAtomicUserCode } from '@/lib/mongoUtils';
 import { z } from 'zod';
-import { verifyPassword } from '@/lib/auth';
+// NOTE: Mongoose imports MUST be dynamic inside authorize() to avoid Edge Runtime issues
+// import { User } from '@/server/models/User'; // ❌ Breaks Edge Runtime
+// import { verifyPassword } from '@/lib/auth'; // ❌ Imports User model
 
 // Validate required environment variables at startup
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -138,10 +137,15 @@ export const authConfig = {
 
           const { loginIdentifier, loginType, password, rememberMe } = parsed.data;
 
-          // 2. Connect to database
+          // 2. Dynamic imports (Edge Runtime compatible)
+          const { connectToDatabase } = await import('@/lib/mongodb-unified');
+          const { User } = await import('@/server/models/User');
+          const bcrypt = await import('bcryptjs');
+
+          // 3. Connect to database
           await connectToDatabase();
 
-          // 3. Find user based on login type
+          // 4. Find user based on login type
           let user;
           if (loginType === 'personal') {
             user = await User.findOne({ email: loginIdentifier });
@@ -155,26 +159,26 @@ export const authConfig = {
             return null;
           }
 
-          // 4. Verify password
-          const isValid = await verifyPassword(password, user.password);
+          // 5. Verify password (inline to avoid importing @/lib/auth)
+          const isValid = await bcrypt.compare(password, user.password);
           if (!isValid) {
             console.error('[NextAuth] Invalid password for:', loginIdentifier);
             return null;
           }
 
-          // 5. Check if user is active
+          // 6. Check if user is active
           const isUserActive = user.isActive !== undefined ? user.isActive : (user.status === 'ACTIVE');
           if (!isUserActive) {
             console.error('[NextAuth] Inactive user attempted login:', loginIdentifier);
             return null;
           }
 
-          // 6. Update last login timestamp
+          // 7. Update last login timestamp
           user.security = user.security || {};
           user.security.lastLogin = new Date();
           await user.save();
 
-          // 7. Return user object for NextAuth session
+          // 8. Return user object for NextAuth session
           return {
             id: user._id.toString(),
             email: user.email,
@@ -214,6 +218,11 @@ export const authConfig = {
       // Provision OAuth users (not credentials provider)
       if (_account?.provider && _account.provider !== 'credentials') {
         try {
+          // Dynamic imports (Edge Runtime compatible)
+          const { connectToDatabase } = await import('@/lib/mongodb-unified');
+          const { User } = await import('@/server/models/User');
+          const { getNextAtomicUserCode } = await import('@/lib/mongoUtils');
+
           // Connect to database and provision user directly
           await connectToDatabase();
 
