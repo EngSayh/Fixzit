@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { TableSkeleton } from '@/components/skeletons';
 
 interface TicketItem {
-  _id: string;
+  id: string;
   code?: string;
   subject?: string;
   module?: string;
@@ -137,7 +137,7 @@ export default function SupportTicketsPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {(data?.items as TicketItem[] || []).map((ticket) => (
-                <tr key={ticket._id}>
+                <tr key={ticket.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
                     {ticket.code}
                   </td>
@@ -160,7 +160,7 @@ export default function SupportTicketsPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <select
                       value={ticket.status}
-                      onChange={e => updateTicket(ticket._id, { status: e.target.value })}
+                      onChange={e => updateTicket(ticket.id, { status: e.target.value })}
                       className="text-sm border border-border rounded px-2 py-1"
                     >
                       <option value="New">New</option>
@@ -175,7 +175,7 @@ export default function SupportTicketsPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <Link 
-                      href={`/fm/support/tickets/${ticket._id}`} 
+                      href={`/fm/support/tickets/${ticket.id}`} 
                       className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)] hover:underline"
                     >
                       View
