@@ -77,7 +77,7 @@ for file in $FILES; do
     escaped_replacement=$(echo "$replacement" | sed 's/\//\\\//g')
     
     # Platform-specific sed (BSD/macOS vs GNU/Linux)
-    if sed --version >/dev/null 2>&1; then
+    if sed --version 2>&1 | grep -q GNU; then
       # GNU sed (Linux)
       sed -i "s/$escaped_pattern/$escaped_replacement/g" "$file"
     else

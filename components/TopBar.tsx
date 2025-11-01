@@ -312,7 +312,7 @@ export default function TopBar() {
               </div>
             )}
             <span className={`font-bold ${isMobile ? 'hidden' : 'text-lg'} whitespace-nowrap ${isRTL ? 'text-right' : ''}`}>
-              {orgSettings?.name || t('common.brand')}
+              {orgSettings?.name || t('common.brand', 'FIXZIT ENTERPRISE')}
             </span>
           </Button>
           <AppSwitcher />
@@ -333,7 +333,7 @@ export default function TopBar() {
               variant="ghost"
               size="icon"
               onClick={() => setMobileSearchOpen(true)}
-              aria-label={t('common.search')}
+              aria-label={t('common.search', 'Search')}
               className="text-white hover:bg-white/10"
             >
               <Search className="w-4 h-4" />
@@ -382,7 +382,7 @@ export default function TopBar() {
               className="text-white hover:bg-white/10"
             >
               <Link href="/login">
-                {t('common.signIn')}
+                {t('common.signIn', 'Sign in')}
               </Link>
             </Button>
           )}
@@ -394,10 +394,10 @@ export default function TopBar() {
         <DialogContent className="bg-popover text-popover-foreground border-border">
           <DialogHeader>
             <DialogTitle className="text-foreground">
-              {t('common.unsavedChanges')}
+              {t('common.unsavedChanges', 'Unsaved Changes')}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              {t('common.unsavedChangesMessage')}
+              {t('common.unsavedChangesMessage', 'You have unsaved changes. Do you want to discard them?')}
             </DialogDescription>
           </DialogHeader>
           
@@ -407,13 +407,13 @@ export default function TopBar() {
               onClick={handleCancelNavigation}
               className="text-foreground"
             >
-              {t('common.cancel')}
+              {t('common.cancel', 'Cancel')}
             </Button>
             <Button
               variant="destructive"
               onClick={handleDiscardAndNavigate}
             >
-              {t('common.discard')}
+              {t('common.discard', 'Discard')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -439,7 +439,7 @@ export default function TopBar() {
                   <X className="w-5 h-5" />
                 </Button>
                 <h2 id="mobile-search-title" className="text-lg font-semibold text-foreground">
-                  {t('common.search')}
+                  {t('common.search', 'Search')}
                 </h2>
               </div>
               
@@ -504,7 +504,7 @@ function NotificationPopup({
           setNotifOpen(next);
         }}
         className="relative text-white hover:bg-white/10"
-        aria-label={t('nav.notifications')}
+        aria-label={t('nav.notifications', 'Notifications')}
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
@@ -516,7 +516,7 @@ function NotificationPopup({
         <div 
           role="dialog"
           aria-modal="true"
-          aria-label={t('nav.notifications')}
+          aria-label={t('nav.notifications', 'Notifications')}
           className="fixed bg-popover text-popover-foreground rounded-2xl shadow-2xl border border-border z-[100] animate-in slide-in-from-top-2 duration-200"
           style={{ 
             top: notifPos.top,
@@ -529,11 +529,11 @@ function NotificationPopup({
           {/* Header */}
           <div className="p-3 border-b border-border flex justify-between items-start">
             <div>
-              <div className="font-semibold text-foreground">{t('nav.notifications')}</div>
+              <div className="font-semibold text-foreground">{t('nav.notifications', 'Notifications')}</div>
               <div className="text-xs text-muted-foreground mt-1">
                 {unreadCount > 0
-                  ? `${unreadCount} ${t('common.unread')}`
-                  : t('common.noNotifications')
+                  ? `${unreadCount} ${t('common.unread', 'unread')}`
+                  : t('common.noNotifications', 'No new notifications')
                 }
               </div>
             </div>
@@ -553,7 +553,7 @@ function NotificationPopup({
             {loading ? (
               <div className="p-3 text-center text-muted-foreground">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-muted mx-auto"></div>
-                <div className="text-xs mt-1">{t('common.loading')}</div>
+                <div className="text-xs mt-1">{t('common.loading', 'Loading...')}</div>
               </div>
             ) : notifications.length > 0 ? (
               <div className="space-y-1">
@@ -595,8 +595,8 @@ function NotificationPopup({
             ) : (
               <div className="p-6 text-center text-muted-foreground">
                 <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <div className="text-sm">{t('common.noNotifications')}</div>
-                <div className="text-xs text-muted-foreground mt-1">{t('common.allCaughtUp')}</div>
+                <div className="text-sm">{t('common.noNotifications', 'No new notifications')}</div>
+                <div className="text-xs text-muted-foreground mt-1">{t('common.allCaughtUp', "You're all caught up!")}</div>
               </div>
             )}
           </div>
@@ -609,7 +609,7 @@ function NotificationPopup({
                 className="text-xs text-primary hover:text-primary font-medium flex items-center justify-center gap-1"
                 onClick={() => setNotifOpen(false)}
               >
-                {t('common.viewAll')}
+                {t('common.viewAll', 'View all')}
                 <ChevronDown className="w-3 h-3 rotate-[-90deg]" />
               </Link>
             </div>
@@ -660,7 +660,7 @@ function UserMenuPopup({
           setUserOpen(next);
         }}
         className="flex items-center gap-1 text-white hover:bg-white/10"
-        aria-label={t('nav.profile')}
+        aria-label={t('nav.profile', 'Profile menu')}
       >
         <User className="w-5 h-5" />
         <ChevronDown className="w-4 h-4" />
@@ -669,7 +669,7 @@ function UserMenuPopup({
       {userOpen && (
         <div 
           role="menu"
-          aria-label={t('nav.profile')}
+          aria-label={t('nav.profile', 'Profile menu')}
           className="fixed bg-popover text-popover-foreground rounded-2xl shadow-2xl border border-border py-1 z-[100] animate-in slide-in-from-top-2 duration-200"
           style={{
             top: userPos.top,
@@ -685,7 +685,7 @@ function UserMenuPopup({
             role="menuitem"
             onClick={() => setUserOpen(false)}
           >
-            {t('nav.profile')}
+            {t('nav.profile', 'Profile')}
           </Link>
           <Link
             href="/settings"
@@ -693,13 +693,13 @@ function UserMenuPopup({
             role="menuitem"
             onClick={() => setUserOpen(false)}
           >
-            {t('nav.settings')}
+            {t('nav.settings', 'Settings')}
           </Link>
           
           {/* Language & Currency Section */}
           <div className="border-t my-1 mx-2 border-border" />
           <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase">
-            {t('common.preferences')}
+            {t('common.preferences', 'Preferences')}
           </div>
           <div className="px-4 py-2 space-y-2" role="none">
             <LanguageSelector variant="default" />
@@ -711,7 +711,7 @@ function UserMenuPopup({
             className="w-full text-left px-4 py-2 hover:bg-destructive/10 text-destructive rounded justify-start"
             onClick={handleLogout}
           >
-            {t('common.logout')}
+            {t('common.logout', 'Logout')}
           </Button>
         </div>
       )}
