@@ -61,7 +61,7 @@ const createVendorSchema = z.object({
 
 // Custom filter builder for vendor-specific search
 function buildVendorFilter(searchParams: URLSearchParams, orgId: string) {
-  const match: Record<string, any> = { tenantId: orgId };
+  const match: Record<string, unknown> = { tenantId: orgId };
 
   const type = searchParams.get('type');
   const status = searchParams.get('status');

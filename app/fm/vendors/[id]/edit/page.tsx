@@ -91,7 +91,7 @@ export default function EditVendorPage() {
       name: formData.get('name')?.toString() || '',
       code: formData.get('code')?.toString() || '',
       type: formData.get('type')?.toString() || '',
-      status: formData.get('status')?.toString() as any,
+      status: formData.get('status')?.toString() as 'PENDING' | 'APPROVED' | 'SUSPENDED' | 'REJECTED' | 'BLACKLISTED',
       contact: {
         primary: {
           name: formData.get('contactName')?.toString() || '',
