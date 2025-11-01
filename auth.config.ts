@@ -68,11 +68,16 @@ function sanitizeImage(image?: string | null): string | undefined {
 }
 
 // Validation schema for credentials login (unified identifier field)
+// NOTE: signIn() from next-auth/react sends all values as strings, so we need to handle string-to-boolean conversion
 const LoginSchema = z
   .object({
     identifier: z.string().trim().min(1, 'Email or employee number is required'),
     password: z.string().min(1, 'Password is required'),
-    rememberMe: z.boolean().optional().default(false),
+    // rememberMe comes as string "true"/"false" from signIn(), coerce to boolean
+    rememberMe: z.union([z.boolean(), z.string()]).transform(val => {
+      if (typeof val === 'boolean') return val;
+      return val === 'true' || val === '1';
+    }).optional().default(false),
   })
   .transform((data, ctx) => {
     const idRaw = data.identifier.trim();
@@ -174,9 +179,11 @@ export const authConfig = {
           }
 
           // 7. Update last login timestamp
-          user.security = user.security || {};
-          user.security.lastLogin = new Date();
-          await user.save();
+          // Use updateOne to bypass Mongoose validation (some demo users may not have all required fields)
+          await User.updateOne(
+            { _id: user._id },
+            { $set: { 'security.lastLogin': new Date() } }
+          );
 
           // 8. Return user object for NextAuth session
           return {
