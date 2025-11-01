@@ -18,8 +18,9 @@ import {
   ShoppingCart, DollarSign, Calendar, Package
 } from 'lucide-react';
 
+// [CODE REVIEW]: FIX - Use 'id', not '_id' (Prisma/PostgreSQL convention)
 interface Order {
-  _id: string;
+  id: string;
   orderNumber?: string;
   vendorId?: string;
   vendorName?: string;
@@ -64,9 +65,9 @@ export default function OrdersPage() {
     ? `/api/marketplace/orders${statusFilter !== 'all' ? `?status=${statusFilter.toUpperCase()}` : ''}`
     : null;
 
-  const { data: ordersData, error, isLoading, mutate } = useSWR(
+  const { data: ordersData, error, isLoading, mutate} = useSWR(
     ordersUrl ? [ordersUrl, orgId] : null,
-    ([url, id]) => fetcher(url, id)
+    ([url, id]: [string, string | undefined]) => fetcher(url, id)
   );
 
   const orders = Array.isArray(ordersData) ? ordersData : [];
@@ -107,7 +108,7 @@ export default function OrdersPage() {
     const rows = [['Order Number', 'Vendor', 'Total', 'Status', 'Date', 'Delivery Date']];
     for (const o of ordersList) {
       rows.push([
-        o.orderNumber || o._id || '',
+        o.orderNumber || o.id || '',
         o.vendorName || 'N/A',
         o.total ? `SAR ${o.total.toLocaleString()}` : 'N/A',
         o.status || '',
@@ -217,13 +218,13 @@ export default function OrdersPage() {
           ) : (
             <div className="space-y-4">
               {purchaseOrders.map((order: Order) => (
-                <Card key={order._id} className="hover:shadow-md transition-shadow">
+                <Card key={order.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3">
                           <h3 className="text-lg font-semibold text-foreground">
-                            {order.orderNumber || `Order ${order._id.slice(-8)}`}
+                            {order.orderNumber || `Order ${order.id.slice(-8)}`}
                           </h3>
                           <Badge className={getStatusColor(order.status || '')}>
                             {order.status || 'PENDING'}
@@ -274,7 +275,7 @@ export default function OrdersPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => router.push(`/marketplace/orders/${order._id}`)}
+                              onClick={() => router.push(`/marketplace/orders/${order.id}`)}
                             >
                               <Eye className="h-4 w-4 mr-2" />
                               {t('common.view', 'View')}
@@ -282,7 +283,7 @@ export default function OrdersPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => router.push(`/marketplace/orders/${order._id}/edit`)}
+                              onClick={() => router.push(`/marketplace/orders/${order.id}/edit`)}
                             >
                               <Edit className="h-4 w-4 mr-2" />
                               {t('common.edit', 'Edit')}
@@ -291,7 +292,7 @@ export default function OrdersPage() {
                               variant="outline"
                               size="sm"
                               className="text-red-600 hover:text-red-700"
-                              onClick={() => handleDelete(order._id, order.orderNumber || order._id)}
+                              onClick={() => handleDelete(order.id, order.orderNumber || order.id)}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               {t('common.delete', 'Delete')}
@@ -327,13 +328,13 @@ export default function OrdersPage() {
           ) : (
             <div className="space-y-4">
               {serviceOrders.map((order: Order) => (
-                <Card key={order._id} className="hover:shadow-md transition-shadow">
+                <Card key={order.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3">
                           <h3 className="text-lg font-semibold text-foreground">
-                            {order.orderNumber || `Service Order ${order._id.slice(-8)}`}
+                            {order.orderNumber || `Service Order ${order.id.slice(-8)}`}
                           </h3>
                           <Badge className={getStatusColor(order.status || '')}>
                             {order.status || 'PENDING'}
@@ -369,7 +370,7 @@ export default function OrdersPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => router.push(`/marketplace/orders/${order._id}`)}
+                            onClick={() => router.push(`/marketplace/orders/${order.id}`)}
                           >
                             <Eye className="h-4 w-4 mr-2" />
                             {t('common.view', 'View')}
@@ -377,7 +378,7 @@ export default function OrdersPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => router.push(`/marketplace/orders/${order._id}/edit`)}
+                            onClick={() => router.push(`/marketplace/orders/${order.id}/edit`)}
                           >
                             <Edit className="h-4 w-4 mr-2" />
                             {t('common.edit', 'Edit')}
@@ -386,7 +387,7 @@ export default function OrdersPage() {
                             variant="outline"
                             size="sm"
                             className="text-red-600 hover:text-red-700"
-                            onClick={() => handleDelete(order._id, order.orderNumber || order._id)}
+                            onClick={() => handleDelete(order.id, order.orderNumber || order.id)}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
                             {t('common.delete', 'Delete')}
