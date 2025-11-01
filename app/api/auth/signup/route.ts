@@ -11,7 +11,7 @@ import { getClientIP } from '@/server/security/headers';
 const signupSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  fullName: z.string(),
+  fullName: z.string().optional(), // ✅ FIX: Mark fullName as optional
   email: z.string().email("Invalid email address"),
   phone: z.string().min(1, "Phone number is required"),
   companyName: z.string().optional(),
@@ -78,38 +78,51 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
     const body = signupSchema.parse(await req.json());
 
-    let role = "TENANT";
-    switch (body.userType) {
-      case "corporate":
-        role = "CORPORATE_ADMIN";
-        break;
-      case "vendor":
-        role = "VENDOR";
-        break;
-      default:
-        role = "TENANT";
-    }
+    // 🛑 SECURITY FIX: Public signup MUST NOT be able to set admin roles.
+    // The 'userType' from the client is only a hint for data categorization.
+    // The 'role' assigned is ALWAYS the lowest-privilege personal user.
+    // Admin/Vendor accounts must be created via an internal, authenticated admin endpoint.
+    const role = "TENANT";
 
+    // Only store companyName if the user self-identifies as corporate/vendor
+    const companyName = (body.userType === 'corporate' || body.userType === 'vendor')
+      ? body.companyName
+      : undefined;
+
+    const normalizedEmail = body.email.toLowerCase();
     const hashedPassword = await bcrypt.hash(body.password, 12);
-    const existingUser = await User.findOne({ email: body.email });
-    
+
+    // ✅ FIX: Pre-check for existing user (good for a fast, clean error)
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
-      return duplicateKeyError();
+      return duplicateKeyError("An account with this email already exists.");
     }
 
-    const newUser = await User.create({
-      firstName: body.firstName,
-      lastName: body.lastName,
-      fullName: body.fullName || `${body.firstName} ${body.lastName}`,
-      email: body.email,
-      phone: body.phone,
-      companyName: body.companyName,
-      role,
-      password: hashedPassword,
-      termsAccepted: body.termsAccepted,
-      newsletter: body.newsletter || false,
-      preferredLanguage: body.preferredLanguage,
-      preferredCurrency: body.preferredCurrency});
+    // ✅ FIX: Add try/catch around the 'create' to handle race conditions
+    let newUser;
+    try {
+      newUser = await User.create({
+        firstName: body.firstName,
+        lastName: body.lastName,
+        fullName: body.fullName || `${body.firstName} ${body.lastName}`,
+        email: normalizedEmail,
+        phone: body.phone,
+        companyName: companyName,
+        role,
+        password: hashedPassword,
+        termsAccepted: body.termsAccepted,
+        newsletter: body.newsletter || false,
+        preferredLanguage: body.preferredLanguage,
+        preferredCurrency: body.preferredCurrency
+      });
+    } catch (dbError: any) {
+      // Handle database-level unique index violation (catches race condition)
+      if (dbError.code === 11000) { 
+        return duplicateKeyError("An account with this email already exists.");
+      }
+      // Re-throw other unexpected database errors
+      throw dbError;
+    }
 
     return createSecureResponse({
       ok: true,
