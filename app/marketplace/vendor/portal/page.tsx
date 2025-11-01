@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Package, Upload, BarChart3, Settings, AlertCircle, CheckCircle } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 interface VendorStats {
@@ -15,6 +16,7 @@ interface VendorStats {
 
 export default function VendorPortalPage() {
   const { t } = useTranslation();
+  const { data: session } = useSession();
   const [stats, setStats] = useState<VendorStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,16 @@ export default function VendorPortalPage() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const response = await fetch('/api/marketplace/vendor/stats');
+        const orgId = session?.user?.orgId;
+        if (!orgId) {
+          throw new Error('Organization ID not found');
+        }
+        const response = await fetch(`/api/org/${orgId}/marketplace/vendor/stats`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-tenant-id': orgId
+          }
+        });
         if (!response.ok) throw new Error('Failed to fetch stats');
         const data = await response.json();
         setStats(data.stats);
@@ -32,14 +43,16 @@ export default function VendorPortalPage() {
         setLoading(false);
       }
     }
-    fetchStats();
-  }, []);
+    if (session?.user?.orgId) {
+      fetchStats();
+    }
+  }, [session]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F5F6F8]">
+      <div className="min-h-screen flex items-center justify-center bg-muted">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0061A8] mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">{t('common.loading', 'Loading...')}</p>
         </div>
       </div>
@@ -47,11 +60,11 @@ export default function VendorPortalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8] flex flex-col">
+    <div className="min-h-screen bg-muted flex flex-col">
       <div className="mx-auto max-w-7xl px-4 py-8">
         {/* Header */}
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-[#0F1111]">
+          <h1 className="text-3xl font-bold text-foreground">
             {t('marketplace.vendor.profile', 'Vendor Portal')}
           </h1>
           <p className="text-muted-foreground mt-2">
@@ -61,9 +74,9 @@ export default function VendorPortalPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="mb-6 rounded-2xl bg-[var(--fixzit-danger-lightest)] border border-red-200 p-4 flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-[var(--fixzit-danger)]" />
-            <p className="text-sm text-[var(--fixzit-danger-darker)]">{error}</p>
+          <div className="mb-6 rounded-2xl bg-destructive/10 border border-destructive/20 p-4 flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-destructive" />
+            <p className="text-sm text-destructive-foreground">{error}</p>
           </div>
         )}
 
@@ -73,33 +86,33 @@ export default function VendorPortalPage() {
             <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium text-muted-foreground">Total Products</p>
-                <Package className="h-5 w-5 text-[#0061A8]" />
+                <Package className="h-5 w-5 text-primary" />
               </div>
-              <p className="text-3xl font-bold text-[#0F1111]">{stats.totalProducts}</p>
+              <p className="text-3xl font-bold text-foreground">{stats.totalProducts}</p>
             </div>
 
             <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium text-muted-foreground">Active Products</p>
-                <CheckCircle className="h-5 w-5 text-[#00A859]" />
+                <CheckCircle className="h-5 w-5 text-success" />
               </div>
-              <p className="text-3xl font-bold text-[#00A859]">{stats.activeProducts}</p>
+              <p className="text-3xl font-bold text-success">{stats.activeProducts}</p>
             </div>
 
             <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium text-muted-foreground">Pending Approval</p>
-                <AlertCircle className="h-5 w-5 text-[#FFB400]" />
+                <AlertCircle className="h-5 w-5 text-warning" />
               </div>
-              <p className="text-3xl font-bold text-[#FFB400]">{stats.pendingApproval}</p>
+              <p className="text-3xl font-bold text-warning">{stats.pendingApproval}</p>
             </div>
 
             <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium text-muted-foreground">Monthly Orders</p>
-                <BarChart3 className="h-5 w-5 text-[#0061A8]" />
+                <BarChart3 className="h-5 w-5 text-primary" />
               </div>
-              <p className="text-3xl font-bold text-[#0F1111]">{stats.monthlyOrders}</p>
+              <p className="text-3xl font-bold text-foreground">{stats.monthlyOrders}</p>
             </div>
           </section>
         )}
@@ -112,11 +125,11 @@ export default function VendorPortalPage() {
             className="group rounded-2xl bg-card p-6 shadow-sm border border-border hover:shadow-lg transition-all hover:-translate-y-1"
           >
             <div className="flex items-start gap-4">
-              <div className="rounded-2xl bg-[#0061A8]/10 p-3 group-hover:bg-[#0061A8] transition-colors">
-                <Upload className="h-6 w-6 text-[#0061A8] group-hover:text-white" />
+              <div className="rounded-2xl bg-primary/10 p-3 group-hover:bg-primary transition-colors">
+                <Upload className="h-6 w-6 text-primary group-hover:text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-[#0F1111] mb-1">
+                <h3 className="text-lg font-semibold text-foreground mb-1">
                   {t('marketplace.vendor.uploadProduct', 'Upload Product')}
                 </h3>
                 <p className="text-sm text-muted-foreground">
@@ -132,11 +145,11 @@ export default function VendorPortalPage() {
             className="group rounded-2xl bg-card p-6 shadow-sm border border-border hover:shadow-lg transition-all hover:-translate-y-1"
           >
             <div className="flex items-start gap-4">
-              <div className="rounded-2xl bg-[#00A859]/10 p-3 group-hover:bg-[#00A859] transition-colors">
-                <Package className="h-6 w-6 text-[#00A859] group-hover:text-white" />
+              <div className="rounded-2xl bg-success/10 p-3 group-hover:bg-success transition-colors">
+                <Package className="h-6 w-6 text-success group-hover:text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-[#0F1111] mb-1">
+                <h3 className="text-lg font-semibold text-foreground mb-1">
                   {t('marketplace.vendor.manageProducts', 'Manage Products')}
                 </h3>
                 <p className="text-sm text-muted-foreground">
@@ -152,11 +165,11 @@ export default function VendorPortalPage() {
             className="group rounded-2xl bg-card p-6 shadow-sm border border-border hover:shadow-lg transition-all hover:-translate-y-1"
           >
             <div className="flex items-start gap-4">
-              <div className="rounded-2xl bg-[#FFB400]/10 p-3 group-hover:bg-[#FFB400] transition-colors">
-                <Upload className="h-6 w-6 text-[#FFB400] group-hover:text-white" />
+              <div className="rounded-2xl bg-warning/10 p-3 group-hover:bg-warning transition-colors">
+                <Upload className="h-6 w-6 text-warning group-hover:text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-[#0F1111] mb-1">
+                <h3 className="text-lg font-semibold text-foreground mb-1">
                   {t('marketplace.vendor.bulkUpload', 'Bulk Upload')}
                 </h3>
                 <p className="text-sm text-muted-foreground">
@@ -172,11 +185,11 @@ export default function VendorPortalPage() {
             className="group rounded-2xl bg-card p-6 shadow-sm border border-border hover:shadow-lg transition-all hover:-translate-y-1"
           >
             <div className="flex items-start gap-4">
-              <div className="rounded-2xl bg-[#0061A8]/10 p-3 group-hover:bg-[#0061A8] transition-colors">
-                <BarChart3 className="h-6 w-6 text-[#0061A8] group-hover:text-white" />
+              <div className="rounded-2xl bg-primary/10 p-3 group-hover:bg-primary transition-colors">
+                <BarChart3 className="h-6 w-6 text-primary group-hover:text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-[#0F1111] mb-1">
+                <h3 className="text-lg font-semibold text-foreground mb-1">
                   Analytics & Reports
                 </h3>
                 <p className="text-sm text-muted-foreground">
@@ -196,7 +209,7 @@ export default function VendorPortalPage() {
                 <Settings className="h-6 w-6 text-muted-foreground" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-[#0F1111] mb-1">
+                <h3 className="text-lg font-semibold text-foreground mb-1">
                   Settings
                 </h3>
                 <p className="text-sm text-muted-foreground">
@@ -208,14 +221,14 @@ export default function VendorPortalPage() {
         </section>
 
         {/* Help Section */}
-        <section className="mt-8 rounded-2xl bg-gradient-to-r from-[#0061A8] to-[#00A859] p-6 text-white">
+        <section className="mt-8 rounded-2xl bg-gradient-to-r from-primary to-success p-6 text-white">
           <h3 className="text-xl font-semibold mb-2">Need Help Getting Started?</h3>
           <p className="text-white/90 mb-4">
             Check out our vendor guide to learn how to optimize your product listings and increase sales.
           </p>
           <Link 
             href="/marketplace/vendor/guide"
-            className="inline-flex items-center gap-2 rounded-2xl bg-card px-4 py-2 text-sm font-semibold text-[#0061A8] hover:bg-muted transition-colors"
+            className="inline-flex items-center gap-2 rounded-2xl bg-card px-4 py-2 text-sm font-semibold text-primary hover:bg-muted transition-colors"
           >
             View Vendor Guide
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
