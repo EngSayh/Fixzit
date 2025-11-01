@@ -1,4 +1,4 @@
-
+import React from 'react';
 import ProductCard from '@/components/marketplace/ProductCard';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
