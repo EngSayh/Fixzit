@@ -1,6 +1,9 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+// Hide Mongoose's "Jest + jsdom" warning noise
+process.env.SUPPRESS_JEST_WARNINGS = 'true';
+
 // Mock Next.js environment for comprehensive testing
 global.Request = global.Request || class Request {};
 global.Response = global.Response || class Response {};
@@ -78,3 +81,19 @@ if (typeof globalThis.crypto === 'undefined') {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
+
+// Mock mongoose in jsdom environment to avoid warnings
+if (typeof window !== 'undefined') {
+  // Only mock mongoose in browser (jsdom) env so Node-side tests still use real mongoose.
+  vi.mock('mongoose', () => {
+    const fake = {
+      connect: vi.fn(async () => ({})),
+      disconnect: vi.fn(async () => undefined),
+      connection: { readyState: 1, on: vi.fn(), once: vi.fn(), close: vi.fn() },
+      model: vi.fn(() => function Model() {}),
+      models: {},
+      Schema: class {},
+    };
+    return { __esModule: true, default: fake, ...fake };
+  });
+}

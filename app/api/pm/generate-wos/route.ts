@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { FMPMPlan } from '@/src/server/models/FMPMPlan';
+import { FMPMPlan } from '@/server/models/FMPMPlan';
 
 /**
  * POST /api/pm/generate-wos
