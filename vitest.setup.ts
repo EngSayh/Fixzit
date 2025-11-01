@@ -8,6 +8,35 @@ if (typeof global !== 'undefined') {
   (global as any).jest = vi;
 }
 
+// Mock next/navigation for App Router hooks
+vi.mock('next/navigation', () => {
+  const pushMock = vi.fn();
+  const replaceMock = vi.fn();
+  const prefetchMock = vi.fn();
+  const backMock = vi.fn();
+  const forwardMock = vi.fn();
+  const refreshMock = vi.fn();
+  
+  return {
+    useRouter: () => ({
+      push: pushMock,
+      replace: replaceMock,
+      prefetch: prefetchMock,
+      back: backMock,
+      forward: forwardMock,
+      refresh: refreshMock,
+      pathname: '/fm/dashboard',
+      query: {},
+      asPath: '/fm/dashboard',
+    }),
+    usePathname: () => '/fm/dashboard',
+    useSearchParams: () => new URLSearchParams(),
+    useParams: () => ({}),
+    notFound: vi.fn(),
+    redirect: vi.fn(),
+  };
+});
+
 // The global test functions are already available through @types/jest
 // No need to redeclare them to avoid type conflicts
 

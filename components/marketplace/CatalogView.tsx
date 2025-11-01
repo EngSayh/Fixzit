@@ -140,7 +140,7 @@ export default function CatalogView({
 
   const isAuthenticated = () => {
     if (typeof window === 'undefined') return false;
-    return document.cookie.includes('fixzit_auth=') || Boolean(localStorage.getItem(STORAGE_KEYS.user));
+    return document.cookie.includes('fixzit_auth=') || Boolean(localStorage.getItem(STORAGE_KEYS.userSession));
   };
 
   const handleAddToCart = async (product: Product) => {
@@ -181,7 +181,7 @@ export default function CatalogView({
         <p className="text-muted-foreground">{subtitle}</p>
         {context === 'fm' && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <ShieldCheck className="w-4 h-4 text-[#00A859]" />
+            <ShieldCheck className="w-4 h-4 text-success" />
             <span>Inventory synced with tenant procurement guardrails and 3-bid policy.</span>
           </div>
         )}
@@ -232,14 +232,14 @@ export default function CatalogView({
       </Card>
 
       {feedbackMessage && (
-        <div className="rounded-2xl border border-green-200 bg-[var(--fixzit-success-lightest)] px-4 py-3 text-sm text-[var(--fixzit-success-darker)]">
+        <div className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">
           {feedbackMessage}
         </div>
       )}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-6 h-6 animate-spin text-[#0061A8]" />
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
         </div>
       ) : products.length === 0 ? (
         <Card className="border-dashed">
@@ -254,7 +254,7 @@ export default function CatalogView({
                 Reset filters
               </Button>
               {context === 'fm' && (
-                <Button onClick={() => setShowLoginPrompt(true)} className="bg-[#0061A8] hover:bg-[#00508d]">
+                <Button onClick={() => setShowLoginPrompt(true)}>
                   Invite vendor
                 </Button>
               )}
@@ -270,7 +270,7 @@ export default function CatalogView({
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Store className="w-4 h-4" />
                   <span>{product.vendor?.name ?? 'Vendor pending onboarding'}</span>
-                  {product.vendor?.verified && <BadgeCheck className="w-4 h-4 text-[#00A859]" />}
+                  {product.vendor?.verified && <BadgeCheck className="w-4 h-4 text-success" />}
                 </div>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col gap-4">
@@ -289,7 +289,7 @@ export default function CatalogView({
                       <span className="text-sm text-muted-foreground ml-1">/ {product.unit}</span>
                     </div>
                     <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                      <Badge variant="outline" className="border-[#00A859] text-[#00A859]">
+                      <Badge variant="outline" className="border-success text-success">
                         Stock: {product.stock}
                       </Badge>
                       {product.category?.name && (
@@ -305,13 +305,13 @@ export default function CatalogView({
 
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-[#FFB400]" />
+                    <Star className="w-4 h-4 text-warning" />
                     <span>
                       {(product.rating ?? 0).toFixed(1)} · {product.reviewCount ?? 0} reviews
                     </span>
                   </div>
                   {product.vendor?.verified && (
-                    <div className="flex items-center gap-1 text-[#00A859]">
+                    <div className="flex items-center gap-1 text-success">
                       <ShieldCheck className="w-4 h-4" />
                       <span className="font-medium">Verified vendor</span>
                     </div>
@@ -320,7 +320,7 @@ export default function CatalogView({
 
                 <div className="flex gap-2 pt-2">
                   <Button
-                    className="flex-1 bg-[#0061A8] hover:bg-[#00508d]"
+                    className="flex-1"
                     onClick={() => handleAddToCart(product)}
                   >
                     <ShoppingCart className="w-4 h-4 mr-2" />
