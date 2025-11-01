@@ -1,18 +1,13 @@
 import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { User } from "@/server/models/User";
+import { getNextAtomicUserCode } from '@/lib/mongoUtils';
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { rateLimit } from '@/server/security/rateLimit';
 import { zodValidationError, rateLimitError, duplicateKeyError, handleApiError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
-
-// Helper to generate next user code
-async function getNextUserCode(): Promise<string> {
-  const count = await User.countDocuments();
-  return `USR${String(count + 1).padStart(6, '0')}`;
-}
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -104,9 +99,8 @@ export async function POST(req: NextRequest) {
       return duplicateKeyError("An account with this email already exists.");
     }
 
-    // Generate unique user code
-    const code = await getNextUserCode();
-    const username = normalizedEmail.split('@')[0];
+    // Generate unique user code atomically (race-condition safe)
+    const code = await getNextAtomicUserCode();
     const fullName = body.fullName || `${body.firstName} ${body.lastName}`;
 
     // ✅ FIX: Add try/catch around the 'create' to handle race conditions
@@ -115,13 +109,14 @@ export async function POST(req: NextRequest) {
       // Use nested User model schema from @/server/models/User
       newUser = await User.create({
         code,
-        username,
+        username: code, // Use unique code as username (no more conflicts)
         email: normalizedEmail,
         password: hashedPassword,
         phone: body.phone,
         personal: {
           firstName: body.firstName,
           lastName: body.lastName,
+          fullName: fullName,
         },
         professional: {
           role,
@@ -164,7 +159,7 @@ export async function POST(req: NextRequest) {
       user: {
         id: newUser._id,
         email: newUser.email,
-        role: newUser.professional?.role || role,
+        role: newUser.professional.role,
       }
     }, 201, req);
   } catch (error: unknown) {
