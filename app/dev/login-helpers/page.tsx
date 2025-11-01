@@ -4,9 +4,10 @@ import DevLoginClient from './DevLoginClient';
 /**
  * Server component gate for dev login helpers
  * Hard-blocks in production unless explicitly enabled
+ * Uses server-only ENABLE_DEMO_LOGIN (NOT NEXT_PUBLIC_)
  */
 export default async function Page() {
-  const enabled = process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true' || process.env.NODE_ENV === 'development';
+  const enabled = process.env.ENABLE_DEMO_LOGIN === 'true' || process.env.NODE_ENV === 'development';
   
   if (!enabled) {
     return notFound(); // Hard-block in prod without the flag

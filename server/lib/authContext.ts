@@ -12,6 +12,18 @@ export interface RequestContext {
   timestamp: Date;
 }
 
+/**
+ * Custom error class for missing request context
+ * Thrown when requireContext() is called outside of a runWithContext() block
+ */
+export class ContextMissingError extends Error {
+  constructor(message: string = 'Request context not set. Wrap your code in runWithContext().') {
+    super(message);
+    this.name = 'ContextMissingError';
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
 // Thread-safe context storage using Node.js AsyncLocalStorage
 const requestStorage = new AsyncLocalStorage<RequestContext>();
 
@@ -36,11 +48,12 @@ export function getRequestContext(): RequestContext | null {
 /**
  * Require context to be set, throw if missing
  * Use this in service methods that require authentication
+ * @throws {ContextMissingError} When called outside of runWithContext()
  */
 export function requireContext(): RequestContext {
   const context = requestStorage.getStore();
   if (!context) {
-    throw new Error('Request context not set. Wrap your code in runWithContext().');
+    throw new ContextMissingError();
   }
   return context;
 }
