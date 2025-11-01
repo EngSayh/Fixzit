@@ -40,6 +40,13 @@ export default function ProfilePage() {
   const { t, isRTL } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('account');
   const [loading, setLoading] = useState(true);
+
+  // Helper function for tab button styling
+  const getTabClassName = (isActive: boolean) => `px-6 py-3 text-sm font-medium transition-colors rounded-none ${
+    isActive
+      ? 'text-primary border-b-2 border-primary'
+      : 'text-muted-foreground hover:text-foreground border-b-2 border-transparent'
+  }`;
   
   // Original data for reset functionality
   const [originalUser, setOriginalUser] = useState<UserData>({
@@ -295,35 +302,23 @@ export default function ProfilePage() {
                 <Button
                   variant="ghost"
                   onClick={() => setActiveTab('account')}
-                  className={`px-6 py-3 text-sm font-medium transition-colors rounded-none ${
-                    activeTab === 'account'
-                      ? 'text-primary border-b-2 border-primary'
-                      : 'text-muted-foreground hover:text-foreground border-b-2 border-transparent'
-                  }`}
+                  className={getTabClassName(activeTab === 'account')}
                 >
-                  {t('profile.tabs.account')}
+                  {t('profile.tabs.account', 'Account')}
                 </Button>
                 <Button
                   variant="ghost"
                   onClick={() => setActiveTab('notifications')}
-                  className={`px-6 py-3 text-sm font-medium transition-colors rounded-none ${
-                    activeTab === 'notifications'
-                      ? 'text-primary border-b-2 border-primary'
-                      : 'text-muted-foreground hover:text-foreground border-b-2 border-transparent'
-                  }`}
+                  className={getTabClassName(activeTab === 'notifications')}
                 >
-                  {t('profile.tabs.notifications')}
+                  {t('profile.tabs.notifications', 'Notifications')}
                 </Button>
                 <Button
                   variant="ghost"
                   onClick={() => setActiveTab('security')}
-                  className={`px-6 py-3 text-sm font-medium transition-colors rounded-none ${
-                    activeTab === 'security'
-                      ? 'text-primary border-b-2 border-primary'
-                      : 'text-muted-foreground hover:text-foreground border-b-2 border-transparent'
-                  }`}
+                  className={getTabClassName(activeTab === 'security')}
                 >
-                  {t('profile.tabs.security')}
+                  {t('profile.tabs.security', 'Security')}
                 </Button>
               </div>
             </div>
@@ -334,7 +329,7 @@ export default function ProfilePage() {
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="fullName">
-                      {t('profile.account.fullName')}
+                      {t('profile.account.fullName', 'Full Name')}
                     </Label>
                     <Input
                       id="fullName"
@@ -346,7 +341,7 @@ export default function ProfilePage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="email">
-                      {t('profile.account.email')}
+                      {t('profile.account.email', 'Email')}
                     </Label>
                     <Input
                       id="email"
@@ -358,7 +353,7 @@ export default function ProfilePage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="phone">
-                      {t('profile.account.phone')}
+                      {t('profile.account.phone', 'Phone')}
                     </Label>
                     <Input
                       id="phone"
@@ -374,13 +369,13 @@ export default function ProfilePage() {
                       variant="outline"
                       onClick={handleCancelAccount}
                     >
-                      {t('profile.account.cancel')}
+                      {t('profile.account.cancel', 'Cancel')}
                     </Button>
                     <Button
                       onClick={handleSaveAccount}
                       disabled={loading}
                     >
-                      {t('profile.account.save')}
+                      {t('profile.account.save', 'Save changes')}
                     </Button>
                   </div>
                 </div>
@@ -390,13 +385,13 @@ export default function ProfilePage() {
               {activeTab === 'notifications' && (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.notifications.channels')}</h3>
+                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.notifications.channels', 'Notification Channels')}</h3>
                     <div className="space-y-3">
                       <Label
                         htmlFor="email-notifications"
                         className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
                       >
-                        <span className="text-sm font-medium">{t('profile.notifications.email')}</span>
+                        <span className="text-sm font-medium">{t('profile.notifications.email', 'Email notifications')}</span>
                         <Switch
                           id="email-notifications"
                           checked={notificationSettings.emailNotifications}
@@ -404,14 +399,14 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             emailNotifications: checked
                           })}
-                          aria-label={t('profile.notifications.email')}
+                          aria-label={t('profile.notifications.email', 'Email notifications')}
                         />
                       </Label>
                       <Label
                         htmlFor="push-notifications"
                         className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
                       >
-                        <span className="text-sm font-medium">{t('profile.notifications.push')}</span>
+                        <span className="text-sm font-medium">{t('profile.notifications.push', 'Push notifications')}</span>
                         <Switch
                           id="push-notifications"
                           checked={notificationSettings.pushNotifications}
@@ -419,14 +414,14 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             pushNotifications: checked
                           })}
-                          aria-label={t('profile.notifications.push')}
+                          aria-label={t('profile.notifications.push', 'Push notifications')}
                         />
                       </Label>
                       <Label
                         htmlFor="sms-notifications"
                         className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
                       >
-                        <span className="text-sm font-medium">{t('profile.notifications.sms')}</span>
+                        <span className="text-sm font-medium">{t('profile.notifications.sms', 'SMS')}</span>
                         <Switch
                           id="sms-notifications"
                           checked={notificationSettings.smsNotifications}
@@ -434,20 +429,20 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             smsNotifications: checked
                           })}
-                          aria-label={t('profile.notifications.sms')}
+                          aria-label={t('profile.notifications.sms', 'SMS')}
                         />
                       </Label>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.notifications.events')}</h3>
+                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.notifications.events', 'Event Notifications')}</h3>
                     <div className="space-y-3">
                       <Label
                         htmlFor="work-order-updates"
                         className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
                       >
-                        <span className="text-sm font-medium">{t('profile.notifications.workOrders')}</span>
+                        <span className="text-sm font-medium">{t('profile.notifications.workOrders', 'Work order updates')}</span>
                         <Switch
                           id="work-order-updates"
                           checked={notificationSettings.workOrderUpdates}
@@ -455,14 +450,14 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             workOrderUpdates: checked
                           })}
-                          aria-label={t('profile.notifications.workOrders')}
+                          aria-label={t('profile.notifications.workOrders', 'Work order updates')}
                         />
                       </Label>
                       <Label
                         htmlFor="maintenance-alerts"
                         className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
                       >
-                        <span className="text-sm font-medium">{t('profile.notifications.maintenance')}</span>
+                        <span className="text-sm font-medium">{t('profile.notifications.maintenance', 'Maintenance alerts')}</span>
                         <Switch
                           id="maintenance-alerts"
                           checked={notificationSettings.maintenanceAlerts}
@@ -470,14 +465,14 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             maintenanceAlerts: checked
                           })}
-                          aria-label={t('profile.notifications.maintenance')}
+                          aria-label={t('profile.notifications.maintenance', 'Maintenance alerts')}
                         />
                       </Label>
                       <Label
                         htmlFor="invoice-reminders"
                         className="flex cursor-pointer items-center justify-between rounded-2xl border border-border p-3 hover:bg-muted"
                       >
-                        <span className="text-sm font-medium">{t('profile.notifications.invoices')}</span>
+                        <span className="text-sm font-medium">{t('profile.notifications.invoices', 'Invoice reminders')}</span>
                         <Switch
                           id="invoice-reminders"
                           checked={notificationSettings.invoiceReminders}
@@ -485,7 +480,7 @@ export default function ProfilePage() {
                             ...notificationSettings,
                             invoiceReminders: checked
                           })}
-                          aria-label={t('profile.notifications.invoices')}
+                          aria-label={t('profile.notifications.invoices', 'Invoice reminders')}
                         />
                       </Label>
                     </div>
@@ -495,7 +490,7 @@ export default function ProfilePage() {
                     <Button
                       onClick={handleSaveNotifications}
                     >
-                      {t('profile.notifications.save')}
+                      {t('profile.notifications.save', 'Save')}
                     </Button>
                   </div>
                 </div>
@@ -505,11 +500,11 @@ export default function ProfilePage() {
               {activeTab === 'security' && (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.security.changePassword')}</h3>
+                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.security.changePassword', 'Change Password')}</h3>
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="current-password">
-                          {t('profile.security.currentPassword')}
+                          {t('profile.security.currentPassword', 'Current Password')}
                         </Label>
                         <Input
                           id="current-password"
@@ -523,7 +518,7 @@ export default function ProfilePage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="new-password">
-                          {t('profile.security.newPassword')}
+                          {t('profile.security.newPassword', 'New Password')}
                         </Label>
                         <Input
                           id="new-password"
@@ -537,7 +532,7 @@ export default function ProfilePage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="confirm-password">
-                          {t('profile.security.confirmPassword')}
+                          {t('profile.security.confirmPassword', 'Confirm Password')}
                         </Label>
                         <Input
                           id="confirm-password"
@@ -553,14 +548,14 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.security.twoFactor')}</h3>
+                    <h3 className="text-lg font-medium text-foreground mb-4">{t('profile.security.twoFactor', 'Two-Factor Authentication')}</h3>
                     <div className="flex items-center justify-between p-4 border border-border rounded-2xl">
                       <div className="space-y-0.5">
                         <Label htmlFor="two-factor-auth" className="text-sm font-medium cursor-pointer">
-                          {t('profile.security.enable2FA')}
+                          {t('profile.security.enable2FA', 'Enable 2FA')}
                         </Label>
                         <p className="text-xs text-muted-foreground">
-                          {t('profile.security.2FADesc')}
+                          {t('profile.security.2FADesc', 'Add an extra layer of security to your account by enabling two-factor authentication.')}
                         </p>
                       </div>
                       <Switch
@@ -578,7 +573,7 @@ export default function ProfilePage() {
                     <Button
                       onClick={handleSaveSecurity}
                     >
-                      {t('profile.security.update')}
+                      {t('profile.security.update', 'Update')}
                     </Button>
                   </div>
                 </div>
