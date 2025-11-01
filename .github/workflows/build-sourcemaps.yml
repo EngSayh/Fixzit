@@ -77,8 +77,9 @@ jobs:
           TOTAL_SIZE=$(find .next -name "*.map" -type f -exec du -ch {} + 2>/dev/null | awk '/total/{print $1}')
           echo "💾 Total .map size: ${TOTAL_SIZE:-0}" >> $GITHUB_STEP_SUMMARY
           if [ -n "${{ env.SENTRY_AUTH_TOKEN }}" ]; then
-            if [ "${{ steps.sentry-browser.outcome }}" = "success" ] || [ "${{ steps.sentry-server.outcome }}" = "success" ]; then
-              echo "✅ Sentry release uploaded (version: ${{ env.SENTRY_RELEASE }}, env: ${{ env.SENTRY_ENVIRONMENT }})" >> $GITHUB_STEP_SUMMARY
+            if [ "${{ steps.sentry.outcome }}" = "success" ]; then
+              SENTRY_ENV="${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}"
+              echo "✅ Sentry release uploaded (release: ${{ env.SENTRY_RELEASE }}, env: ${SENTRY_ENV})" >> $GITHUB_STEP_SUMMARY
             else
               echo "⚠️ Sentry upload step did not complete successfully (non-blocking). Check logs." >> $GITHUB_STEP_SUMMARY
             fi

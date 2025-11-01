@@ -24,7 +24,7 @@ function buildHeaders(extra: Record<string, string> = {}) {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('fixzit_token');
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    const sessionUser = localStorage.getItem(STORAGE_KEYS.user);
+    const sessionUser = localStorage.getItem(STORAGE_KEYS.userSession);
     headers['x-user'] = sessionUser || fallbackUser;
   } else {
     headers['x-user'] = fallbackUser;
