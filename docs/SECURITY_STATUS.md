@@ -61,6 +61,8 @@
 
 | Package | Current | Latest | Reason |
 |---------|---------|--------|--------|
+| eslint | 8.57.1 | 9.39.0 | Code quality & security |
+| eslint-config-next | 15.5.6 | 16.0.1 | Next.js ESLint config |
 | puppeteer | 24.25.0 | 24.27.0 | Dev dependency |
 | jsdom | 27.0.1 | 27.1.0 | Test dependency |
 | @vitest/coverage-v8 | 3.2.4 | 4.0.6 | Test coverage |
@@ -104,9 +106,13 @@ pnpm update @aws-sdk/client-s3@latest @aws-sdk/client-secrets-manager@latest @aw
 # Babel security patches
 pnpm update @babel/parser@latest @babel/preset-env@latest @babel/traverse@latest
 
+# ESLint and dev tooling (IMPORTANT: ESLint 8 → 9 major update)
+pnpm update eslint@latest eslint-config-next@latest eslint-plugin-unused-imports@latest
+
 # Verify
 pnpm audit
 pnpm typecheck
+pnpm lint
 ```
 
 ---

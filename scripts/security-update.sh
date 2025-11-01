@@ -32,18 +32,24 @@ echo "📝 Updating type definitions..."
 pnpm update @types/qrcode@latest
 pnpm update @types/node@latest
 
-# 5. Testing tools
+# 5. ESLint and dev tooling
+echo "🔧 Updating ESLint and dev tooling..."
+pnpm update eslint@latest
+pnpm update eslint-config-next@latest
+pnpm update eslint-plugin-unused-imports@latest
+
+# 6. Testing tools
 echo "🧪 Updating testing dependencies..."
 pnpm update puppeteer@latest
 pnpm update jsdom@latest
 pnpm update @vitest/coverage-v8@latest
 
-# 6. Run security audit
+# 7. Run security audit
 echo ""
 echo "🔍 Running security audit..."
 pnpm audit
 
-# 7. Verify build
+# 8. Verify build
 echo ""
 echo "✅ Verifying build after updates..."
 pnpm typecheck
