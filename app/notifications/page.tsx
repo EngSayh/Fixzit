@@ -100,7 +100,7 @@ export default function NotificationsPage() {
     if (selectAll) {
       setSelectedNotifications(new Set());
     } else {
-      setSelectedNotifications(new Set(filteredNotifications.map((n: NotificationDoc) => String(n._id || ''))));
+      setSelectedNotifications(new Set(filteredNotifications.map((n: NotificationDoc) => String(n.id || ''))));
     }
     setSelectAll(!selectAll);
   };
@@ -171,7 +171,7 @@ export default function NotificationsPage() {
       return;
     }
 
-    const unreadIds = notifications.filter((n: NotificationDoc) => !n.read).map((n: NotificationDoc) => String(n._id || ''));
+    const unreadIds = notifications.filter((n: NotificationDoc) => !n.read).map((n: NotificationDoc) => String(n.id || ''));
     if (unreadIds.length > 0) {
       const toastId = toast.loading(`Marking ${unreadIds.length} notifications as read...`);
 
@@ -256,9 +256,9 @@ export default function NotificationsPage() {
     const selectedIds = Array.from(selectedNotifications);
     if (selectedIds.length > 0) {
       const selectedData = filteredNotifications
-        .filter((n: NotificationDoc) => selectedIds.includes(String(n._id || '')))
+        .filter((n: NotificationDoc) => selectedIds.includes(String(n.id || '')))
         .map((notif: NotificationDoc) => ({
-          id: String(notif._id || ''),
+          id: String(notif.id || ''),
           title: notif.title,
           message: notif.message,
           priority: notif.priority,
@@ -500,7 +500,7 @@ export default function NotificationsPage() {
           ) : (
             filteredNotifications.map((notif: NotificationDoc) => (
               <div
-                key={String(notif._id || '')}
+                key={String(notif.id || '')}
                 className={`p-4 rounded-2xl border transition-all hover:shadow-md ${
                   notif.read ? 'bg-card border-border' : 'bg-blue-50 border-blue-200'
                 }`}
@@ -509,8 +509,8 @@ export default function NotificationsPage() {
                   <div className="flex items-start gap-3 flex-1">
                     <input
                       type="checkbox"
-                      checked={selectedNotifications.has(String(notif._id || ''))}
-                      onChange={() => handleSelectNotification(String(notif._id || ''))}
+                      checked={selectedNotifications.has(String(notif.id || ''))}
+                      onChange={() => handleSelectNotification(String(notif.id || ''))}
                       className="mt-1 h-4 w-4 text-[var(--fixzit-primary)] focus:ring-blue-500 border-border rounded"
                     />
                     <div className="text-xl">{getTypeIcon(notif.type)}</div>
@@ -542,7 +542,7 @@ export default function NotificationsPage() {
                   <div className="flex items-center gap-2">
                     {!notif.read && (
                       <button
-                        onClick={() => markAsRead(String(notif._id || ''))}
+                        onClick={() => markAsRead(String(notif.id || ''))}
                         className="p-1 text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] hover:bg-[var(--fixzit-primary-lighter)] rounded"
                         title="Mark as read"
                       >
