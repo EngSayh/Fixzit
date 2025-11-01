@@ -54,6 +54,7 @@
     ".next",
     "dist",
     "build",
-    "out"
+    "out",
+    "tests/unit/models/CmsPage.test.ts"
   ]
 }
