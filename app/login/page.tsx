@@ -237,12 +237,15 @@ export default function LoginPage() {
       if (result?.ok) {
         setSuccess(true);
 
-        // Determine redirect target
-        const redirectTo = redirectTarget || postLoginRouteFor();
+        // Determine redirect target (default to /fm/dashboard)
+        const redirectTo = redirectTarget || '/fm/dashboard';
 
+        // Small delay to ensure session is established
         setTimeout(() => {
-          router.replace(redirectTo);
-        }, 800);
+          router.push(redirectTo);
+          // Force a page refresh to ensure middleware recognizes the new session
+          window.location.href = redirectTo;
+        }, 500);
       }
     } catch (err) {
       console.error('Login error:', err);
