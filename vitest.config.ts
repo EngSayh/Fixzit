@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom', // Default for React component tests
-    setupFiles: ['./vitest.setup.ts'],
+    setupFiles: ['./vitest.setup.ts', './tests/setup.ts'],
     
     // Match test environment to file type
     environmentMatchGlobs: [
