@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -20,7 +21,7 @@ import {
 } from 'lucide-react';
 
 interface RFQItem {
-  _id: string;
+  id: string;
   code?: string;
   title?: string;
   type?: string;
@@ -158,7 +159,7 @@ export default function RFQsPage() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {(rfqs as RFQItem[]).map((rfq) => (
-              <RFQCard key={rfq._id} rfq={rfq} orgId={orgId} onUpdated={mutate} />
+              <RFQCard key={rfq.id} rfq={rfq} orgId={orgId} onUpdated={mutate} />
             ))}
           </div>
 
@@ -183,13 +184,15 @@ export default function RFQsPage() {
 }
 
 function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUpdated: () => void }) {
+  const router = useRouter();
+
   const handlePublish = async () => {
     if (!confirm(`Publish RFQ "${rfq.title}"? This will make it visible to vendors.`)) return;
     if (!orgId) return toast.error('Organization ID missing');
 
     const toastId = toast.loading('Publishing RFQ...');
     try {
-      const res = await fetch(`/api/rfqs/${rfq._id}/publish`, {
+      const res = await fetch(`/api/rfqs/${rfq.id}/publish`, {
         method: 'POST',
         headers: { 'x-tenant-id': orgId, 'Content-Type': 'application/json' }
       });
@@ -332,7 +335,7 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => window.location.href = `/fm/rfqs/${rfq._id}`}
+              onClick={() => router.push(`/fm/rfqs/${rfq.id}`)}
             >
               <Eye className="w-4 h-4" />
             </Button>
