@@ -282,9 +282,6 @@ importers:
       markdownlint-cli:
         specifier: ^0.45.0
         version: 0.45.0
-      next-router-mock:
-        specifier: ^1.0.4
-        version: 1.0.4(next@15.5.6(@babel/core@7.28.5)(@playwright/test@1.56.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)
       picocolors:
         specifier: ^1.1.1
         version: 1.1.1
@@ -5076,12 +5073,6 @@ packages:
         optional: true
       nodemailer:
         optional: true
-
-  next-router-mock@1.0.4:
-    resolution: {integrity: sha512-EBOd/J2PxgZ9WH732ppfEojZgSTSOkjEz0DgQn+9c/PELKnc9P19PAcmQUi7fSlk3LAKbMGzl5DEOb40x7l8kA==}
-    peerDependencies:
-      next: '>=10.0.0'
-      react: '>=17.0.0'
 
   next-themes@0.4.6:
     resolution: {integrity: sha512-pZvgD5L0IEvX5/9GWyHMf3m8BKiVQwsCMHfoFosXtXBMnaS0ZnIJ9ST4b4NqLVKDEm8QBxoNNGNaBv2JNF6XNA==}
@@ -12307,11 +12298,6 @@ snapshots:
   next-auth@5.0.0-beta.30(next@15.5.6(@babel/core@7.28.5)(@playwright/test@1.56.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1):
     dependencies:
       '@auth/core': 0.41.0
-      next: 15.5.6(@babel/core@7.28.5)(@playwright/test@1.56.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react: 18.3.1
-
-  next-router-mock@1.0.4(next@15.5.6(@babel/core@7.28.5)(@playwright/test@1.56.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1):
-    dependencies:
       next: 15.5.6(@babel/core@7.28.5)(@playwright/test@1.56.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react: 18.3.1
 
