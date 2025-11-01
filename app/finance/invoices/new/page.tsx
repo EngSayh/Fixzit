@@ -35,7 +35,7 @@ interface IPaymentAllocation {
 }
 
 interface IChartAccount {
-  _id: string;
+  id: string;
   code: string;
   name: string;
   nameAr?: string;
@@ -194,7 +194,7 @@ export default function NewInvoicePage() {
 
       // Update account code when account changes
       if (field === 'accountId') {
-        const account = chartAccounts.find(a => a._id === value);
+        const account = chartAccounts.find(a => a.id === value);
         if (account) {
           updated.accountCode = account.code;
         }
@@ -316,7 +316,7 @@ export default function NewInvoicePage() {
 
       const data = await response.json();
       toast.success(t('finance.invoice.draftSaved', 'Invoice draft saved successfully'));
-      router.push(`/finance/invoices/${data.invoice._id}`);
+      router.push(`/finance/invoices/${data.invoice.id}`);
     } catch (error) {
       console.error('Error saving draft:', error);
       toast.error(t('common.error', 'An error occurred'));
@@ -392,7 +392,7 @@ export default function NewInvoicePage() {
       }
 
       toast.success(t('finance.invoice.created', 'Invoice created successfully'));
-      router.push(`/finance/invoices/${data.invoice._id}`);
+      router.push(`/finance/invoices/${data.invoice.id}`);
     } catch (error) {
       console.error('Error creating invoice:', error);
       toast.error(t('common.error', 'An error occurred'));
@@ -599,7 +599,7 @@ export default function NewInvoicePage() {
                           {chartAccounts
                             .filter(a => a.type === 'REVENUE')
                             .map(account => (
-                              <option key={account._id} value={account._id}>
+                              <option key={account.id} value={account.id}>
                                 {account.code} - {account.name}
                               </option>
                             ))}
