@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,8 +54,23 @@ interface WorkOrderWithDue extends WorkOrder {
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const { t } = useTranslation();
-  const { data: session } = useSession();
+  const router = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
   const orgId = session?.user?.orgId;
+  const userRole = (session?.user as any)?.role;
+
+  // Role-based redirect logic
+  useEffect(() => {
+    if (sessionStatus === 'authenticated' && userRole) {
+      if (userRole === 'TENANT') {
+        router.replace('/fm/properties');
+        return;
+      } else if (userRole === 'VENDOR') {
+        router.replace('/fm/marketplace');
+        return;
+      }
+    }
+  }, [sessionStatus, userRole, router]);
 
   useEffect(() => {
     if (session?.user) {
