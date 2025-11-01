@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { auth } from '@/auth';
-import { jwtVerify } from 'jose';
 
 // ---------- Types ----------
 interface SessionUser {
@@ -13,16 +12,8 @@ interface SessionUser {
 type WrappedReq = NextRequest & { auth?: { user?: SessionUser | null } | null };
 
 // ---------- Configurable switches ----------
-const LEGACY_JWT_ENABLED = process.env.LEGACY_JWT_ENABLED !== 'false';
 const API_PROTECT_ALL = process.env.API_PROTECT_ALL !== 'false'; // secure-by-default
 const REQUIRE_ORG_ID = process.env.REQUIRE_ORG_ID === 'true';
-
-// Lazy secret (only if we actually need JWT fallback)
-function getJwtSecret(): Uint8Array | null {
-  const val = process.env.JWT_SECRET;
-  if (!val) return null;
-  return new TextEncoder().encode(val);
-}
 
 // ---------- Route helpers ----------
 function matchesRoute(pathname: string, route: string): boolean {
@@ -145,53 +136,18 @@ function isPublicAsset(pathname: string): boolean {
 }
 
 // ---------- Auth utilities ----------
-async function getUserFromRequest(req: WrappedReq): Promise<{ user: SessionUser | null; invalidJwt: boolean }> {
-  // Prefer NextAuth session (Edge-safe)
+async function getUserFromRequest(req: WrappedReq): Promise<SessionUser | null> {
   const sess = req.auth;
   if (sess?.user) {
     const u = sess.user as SessionUser;
     return {
-      user: {
-        id: u.id || '',
-        email: u.email || '',
-        role: u.role || 'USER',
-        orgId: u.orgId ?? null,
-      },
-      invalidJwt: false,
+      id: u.id || '',
+      email: u.email || '',
+      role: u.role || 'USER',
+      orgId: u.orgId ?? null,
     };
   }
-
-  // Fallback to legacy cookie if enabled
-  if (!LEGACY_JWT_ENABLED) return { user: null, invalidJwt: false };
-
-  const token = req.cookies.get('fixzit_auth')?.value;
-  if (!token) return { user: null, invalidJwt: false };
-
-  const secret = getJwtSecret();
-  if (!secret) {
-    // Secret missing but cookie present → treat as invalid token; caller decides how to respond
-    return { user: null, invalidJwt: true };
-  }
-
-  try {
-    const { payload } = await jwtVerify(token, secret, {
-      algorithms: ['HS256'],
-      clockTolerance: 5,
-      // issuer: 'fixzit',
-      // audience: 'fixzit-app',
-    });
-    return {
-      user: {
-        id: (payload.id as string) || '',
-        email: (payload.email as string) || '',
-        role: (payload.role as string) || 'USER',
-        orgId: ((payload.orgId as string) || null) ?? null,
-      },
-      invalidJwt: false,
-    };
-  } catch {
-    return { user: null, invalidJwt: true };
-  }
+  return null;
 }
 
 function attachUserHeaders(req: NextRequest, user: SessionUser): NextResponse {
@@ -206,8 +162,8 @@ export default auth(async function middleware(request: WrappedReq) {
   const { pathname } = request.nextUrl;
   const method = request.method;
 
-  // Dev helpers hard gate
-  const devEnabled = process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true' || process.env.NODE_ENV === 'development';
+  // Dev helpers hard gate (server-only check)
+  const devEnabled = process.env.ENABLE_DEMO_LOGIN === 'true' || process.env.NODE_ENV === 'development';
   if (!devEnabled && isDevHelpersPath(pathname)) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
@@ -234,27 +190,17 @@ export default auth(async function middleware(request: WrappedReq) {
       return NextResponse.next();
     }
 
-    const { user, invalidJwt } = await getUserFromRequest(request);
+    const user = await getUserFromRequest(request);
     if (!user) {
-      const res = NextResponse.json({ error: invalidJwt ? 'Invalid or expired token' : 'Unauthorized' }, { status: 401 });
-      if (invalidJwt) {
-        res.cookies.set('fixzit_auth', '', {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          path: '/',
-          maxAge: 0,
-        });
-      }
-      return res;
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     return attachUserHeaders(request, user);
   }
 
   // --------- Non-API protected areas ----------
-  // Resolve user (session or JWT). If JWT invalid and path is protected, redirect and clear cookie.
-  const { user, invalidJwt } = await getUserFromRequest(request);
+  // Resolve user from NextAuth session only
+  const user = await getUserFromRequest(request);
 
   // Unauthenticated flows → redirect for protected zones
   if (!user) {
@@ -262,17 +208,7 @@ export default auth(async function middleware(request: WrappedReq) {
       matchesAnyRoute(pathname, fmRoutes) ||
       matchesAnyRoute(pathname, protectedMarketplaceActions)
     ) {
-      const res = NextResponse.redirect(new URL('/login', request.url));
-      if (invalidJwt) {
-        res.cookies.set('fixzit_auth', '', {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          path: '/',
-          maxAge: 0,
-        });
-      }
-      return res;
+      return NextResponse.redirect(new URL('/login', request.url));
     }
     return NextResponse.next();
   }

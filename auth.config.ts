@@ -37,6 +37,8 @@ async function hashEmail(email: string): Promise<string> {
   return hashHex.substring(0, 16); // 64 bits for better collision resistance
 }
 
+// Note: No domain whitelist - all OAuth providers allowed for B2B SaaS customers
+
 // Validate required environment variables at startup
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -80,12 +82,6 @@ if (!skipSecretValidation) {
   console.warn('⚠️  SKIP_ENV_VALIDATION=true: Secret validation skipped. Secrets will be required at runtime.');
 }
 
-// Environment-driven OAuth allowed domains
-const allowedDomains = (process.env.OAUTH_ALLOWED_DOMAINS ?? 'fixzit.com,fixzit.co')
-  .split(',')
-  .map((d) => d.trim().toLowerCase())
-  .filter(Boolean);
-
 export const authConfig = {
   providers: [
     Google({
@@ -106,43 +102,54 @@ export const authConfig = {
   },
   callbacks: {
     async signIn({ user: _user, account: _account, profile: _profile }) {
-      // OAuth Access Control - Email Domain Whitelist
+      // OAuth user provisioning - create/update user in database
       
-      // Safely check email and extract domain
+      // Validate email exists
       if (!_user?.email) {
         if (process.env.LOG_LEVEL === 'debug') {
           console.debug('OAuth sign-in rejected: No email provided');
         }
-        return false; // Reject sign-ins without email
+        return false;
       }
 
       const emailHash = await hashEmail(_user.email);
-      const emailParts = _user.email.split('@');
-      if (emailParts.length !== 2) {
-        if (process.env.LOG_LEVEL === 'debug') {
-          console.debug('OAuth sign-in rejected: Invalid email format', { emailHash });
-        }
-        return false; // Reject malformed emails
-      }
-
-      const emailDomain = emailParts[1].toLowerCase();
-      if (!allowedDomains.includes(emailDomain)) {
-        if (process.env.LOG_LEVEL === 'debug') {
-          // Hash domain to prevent information disclosure in logs
-          const domainHash = await hashEmail(`domain@${emailDomain}`);
-          console.debug('OAuth sign-in rejected: Domain not whitelisted', { 
-            domainHash
+      
+      // Only provision OAuth users (not credentials provider)
+      if (_account?.provider && _account.provider !== 'credentials') {
+        try {
+          // Call internal API to provision user (this is database write)
+          // Use internal API secret for authentication
+          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          const response = await fetch(`${baseUrl}/api/auth/provision-oauth`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Internal-Secret': process.env.INTERNAL_API_SECRET || '',
+            },
+            body: JSON.stringify({
+              email: _user.email,
+              name: _user.name,
+              image: _user.image,
+              provider: _account.provider,
+            }),
           });
+
+          if (!response.ok) {
+            const error = await response.text();
+            console.error('OAuth provisioning failed', { emailHash, error });
+            return false;
+          }
+
+          console.log('OAuth user provisioned successfully', { emailHash, provider: _account.provider });
+        } catch (error) {
+          console.error('OAuth provisioning error', {
+            emailHash,
+            message: error instanceof Error ? error.message : 'Unknown error',
+          });
+          return false;
         }
-        return false; // Reject unauthorized domains
       }
 
-      // Database verification is handled by middleware.ts after successful OAuth
-      // The middleware checks User.findOne({ email }) and validates isActive status
-      // This separation ensures Edge Runtime compatibility (auth.config.ts cannot access MongoDB)
-
-      // Allow sign-in for whitelisted domains
-      console.log('OAuth sign-in allowed', { emailHash, provider: _account?.provider });
       return true;
     },
     async redirect({ url, baseUrl }) {
