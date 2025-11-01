@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { STORAGE_KEYS } from '@/config/constants';
 import LanguageSelector from '@/components/i18n/LanguageSelector';
@@ -208,48 +209,36 @@ export default function LoginPage() {
     setErrors({});
 
     try {
-      const payload = loginMethod === 'personal'
-        ? { email: email.trim(), password, rememberMe, loginType: 'personal' as const }
-        : { employeeNumber: employeeNumber.trim(), password, rememberMe, loginType: 'corporate' as const };
-
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(payload),
+      // Use NextAuth signIn with credentials provider
+      const identifier = loginMethod === 'personal' ? email.trim() : employeeNumber.trim();
+      
+      const result = await signIn('credentials', {
+        identifier,
+        password,
+        rememberMe,
+        redirect: false, // Handle redirect manually
       });
 
-      let data: { ok?: boolean; status?: number; error?: string; fieldErrors?: FormErrors; user?: { role?: string }; redirectTo?: string; preferredPath?: string } = {};
-      try {
-        data = await res.json();
-      } catch {
-        data = { ok: res.ok, status: res.status };
-      }
-
-      if (!res.ok) {
-        if (res.status === 401) {
-          setErrors({ general: data.error || t('login.errors.invalidCredentials', 'Invalid credentials') });
-        } else if (res.status === 429) {
-          setErrors({ general: t('login.errors.tooManyAttempts', 'Too many login attempts. Please try again later.') });
-        } else if (res.status === 400 && data.fieldErrors) {
-          setErrors(data.fieldErrors);
+      if (result?.error) {
+        // Handle login errors from NextAuth
+        if (result.error === 'CredentialsSignin') {
+          setErrors({
+            general: t('login.errors.invalidCredentials', 'Invalid email/employee number or password')
+          });
         } else {
-          setErrors({ general: data.error || t('login.errors.loginFailed', 'Login failed. Please try again.') });
+          setErrors({
+            general: t('login.errors.loginFailed', 'Login failed. Please try again.')
+          });
         }
+        setLoading(false);
         return;
       }
 
-      if (data?.ok !== false) {
-        if (data.user?.role) {
-          try {
-            localStorage.setItem(STORAGE_KEYS.role, data.user.role);
-          } catch {
-            /* ignore */
-          }
-        }
+      if (result?.ok) {
         setSuccess(true);
 
-        const redirectTo = data?.redirectTo || data?.preferredPath || postLoginRouteFor(data?.user?.role);
+        // Determine redirect target
+        const redirectTo = redirectTarget || postLoginRouteFor();
 
         setTimeout(() => {
           router.replace(redirectTo);
@@ -258,7 +247,6 @@ export default function LoginPage() {
     } catch (err) {
       console.error('Login error:', err);
       setErrors({ general: t('login.errors.networkError', 'Network error. Please check your connection.') });
-    } finally {
       setLoading(false);
     }
   }
