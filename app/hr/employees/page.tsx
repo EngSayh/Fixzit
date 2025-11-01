@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Search, Plus, Eye } from 'lucide-react';
 
 interface Employee {
-  _id: string;
+  id: string;
   employeeCode: string;
   personalInfo: {
     firstName: string;
@@ -158,7 +158,7 @@ export default function EmployeesPage() {
           </Card>
         ) : (
           filteredEmployees.map((employee) => (
-            <Card key={employee._id} className="hover:shadow-md transition-shadow">
+            <Card key={employee.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
