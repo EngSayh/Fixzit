@@ -1,12 +1,18 @@
-import { NextRequest} from "next/server";
+import { NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import User from "@/modules/users/schema";
+import { User } from "@/server/models/User";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { rateLimit } from '@/server/security/rateLimit';
 import { zodValidationError, rateLimitError, duplicateKeyError, handleApiError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
+
+// Helper to generate next user code
+async function getNextUserCode(): Promise<string> {
+  const count = await User.countDocuments();
+  return `USR${String(count + 1).padStart(6, '0')}`;
+}
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -98,22 +104,50 @@ export async function POST(req: NextRequest) {
       return duplicateKeyError("An account with this email already exists.");
     }
 
+    // Generate unique user code
+    const code = await getNextUserCode();
+    const username = normalizedEmail.split('@')[0];
+    const fullName = body.fullName || `${body.firstName} ${body.lastName}`;
+
     // ✅ FIX: Add try/catch around the 'create' to handle race conditions
     let newUser;
     try {
+      // Use nested User model schema from @/server/models/User
       newUser = await User.create({
-        firstName: body.firstName,
-        lastName: body.lastName,
-        fullName: body.fullName || `${body.firstName} ${body.lastName}`,
+        code,
+        username,
         email: normalizedEmail,
-        phone: body.phone,
-        companyName: companyName,
-        role,
         password: hashedPassword,
-        termsAccepted: body.termsAccepted,
-        newsletter: body.newsletter || false,
-        preferredLanguage: body.preferredLanguage,
-        preferredCurrency: body.preferredCurrency
+        phone: body.phone,
+        personal: {
+          firstName: body.firstName,
+          lastName: body.lastName,
+        },
+        professional: {
+          role,
+        },
+        security: {
+          lastLogin: new Date(),
+          accessLevel: 'READ',
+          permissions: [],
+        },
+        preferences: {
+          language: body.preferredLanguage || 'ar',
+          timezone: 'Asia/Riyadh',
+          notifications: {
+            email: true,
+            sms: false,
+            app: true,
+          },
+        },
+        status: 'ACTIVE',
+        customFields: {
+          companyName,
+          termsAccepted: body.termsAccepted,
+          newsletter: body.newsletter || false,
+          preferredCurrency: body.preferredCurrency || 'SAR',
+          authProvider: 'credentials',
+        },
       });
     } catch (dbError: any) {
       // Handle database-level unique index violation (catches race condition)
@@ -130,7 +164,9 @@ export async function POST(req: NextRequest) {
       user: {
         id: newUser._id,
         email: newUser.email,
-        role: newUser.role}}, 201, req);
+        role: newUser.professional?.role || role,
+      }
+    }, 201, req);
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error);
