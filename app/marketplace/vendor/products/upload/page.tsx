@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import { X, Image as ImageIcon } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -17,6 +18,7 @@ interface ProductImage {
 export default function VendorProductUploadPage() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<ProductImage[]>([]);
 
@@ -68,6 +70,12 @@ export default function VendorProductUploadPage() {
       return;
     }
 
+    const orgId = session?.user?.orgId;
+    if (!orgId) {
+      toast.error('Organization ID not found');
+      return;
+    }
+
     setLoading(true);
     
     try {
@@ -78,8 +86,11 @@ export default function VendorProductUploadPage() {
           imageFormData.append('file', img.file);
           imageFormData.append('role', img.role);
           
-          const res = await fetch('/api/marketplace/vendor/upload-image', {
+          const res = await fetch(`/api/org/${orgId}/marketplace/vendor/upload-image`, {
             method: 'POST',
+            headers: {
+              'x-tenant-id': orgId
+            },
             body: imageFormData
           });
           
@@ -122,9 +133,12 @@ export default function VendorProductUploadPage() {
         status: 'PENDING_APPROVAL'
       };
 
-      const response = await fetch('/api/marketplace/vendor/products', {
+      const response = await fetch(`/api/org/${orgId}/marketplace/vendor/products`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-tenant-id': orgId
+        },
         body: JSON.stringify(product)
       });
 
@@ -148,13 +162,13 @@ export default function VendorProductUploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8] flex flex-col">
+    <div className="min-h-screen bg-muted flex flex-col">
       <Toaster position="top-right" />
       
       <div className="mx-auto max-w-4xl px-4 py-8">
         {/* Header */}
         <header className="mb-8">
-          <h1 className="text-3xl font-bold text-[#0F1111]">
+          <h1 className="text-3xl font-bold text-foreground">
             {t('marketplace.vendor.uploadProduct', 'Upload Product')}
           </h1>
           <p className="text-muted-foreground mt-2">
@@ -171,7 +185,7 @@ export default function VendorProductUploadPage() {
         >
           {/* Basic Information */}
           <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
-            <h2 className="text-lg font-semibold text-[#0F1111] mb-4">Basic Information</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Basic Information</h2>
             
             <div className="grid gap-4 md:grid-cols-2">
               <div>
@@ -182,7 +196,7 @@ export default function VendorProductUploadPage() {
                   type="text"
                   value={formData.titleEn}
                   onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })}
-                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                   required
                 />
               </div>
@@ -195,7 +209,7 @@ export default function VendorProductUploadPage() {
                   type="text"
                   value={formData.titleAr}
                   onChange={(e) => setFormData({ ...formData, titleAr: e.target.value })}
-                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                   dir="rtl"
                 />
               </div>
@@ -208,7 +222,7 @@ export default function VendorProductUploadPage() {
                   type="text"
                   value={formData.sku}
                   onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                   required
                 />
               </div>
@@ -221,7 +235,7 @@ export default function VendorProductUploadPage() {
                   type="text"
                   value={formData.brand}
                   onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
 
@@ -233,7 +247,7 @@ export default function VendorProductUploadPage() {
                   value={formData.summary}
                   onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
                   rows={2}
-                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
 
@@ -245,7 +259,7 @@ export default function VendorProductUploadPage() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={4}
-                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
             </div>
@@ -253,7 +267,7 @@ export default function VendorProductUploadPage() {
 
           {/* Images */}
           <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
-            <h2 className="text-lg font-semibold text-[#0F1111] mb-4">Product Images *</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Product Images *</h2>
             
             <div className="grid gap-4 grid-cols-2 md:grid-cols-4 mb-4">
               {images.map((img, index) => (
@@ -262,19 +276,19 @@ export default function VendorProductUploadPage() {
                   <button
                     type="button"
                     onClick={() => removeImage(index)}
-                    className="absolute top-2 right-2 rounded-full bg-[var(--fixzit-danger-light)] p-1 text-white hover:bg-[var(--fixzit-danger)]"
+                    className="absolute top-2 right-2 rounded-full bg-destructive/80 p-1 text-white hover:bg-destructive"
                   >
                     <X size={16} />
                   </button>
                   {index === 0 && (
-                    <span className="absolute bottom-2 left-2 rounded bg-[#0061A8] px-2 py-1 text-xs font-medium text-white">
+                    <span className="absolute bottom-2 left-2 rounded bg-primary px-2 py-1 text-xs font-medium text-white">
                       Main
                     </span>
                   )}
                 </div>
               ))}
               
-              <label className="aspect-square rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-[#0061A8] hover:bg-muted transition-colors">
+              <label className="aspect-square rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-muted transition-colors">
                 <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
                 <span className="text-sm text-muted-foreground">Add Image</span>
                 <input
@@ -294,7 +308,7 @@ export default function VendorProductUploadPage() {
 
           {/* Pricing & Inventory */}
           <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
-            <h2 className="text-lg font-semibold text-[#0F1111] mb-4">Pricing & Inventory</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Pricing & Inventory</h2>
             
             <div className="grid gap-4 md:grid-cols-3">
               <div>
@@ -306,7 +320,7 @@ export default function VendorProductUploadPage() {
                   step="0.01"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                   required
                 />
               </div>
@@ -318,7 +332,7 @@ export default function VendorProductUploadPage() {
                 <select
                   value={formData.currency}
                   onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 >
                   <option value="SAR">SAR</option>
                   <option value="USD">USD</option>
@@ -334,7 +348,7 @@ export default function VendorProductUploadPage() {
                 <select
                   value={formData.uom}
                   onChange={(e) => setFormData({ ...formData, uom: e.target.value })}
-                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 >
                   <option value="EA">Each (EA)</option>
                   <option value="BOX">Box</option>
@@ -352,7 +366,7 @@ export default function VendorProductUploadPage() {
                   type="number"
                   value={formData.minQty}
                   onChange={(e) => setFormData({ ...formData, minQty: e.target.value })}
-                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
 
@@ -364,7 +378,7 @@ export default function VendorProductUploadPage() {
                   type="number"
                   value={formData.leadDays}
                   onChange={(e) => setFormData({ ...formData, leadDays: e.target.value })}
-                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
 
@@ -376,7 +390,7 @@ export default function VendorProductUploadPage() {
                   type="number"
                   value={formData.stock}
                   onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
             </div>
@@ -384,7 +398,7 @@ export default function VendorProductUploadPage() {
 
           {/* Technical Details */}
           <div className="rounded-2xl bg-card p-6 shadow-sm border border-border">
-            <h2 className="text-lg font-semibold text-[#0F1111] mb-4">Technical Details</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Technical Details</h2>
             
             <div className="space-y-4">
               <div>
@@ -396,7 +410,7 @@ export default function VendorProductUploadPage() {
                   value={formData.standards}
                   onChange={(e) => setFormData({ ...formData, standards: e.target.value })}
                   placeholder="e.g., ASTM, BS EN, ISO 9001"
-                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
 
@@ -409,7 +423,7 @@ export default function VendorProductUploadPage() {
                   onChange={(e) => setFormData({ ...formData, specifications: e.target.value })}
                   placeholder='{"Material": "Steel", "Size": "100mm", "Weight": "5kg"}'
                   rows={4}
-                  className="w-full rounded-2xl border border-border px-3 py-2 font-mono text-sm focus:border-[#0061A8] focus:ring-1 focus:ring-[#0061A8]"
+                  className="w-full rounded-2xl border border-border px-3 py-2 font-mono text-sm focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
             </div>
