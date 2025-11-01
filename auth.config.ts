@@ -2,6 +2,7 @@ import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { User } from '@/server/models/User';
+import { getNextAtomicUserCode } from '@/lib/mongoUtils';
 
 // Validate required environment variables at startup
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -52,16 +53,16 @@ function sanitizeImage(image?: string | null): string | undefined {
   if (!image) return undefined;
   try {
     const url = new URL(image);
-    if (url.protocol === 'https:') return image;
+    // Only allow HTTPS (secure) or data URIs (inline images)
+    if (url.protocol === 'https:') {
+      return image;
+    } else if (url.protocol === 'data:' && url.pathname.startsWith('image/')) {
+      return image;
+    }
   } catch {
     // Invalid URL
   }
   return undefined;
-}
-
-async function getNextUserCode(): Promise<string> {
-  const count = await User.countDocuments();
-  return `USR${String(count + 1).padStart(6, '0')}`;
 }
 
 export const authConfig = {
@@ -120,9 +121,9 @@ export const authConfig = {
             user.personal.firstName = user.personal.firstName || firstName;
             user.personal.lastName = user.personal.lastName || lastName;
             
+            // Use $set to preserve other customFields (no data loss)
             if (image) {
-              user.customFields = user.customFields || {};
-              (user.customFields as any).image = image;
+              user.set('customFields.image', image);
             }
 
             user.security = user.security || {};
@@ -132,8 +133,8 @@ export const authConfig = {
             console.log('OAuth user updated successfully', { email, provider });
           } else {
             // Create new user with nested schema
-            const code = await getNextUserCode();
-            const username = email.split('@')[0];
+            const code = await getNextAtomicUserCode();
+            const username = code; // Use unique code as username (no conflicts)
 
             user = await User.create({
               code,
@@ -143,7 +144,7 @@ export const authConfig = {
               personal: {
                 firstName,
                 lastName,
-                middleName: '',
+                fullName,
               },
               professional: {
                 role: 'TENANT', // Default role for OAuth sign-ups
@@ -163,7 +164,10 @@ export const authConfig = {
                 },
               },
               status: 'ACTIVE',
-              customFields: image ? { image } : {},
+              customFields: {
+                image,
+                authProvider: provider,
+              },
             });
 
             console.log('OAuth user created successfully', { email, provider, code });
@@ -188,7 +192,7 @@ export const authConfig = {
       // Handle callbackUrl properly
       if (url.startsWith('/')) return `${baseUrl}${url}`;
       else if (new URL(url).origin === baseUrl) return url;
-      return `${baseUrl}/fm/dashboard`;
+      return baseUrl; // Fallback to homepage (not /fm/dashboard to avoid redirect loops)
     },
     async session({ session, token }) {
       // Add user ID to session
