@@ -4,16 +4,16 @@ import { auth } from '@/auth';
 
 // ---------- Types ----------
 interface SessionUser {
-  id?: string;
+  id: string;
   email?: string | null;
-  role?: string;
-  orgId?: string | null;
+  role: string;
+  orgId: string | null;
 }
 type WrappedReq = NextRequest & { auth?: { user?: SessionUser | null } | null };
 
 // ---------- Configurable switches ----------
 const API_PROTECT_ALL = process.env.API_PROTECT_ALL !== 'false'; // secure-by-default
-const REQUIRE_ORG_ID = process.env.REQUIRE_ORG_ID === 'true';
+const REQUIRE_ORG_ID_FOR_FM = process.env.REQUIRE_ORG_ID === 'true';
 
 // ---------- Route helpers ----------
 function matchesRoute(pathname: string, route: string): boolean {
@@ -68,23 +68,6 @@ const protectedMarketplaceActions = [
   '/aqar/bookings',
 ];
 
-const protectedApiRoutes = [
-  '/api/assets',
-  '/api/properties',
-  '/api/tenants',
-  '/api/vendors',
-  '/api/projects',
-  '/api/rfqs',
-  '/api/slas',
-  '/api/finance/invoices',
-  '/api/users',
-  '/api/work-orders',
-  '/api/finance',
-  '/api/support',
-  '/api/admin',
-  '/api/notifications',
-];
-
 const fmRoutes = [
   '/fm/dashboard',
   '/fm/work-orders',
@@ -103,18 +86,15 @@ const fmRoutes = [
 ];
 
 const publicApiPrefixes = [
-  '/api/auth', 
-  '/api/cms', 
-  '/api/help', 
-  '/api/assistant', 
+  '/api/auth',
   '/api/health',
-  '/api/i18n',                    // Allow translations for all users
-  '/api/qa/health',               // Telemetry/health checks
-  '/api/qa/reconnect',            // Telemetry reconnect
-  '/api/marketplace/categories',  // Public marketplace browsing
-  '/api/marketplace/products',    // Public product listing
-  '/api/marketplace/search',      // Public search
-  '/api/copilot/profile',         // Copilot widget (returns guest session if not authenticated)
+  '/api/i18n',
+  '/api/qa/health',
+  '/api/qa/reconnect',
+  '/api/marketplace/categories',
+  '/api/marketplace/products',
+  '/api/marketplace/search',
+  '/api/webhooks',
 ];
 
 // Dev helpers gate
@@ -138,16 +118,7 @@ function isPublicAsset(pathname: string): boolean {
 // ---------- Auth utilities ----------
 async function getUserFromRequest(req: WrappedReq): Promise<SessionUser | null> {
   const sess = req.auth;
-  if (sess?.user) {
-    const u = sess.user as SessionUser;
-    return {
-      id: u.id || '',
-      email: u.email || '',
-      role: u.role || 'USER',
-      orgId: u.orgId ?? null,
-    };
-  }
-  return null;
+  return sess?.user ? { ...sess.user, id: sess.user.id || (sess as any).sub } as SessionUser : null;
 }
 
 function attachUserHeaders(req: NextRequest, user: SessionUser): NextResponse {
@@ -185,14 +156,22 @@ export default auth(async function middleware(request: WrappedReq) {
       return NextResponse.next();
     }
 
-    const needsAuth = API_PROTECT_ALL || matchesAnyRoute(pathname, protectedApiRoutes);
-    if (!needsAuth) {
+    // All other API routes require authentication (API_PROTECT_ALL=true by default)
+    if (!API_PROTECT_ALL) {
       return NextResponse.next();
     }
 
     const user = await getUserFromRequest(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // RBAC: Admin and System endpoints require elevated privileges
+    if (pathname.startsWith('/api/admin') || pathname.startsWith('/api/system')) {
+      const adminRoles = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN']);
+      if (!adminRoles.has(user.role)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
 
     return attachUserHeaders(request, user);
@@ -216,26 +195,18 @@ export default auth(async function middleware(request: WrappedReq) {
   // Admin RBAC for /admin and /admin/*
   if (matchesRoute(pathname, '/admin')) {
     const adminRoles = new Set(['SUPER_ADMIN', 'ADMIN', 'CORPORATE_ADMIN']);
-    if (!adminRoles.has(user.role || 'USER')) {
+    if (!adminRoles.has(user.role)) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
   }
 
-  // Role-based post-login redirect (only from /login)
+  // Authenticated users visiting /login should be redirected to dashboard
   if (pathname === '/login') {
-    if (user.role === 'SUPER_ADMIN' || user.role === 'CORPORATE_ADMIN' || user.role === 'FM_MANAGER') {
-      return NextResponse.redirect(new URL('/fm/dashboard', request.url));
-    } else if (user.role === 'TENANT') {
-      return NextResponse.redirect(new URL('/fm/properties', request.url));
-    } else if (user.role === 'VENDOR') {
-      return NextResponse.redirect(new URL('/fm/marketplace', request.url));
-    } else {
-      return NextResponse.redirect(new URL('/fm/dashboard', request.url));
-    }
+    return NextResponse.redirect(new URL('/fm/dashboard', request.url));
   }
 
   // Optional org requirement for FM
-  if (REQUIRE_ORG_ID && matchesAnyRoute(pathname, fmRoutes) && !user.orgId) {
+  if (REQUIRE_ORG_ID_FOR_FM && matchesAnyRoute(pathname, fmRoutes) && !user.orgId) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
