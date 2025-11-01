@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Calculator, Download, Eye, Plus } from 'lucide-react';
 
 interface PayrollRun {
-  _id: string;
+  id: string;
   period: string; // YYYY-MM format
   status: 'DRAFT' | 'CALCULATED' | 'APPROVED' | 'LOCKED';
   employeeCount: number;
@@ -150,7 +150,7 @@ export default function PayrollPage() {
           </Card>
         ) : (
           payrollRuns.map((run) => (
-            <Card key={run._id} className="hover:shadow-lg transition-shadow">
+            <Card key={run.id} className="hover:shadow-lg transition-shadow">
               <CardHeader className="pb-4">
                 <div className="flex items-start justify-between">
                   <div>
@@ -223,7 +223,7 @@ export default function PayrollPage() {
                     <Button
                       size="sm"
                       className="bg-blue-600 hover:bg-blue-700 text-white"
-                      onClick={() => handleCalculate(run._id)}
+                      onClick={() => handleCalculate(run.id)}
                     >
                       <Calculator className="h-4 w-4 mr-2" />
                       {t('hr.payroll.calculate', 'Calculate Payroll')}
@@ -234,7 +234,7 @@ export default function PayrollPage() {
                     <Button
                       size="sm"
                       className="bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => handleExportWPS(run._id)}
+                      onClick={() => handleExportWPS(run.id)}
                     >
                       <Download className="h-4 w-4 mr-2" />
                       {t('hr.payroll.exportWPS', 'Export WPS File')}
