@@ -74,6 +74,9 @@ const nextConfig = {
   poweredByHeader: false,
   // Note: swcMinify is enabled by default in Next.js 15+
   
+  // Enable production browser sourcemaps for Sentry error tracking
+  productionBrowserSourceMaps: true,
+  
   // 🚀 SPEED OPTIMIZATIONS - Properly configured for Codespaces (2 CPUs, ~2GB free RAM)
   experimental: {
     // Enable optimized package imports (reduces bundle size & build time)

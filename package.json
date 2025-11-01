@@ -173,6 +173,7 @@
     "jscpd": "^4.0.5",
     "jsdom": "^27.1.0",
     "markdownlint-cli": "^0.45.0",
+    "next-router-mock": "^1.0.4",
     "picocolors": "^1.1.1",
     "postcss": "^8.4.31",
     "postcss-selector-parser": "6.0.13",

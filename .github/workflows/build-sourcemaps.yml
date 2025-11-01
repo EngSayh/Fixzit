@@ -19,18 +19,17 @@ jobs:
       CI: "true"
       NODE_OPTIONS: --max-old-space-size=8192
       NEXT_TELEMETRY_DISABLED: "1"
-      # Sentry env
+      # Sentry envs (required by the action)
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-      SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG || vars.SENTRY_ORG }}
+      # expose release to build/runtime; SDKs read SENTRY_RELEASE
       SENTRY_RELEASE: ${{ github.sha }}
-      SENTRY_ENVIRONMENT: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
 
     steps:
       - name: 📦 Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0   # Required for Sentry commit association
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
@@ -42,48 +41,30 @@ jobs:
         run: npm ci
 
       - name: 🏗️ Build with source maps
-        env:
-          SENTRY_RELEASE: ${{ env.SENTRY_RELEASE }}
         run: |
           set -e
           echo "Building Next.js app with source maps…"
           npm run build
 
-      # ----- Upload browser sourcemaps (/_next/static/....) -----
-      - name: 🚀 Upload browser sourcemaps
+      # Sentry release + sourcemaps (v3, with Debug ID injection)
+      - name: 🚀 Create & upload Sentry release (non-blocking)
+        id: sentry
         if: ${{ env.SENTRY_AUTH_TOKEN != '' }}
-        id: sentry-browser
-        uses: getsentry/action-release@v1
+        uses: getsentry/action-release@v3
         continue-on-error: true
-        env:
-          SENTRY_AUTH_TOKEN: ${{ env.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ env.SENTRY_ORG }}
         with:
-          projects: ${{ env.SENTRY_PROJECT }}
-          version: ${{ env.SENTRY_RELEASE }}
-          environment: ${{ env.SENTRY_ENVIRONMENT }}
-          sourcemaps: .next/static/**/*.map
-          url_prefix: "~/_next/static"
+          environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+          # v3 prefers 'release' (not 'version')
+          release: ${{ github.sha }}
+          projects: ${{ vars.SENTRY_PROJECT }}
+          # Upload all Next.js client/server maps; v3 injects Debug IDs by default
+          sourcemaps: |
+            .next/**/*.map
+          url_prefix: "~/_next"          # for browser frames; Debug IDs make this less critical
+          rewrite: true
           strip_common_prefix: true
           ignore_empty: true
-          set_commits: "auto"
-
-      # ----- Upload server sourcemaps (.next/server/**) -----
-      - name: 🚀 Upload server sourcemaps
-        if: ${{ env.SENTRY_AUTH_TOKEN != '' }}
-        id: sentry-server
-        uses: getsentry/action-release@v1
-        continue-on-error: true
-        env:
-          SENTRY_AUTH_TOKEN: ${{ env.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ env.SENTRY_ORG }}
-        with:
-          projects: ${{ env.SENTRY_PROJECT }}
-          version: ${{ env.SENTRY_RELEASE }}
-          environment: ${{ env.SENTRY_ENVIRONMENT }}
-          sourcemaps: .next/server/**/*.map
-          strip_common_prefix: true
-          ignore_empty: true
+          # Link commits so Sentry can surface suspect commits
           set_commits: "auto"
 
       - name: 🧾 Build summary
@@ -96,8 +77,9 @@ jobs:
           TOTAL_SIZE=$(find .next -name "*.map" -type f -exec du -ch {} + 2>/dev/null | awk '/total/{print $1}')
           echo "💾 Total .map size: ${TOTAL_SIZE:-0}" >> $GITHUB_STEP_SUMMARY
           if [ -n "${{ env.SENTRY_AUTH_TOKEN }}" ]; then
-            if [ "${{ steps.sentry-browser.outcome }}" = "success" ] || [ "${{ steps.sentry-server.outcome }}" = "success" ]; then
-              echo "✅ Sentry release uploaded (version: ${{ env.SENTRY_RELEASE }}, env: ${{ env.SENTRY_ENVIRONMENT }})" >> $GITHUB_STEP_SUMMARY
+            if [ "${{ steps.sentry.outcome }}" = "success" ]; then
+              SENTRY_ENV="${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}"
+              echo "✅ Sentry release uploaded (release: ${{ env.SENTRY_RELEASE }}, env: ${SENTRY_ENV})" >> $GITHUB_STEP_SUMMARY
             else
               echo "⚠️ Sentry upload step did not complete successfully (non-blocking). Check logs." >> $GITHUB_STEP_SUMMARY
             fi
