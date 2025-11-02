@@ -165,7 +165,7 @@ export default function Reports() {
                       <td>Monthly Financial Summary</td>
                       <td>{t.financial}</td>
                       <td>2024-01-15 10:30</td>
-                      <td style={{color: '#16A34A'}}>{t.ready}</td>
+                      <td style={{color: 'hsl(var(--success))'}}>{t.ready}</td>
                       <td>
                         <button className="fxz-btn secondary" style={{padding: '4px 8px', fontSize: '12px'}}>View</button>
                         <button className="fxz-btn primary" style={{padding: '4px 8px', fontSize: '12px', marginLeft: '4px'}}>Download</button>
@@ -175,7 +175,7 @@ export default function Reports() {
                       <td>Work Orders Performance</td>
                       <td>{t.operational}</td>
                       <td>2024-01-14 15:45</td>
-                      <td style={{color: '#FACC15'}}>{t.running}</td>
+                      <td style={{color: 'hsl(var(--warning))'}}>{t.running}</td>
                       <td>
                         <button className="fxz-btn secondary" style={{padding: '4px 8px', fontSize: '12px'}} disabled>View</button>
                         <button className="fxz-btn primary" style={{padding: '4px 8px', fontSize: '12px', marginLeft: '4px'}} disabled>Download</button>
@@ -185,7 +185,7 @@ export default function Reports() {
                       <td>Compliance Status Report</td>
                       <td>{t.compliance}</td>
                       <td>2024-01-13 09:15</td>
-                      <td style={{color: '#DC2626'}}>{t.error}</td>
+                      <td style={{color: 'hsl(var(--destructive))'}}>{t.error}</td>
                       <td>
                         <button className="fxz-btn secondary" style={{padding: '4px 8px', fontSize: '12px'}}>Retry</button>
                         <button className="fxz-btn primary" style={{padding: '4px 8px', fontSize: '12px', marginLeft: '4px'}}>Edit</button>

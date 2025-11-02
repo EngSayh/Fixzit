@@ -97,8 +97,8 @@ export default function MaintenancePage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-[var(--fixzit-primary-lighter)] rounded-2xl">
-                <Wrench className="h-6 w-6 text-[var(--fixzit-primary)]" />
+              <div className="p-3 bg-primary/10 rounded-2xl">
+                <Wrench className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Tasks</p>
@@ -111,8 +111,8 @@ export default function MaintenancePage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-[var(--fixzit-success-lighter)] rounded-2xl">
-                <CheckCircle className="h-6 w-6 text-[var(--fixzit-success)]" />
+              <div className="p-3 bg-success/10 rounded-2xl">
+                <CheckCircle className="h-6 w-6 text-success" />
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Completed</p>
@@ -125,7 +125,7 @@ export default function MaintenancePage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-[var(--fixzit-accent-lighter)] rounded-2xl">
+              <div className="p-3 bg-accent/10 rounded-2xl">
                 <Clock className="h-6 w-6 text-[var(--fixzit-accent)]" />
               </div>
               <div>

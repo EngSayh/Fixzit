@@ -49,10 +49,10 @@ export default function PreventiveMaintenancePage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)] border-[var(--fixzit-primary-lighter)]';
-      case 'due': return 'bg-[var(--fixzit-warning-lightest)] text-[var(--fixzit-warning-darker)] border-[var(--fixzit-warning-lighter)]';
-      case 'overdue': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
-      case 'completed': return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)] border-[var(--fixzit-success-lighter)]';
+      case 'scheduled': return 'bg-primary/10 text-primary border-[var(--fixzit-primary-lighter)]';
+      case 'due': return 'bg-warning/10 text-warning border-[var(--fixzit-warning-lighter)]';
+      case 'overdue': return 'bg-destructive/10 text-destructive border-[var(--fixzit-danger-lighter)]';
+      case 'completed': return 'bg-success/10 text-success border-[var(--fixzit-success-lighter)]';
       default: return 'bg-muted text-foreground border-border';
     }
   };
@@ -77,7 +77,7 @@ export default function PreventiveMaintenancePage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('workOrders.scheduled', 'Scheduled')}</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">8</p>
+              <p className="text-2xl font-bold text-primary">8</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
           </div>
@@ -104,7 +104,7 @@ export default function PreventiveMaintenancePage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('workOrders.completed', 'Completed')}</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-success)]">15</p>
+              <p className="text-2xl font-bold text-success">15</p>
             </div>
             <div className="text-[var(--fixzit-success-lighter)]">✅</div>
           </div>
@@ -119,9 +119,9 @@ export default function PreventiveMaintenancePage() {
             <input
               type="text"
               placeholder="Search schedules..."
-              className="px-3 py-2 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+              className="px-3 py-2 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
             />
-            <select className="px-3 py-2 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="px-3 py-2 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent">
               <option>All Properties</option>
               <option>Tower A</option>
               <option>Tower B</option>
@@ -171,8 +171,8 @@ export default function PreventiveMaintenancePage() {
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{schedule.stats?.totalGenerated || 0} WOs</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
-                          <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">{t('common.edit', 'Edit')}</button>
-                          <button className="text-[var(--fixzit-success)] hover:text-[var(--fixzit-success-darkest)]">Generate</button>
+                          <button className="text-primary hover:text-primary">{t('common.edit', 'Edit')}</button>
+                          <button className="text-success hover:text-[var(--fixzit-success-darkest)]">Generate</button>
                         </div>
                       </td>
                     </tr>

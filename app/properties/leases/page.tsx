@@ -58,9 +58,9 @@ export default function PropertiesLeasesPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active': return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)] border-[var(--fixzit-success-lighter)]';
+      case 'Active': return 'bg-success/10 text-success border-[var(--fixzit-success-lighter)]';
       case 'Expiring Soon': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
-      case 'Expired': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
+      case 'Expired': return 'bg-destructive/10 text-destructive border-[var(--fixzit-danger-lighter)]';
       case 'Vacant': return 'bg-muted text-foreground border-border';
       default: return 'bg-muted text-foreground border-border';
     }
@@ -68,9 +68,9 @@ export default function PropertiesLeasesPage() {
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
-      case 'Paid': return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)] border-[var(--fixzit-success-lighter)]';
+      case 'Paid': return 'bg-success/10 text-success border-[var(--fixzit-success-lighter)]';
       case 'Pending': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
-      case 'Overdue': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
+      case 'Overdue': return 'bg-destructive/10 text-destructive border-[var(--fixzit-danger-lighter)]';
       case 'N/A': return 'bg-muted text-foreground border-border';
       default: return 'bg-muted text-foreground border-border';
     }
@@ -110,7 +110,7 @@ export default function PropertiesLeasesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('properties.leases.activeLeases', 'Active Leases')}</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-success)]">142</p>
+              <p className="text-2xl font-bold text-success">142</p>
             </div>
             <div className="text-[var(--fixzit-success-lighter)]">📄</div>
           </div>
@@ -128,7 +128,7 @@ export default function PropertiesLeasesPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('properties.leases.monthlyRevenue', 'Monthly Revenue')}</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">SAR 1.2M</p>
+              <p className="text-2xl font-bold text-primary">SAR 1.2M</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">💰</div>
           </div>
@@ -148,7 +148,7 @@ export default function PropertiesLeasesPage() {
       <div className="card">
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
               <option>{t('properties.leases.allProperties', 'All Properties')}</option>
               <option>Tower A</option>
               <option>Tower B</option>
@@ -156,14 +156,14 @@ export default function PropertiesLeasesPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
               <option>{t('properties.leases.allTypes', 'All Types')}</option>
               <option>{t('properties.leases.residential', 'Residential')}</option>
               <option>{t('properties.leases.commercial', 'Commercial')}</option>
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
               <option>{t('properties.leases.allStatus', 'All Status')}</option>
               <option>{t('properties.leases.active', 'Active')}</option>
               <option>{t('properties.leases.expiringSoon', 'Expiring Soon')}</option>
@@ -223,8 +223,8 @@ export default function PropertiesLeasesPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">{t('common.view', 'View')}</button>
-                      <button className="text-[var(--fixzit-success)] hover:text-[var(--fixzit-success-darkest)]">{t('common.edit', 'Edit')}</button>
+                      <button className="text-primary hover:text-primary">{t('common.view', 'View')}</button>
+                      <button className="text-success hover:text-[var(--fixzit-success-darkest)]">{t('common.edit', 'Edit')}</button>
                       <button className="text-warning hover:text-orange-900">{t('properties.leases.renew', 'Renew')}</button>
                     </div>
                   </td>

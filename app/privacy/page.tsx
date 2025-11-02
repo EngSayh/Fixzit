@@ -109,7 +109,7 @@ export default function PrivacyPage() {
   return (
     <div className={`min-h-screen bg-gradient-to-b from-white to-gray-50 ${isRTL ? 'rtl' : 'ltr'}`}>
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white py-12">
+      <section className="bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--primary))] to-[hsl(var(--success))] text-white py-12">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <div className="flex items-center gap-4 mb-4">
             <Shield className="w-12 h-12" />

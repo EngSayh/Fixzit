@@ -460,7 +460,7 @@ Continue to learn about tenant relations!
         <div className="mb-6">
           <Link
             href="/help"
-            className="inline-flex items-center gap-2 text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-dark)] mb-4"
+            className="inline-flex items-center gap-2 text-primary hover:text-primary mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Help Center
@@ -475,9 +475,9 @@ Continue to learn about tenant relations!
                   {tutorial.duration}
                 </div>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  tutorial.difficulty === 'Beginner' ? 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)]' :
-                  tutorial.difficulty === 'Intermediate' ? 'bg-[var(--fixzit-warning-lightest)] text-[var(--fixzit-warning-darker)]' :
-                  'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)]'
+                  tutorial.difficulty === 'Beginner' ? 'bg-success/10 text-success' :
+                  tutorial.difficulty === 'Intermediate' ? 'bg-warning/10 text-warning' :
+                  'bg-destructive/10 text-destructive'
                 }`}>
                   {tutorial.difficulty}
                 </span>
@@ -491,7 +491,7 @@ Continue to learn about tenant relations!
               <div className="text-sm text-muted-foreground">Progress</div>
               <div className="w-32 bg-muted rounded-full h-2 mt-1">
                 <div
-                  className="bg-[var(--fixzit-primary)] h-2 rounded-full transition-all duration-300"
+                  className="bg-primary h-2 rounded-full transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 ></div>
               </div>
@@ -514,17 +514,17 @@ Continue to learn about tenant relations!
                     onClick={() => setCurrentStep(index)}
                     className={`w-full text-left p-3 rounded-2xl border transition-colors ${
                       currentStep === index
-                        ? 'border-[var(--fixzit-primary)] bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)]'
+                        ? 'border-primary bg-primary/10 text-primary'
                         : completedSteps.has(index)
-                        ? 'border-[var(--fixzit-success)] bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)]'
+                        ? 'border-success bg-success/10 text-success'
                         : 'border-border hover:border-border'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       {completedSteps.has(index) ? (
-                        <CheckCircle className="w-4 h-4 text-[var(--fixzit-success)]" />
+                        <CheckCircle className="w-4 h-4 text-success" />
                       ) : currentStep === index ? (
-                        <Circle className="w-4 h-4 text-[var(--fixzit-primary)] fill-current" />
+                        <Circle className="w-4 h-4 text-primary fill-current" />
                       ) : (
                         <Circle className="w-4 h-4 text-muted-foreground" />
                       )}
@@ -545,26 +545,26 @@ Continue to learn about tenant relations!
               {/* Step Header */}
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <Play className="w-5 h-5 text-[var(--fixzit-primary)]" />
-                  <span className="text-sm font-medium text-[var(--fixzit-primary)]">Step {currentStep + 1}</span>
+                  <Play className="w-5 h-5 text-primary" />
+                  <span className="text-sm font-medium text-primary">Step {currentStep + 1}</span>
                 </div>
                 <h2 className="text-2xl font-bold text-foreground mb-2">{currentStepData.title}</h2>
                 <p className="text-muted-foreground">{currentStepData.description}</p>
               </div>
 
               {/* Step Content */}
-              <div className="prose prose-lg max-w-none prose-headings:text-foreground prose-a:text-[var(--fixzit-primary)] prose-strong:text-foreground">
+              <div className="prose prose-lg max-w-none prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground">
                 <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
               </div>
 
               {/* Tips */}
               {currentStepData.tips && (
-                <div className="mt-8 p-4 bg-[var(--fixzit-primary-lightest)] rounded-2xl">
-                  <h4 className="font-semibold text-[var(--fixzit-primary-darkest)] mb-2">💡 Tips</h4>
+                <div className="mt-8 p-4 bg-primary/10 rounded-2xl">
+                  <h4 className="font-semibold text-primary mb-2">💡 Tips</h4>
                   <ul className="space-y-1">
                     {currentStepData.tips.map((tip, index) => (
-                      <li key={index} className="text-[var(--fixzit-primary-darker)] text-sm flex items-start gap-2">
-                        <span className="text-[var(--fixzit-primary)] mt-1">•</span>
+                      <li key={index} className="text-primary text-sm flex items-start gap-2">
+                        <span className="text-primary mt-1">•</span>
                         {tip}
                       </li>
                     ))}

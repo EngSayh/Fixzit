@@ -27,7 +27,7 @@ interface Order {
 const STATUS_BADGES: Record<string, string> = {
   APPROVAL: 'bg-warning/10 text-warning-foreground',
   PENDING: 'bg-primary/100/10 text-primary',
-  CONFIRMED: 'bg-indigo-500/10 text-indigo-700',
+  CONFIRMED: 'bg-primary/100/10 text-primary',
   FULFILLED: 'bg-teal-500/10 text-teal-700',
   DELIVERED: 'bg-success/10 text-success-foreground',
   CANCELLED: 'bg-destructive/10 text-destructive-foreground'

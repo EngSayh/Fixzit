@@ -103,7 +103,7 @@ export default function PropertiesDocumentsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Documents</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">247</p>
+              <p className="text-2xl font-bold text-primary">247</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">📄</div>
           </div>
@@ -154,7 +154,7 @@ export default function PropertiesDocumentsPage() {
       <div className="card">
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
               <option>All Properties</option>
               <option>Tower A</option>
               <option>Tower B</option>
@@ -162,7 +162,7 @@ export default function PropertiesDocumentsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
               <option>All Types</option>
               <option>Legal</option>
               <option>Safety</option>
@@ -171,7 +171,7 @@ export default function PropertiesDocumentsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
               <option>All Status</option>
               <option>Active</option>
               <option>Expiring Soon</option>
@@ -237,8 +237,8 @@ export default function PropertiesDocumentsPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">{t('common.view', 'View')}</button>
-                      <button className="text-[var(--fixzit-success)] hover:text-[var(--fixzit-success-darkest)]">{t('common.download', 'Download')}</button>
+                      <button className="text-primary hover:text-primary">{t('common.view', 'View')}</button>
+                      <button className="text-success hover:text-[var(--fixzit-success-darkest)]">{t('common.download', 'Download')}</button>
                       <button className="text-warning hover:text-orange-900">{t('common.edit', 'Edit')}</button>
                     </div>
                   </td>
@@ -271,7 +271,7 @@ export default function PropertiesDocumentsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Legal Documents</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">45</p>
+              <p className="text-2xl font-bold text-primary">45</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">⚖️</div>
           </div>
@@ -289,7 +289,7 @@ export default function PropertiesDocumentsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Contracts</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-success)]">89</p>
+              <p className="text-2xl font-bold text-success">89</p>
             </div>
             <div className="text-[var(--fixzit-success-lighter)]">📋</div>
           </div>

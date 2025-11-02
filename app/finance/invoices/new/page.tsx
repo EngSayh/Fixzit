@@ -445,7 +445,7 @@ export default function NewInvoicePage() {
                 <select 
                   value={invoiceType}
                   onChange={(e) => setInvoiceType(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="SALES">{t('finance.invoice.sales', 'Sales')}</option>
                   <option value="RENTAL">{t('finance.invoice.rental', 'Rental')}</option>
@@ -461,7 +461,7 @@ export default function NewInvoicePage() {
                   type="date"
                   value={issueDate}
                   onChange={(e) => setIssueDate(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.issueDate ? 'border-red-500' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.issueDate ? 'border-red-500' : 'border-border'}`}
                 />
                 {errors.issueDate && <p className="text-red-500 text-xs mt-1">{errors.issueDate}</p>}
               </div>
@@ -473,7 +473,7 @@ export default function NewInvoicePage() {
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.dueDate ? 'border-red-500' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.dueDate ? 'border-red-500' : 'border-border'}`}
                 />
                 {errors.dueDate && <p className="text-red-500 text-xs mt-1">{errors.dueDate}</p>}
               </div>
@@ -484,7 +484,7 @@ export default function NewInvoicePage() {
                 <select 
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="SAR">SAR - Saudi Riyal</option>
                   <option value="USD">USD - US Dollar</option>
@@ -512,7 +512,7 @@ export default function NewInvoicePage() {
                       setCustomerName(e.target.options[e.target.selectedIndex].text);
                     }
                   }}
-                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.customerName ? 'border-red-500' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.customerName ? 'border-red-500' : 'border-border'}`}
                 >
                   <option value="">{t('finance.selectCustomer', 'Select Customer')}</option>
                   <option value="cust1">John Smith - Tower A</option>
@@ -530,7 +530,7 @@ export default function NewInvoicePage() {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder={t('finance.invoice.customerNamePlaceholder', 'Enter customer name')}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
               <div>
@@ -542,7 +542,7 @@ export default function NewInvoicePage() {
                   value={billingAddress}
                   onChange={(e) => setBillingAddress(e.target.value)}
                   placeholder={t('finance.invoice.billingAddressPlaceholder', 'Enter billing address...')}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
             </div>
@@ -730,7 +730,7 @@ export default function NewInvoicePage() {
                 <select 
                   value={paymentTerms}
                   onChange={(e) => setPaymentTerms(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="Net 30">{t('finance.invoice.net30', 'Net 30 days')}</option>
                   <option value="Net 15">{t('finance.invoice.net15', 'Net 15 days')}</option>
@@ -748,7 +748,7 @@ export default function NewInvoicePage() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder={t('finance.invoice.notesPlaceholder', 'Add notes or payment instructions...')}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
             </div>

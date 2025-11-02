@@ -51,12 +51,12 @@ export default function VendorsPage() {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-[var(--fixzit-success-lighter)] text-[var(--fixzit-success-darker)]">
+                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-success/10 text-success">
                     Active
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">View</button>
+                  <button className="text-primary hover:text-primary">View</button>
                 </td>
               </tr>
               
@@ -75,12 +75,12 @@ export default function VendorsPage() {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-[var(--fixzit-success-lighter)] text-[var(--fixzit-success-darker)]">
+                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-success/10 text-success">
                     Active
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">View</button>
+                  <button className="text-primary hover:text-primary">View</button>
                 </td>
               </tr>
             </tbody>

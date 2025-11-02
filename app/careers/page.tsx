@@ -388,7 +388,7 @@ export default function CareersPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {jobs.map((job) => (
-              <Card key={job.id} className={`hover:shadow-lg transition-shadow h-full flex flex-col ${job.featured ? 'ring-2 ring-[var(--fixzit-primary)]/20 border-[var(--fixzit-primary)]/30' : ''}`}>
+              <Card key={job.id} className={`hover:shadow-lg transition-shadow h-full flex flex-col ${job.featured ? 'ring-2 ring-[var(--fixzit-primary)]/20 border-primary/30' : ''}`}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
@@ -399,7 +399,7 @@ export default function CareersPage() {
                           <div className="text-xs text-muted-foreground">Fixzit Enterprise</div>
                         </div>
                         {job.urgent && <div title="Urgent Position"><AlertTriangle className="w-5 h-5 text-[var(--fixzit-danger-light)]" /></div>}
-                        {job.featured && <div title="Featured Position"><Star className="w-5 h-5 text-[var(--fixzit-accent-light)]" /></div>}
+                        {job.featured && <div title="Featured Position"><Star className="w-5 h-5 text-accent" /></div>}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                         <MapPin className="w-4 h-4" />
@@ -437,12 +437,12 @@ export default function CareersPage() {
                         {job.status}
                       </Badge>
                       {job.urgent && (
-                        <Badge className="bg-[var(--fixzit-danger-lighter)] text-[var(--fixzit-danger-darker)] border-destructive/20 text-xs">
+                        <Badge className="bg-[var(--fixzit-danger-lighter)] text-destructive border-destructive/20 text-xs">
                           Urgent
                         </Badge>
                       )}
                       {job.featured && (
-                        <Badge className="bg-[var(--fixzit-accent-lighter)] text-[var(--fixzit-accent-darker)] border-warning/20 text-xs">
+                        <Badge className="bg-accent/10 text-[var(--fixzit-accent-darker)] border-warning/20 text-xs">
                           Featured
                         </Badge>
                       )}
@@ -458,12 +458,12 @@ export default function CareersPage() {
                       <ul className="text-sm text-muted-foreground space-y-1">
                         {job.requirements.slice(0, 2).map((req, index) => (
                           <li key={index} className="flex items-start gap-2">
-                            <span className="w-1.5 h-1.5 bg-[var(--fixzit-primary)] rounded-full mt-2 flex-shrink-0"></span>
+                            <span className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></span>
                             {req}
                           </li>
                         ))}
                         {job.requirements.length > 2 && (
-                          <li className="text-[var(--fixzit-primary)] font-medium">
+                          <li className="text-primary font-medium">
                             +{job.requirements.length - 2} more requirements
                           </li>
                         )}
@@ -479,7 +479,7 @@ export default function CareersPage() {
                           </li>
                         ))}
                         {job.benefits.length > 2 && (
-                          <li className="text-[var(--fixzit-success)] font-medium">
+                          <li className="text-success font-medium">
                             +{job.benefits.length - 2} more benefits
                           </li>
                         )}
@@ -496,7 +496,7 @@ export default function CareersPage() {
                         <Button
                           onClick={() => setSelectedJob(job)}
                           disabled={job.status === 'Closed'}
-                          className="bg-[var(--fixzit-primary)] hover:bg-primary/90"
+                          className="bg-primary hover:bg-primary/90"
                         >
                           <FileText className="w-4 h-4 mr-2" />
                           View Details
@@ -517,19 +517,19 @@ export default function CareersPage() {
                               </div>
                             </div>
                             <div className="flex flex-col gap-2">
-                              {job.urgent && <Badge className="bg-[var(--fixzit-danger-lighter)] text-[var(--fixzit-danger-darker)] border-destructive/20">Urgent</Badge>}
-                              {job.featured && <Badge className="bg-[var(--fixzit-accent-lighter)] text-[var(--fixzit-accent-darker)] border-warning/20">Featured</Badge>}
+                              {job.urgent && <Badge className="bg-[var(--fixzit-danger-lighter)] text-destructive border-destructive/20">Urgent</Badge>}
+                              {job.featured && <Badge className="bg-accent/10 text-[var(--fixzit-accent-darker)] border-warning/20">Featured</Badge>}
                             </div>
                           </div>
                         </DialogHeader>
                         <div className="space-y-6">
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div className="bg-[var(--fixzit-primary-lightest)] p-3 rounded-2xl">
-                              <Label className="text-sm font-medium text-[var(--fixzit-primary-darker)]">Location</Label>
+                            <div className="bg-primary/10 p-3 rounded-2xl">
+                              <Label className="text-sm font-medium text-primary">Location</Label>
                               <p className="text-foreground font-medium">{job.location}</p>
                             </div>
-                            <div className="bg-[var(--fixzit-success-lightest)] p-3 rounded-2xl">
-                              <Label className="text-sm font-medium text-[var(--fixzit-success-darker)]">Salary Range</Label>
+                            <div className="bg-success/10 p-3 rounded-2xl">
+                              <Label className="text-sm font-medium text-success">Salary Range</Label>
                               <p className="text-foreground font-medium">{job.salary}</p>
                             </div>
                             <div className="bg-[var(--fixzit-secondary-lightest)] p-3 rounded-2xl">
@@ -549,7 +549,7 @@ export default function CareersPage() {
                               <ul className="space-y-2">
                                 {job.requirements.map((req, index) => (
                                   <li key={index} className="flex items-start gap-3">
-                                    <span className="w-2 h-2 bg-[var(--fixzit-primary)] rounded-full mt-2 flex-shrink-0"></span>
+                                    <span className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></span>
                                     <span className="text-foreground">{req}</span>
                                   </li>
                                 ))}
@@ -591,7 +591,7 @@ export default function CareersPage() {
                               ))}
                             </ol>
                             <div className="flex flex-wrap gap-2 mt-3">
-                              <Button size="sm" className="bg-[var(--fixzit-primary)] hover:bg-primary/90">Schedule Interview</Button>
+                              <Button size="sm" className="bg-primary hover:bg-primary/90">Schedule Interview</Button>
                               <Button size="sm" variant="outline">Advance Stage</Button>
                               <Button size="sm" variant="outline">Share with Team</Button>
                             </div>
@@ -610,7 +610,7 @@ export default function CareersPage() {
                               <Button
                                 onClick={() => handleApply(job)}
                                 disabled={job.status === 'Closed'}
-                                className="bg-[var(--fixzit-primary)] hover:bg-primary/90 text-white px-6 py-2"
+                                className="bg-primary hover:bg-primary/90 text-white px-6 py-2"
                               >
                                 <Send className="w-4 h-4 mr-2" />
                                 Apply Now
@@ -704,7 +704,7 @@ export default function CareersPage() {
                   <div className="space-y-1 text-center">
                     <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                     <div className="flex text-sm text-muted-foreground">
-                      <label htmlFor="resume" className="relative cursor-pointer bg-card rounded-2xl font-medium text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-dark)]">
+                      <label htmlFor="resume" className="relative cursor-pointer bg-card rounded-2xl font-medium text-primary hover:text-primary">
                         <span>Upload a file</span>
                         <input
                           id="resume"
@@ -734,7 +734,7 @@ export default function CareersPage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-[var(--fixzit-primary)] hover:bg-primary/90"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   {isSubmitting ? (
                     <>

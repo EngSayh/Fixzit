@@ -82,7 +82,7 @@ export default function AssetsPage() {
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)]">
+            <Button className="bg-primary hover:bg-[var(--fixzit-primary-dark)]">
               <Plus className="w-4 h-4 mr-2" />
               New Asset
             </Button>
@@ -163,7 +163,7 @@ export default function AssetsPage() {
                 <Building2 className="w-12 h-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">No Assets Found</h3>
                 <p className="text-muted-foreground mb-4">Get started by adding your first asset to the registry.</p>
-                <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)]">
+                <Button onClick={() => setCreateOpen(true)} className="bg-primary hover:bg-[var(--fixzit-primary-dark)]">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Asset
                 </Button>
@@ -221,7 +221,7 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return <CheckCircle className="w-4 h-4 text-[var(--fixzit-success)]" />;
+        return <CheckCircle className="w-4 h-4 text-success" />;
       case 'MAINTENANCE':
         return <AlertTriangle className="w-4 h-4 text-[var(--fixzit-accent)]" />;
       case 'OUT_OF_SERVICE':
@@ -500,7 +500,7 @@ function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-[var(--fixzit-primary)] hover:bg-[var(--fixzit-primary-dark)]">
+        <Button type="submit" className="bg-primary hover:bg-[var(--fixzit-primary-dark)]">
           Create Asset
         </Button>
       </div>
