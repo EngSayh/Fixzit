@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -19,7 +20,7 @@ import {
 } from 'lucide-react';
 
 interface ProjectItem {
-  _id: string;
+  id: string;
   name?: string;
   code?: string;
   type?: string;
@@ -41,6 +42,7 @@ interface ProjectItem {
 }
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const { data: session } = useSession();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -155,7 +157,7 @@ export default function ProjectsPage() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {(projects as ProjectItem[]).map((project) => (
-              <ProjectCard key={project._id} project={project} orgId={orgId} onUpdated={mutate} />
+              <ProjectCard key={project.id} project={project} orgId={orgId} onUpdated={mutate} />
             ))}
           </div>
 
@@ -186,7 +188,7 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
 
     const toastId = toast.loading('Deleting project...');
     try {
-      const res = await fetch(`/api/projects/${project._id}`, {
+      const res = await fetch(`/api/projects/${project.id}`, {
         method: 'DELETE',
         headers: { 'x-tenant-id': orgId }
       });
@@ -309,14 +311,14 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => window.location.href = `/fm/projects/${project._id}`}
+              onClick={() => router.push(`/fm/projects/${project.id}`)}
             >
               <Eye className="w-4 h-4" />
             </Button>
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => window.location.href = `/fm/projects/${project._id}/edit`}
+              onClick={() => router.push(`/fm/projects/${project.id}/edit`)}
             >
               <Edit className="w-4 h-4" />
             </Button>
