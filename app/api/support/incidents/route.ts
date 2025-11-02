@@ -3,7 +3,6 @@ import { getDatabase } from '@/lib/mongodb-unified';
 import { SupportTicket } from '@/server/models/SupportTicket';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { z } from 'zod';
-import Redis from 'ioredis';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
@@ -84,29 +83,36 @@ export async function POST(req: NextRequest) {
   } catch {
     sessionUser = null;
   }
-  // Distributed rate limiting using Redis for multi-instance environments
-  const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+  // Distributed rate limiting using Redis singleton for multi-instance environments
+  // PERFORMANCE FIX: Use singleton connection instead of new Redis() per request
+  // Historical context: Creating new connection + quit() per request exhausted pool
+  const { getRedisClient } = await import('@/lib/redis');
+  const redis = getRedisClient();
   const ip = getClientIP(req);
   const rateKey = `incidents:rate:${sessionUser?.id ? `u:${sessionUser.id}` : `ip:${ip}`}`;
   const windowSecs = 30; // 30s window
   const maxRequests = 3;
   
-  try {
-    // Use Redis INCR with TTL for atomic rate limiting
-    const count = await redis.incr(rateKey);
-    if (count === 1) {
-      await redis.expire(rateKey, windowSecs);
+  if (redis) {
+    try {
+      // Use Redis INCR with TTL for atomic rate limiting
+      const count = await redis.incr(rateKey);
+      if (count === 1) {
+        await redis.expire(rateKey, windowSecs);
+      }
+      
+      if (count > maxRequests) {
+        // NOTE: Do NOT call redis.quit() - singleton connection is reused
+        return new NextResponse(null, { status: 429 });
+      }
+    } catch (error) {
+      // Fallback: if Redis operation fails, allow the request but log the error
+      console.error('[Incidents] Rate limiting failed:', error instanceof Error ? error.message : 'Unknown error');
     }
-    
-    if (count > maxRequests) {
-      await redis.quit();
-      return new NextResponse(null, { status: 429 });
-    }
-  } catch (error) {
-    // Fallback: if Redis is unavailable, allow the request but log the error
-    console.error('Rate limiting failed:', error instanceof Error ? error.message : 'Unknown error');
-  } finally {
-    await redis.quit();
+    // NOTE: Do NOT call redis.quit() in finally block - connection is reused
+  } else {
+    // Redis unavailable - allow request (fail open for better UX)
+    console.warn('[Incidents] Redis unavailable, rate limiting disabled');
   }
 
   // SECURITY: Determine tenant scope from authenticated session ONLY

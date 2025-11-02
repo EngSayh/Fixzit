@@ -38,7 +38,9 @@ export async function GET(req: NextRequest) {
     // SECURITY: Get orgId from authenticated session, NEVER from client input
     // Historical context: PR reviews flagged tenant isolation bypass where
     // orgId = searchParams.get('orgId') allowed cross-tenant data access
-    const user = await getUserFromToken(req);
+    const authHeader = req.headers.get('authorization') || '';
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const user = token ? await getUserFromToken(token) : null;
     const orgId = user?.orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
     
     const { searchParams } = new URL(req.url);
