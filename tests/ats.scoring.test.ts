@@ -35,7 +35,8 @@ try {
       } catch (____) {
         // Fallback: inline definitions for PR validation to avoid import failures.
         // Remove this block when using real module paths.
-        function extractSkillsFromText(text) {
+        // TYPESCRIPT FIX: Add explicit parameter types to fix 'any' errors
+        function extractSkillsFromText(text: string): string[] {
           if (!text) return [];
 
           const candidates = Array.from(new Set(text.toLowerCase().match(/[a-z][a-z0-9+.#-]{2,}/g) || []));
@@ -45,7 +46,7 @@ try {
           return candidates.filter(w => !common.includes(w)).slice(0, 20);
         }
 
-        function calculateExperienceFromText(text) {
+        function calculateExperienceFromText(text: string): number {
           if (!text) return 0;
 
           const m = text.match(/(\d{1,2})\s*(\+|\b)\s*(years?|yrs?)/i);
@@ -53,10 +54,22 @@ try {
           return m ? Math.min(40, parseInt(m[1], 10)) : 0;
         }
 
+        interface ScoreInput {
+          requiredSkills?: string[];
+          skills?: string[];
+          minExperience?: number;
+          experience: number;
+        }
+
+        interface ScoreWeights {
+          skills?: number;
+          experience?: number;
+        }
+
         function scoreApplication(
-          input,
-          weights
-        ) {
+          input: ScoreInput,
+          weights: ScoreWeights
+        ): number {
           const wSkills = Math.max(0, Math.min(1, weights?.skills ?? 0.6));
 
           const wExp = Math.max(0, Math.min(1, weights?.experience ?? 0.4));
