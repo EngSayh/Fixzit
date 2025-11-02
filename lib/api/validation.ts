@@ -39,6 +39,11 @@ export type ValidationResult = { valid: true } | { valid: false; error: string }
  * @returns Validation result
  */
 export function validatePositiveNumber(value: unknown, fieldName: string): ValidationResult {
+  // Check for empty string before coercion to avoid Number('') === 0
+  if (value === '' || value === null || value === undefined) {
+    return { valid: false, error: `${fieldName} is required` };
+  }
+  
   const num = Number(value);
   if (!Number.isFinite(num) || num <= 0) {
     return { valid: false, error: `${fieldName} must be a positive number` };
@@ -53,6 +58,11 @@ export function validatePositiveNumber(value: unknown, fieldName: string): Valid
  * @returns Validation result
  */
 export function validateNonNegativeInteger(value: unknown, fieldName: string): ValidationResult {
+  // Check for empty string before coercion to avoid Number('') === 0
+  if (value === '' || value === null || value === undefined) {
+    return { valid: false, error: `${fieldName} is required` };
+  }
+  
   const num = Number(value);
   if (!Number.isFinite(num) || num < 0 || !Number.isInteger(num)) {
     return { valid: false, error: `${fieldName} must be a non-negative integer` };
@@ -67,6 +77,11 @@ export function validateNonNegativeInteger(value: unknown, fieldName: string): V
  * @returns Validation result
  */
 export function validateNonNegativeNumber(value: unknown, fieldName: string): ValidationResult {
+  // Check for empty string before coercion to avoid Number('') === 0
+  if (value === '' || value === null || value === undefined) {
+    return { valid: false, error: `${fieldName} is required` };
+  }
+  
   const num = Number(value);
   if (!Number.isFinite(num) || num < 0) {
     return { valid: false, error: `${fieldName} must be non-negative` };

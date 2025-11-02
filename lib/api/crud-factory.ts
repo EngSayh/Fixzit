@@ -131,9 +131,21 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
       // Implement search functionality
       if (query && options.searchFields && options.searchFields.length > 0) {
         const escapedQuery = escapeRegex(query);
-        match.$or = options.searchFields.map(field => ({
+        const searchOr = options.searchFields.map(field => ({
           [field]: { $regex: escapedQuery, $options: 'i' }
         }));
+        
+        // If buildFilter already set $or, combine with $and to avoid overwriting
+        if (match.$or) {
+          const existingOr = match.$or;
+          delete match.$or;
+          match.$and = [
+            { $or: existingOr },
+            { $or: searchOr }
+          ];
+        } else {
+          match.$or = searchOr;
+        }
       }
 
       // Execute query with pagination
@@ -220,7 +232,22 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
 
       // Apply onCreate hook if provided
       if (onCreate) {
-        entityData = await onCreate(entityData, user);
+        try {
+          entityData = await onCreate(entityData, user);
+        } catch (hookError: unknown) {
+          const correlationId = crypto.randomUUID();
+          console.error(`[POST /api/${entityName}] onCreate hook error:`, {
+            correlationId,
+            userId: user.id,
+            orgId: user.orgId,
+            role: user.role,
+            timestamp: new Date().toISOString(),
+            error: hookError instanceof Error ? hookError.message : String(hookError),
+            stack: hookError instanceof Error ? hookError.stack : undefined,
+          });
+          
+          throw new Error(`onCreate hook failed: ${hookError instanceof Error ? hookError.message : String(hookError)}`);
+        }
       }
 
       // Create entity
