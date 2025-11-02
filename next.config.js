@@ -115,17 +115,16 @@ const nextConfig = {
     },
   },
 
-  // TypeScript and ESLint
-  // ROOT CAUSE FIX: Next.js 15 build worker hangs during concurrent type-checking
-  // with large projects (584 TS files, 2297 total files, 561K types)
-  // SOLUTION: Skip type-checking during build, run separately via `npm run typecheck`
-  // This is the recommended approach for large projects per Next.js docs
+  // TypeScript and ESLint - PRODUCTION QUALITY GATES
+  // ✅ RESTORED: Build-time type checking and linting enforced
+  // These checks are CRITICAL for preventing broken code from reaching production
+  // If builds are slow, fix the errors - don't disable the checks
   typescript: {
-    ignoreBuildErrors: true, // Run `npm run typecheck` separately (34s, 1.2GB)
+    ignoreBuildErrors: false, // ✅ ENFORCE: Build fails if TypeScript errors exist
     tsconfigPath: './tsconfig.json'
   },
   eslint: {
-    ignoreDuringBuilds: true, // Run `npm run lint` separately
+    ignoreDuringBuilds: false, // ✅ ENFORCE: Build fails if ESLint errors exist
   },
 
   // ✅ FIXED: Turbopack configuration added above to silence warning

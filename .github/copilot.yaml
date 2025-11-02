@@ -1,10 +1,22 @@
 v2
 approval_rules:
+  # ✅ SECURITY FIX: Removed dangerous auto-approve: true for all commands
+  # Previous config allowed unrestricted shell access (git push, rm -rf, etc.)
+  # Now using explicit allow-list for safe operations only
   - pattern: ".*"
+    auto_approve: false  # ✅ DEFAULT DENY: All commands require approval unless explicitly allowed below
+  
+  # Safe read-only operations
+  - pattern: "^(ls|pwd|cat|head|tail|grep|find|wc|echo) .*"
     auto_approve: true
-# SAFE_DENY (optional): uncomment to block obviously destructive ops
-#  - pattern: "rm -rf /(?!workspaces|workspace|home|root|var|usr).*"
-#    auto_approve: false
+  
+  # Safe package manager operations (no install/uninstall)
+  - pattern: "^(npm|pnpm|yarn) (run|test|build) .*"
+    auto_approve: true
+  
+  # Safe git read operations only
+  - pattern: "^git (status|log|diff|show|branch|remote) .*"
+    auto_approve: true
 
 run_permissions:
   - pattern: ".*"
