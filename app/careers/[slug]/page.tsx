@@ -53,7 +53,7 @@ export default async function JobDetailPage({ params }: { params: { slug: string
         </div>
         
         {/* Client-side form with proper UX and accessibility */}
-        <JobApplicationForm jobId={job._id.toString()} />
+        <JobApplicationForm jobId={job.id} />
       </div>
     </div>
   );

@@ -371,7 +371,7 @@ export default function NewExpensePage() {
       const data = await response.json();
 
       // Upload receipts if any
-      if (receipts.length > 0 && data.expense?._id) {
+      if (receipts.length > 0 && data.expense?.id) {
         await uploadReceipts(data.expense.id);
       }
 
@@ -435,7 +435,7 @@ export default function NewExpensePage() {
       const data = await response.json();
 
       // Upload receipts if any
-      if (receipts.length > 0 && data.expense?._id) {
+      if (receipts.length > 0 && data.expense?.id) {
         await uploadReceipts(data.expense.id);
       }
 
