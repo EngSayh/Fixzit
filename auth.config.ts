@@ -222,102 +222,10 @@ export const authConfig = {
         return false;
       }
       
-      // Provision OAuth users (not credentials provider)
-      if (_account?.provider && _account.provider !== 'credentials') {
-        try {
-          // Dynamic imports (Edge Runtime compatible)
-          const { connectToDatabase } = await import('@/lib/mongodb-unified');
-          const { User } = await import('@/server/models/User');
-          const { getNextAtomicUserCode } = await import('@/lib/mongoUtils');
-
-          // Connect to database and provision user directly
-          await connectToDatabase();
-
-          const email = _user.email.toLowerCase();
-          const name = sanitizeName(_user.name);
-          const image = sanitizeImage(_user.image);
-          const provider = _account.provider;
-
-          // Split name into first/last
-          const nameParts = name.split(' ');
-          const firstName = nameParts[0] || 'Unknown';
-          const lastName = nameParts.slice(1).join(' ') || '';
-          const fullName = `${firstName} ${lastName}`.trim();
-
-          // Check if user already exists
-          let user = await User.findOne({ email });
-
-          if (user) {
-            // Update existing user
-            user.personal = user.personal || {};
-            user.personal.firstName = user.personal.firstName || firstName;
-            user.personal.lastName = user.personal.lastName || lastName;
-            
-            // Use $set to preserve other customFields (no data loss)
-            if (image) {
-              user.set('customFields.image', image);
-            }
-
-            user.security = user.security || {};
-            user.security.lastLogin = new Date();
-
-            await user.save();
-            console.log('OAuth user updated successfully', { email, provider });
-          } else {
-            // Create new user with nested schema
-            const code = await getNextAtomicUserCode();
-            const username = code; // Use unique code as username (no conflicts)
-
-            user = await User.create({
-              code,
-              username,
-              email,
-              password: '', // OAuth users don't have passwords
-              personal: {
-                firstName,
-                lastName,
-                fullName,
-              },
-              professional: {
-                role: 'TENANT', // Default role for OAuth sign-ups
-              },
-              security: {
-                lastLogin: new Date(),
-                accessLevel: 'READ',
-                permissions: [],
-              },
-              preferences: {
-                language: 'ar',
-                timezone: 'Asia/Riyadh',
-                notifications: {
-                  email: true,
-                  sms: false,
-                  app: true,
-                },
-              },
-              status: 'ACTIVE',
-              customFields: {
-                image,
-                authProvider: provider,
-              },
-            });
-
-            console.log('OAuth user created successfully', { email, provider, code });
-          }
-
-          // Store user ID in the session
-          if (user._id) {
-            _user.id = user._id.toString();
-          }
-        } catch (error) {
-          console.error('OAuth provisioning error', {
-            email: _user.email,
-            message: error instanceof Error ? error.message : 'Unknown error',
-          });
-          return false;
-        }
-      }
-
+      // ⚡ OAuth user provisioning moved to auth.ts (Node.js runtime)
+      // This callback just validates the sign-in attempt
+      // Actual user creation happens in the jwt() callback which runs in Node.js runtime
+      
       return true;
     },
     async redirect({ url, baseUrl }) {
