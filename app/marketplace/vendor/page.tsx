@@ -8,7 +8,7 @@ interface Category {
 }
 
 interface Product {
-  _id: string;
+  id: string;
   title: { en: string; };
   sku: string;
   status: string;
