@@ -68,6 +68,10 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
+      // Production-critical options for MongoDB Atlas
+      retryWrites: true,        // Automatic retry for write operations (network failures)
+      tls: true,                // Force TLS/SSL for secure connections (required for Atlas)
+      w: 'majority',            // Write concern for data durability (prevents data loss)
     });
 
     if (process.env.NODE_ENV === 'development') {
