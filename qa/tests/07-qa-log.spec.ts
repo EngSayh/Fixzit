@@ -29,7 +29,7 @@ test.describe('QA Log API (/api/qa/log)', () => {
   test('POST returns 500 on invalid JSON body', async ({ request }) => {
     const res = await request.post('/api/qa/log', {
       headers: { 'content-type': 'application/json' },
-      body: 'not-json',
+      data: 'not-json',  // Use 'data' instead of 'body' for Playwright API
     });
     expect(res.status()).toBe(500);
     const body = await res.json();

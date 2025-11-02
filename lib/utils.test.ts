@@ -59,11 +59,9 @@ describe('generateSlug', () => {
     expect(generateSlug(' - ')).toBe('-');
   });
 
-  // Failure/robustness scenarios at runtime (TS type is string; simulate bad inputs)
-  it('handles undefined or null at runtime safely by treating as empty string', () => {
-    // @ts-expect-error Testing runtime robustness against undefined
+  // Failure/robustness scenarios at runtime (function now accepts these types)
+  it('handles undefined or null safely by treating as empty string', () => {
     expect(generateSlug(undefined)).toBe('');
-    // @ts-expect-error Testing runtime robustness against null
     expect(generateSlug(null)).toBe('');
     // @ts-expect-error Testing runtime robustness against number
     expect(generateSlug(123)).toBe('123');

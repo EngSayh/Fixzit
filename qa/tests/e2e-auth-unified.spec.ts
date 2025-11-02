@@ -187,7 +187,7 @@ test.describe('Unified NextAuth Authentication', () => {
     expect(sessionCookie).toBeDefined();
     
     // Session cookie should have expiry set (not just session cookie)
-    if (sessionCookie.expires > 0) {
+    if (sessionCookie && sessionCookie.expires > 0) {
       const expiryDate = new Date(sessionCookie.expires * 1000);
       const now = new Date();
       const daysDiff = (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
