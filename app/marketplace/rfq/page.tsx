@@ -8,7 +8,7 @@ interface Category {
 }
 
 interface RFQ {
-  _id: string;
+  id: string;
   title: string;
   currency: string;
   status: string;
