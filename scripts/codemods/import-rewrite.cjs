@@ -28,29 +28,14 @@ async function rewriteImports() {
       let content = fs.readFileSync(file, 'utf-8');
       const original = content;
 
-      // Normalize @/ imports
-      content = content.replace(/from ['"]@\/(.*?)['"]/g, (match, p1) => {
+      // Normalize @/ imports (regex-based, consider using Babel for complex cases)
+      content = content.replace(/from ['"]@\/(.*?)['"]/g, (_, p1) => {
         // Ensure no double slashes
         const normalized = p1.replace(/\/+/g, '/');
         return `from '@/${normalized}'`;
       });
 
-      // Normalize relative imports to use @/ when appropriate
-      content = content.replace(/from ['"](\.\.\/)+([^'"]+)['"]/g, (match, dots, p2) => {
-        // If going up more than 2 levels, consider using @/
-        const levels = dots.match(/\.\.\//g)?.length || 0;
-        if (levels > 2) {
-          // Try to infer module path
-          const relativePath = path.relative(ROOT, file);
-          const dirDepth = relativePath.split(path.sep).length - 1;
-          
-          if (dirDepth >= levels) {
-            // Can potentially use @/ alias
-            return match; // Keep as-is for now (complex logic)
-          }
-        }
-        return match;
-      });
+      // (Removed incomplete relative import normalization logic)
 
       if (content !== original) {
         fs.writeFileSync(file, content, 'utf-8');

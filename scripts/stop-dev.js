@@ -6,23 +6,29 @@
  * Kills dev server process on specified port
  */
 
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 const util = require('util');
-const execPromise = util.promisify(exec);
+const execFilePromise = util.promisify(execFile);
 
 const PORT = process.argv[2] || 3000;
 
 async function stopDevServer() {
+  // Validate that PORT is a number
+  if (!/^\d+$/.test(String(PORT))) {
+    console.error(`❌ Invalid port: ${PORT}. Port must be a number.`);
+    process.exit(1);
+  }
+
   console.log(`🛑 Stopping dev server on port ${PORT}...`);
   
   try {
     // Find process using port
-    const { stdout } = await execPromise(`lsof -ti:${PORT}`);
+    const { stdout } = await execFilePromise('lsof', ['-ti', String(PORT)]);
     const pid = stdout.trim();
     
     if (pid) {
       console.log(`Found process ${pid} on port ${PORT}`);
-      await execPromise(`kill -9 ${pid}`);
+      await execFilePromise('kill', ['-9', pid]);
       console.log(`✅ Dev server stopped (PID ${pid})`);
     } else {
       console.log(`⚠️  No process found on port ${PORT}`);

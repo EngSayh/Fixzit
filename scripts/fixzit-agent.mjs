@@ -97,7 +97,7 @@ async function mineFixes() {
   
   try {
     const since = new Date(Date.now() - CONFIG.since * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const log = await $`git log --since=${since} --grep="fix\\|bug\\|issue" --pretty=format:"%h|%s|%an|%ad" --date=short`.quiet();
+    const log = await $`git log --since=${JSON.stringify(since)} --grep="fix\\|bug\\|issue" --pretty=format:"%h|%s|%an|%ad" --date=short`.quiet();
     
     const fixes = log.stdout.split('\n')
       .filter(line => line.trim())
@@ -226,6 +226,8 @@ async function scanAPI() {
 /**
  * Step 8: Start Keep-Alive Dev Server
  */
+let devServerProc = null;
+
 async function startDevServer() {
   console.log(chalk.yellow(`\n🚀 Step 8: Starting dev server on port ${CONFIG.port}...`));
   
@@ -239,11 +241,26 @@ async function startDevServer() {
       // Port not in use, start server
     }
 
-    // Start in background
-    const proc = $`pnpm dev`.nothrow();
-    
+    // Start in background and store process reference
+    devServerProc = (await $`pnpm dev`.nothrow()).child;
+
+    // Cleanup handler to kill dev server on exit
+    const cleanup = async () => {
+      if (devServerProc && typeof devServerProc.kill === 'function') {
+        try {
+          devServerProc.kill();
+          console.log(chalk.gray('\n🛑 Dev server process killed.'));
+        } catch (e) {
+          // ignore
+        }
+      }
+    };
+    process.on('exit', cleanup);
+    process.on('SIGINT', () => { cleanup().then(() => process.exit(0)); });
+    process.on('SIGTERM', () => { cleanup().then(() => process.exit(0)); });
+
     // Wait for server to be ready (max 60s)
-    for (let i = 0; i < 60; i++) {
+    for (let attempt = 0; attempt < 60; attempt++) {
       await sleep(1000);
       try {
         const response = await fetch(`http://localhost:${CONFIG.port}`);

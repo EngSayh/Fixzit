@@ -128,7 +128,14 @@ function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }
   const [lines, setLines] = useState([{ description:"Maintenance Service", qty:1, unitPrice:100, vatRate:15 }]);
 
   function updateLine(i:number, key:string, val: string | number) {
-    setLines(prev => prev.map((l,idx)=> idx===i ? { ...l, [key]: key==="description"?val:Number(val) } : l));
+    setLines(prev => prev.map((l,idx)=> {
+      if (idx !== i) return l;
+      // 🔴 CRITICAL FIX: Allow empty strings for numeric inputs to enable clearing
+      if (key === "description") return { ...l, [key]: String(val) };
+      // Only convert to number if value is not empty string, default to 0
+      const numVal = val === '' ? 0 : Number(val);
+      return { ...l, [key]: numVal };
+    }));
   }
 
   async function submit() {

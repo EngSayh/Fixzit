@@ -30,11 +30,11 @@ async function scanAPI() {
       
       // Extract HTTP methods
       const methods = [];
-      if (/export\s+async\s+function\s+GET/i.test(content)) methods.push('GET');
-      if (/export\s+async\s+function\s+POST/i.test(content)) methods.push('POST');
-      if (/export\s+async\s+function\s+PUT/i.test(content)) methods.push('PUT');
-      if (/export\s+async\s+function\s+PATCH/i.test(content)) methods.push('PATCH');
-      if (/export\s+async\s+function\s+DELETE/i.test(content)) methods.push('DELETE');
+      if (/export\s+async\s+function\s+GET/.test(content)) methods.push('GET');
+      if (/export\s+async\s+function\s+POST/.test(content)) methods.push('POST');
+      if (/export\s+async\s+function\s+PUT/.test(content)) methods.push('PUT');
+      if (/export\s+async\s+function\s+PATCH/.test(content)) methods.push('PATCH');
+      if (/export\s+async\s+function\s+DELETE/.test(content)) methods.push('DELETE');
 
       // Extract route path from file structure
       const routePath = '/api/' + path.dirname(file).replace(/\\/g, '/');
