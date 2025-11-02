@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Separator } from '@/components/ui/separator';
 import { CardGridSkeleton } from '@/components/skeletons';
 import { useTranslation } from '@/contexts/TranslationContext';
+import Decimal from 'decimal.js';
 
 export default function FinancePage() {
   const { t } = useTranslation();
@@ -21,9 +22,8 @@ export default function FinancePage() {
     if (!orgId) {
       return Promise.reject(new Error('No organization ID'));
     }
-    return fetch(url, { 
-      headers: { 'x-tenant-id': orgId }
-    }).then(r => r.json());
+    // orgId is validated server-side from session/JWT - no need to send header
+    return fetch(url).then(r => r.json());
   };
 
   const { data, mutate, isLoading } = useSWR(
@@ -99,8 +99,8 @@ function Action({ id, action, disabled, onDone, orgId }:{ id:string; action:"POS
       const response = await fetch(`/api/finance/invoices/${id}`, {
         method:"PATCH",
         headers:{ 
-          "Content-Type":"application/json", 
-          "x-tenant-id": orgId
+          "Content-Type":"application/json"
+          // orgId validated server-side from session - removed x-tenant-id header
         },
         body: JSON.stringify({ action })
       });
@@ -120,21 +120,24 @@ function Action({ id, action, disabled, onDone, orgId }:{ id:string; action:"POS
   return <Button variant="secondary" disabled={disabled} onClick={go}>{action}</Button>;
 }
 
+interface InvoiceLine {
+  description: string;
+  qty: string;
+  unitPrice: string;
+  vatRate: string;
+}
+
 function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }) {
   const { t } = useTranslation();
   const [open,setOpen]=useState(false);
   const [issue, setIssue] = useState(new Date().toISOString().slice(0,10));
   const [due, setDue] = useState(new Date(Date.now()+7*864e5).toISOString().slice(0,10));
-  const [lines, setLines] = useState([{ description:"Maintenance Service", qty:1, unitPrice:100, vatRate:15 }]);
+  const [lines, setLines] = useState<InvoiceLine[]>([{ description:"Maintenance Service", qty:"1", unitPrice:"100", vatRate:"15" }]);
 
-  function updateLine(i:number, key:string, val: string | number) {
+  function updateLine(i:number, key:string, val: string) {
     setLines(prev => prev.map((l,idx)=> {
       if (idx !== i) return l;
-      // 🔴 CRITICAL FIX: Allow empty strings for numeric inputs to enable clearing
-      if (key === "description") return { ...l, [key]: String(val) };
-      // Only convert to number if value is not empty string, default to 0
-      const numVal = val === '' ? 0 : Number(val);
-      return { ...l, [key]: numVal };
+      return { ...l, [key]: val };
     }));
   }
 
@@ -147,15 +150,23 @@ function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }
     const toastId = toast.loading('Creating invoice...');
 
     try {
+      // Convert string values to numbers for API, using Decimal for precision
+      const apiLines = lines.map(l => ({
+        description: l.description,
+        qty: Number(new Decimal(l.qty || '0').toFixed()),
+        unitPrice: Number(new Decimal(l.unitPrice || '0').toFixed(2)),
+        vatRate: Number(new Decimal(l.vatRate || '0').toFixed(2))
+      }));
+
       const response = await fetch("/api/finance/invoices", {
         method:"POST",
         headers: { 
-          "Content-Type":"application/json", 
-          "x-tenant-id": orgId
+          "Content-Type":"application/json"
+          // orgId validated server-side from session - removed x-tenant-id header
         },
         body: JSON.stringify({
           issueDate: issue, dueDate: due, currency:"SAR",
-          lines
+          lines: apiLines
         })
       });
 
@@ -204,7 +215,7 @@ function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <div className="font-medium">{t('finance.lines', 'Lines')}</div>
-              <Button variant="secondary" onClick={()=>setLines(prev=>[...prev,{ description:"", qty:1, unitPrice:0, vatRate:15 }])}>{t('finance.addLine', 'Add Line')}</Button>
+              <Button variant="secondary" onClick={()=>setLines(prev=>[...prev,{ description:"", qty:"1", unitPrice:"0", vatRate:"15" }])}>{t('finance.addLine', 'Add Line')}</Button>
             </div>
             {lines.map((l, i)=>(
               <div key={i} className="grid grid-cols-12 gap-2 items-center">
@@ -221,7 +232,14 @@ function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }
                   <Input type="number" placeholder={t('finance.vatPercent', 'VAT %')} value={l.vatRate} onChange={e=>updateLine(i,"vatRate",e.target.value)} />
                 </div>
                 <div className="col-span-1 text-right text-sm">
-                  {(l.qty*l.unitPrice*(1+l.vatRate/100)).toFixed(2)}
+                  {(() => {
+                    const qty = new Decimal(l.qty || '0');
+                    const unitPrice = new Decimal(l.unitPrice || '0');
+                    const vatRate = new Decimal(l.vatRate || '0');
+                    const subtotal = qty.times(unitPrice);
+                    const total = subtotal.times(vatRate.dividedBy(100).plus(1));
+                    return total.toFixed(2);
+                  })()}
                 </div>
               </div>
             ))}

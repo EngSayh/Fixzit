@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { User } from '@/server/models/User';
-import { connectDB } from '@/lib/db';
+import { connectToDatabase } from '@/lib/mongodb-unified';
 
 /**
  * POST /api/auth/credentials
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await connectDB();
+    await connectToDatabase();
     
     // Find user based on login type
     let user;
