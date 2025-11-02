@@ -381,33 +381,33 @@ export default function NewPaymentPage() {
       case 'BANK_TRANSFER':
         return (
           <div className="space-y-4 p-4 bg-blue-50 rounded-2xl">
-            <h3 className="font-medium text-blue-900">{t('Bank Transfer Details')}</h3>
+            <h3 className="font-medium text-primary">{t('Bank Transfer Details')}</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  {t('Bank Name')} <span className="text-red-500">*</span>
+                  {t('Bank Name')} <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-2xl ${errors.bankName ? 'border-red-500' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.bankName ? 'border-destructive' : 'border-border'}`}
                 />
-                {errors.bankName && <p className="text-xs text-red-500 mt-1">{errors.bankName}</p>}
+                {errors.bankName && <p className="text-xs text-destructive mt-1">{errors.bankName}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  {t('Account Number')} <span className="text-red-500">*</span>
+                  {t('Account Number')} <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-2xl ${errors.accountNumber ? 'border-red-500' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.accountNumber ? 'border-destructive' : 'border-border'}`}
                 />
-                {errors.accountNumber && <p className="text-xs text-red-500 mt-1">{errors.accountNumber}</p>}
+                {errors.accountNumber && <p className="text-xs text-destructive mt-1">{errors.accountNumber}</p>}
               </div>
 
               <div>
@@ -453,46 +453,46 @@ export default function NewPaymentPage() {
       case 'CHEQUE':
         return (
           <div className="space-y-4 p-4 bg-purple-50 rounded-2xl">
-            <h3 className="font-medium text-purple-900">{t('Cheque Details')}</h3>
+            <h3 className="font-medium text-secondary">{t('Cheque Details')}</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  {t('Cheque Number')} <span className="text-red-500">*</span>
+                  {t('Cheque Number')} <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
                   value={chequeNumber}
                   onChange={(e) => setChequeNumber(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-2xl ${errors.chequeNumber ? 'border-red-500' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.chequeNumber ? 'border-destructive' : 'border-border'}`}
                 />
-                {errors.chequeNumber && <p className="text-xs text-red-500 mt-1">{errors.chequeNumber}</p>}
+                {errors.chequeNumber && <p className="text-xs text-destructive mt-1">{errors.chequeNumber}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  {t('Cheque Date')} <span className="text-red-500">*</span>
+                  {t('Cheque Date')} <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="date"
                   value={chequeDate}
                   onChange={(e) => setChequeDate(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-2xl ${errors.chequeDate ? 'border-red-500' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.chequeDate ? 'border-destructive' : 'border-border'}`}
                 />
-                {errors.chequeDate && <p className="text-xs text-red-500 mt-1">{errors.chequeDate}</p>}
+                {errors.chequeDate && <p className="text-xs text-destructive mt-1">{errors.chequeDate}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  {t('Bank Name')} <span className="text-red-500">*</span>
+                  {t('Bank Name')} <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
                   value={chequeBankName}
                   onChange={(e) => setChequeBankName(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-2xl ${errors.chequeBankName ? 'border-red-500' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.chequeBankName ? 'border-destructive' : 'border-border'}`}
                 />
-                {errors.chequeBankName && <p className="text-xs text-red-500 mt-1">{errors.chequeBankName}</p>}
+                {errors.chequeBankName && <p className="text-xs text-destructive mt-1">{errors.chequeBankName}</p>}
               </div>
 
               <div>
@@ -514,7 +514,7 @@ export default function NewPaymentPage() {
       case 'CARD':
         return (
           <div className="space-y-4 p-4 bg-green-50 rounded-2xl">
-            <h3 className="font-medium text-green-900">{t('Card Payment Details')}</h3>
+            <h3 className="font-medium text-success">{t('Card Payment Details')}</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -536,7 +536,7 @@ export default function NewPaymentPage() {
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  {t('Last 4 Digits')} <span className="text-red-500">*</span>
+                  {t('Last 4 Digits')} <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
@@ -544,10 +544,10 @@ export default function NewPaymentPage() {
                   onChange={(e) => setLast4Digits(e.target.value)}
                   maxLength={4}
                   pattern="\d{4}"
-                  className={`w-full px-3 py-2 border rounded-2xl ${errors.last4Digits ? 'border-red-500' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.last4Digits ? 'border-destructive' : 'border-border'}`}
                   placeholder="1234"
                 />
-                {errors.last4Digits && <p className="text-xs text-red-500 mt-1">{errors.last4Digits}</p>}
+                {errors.last4Digits && <p className="text-xs text-destructive mt-1">{errors.last4Digits}</p>}
               </div>
 
               <div>
@@ -608,7 +608,7 @@ export default function NewPaymentPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">
-                {t('Payment Type')} <span className="text-red-500">*</span>
+                {t('Payment Type')} <span className="text-destructive">*</span>
               </label>
               <select
                 value={paymentType}
@@ -622,16 +622,16 @@ export default function NewPaymentPage() {
 
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">
-                {t('Payment Date')} <span className="text-red-500">*</span>
+                {t('Payment Date')} <span className="text-destructive">*</span>
               </label>
               <input
                 type="date"
                 value={paymentDate}
                 onChange={(e) => setPaymentDate(e.target.value)}
-                className={`w-full px-3 py-2 border rounded-2xl ${errors.paymentDate ? 'border-red-500' : 'border-border'}`}
+                className={`w-full px-3 py-2 border rounded-2xl ${errors.paymentDate ? 'border-destructive' : 'border-border'}`}
                 required
               />
-              {errors.paymentDate && <p className="text-xs text-red-500 mt-1">{errors.paymentDate}</p>}
+              {errors.paymentDate && <p className="text-xs text-destructive mt-1">{errors.paymentDate}</p>}
             </div>
 
             <div>
@@ -652,7 +652,7 @@ export default function NewPaymentPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">
-                {t('Amount')} <span className="text-red-500">*</span>
+                {t('Amount')} <span className="text-destructive">*</span>
               </label>
               <input
                 type="number"
@@ -660,15 +660,15 @@ export default function NewPaymentPage() {
                 min="0"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className={`w-full px-3 py-2 border rounded-2xl ${errors.amount ? 'border-red-500' : 'border-border'}`}
+                className={`w-full px-3 py-2 border rounded-2xl ${errors.amount ? 'border-destructive' : 'border-border'}`}
                 required
               />
-              {errors.amount && <p className="text-xs text-red-500 mt-1">{errors.amount}</p>}
+              {errors.amount && <p className="text-xs text-destructive mt-1">{errors.amount}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">
-                {t('Currency')} <span className="text-red-500">*</span>
+                {t('Currency')} <span className="text-destructive">*</span>
               </label>
               <select
                 value={currency}
@@ -687,7 +687,7 @@ export default function NewPaymentPage() {
           {/* Payment Method */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              {t('Payment Method')} <span className="text-red-500">*</span>
+              {t('Payment Method')} <span className="text-destructive">*</span>
             </label>
             <select
               value={paymentMethod}
@@ -706,12 +706,12 @@ export default function NewPaymentPage() {
           {/* Cash/Bank Account Selection */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              {t('Deposit To Account')} <span className="text-red-500">*</span>
+              {t('Deposit To Account')} <span className="text-destructive">*</span>
             </label>
             <select
               value={cashAccountId}
               onChange={(e) => setCashAccountId(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-2xl ${errors.cashAccountId ? 'border-red-500' : 'border-border'}`}
+              className={`w-full px-3 py-2 border rounded-2xl ${errors.cashAccountId ? 'border-destructive' : 'border-border'}`}
               disabled={loadingAccounts}
             >
               <option value="">{loadingAccounts ? t('Loading...') : t('Select Account')}</option>
@@ -721,7 +721,7 @@ export default function NewPaymentPage() {
                 </option>
               ))}
             </select>
-            {errors.cashAccountId && <p className="text-xs text-red-500 mt-1">{errors.cashAccountId}</p>}
+            {errors.cashAccountId && <p className="text-xs text-destructive mt-1">{errors.cashAccountId}</p>}
           </div>
 
           {/* Method-specific fields */}
@@ -754,16 +754,16 @@ export default function NewPaymentPage() {
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  {t('Party Name')} <span className="text-red-500">*</span>
+                  {t('Party Name')} <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
                   value={partyName}
                   onChange={(e) => setPartyName(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-2xl ${errors.partyName ? 'border-red-500' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl ${errors.partyName ? 'border-destructive' : 'border-border'}`}
                   required
                 />
-                {errors.partyName && <p className="text-xs text-red-500 mt-1">{errors.partyName}</p>}
+                {errors.partyName && <p className="text-xs text-destructive mt-1">{errors.partyName}</p>}
               </div>
             </div>
           </div>
@@ -925,7 +925,7 @@ export default function NewPaymentPage() {
                         </div>
                       </div>
                       {errors.allocations && (
-                        <p className="text-sm text-red-500 mt-2">{errors.allocations}</p>
+                        <p className="text-sm text-destructive mt-2">{errors.allocations}</p>
                       )}
                     </div>
                   </>

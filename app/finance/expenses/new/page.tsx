@@ -530,9 +530,9 @@ export default function NewExpensePage() {
                   type="date"
                   value={expenseDate}
                   onChange={(e) => setExpenseDate(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.expenseDate ? 'border-red-500' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.expenseDate ? 'border-destructive' : 'border-border'}`}
                 />
-                {errors.expenseDate && <p className="text-red-500 text-xs mt-1">{errors.expenseDate}</p>}
+                {errors.expenseDate && <p className="text-destructive text-xs mt-1">{errors.expenseDate}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
@@ -578,7 +578,7 @@ export default function NewExpensePage() {
                     const vendor = vendors.find(v => v.id === e.target.value);
                     if (vendor) setVendorName(vendor.name);
                   }}
-                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.vendorName ? 'border-red-500' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.vendorName ? 'border-destructive' : 'border-border'}`}
                   disabled={loadingVendors}
                 >
                   <option value="">{loadingVendors ? t('common.loading', 'Loading...') : t('finance.expense.selectVendor', 'Select Vendor')}</option>
@@ -586,7 +586,7 @@ export default function NewExpensePage() {
                     <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
                   ))}
                 </select>
-                {errors.vendorName && <p className="text-red-500 text-xs mt-1">{errors.vendorName}</p>}
+                {errors.vendorName && <p className="text-destructive text-xs mt-1">{errors.vendorName}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
@@ -616,9 +616,9 @@ export default function NewExpensePage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder={t('finance.expense.descriptionPlaceholder', 'Brief description of the expense...')}
-                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.description ? 'border-red-500' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.description ? 'border-destructive' : 'border-border'}`}
                 />
-                {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
+                {errors.description && <p className="text-destructive text-xs mt-1">{errors.description}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
@@ -647,7 +647,7 @@ export default function NewExpensePage() {
               </button>
             </div>
             
-            {errors.lineItems && <p className="text-red-500 text-sm mb-2">{errors.lineItems}</p>}
+            {errors.lineItems && <p className="text-destructive text-sm mb-2">{errors.lineItems}</p>}
 
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -672,7 +672,7 @@ export default function NewExpensePage() {
                           value={item.description}
                           onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
                           placeholder={t('finance.expense.itemDescription', 'Item description')}
-                          className={`w-full px-2 py-1 text-sm border rounded ${errors[`lineItem.${index}.description`] ? 'border-red-500' : 'border-border'}`}
+                          className={`w-full px-2 py-1 text-sm border rounded ${errors[`lineItem.${index}.description`] ? 'border-destructive' : 'border-border'}`}
                         />
                       </td>
                       <td className="px-2 py-2">
@@ -714,7 +714,7 @@ export default function NewExpensePage() {
                           onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 1)}
                           min="1"
                           step="1"
-                          className={`w-20 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.quantity`] ? 'border-red-500' : 'border-border'}`}
+                          className={`w-20 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.quantity`] ? 'border-destructive' : 'border-border'}`}
                         />
                       </td>
                       <td className="px-2 py-2">
@@ -724,7 +724,7 @@ export default function NewExpensePage() {
                           onChange={(e) => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
                           min="0"
                           step="0.01"
-                          className={`w-24 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.unitPrice`] ? 'border-red-500' : 'border-border'}`}
+                          className={`w-24 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.unitPrice`] ? 'border-destructive' : 'border-border'}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-center">
@@ -743,7 +743,7 @@ export default function NewExpensePage() {
                         {lineItems.length > 1 && (
                           <button
                             onClick={() => removeLineItem(item.id)}
-                            className="text-red-500 hover:text-red-700"
+                            className="text-destructive hover:text-destructive"
                             title={t('common.remove', 'Remove')}
                           >
                             ✕
@@ -887,10 +887,10 @@ export default function NewExpensePage() {
                       <div 
                         className={`h-full transition-all ${
                           budget.percentage < 70 
-                            ? 'bg-green-500' 
+                            ? 'bg-success' 
                             : budget.percentage < 90 
-                            ? 'bg-yellow-500' 
-                            : 'bg-red-500'
+                            ? 'bg-warning' 
+                            : 'bg-destructive'
                         }`}
                         style={{ width: `${Math.min(budget.percentage, 100)}%` }}
                       />
