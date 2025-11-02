@@ -234,29 +234,25 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
 
             <div className="flex gap-2">
               {property.agentId.contact?.phone && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    window.location.href = `tel:${property.agentId?.contact?.phone}`;
-                  }}
+                <a
+                  href={`tel:${property.agentId?.contact?.phone}`}
+                  onClick={(e) => e.stopPropagation()}
                   className="p-2 hover:bg-muted rounded-full transition-colors"
                   aria-label={t('aqar.propertyCard.call', 'Call agent')}
                 >
                   <Phone className="w-4 h-4 text-muted-foreground" />
-                </button>
+                </a>
               )}
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  // Open WhatsApp or messaging
-                }}
+              <a
+                href={`https://wa.me/${property.agentId.contact?.phone}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 className="p-2 hover:bg-muted rounded-full transition-colors"
                 aria-label={t('aqar.propertyCard.message', 'Message agent')}
               >
                 <MessageSquare className="w-4 h-4 text-muted-foreground" />
-              </button>
+              </a>
             </div>
           </div>
         )}
