@@ -182,6 +182,10 @@ export default function NewInvoicePage() {
       
       if (field === 'quantity' || field === 'unitPrice' || field === 'discount' || field === 'taxRate' || field === 'taxType') {
         if (updated.taxType === 'VAT') {
+          // FIX: Restore default VAT rate when switching from EXEMPT back to VAT
+          if (field === 'taxType' && updated.taxRate === 0) {
+            updated.taxRate = 0.15;
+          }
           updated.taxAmount = discountedAmount * updated.taxRate;
         } else if (updated.taxType === 'EXEMPT') {
           updated.taxAmount = 0;
