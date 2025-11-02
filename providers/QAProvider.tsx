@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { AutoFixAgent } from '@/qa/AutoFixAgent';
-import { ErrorBoundary } from '@/qa/ErrorBoundary';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 type Props = {
   children: React.ReactNode;

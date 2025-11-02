@@ -10,7 +10,7 @@ import { connectDb } from '@/lib/mongo';
 import { AqarLead, AqarListing } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { incrementAnalyticsWithRetry } from '@/lib/analytics/incrementWithRetry';
-import { checkRateLimit } from '@/lib/rateLimit';
+import { checkRateLimit } from '@/server/security/rateLimit';
 import mongoose from 'mongoose';
 import { z } from 'zod';
 

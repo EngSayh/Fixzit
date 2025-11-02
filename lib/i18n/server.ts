@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { findLanguageByCode } from '@/data/language-options';
+import { findLanguageByCode } from '@/config/language-options';
 
 type TFn = (key: string, fallback?: string) => string;
 
