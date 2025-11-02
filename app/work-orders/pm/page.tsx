@@ -7,7 +7,7 @@ import useSWR from 'swr';
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 interface PMPlan {
-  _id: string;
+  id: string;
   planNumber: string;
   title: string;
   propertyId: string;
@@ -156,7 +156,7 @@ export default function PreventiveMaintenancePage() {
                 pmSchedules.map(schedule => {
                   const planStatus = getStatusForPlan(schedule);
                   return (
-                    <tr key={schedule._id} className="hover:bg-muted">
+                    <tr key={schedule.id} className="hover:bg-muted">
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-foreground">{schedule.planNumber}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">{schedule.title}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{schedule.propertyId}</td>

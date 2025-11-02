@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 
 interface PartItem {
-  _id: string;
+  id: string;
   name: string;
   title: string;
   price: number;
@@ -15,7 +15,7 @@ interface PartItem {
 }
 
 interface SelectedPartItem {
-  _id: string;
+  id: string;
   name: string;
   title: string;
   price: number;
@@ -51,16 +51,16 @@ export default function WorkOrderPartsPage() {
   }, [searchParts]);
   
   const addPart = (part: PartItem) => {
-    const existing = selectedParts.find(p => p._id === part._id);
+    const existing = selectedParts.find(p => p.id === part.id);
     if (existing) {
       setSelectedParts(selectedParts.map(p => 
-        p._id === part._id 
+        p.id === part.id 
           ? { ...p, quantity: p.quantity + 1 }
           : p
       ));
     } else {
       setSelectedParts([...selectedParts, { 
-        _id: part._id,
+        _id: part.id,
         name: part.name,
         title: part.name, // Map name to title
         price: part.price,
@@ -70,7 +70,7 @@ export default function WorkOrderPartsPage() {
   };
   
   const removePart = (partId: string) => {
-    setSelectedParts(selectedParts.filter(p => p._id !== partId));
+    setSelectedParts(selectedParts.filter(p => p.id !== partId));
   };
   
   const updateQuantity = (partId: string, quantity: number) => {
@@ -78,7 +78,7 @@ export default function WorkOrderPartsPage() {
       removePart(partId);
     } else {
       setSelectedParts(selectedParts.map(p => 
-        p._id === partId ? { ...p, quantity } : p
+        p.id === partId ? { ...p, quantity } : p
       ));
     }
   };
@@ -88,7 +88,7 @@ export default function WorkOrderPartsPage() {
     const po = {
       workOrderId,
       items: selectedParts.map(p => ({
-        productId: p._id,
+        productId: p.id,
         title: p.title,
         quantity: p.quantity,
         unitPrice: p.price,
@@ -131,7 +131,7 @@ export default function WorkOrderPartsPage() {
               ) : (
                 <div className="grid gap-4">
                   {parts.map((part) => (
-                    <div key={part._id} className="border rounded-2xl p-4 flex items-center justify-between">
+                    <div key={part.id} className="border rounded-2xl p-4 flex items-center justify-between">
                       <div>
                         <h3 className="font-semibold">{part.title}</h3>
                         <p className="text-sm text-muted-foreground">{part.category} • Stock: {part.stock}</p>
@@ -165,11 +165,11 @@ export default function WorkOrderPartsPage() {
                 <>
                   <div className="space-y-3 mb-4">
                     {selectedParts.map((part) => (
-                      <div key={part._id} className="border rounded-2xl p-3">
+                      <div key={part.id} className="border rounded-2xl p-3">
                         <div className="flex justify-between items-start mb-2">
                           <h4 className="font-medium text-sm">{part.title}</h4>
                           <button
-                            onClick={() => removePart(part._id)}
+                            onClick={() => removePart(part.id)}
                             className="text-[var(--fixzit-danger-light)] hover:text-[var(--fixzit-danger-dark)]"
                           >
                             ×
@@ -178,14 +178,14 @@ export default function WorkOrderPartsPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => updateQuantity(part._id, part.quantity - 1)}
+                              onClick={() => updateQuantity(part.id, part.quantity - 1)}
                               className="w-6 h-6 border rounded hover:bg-muted"
                             >
                               -
                             </button>
                             <span className="w-8 text-center">{part.quantity}</span>
                             <button
-                              onClick={() => updateQuantity(part._id, part.quantity + 1)}
+                              onClick={() => updateQuantity(part.id, part.quantity + 1)}
                               className="w-6 h-6 border rounded hover:bg-muted"
                             >
                               +
