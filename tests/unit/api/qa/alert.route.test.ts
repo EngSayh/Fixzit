@@ -12,7 +12,7 @@ import * as mongodbUnified from '@/lib/mongodb-unified';
 vi.mock('@/lib/mongodb-unified');
 
 // Import route handlers AFTER mocking dependencies
-import { POST, GET } from "@/app/api/qa/alert/route";
+import { POST, GET } from '@/app/api/qa/alert/route';
 
 // Type helper for building minimal NextRequest-like object
 

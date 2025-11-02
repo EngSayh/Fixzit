@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from "@/lib/mongodb-unified";
+import { connectToDatabase } from '@/lib/mongodb-unified';
 import { Application } from '@/server/models/Application';
 import { Candidate } from '@/server/models/Candidate';
 import { Job } from '@/server/models/Job';

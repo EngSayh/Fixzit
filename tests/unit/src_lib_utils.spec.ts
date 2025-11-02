@@ -4,7 +4,7 @@
  * covering happy paths, edge cases, and failure-like conditions.
  */
 import { describe, test, expect } from "vitest";
-import { generateSlug } from "@/lib/utils";
+import { generateSlug } from '@/lib/utils';
 
 describe("generateSlug", () => {
   test("lowercases and hyphenates a basic phrase", () => {

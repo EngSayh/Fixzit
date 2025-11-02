@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 // Stub: return a fake PUT URL that your frontend will use; replace with S3/GCS logic.
 /**

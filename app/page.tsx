@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { useTranslation } from "@/contexts/TranslationContext";
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function LandingPage(){
   const { t } = useTranslation();

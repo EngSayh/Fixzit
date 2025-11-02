@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getUserFromToken } from "@/lib/auth";
+import { getUserFromToken } from '@/lib/auth';
 
 export type CopilotRole =
   | "SUPER_ADMIN" | "ADMIN" | "CORPORATE_ADMIN" | "FM_MANAGER"

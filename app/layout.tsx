@@ -1,6 +1,6 @@
 import "./globals.css";
-import Providers from "@/providers/Providers";
-import ClientLayout from "@/components/ClientLayout";
+import Providers from '@/providers/Providers';
+import ClientLayout from '@/components/ClientLayout';
 import { Toaster } from 'sonner';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

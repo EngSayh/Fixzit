@@ -1,7 +1,7 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
-import { UserRole, UserStatus } from "@/types/user";
+import { UserRole, UserStatus } from '@/types/user';
 
 // Re-export for backward compatibility
 export { UserRole };

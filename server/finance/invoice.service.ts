@@ -1,6 +1,6 @@
 import { InvoiceCreate, InvoicePost } from "./invoice.schema";
-import { connectToDatabase } from "@/lib/mongodb-unified";
-import { Invoice } from "@/server/models/Invoice";
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { Invoice } from '@/server/models/Invoice';
 
 // Mock implementation retained for optional mock mode
 class MockInvoiceService {

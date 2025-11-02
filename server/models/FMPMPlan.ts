@@ -1,6 +1,6 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
-import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
-import { auditPlugin } from "@/server/plugins/auditPlugin";
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+import { auditPlugin } from '@/server/plugins/auditPlugin';
 
 /**
  * FMPMPlan Model - Preventive Maintenance Plans

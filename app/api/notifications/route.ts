@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getCollections } from "@/lib/db/collections";
-import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { getCollections } from '@/lib/db/collections';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';

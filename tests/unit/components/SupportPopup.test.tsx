@@ -8,7 +8,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi, describe, test, expect, beforeEach, afterEach } from "vitest";
 
 // Using path mapping for cleaner imports
-import SupportPopup from "@/components/SupportPopup";
+import SupportPopup from '@/components/SupportPopup';
 
 // Utilities for jsdom environment
 const origAlert = window.alert;

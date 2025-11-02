@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { can, Role } from "../rbac/workOrdersPolicy";
-import { verifyToken } from "@/lib/auth";
+import { verifyToken } from '@/lib/auth';
 
 export type SessionUser = {
   id: string;

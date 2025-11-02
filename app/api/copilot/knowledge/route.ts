@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { upsertKnowledgeDocument } from "@/server/copilot/retrieval";
+import { upsertKnowledgeDocument } from '@/server/copilot/retrieval';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';

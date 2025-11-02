@@ -1,5 +1,5 @@
 import { NextRequest} from "next/server";
-import * as svc from "@/server/finance/invoice.service";
+import * as svc from '@/server/finance/invoice.service';
 import { getUserFromToken } from '@/lib/auth';
 import { z } from 'zod';
 

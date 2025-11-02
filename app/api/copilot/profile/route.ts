@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolveCopilotSession } from "@/server/copilot/session";
-import { getPermittedTools } from "@/server/copilot/policy";
+import { resolveCopilotSession } from '@/server/copilot/session';
+import { getPermittedTools } from '@/server/copilot/policy';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';

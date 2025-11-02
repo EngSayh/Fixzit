@@ -8,7 +8,7 @@ import * as mongodbUnified from '@/lib/mongodb-unified';
 
 vi.mock('@/lib/mongodb-unified');
 
-import { POST, GET } from "@/app/api/qa/health/route";
+import { POST, GET } from '@/app/api/qa/health/route';
 
 function createMockRequest() {
   return {

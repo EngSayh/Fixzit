@@ -1,8 +1,8 @@
 'use client';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useTranslation } from "@/contexts/TranslationContext";
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface PaginationProps {
   currentPage: number;

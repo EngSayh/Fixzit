@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from "@/lib/mongodb-unified";
+import { connectToDatabase } from '@/lib/mongodb-unified';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';

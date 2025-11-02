@@ -1,5 +1,5 @@
-import { connectToDatabase } from "@/lib/mongodb-unified";
-import { HelpArticle, HelpArticleDoc } from "@/server/models/HelpArticle";
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { HelpArticle, HelpArticleDoc } from '@/server/models/HelpArticle';
 import Link from "next/link";
 import { renderMarkdownSanitized } from '@/lib/markdown';
 import { headers } from 'next/headers';

@@ -1,11 +1,11 @@
 import * as svc from "./wo.service";
 // Removed references to deleted modules - tests need updating
-import { withIdempotency, createIdempotencyKey } from "@/server/security/idempotency";
+import { withIdempotency, createIdempotencyKey } from '@/server/security/idempotency';
 import { WoCreate, WoUpdate } from "./wo.schema";
 // @ts-ignore - wo.repo doesn't exist, fully mocked below
 import * as repo from "./wo.repo";
 // @ts-ignore - audit path updated, fully mocked below
-import { audit } from "@/server/copilot/audit";
+import { audit } from '@/server/copilot/audit';
 
 // Jest/Vitest compatibility shims
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

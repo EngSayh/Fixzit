@@ -3,11 +3,11 @@ import useSWR from "swr";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from 'sonner';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 import { CardGridSkeleton } from '@/components/skeletons';
 import { useTranslation } from '@/contexts/TranslationContext';
 
