@@ -180,6 +180,7 @@
     "jscodeshift": "^17.3.0",
     "jscpd": "^4.0.5",
     "jsdom": "^27.1.0",
+    "kill-port": "^2.0.1",
     "madge": "^8.0.0",
     "markdownlint-cli": "^0.45.0",
     "next-router-mock": "^1.0.4",

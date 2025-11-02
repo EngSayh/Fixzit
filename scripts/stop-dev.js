@@ -2,42 +2,35 @@
 // @ts-check
 
 /**
- * Stop Dev Server
- * Kills dev server process on specified port
+ * Stop Dev Server (Cross-Platform)
+ * Kills dev server process on specified port using kill-port package
+ * Works on Windows, Linux, and macOS
  */
 
-const { execFile } = require('child_process');
-const util = require('util');
-const execFilePromise = util.promisify(execFile);
+const killPort = require('kill-port');
 
-const PORT = process.argv[2] || 3000;
+const PORT = parseInt(process.argv[2] || '3000', 10);
 
 async function stopDevServer() {
   // Validate that PORT is a number
-  if (!/^\d+$/.test(String(PORT))) {
-    console.error(`❌ Invalid port: ${PORT}. Port must be a number.`);
+  if (isNaN(PORT) || PORT < 1 || PORT > 65535) {
+    console.error(`❌ Invalid port: ${PORT}. Port must be a number between 1-65535.`);
     process.exit(1);
   }
 
   console.log(`🛑 Stopping dev server on port ${PORT}...`);
   
   try {
-    // Find process using port
-    const { stdout } = await execFilePromise('lsof', ['-ti', String(PORT)]);
-    const pid = stdout.trim();
-    
-    if (pid) {
-      console.log(`Found process ${pid} on port ${PORT}`);
-      await execFilePromise('kill', ['-9', pid]);
-      console.log(`✅ Dev server stopped (PID ${pid})`);
-    } else {
-      console.log(`⚠️  No process found on port ${PORT}`);
-    }
+    // Kill process using the port (cross-platform)
+    await killPort(PORT, 'tcp');
+    console.log(`✅ Dev server stopped on port ${PORT}`);
   } catch (error) {
-    if (error.message.includes('No such process')) {
+    const err = error;
+    // kill-port throws if no process found, which is not an error
+    if (err.message && err.message.includes('No process running')) {
       console.log(`⚠️  No process found on port ${PORT}`);
     } else {
-      console.error(`❌ Failed to stop dev server: ${error.message}`);
+      console.error(`❌ Failed to stop dev server: ${err.message || 'Unknown error'}`);
       process.exit(1);
     }
   }
