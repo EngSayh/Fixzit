@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Search, Filter, ShoppingCart, Heart, Star, User, LogIn } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 interface Product {
   id: string;
@@ -99,6 +100,7 @@ const SAMPLE_PRODUCTS: Product[] = [
 ];
 
 export default function CatalogPage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('relevance');
@@ -114,12 +116,12 @@ export default function CatalogPage() {
 
   const handleAddToCart = (_productId: string) => {
     // Redirect to login if not authenticated
-    window.location.href = '/login?redirect=/souq/catalog&action=add-to-cart';
+    router.push('/login?redirect=/souq/catalog&action=add-to-cart');
   };
 
   const handleViewDetails = (productId: string) => {
     // Allow viewing details without login
-    window.location.href = `/souq/catalog/${productId}`;
+    router.push(`/souq/catalog/${productId}`);
   };
 
   return (
@@ -129,23 +131,23 @@ export default function CatalogPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
-              <Link href="/souq" className="text-2xl font-bold text-[#00A859]">
+              <Link href="/souq" className="text-2xl font-bold text-success">
                 Fixzit Souq
               </Link>
               <div className="hidden md:flex items-center gap-6 text-sm">
-                <Link href="/souq/catalog" className="text-muted-foreground hover:text-[#00A859]">Catalog</Link>
-                <Link href="/souq/vendors" className="text-muted-foreground hover:text-[#00A859]">Vendors</Link>
-                <Link href="/souq/rfqs" className="text-muted-foreground hover:text-[#00A859]">RFQs</Link>
-                <Link href="/souq/orders" className="text-muted-foreground hover:text-[#00A859]">Orders</Link>
+                <Link href="/souq/catalog" className="text-muted-foreground hover:text-success">Catalog</Link>
+                <Link href="/souq/vendors" className="text-muted-foreground hover:text-success">Vendors</Link>
+                <Link href="/souq/rfqs" className="text-muted-foreground hover:text-success">RFQs</Link>
+                <Link href="/souq/orders" className="text-muted-foreground hover:text-success">Orders</Link>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
-              <Link href="/login" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:text-[#00A859]">
+              <Link href="/login" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:text-success">
                 <User className="w-4 h-4" />
                 Sign In
               </Link>
-              <Link href="/login" className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#00A859] text-white rounded-2xl hover:bg-[#00A859]/90">
+              <Link href="/login" className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-success text-white rounded-2xl hover:bg-success/90">
                 <LogIn className="w-4 h-4" />
                 Sign Up
               </Link>
@@ -274,7 +276,7 @@ export default function CatalogPage() {
                     disabled={!product.inStock}
                     className={`flex-1 px-3 py-2 rounded-2xl transition-colors text-sm ${
                       product.inStock
-                        ? 'bg-[#00A859] text-white hover:bg-[#00A859]/90'
+                        ? 'bg-success text-white hover:bg-success/90'
                         : 'bg-muted text-muted-foreground cursor-not-allowed'
                     }`}
                   >

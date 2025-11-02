@@ -30,7 +30,7 @@ export default async function VendorPortalPage() {
   const products = productsResponse.data;
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8] flex flex-col">
+    <div className="min-h-screen bg-muted flex flex-col">
       
       <main className="mx-auto max-w-7xl px-4 py-8">
         <VendorCatalogueManager categories={_departments} initialProducts={products} />

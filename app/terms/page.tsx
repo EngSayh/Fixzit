@@ -166,32 +166,32 @@ export default function TermsPage() {
       <section className="py-8 bg-card shadow-sm">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-primary-lightest)] rounded-2xl">
-              <FileText className="w-8 h-8 text-[var(--fixzit-primary)] flex-shrink-0" />
+            <div className="flex items-center gap-3 p-4 bg-primary/10 rounded-2xl">
+              <FileText className="w-8 h-8 text-primary flex-shrink-0" />
               <div>
                 <div className="font-semibold text-foreground">{t('terms.binding', 'Legally Binding')}</div>
                 <div className="text-sm text-muted-foreground">{t('terms.bindingDesc', 'Enforceable agreement')}</div>
               </div>
             </div>
             
-            <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-success-lightest)] rounded-2xl">
-              <Scale className="w-8 h-8 text-[var(--fixzit-success)] flex-shrink-0" />
+            <div className="flex items-center gap-3 p-4 bg-success/10 rounded-2xl">
+              <Scale className="w-8 h-8 text-success flex-shrink-0" />
               <div>
                 <div className="font-semibold text-foreground">{t('terms.fair', 'Fair Terms')}</div>
                 <div className="text-sm text-muted-foreground">{t('terms.fairDesc', 'Balanced rights')}</div>
               </div>
             </div>
             
-            <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-secondary-lightest)] rounded-2xl">
-              <AlertCircle className="w-8 h-8 text-[var(--fixzit-secondary)] flex-shrink-0" />
+            <div className="flex items-center gap-3 p-4 bg-secondary/10 rounded-2xl">
+              <AlertCircle className="w-8 h-8 text-secondary-foreground flex-shrink-0" />
               <div>
                 <div className="font-semibold text-foreground">{t('terms.clear', 'Clear Language')}</div>
                 <div className="text-sm text-muted-foreground">{t('terms.clearDesc', 'Easy to understand')}</div>
               </div>
             </div>
             
-            <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-accent-lightest)] rounded-2xl">
-              <FileText className="w-8 h-8 text-[var(--fixzit-accent)] flex-shrink-0" />
+            <div className="flex items-center gap-3 p-4 bg-accent/10 rounded-2xl">
+              <FileText className="w-8 h-8 text-accent-foreground flex-shrink-0" />
               <div>
                 <div className="font-semibold text-foreground">{t('terms.updated', 'Regularly Updated')}</div>
                 <div className="text-sm text-muted-foreground">{t('terms.updatedDesc', 'Kept current')}</div>
@@ -205,7 +205,7 @@ export default function TermsPage() {
       <section className="py-12">
         <div className="mx-auto max-w-4xl px-4 lg:px-6">
           <div className="bg-card rounded-2xl shadow-md border border-border p-8 md:p-12">
-            <article className={`prose prose-lg max-w-none ${isRTL ? 'text-right' : 'text-left'} prose-headings:text-[var(--fixzit-text)] prose-a:text-[var(--fixzit-primary)] prose-strong:text-[var(--fixzit-text)]`}>
+            <article className={`prose prose-lg max-w-none ${isRTL ? 'text-right' : 'text-left'} prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground`}>
               <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
             </article>
           </div>
@@ -217,7 +217,7 @@ export default function TermsPage() {
         <div className="mx-auto max-w-4xl px-4 lg:px-6">
           <div className="bg-card rounded-2xl shadow-md border border-border p-8">
             <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
-              <Mail className="w-6 h-6 text-[var(--fixzit-primary)]" />
+              <Mail className="w-6 h-6 text-primary" />
               {t('terms.contactTitle', 'Questions About Terms?')}
             </h2>
             <p className="text-foreground mb-6">
@@ -229,7 +229,7 @@ export default function TermsPage() {
                 <Mail className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" />
                 <div>
                   <div className="font-semibold text-foreground mb-1">{t('terms.email', 'Email')}</div>
-                  <a href="mailto:legal@fixzit.com" className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)]">
+                  <a href="mailto:legal@fixzit.com" className="text-primary hover:text-primary/90">
                     legal@fixzit.com
                   </a>
                 </div>
@@ -239,7 +239,7 @@ export default function TermsPage() {
                 <Phone className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" />
                 <div>
                   <div className="font-semibold text-foreground mb-1">{t('terms.phone', 'Phone')}</div>
-                  <a href="tel:+971XXXXXXXX" className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)]">
+                  <a href="tel:+971XXXXXXXX" className="text-primary hover:text-primary/90">
                     +971 XX XXX XXXX
                   </a>
                 </div>

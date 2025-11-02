@@ -96,10 +96,10 @@ export default function ProductPage(props: { params: Promise<{ slug: string }> }
             {bb?.inStock ? t('product.inStock', 'In Stock') : t('product.backorder', 'Backorder')} · {t('product.lead', 'Lead')} {bb?.leadDays} {t('product.days', 'days')}
           </div>
           <div className="flex gap-2 mt-3">
-            <Link href="/cart" className="px-4 py-2 bg-[#0061A8] text-white rounded hover:opacity-90">
+            <Link href="/cart" className="px-4 py-2 bg-primary text-white rounded hover:opacity-90">
               {t('product.addToCart', 'Add to Cart')}
             </Link>
-            <Link href="/orders/new?mode=buy-now" className="px-4 py-2 bg-[#FFB400] text-black rounded hover:opacity-90">
+            <Link href="/orders/new?mode=buy-now" className="px-4 py-2 bg-warning text-black rounded hover:opacity-90">
               {t('product.buyNow', 'Buy Now (PO)')}
             </Link>
           </div>

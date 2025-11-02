@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
@@ -16,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 export default function Page() {
+  const router = useRouter();
   const { data: session } = useSession();
   const { t } = useTranslation();
   const [tab, setTab] = useState<'overview'|'users'|'roles'|'audit'|'features'>('overview');
@@ -551,7 +553,7 @@ export default function Page() {
         <div>
           <h2 className="text-xl font-semibold mb-4">{t('admin.features.title', 'Feature Settings')}</h2>
           <p className="text-muted-foreground mb-4">{t('admin.features.desc', 'Manage platform feature toggles.')}</p>
-          <Button onClick={() => window.location.href = '/admin/feature-settings'}>{t('admin.features.open', 'Open Feature Settings')}</Button>
+          <Button onClick={() => router.push('/admin/feature-settings')}>{t('admin.features.open', 'Open Feature Settings')}</Button>
         </div>
       )}
     </div>

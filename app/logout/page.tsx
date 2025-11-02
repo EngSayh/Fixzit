@@ -18,8 +18,7 @@ export default function LogoutPage() {
         });
       } catch (error) {
         console.error('Logout error:', error);
-        // Fallback: Force redirect if signOut fails
-        window.location.href = '/login';
+        // NextAuth signOut handles redirect, no manual redirect needed
       }
     };
 

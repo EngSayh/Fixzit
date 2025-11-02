@@ -99,7 +99,7 @@ export default function PrivacyPage() {
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0061A8] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">{t('common.loading', 'Loading...')}</p>
         </div>
       </div>
@@ -125,32 +125,32 @@ export default function PrivacyPage() {
       <section className="py-8 bg-card shadow-sm">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-primary-lightest)] rounded-2xl">
-              <Lock className="w-8 h-8 text-[var(--fixzit-primary)] flex-shrink-0" />
+            <div className="flex items-center gap-3 p-4 bg-primary/10 rounded-2xl">
+              <Lock className="w-8 h-8 text-primary flex-shrink-0" />
               <div>
                 <div className="font-semibold text-foreground">{t('privacy.encrypted', 'Encrypted')}</div>
                 <div className="text-sm text-muted-foreground">{t('privacy.encryptedDesc', 'End-to-end encryption')}</div>
               </div>
             </div>
             
-            <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-success-lightest)] rounded-2xl">
-              <Eye className="w-8 h-8 text-[var(--fixzit-success)] flex-shrink-0" />
+            <div className="flex items-center gap-3 p-4 bg-success/10 rounded-2xl">
+              <Eye className="w-8 h-8 text-success flex-shrink-0" />
               <div>
                 <div className="font-semibold text-foreground">{t('privacy.transparent', 'Transparent')}</div>
                 <div className="text-sm text-muted-foreground">{t('privacy.transparentDesc', 'Clear data usage')}</div>
               </div>
             </div>
             
-            <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-secondary-lightest)] rounded-2xl">
-              <Shield className="w-8 h-8 text-[var(--fixzit-secondary)] flex-shrink-0" />
+            <div className="flex items-center gap-3 p-4 bg-secondary/10 rounded-2xl">
+              <Shield className="w-8 h-8 text-secondary-foreground flex-shrink-0" />
               <div>
                 <div className="font-semibold text-foreground">{t('privacy.compliant', 'Compliant')}</div>
                 <div className="text-sm text-muted-foreground">{t('privacy.compliantDesc', 'GDPR & CCPA certified')}</div>
               </div>
             </div>
             
-            <div className="flex items-center gap-3 p-4 bg-[var(--fixzit-accent-lightest)] rounded-2xl">
-              <FileText className="w-8 h-8 text-[var(--fixzit-accent)] flex-shrink-0" />
+            <div className="flex items-center gap-3 p-4 bg-accent/10 rounded-2xl">
+              <FileText className="w-8 h-8 text-accent-foreground flex-shrink-0" />
               <div>
                 <div className="font-semibold text-foreground">{t('privacy.yourRights', 'Your Rights')}</div>
                 <div className="text-sm text-muted-foreground">{t('privacy.yourRightsDesc', 'Full data control')}</div>
@@ -164,7 +164,7 @@ export default function PrivacyPage() {
       <section className="py-12">
         <div className="mx-auto max-w-4xl px-4 lg:px-6">
           <div className="bg-card rounded-2xl shadow-md border border-border p-8 md:p-12">
-            <article className={`prose prose-lg max-w-none ${isRTL ? 'text-right' : 'text-left'} prose-headings:text-[var(--fixzit-text)] prose-a:text-[var(--fixzit-primary)] prose-strong:text-[var(--fixzit-text)]`}>
+            <article className={`prose prose-lg max-w-none ${isRTL ? 'text-right' : 'text-left'} prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground`}>
               <div dangerouslySetInnerHTML={{ __html: renderedContent }} />
             </article>
           </div>
@@ -176,7 +176,7 @@ export default function PrivacyPage() {
         <div className="mx-auto max-w-4xl px-4 lg:px-6">
           <div className="bg-card rounded-2xl shadow-md border border-border p-8">
             <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
-              <Mail className="w-6 h-6 text-[var(--fixzit-primary)]" />
+              <Mail className="w-6 h-6 text-primary" />
               {t('privacy.contactTitle', 'Privacy Questions?')}
             </h2>
             <p className="text-foreground mb-6">
@@ -188,7 +188,7 @@ export default function PrivacyPage() {
                 <Mail className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" />
                 <div>
                   <div className="font-semibold text-foreground mb-1">{t('privacy.email', 'Email')}</div>
-                  <a href="mailto:privacy@fixzit.com" className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)]">
+                  <a href="mailto:privacy@fixzit.com" className="text-primary hover:text-primary/90">
                     privacy@fixzit.com
                   </a>
                 </div>
@@ -198,7 +198,7 @@ export default function PrivacyPage() {
                 <Phone className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-1" />
                 <div>
                   <div className="font-semibold text-foreground mb-1">{t('privacy.phone', 'Phone')}</div>
-                  <a href="tel:+971XXXXXXXX" className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)]">
+                  <a href="tel:+971XXXXXXXX" className="text-primary hover:text-primary/90">
                     +971 XX XXX XXXX
                   </a>
                 </div>
