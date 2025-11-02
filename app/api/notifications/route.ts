@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
     notifications.find(filter).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray(),
     notifications.countDocuments(filter)
   ]);
-  const items = rawItems.map((n: NotificationDoc) => ({ id: String(n._id), ...n, _id: undefined }));
+  const items = rawItems.map((n: any) => ({ id: String(n._id), ...n, _id: undefined }));
 
   return NextResponse.json({
     items,
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const data = notificationSchema.parse(body);
   const { notifications } = await getCollections();
-  const doc: Omit<NotificationDoc, '_id'> = {
+  const doc: Omit<NotificationDoc, 'id'> = {
     tenantId: orgId,
     type: data.type,
     title: data.title,
@@ -139,6 +139,6 @@ export async function POST(req: NextRequest) {
   };
 
   const result = await notifications.insertOne(doc);
-  return NextResponse.json({ ...doc, _id: result.insertedId }, { status: 201 });
+  return NextResponse.json({ ...doc, id: result.insertedId }, { status: 201 });
 }
 
