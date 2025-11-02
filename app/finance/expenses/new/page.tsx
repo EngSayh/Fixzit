@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import Decimal from 'decimal.js';
 
 // ============================================================================
 // INTERFACES
@@ -16,12 +17,12 @@ interface IExpenseLineItem {
   category: string;
   accountId: string;
   accountCode: string;
-  quantity: number;
-  unitPrice: number;
-  amount: number;
+  quantity: string; // Store as string for input handling
+  unitPrice: string; // Store as string for precise decimal handling
+  amount: string; // Calculated, stored as string
   taxable: boolean;
-  taxRate: number;
-  taxAmount: number;
+  taxRate: string; // Store as string for precise decimal handling
+  taxAmount: string; // Calculated, stored as string
 }
 
 interface IReceipt {
@@ -78,12 +79,12 @@ export default function NewExpensePage() {
       category: 'MAINTENANCE_REPAIR',
       accountId: '',
       accountCode: '',
-      quantity: 1,
-      unitPrice: 0,
-      amount: 0,
+      quantity: '1',
+      unitPrice: '0',
+      amount: '0',
       taxable: true,
-      taxRate: 0.15,
-      taxAmount: 0
+      taxRate: '0.15',
+      taxAmount: '0'
     }
   ]);
 
@@ -101,10 +102,16 @@ export default function NewExpensePage() {
   const [loadingVendors, setLoadingVendors] = useState(false);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
 
-  // Calculate totals from line items
-  const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
-  const totalTax = lineItems.reduce((sum, item) => sum + item.taxAmount, 0);
-  const totalAmount = subtotal + totalTax;
+  // Calculate totals from line items using Decimal.js
+  const subtotal = lineItems.reduce((sum, item) => {
+    return sum.plus(new Decimal(item.amount || '0'));
+  }, new Decimal(0));
+  
+  const totalTax = lineItems.reduce((sum, item) => {
+    return sum.plus(new Decimal(item.taxAmount || '0'));
+  }, new Decimal(0));
+  
+  const totalAmount = subtotal.plus(totalTax);
 
   // ============================================================================
   // LIFECYCLE & DATA LOADING
@@ -155,45 +162,44 @@ export default function NewExpensePage() {
     loadAccounts();
   }, []);
 
-  // Load budget info when property or line items change
+  // Load budget info when property or line items change (DEBOUNCED + BATCH API)
   useEffect(() => {
-    const loadBudgetInfo = async () => {
-      if (!propertyId || lineItems.length === 0) {
-        setBudgetInfo([]);
-        return;
-      }
+    if (!propertyId || lineItems.length === 0) {
+      setBudgetInfo([]);
+      return;
+    }
 
+    // Debounce budget loading to prevent excessive API calls on every keystroke
+    const timeoutId = setTimeout(async () => {
       try {
         const categories = [...new Set(lineItems.map(item => item.category))];
-        const budgets: IBudgetInfo[] = [];
-
-        for (const category of categories) {
-          const response = await fetch(
-            `/api/finance/budgets?propertyId=${propertyId}&category=${category}`
-          );
-          
-          if (response.ok) {
-            const data = await response.json();
-            if (data.budget) {
-              budgets.push({
-                budgetId: data.budget.id,
-                category,
-                budgetedAmount: data.budget.amount,
-                spentAmount: data.budget.spent,
-                remainingAmount: data.budget.remaining,
-                percentage: (data.budget.spent / data.budget.amount) * 100
-              });
-            }
-          }
+        
+        // FIX: Batch API call instead of N+1 sequential requests
+        const categoriesParam = categories.join(',');
+        const response = await fetch(
+          `/api/finance/budgets/batch?propertyId=${propertyId}&categories=${categoriesParam}`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          const budgets: IBudgetInfo[] = (data.budgets || []).map((b: {
+            id: string; category: string; amount: number; spent: number; remaining: number;
+          }) => ({
+            budgetId: b.id,
+            category: b.category,
+            budgetedAmount: b.amount,
+            spentAmount: b.spent,
+            remainingAmount: b.remaining,
+            percentage: new Decimal(b.spent).dividedBy(b.amount || 1).times(100).toNumber()
+          }));
+          setBudgetInfo(budgets);
         }
-
-        setBudgetInfo(budgets);
       } catch (error) {
         console.error('Error loading budget info:', error);
       }
-    };
+    }, 500); // 500ms debounce
 
-    loadBudgetInfo();
+    return () => clearTimeout(timeoutId);
   }, [propertyId, lineItems]);
 
   // ============================================================================
