@@ -5,7 +5,7 @@ import { Search, MapPin, Bed, Bath, Square } from 'lucide-react';
 import Image from 'next/image';
 
 type ApiProperty = {
-  _id: string;
+  id: string;
   code: string;
   name: string;
   type?: string;
