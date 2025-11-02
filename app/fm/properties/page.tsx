@@ -207,9 +207,9 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
       case 'COMMERCIAL':
         return 'bg-success/10 text-success-foreground';
       case 'INDUSTRIAL':
-        return 'bg-warning/10 text-orange-800';
+        return 'bg-warning/10 text-warning';
       case 'MIXED_USE':
-        return 'bg-secondary/10 text-purple-800';
+        return 'bg-secondary/10 text-secondary';
       case 'LAND':
         return 'bg-warning/10 text-warning-foreground';
       default:

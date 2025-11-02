@@ -585,7 +585,7 @@ export default function CareersPage() {
                             <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                               {['Applied','Screening','Interview','Offer','Hired'].map((stage, idx) => (
                                 <li key={stage} className="flex items-center gap-3 p-3 rounded border border-border bg-card">
-                                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx <= 1 ? 'bg-green-600 text-white' : 'bg-muted text-muted-foreground'}`}>{idx+1}</span>
+                                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${idx <= 1 ? 'bg-success text-white' : 'bg-muted text-muted-foreground'}`}>{idx+1}</span>
                                   <span className="text-sm text-foreground">{stage}</span>
                                 </li>
                               ))}

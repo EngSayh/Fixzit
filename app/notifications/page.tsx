@@ -59,7 +59,7 @@ export default function NotificationsPage() {
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'maintenance': return 'bg-primary/10 text-primary-foreground border-primary/20';
-      case 'vendor': return 'bg-secondary/10 text-purple-800 border-secondary/30';
+      case 'vendor': return 'bg-secondary/10 text-secondary border-secondary/30';
       case 'finance': return 'bg-success/10 text-success-foreground border-success/20';
       case 'system': return 'bg-muted text-foreground border-border';
       default: return 'bg-muted text-foreground border-border';
@@ -397,7 +397,7 @@ export default function NotificationsPage() {
                 {notifications.filter((n: NotificationDoc) => n.priority === 'high').length}
               </p>
             </div>
-            <div className="text-orange-400">⚠️</div>
+            <div className="text-warning">⚠️</div>
           </div>
         </div>
         <div className="card">
@@ -589,7 +589,7 @@ export default function NotificationsPage() {
                   </button>
                   <button
                     onClick={markAsImportant}
-                    className="px-3 py-1 text-sm bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
+                    className="px-3 py-1 text-sm bg-warning text-white rounded hover:bg-warning transition-colors"
                   >
                     Mark Important ({selectedNotifications.size})
                   </button>
@@ -601,7 +601,7 @@ export default function NotificationsPage() {
                   </button>
                   <button
                     onClick={archiveNotifications}
-                    className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                    className="px-3 py-1 text-sm bg-success text-white rounded hover:bg-success transition-colors"
                   >
                     Archive ({selectedNotifications.size})
                   </button>

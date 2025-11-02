@@ -44,7 +44,8 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
       // ✅ FIX: Safely get non-PII user context
       const userSession = localStorage.getItem(STORAGE_KEYS.userSession);
       const user = userSession ? JSON.parse(userSession) : null;
-      const safeUser = user ? { userId: user.id || user._id, orgId: user.orgId } : undefined;
+      // [CODE REVIEW]: Use id only (frontend schema consistency)
+      const safeUser = user ? { userId: user.id, orgId: user.orgId } : undefined;
       
       const truncate = (s?: string, n = 2000) => (s && s.length > n ? `${s.slice(0, n)}…` : s);
 

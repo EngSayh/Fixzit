@@ -369,7 +369,7 @@ export default function LoginPage() {
                       clearError('identifier');
                       clearError('general');
                     }}
-                    className={`${isRTL ? 'pr-10 text-right' : 'pl-10'} h-12 ${errors.identifier ? 'border-red-500 focus:ring-destructive' : ''}`}
+                    className={`${isRTL ? 'pr-10 text-right' : 'pl-10'} h-12 ${errors.identifier ? 'border-destructive focus:ring-destructive' : ''}`}
                     aria-invalid={!!errors.identifier}
                     disabled={loading}
                     autoFocus
@@ -415,7 +415,7 @@ export default function LoginPage() {
                       clearError('password');
                       clearError('general');
                     }}
-                    className={`${isRTL ? 'pr-10 pl-10' : 'pl-10 pr-10'} h-12 ${errors.password ? 'border-red-500 focus:ring-destructive' : ''}`}
+                    className={`${isRTL ? 'pr-10 pl-10' : 'pl-10 pr-10'} h-12 ${errors.password ? 'border-destructive focus:ring-destructive' : ''}`}
                     style={{ direction: 'ltr', textAlign: isRTL ? 'right' : 'left' }}
                     aria-invalid={!!errors.password}
                     disabled={loading}

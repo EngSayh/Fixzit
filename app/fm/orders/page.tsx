@@ -133,7 +133,7 @@ export default function OrdersPage() {
       case 'delivered': return 'bg-success/10 text-success-foreground border-success/20';
       case 'approved': return 'bg-primary/10 text-primary-foreground border-primary/20';
       case 'submitted': return 'bg-warning/10 text-warning-foreground border-warning/20';
-      case 'ordered': return 'bg-secondary/10 text-purple-800 border-secondary/30';
+      case 'ordered': return 'bg-secondary/10 text-secondary border-secondary/30';
       case 'in progress': return 'bg-primary/10 text-primary-foreground border-primary/20';
       case 'draft': return 'bg-muted text-foreground border-border';
       case 'cancelled': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';

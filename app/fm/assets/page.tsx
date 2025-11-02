@@ -274,8 +274,8 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
             <span className="text-sm text-muted-foreground">Criticality:</span>
             <Badge variant="outline" className={
               asset.criticality === 'CRITICAL' ? 'border-destructive/30 text-destructive' :
-              asset.criticality === 'HIGH' ? 'border-orange-300 text-warning' :
-              asset.criticality === 'MEDIUM' ? 'border-yellow-300 text-warning' :
+              asset.criticality === 'HIGH' ? 'border-warning text-warning' :
+              asset.criticality === 'MEDIUM' ? 'border-warning text-warning' :
               'border-border text-foreground'
             }>
               {asset.criticality}

@@ -126,7 +126,7 @@ export default function FMVendorsPage() {
     switch (status?.toLowerCase()) {
       case 'approved': return 'bg-success/10 text-success-foreground border-success/20';
       case 'pending': return 'bg-warning/10 text-warning-foreground border-warning/20';
-      case 'suspended': return 'bg-warning/10 text-orange-800 border-orange-200';
+      case 'suspended': return 'bg-warning/10 text-warning border-warning';
       case 'rejected': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
       case 'blacklisted': return 'bg-destructive text-destructive-foreground border-destructive';
       default: return 'bg-muted text-foreground border-border';
@@ -206,7 +206,7 @@ export default function FMVendorsPage() {
                         </Badge>
                         {vendor.rating && (
                           <div className="flex items-center gap-1">
-                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                            <Star className="h-4 w-4 fill-yellow-400 text-warning" />
                             <span className="text-sm font-medium">{vendor.rating.toFixed(1)}</span>
                           </div>
                         )}

@@ -225,7 +225,7 @@ export default function PropertiesLeasesPage() {
                     <div className="flex gap-2">
                       <button className="text-primary hover:text-primary">{t('common.view', 'View')}</button>
                       <button className="text-success hover:text-success-foreground">{t('common.edit', 'Edit')}</button>
-                      <button className="text-warning hover:text-orange-900">{t('properties.leases.renew', 'Renew')}</button>
+                      <button className="text-warning hover:text-warning">{t('properties.leases.renew', 'Renew')}</button>
                     </div>
                   </td>
                 </tr>

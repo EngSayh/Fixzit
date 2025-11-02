@@ -331,7 +331,7 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
       case 'SENT':
         return 'bg-primary/10 text-primary-foreground';
       case 'VIEWED':
-        return 'bg-secondary/10 text-purple-800';
+        return 'bg-secondary/10 text-secondary';
       case 'APPROVED':
         return 'bg-success/10 text-success-foreground';
       case 'PAID':

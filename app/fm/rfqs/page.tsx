@@ -226,7 +226,7 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
       case 'BIDDING':
         return 'bg-warning/10 text-warning-foreground';
       case 'CLOSED':
-        return 'bg-warning/10 text-orange-800';
+        return 'bg-warning/10 text-warning';
       case 'AWARDED':
         return 'bg-success/10 text-success-foreground';
       case 'CANCELLED':

@@ -137,7 +137,7 @@ export default function DevLoginClient() {
             data-testid={`dev-copy-${cred.role}`}
           >
             {copiedKey === key ? (
-              <Check size={16} className="text-green-400" />
+              <Check size={16} className="text-success" />
             ) : (
               <Copy size={16} />
             )}
@@ -169,9 +169,9 @@ export default function DevLoginClient() {
       </div>
 
       {/* Warning Banner */}
-      <div className="bg-yellow-900/20 border-y border-yellow-700/50 py-3">
+      <div className="bg-warning/20 border-y border-warning/50 py-3">
         <div className="max-w-6xl mx-auto px-4">
-          <p className="text-yellow-200 text-sm flex items-center gap-2">
+          <p className="text-warning text-sm flex items-center gap-2">
             <span className="text-xl">⚠️</span>
             <span>
               <strong>Development Only:</strong> Credentials are never sent to the browser. 

@@ -249,7 +249,7 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">{t('fm.tenants.leaseStatus', 'Lease Status')}:</span>
-            <Badge variant="outline" className="text-success border-green-300">
+            <Badge variant="outline" className="text-success border-success">
               {activeProperties > 0 ? t('properties.leases.active', 'Active') : t('fm.tenants.noActiveLeases', 'No Active Leases')}
             </Badge>
           </div>

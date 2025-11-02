@@ -89,7 +89,7 @@ export default function ProjectsPage() {
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-blue-700">
+            <Button className="bg-primary hover:bg-primary">
               <Plus className="w-4 h-4 mr-2" />
               New Project
             </Button>
@@ -168,7 +168,7 @@ export default function ProjectsPage() {
                 <Briefcase className="w-12 h-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">No Projects Found</h3>
                 <p className="text-muted-foreground mb-4">Get started by creating your first project.</p>
-                <Button onClick={() => setCreateOpen(true)} className="bg-primary hover:bg-blue-700">
+                <Button onClick={() => setCreateOpen(true)} className="bg-primary hover:bg-primary">
                   <Plus className="w-4 h-4 mr-2" />
                   Create Project
                 </Button>
@@ -231,7 +231,7 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
       case 'CANCELLED':
         return 'bg-destructive/10 text-destructive';
       case 'CLOSED':
-        return 'bg-secondary/10 text-purple-800';
+        return 'bg-secondary/10 text-secondary';
       default:
         return 'bg-muted text-foreground';
     }
@@ -472,7 +472,7 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-primary hover:bg-blue-700">
+        <Button type="submit" className="bg-primary hover:bg-primary">
           Create Project
         </Button>
       </div>

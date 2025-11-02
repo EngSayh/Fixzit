@@ -78,7 +78,7 @@ export default function PropertiesDocumentsPage() {
       case 'Legal': return 'bg-primary/10 text-primary-foreground border-primary/20';
       case 'Safety': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
       case 'Contract': return 'bg-success/10 text-success-foreground border-success/20';
-      case 'Insurance': return 'bg-secondary/10 text-purple-800 border-secondary/30';
+      case 'Insurance': return 'bg-secondary/10 text-secondary border-secondary/30';
       default: return 'bg-muted text-foreground border-border';
     }
   };
@@ -239,7 +239,7 @@ export default function PropertiesDocumentsPage() {
                     <div className="flex gap-2">
                       <button className="text-primary hover:text-primary">{t('common.view', 'View')}</button>
                       <button className="text-success hover:text-success-foreground">{t('common.download', 'Download')}</button>
-                      <button className="text-warning hover:text-orange-900">{t('common.edit', 'Edit')}</button>
+                      <button className="text-warning hover:text-warning">{t('common.edit', 'Edit')}</button>
                     </div>
                   </td>
                 </tr>
