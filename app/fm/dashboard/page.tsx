@@ -47,6 +47,12 @@ interface Invoice {
   total: number;
 }
 
+// Frontend serialized version of WorkOrder (API returns id instead of _id)
+interface WorkOrderResponse extends Omit<WorkOrder, '_id'> {
+  id: string;
+  dueAt?: string;
+}
+
 interface WorkOrderWithDue extends WorkOrder {
   dueAt?: string;
 }
@@ -229,7 +235,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {workOrders?.items?.slice(0, 5).map((wo: WorkOrder) => (
+              {workOrders?.items?.slice(0, 5).map((wo: WorkOrderResponse) => (
                 <div key={wo.id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-2 h-2 rounded-full ${
