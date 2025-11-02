@@ -123,7 +123,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
             </span>
           )}
           {property.verified && (
-            <span className="bg-green-600 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+            <span className="bg-success text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
@@ -132,8 +132,8 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
           )}
           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
             property.listingType === 'SALE' 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-purple-600 text-white'
+              ? 'bg-primary text-white' 
+              : 'bg-secondary text-white'
           }`}>
             {property.listingType === 'SALE' 
               ? t('aqar.propertyCard.forSale', 'For Sale')
@@ -149,7 +149,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
           aria-label="Add to favorites"
         >
           <Heart
-            className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-foreground'}`}
+            className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-destructive' : 'text-foreground'}`}
           />
         </button>
 

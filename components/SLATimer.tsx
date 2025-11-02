@@ -84,9 +84,9 @@ export default function SLATimer({ dueDate, status, priority, size = 'md' }: SLA
   };
 
   const urgencyColors = {
-    safe: 'bg-green-50 text-green-800 border-green-200',
-    warning: 'bg-yellow-50 text-yellow-800 border-yellow-200',
-    critical: 'bg-red-50 text-red-800 border-red-200'
+    safe: 'bg-green-50 text-success border-success/20',
+    warning: 'bg-warning/5 text-warning border-warning/20',
+    critical: 'bg-red-50 text-destructive border-destructive/20'
   };
 
   const icon = isBreached ? '⚠️' : urgencyLevel === 'critical' ? '⏰' : urgencyLevel === 'warning' ? '⏰' : '✓';

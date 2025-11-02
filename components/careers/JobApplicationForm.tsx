@@ -169,7 +169,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
 
   const fieldCls = (hasErr?: boolean) =>
     `border p-2 rounded focus:ring-2 focus:ring-primary focus:border-transparent ${
-      hasErr ? 'border-red-500 focus:ring-red-500' : 'border-border'
+      hasErr ? 'border-destructive focus:ring-red-500' : 'border-border'
     }`;
 
   return (
@@ -189,7 +189,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
         {/* Full Name */}
         <div className="flex flex-col">
           <label htmlFor="fullName" className="mb-1 text-sm font-semibold text-foreground">
-            {t('careers.fullName', 'Full Name')} <span className="text-red-500">*</span>
+            {t('careers.fullName', 'Full Name')} <span className="text-destructive">*</span>
           </label>
           <input
             id="fullName"
@@ -204,14 +204,14 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
             data-testid="fullName"
           />
           {errors.fullName && (
-            <p id="err-fullName" className="mt-1 text-xs text-red-600">{errors.fullName}</p>
+            <p id="err-fullName" className="mt-1 text-xs text-destructive">{errors.fullName}</p>
           )}
         </div>
 
         {/* Email */}
         <div className="flex flex-col">
           <label htmlFor="email" className="mb-1 text-sm font-semibold text-foreground">
-            {t('careers.email', 'Email Address')} <span className="text-red-500">*</span>
+            {t('careers.email', 'Email Address')} <span className="text-destructive">*</span>
           </label>
           <input
             id="email"
@@ -226,7 +226,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
             data-testid="email"
           />
           {errors.email && (
-            <p id="err-email" className="mt-1 text-xs text-red-600">{errors.email}</p>
+            <p id="err-email" className="mt-1 text-xs text-destructive">{errors.email}</p>
           )}
         </div>
 
@@ -248,7 +248,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
             data-testid="phone"
           />
           {errors.phone && (
-            <p id="err-phone" className="mt-1 text-xs text-red-600">{errors.phone}</p>
+            <p id="err-phone" className="mt-1 text-xs text-destructive">{errors.phone}</p>
           )}
         </div>
 
@@ -287,7 +287,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
             data-testid="experience"
           />
           {errors.experience && (
-            <p id="err-experience" className="mt-1 text-xs text-red-600">{errors.experience}</p>
+            <p id="err-experience" className="mt-1 text-xs text-destructive">{errors.experience}</p>
           )}
         </div>
 
@@ -308,7 +308,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
             data-testid="linkedin"
           />
           {errors.linkedin && (
-            <p id="err-linkedin" className="mt-1 text-xs text-red-600">{errors.linkedin}</p>
+            <p id="err-linkedin" className="mt-1 text-xs text-destructive">{errors.linkedin}</p>
           )}
         </div>
 
@@ -349,7 +349,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
       {/* Resume Upload */}
       <div className="mt-4">
         <label htmlFor="resume" className="block text-sm font-semibold text-foreground mb-1">
-          {t('careers.resume', 'CV / Résumé (PDF)')} <span className="text-red-500">*</span>
+          {t('careers.resume', 'CV / Résumé (PDF)')} <span className="text-destructive">*</span>
         </label>
         <input
           id="resume"
@@ -371,13 +371,13 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
           {t('careers.resumeHint', 'PDF only · Max 5MB')}
         </p>
         {errors.resume && (
-          <p className="mt-1 text-xs text-red-600">{errors.resume}</p>
+          <p className="mt-1 text-xs text-destructive">{errors.resume}</p>
         )}
       </div>
 
       {/* General error */}
       {errors.general && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm" role="alert" aria-live="assertive" data-testid="general-error">
+        <div className="mt-4 p-3 bg-red-50 border border-destructive/20 rounded text-destructive text-sm" role="alert" aria-live="assertive" data-testid="general-error">
           {errors.general}
         </div>
       )}

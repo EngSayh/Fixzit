@@ -188,7 +188,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
               <div className="text-xs mt-2">Searching...</div>
             </div>
           ) : error ? (
-            <div className="p-4 text-center text-red-600">
+            <div className="p-4 text-center text-destructive">
               <div className="text-sm">{error}</div>
             </div>
           ) : results.length > 0 ? (

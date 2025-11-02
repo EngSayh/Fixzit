@@ -232,7 +232,7 @@ export default function CatalogView({
       </Card>
 
       {feedbackMessage && (
-        <div className="rounded-2xl border border-green-200 bg-[var(--fixzit-success-lightest)] px-4 py-3 text-sm text-[var(--fixzit-success-darker)]">
+        <div className="rounded-2xl border border-success/20 bg-[var(--fixzit-success-lightest)] px-4 py-3 text-sm text-[var(--fixzit-success-darker)]">
           {feedbackMessage}
         </div>
       )}

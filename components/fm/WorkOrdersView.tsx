@@ -33,21 +33,21 @@ function buildHeaders(extra: Record<string, string> = {}) {
 }
 
 const statusStyles: Record<string, string> = {
-  SUBMITTED: 'bg-amber-100 text-amber-800 border border-amber-200',
-  DISPATCHED: 'bg-sky-100 text-sky-800 border border-sky-200',
-  IN_PROGRESS: 'bg-blue-100 text-blue-800 border border-blue-200',
+  SUBMITTED: 'bg-warning/10 text-warning border border-warning/20',
+  DISPATCHED: 'bg-primary/10 text-primary border border-primary/20',
+  IN_PROGRESS: 'bg-primary/10 text-primary border border-primary/20',
   ON_HOLD: 'bg-muted text-foreground border border-border',
-  COMPLETED: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
-  VERIFIED: 'bg-teal-100 text-teal-800 border border-teal-200',
-  CLOSED: 'bg-green-100 text-green-800 border border-green-200',
-  CANCELLED: 'bg-rose-100 text-rose-800 border border-rose-200',
+  COMPLETED: 'bg-success/10 text-success border border-success/20',
+  VERIFIED: 'bg-success/10 text-success border border-success/20',
+  CLOSED: 'bg-success/10 text-success border border-success/20',
+  CANCELLED: 'bg-destructive/10 text-destructive border border-destructive/20',
 };
 
 const priorityStyles: Record<string, string> = {
-  LOW: 'bg-slate-100 text-slate-700 border border-slate-200',
-  MEDIUM: 'bg-indigo-100 text-indigo-800 border border-indigo-200',
-  HIGH: 'bg-orange-100 text-orange-800 border border-orange-200',
-  CRITICAL: 'bg-red-100 text-red-800 border border-red-200',
+  LOW: 'bg-muted text-foreground border border-border',
+  MEDIUM: 'bg-secondary/10 text-secondary border border-secondary/20',
+  HIGH: 'bg-warning/10 text-warning border border-warning/20',
+  CRITICAL: 'bg-destructive/10 text-destructive border border-destructive/20',
 };
 
 const statusLabels: Record<string, string> = {
@@ -226,7 +226,7 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
       </Card>
 
       {error && (
-        <Card className="border-red-200 bg-[var(--fixzit-danger-lightest)]">
+        <Card className="border-destructive/20 bg-[var(--fixzit-danger-lightest)]">
           <CardContent className="py-6">
             <p className="text-sm text-[var(--fixzit-danger-dark)]">{error.message}</p>
           </CardContent>
@@ -262,7 +262,7 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
                 </div>
                 <div className="text-right text-sm text-muted-foreground">
                   <p>SLA window: {workOrder.slaMinutes ? `${Math.round(workOrder.slaMinutes / 60)}h` : 'N/A'}</p>
-                  <p className={dueMeta.overdue ? 'text-red-600 font-semibold' : ''}>Due {dueMeta.label}</p>
+                  <p className={dueMeta.overdue ? 'text-destructive font-semibold' : ''}>Due {dueMeta.label}</p>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">

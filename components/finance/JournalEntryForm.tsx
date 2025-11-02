@@ -346,16 +346,16 @@ export default function JournalEntryForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              {t('Journal Date')} <span className="text-red-500">*</span>
+              {t('Journal Date')} <span className="text-destructive">*</span>
             </label>
             <input
               type="date"
               value={journalDate}
               onChange={(e) => setJournalDate(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-2xl ${errors.journalDate ? 'border-red-500' : 'border-border'}`}
+              className={`w-full px-3 py-2 border rounded-2xl ${errors.journalDate ? 'border-destructive' : 'border-border'}`}
               required
             />
-            {errors.journalDate && <p className="text-xs text-red-500 mt-1">{errors.journalDate}</p>}
+            {errors.journalDate && <p className="text-xs text-destructive mt-1">{errors.journalDate}</p>}
           </div>
 
           <div>
@@ -379,17 +379,17 @@ export default function JournalEntryForm({
 
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-foreground mb-1">
-              {t('Description')} <span className="text-red-500">*</span>
+              {t('Description')} <span className="text-destructive">*</span>
             </label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-2xl ${errors.description ? 'border-red-500' : 'border-border'}`}
+              className={`w-full px-3 py-2 border rounded-2xl ${errors.description ? 'border-destructive' : 'border-border'}`}
               placeholder={t('Brief description of the journal entry')}
               required
             />
-            {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description}</p>}
+            {errors.description && <p className="text-xs text-destructive mt-1">{errors.description}</p>}
           </div>
 
           {sourceType !== 'MANUAL' && (
@@ -417,7 +417,7 @@ export default function JournalEntryForm({
             <button
               type="button"
               onClick={balanceEntry}
-              className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+              className="px-3 py-1 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20"
               disabled={lines.length < 2}
             >
               {t('Quick Balance')}
@@ -432,7 +432,7 @@ export default function JournalEntryForm({
             <button
               type="button"
               onClick={addLine}
-              className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+              className="px-3 py-1 text-sm bg-success text-white rounded hover:bg-success"
             >
               + {t('Add Line')}
             </button>
@@ -440,8 +440,8 @@ export default function JournalEntryForm({
         </div>
 
         {errors.lines && (
-          <div className="bg-red-50 border border-red-200 rounded p-2">
-            <p className="text-sm text-red-700">{errors.lines}</p>
+          <div className="bg-red-50 border border-destructive/20 rounded p-2">
+            <p className="text-sm text-destructive">{errors.lines}</p>
           </div>
         )}
 
@@ -490,7 +490,7 @@ export default function JournalEntryForm({
                       <select
                         value={line.accountId}
                         onChange={(e) => updateLine(line.id, 'accountId', e.target.value)}
-                        className={`w-full px-2 py-1 text-sm border rounded ${errors[`line_${index}_account`] ? 'border-red-500' : 'border-border'}`}
+                        className={`w-full px-2 py-1 text-sm border rounded ${errors[`line_${index}_account`] ? 'border-destructive' : 'border-border'}`}
                         disabled={loadingAccounts}
                       >
                         <option value="">{loadingAccounts ? t('Loading...') : t('Select Account')}</option>
@@ -502,7 +502,7 @@ export default function JournalEntryForm({
                       </select>
 
                       {errors[`line_${index}_account`] && (
-                        <p className="text-xs text-red-500 mt-1">{errors[`line_${index}_account`]}</p>
+                        <p className="text-xs text-destructive mt-1">{errors[`line_${index}_account`]}</p>
                       )}
                     </div>
                   </td>
@@ -522,7 +522,7 @@ export default function JournalEntryForm({
                       min="0"
                       value={line.debit || ''}
                       onChange={(e) => updateLine(line.id, 'debit', parseFloat(e.target.value) || 0)}
-                      className={`w-full px-2 py-1 text-sm text-right border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? 'border-red-500' : 'border-border'}`}
+                      className={`w-full px-2 py-1 text-sm text-right border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? 'border-destructive' : 'border-border'}`}
                       disabled={parseFloat(String(line.credit)) > 0}
                     />
                   </td>
@@ -533,7 +533,7 @@ export default function JournalEntryForm({
                       min="0"
                       value={line.credit || ''}
                       onChange={(e) => updateLine(line.id, 'credit', parseFloat(e.target.value) || 0)}
-                      className={`w-full px-2 py-1 text-sm text-right border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? 'border-red-500' : 'border-border'}`}
+                      className={`w-full px-2 py-1 text-sm text-right border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? 'border-destructive' : 'border-border'}`}
                       disabled={parseFloat(String(line.debit)) > 0}
                     />
                   </td>
@@ -542,7 +542,7 @@ export default function JournalEntryForm({
                       <button
                         type="button"
                         onClick={() => removeLine(line.id)}
-                        className="text-red-600 hover:text-red-800"
+                        className="text-destructive hover:text-destructive"
                         title={t('Remove line')}
                       >
                         ✕
@@ -570,10 +570,10 @@ export default function JournalEntryForm({
         </div>
 
         {/* Balance Status */}
-        <div className={`p-4 rounded-2xl ${isBalanced ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+        <div className={`p-4 rounded-2xl ${isBalanced ? 'bg-green-50 border border-success/20' : 'bg-red-50 border border-destructive/20'}`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className={`font-semibold ${isBalanced ? 'text-green-800' : 'text-red-800'}`}>
+              <p className={`font-semibold ${isBalanced ? 'text-success' : 'text-destructive'}`}>
                 {isBalanced ? (
                   <span>✓ {t('Entry is Balanced')}</span>
                 ) : (
@@ -581,7 +581,7 @@ export default function JournalEntryForm({
                 )}
               </p>
               {!isBalanced && totalDebit > 0 && (
-                <p className="text-sm text-red-600 mt-1">
+                <p className="text-sm text-destructive mt-1">
                   {balanceDifference > 0 
                     ? t('Debits exceed credits by') + ` ${balanceDifference.toFixed(2)}`
                     : t('Credits exceed debits by') + ` ${Math.abs(balanceDifference).toFixed(2)}`
@@ -597,8 +597,8 @@ export default function JournalEntryForm({
         </div>
 
         {errors.balance && (
-          <div className="bg-red-50 border border-red-200 rounded p-2">
-            <p className="text-sm text-red-700">{errors.balance}</p>
+          <div className="bg-red-50 border border-destructive/20 rounded p-2">
+            <p className="text-sm text-destructive">{errors.balance}</p>
           </div>
         )}
       </div>
@@ -618,7 +618,7 @@ export default function JournalEntryForm({
         <button
           type="button"
           onClick={handleSubmit}
-          className="px-6 py-2 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-2 bg-primary text-white rounded-2xl hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={isSubmitting || !isBalanced || loadingAccounts}
         >
           {isSubmitting ? t('Saving...') : mode === 'create' ? t('Create Journal Entry') : t('Save Changes')}
@@ -626,8 +626,8 @@ export default function JournalEntryForm({
       </div>
 
       {errors.submit && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
-          <p className="text-sm text-red-700">{errors.submit}</p>
+        <div className="bg-red-50 border border-destructive/20 rounded-2xl p-4">
+          <p className="text-sm text-destructive">{errors.submit}</p>
         </div>
       )}
     </div>

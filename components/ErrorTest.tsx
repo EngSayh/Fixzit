@@ -86,7 +86,7 @@ export default function ErrorTest() {
     return (
       <button
         onClick={() => setShowTest(true)}
-        className="fixed bottom-20 right-6 bg-[var(--fixzit-danger)] text-white px-4 py-2 rounded-2xl shadow-lg hover:bg-[var(--fixzit-danger-dark)] z-50"
+        className="fixed bottom-20 right-6 bg-destructive text-destructive-foreground px-4 py-2 rounded-2xl shadow-lg hover:bg-destructive/90 z-50"
       >
         🧪 Test Error Boundary
       </button>
@@ -108,28 +108,28 @@ export default function ErrorTest() {
       <div className="space-y-2">
         <button
           onClick={triggerError}
-          className="w-full bg-[var(--fixzit-danger)] text-white px-3 py-2 rounded text-sm hover:bg-[var(--fixzit-danger-dark)]"
+          className="w-full bg-destructive text-destructive-foreground px-3 py-2 rounded text-sm hover:bg-destructive/90"
         >
           🔴 Runtime Error
         </button>
 
         <button
           onClick={triggerAsyncError}
-          className="w-full bg-orange-600 text-white px-3 py-2 rounded text-sm hover:bg-orange-700"
+          className="w-full bg-warning text-warning-foreground px-3 py-2 rounded text-sm hover:bg-warning/90"
         >
           🟠 Async Error
         </button>
 
         <button
           onClick={triggerJSONError}
-          className="w-full bg-[var(--fixzit-accent)] text-white px-3 py-2 rounded text-sm hover:bg-[var(--fixzit-accent-dark)]"
+          className="w-full bg-secondary text-secondary-foreground px-3 py-2 rounded text-sm hover:bg-secondary/90"
         >
           🟡 JSON Parse Error
         </button>
 
         <button
           onClick={triggerNetworkError}
-          className="w-full bg-[var(--fixzit-primary)] text-white px-3 py-2 rounded text-sm hover:bg-[var(--fixzit-primary-dark)]"
+          className="w-full bg-primary text-primary-foreground px-3 py-2 rounded text-sm hover:bg-primary/90"
         >
           🔵 Network Error
         </button>

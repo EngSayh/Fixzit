@@ -222,10 +222,10 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
       </div>
 
       {/* Additional Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4">
-        <h4 className="font-semibold text-blue-900 mb-2">Required Monthly Income</h4>
-        <p className="text-2xl font-bold text-blue-700">{formatCurrency(requiredMonthlyIncome)}</p>
-        <p className="text-sm text-blue-600 mt-1">
+      <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 mb-4">
+        <h4 className="font-semibold text-primary mb-2">Required Monthly Income</h4>
+        <p className="text-2xl font-bold text-primary">{formatCurrency(requiredMonthlyIncome)}</p>
+        <p className="text-sm text-primary mt-1">
           Based on 33% debt-to-income ratio
         </p>
       </div>
@@ -257,8 +257,8 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
                   <tr key={row.month} className="border-b border-border">
                     <td className="px-3 py-2">{row.month}</td>
                     <td className="px-3 py-2 text-right">{formatCurrency(row.payment)}</td>
-                    <td className="px-3 py-2 text-right text-green-600">{formatCurrency(row.principal)}</td>
-                    <td className="px-3 py-2 text-right text-red-600">{formatCurrency(row.interest)}</td>
+                    <td className="px-3 py-2 text-right text-success">{formatCurrency(row.principal)}</td>
+                    <td className="px-3 py-2 text-right text-destructive">{formatCurrency(row.interest)}</td>
                     <td className="px-3 py-2 text-right font-semibold">{formatCurrency(row.balance)}</td>
                   </tr>
                 ))}

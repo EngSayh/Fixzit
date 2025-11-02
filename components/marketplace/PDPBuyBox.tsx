@@ -73,7 +73,7 @@ export default function PDPBuyBox({ product, onAddToCart, onRequestRFQ }: PDPBuy
         )}
       </div>
 
-      <div className={clsx('rounded-2xl border px-4 py-3 text-sm', available > 0 ? 'border-success/40 bg-success/10 text-success-foreground' : 'border-red-200 bg-red-50 text-red-700')}>
+      <div className={clsx('rounded-2xl border px-4 py-3 text-sm', available > 0 ? 'border-success/40 bg-success/10 text-success-foreground' : 'border-destructive/20 bg-red-50 text-destructive')}>
         <p className="font-semibold">{available > 0 ? 'Available for immediate fulfilment' : 'Currently out of stock'}</p>
         {product.stock?.location && <p className="text-xs opacity-80">Location: {product.stock.location}</p>}
       </div>

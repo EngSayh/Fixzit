@@ -126,7 +126,7 @@ export const FeatureToggle: React.FC<FeatureToggleProps> = ({
           
           {/* Badge */}
           {badge && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary dark:bg-primary dark:text-primary">
               {badge}
             </span>
           )}
@@ -199,7 +199,7 @@ export const FeatureToggle: React.FC<FeatureToggleProps> = ({
               relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2
               ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
               ${locked ? 'cursor-help' : ''}
-              ${danger && enabled ? 'focus:ring-red-500 bg-red-600' : enabled ? 'focus:ring-green-500 bg-green-600' : 'focus:ring-gray-400 bg-muted'}
+              ${danger && enabled ? 'focus:ring-red-500 bg-destructive' : enabled ? 'focus:ring-green-500 bg-success' : 'focus:ring-gray-400 bg-muted'}
             `}
           >
             {/* Toggle Knob */}
