@@ -19,30 +19,34 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
       
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       
       - name: Run inventory scan
         run: bash scripts/inventory.sh
       
       - name: TypeScript check
-        run: npm run typecheck
+        run: pnpm run typecheck
         # CRITICAL: Removed continue-on-error - typecheck failures must block PRs
 
       - name: Lint check
-        run: npm run lint
+        run: pnpm run lint
         # CRITICAL: Removed continue-on-error - lint failures must block PRs
 
       # Note: No test script exists in package.json - placeholder tests use Playwright e2e
       # E2E tests are expensive and run separately, so we skip unit tests here for now
       # TODO: Add unit test script with Jest or Vitest when unit tests are implemented
       # - name: Run tests
-      #   run: npm run test --if-present
+      #   run: pnpm run test --if-present
 
       - name: Build project
-        run: npm run build
+        run: pnpm run build
         env:
           MONGODB_URI: mongodb://localhost:27017/fixzit-ci-test
           NEXTAUTH_SECRET: ci-test-secret-key-min-32-chars-long
