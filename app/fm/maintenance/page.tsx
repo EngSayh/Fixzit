@@ -58,7 +58,7 @@ export default function MaintenancePage() {
     switch (priority.toLowerCase()) {
       case 'urgent': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
       case 'high': return 'bg-warning/10 text-orange-800 border-orange-200';
-      case 'medium': return 'bg-warning/10 text-yellow-800 border-warning/20';
+      case 'medium': return 'bg-warning/10 text-warning-foreground border-warning/20';
       case 'low': return 'bg-success/10 text-success-foreground border-success/20';
       default: return 'bg-muted text-foreground border-border';
     }

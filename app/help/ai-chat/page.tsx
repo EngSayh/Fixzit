@@ -138,7 +138,7 @@ export default function AIChatPage() {
                 className={`flex items-start gap-3 ${message.type === 'user' ? 'flex-row-reverse' : ''}`}
               >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  message.type === 'user' ? 'bg-green-600' : 'bg-blue-600'
+                  message.type === 'user' ? 'bg-green-600' : 'bg-primary'
                 }`}>
                   {message.type === 'user' ? (
                     <User className="w-4 h-4 text-primary-foreground" />

@@ -133,7 +133,7 @@ export default function SignupPage() {
         <div className="w-full max-w-md">
           <div className="bg-card text-card-foreground rounded-2xl shadow-2xl p-8 text-center">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-success/10 dark:bg-green-900 rounded-full flex items-center justify-center">
+              <div className="w-16 h-16 bg-success/10 dark:bg-success/20 rounded-full flex items-center justify-center">
                 <CheckCircle className="w-8 h-8 text-success" />
               </div>
             </div>
@@ -394,7 +394,7 @@ export default function SignupPage() {
 
               {/* Error Message */}
               {error && (
-                <div className="flex items-center gap-2 p-3 bg-destructive/10 dark:bg-red-950 border border-border rounded-2xl text-destructive dark:text-red-300">
+                <div className="flex items-center gap-2 p-3 bg-destructive/10 dark:bg-destructive/10 border border-border rounded-2xl text-destructive dark:text-destructive">
                   <AlertCircle className="h-5 w-5" />
                   <span className="text-sm">{error}</span>
                 </div>

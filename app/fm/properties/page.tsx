@@ -211,7 +211,7 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
       case 'MIXED_USE':
         return 'bg-secondary/10 text-purple-800';
       case 'LAND':
-        return 'bg-warning/10 text-yellow-800';
+        return 'bg-warning/10 text-warning-foreground';
       default:
         return 'bg-muted text-foreground';
     }

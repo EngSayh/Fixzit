@@ -193,7 +193,7 @@ export default function EditVendorPage() {
                 required
               />
               {errors.name && (
-                <p className="text-sm text-red-500">{errors.name}</p>
+                <p className="text-sm text-destructive">{errors.name}</p>
               )}
             </div>
 
@@ -208,7 +208,7 @@ export default function EditVendorPage() {
                 required
               />
               {errors.code && (
-                <p className="text-sm text-red-500">{errors.code}</p>
+                <p className="text-sm text-destructive">{errors.code}</p>
               )}
             </div>
 
@@ -224,7 +224,7 @@ export default function EditVendorPage() {
                   required
                 />
                 {errors.type && (
-                  <p className="text-sm text-red-500">{errors.type}</p>
+                  <p className="text-sm text-destructive">{errors.type}</p>
                 )}
               </div>
 
@@ -243,7 +243,7 @@ export default function EditVendorPage() {
                   </SelectContent>
                 </Select>
                 {errors.status && (
-                  <p className="text-sm text-red-500">{errors.status}</p>
+                  <p className="text-sm text-destructive">{errors.status}</p>
                 )}
               </div>
             </div>
@@ -266,7 +266,7 @@ export default function EditVendorPage() {
                 placeholder="Enter contact person name"
               />
               {errors['contact.primary.name'] && (
-                <p className="text-sm text-red-500">{errors['contact.primary.name']}</p>
+                <p className="text-sm text-destructive">{errors['contact.primary.name']}</p>
               )}
             </div>
 
@@ -282,7 +282,7 @@ export default function EditVendorPage() {
                   placeholder="email@example.com"
                 />
                 {errors['contact.primary.email'] && (
-                  <p className="text-sm text-red-500">{errors['contact.primary.email']}</p>
+                  <p className="text-sm text-destructive">{errors['contact.primary.email']}</p>
                 )}
               </div>
 
@@ -295,7 +295,7 @@ export default function EditVendorPage() {
                   placeholder="+966XXXXXXXXX"
                 />
                 {errors['contact.primary.phone'] && (
-                  <p className="text-sm text-red-500">{errors['contact.primary.phone']}</p>
+                  <p className="text-sm text-destructive">{errors['contact.primary.phone']}</p>
                 )}
               </div>
             </div>
@@ -310,7 +310,7 @@ export default function EditVendorPage() {
                 placeholder="+966XXXXXXXXX"
               />
               {errors['contact.primary.mobile'] && (
-                <p className="text-sm text-red-500">{errors['contact.primary.mobile']}</p>
+                <p className="text-sm text-destructive">{errors['contact.primary.mobile']}</p>
               )}
             </div>
 

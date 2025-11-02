@@ -139,7 +139,7 @@ export default function PropertiesLeasesPage() {
               <p className="text-sm font-medium text-muted-foreground">{t('properties.leases.avgLeaseTerm', 'Avg. Lease Term')}</p>
               <p className="text-2xl font-bold text-[hsl(var(--secondary))]">18 {t('properties.leases.months', 'months')}</p>
             </div>
-            <div className="text-purple-400">📅</div>
+            <div className="text-secondary">📅</div>
           </div>
         </div>
       </div>

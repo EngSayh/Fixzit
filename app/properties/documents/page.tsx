@@ -78,7 +78,7 @@ export default function PropertiesDocumentsPage() {
       case 'Legal': return 'bg-primary/10 text-primary-foreground border-primary/20';
       case 'Safety': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
       case 'Contract': return 'bg-success/10 text-success-foreground border-success/20';
-      case 'Insurance': return 'bg-secondary/10 text-purple-800 border-purple-200';
+      case 'Insurance': return 'bg-secondary/10 text-purple-800 border-secondary/30';
       default: return 'bg-muted text-foreground border-border';
     }
   };
@@ -132,7 +132,7 @@ export default function PropertiesDocumentsPage() {
               <p className="text-sm font-medium text-muted-foreground">Storage Used</p>
               <p className="text-2xl font-bold text-[hsl(var(--secondary))]">2.4 GB</p>
             </div>
-            <div className="text-purple-400">💾</div>
+            <div className="text-secondary">💾</div>
           </div>
         </div>
       </div>
@@ -300,7 +300,7 @@ export default function PropertiesDocumentsPage() {
               <p className="text-sm font-medium text-muted-foreground">Insurance</p>
               <p className="text-2xl font-bold text-[hsl(var(--secondary))]">12</p>
             </div>
-            <div className="text-purple-400">🛡️</div>
+            <div className="text-secondary">🛡️</div>
           </div>
         </div>
       </div>

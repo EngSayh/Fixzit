@@ -136,7 +136,7 @@ export default function HelpHome() {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'Beginner': return 'bg-success/10 text-success-foreground';
-      case 'Intermediate': return 'bg-warning/10 text-yellow-800';
+      case 'Intermediate': return 'bg-warning/10 text-warning-foreground';
       case 'Advanced': return 'bg-destructive/10 text-destructive-foreground';
       default: return 'bg-muted text-foreground';
     }

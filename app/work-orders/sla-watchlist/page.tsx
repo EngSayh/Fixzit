@@ -71,7 +71,7 @@ export default function SLAWatchlistPage() {
           </div>
         </div>
         
-        <div className="card bg-destructive/10 border-red-100">
+        <div className="card bg-destructive/10 border-destructive/20">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-destructive">
@@ -120,7 +120,7 @@ export default function SLAWatchlistPage() {
               <Link 
                 key={wo.woNumber} 
                 href={`/work-orders/${wo.woNumber}`}
-                className="flex items-center justify-between p-3 bg-card rounded-2xl border-2 border-destructive/30 hover:border-red-400 hover:shadow-md transition-all"
+                className="flex items-center justify-between p-3 bg-card rounded-2xl border-2 border-destructive/30 hover:border-destructive/40 hover:shadow-md transition-all"
               >
                 <div className="flex items-center gap-4">
                   <div className="font-mono font-bold text-destructive">{wo.woNumber}</div>
@@ -185,7 +185,7 @@ export default function SLAWatchlistPage() {
               <Link 
                 key={wo.woNumber} 
                 href={`/work-orders/${wo.woNumber}`}
-                className="flex items-center justify-between p-3 bg-card rounded-2xl border border-warning/20 hover:border-yellow-300 hover:shadow transition-all"
+                className="flex items-center justify-between p-3 bg-card rounded-2xl border border-warning/20 hover:border-warning/40 hover:shadow transition-all"
               >
                 <div className="flex items-center gap-4">
                   <div className="font-mono font-semibold text-warning">{wo.woNumber}</div>
@@ -217,7 +217,7 @@ export default function SLAWatchlistPage() {
               <Link 
                 key={wo.woNumber} 
                 href={`/work-orders/${wo.woNumber}`}
-                className="flex items-center justify-between p-3 bg-card rounded-2xl border border-green-100 hover:border-success/20 hover:shadow transition-all"
+                className="flex items-center justify-between p-3 bg-card rounded-2xl border border-success/20 hover:border-success/20 hover:shadow transition-all"
               >
                 <div className="flex items-center gap-4">
                   <div className="font-mono font-semibold text-success">{wo.woNumber}</div>
