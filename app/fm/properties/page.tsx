@@ -84,7 +84,7 @@ export default function PropertiesPage() {
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-[var(--fixzit-success)] hover:bg-[var(--fixzit-success-dark)]">
+            <Button className="bg-success hover:bg-success/90">
               <Plus className="w-4 h-4 mr-2" />
               {t('fm.properties.newProperty', 'New Property')}
             </Button>
@@ -152,7 +152,7 @@ export default function PropertiesPage() {
                 <Building2 className="w-12 h-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">{t('fm.properties.noProperties', 'No Properties Found')}</h3>
                 <p className="text-muted-foreground mb-4">{t('fm.properties.noPropertiesText', 'Get started by adding your first property to the portfolio.')}</p>
-                <Button onClick={() => setCreateOpen(true)} className="bg-[var(--fixzit-success)] hover:bg-[var(--fixzit-success-dark)]">
+                <Button onClick={() => setCreateOpen(true)} className="bg-success hover:bg-success/90">
                   <Plus className="w-4 h-4 mr-2" />
                   {t('fm.properties.addProperty', 'Add Property')}
                 </Button>
@@ -285,7 +285,7 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">{t('fm.properties.status', 'Status')}:</span>
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-[var(--fixzit-success-light)] rounded-full"></div>
+              <div className="w-2 h-2 bg-success/20 rounded-full"></div>
               <span className="text-sm font-medium">{t('fm.properties.active', 'Active')}</span>
             </div>
           </div>
@@ -313,7 +313,7 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
           <Button 
             variant="ghost" 
             size="sm" 
-            className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]"
+            className="text-destructive hover:text-destructive/90"
             onClick={handleDelete}
           >
             <Trash2 className="w-4 h-4" />
@@ -535,7 +535,7 @@ function CreatePropertyForm({ onCreated, orgId }: { onCreated: () => void; orgId
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-[var(--fixzit-success)] hover:bg-[var(--fixzit-success-dark)]">
+        <Button type="submit" className="bg-success hover:bg-success/90">
           {t('fm.properties.createProperty', 'Create Property')}
         </Button>
       </div>
