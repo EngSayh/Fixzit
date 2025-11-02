@@ -83,17 +83,17 @@ export default function SLATimer({ dueDate, status, priority, size = 'md' }: SLA
     lg: 'text-base px-3 py-1.5'
   };
 
-  const urgencyColors = {
-    safe: 'bg-green-50 text-success border-success/20',
-    warning: 'bg-warning/5 text-warning border-warning/20',
-    critical: 'bg-red-50 text-destructive border-destructive/20'
+    const variants: Record<string, string> = {
+    safe: 'bg-success/10 text-success border-success/20',
+    warning: 'bg-warning/10 text-warning border-warning/20',
+    critical: 'bg-destructive/10 text-destructive border-destructive/20'
   };
 
   const icon = isBreached ? '⚠️' : urgencyLevel === 'critical' ? '⏰' : urgencyLevel === 'warning' ? '⏰' : '✓';
 
   return (
     <div 
-      className={`inline-flex items-center gap-1.5 font-medium rounded-md border ${sizeClasses[size]} ${urgencyColors[urgencyLevel]}`}
+      className={`inline-flex items-center gap-1.5 font-medium rounded-md border ${sizeClasses[size]} ${variants[urgencyLevel]}`}
       title={`SLA ${isBreached ? 'BREACHED' : 'Due'}: ${new Date(dueDate).toLocaleString()}`}
     >
       <span className="text-base leading-none">{icon}</span>

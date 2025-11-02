@@ -376,7 +376,7 @@ export default function AccountActivityViewer({
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-destructive/20 rounded-2xl p-4">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-4">
           <p className="text-sm text-destructive">{error}</p>
         </div>
       )}
