@@ -14,7 +14,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm ci
-      - run: npm run ui:freeze:check
-      - run: npm run sidebar:snapshot
-      - run: npm run i18n:check
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run ui:freeze:check
+      - run: pnpm run sidebar:snapshot
+      - run: pnpm run i18n:check

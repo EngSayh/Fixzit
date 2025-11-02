@@ -84,6 +84,10 @@ if (!conn) {
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 8000,
       connectTimeoutMS: 8000,
+      // Production-critical options for MongoDB Atlas
+      retryWrites: true,        // Automatic retry for write operations (network failures)
+      tls: true,                // Force TLS/SSL for secure connections (required for Atlas)
+      w: 'majority',            // Write concern for data durability (prevents data loss)
     }).then(m => {
       // Return the native MongoDB database object
       return m.connection.db as unknown as DatabaseHandle;
