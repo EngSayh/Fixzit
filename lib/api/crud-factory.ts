@@ -34,6 +34,15 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { createSecureResponse, getClientIP } from '@/server/security/headers';
 
+/**
+ * Escapes special regex characters to prevent ReDoS (Regular Expression Denial of Service) attacks
+ * @param str - User input string to escape
+ * @returns Escaped string safe for use in MongoDB $regex
+ */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export interface CrudFactoryOptions<T = unknown> {
   /** Mongoose Model */
   Model: Model<T>;
@@ -121,8 +130,9 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
 
       // Implement search functionality
       if (query && options.searchFields && options.searchFields.length > 0) {
+        const escapedQuery = escapeRegex(query);
         match.$or = options.searchFields.map(field => ({
-          [field]: { $regex: query, $options: 'i' }
+          [field]: { $regex: escapedQuery, $options: 'i' }
         }));
       }
 
