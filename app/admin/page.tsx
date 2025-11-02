@@ -86,9 +86,9 @@ export default function Page() {
     }
   };
 
-  const openEditUser = (user: {_id: string; email?: string; username?: string; personal?: {firstName?: string; lastName?: string}; phone?: string; professional?: {role?: string}; status?: string}) => {
+  const openEditUser = (user: {id: string; email?: string; username?: string; personal?: {firstName?: string; lastName?: string}; phone?: string; professional?: {role?: string}; status?: string}) => {
     setEditingUser({
-      id: user._id,
+      id: user.id,
       email: user.email || '',
       username: user.username || '',
       firstName: user.personal?.firstName || '',
@@ -139,7 +139,7 @@ export default function Page() {
     if (selectedUserIds.length === usersData.users.length) {
       setSelectedUserIds([]);
     } else {
-      setSelectedUserIds(usersData.users.map((u: {_id: string}) => u._id));
+      setSelectedUserIds(usersData.users.map((u: {id: string}) => u.id));
     }
   };
 
@@ -162,7 +162,7 @@ export default function Page() {
     const rows = [['ID','Username','Email','First Name','Last Name','Role','Status','Phone']];
     for (const u of usersData.users) {
       rows.push([
-        u._id || '',
+        u.id || '',
         u.username || '',
         u.email || '',
         u.personal?.firstName || '',
@@ -370,9 +370,9 @@ export default function Page() {
                   </thead>
                   <tbody className="bg-card divide-y divide-border">
                     {usersData.users.map((user: { _id: string; username?: string; email?: string; personal?: { firstName?: string; lastName?: string }; professional?: { role?: string }; status?: string; phone?: string }) => (
-                      <tr key={user._id}>
+                      <tr key={user.id}>
                         <td className="px-6 py-4">
-                          <input type="checkbox" checked={selectedUserIds.includes(user._id)} onChange={() => toggleSelect(user._id)} className="rounded" />
+                          <input type="checkbox" checked={selectedUserIds.includes(user.id)} onChange={() => toggleSelect(user.id)} className="rounded" />
                         </td>
                         <td className="px-6 py-4 text-sm text-foreground">{user.username}</td>
                         <td className="px-6 py-4 text-sm text-foreground">{user.email}</td>
@@ -381,7 +381,7 @@ export default function Page() {
                         <td className="px-6 py-4 text-sm text-foreground">{user.status || 'ACTIVE'}</td>
                         <td className="px-6 py-4 text-sm text-right space-x-2">
                           <Button variant="ghost" size="sm" onClick={() => openEditUser(user)}>{t('admin.users.edit', 'Edit')}</Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user._id, user.username || user.email || 'user')}>{t('admin.users.delete', 'Delete')}</Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user.id, user.username || user.email || 'user')}>{t('admin.users.delete', 'Delete')}</Button>
                         </td>
                       </tr>
                     ))}
@@ -527,7 +527,7 @@ export default function Page() {
                   </thead>
                   <tbody className="bg-card divide-y divide-border">
                     {auditData.logs.map((log: { _id: string; timestamp: string; userId?: string; user?: { name?: string }; action?: string; entityType?: string; entityId?: string }) => (
-                      <tr key={log._id}>
+                      <tr key={log.id}>
                         <td className="px-6 py-4 text-sm text-foreground">{new Date(log.timestamp).toLocaleString()}</td>
                         <td className="px-6 py-4 text-sm text-foreground">{log.user?.name || log.userId || '—'}</td>
                         <td className="px-6 py-4 text-sm text-foreground">{log.action}</td>
