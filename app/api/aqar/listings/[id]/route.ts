@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { connectDb } from '@/lib/mongo';
 import { AqarListing } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';

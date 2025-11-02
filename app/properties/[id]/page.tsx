@@ -50,6 +50,17 @@ export default function PropertyDetailPage() {
       script.async = true;
       window.initMap = initializeMap;
       document.head.appendChild(script);
+      
+      // ✅ FIX: Add cleanup function to prevent memory leak
+      return () => {
+        // Remove the script element
+        if (script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+        // Clean up the global callback
+        // @ts-ignore - Safe to delete runtime property
+        delete (window as any).initMap;
+      };
     } else {
       initializeMap();
     }

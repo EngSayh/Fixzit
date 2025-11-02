@@ -59,18 +59,31 @@ const createVendorSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
+// Query parameter validation schema
+const vendorQuerySchema = z.object({
+  type: z.enum(['SUPPLIER', 'CONTRACTOR', 'SERVICE_PROVIDER', 'CONSULTANT']).optional(),
+  status: z.enum(['PENDING', 'APPROVED', 'SUSPENDED', 'REJECTED', 'BLACKLISTED']).optional(),
+  search: z.string().max(200).optional(), // Limit length to prevent DoS
+});
+
 // Custom filter builder for vendor-specific search
 function buildVendorFilter(searchParams: URLSearchParams, orgId: string) {
   const match: Record<string, any> = { tenantId: orgId };
 
-  const type = searchParams.get('type');
-  const status = searchParams.get('status');
-  const search = searchParams.get('search');
+  // Validate and sanitize query parameters to prevent NoSQL injection
+  const rawParams = {
+    type: searchParams.get('type'),
+    status: searchParams.get('status'),
+    search: searchParams.get('search'),
+  };
 
-  if (type) match.type = type;
-  if (status) match.status = status;
-  if (search) {
-    match.$text = { $search: search };
+  // Use Zod to validate - will throw if invalid
+  const validatedParams = vendorQuerySchema.parse(rawParams);
+
+  if (validatedParams.type) match.type = validatedParams.type;
+  if (validatedParams.status) match.status = validatedParams.status;
+  if (validatedParams.search) {
+    match.$text = { $search: validatedParams.search };
   }
 
   return match;

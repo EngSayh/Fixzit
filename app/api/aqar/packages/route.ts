@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import mongoose from 'mongoose';
 import { connectDb } from '@/lib/mongo';
 import { AqarPackage, AqarPayment, PackageType } from '@/models/aqar';

@@ -32,8 +32,12 @@ vi.mock('next/navigation', () => {
     usePathname: () => '/fm/dashboard',
     useSearchParams: () => new URLSearchParams(),
     useParams: () => ({}),
-    notFound: vi.fn(),
-    redirect: vi.fn(),
+    notFound: vi.fn(() => {
+      throw new Error('NEXT_NOT_FOUND');
+    }),
+    redirect: vi.fn((url: string) => {
+      throw new Error(`NEXT_REDIRECT: ${url}`);
+    }),
   };
 });
 
