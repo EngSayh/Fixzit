@@ -60,7 +60,7 @@ export default function WorkOrderPartsPage() {
       ));
     } else {
       setSelectedParts([...selectedParts, { 
-        _id: part.id,
+        id: part.id,
         name: part.name,
         title: part.name, // Map name to title
         price: part.price,

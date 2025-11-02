@@ -52,7 +52,6 @@ interface InvoicePayment {
 
 interface Invoice {
   id: string;
-  id: string;
   number: string;
   recipient: InvoiceRecipient;
   status: string;
@@ -104,10 +103,7 @@ export default function InvoicesPage() {
     );
   }
 
-  const invoices: Invoice[] = (data?.data || []).map((inv: Invoice) => ({
-    ...inv,
-    _id: inv.id
-  }));
+  const invoices: Invoice[] = (data?.data || []);
   
   const totalPages = data?.pagination?.pages || 1;
   const totalItems = data?.pagination?.total || 0;

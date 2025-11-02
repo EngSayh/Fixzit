@@ -369,7 +369,7 @@ export default function Page() {
                     </tr>
                   </thead>
                   <tbody className="bg-card divide-y divide-border">
-                    {usersData.users.map((user: { _id: string; username?: string; email?: string; personal?: { firstName?: string; lastName?: string }; professional?: { role?: string }; status?: string; phone?: string }) => (
+                    {usersData.users.map((user: { id: string; username?: string; email?: string; personal?: { firstName?: string; lastName?: string }; professional?: { role?: string }; status?: string; phone?: string }) => (
                       <tr key={user.id}>
                         <td className="px-6 py-4">
                           <input type="checkbox" checked={selectedUserIds.includes(user.id)} onChange={() => toggleSelect(user.id)} className="rounded" />
@@ -526,7 +526,7 @@ export default function Page() {
                     </tr>
                   </thead>
                   <tbody className="bg-card divide-y divide-border">
-                    {auditData.logs.map((log: { _id: string; timestamp: string; userId?: string; user?: { name?: string }; action?: string; entityType?: string; entityId?: string }) => (
+                    {auditData.logs.map((log: { id: string; timestamp: string; userId?: string; user?: { name?: string }; action?: string; entityType?: string; entityId?: string }) => (
                       <tr key={log.id}>
                         <td className="px-6 py-4 text-sm text-foreground">{new Date(log.timestamp).toLocaleString()}</td>
                         <td className="px-6 py-4 text-sm text-foreground">{log.user?.name || log.userId || '—'}</td>
