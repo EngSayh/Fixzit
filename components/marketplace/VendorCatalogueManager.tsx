@@ -57,11 +57,11 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold text-[#0F1111]">Vendor Catalogue</h1>
+        <h1 className="text-3xl font-semibold text-foreground">Vendor Catalogue</h1>
         <p className="text-sm text-muted-foreground">Publish compliant products for Fixzit Souq buyers.</p>
       </div>
       <div className="rounded-3xl bg-card p-6 shadow">
-        <h2 className="text-lg font-semibold text-[#0F1111]">Add new product</h2>
+        <h2 className="text-lg font-semibold text-foreground">Add new product</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="text-sm text-muted-foreground">
             Product title
@@ -116,32 +116,32 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
         <button
           onClick={addProduct}
           disabled={loading}
-          className="mt-4 rounded-full bg-[#FFB400] px-5 py-2 text-sm font-semibold text-black hover:bg-[#FFCB4F] disabled:opacity-60"
+          className="mt-4 rounded-full bg-warning px-5 py-2 text-sm font-semibold text-black hover:bg-[#FFCB4F] disabled:opacity-60"
         >
           {loading ? 'Saving…' : 'Publish product'}
         </button>
       </div>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-[#0F1111]">Published products</h2>
+        <h2 className="text-lg font-semibold text-foreground">Published products</h2>
         {products.length ? (
           <div className="grid gap-4 md:grid-cols-2">
             {products.map(product => (
               <article key={product.id} className="rounded-3xl bg-card p-5 shadow">
-                <h3 className="text-lg font-semibold text-[#0F1111]">{product.title.en}</h3>
+                <h3 className="text-lg font-semibold text-foreground">{product.title.en}</h3>
                 <p className="text-sm text-muted-foreground">SKU {product.sku}</p>
                 <p className="text-sm text-muted-foreground">
                   {product.buy.price} {product.buy.currency} / {product.buy.uom}
                 </p>
-                <span className="mt-2 inline-flex rounded-full bg-[#0061A8]/10 px-3 py-1 text-xs font-semibold text-[#0061A8]">
+                <span className="mt-2 inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                   {product.status}
                 </span>
               </article>
             ))}
           </div>
         ) : (
-          <div className="rounded-3xl border border-dashed border-[#0061A8]/40 bg-card p-10 text-center text-muted-foreground">
-            <p className="text-lg font-semibold text-[#0F1111]">No products yet</p>
+          <div className="rounded-3xl border border-dashed border-primary/40 bg-card p-10 text-center text-muted-foreground">
+            <p className="text-lg font-semibold text-foreground">No products yet</p>
             <p className="mt-2 text-sm">Add products to appear in the marketplace catalogue.</p>
           </div>
         )}

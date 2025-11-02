@@ -73,14 +73,14 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            {product.brand && <p className="text-xs font-semibold uppercase tracking-wide text-[#00A859]">{product.brand}</p>}
+            {product.brand && <p className="text-xs font-semibold uppercase tracking-wide text-success">{product.brand}</p>}
             <h3 className="text-sm font-semibold text-foreground">
               <Link href={`/marketplace/product/${product.slug}`}>{product.title.en}</Link>
             </h3>
             {product.summary && <p className="line-clamp-2 text-xs text-muted-foreground">{product.summary}</p>}
           </div>
           {product.rating && product.rating.count > 0 && (
-            <div className="flex items-center gap-1 text-xs text-[#FFB400]">
+            <div className="flex items-center gap-1 text-xs text-warning">
               <Star size={14} fill="#FFB400" strokeWidth={0} />
               <span>{product.rating.avg.toFixed(1)}</span>
               <span className="text-muted-foreground">({product.rating.count})</span>
@@ -89,26 +89,26 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
         </div>
 
         {product.standards && product.standards.length > 0 && (
-          <div className="flex flex-wrap gap-2 text-[11px] font-medium text-[#0061A8]">
+          <div className="flex flex-wrap gap-2 text-[11px] font-medium text-primary">
             {product.standards.map(standard => (
-              <span key={standard} className="rounded-full bg-[#0061A8]/10 px-2 py-1">{standard}</span>
+              <span key={standard} className="rounded-full bg-primary/10 px-2 py-1">{standard}</span>
             ))}
           </div>
         )}
 
         <div className="mt-auto flex items-end justify-between gap-4">
           <div>
-            <p className="text-lg font-semibold text-[#0F1111]">{displayPrice}</p>
+            <p className="text-lg font-semibold text-foreground">{displayPrice}</p>
             <p className="text-xs text-muted-foreground">per {product.buy.uom} · Min {product.buy.minQty ?? 1}</p>
             {product.buy.leadDays != null && (
-              <p className="text-xs text-[#00A859]">Lead time {product.buy.leadDays} day(s)</p>
+              <p className="text-xs text-success">Lead time {product.buy.leadDays} day(s)</p>
             )}
           </div>
           <button
             type="button"
             onClick={handleAddToCart}
             disabled={adding}
-            className="flex items-center gap-2 rounded-full bg-[#FFB400] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#FFCB4F] disabled:cursor-not-allowed disabled:opacity-70"
+            className="flex items-center gap-2 rounded-full bg-warning px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#FFCB4F] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {adding ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <ShoppingCart size={16} aria-hidden />}
             {adding ? 'Adding…' : 'Add to Cart'}

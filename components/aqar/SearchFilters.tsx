@@ -169,7 +169,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           onClick={() => updateFilters({ listingType: 'ALL' })}
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
             filters.listingType === 'ALL'
-              ? 'bg-[#FFB400] text-white'
+              ? 'bg-warning text-white'
               : 'bg-muted text-foreground hover:bg-muted'
           }`}
         >
@@ -179,7 +179,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           onClick={() => updateFilters({ listingType: 'SALE' })}
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
             filters.listingType === 'SALE'
-              ? 'bg-[#FFB400] text-white'
+              ? 'bg-warning text-white'
               : 'bg-muted text-foreground hover:bg-muted'
           }`}
         >
@@ -189,7 +189,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           onClick={() => updateFilters({ listingType: 'RENT' })}
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
             filters.listingType === 'RENT'
-              ? 'bg-[#FFB400] text-white'
+              ? 'bg-warning text-white'
               : 'bg-muted text-foreground hover:bg-muted'
           }`}
         >
@@ -199,7 +199,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           onClick={() => updateFilters({ listingType: 'LEASE' })}
           className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
             filters.listingType === 'LEASE'
-              ? 'bg-[#FFB400] text-white'
+              ? 'bg-warning text-white'
               : 'bg-muted text-foreground hover:bg-muted'
           }`}
         >
@@ -439,7 +439,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                     type="checkbox"
                     checked={filters.amenities?.includes(amenity)}
                     onChange={() => toggleAmenity(amenity)}
-                    className="w-4 h-4 text-[#FFB400] border-border rounded focus:ring-[#FFB400]"
+                    className="w-4 h-4 text-warning border-border rounded focus:ring-[#FFB400]"
                   />
                   <span className="text-sm text-foreground">{amenity}</span>
                 </label>
@@ -456,7 +456,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   type="checkbox"
                   checked={filters.furnished || false}
                   onChange={(e) => updateFilters({ furnished: e.target.checked || null })}
-                  className="w-4 h-4 text-[#FFB400] border-border rounded focus:ring-[#FFB400]"
+                  className="w-4 h-4 text-warning border-border rounded focus:ring-[#FFB400]"
                 />
                 <span className="text-sm text-foreground">{t('aqar.filters.furnished', 'Furnished')}</span>
               </label>
@@ -465,7 +465,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   type="checkbox"
                   checked={filters.featured || false}
                   onChange={(e) => updateFilters({ featured: e.target.checked })}
-                  className="w-4 h-4 text-[#FFB400] border-border rounded focus:ring-[#FFB400]"
+                  className="w-4 h-4 text-warning border-border rounded focus:ring-[#FFB400]"
                 />
                 <span className="text-sm text-foreground">{t('aqar.filters.featuredOnly', 'Featured Properties Only')}</span>
               </label>
@@ -474,7 +474,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   type="checkbox"
                   checked={filters.verified || false}
                   onChange={(e) => updateFilters({ verified: e.target.checked })}
-                  className="w-4 h-4 text-[#FFB400] border-border rounded focus:ring-[#FFB400]"
+                  className="w-4 h-4 text-warning border-border rounded focus:ring-[#FFB400]"
                 />
                 <span className="text-sm text-foreground">{t('aqar.filters.verifiedOnly', 'Verified Properties Only')}</span>
               </label>
@@ -521,7 +521,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-foreground">{t('aqar.filters.activeFilters', 'Active Filters:')}</span>
             {filters.listingType && filters.listingType !== 'ALL' && (
-              <span className="px-3 py-1 bg-[#FFB400] text-white text-sm rounded-full flex items-center gap-1">
+              <span className="px-3 py-1 bg-warning text-white text-sm rounded-full flex items-center gap-1">
                 {filters.listingType}
                 <button onClick={() => updateFilters({ listingType: 'ALL' })}>
                   <X className="w-3 h-3" />
@@ -529,7 +529,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
               </span>
             )}
             {(filters.propertyTypes?.length || 0) > 0 && (
-              <span className="px-3 py-1 bg-[#FFB400] text-white text-sm rounded-full flex items-center gap-1">
+              <span className="px-3 py-1 bg-warning text-white text-sm rounded-full flex items-center gap-1">
                 {filters.propertyTypes!.length} {t('aqar.filters.typesSelected', 'types')}
                 <button onClick={() => updateFilters({ propertyTypes: [] })}>
                   <X className="w-3 h-3" />
@@ -538,7 +538,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
             )}
             <button
               onClick={clearFilters}
-              className="ml-auto text-sm text-[#FF8C00] hover:text-[#FFB400] font-medium"
+              className="ml-auto text-sm text-[#FF8C00] hover:text-warning font-medium"
             >
               {t('aqar.filters.clearAll', 'Clear All')}
             </button>

@@ -7,7 +7,7 @@ import { User } from '@/server/models/User';
  * Type for user document returned from DB
  */
 type UserProfileDocument = {
-  _id: string;
+  id: string;
   name?: string;
   firstName?: string;
   email: string;
@@ -26,7 +26,7 @@ type UserProfileDocument = {
  */
 function normalizeUserProfile(user: UserProfileDocument) {
   return {
-    id: user._id,
+    id: user.id,
     name: user.name || user.firstName || 'User',
     email: user.email,
     phone: user.phone || '',

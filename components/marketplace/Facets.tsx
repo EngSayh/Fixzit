@@ -30,7 +30,7 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
   return (
     <aside className="w-full max-w-xs space-y-6">
       <section>
-        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#0061A8]">Categories</h3>
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">Categories</h3>
         <ul className="space-y-1 text-sm">
           {facets.categories.map(category => (
             <li key={category.slug}>
@@ -39,7 +39,7 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
                 onClick={() => onChange({ category: category.slug })}
                 className={clsx(
                   'w-full rounded-2xl px-3 py-2 text-left transition',
-                  selected.category === category.slug ? 'bg-[#0061A8] text-white' : 'hover:bg-muted'
+                  selected.category === category.slug ? 'bg-primary text-white' : 'hover:bg-muted'
                 )}
               >
                 {category.name}
@@ -50,7 +50,7 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
       </section>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#0061A8]">Brand</h3>
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">Brand</h3>
         <ul className="space-y-1 text-sm">
           {facets.brands.map(brand => (
             <li key={brand}>
@@ -59,7 +59,7 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
                 onClick={() => onChange({ brand })}
                 className={clsx(
                   'w-full rounded-2xl px-3 py-2 text-left transition',
-                  selected.brand === brand ? 'bg-[#0061A8] text-white' : 'hover:bg-muted'
+                  selected.brand === brand ? 'bg-primary text-white' : 'hover:bg-muted'
                 )}
               >
                 {brand}
@@ -70,7 +70,7 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
       </section>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#0061A8]">Standards</h3>
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">Standards</h3>
         <ul className="space-y-1 text-sm">
           {facets.standards.map(standard => (
             <li key={standard}>
@@ -79,7 +79,7 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
                 onClick={() => onChange({ standard })}
                 className={clsx(
                   'w-full rounded-2xl px-3 py-2 text-left transition',
-                  selected.standard === standard ? 'bg-[#0061A8] text-white' : 'hover:bg-muted'
+                  selected.standard === standard ? 'bg-primary text-white' : 'hover:bg-muted'
                 )}
               >
                 {standard}
@@ -90,7 +90,7 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
       </section>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#0061A8]">Price</h3>
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">Price</h3>
         <div className="flex items-center gap-2 text-sm">
           <input
             type="number"

@@ -70,7 +70,7 @@ function isWorkOrderPriority(value: string): value is WorkOrderPriority {
 }
 
 type WorkOrderRecord = {
-  _id: string;
+  id: string;
   code: string;
   title: string;
   description?: string;
@@ -246,7 +246,7 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
         {workOrders.map((workOrder) => {
           const dueMeta = getDueMeta(workOrder.dueAt);
           return (
-            <Card key={workOrder._id} className="border border-border shadow-sm">
+            <Card key={workOrder.id} className="border border-border shadow-sm">
               <CardHeader className="flex flex-col gap-2 pb-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
