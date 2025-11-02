@@ -652,7 +652,7 @@ export default function NewInvoicePage() {
                         {lineItems.length > 1 && (
                           <button
                             onClick={() => removeLineItem(item.id)}
-                            className="text-red-500 hover:text-red-700"
+                            className="text-red-500 hover:text-destructive"
                             title={t('common.remove', 'Remove')}
                           >
                             ✕
@@ -704,15 +704,15 @@ export default function NewInvoicePage() {
               </label>
             </div>
             {autoPostJournal && (
-              <div className="mt-3 p-3 bg-blue-50 rounded-2xl text-sm">
-                <p className="text-blue-800">
+              <div className="mt-3 p-3 bg-primary/10 rounded-2xl text-sm">
+                <p className="text-primary-foreground">
                   ℹ️ {t('finance.invoice.journalPostingInfo', 'Journal entry will be created automatically with DR: Accounts Receivable, CR: Revenue accounts based on line items.')}
                 </p>
               </div>
             )}
             {journalPosted && (
-              <div className="mt-3 p-3 bg-green-50 rounded-2xl text-sm">
-                <p className="text-green-800">
+              <div className="mt-3 p-3 bg-success/10 rounded-2xl text-sm">
+                <p className="text-success-foreground">
                   ✓ {t('finance.invoice.journalPosted', 'Journal entry posted successfully')}
                 </p>
               </div>
@@ -766,7 +766,7 @@ export default function NewInvoicePage() {
                 <span className="font-medium">{currency} {subtotal.toFixed(2)}</span>
               </div>
               {totalDiscount > 0 && (
-                <div className="flex justify-between text-red-600">
+                <div className="flex justify-between text-destructive">
                   <span>{t('finance.discount', 'Discount')}</span>
                   <span>-{currency} {totalDiscount.toFixed(2)}</span>
                 </div>
@@ -796,13 +796,13 @@ export default function NewInvoicePage() {
                       <p className="text-sm font-medium">{payment.paymentNumber}</p>
                       <p className="text-xs text-muted-foreground">{payment.paymentDate} • {payment.method}</p>
                     </div>
-                    <span className="text-sm font-medium text-green-600">+{currency} {payment.amount.toFixed(2)}</span>
+                    <span className="text-sm font-medium text-success">+{currency} {payment.amount.toFixed(2)}</span>
                   </div>
                 ))}
                 <div className="pt-2 border-t border-border">
                   <div className="flex justify-between mb-1">
                     <span className="text-sm font-medium">{t('finance.invoice.totalPaid', 'Total Paid')}</span>
-                    <span className="text-sm font-medium text-green-600">{currency} {totalPaid.toFixed(2)}</span>
+                    <span className="text-sm font-medium text-success">{currency} {totalPaid.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm font-semibold">{t('finance.invoice.amountDue', 'Amount Due')}</span>

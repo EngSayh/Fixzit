@@ -59,49 +59,49 @@ export default function SLAWatchlistPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="card bg-red-50 border-red-200">
+        <div className="card bg-destructive/10 border-destructive/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-red-600">
+              <p className="text-sm font-medium text-destructive">
                 {t('workOrders.sla.breached', 'Breached')}
               </p>
-              <p className="text-3xl font-bold text-red-700">{data?.breached || 0}</p>
+              <p className="text-3xl font-bold text-destructive">{data?.breached || 0}</p>
             </div>
             <div className="text-4xl">⚠️</div>
           </div>
         </div>
         
-        <div className="card bg-red-50 border-red-100">
+        <div className="card bg-destructive/10 border-red-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-red-600">
+              <p className="text-sm font-medium text-destructive">
                 {t('workOrders.sla.critical', 'Critical (<2h)')}
               </p>
-              <p className="text-3xl font-bold text-red-600">{data?.critical || 0}</p>
+              <p className="text-3xl font-bold text-destructive">{data?.critical || 0}</p>
             </div>
             <div className="text-4xl">⏰</div>
           </div>
         </div>
         
-        <div className="card bg-yellow-50 border-yellow-200">
+        <div className="card bg-warning/10 border-warning/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-yellow-700">
+              <p className="text-sm font-medium text-warning">
                 {t('workOrders.sla.warning', 'Warning (<4h)')}
               </p>
-              <p className="text-3xl font-bold text-yellow-800">{data?.warning || 0}</p>
+              <p className="text-3xl font-bold text-warning-foreground">{data?.warning || 0}</p>
             </div>
             <div className="text-4xl">⚡</div>
           </div>
         </div>
         
-        <div className="card bg-green-50 border-green-200">
+        <div className="card bg-success/10 border-success/20">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-green-700">
+              <p className="text-sm font-medium text-success">
                 {t('workOrders.sla.safe', 'Safe (>4h)')}
               </p>
-              <p className="text-3xl font-bold text-green-800">{data?.safe || 0}</p>
+              <p className="text-3xl font-bold text-success-foreground">{data?.safe || 0}</p>
             </div>
             <div className="text-4xl">✓</div>
           </div>
@@ -110,8 +110,8 @@ export default function SLAWatchlistPage() {
 
       {/* Breached WOs (Highest Priority) */}
       {breached.length > 0 && (
-        <div className="card border-red-300 bg-red-50">
-          <h2 className="text-lg font-semibold text-red-800 mb-4 flex items-center gap-2">
+        <div className="card border-destructive/30 bg-destructive/10">
+          <h2 className="text-lg font-semibold text-destructive-foreground mb-4 flex items-center gap-2">
             <span>⚠️</span>
             {t('workOrders.sla.breachedList', 'SLA BREACHED')} ({breached.length})
           </h2>
@@ -120,10 +120,10 @@ export default function SLAWatchlistPage() {
               <Link 
                 key={wo.woNumber} 
                 href={`/work-orders/${wo.woNumber}`}
-                className="flex items-center justify-between p-3 bg-card rounded-2xl border-2 border-red-300 hover:border-red-400 hover:shadow-md transition-all"
+                className="flex items-center justify-between p-3 bg-card rounded-2xl border-2 border-destructive/30 hover:border-red-400 hover:shadow-md transition-all"
               >
                 <div className="flex items-center gap-4">
-                  <div className="font-mono font-bold text-red-700">{wo.woNumber}</div>
+                  <div className="font-mono font-bold text-destructive">{wo.woNumber}</div>
                   <div className="text-foreground">{wo.title}</div>
                   <span className="px-2 py-1 text-xs font-semibold rounded bg-muted border">
                     {wo.status}
@@ -143,8 +143,8 @@ export default function SLAWatchlistPage() {
 
       {/* Critical WOs */}
       {critical.length > 0 && (
-        <div className="card border-red-200">
-          <h2 className="text-lg font-semibold text-red-700 mb-4 flex items-center gap-2">
+        <div className="card border-destructive/20">
+          <h2 className="text-lg font-semibold text-destructive mb-4 flex items-center gap-2">
             <span>🔥</span>
             {t('workOrders.sla.criticalList', 'CRITICAL - Due Within 2 Hours')} ({critical.length})
           </h2>
@@ -153,10 +153,10 @@ export default function SLAWatchlistPage() {
               <Link 
                 key={wo.woNumber} 
                 href={`/work-orders/${wo.woNumber}`}
-                className="flex items-center justify-between p-3 bg-card rounded-2xl border border-red-200 hover:border-red-300 hover:shadow transition-all"
+                className="flex items-center justify-between p-3 bg-card rounded-2xl border border-destructive/20 hover:border-destructive/30 hover:shadow transition-all"
               >
                 <div className="flex items-center gap-4">
-                  <div className="font-mono font-semibold text-red-600">{wo.woNumber}</div>
+                  <div className="font-mono font-semibold text-destructive">{wo.woNumber}</div>
                   <div className="text-foreground">{wo.title}</div>
                   <span className="px-2 py-1 text-xs font-semibold rounded bg-muted border">
                     {wo.status}
@@ -175,8 +175,8 @@ export default function SLAWatchlistPage() {
 
       {/* Warning WOs */}
       {warning.length > 0 && (
-        <div className="card border-yellow-200">
-          <h2 className="text-lg font-semibold text-yellow-800 mb-4 flex items-center gap-2">
+        <div className="card border-warning/20">
+          <h2 className="text-lg font-semibold text-warning-foreground mb-4 flex items-center gap-2">
             <span>⚡</span>
             {t('workOrders.sla.warningList', 'WARNING - Due Within 4 Hours')} ({warning.length})
           </h2>
@@ -185,10 +185,10 @@ export default function SLAWatchlistPage() {
               <Link 
                 key={wo.woNumber} 
                 href={`/work-orders/${wo.woNumber}`}
-                className="flex items-center justify-between p-3 bg-card rounded-2xl border border-yellow-200 hover:border-yellow-300 hover:shadow transition-all"
+                className="flex items-center justify-between p-3 bg-card rounded-2xl border border-warning/20 hover:border-yellow-300 hover:shadow transition-all"
               >
                 <div className="flex items-center gap-4">
-                  <div className="font-mono font-semibold text-yellow-700">{wo.woNumber}</div>
+                  <div className="font-mono font-semibold text-warning">{wo.woNumber}</div>
                   <div className="text-foreground">{wo.title}</div>
                   <span className="px-2 py-1 text-xs font-semibold rounded bg-muted border">
                     {wo.status}
@@ -207,8 +207,8 @@ export default function SLAWatchlistPage() {
 
       {/* Safe WOs (Collapsed by default) */}
       {safe.length > 0 && (
-        <details className="card border-green-200">
-          <summary className="text-lg font-semibold text-green-800 cursor-pointer flex items-center gap-2">
+        <details className="card border-success/20">
+          <summary className="text-lg font-semibold text-success-foreground cursor-pointer flex items-center gap-2">
             <span>✓</span>
             {t('workOrders.sla.safeList', 'SAFE - More than 4 Hours')} ({safe.length})
           </summary>
@@ -217,10 +217,10 @@ export default function SLAWatchlistPage() {
               <Link 
                 key={wo.woNumber} 
                 href={`/work-orders/${wo.woNumber}`}
-                className="flex items-center justify-between p-3 bg-card rounded-2xl border border-green-100 hover:border-green-200 hover:shadow transition-all"
+                className="flex items-center justify-between p-3 bg-card rounded-2xl border border-green-100 hover:border-success/20 hover:shadow transition-all"
               >
                 <div className="flex items-center gap-4">
-                  <div className="font-mono font-semibold text-green-700">{wo.woNumber}</div>
+                  <div className="font-mono font-semibold text-success">{wo.woNumber}</div>
                   <div className="text-foreground">{wo.title}</div>
                   <span className="px-2 py-1 text-xs font-semibold rounded bg-muted border">
                     {wo.status}

@@ -220,16 +220,16 @@ export default function FMPage() {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'active': return 'bg-green-100 text-green-800 border-green-200';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'active': return 'bg-success/10 text-success-foreground border-success/20';
+      case 'pending': return 'bg-warning/10 text-warning-foreground border-warning/20';
       case 'inactive': return 'bg-muted text-foreground border-border';
-      case 'open': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'open': return 'bg-primary/10 text-primary-foreground border-primary/20';
       case 'draft': return 'bg-muted text-foreground border-border';
-      case 'closed': return 'bg-red-100 text-red-800 border-red-200';
-      case 'awarded': return 'bg-green-100 text-green-800 border-green-200';
-      case 'issued': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'received': return 'bg-green-100 text-green-800 border-green-200';
-      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
+      case 'closed': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
+      case 'awarded': return 'bg-success/10 text-success-foreground border-success/20';
+      case 'issued': return 'bg-primary/10 text-primary-foreground border-primary/20';
+      case 'received': return 'bg-success/10 text-success-foreground border-success/20';
+      case 'cancelled': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
       default: return 'bg-muted text-foreground border-border';
     }
   };
@@ -305,10 +305,10 @@ export default function FMPage() {
         <TabsContent value="catalog" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { name: 'AC Repair', icon: '❄️', count: 12, color: 'bg-blue-500', key: 'ac' },
-              { name: 'Plumbing', icon: '🔧', count: 8, color: 'bg-green-500', key: 'plumbing' },
-              { name: 'Cleaning', icon: '🧹', count: 15, color: 'bg-yellow-500', key: 'cleaning' },
-              { name: 'Electrical', icon: '⚡', count: 10, color: 'bg-purple-500', key: 'electrical' },
+              { name: 'AC Repair', icon: '❄️', count: 12, color: 'bg-primary/100', key: 'ac' },
+              { name: 'Plumbing', icon: '🔧', count: 8, color: 'bg-success/100', key: 'plumbing' },
+              { name: 'Cleaning', icon: '🧹', count: 15, color: 'bg-warning/100', key: 'cleaning' },
+              { name: 'Electrical', icon: '⚡', count: 10, color: 'bg-secondary/100', key: 'electrical' },
               { name: 'Painting', icon: '🎨', count: 6, color: 'bg-pink-500', key: 'painting' },
               { name: 'Elevators', icon: '🛗', count: 4, color: 'bg-indigo-500', key: 'elevators' },
             ].map((service) => (

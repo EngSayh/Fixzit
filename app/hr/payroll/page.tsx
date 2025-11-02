@@ -80,11 +80,11 @@ export default function PayrollPage() {
       case 'DRAFT':
         return 'bg-muted text-foreground border-border';
       case 'CALCULATED':
-        return 'bg-blue-100 text-blue-800 border-blue-300';
+        return 'bg-primary/10 text-primary-foreground border-primary/30';
       case 'APPROVED':
-        return 'bg-green-100 text-green-800 border-green-300';
+        return 'bg-success/10 text-success-foreground border-success/30';
       case 'LOCKED':
-        return 'bg-purple-100 text-purple-800 border-purple-300';
+        return 'bg-secondary/10 text-purple-800 border-purple-300';
       default:
         return 'bg-muted text-foreground border-border';
     }
@@ -182,7 +182,7 @@ export default function PayrollPage() {
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">
                         {t('hr.payroll.allowances', 'Allowances')}
                       </p>
-                      <p className="text-lg font-semibold mt-1 text-green-600">
+                      <p className="text-lg font-semibold mt-1 text-success">
                         +{formatCurrency(run.totalAllowances)}
                       </p>
                     </div>
@@ -190,7 +190,7 @@ export default function PayrollPage() {
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">
                         {t('hr.payroll.deductions', 'Deductions')}
                       </p>
-                      <p className="text-lg font-semibold mt-1 text-red-600">
+                      <p className="text-lg font-semibold mt-1 text-destructive">
                         -{formatCurrency(run.totalDeductions)}
                       </p>
                     </div>
@@ -198,7 +198,7 @@ export default function PayrollPage() {
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">
                         {t('hr.payroll.netPay', 'Net Pay')}
                       </p>
-                      <p className="text-xl font-bold mt-1 text-blue-600">
+                      <p className="text-xl font-bold mt-1 text-primary">
                         {formatCurrency(run.totalNetPay)}
                       </p>
                     </div>
@@ -245,7 +245,7 @@ export default function PayrollPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-green-600 border-green-600 hover:bg-green-50"
+                      className="text-success border-green-600 hover:bg-success/10"
                     >
                       {t('hr.payroll.approve', 'Approve')}
                     </Button>

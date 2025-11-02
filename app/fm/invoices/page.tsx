@@ -98,7 +98,7 @@ export default function InvoicesPage() {
     return (
       <div className="text-center py-12">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <p className="text-red-600">Error: No organization ID found in session</p>
+        <p className="text-destructive">Error: No organization ID found in session</p>
       </div>
     );
   }
@@ -329,15 +329,15 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
       case 'DRAFT':
         return 'bg-muted text-foreground';
       case 'SENT':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-primary/10 text-primary-foreground';
       case 'VIEWED':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-secondary/10 text-purple-800';
       case 'APPROVED':
-        return 'bg-green-100 text-green-800';
+        return 'bg-success/10 text-success-foreground';
       case 'PAID':
         return 'bg-emerald-100 text-emerald-800';
       case 'OVERDUE':
-        return 'bg-red-100 text-red-800';
+        return 'bg-destructive/10 text-destructive-foreground';
       case 'CANCELLED':
         return 'bg-muted text-foreground';
       default:
@@ -372,9 +372,9 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
   const getZATCAStatus = (status: string) => {
     switch (status) {
       case 'CLEARED':
-        return { icon: CheckCircle, color: 'text-green-600' };
+        return { icon: CheckCircle, color: 'text-success' };
       case 'PENDING':
-        return { icon: Clock, color: 'text-yellow-600' };
+        return { icon: Clock, color: 'text-warning' };
       default:
         return { icon: AlertCircle, color: 'text-muted-foreground' };
     }
@@ -422,7 +422,7 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
           </div>
           <div>
             <p className="text-muted-foreground">{t('fm.invoices.dueDate', 'Due Date')}</p>
-            <p className={`font-medium ${daysOverdue > 0 ? 'text-red-600' : ''}`}>
+            <p className={`font-medium ${daysOverdue > 0 ? 'text-destructive' : ''}`}>
               {new Date(invoice.dueDate).toLocaleDateString()}
               {daysOverdue > 0 && ` (${daysOverdue}${t('fm.invoices.overdueDays', 'd overdue')})`}
             </p>

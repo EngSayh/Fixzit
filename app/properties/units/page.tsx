@@ -54,9 +54,9 @@ export default function PropertiesUnitsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Expiring': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Expired': return 'bg-red-100 text-red-800 border-red-200';
+      case 'Active': return 'bg-success/10 text-success-foreground border-success/20';
+      case 'Expiring': return 'bg-warning/10 text-warning-foreground border-warning/20';
+      case 'Expired': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
       case 'Vacant': return 'bg-muted text-foreground border-border';
       default: return 'bg-muted text-foreground border-border';
     }
@@ -64,9 +64,9 @@ export default function PropertiesUnitsPage() {
 
   const getOccupancyColor = (occupancy: string) => {
     switch (occupancy) {
-      case 'occupied': return 'bg-green-100 text-green-800 border-green-200';
-      case 'vacant': return 'bg-red-100 text-red-800 border-red-200';
-      case 'maintenance': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'occupied': return 'bg-success/10 text-success-foreground border-success/20';
+      case 'vacant': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
+      case 'maintenance': return 'bg-warning/10 text-warning-foreground border-warning/20';
       default: return 'bg-muted text-foreground border-border';
     }
   };

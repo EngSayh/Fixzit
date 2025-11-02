@@ -342,8 +342,8 @@ export default function CareersPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Open': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Closed': return 'bg-red-100 text-red-800 border-red-200';
+      case 'Open': return 'bg-success/10 text-success-foreground border-success/20';
+      case 'Closed': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
       default: return 'bg-muted text-foreground border-border';
     }
   };
@@ -437,12 +437,12 @@ export default function CareersPage() {
                         {job.status}
                       </Badge>
                       {job.urgent && (
-                        <Badge className="bg-[var(--fixzit-danger-lighter)] text-[var(--fixzit-danger-darker)] border-red-200 text-xs">
+                        <Badge className="bg-[var(--fixzit-danger-lighter)] text-[var(--fixzit-danger-darker)] border-destructive/20 text-xs">
                           Urgent
                         </Badge>
                       )}
                       {job.featured && (
-                        <Badge className="bg-[var(--fixzit-accent-lighter)] text-[var(--fixzit-accent-darker)] border-yellow-200 text-xs">
+                        <Badge className="bg-[var(--fixzit-accent-lighter)] text-[var(--fixzit-accent-darker)] border-warning/20 text-xs">
                           Featured
                         </Badge>
                       )}
@@ -517,8 +517,8 @@ export default function CareersPage() {
                               </div>
                             </div>
                             <div className="flex flex-col gap-2">
-                              {job.urgent && <Badge className="bg-[var(--fixzit-danger-lighter)] text-[var(--fixzit-danger-darker)] border-red-200">Urgent</Badge>}
-                              {job.featured && <Badge className="bg-[var(--fixzit-accent-lighter)] text-[var(--fixzit-accent-darker)] border-yellow-200">Featured</Badge>}
+                              {job.urgent && <Badge className="bg-[var(--fixzit-danger-lighter)] text-[var(--fixzit-danger-darker)] border-destructive/20">Urgent</Badge>}
+                              {job.featured && <Badge className="bg-[var(--fixzit-accent-lighter)] text-[var(--fixzit-accent-darker)] border-warning/20">Featured</Badge>}
                             </div>
                           </div>
                         </DialogHeader>
@@ -604,7 +604,7 @@ export default function CareersPage() {
                                   <strong>Application Deadline:</strong> Applications are reviewed on a rolling basis
                                 </p>
                                 <p className="text-sm text-muted-foreground mt-1">
-                                  <strong>Status:</strong> <span className={job.status === 'Open' ? 'text-green-600' : 'text-red-600'}>{job.status}</span>
+                                  <strong>Status:</strong> <span className={job.status === 'Open' ? 'text-success' : 'text-destructive'}>{job.status}</span>
                                 </p>
                               </div>
                               <Button

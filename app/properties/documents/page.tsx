@@ -65,20 +65,20 @@ export default function PropertiesDocumentsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Expiring Soon': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'Expired': return 'bg-red-100 text-red-800 border-red-200';
-      case 'Pending Review': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'Active': return 'bg-success/10 text-success-foreground border-success/20';
+      case 'Expiring Soon': return 'bg-warning/10 text-warning-foreground border-warning/20';
+      case 'Expired': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
+      case 'Pending Review': return 'bg-primary/10 text-primary-foreground border-primary/20';
       default: return 'bg-muted text-foreground border-border';
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'Legal': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'Safety': return 'bg-red-100 text-red-800 border-red-200';
-      case 'Contract': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Insurance': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'Legal': return 'bg-primary/10 text-primary-foreground border-primary/20';
+      case 'Safety': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
+      case 'Contract': return 'bg-success/10 text-success-foreground border-success/20';
+      case 'Insurance': return 'bg-secondary/10 text-purple-800 border-purple-200';
       default: return 'bg-muted text-foreground border-border';
     }
   };
@@ -239,7 +239,7 @@ export default function PropertiesDocumentsPage() {
                     <div className="flex gap-2">
                       <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">{t('common.view', 'View')}</button>
                       <button className="text-[var(--fixzit-success)] hover:text-[var(--fixzit-success-darkest)]">{t('common.download', 'Download')}</button>
-                      <button className="text-orange-600 hover:text-orange-900">{t('common.edit', 'Edit')}</button>
+                      <button className="text-warning hover:text-orange-900">{t('common.edit', 'Edit')}</button>
                     </div>
                   </td>
                 </tr>
@@ -250,7 +250,7 @@ export default function PropertiesDocumentsPage() {
       </div>
 
       {/* Expiring Documents Alert */}
-      <div className="card border-yellow-200 bg-[var(--fixzit-accent-lightest)]">
+      <div className="card border-warning/20 bg-[var(--fixzit-accent-lightest)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="text-[var(--fixzit-accent-lighter)]">⚠️</div>

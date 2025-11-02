@@ -12,29 +12,29 @@ export default function HRDashboard() {
       title: t('hr.stats.totalEmployees', 'Total Employees'),
       value: '142',
       icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100'
+      color: 'text-primary',
+      bgColor: 'bg-primary/10'
     },
     {
       title: t('hr.stats.monthlyPayroll', 'Monthly Payroll'),
       value: 'SAR 1.2M',
       icon: DollarSign,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100'
+      color: 'text-success',
+      bgColor: 'bg-success/10'
     },
     {
       title: t('hr.stats.pendingLeave', 'Pending Leave Requests'),
       value: '8',
       icon: Calendar,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100'
+      color: 'text-warning',
+      bgColor: 'bg-warning/10'
     },
     {
       title: t('hr.stats.attendance', 'Today\'s Attendance'),
       value: '138/142',
       icon: Clock,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100'
+      color: 'text-secondary',
+      bgColor: 'bg-secondary/10'
     },
   ];
 

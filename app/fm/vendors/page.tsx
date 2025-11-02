@@ -124,10 +124,10 @@ export default function FMVendorsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'suspended': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
+      case 'approved': return 'bg-success/10 text-success-foreground border-success/20';
+      case 'pending': return 'bg-warning/10 text-warning-foreground border-warning/20';
+      case 'suspended': return 'bg-warning/10 text-orange-800 border-orange-200';
+      case 'rejected': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
       case 'blacklisted': return 'bg-destructive text-destructive-foreground border-destructive';
       default: return 'bg-muted text-foreground border-border';
     }
@@ -135,9 +135,9 @@ export default function FMVendorsPage() {
 
   // Loading state
   if (!session) return <CardGridSkeleton count={6} />;
-  if (!orgId) return <div className="p-6 text-center text-red-600">Error: Organization ID missing from session</div>;
+  if (!orgId) return <div className="p-6 text-center text-destructive">Error: Organization ID missing from session</div>;
   if (isLoading) return <CardGridSkeleton count={6} />;
-  if (error) return <div className="p-6 text-center text-red-600">Failed to load vendors: {error.message}</div>;
+  if (error) return <div className="p-6 text-center text-destructive">Failed to load vendors: {error.message}</div>;
 
   return (
     <div className="space-y-6">
@@ -269,7 +269,7 @@ export default function FMVendorsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-red-600 hover:text-red-700"
+                            className="text-destructive hover:text-destructive"
                             onClick={() => handleDelete(vendor.id, vendor.name)}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
