@@ -133,14 +133,29 @@ const nextConfig = {
   // This webpack config is ONLY used during production builds (`npm run build`)
   // When running `npm run dev`, Turbopack is used instead (configured above)
   //
-  webpack: (config, { isServer, dev }) => {
+  webpack: (config, { isServer, dev, nextRuntime }) => {
     // Production-only webpack optimizations below
+    
+    // ⚡ FIX: Exclude mongoose and server models from Edge Runtime
+    // Edge Runtime (middleware) cannot use dynamic code evaluation (mongoose, bcrypt, etc.)
+    // This ensures these packages are never bundled for Edge Runtime
+    if (nextRuntime === 'edge') {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        mongoose: false,
+        '@/server/models/User': false,
+        '@/lib/mongoUtils': false,
+        '@/lib/mongoUtils.server': false,
+        'bcryptjs': false,
+      };
+    }
     
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
       net: false,
       tls: false,
+      mongoose: false, // Exclude mongoose from client/edge bundles
     }
     
     // 🚀 MEMORY-OPTIMIZED: Balance speed with memory constraints

@@ -1,7 +1,7 @@
-import { NextRequest } from "next/server";
-import { connectToDatabase } from "@/lib/mongodb-unified";
-import { User } from "@/server/models/User";
-import { getNextAtomicUserCode } from '@/lib/mongoUtils';
+import { NextRequest, NextResponse } from 'next/server';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { User } from '@/server/models/User';
+import { getNextAtomicUserCode } from '@/lib/mongoUtils.server';
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { rateLimit } from '@/server/security/rateLimit';
