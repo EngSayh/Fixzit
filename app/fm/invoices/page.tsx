@@ -51,7 +51,7 @@ interface InvoicePayment {
 }
 
 interface Invoice {
-  _id: string;
+  id: string;
   id: string;
   number: string;
   recipient: InvoiceRecipient;
@@ -255,7 +255,7 @@ export default function InvoicesPage() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {invoices.map((invoice: Invoice) => (
-              <InvoiceCard key={invoice._id} invoice={invoice} onUpdated={mutate} orgId={orgId} />
+              <InvoiceCard key={invoice.id} invoice={invoice} onUpdated={mutate} orgId={orgId} />
             ))}
           </div>
 
@@ -310,7 +310,7 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
     const toastId = toast.loading('Sending invoice...');
     
     try {
-      const response = await fetch(`/api/finance/invoices/${invoice._id}/send`, {
+      const response = await fetch(`/api/finance/invoices/${invoice.id}/send`, {
         method: 'POST',
         headers: { 'x-tenant-id': orgId }
       });

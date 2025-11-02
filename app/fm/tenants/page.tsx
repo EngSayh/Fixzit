@@ -22,7 +22,7 @@ interface TenantProperty {
 }
 
 interface Tenant {
-  _id: string;
+  id: string;
   name?: string;
   code?: string;
   type?: string;
@@ -137,7 +137,7 @@ export default function TenantsPage() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {(tenants as Tenant[]).map((tenant) => (
-              <TenantCard key={tenant._id} tenant={tenant} onUpdated={mutate} />
+              <TenantCard key={tenant.id} tenant={tenant} onUpdated={mutate} />
             ))}
           </div>
 

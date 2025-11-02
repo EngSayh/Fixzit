@@ -24,7 +24,7 @@ import { UpdateVendorSchema, type UpdateVendorInput } from '@/lib/validations/fo
 import { z } from 'zod';
 
 interface Vendor {
-  _id: string;
+  id: string;
   code: string;
   name: string;
   type: string;
