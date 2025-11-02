@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
       personal: { firstName: cand.firstName, lastName: cand.lastName, email: cand.email, phone: cand.phone },
       professional: { role: 'EMPLOYEE', department: job.department, title: job.title },
       status: 'ACTIVE',
-      metadata: { source: 'ats', jobId: job._id.toString(), applicationId: app._id.toString(), convertedBy: user?.id || 'system' }
+      metadata: { source: 'ats', jobId: job.id.toString(), applicationId: app.id.toString(), convertedBy: user?.id || 'system' }
     });
     return NextResponse.json({ success: true, data: employee });
   } catch (error) {

@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
 
     // 3) Create Subscription snapshot (status pending until paid)
     const sub = await Subscription.create({
-      customerId: customer._id,
+      customerId: customer.id,
       orgId: user.orgId,
       planType: body.planType,
       items: (quote.items || []).map((i: Record<string, unknown>) =>({ moduleId: undefined, // resolved later in worker if needed
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
     const amount = body.billingCycle === 'annual' ? quote.annualTotal : quote.monthly;
 
     const inv = await SubscriptionInvoice.create({
-      subscriptionId: sub._id,
+      subscriptionId: sub.id,
       orgId: user.orgId,
       amount, currency: quote.currency,
       periodStart: new Date(),
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
       profile_id: process.env.PAYTABS_PROFILE_ID,
       tran_type: 'sale',
       tran_class: body.billingCycle === 'monthly' ? 'ecom' : 'ecom',
-      cart_id: `SUB-${sub._id}`,
+      cart_id: `SUB-${sub.id}`,
       cart_description: `Fixzit ${body.planType} (${body.billingCycle})`,
       cart_amount: amount,
       cart_currency: quote.currency,
@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
     if (body.billingCycle === 'monthly') basePayload.tokenise = 2; // Hex32 token, delivered in callback
     const resp = await createHppRequest(body.paytabsRegion || 'GLOBAL', basePayload);
     // resp.redirect_url to be used on FE
-    return NextResponse.json({ subscriptionId: sub._id, invoiceId: inv._id, paytabs: resp });
+    return NextResponse.json({ subscriptionId: sub.id, invoiceId: inv.id, paytabs: resp });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);

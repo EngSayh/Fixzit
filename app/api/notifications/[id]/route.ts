@@ -77,7 +77,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const updated = await notifications.findOneAndUpdate({ _id, orgId }, update, { returnDocument: 'after' });
   const value = updated;
   if (!value) return createSecureResponse({ error: 'Notification not found' }, 404, req);
-  const normalized = { id: String(value._id), ...value, _id: undefined };
+  const normalized = { id: String(value.id), ...value, _id: undefined };
   return createSecureResponse(normalized);
 }
 

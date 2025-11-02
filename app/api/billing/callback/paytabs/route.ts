@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
   if (!sub) return createSecureResponse({ error: 'SUB_NOT_FOUND' }, 400, req);
 
   // Find invoice
-  const inv = await SubscriptionInvoice.findOne({ subscriptionId: sub._id, status: 'pending' });
+  const inv = await SubscriptionInvoice.findOne({ subscriptionId: sub.id, status: 'pending' });
   if (!inv) return createSecureResponse({ error: 'INV_NOT_FOUND' }, 400, req);
 
   if (!verifiedOk) {
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
         expMonth: paymentInfo.expiryMonth, 
         expYear: paymentInfo.expYear
       });
-      sub.paytabsTokenId = pm._id;
+      sub.paytabsTokenId = pm.id;
       await sub.save();
     }
   }

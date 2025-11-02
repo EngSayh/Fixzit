@@ -123,13 +123,13 @@ ChartAccountSchema.statics.getHierarchy = async function(orgId: Types.ObjectId) 
   // First pass: Create map
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   accounts.forEach((acc: any) => {
-    map.set(acc._id.toString(), { ...acc.toObject(), children: [] });
+    map.set(acc.id.toString(), { ...acc.toObject(), children: [] });
   });
   
   // Second pass: Build tree
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   accounts.forEach((acc: any) => {
-    const node = map.get(acc._id.toString());
+    const node = map.get(acc.id.toString());
     if (acc.parentId) {
       const parent = map.get(acc.parentId.toString());
       if (parent) {
@@ -172,7 +172,7 @@ ChartAccountSchema.pre('deleteOne', { document: true, query: false }, async func
   
   const childCount = await model('ChartAccount').countDocuments({ 
     orgId: this.orgId, 
-    parentId: this._id 
+    parentId: this.id 
   });
   
   if (childCount > 0) {

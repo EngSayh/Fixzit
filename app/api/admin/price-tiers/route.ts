@@ -115,8 +115,8 @@ export async function POST(req: NextRequest) {
     if (!mod) return createErrorResponse('MODULE_NOT_FOUND', 400, req);
     
     const doc = await PriceTier.findOneAndUpdate(
-      { moduleId: mod._id, seatsMin: body.seatsMin, seatsMax: body.seatsMax, currency: body.currency || 'USD' },
-      { ...body, moduleId: mod._id, updatedBy: user.id, updatedAt: new Date() },
+      { moduleId: mod.id, seatsMin: body.seatsMin, seatsMax: body.seatsMax, currency: body.currency || 'USD' },
+      { ...body, moduleId: mod.id, updatedBy: user.id, updatedAt: new Date() },
       { upsert: true, new: true }
     );
     return createSecureResponse(doc, 201, req);

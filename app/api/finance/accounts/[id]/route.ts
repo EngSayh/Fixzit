@@ -101,13 +101,13 @@ export async function GET(
         // Get child accounts
         const children = await ChartAccount.find({
           orgId: new Types.ObjectId(user.orgId),
-          parentId: account._id
+          parentId: account.id
         }).lean();
         
         // Get current balance from most recent ledger entry
         const latestEntry = await LedgerEntry.findOne({
           orgId: new Types.ObjectId(user.orgId),
-          accountId: account._id
+          accountId: account.id
         }).sort({ date: -1, createdAt: -1 }).lean();
         
         const currentBalance = latestEntry ? ((latestEntry as { runningBalance?: number }).runningBalance || 0) : 0;
@@ -264,7 +264,7 @@ export async function DELETE(
         // Check if account has ledger entries
         const hasEntries = await LedgerEntry.exists({
           orgId: new Types.ObjectId(user.orgId),
-          accountId: account._id
+          accountId: account.id
         });
         
         if (hasEntries) {
@@ -276,7 +276,7 @@ export async function DELETE(
         // Check if account has children
         const hasChildren = await ChartAccount.exists({
           orgId: new Types.ObjectId(user.orgId),
-          parentId: account._id
+          parentId: account.id
         });
         
         if (hasChildren) {

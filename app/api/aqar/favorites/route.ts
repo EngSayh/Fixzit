@@ -97,8 +97,8 @@ export async function GET(request: NextRequest) {
     ]);
     
     // Step 3: Create lookup maps for O(1) access
-    const listingMap = new Map(listings.map(l => [l._id.toString(), l]));
-    const projectMap = new Map(projects.map(p => [p._id.toString(), p]));
+    const listingMap = new Map(listings.map(l => [l.id.toString(), l]));
+    const projectMap = new Map(projects.map(p => [p.id.toString(), p]));
     
     // Step 4: Attach targets to favorites
     const favoritesWithTargets = favorites.map(fav => {

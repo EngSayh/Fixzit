@@ -71,7 +71,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     return NextResponse.json({
       success: true,
       rfq: {
-        id: rfq._id,
+        id: rfq.id,
         code: rfq.code,
         status: rfq.status,
         publishedAt: rfq?.workflow?.publishedAt || null

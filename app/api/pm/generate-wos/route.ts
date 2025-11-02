@@ -46,7 +46,7 @@ export async function POST() {
           type: 'MAINTENANCE',
           status: 'SCHEDULED',
           scheduledDate: plan.nextScheduledDate,
-          pmPlanId: plan._id,
+          pmPlanId: plan.id,
           pmPlanNumber: plan.planNumber,
           estimatedCost: plan.estimatedCost,
           budgetCode: plan.budgetCode,
@@ -59,14 +59,14 @@ export async function POST() {
         
         // Record generation in plan
         await plan.recordGeneration(
-          plan._id, // In real impl, this would be the actual WorkOrder._id
+          plan.id, // In real impl, this would be the actual WorkOrder._id
           woNumber,
           'SUCCESS'
         );
         
         results.generated++;
         results.workOrders.push({
-          planId: plan._id.toString(),
+          planId: plan.id.toString(),
           planNumber: plan.planNumber,
           woNumber,
           scheduledFor: plan.nextScheduledDate
@@ -112,7 +112,7 @@ export async function GET() {
       
       return now >= generateByDate && (!plan.lastGeneratedDate || plan.lastGeneratedDate < generateByDate);
     }).map(plan => ({
-      planId: plan._id,
+      planId: plan.id,
       planNumber: plan.planNumber,
       title: plan.title,
       propertyId: plan.propertyId,

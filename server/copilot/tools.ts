@@ -81,7 +81,7 @@ async function createWorkOrder(session: CopilotSession, input: Record<string, un
     intent: "createWorkOrder",
     data: {
       code: doc.code,
-      id: doc._id?.toString?.() ?? doc._id,
+      id: doc.id?.toString?.() ?? doc.id,
       priority: doc.priority,
       status: doc.status
     }

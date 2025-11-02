@@ -68,13 +68,13 @@ export async function POST(req: NextRequest) {
 
     // Update last login timestamp
     await User.updateOne(
-      { _id: user._id },
+      { _id: user.id },
       { $set: { 'security.lastLogin': new Date() } }
     );
 
     // Return user data that NextAuth expects
     return NextResponse.json({
-      id: user._id.toString(),
+      id: user.id.toString(),
       email: user.email,
       name: `${user.personal?.firstName || ''} ${user.personal?.lastName || ''}`.trim() || user.email,
       role: user.professional?.role || user.role || 'USER',

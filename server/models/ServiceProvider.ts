@@ -394,13 +394,13 @@ ServiceProviderSchema.methods.transitionStatus = async function(
     // Use findByIdAndUpdate for atomic operation
     const ModelClass = this.constructor as typeof ServiceProviderModel;
     const updated = await ModelClass.findByIdAndUpdate(
-      this._id,
+      this.id,
       { $set: updateFields },
       { new: true, runValidators: true }
     );
     
     if (!updated) {
-      throw new Error(`Failed to update ServiceProvider ${this._id}: document not found`);
+      throw new Error(`Failed to update ServiceProvider ${this.id}: document not found`);
     }
     
     // Update in-memory instance with persisted values

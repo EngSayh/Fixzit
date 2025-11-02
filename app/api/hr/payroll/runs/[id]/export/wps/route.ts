@@ -39,7 +39,7 @@ export async function GET(
     // Fetch all payslips for this run
     const payslips = await Payslip.find({
       orgId: session.user.orgId,
-      payrollRunId: run._id,
+      payrollRunId: run.id,
     }).lean();
 
     if (payslips.length === 0) {

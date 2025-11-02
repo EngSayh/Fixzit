@@ -24,7 +24,7 @@
  *     ]
  *   });
  *   
- *   await postingService.postJournal(journal._id);
+ *   await postingService.postJournal(journal.id);
  */
 
 import { Types, Document } from 'mongoose';
@@ -102,7 +102,7 @@ class PostingService {
     }
 
         // Map accountIds to account documents for quick lookup
-    const accountMap = new Map(accounts.map((acc: IChartAccount & Document) => [acc._id.toString(), acc]));
+    const accountMap = new Map(accounts.map((acc: IChartAccount & Document) => [acc.id.toString(), acc]));
 
     // Build journal lines with denormalized account data
     const journalLines: IJournalLine[] = lines.map((line, index) => {
@@ -183,7 +183,7 @@ class PostingService {
       // Create ledger entry
       const ledgerEntry = await LedgerEntryModel.create({
         orgId: journal.orgId,
-        journalId: journal._id,
+        journalId: journal.id,
         journalNumber: journal.journalNumber,
         journalDate: journal.journalDate,
         postingDate: new Date(),

@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
         zip: '11564'
       },
       description: `Payment for Invoice ${invoice.number}`,
-      invoiceId: invoice._id.toString(),
+      invoiceId: invoice.id.toString(),
       returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/payments/success`,
       callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/callback`
     };

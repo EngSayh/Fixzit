@@ -109,7 +109,7 @@ export async function onWorkOrderClosed(
   console.log('[Finance] Created expense transaction:', savedExpense.transactionNumber);
   results.expenseTransaction = {
     ...expenseTransaction,
-    id: savedExpense._id.toString()
+    id: savedExpense.id.toString()
   };
 
   // 2. Create invoice if chargeable
@@ -150,7 +150,7 @@ export async function onWorkOrderClosed(
     console.log('[Finance] Created invoice:', savedInvoice.transactionNumber);
     results.invoiceTransaction = {
       ...invoiceTransaction,
-      id: savedInvoice._id.toString()
+      id: savedInvoice.id.toString()
     };
   }
 
@@ -233,7 +233,7 @@ export async function generateOwnerStatement(
 
   // Convert to interface format
   const transactions: FinancialTransaction[] = dbTransactions.map(t => ({
-    id: t._id.toString(),
+    id: t.id.toString(),
     type: t.type as 'EXPENSE' | 'INVOICE' | 'PAYMENT',
     workOrderId: t.workOrderId?.toString() || '',
     propertyId: t.propertyId,
@@ -285,7 +285,7 @@ export async function getTenantPendingInvoices(
 
   // Convert to interface format
   return dbInvoices.map(t => ({
-    id: t._id.toString(),
+    id: t.id.toString(),
     type: 'INVOICE',
     workOrderId: t.workOrderId?.toString() || '',
     propertyId: t.propertyId,
@@ -350,7 +350,7 @@ export async function recordPayment(
 
   // Convert to interface format
   const payment: FinancialTransaction = {
-    id: savedPayment._id.toString(),
+    id: savedPayment.id.toString(),
     type: 'PAYMENT',
     workOrderId: savedPayment.workOrderId?.toString() || '',
     propertyId: savedPayment.propertyId,

@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       const nodes = parentMap.get(parentId ?? 'root') ?? [];
       return (nodes as CategoryNode[]).map((node) => ({
         ...node,
-        children: buildTree(node._id)
+        children: buildTree((node as { _id?: string })._id)
       }));
     };
 

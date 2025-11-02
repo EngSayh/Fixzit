@@ -161,8 +161,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     // Check for duplicate application
     const existingApplication = await Application.findOne({
       orgId: job.orgId,
-      jobId: job._id,
-      candidateId: candidate._id
+      jobId: job.id,
+      candidateId: candidate.id
     });
     
     if (existingApplication) {
@@ -170,7 +170,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         { 
           success: false, 
           error: 'You have already applied for this position',
-          applicationId: existingApplication._id
+          applicationId: existingApplication.id
         },
         { status: 400 }
       );
@@ -193,8 +193,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     // Create application
     const application = await Application.create({
       orgId: job.orgId,
-      jobId: job._id,
-      candidateId: candidate._id,
+      jobId: job.id,
+      candidateId: candidate.id,
       stage: knockoutCheck.reject ? 'rejected' : 'applied',
       score,
       source: 'careers',
@@ -217,12 +217,12 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     });
     
     // Update job application count
-    await Job.findByIdAndUpdate(job._id, { $inc: { applicationCount: 1 } });
+    await Job.findByIdAndUpdate(job.id, { $inc: { applicationCount: 1 } });
     
     return NextResponse.json({ 
       success: true,
       data: {
-        applicationId: application._id,
+        applicationId: application.id,
         status: application.stage,
         score,
         message: knockoutCheck.reject ? 

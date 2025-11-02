@@ -175,7 +175,7 @@ export async function GET(
         const closingBalance = openingBalance + totalDebits - totalCredits;
         
         return NextResponse.json({
-          accountId: account._id.toString(),
+          accountId: account.id.toString(),
           accountCode: account.code,
           accountName: account.name,
           accountType: account.type,

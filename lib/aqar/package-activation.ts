@@ -69,7 +69,7 @@ export async function activatePackageAfterPayment(paymentId: string | mongoose.T
       await pkg.activate();
       console.log('activatePackageAfterPayment: Package activated successfully', { 
         paymentId, 
-        packageId: pkg._id,
+        packageId: pkg.id,
         userId: pkg.userId,
         type: pkg.type
       });
@@ -91,7 +91,7 @@ export async function activatePackageAfterPayment(paymentId: string | mongoose.T
  * ```typescript
  * // After marking payment as successful
  * if (payment.status === PaymentStatus.COMPLETED && payment.type === 'PACKAGE') {
- *   await activatePackageAfterPayment(payment._id).catch(err => {
+ *   await activatePackageAfterPayment(payment.id).catch(err => {
  *     console.error('Failed to activate package:', err);
  *   });
  * }

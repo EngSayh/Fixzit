@@ -161,7 +161,7 @@ export async function searchProducts(filters: MarketplaceSearchFilters) {
     { $group: { _id: '$categoryId', count: { $sum: 1 } } }
   ]);
 
-  const categoryIds = categoriesAggregation.map(item => item._id as Types.ObjectId);
+  const categoryIds = categoriesAggregation.map(item => item.id as Types.ObjectId);
 
   return {
     items: items.map(item => serializeProduct(item as MarketplaceProduct)),

@@ -90,14 +90,14 @@ export async function POST(request: NextRequest) {
           type: 'PACKAGE',
           amount: pricing.price,
           currency: 'SAR',
-          relatedId: pkg._id,
+          relatedId: pkg.id,
           relatedModel: 'AqarPackage',
           status: 'PENDING',
         });
         await payment.save({ session });
         
         // Link payment to package
-        pkg.paymentId = payment._id as never;
+        pkg.paymentId = payment.id as never;
         await pkg.save({ session });
       });
       
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
         {
           package: pkg.toObject?.() ?? pkg,
           payment: payment.toObject?.() ?? payment,
-          redirectUrl: `/aqar/payments/${payment._id}`,
+          redirectUrl: `/aqar/payments/${payment.id}`,
         },
         { correlationId },
         201

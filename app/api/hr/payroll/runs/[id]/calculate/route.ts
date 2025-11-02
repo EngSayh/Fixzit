@@ -64,7 +64,7 @@ export async function POST(
       // Fetch approved overtime from timesheets
       const timesheets = await Timesheet.find({
         orgId: session.user.orgId,
-        employeeId: employee._id,
+        employeeId: employee.id,
         weekStart: { $gte: run.periodStart },
         weekEnd: { $lte: run.periodEnd },
         status: 'APPROVED',
@@ -93,8 +93,8 @@ export async function POST(
       // Create payslip
       const payslip = new Payslip({
         orgId: session.user.orgId,
-        payrollRunId: run._id,
-        employeeId: employee._id,
+        payrollRunId: run.id,
+        employeeId: employee.id,
         employeeCode: employee.employeeCode,
         employeeName: `${employee.firstName} ${employee.lastName}`,
         iban: employee.bank?.iban || '',

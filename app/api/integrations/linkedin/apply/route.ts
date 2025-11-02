@@ -62,15 +62,15 @@ export async function POST(req: NextRequest) {
     }
 
     const orgId = job.orgId;
-    const jobId = job._id;
+    const jobId = job.id;
     
-    const dup = await Application.findOne({ orgId, jobId, candidateId: candidate._id });
-    if (dup) return NextResponse.json({ success: true, data: { applicationId: dup._id, message: 'Already applied' } });
+    const dup = await Application.findOne({ orgId, jobId, candidateId: candidate.id });
+    if (dup) return NextResponse.json({ success: true, data: { applicationId: dup.id, message: 'Already applied' } });
 
     const app = await Application.create({
       orgId,
       jobId,
-      candidateId: candidate._id,
+      candidateId: candidate.id,
       stage: 'applied',
       score: 0,
       source: 'linkedin',
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
       history: [{ action: 'applied', by: 'candidate', at: new Date() }]
     });
 
-    return NextResponse.json({ success: true, data: { applicationId: app._id } }, { status: 201 });
+    return NextResponse.json({ success: true, data: { applicationId: app.id } }, { status: 201 });
   } catch (error) {
     console.error('LinkedIn apply error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to apply with LinkedIn' }, 500, req);

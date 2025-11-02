@@ -328,7 +328,7 @@ export function createAuditContextFromRequest(req: Record<string, unknown>, user
   }
   
   return {
-    userId: userId || reqUser?.id || reqUser?._id?.toString(),
+    userId: userId || reqUser?.id || reqUser?.id?.toString(),
     userEmail: reqUser?.email,
     ipAddress: clientIp,
     userAgent: headers['user-agent'] ? String(headers['user-agent']) : undefined,

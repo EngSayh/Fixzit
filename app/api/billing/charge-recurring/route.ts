@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     if (!pm) continue;
 
     const inv = await SubscriptionInvoice.create({
-      subscriptionId: s._id, amount: s.totalMonthly, currency: s.currency,
+      subscriptionId: s.id, amount: s.totalMonthly, currency: s.currency,
       periodStart: today, periodEnd: new Date(new Date().setMonth(today.getMonth()+1)),
       dueDate: today, status:'pending'
     });
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       headers: { 'Content-Type':'application/json', 'authorization': process.env.PAYTABS_SERVER_KEY! },
       body: JSON.stringify({
         profile_id: process.env.PAYTABS_PROFILE_ID, tran_type:'sale', tran_class:'recurring',
-        cart_id: `INV-${inv._id}`, cart_description: `Fixzit Monthly ${s.planType}`, cart_amount: inv.amount, cart_currency: inv.currency,
+        cart_id: `INV-${inv.id}`, cart_description: `Fixzit Monthly ${s.planType}`, cart_amount: inv.amount, cart_currency: inv.currency,
         token: pm.token
       })
     }).then(r=>r.json());

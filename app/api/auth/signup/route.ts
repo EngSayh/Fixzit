@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       message: "User created successfully",
       user: {
-        id: newUser._id,
+        id: newUser.id,
         email: newUser.email,
         role: newUser.professional.role,
       }
