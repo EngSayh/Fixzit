@@ -213,12 +213,12 @@ export default function NewExpensePage() {
       category: 'MAINTENANCE_REPAIR',
       accountId: '',
       accountCode: '',
-      quantity: 1,
-      unitPrice: 0,
-      amount: 0,
+      quantity: '1',
+      unitPrice: '0',
+      amount: '0',
       taxable: true,
-      taxRate: 0.15,
-      taxAmount: 0
+      taxRate: '0.15',
+      taxAmount: '0'
     };
     setLineItems([...lineItems, newItem]);
   };
@@ -235,14 +235,29 @@ export default function NewExpensePage() {
 
       const updated = { ...item, [field]: value };
 
-      // Recalculate amounts
+      // Recalculate amounts using Decimal.js for precision
       if (field === 'quantity' || field === 'unitPrice') {
-        updated.amount = updated.quantity * updated.unitPrice;
-        updated.taxAmount = updated.taxable ? updated.amount * updated.taxRate : 0;
+        const qty = new Decimal(updated.quantity || '0');
+        const price = new Decimal(updated.unitPrice || '0');
+        const amt = qty.times(price);
+        updated.amount = amt.toFixed(2);
+        
+        if (updated.taxable) {
+          const tax = amt.times(new Decimal(updated.taxRate || '0'));
+          updated.taxAmount = tax.toFixed(2);
+        } else {
+          updated.taxAmount = '0';
+        }
       }
 
       if (field === 'taxable' || field === 'taxRate') {
-        updated.taxAmount = updated.taxable ? updated.amount * updated.taxRate : 0;
+        if (updated.taxable) {
+          const amt = new Decimal(updated.amount || '0');
+          const tax = amt.times(new Decimal(updated.taxRate || '0'));
+          updated.taxAmount = tax.toFixed(2);
+        } else {
+          updated.taxAmount = '0';
+        }
       }
 
       // Update account code when account changes
@@ -308,15 +323,15 @@ export default function NewExpensePage() {
       if (!item.description.trim()) {
         newErrors[`lineItem.${index}.description`] = t('finance.expense.lineItemDescRequired', 'Description required');
       }
-      if (item.quantity <= 0) {
+      if (new Decimal(item.quantity || '0').lessThanOrEqualTo(0)) {
         newErrors[`lineItem.${index}.quantity`] = t('finance.expense.lineItemQtyInvalid', 'Quantity must be > 0');
       }
-      if (item.unitPrice <= 0) {
+      if (new Decimal(item.unitPrice || '0').lessThanOrEqualTo(0)) {
         newErrors[`lineItem.${index}.unitPrice`] = t('finance.expense.lineItemPriceInvalid', 'Price must be > 0');
       }
     });
 
-    if (totalAmount <= 0) {
+    if (totalAmount.lessThanOrEqualTo(0)) {
       newErrors.totalAmount = t('finance.expense.totalInvalid', 'Total amount must be greater than zero');
     }
 
@@ -743,7 +758,7 @@ export default function NewExpensePage() {
                         {item.taxable && <span className="text-xs text-muted-foreground ml-1">15%</span>}
                       </td>
                       <td className="px-2 py-2 text-right font-medium">
-                        {currency} {(item.amount + item.taxAmount).toFixed(2)}
+                        {currency} {new Decimal(item.amount || '0').plus(new Decimal(item.taxAmount || '0')).toFixed(2)}
                       </td>
                       <td className="px-2 py-2">
                         {lineItems.length > 1 && (
