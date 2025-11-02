@@ -84,7 +84,7 @@ async function renderMarkdown(md: string){
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
   
   // Links
-  html = html.replace(/\[([^\]]+)\](([^)]+))/g, '<a href="$2" class="text-blue-600 hover:underline">$1</a>');
+  html = html.replace(/\[([^\]]+)\](([^)]+))/g, '<a href="$2" class="text-primary hover:underline">$1</a>');
   
   // Paragraphs
   html = html.split(/\n{2,}/).map(p => {

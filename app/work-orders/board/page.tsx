@@ -73,7 +73,7 @@ export default function WorkOrdersBoardPage() {
           </div>
           <div className="space-y-3">
             {workOrders.filter(wo => wo.status === 'pending').map(wo => (
-              <div key={wo.id} className="p-3 bg-[var(--fixzit-accent-lightest)] border border-yellow-200 rounded-2xl">
+              <div key={wo.id} className="p-3 bg-[var(--fixzit-accent-lightest)] border border-warning/20 rounded-2xl">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-sm">{wo.id}</span>
                   <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(wo.priority)}`}>
@@ -99,7 +99,7 @@ export default function WorkOrdersBoardPage() {
           </div>
           <div className="space-y-3">
             {workOrders.filter(wo => wo.status === 'in-progress').map(wo => (
-              <div key={wo.id} className="p-3 bg-[var(--fixzit-primary-lightest)] border border-blue-200 rounded-2xl">
+              <div key={wo.id} className="p-3 bg-[var(--fixzit-primary-lightest)] border border-primary/20 rounded-2xl">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-sm">{wo.id}</span>
                   <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(wo.priority)}`}>

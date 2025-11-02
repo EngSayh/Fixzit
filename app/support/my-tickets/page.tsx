@@ -134,7 +134,7 @@ export default function MyTicketsPage() {
                       <span className={`text-xs px-2 py-1 rounded-full ${
                         ticket.status === 'New' ? 'bg-primary/10 text-primary' :
                         ticket.status === 'Open' ? 'bg-accent/10 text-accent-foreground' :
-                        ticket.status === 'Waiting' ? 'bg-purple-100 text-purple-800' :
+                        ticket.status === 'Waiting' ? 'bg-secondary/10 text-purple-800' :
                         ticket.status === 'Resolved' ? 'bg-success/10 text-success' :
                         'bg-muted text-foreground'
                       }`}>

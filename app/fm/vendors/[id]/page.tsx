@@ -55,7 +55,7 @@ const statusColors: Record<string, string> = {
   PENDING: 'bg-warning/10 text-warning-foreground',
   SUSPENDED: 'bg-destructive/10 text-destructive-foreground',
   REJECTED: 'bg-muted text-foreground',
-  BLACKLISTED: 'bg-red-200 text-red-900',
+  BLACKLISTED: 'bg-destructive/20 text-red-900',
 };
 
 export default function VendorDetailsPage() {

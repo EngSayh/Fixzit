@@ -26,7 +26,7 @@ interface Order {
 // [CODE REVIEW]: FIX - Use Tailwind theme classes instead of hardcoded colors
 const STATUS_BADGES: Record<string, string> = {
   APPROVAL: 'bg-warning/10 text-warning-foreground',
-  PENDING: 'bg-blue-500/10 text-blue-700',
+  PENDING: 'bg-primary/100/10 text-primary',
   CONFIRMED: 'bg-indigo-500/10 text-indigo-700',
   FULFILLED: 'bg-teal-500/10 text-teal-700',
   DELIVERED: 'bg-success/10 text-success-foreground',

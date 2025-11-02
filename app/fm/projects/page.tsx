@@ -231,7 +231,7 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
       case 'CANCELLED':
         return 'bg-destructive/10 text-destructive';
       case 'CLOSED':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-secondary/10 text-purple-800';
       default:
         return 'bg-muted text-foreground';
     }

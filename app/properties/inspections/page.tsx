@@ -67,7 +67,7 @@ export default function PropertiesInspectionsPage() {
     switch (type) {
       case 'Safety': return 'bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)] border-[var(--fixzit-primary-lighter)]';
       case 'Fire Safety': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
-      case 'Mechanical': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'Mechanical': return 'bg-secondary/10 text-purple-800 border-purple-200';
       case 'Electrical': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
       default: return 'bg-muted text-foreground border-border';
     }
@@ -210,7 +210,7 @@ export default function PropertiesInspectionsPage() {
                     <div className="flex gap-2">
                       <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">{t('common.edit', 'Edit')}</button>
                       <button className="text-[var(--fixzit-success)] hover:text-[var(--fixzit-success-darkest)]">Start</button>
-                      <button className="text-orange-600 hover:text-orange-900">Report</button>
+                      <button className="text-warning hover:text-orange-900">Report</button>
                     </div>
                   </td>
                 </tr>
@@ -221,7 +221,7 @@ export default function PropertiesInspectionsPage() {
       </div>
 
       {/* Overdue Inspections Alert */}
-      <div className="card border-red-200 bg-[var(--fixzit-danger-lightest)]">
+      <div className="card border-destructive/20 bg-[var(--fixzit-danger-lightest)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
@@ -244,7 +244,7 @@ export default function PropertiesInspectionsPage() {
         </div>
         <div className="space-y-3">
           {inspections.filter(inspection => inspection.status === 'scheduled').map(inspection => (
-            <div key={inspection.id} className="flex items-center justify-between p-3 bg-[var(--fixzit-primary-lightest)] border border-blue-200 rounded-2xl">
+            <div key={inspection.id} className="flex items-center justify-between p-3 bg-[var(--fixzit-primary-lightest)] border border-primary/20 rounded-2xl">
               <div className="flex items-center gap-3">
                 <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
                 <div>

@@ -225,7 +225,7 @@ export default function PropertiesLeasesPage() {
                     <div className="flex gap-2">
                       <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">{t('common.view', 'View')}</button>
                       <button className="text-[var(--fixzit-success)] hover:text-[var(--fixzit-success-darkest)]">{t('common.edit', 'Edit')}</button>
-                      <button className="text-orange-600 hover:text-orange-900">{t('properties.leases.renew', 'Renew')}</button>
+                      <button className="text-warning hover:text-orange-900">{t('properties.leases.renew', 'Renew')}</button>
                     </div>
                   </td>
                 </tr>
@@ -244,7 +244,7 @@ export default function PropertiesLeasesPage() {
             { unit: 'B-305', tenant: 'Sarah Johnson', date: '2024-02-22', days: 19 },
             { unit: 'C-202', tenant: 'Mohammed Ali', date: '2024-03-01', days: 26 },
           ].map((renewal, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-[var(--fixzit-accent-lightest)] rounded-2xl border border-yellow-200">
+            <div key={index} className="flex items-center justify-between p-3 bg-[var(--fixzit-accent-lightest)] rounded-2xl border border-warning/20">
               <div>
                 <p className="font-medium">{renewal.unit} - {renewal.tenant}</p>
                 <p className="text-sm text-muted-foreground">{t('properties.leases.expires', 'Expires')}: {renewal.date} ({renewal.days} {t('common.days', 'days')})</p>

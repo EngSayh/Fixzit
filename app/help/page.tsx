@@ -135,9 +135,9 @@ export default function HelpHome() {
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'Beginner': return 'bg-green-100 text-green-800';
-      case 'Intermediate': return 'bg-yellow-100 text-yellow-800';
-      case 'Advanced': return 'bg-red-100 text-red-800';
+      case 'Beginner': return 'bg-success/10 text-success-foreground';
+      case 'Intermediate': return 'bg-warning/10 text-yellow-800';
+      case 'Advanced': return 'bg-destructive/10 text-destructive-foreground';
       default: return 'bg-muted text-foreground';
     }
   };
