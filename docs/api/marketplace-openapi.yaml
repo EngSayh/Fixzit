@@ -303,7 +303,6 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-<<<<<<< HEAD
 
   schemas:
     MarketplaceSearchResult:
@@ -732,5 +731,3 @@ tags:
 externalDocs:
   description: Fixzit Developer Documentation
   url: https://docs.fixzit.co
-=======
->>>>>>> main
