@@ -242,7 +242,7 @@ export default function CatalogPage() {
 
                 <div className="flex items-center gap-2 mb-2">
                   <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-yellow-400 text-accent" />
+                    <Star className="w-4 h-4 fill-warning text-accent" />
                     <span className="text-sm font-medium">{product.rating}</span>
                   </div>
                   <span className="text-sm text-muted-foreground">({product.reviews})</span>

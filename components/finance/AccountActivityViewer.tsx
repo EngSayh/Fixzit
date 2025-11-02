@@ -271,14 +271,14 @@ export default function AccountActivityViewer({
           <div className="flex gap-2">
             <button
               onClick={exportToCSV}
-              className="px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700"
+              className="px-4 py-2 text-sm bg-success text-white rounded hover:bg-success"
               disabled={!data || loading}
             >
               📊 {t('Export CSV')}
             </button>
             <button
               onClick={() => loadAccountActivity()}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-4 py-2 text-sm bg-primary text-white rounded hover:bg-primary"
               disabled={loading}
             >
               {loading ? t('Loading...') : '🔄 ' + t('Refresh')}
@@ -364,8 +364,8 @@ export default function AccountActivityViewer({
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="bg-red-50 border border-destructive/20 rounded-2xl p-4">
+          <p className="text-sm text-destructive">{error}</p>
         </div>
       )}
 
@@ -388,11 +388,11 @@ export default function AccountActivityViewer({
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{t('Total Debits')}</p>
-                <p className="text-lg font-bold text-green-700">+{data.totalDebits.toFixed(2)}</p>
+                <p className="text-lg font-bold text-success">+{data.totalDebits.toFixed(2)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{t('Total Credits')}</p>
-                <p className="text-lg font-bold text-red-700">-{data.totalCredits.toFixed(2)}</p>
+                <p className="text-lg font-bold text-destructive">-{data.totalCredits.toFixed(2)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{t('Closing Balance')}</p>
@@ -431,7 +431,7 @@ export default function AccountActivityViewer({
               </thead>
               <tbody className="bg-card divide-y divide-border">
                 {/* Opening Balance Row */}
-                <tr className="bg-blue-50">
+                <tr className="bg-primary/5">
                   <td className="px-4 py-2 text-sm" colSpan={4}>
                     <strong>{t('Opening Balance')}</strong>
                   </td>
@@ -452,7 +452,7 @@ export default function AccountActivityViewer({
                     <td className="px-4 py-2 text-sm">
                       {new Date(txn.date).toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-2 text-sm font-medium text-blue-600">
+                    <td className="px-4 py-2 text-sm font-medium text-primary">
                       {txn.journalNumber}
                     </td>
                     <td className="px-4 py-2 text-sm">
@@ -468,10 +468,10 @@ export default function AccountActivityViewer({
                     <td className="px-4 py-2 text-sm text-foreground">
                       {txn.description}
                     </td>
-                    <td className="px-4 py-2 text-sm text-right text-green-700 font-medium">
+                    <td className="px-4 py-2 text-sm text-right text-success font-medium">
                       {txn.debit > 0 ? txn.debit.toFixed(2) : '-'}
                     </td>
-                    <td className="px-4 py-2 text-sm text-right text-red-700 font-medium">
+                    <td className="px-4 py-2 text-sm text-right text-destructive font-medium">
                       {txn.credit > 0 ? txn.credit.toFixed(2) : '-'}
                     </td>
                     <td className="px-4 py-2 text-sm text-right font-semibold">
@@ -490,14 +490,14 @@ export default function AccountActivityViewer({
                 )}
 
                 {/* Closing Balance Row */}
-                <tr className="bg-blue-50 border-t-2 border-border">
+                <tr className="bg-primary/5 border-t-2 border-border">
                   <td className="px-4 py-2 text-sm font-bold" colSpan={4}>
                     {t('Closing Balance')}
                   </td>
-                  <td className="px-4 py-2 text-sm text-right font-bold text-green-700">
+                  <td className="px-4 py-2 text-sm text-right font-bold text-success">
                     {data.totalDebits.toFixed(2)}
                   </td>
-                  <td className="px-4 py-2 text-sm text-right font-bold text-red-700">
+                  <td className="px-4 py-2 text-sm text-right font-bold text-destructive">
                     {data.totalCredits.toFixed(2)}
                   </td>
                   <td className="px-4 py-2 text-sm text-right font-bold">

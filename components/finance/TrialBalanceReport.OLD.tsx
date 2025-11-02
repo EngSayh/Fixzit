@@ -279,7 +279,7 @@ export default function TrialBalanceReport({
           <div className="flex gap-2">
             <button
               onClick={() => handleExport('csv')}
-              className="px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700"
+              className="px-4 py-2 text-sm bg-success text-white rounded-md hover:bg-success"
               disabled={!data || loading}
             >
               📊 {t('Export CSV')}
@@ -447,10 +447,10 @@ export default function TrialBalanceReport({
           </div>
 
           {/* Balance Status */}
-          <div className={`p-4 border-t ${data.isBalanced ? 'bg-green-600/10' : 'bg-destructive/10'}`}>
+          <div className={`p-4 border-t ${data.isBalanced ? 'bg-success/10' : 'bg-destructive/10'}`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className={`font-semibold ${data.isBalanced ? 'text-green-700 dark:text-green-600' : 'text-destructive'}`}>
+                <p className={`font-semibold ${data.isBalanced ? 'text-success dark:text-success' : 'text-destructive'}`}>
                   {data.isBalanced ? (
                     <span>✓ {t('Trial Balance is Balanced')}</span>
                   ) : (

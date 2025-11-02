@@ -206,7 +206,7 @@ export default function FMVendorsPage() {
                         </Badge>
                         {vendor.rating && (
                           <div className="flex items-center gap-1">
-                            <Star className="h-4 w-4 fill-yellow-400 text-warning" />
+                            <Star className="h-4 w-4 fill-warning text-warning" />
                             <span className="text-sm font-medium">{vendor.rating.toFixed(1)}</span>
                           </div>
                         )}

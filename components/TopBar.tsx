@@ -53,7 +53,7 @@ interface Notification {
  * 4. ✅ Simplified unsaved changes logic (NO window.dispatchEvent save triggering)
  * 5. ✅ Semantic colors (bg-card, text-foreground, border-border, bg-primary)
  * 6. ✅ Extracted sub-components (NotificationPopup, UserMenuPopup)
- * 7. ✅ Fixed all hardcoded colors (removed bg-red-500, bg-white/10, text-red-600)
+ * 7. ✅ Fixed all hardcoded colors (removed bg-destructive, bg-white/10, text-destructive)
  */
 export default function TopBar() {
   const [notifOpen, setNotifOpen] = useState(false);

@@ -320,8 +320,8 @@ ${errorReport.error.componentStack || 'No component stack available'}
               {this.state.fixAttempted && (
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                   this.state.fixSuccessful
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
+                    ? 'bg-success/10 text-success'
+                    : 'bg-destructive/10 text-destructive'
                 }`}>
                   {this.state.fixSuccessful ? '✅ Fixed' : '❌ Fix Failed'}
                 </span>

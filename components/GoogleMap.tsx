@@ -307,10 +307,10 @@ export default function GoogleMap({
           </div>
           <p className="text-foreground font-semibold mb-2">Map Unavailable</p>
           <p className="text-sm text-muted-foreground mb-3">{error}</p>
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3">
-            <p className="text-xs text-blue-800">
+          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-3">
+            <p className="text-xs text-primary-foreground">
               <strong>For Developers:</strong> Set{' '}
-              <code className="bg-blue-100 px-1 py-0.5 rounded">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>, restrict by HTTP
+              <code className="bg-primary/10 px-1 py-0.5 rounded">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>, restrict by HTTP
               referrer to your domains, and enable billing + Maps JavaScript API (and Places if used).
             </p>
           </div>
@@ -324,7 +324,7 @@ export default function GoogleMap({
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted rounded-2xl z-10" data-testid="gmaps-loading">
           <div className="text-center">
-            <Spinner className="w-8 h-8 animate-spin text-[var(--fixzit-primary)] mx-auto mb-2" />
+            <Spinner className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">Loading map...</p>
           </div>
         </div>

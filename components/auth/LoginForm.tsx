@@ -156,7 +156,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           className="block text-sm font-medium text-foreground mb-2"
         >
           {t('login.identifier', 'Email or Employee Number')}
-          <span className="text-red-500 ml-1" aria-label="required">*</span>
+          <span className="text-destructive ml-1" aria-label="required">*</span>
         </label>
         <div className="relative">
           <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground`} aria-hidden="true" />
@@ -173,7 +173,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
               clearError('general');
             }}
             className={`${isRTL ? 'pr-10 text-right' : 'pl-10'} h-12 ${
-              errors.identifier ? 'border-red-500 focus:ring-red-500' : ''
+              errors.identifier ? 'border-destructive focus:ring-destructive' : ''
             }`}
             aria-invalid={!!errors.identifier}
             aria-describedby={errors.identifier ? 'identifier-error' : 'identifier-hint'}
@@ -186,7 +186,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           {t('login.identifierHint', 'Enter your email address or employee number (EMP001, EMP002, etc.)')}
         </p>
         {errors.identifier && (
-          <p id="identifier-error" className="mt-1 text-sm text-red-600 flex items-center gap-1">
+          <p id="identifier-error" className="mt-1 text-sm text-destructive-foreground flex items-center gap-1">
             <AlertCircle className="h-3 w-3" />
             {errors.identifier}
           </p>
@@ -198,7 +198,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         <div className="flex items-center justify-between mb-2">
           <label htmlFor="password" className="block text-sm font-medium text-foreground">
             {t('common.password', 'Password')}
-            <span className="text-red-500 ml-1" aria-label="required">*</span>
+            <span className="text-destructive ml-1" aria-label="required">*</span>
           </label>
           <Link 
             href="/forgot-password" 
@@ -222,7 +222,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
               clearError('general');
             }}
             className={`${isRTL ? 'pr-10 pl-10 text-right' : 'pl-10 pr-10'} h-12 ${
-              errors.password ? 'border-red-500 focus:ring-red-500' : ''
+              errors.password ? 'border-destructive focus:ring-destructive' : ''
             }`}
             aria-invalid={!!errors.password}
             aria-describedby={errors.password ? 'password-error' : undefined}
@@ -241,7 +241,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           </button>
         </div>
         {errors.password && (
-          <p id="password-error" className="mt-1 text-sm text-red-600 flex items-center gap-1">
+          <p id="password-error" className="mt-1 text-sm text-destructive-foreground flex items-center gap-1">
             <AlertCircle className="h-3 w-3" />
             {errors.password}
           </p>
@@ -271,7 +271,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           aria-live="assertive"
           aria-atomic="true"
           tabIndex={-1}
-          className={`flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 focus:outline-none ${isRTL ? 'flex-row-reverse' : ''}`}
+          className={`flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-2xl text-destructive-foreground focus:outline-none ${isRTL ? 'flex-row-reverse' : ''}`}
         >
           <AlertCircle className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
           <span className="text-sm">{errors.general}</span>

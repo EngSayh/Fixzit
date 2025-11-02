@@ -159,7 +159,7 @@ describe('WorkOrdersView', () => {
     // Due meta and overdue style
     const duePast = screen.getByText(/Due 1 hour ago/);
     expect(duePast).toBeInTheDocument();
-    expect(duePast).toHaveClass('text-red-600');
+    expect(duePast).toHaveClass('text-destructive');
 
     const dueFuture = screen.getByText(/Due in 1 hour/);
     expect(dueFuture).toBeInTheDocument();

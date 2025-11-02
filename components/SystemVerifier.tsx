@@ -419,7 +419,7 @@ function SystemSetting({ icon, title, description, status, statusText, variant =
   const variantClasses = {
     brand: 'bg-primary/10',
     success: 'bg-success/10',
-    purple: 'bg-purple-500/10'
+    purple: 'bg-secondary/10'
   };
 
   const statusColor = status === 'healthy' ? 'bg-success' : 'bg-muted-foreground';

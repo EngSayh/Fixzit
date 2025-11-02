@@ -72,7 +72,7 @@ export default function GoogleSignInButton() {
         <div 
           role="alert" 
           aria-live="polite"
-          className="text-red-600 text-sm text-center p-2 bg-red-50 rounded-2xl"
+          className="text-destructive-foreground text-sm text-center p-2 bg-destructive/10 rounded-2xl"
         >
           {error}
         </div>
