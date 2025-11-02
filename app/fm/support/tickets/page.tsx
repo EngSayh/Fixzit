@@ -176,7 +176,7 @@ export default function SupportTicketsPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <Link 
                       href={`/fm/support/tickets/${ticket.id}`} 
-                      className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)] hover:underline"
+                      className="text-primary hover:text-primary/90 hover:underline"
                     >
                       View
                     </Link>

@@ -79,7 +79,7 @@ export default function AqarPropertiesPage() {
         <div className="text-muted-foreground">Loading…</div>
       )}
       {!loading && error && (
-        <div className="text-[var(--fixzit-danger)]">{error}</div>
+        <div className="text-destructive">{error}</div>
       )}
 
       {!loading && !error && (
