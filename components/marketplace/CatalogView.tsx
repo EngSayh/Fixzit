@@ -140,7 +140,7 @@ export default function CatalogView({
 
   const isAuthenticated = () => {
     if (typeof window === 'undefined') return false;
-    return document.cookie.includes('fixzit_auth=') || Boolean(localStorage.getItem(STORAGE_KEYS.user));
+    return document.cookie.includes('fixzit_auth=') || Boolean(localStorage.getItem(STORAGE_KEYS.userSession));
   };
 
   const handleAddToCart = async (product: Product) => {

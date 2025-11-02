@@ -73,7 +73,7 @@ export default function FMVendorsPage() {
 
   const { data: vendorsData, error, isLoading, mutate } = useSWR(
     vendorsUrl ? [vendorsUrl, orgId] : null,
-    ([url, id]) => fetcher(url, id)
+    ([url, id]: [string, string | undefined]) => fetcher(url, id)
   );
 
   const vendors = vendorsData?.items || [];

@@ -445,7 +445,7 @@ export default function AccountActivityViewer({
                 {/* Transaction Rows */}
                 {getPaginatedTransactions().map((txn) => (
                   <tr
-                    key={txn._id}
+                    key={txn.id}
                     className="hover:bg-muted cursor-pointer"
                     onClick={() => onTransactionClick && onTransactionClick(txn)}
                   >

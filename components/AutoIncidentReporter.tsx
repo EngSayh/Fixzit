@@ -15,7 +15,7 @@ export default function AutoIncidentReporter(){
       // Security Note: Only extracts user ID and tenant ID from localStorage
       // Does not log sensitive data like tokens or PII
       // Backend must handle this data securely and in compliance with privacy regulations
-      try { return localStorage.getItem(STORAGE_KEYS.user) ? JSON.parse(localStorage.getItem(STORAGE_KEYS.user) as string) : null; } catch { return null; }
+      try { return localStorage.getItem(STORAGE_KEYS.userSession) ? JSON.parse(localStorage.getItem(STORAGE_KEYS.userSession) as string) : null; } catch { return null; }
     };
     const buildCtx = () => ({
       url: typeof window !== 'undefined' ? window.location.href : '',

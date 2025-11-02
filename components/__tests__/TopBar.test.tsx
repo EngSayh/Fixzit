@@ -75,6 +75,9 @@ const mockSession = {
     id: 'test-user-id',
     email: 'test@example.com',
     name: 'Test User',
+    role: 'USER',
+    orgId: 'test-org-id',
+    sessionId: 'test-session-id',
   },
   expires: '2025-12-31',
 };

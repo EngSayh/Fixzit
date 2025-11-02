@@ -103,7 +103,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
 
     // Also auto-report an incident so Support gets a ticket without user action
     try {
-      const userStr = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.user) : null;
+      const userStr = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.userSession) : null;
       const user = userStr ? JSON.parse(userStr) : null;
       const truncate = (s?: string, n = 4000) => (s && s.length > n ? `${s.slice(0, n)}…` : s);
       const safeUser = user ? { userId: user.id, tenant: user.tenantId } : undefined;
@@ -170,7 +170,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
       userAgent: navigator.userAgent,
       url: window.location.href,
       viewport: `${window.innerWidth}x${window.innerHeight}`,
-      userId: localStorage.getItem(STORAGE_KEYS.user) ? 'Authenticated User' : 'Guest User',
+      userId: localStorage.getItem(STORAGE_KEYS.userSession) ? 'Authenticated User' : 'Guest User',
       error: {
         name: error.name,
         message: error.message,
@@ -194,7 +194,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
       // Security/Privacy Risk: Don't collect localStorage keys in error reports
       // If authentication context needed, use session data from secure API
       userContext: {
-        isAuthenticated: !!localStorage.getItem(STORAGE_KEYS.user)
+        isAuthenticated: !!localStorage.getItem(STORAGE_KEYS.userSession)
       }
     };
 
@@ -435,6 +435,7 @@ ${errorReport.error.componentStack || 'No component stack available'}
           </div>
           {this.state.showSupport && this.state.errorReport && (
             <SupportPopup
+              open={this.state.showSupport}
               onClose={() => this.setState({ showSupport: false })}
               errorDetails={this.state.errorReport}
             />
