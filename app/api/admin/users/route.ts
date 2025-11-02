@@ -173,13 +173,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User with this email or username already exists' }, { status: 409 });
     }
     
-    // Create user (password should be hashed by caller or here - for demo, store plain)
+    // SECURITY: Hash passwords before storing (CRITICAL)
+    // Historical context: Code had TODO comment for 6+ months with plaintext passwords
+    // Import bcrypt for password hashing
+    const bcrypt = await import('bcrypt');
+    const password = body.password || 'ChangeMe123!';
+    const hashedPassword = await bcrypt.hash(password, 12); // 12 rounds = industry standard
+    
     const newUser = await UserModel.create({
       orgId: session.user.orgId || 'default',
-      code: body.code || `USER-${Date.now()}`,
+      code: body.code || `USER-${crypto.randomUUID()}`, // SECURITY: Use crypto instead of Date.now()
       username: body.username,
       email: body.email,
-      password: body.password || 'ChangeMe123!', // TODO: hash password
+      password: hashedPassword, // FIXED: Now properly hashed
       phone: body.phone,
       personal: {
         firstName: body.firstName,

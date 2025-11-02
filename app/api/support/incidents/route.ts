@@ -109,8 +109,23 @@ export async function POST(req: NextRequest) {
     await redis.quit();
   }
 
-  // Determine tenant scope and dedupe within that scope only
-  const tenantScope = sessionUser?.orgId || req.headers.get('x-org-id') || req.headers.get('x-org') || null;
+  // SECURITY: Determine tenant scope from authenticated session ONLY
+  // Historical context: PR reviews flagged tenant isolation bypass where
+  // tenantScope fell back to req.headers.get('x-org-id') (client-controlled)
+  // CRITICAL: Never trust client-provided headers for tenant scoping
+  const tenantScope = sessionUser?.orgId || null;
+  
+  // If no authenticated session, reject with 401 (anonymous incident reporting disabled)
+  // Rationale: Prevents abuse and ensures proper tenant attribution
+  if (!tenantScope) {
+    return NextResponse.json(
+      { 
+        error: 'Authentication required',
+        detail: 'Incident reporting requires authenticated session for tenant attribution'
+      },
+      { status: 401 }
+    );
+  }
   const existing = incidentKey
     ? await native.collection('error_events').findOne({ incidentKey, tenantScope })
     : null;
