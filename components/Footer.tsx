@@ -89,7 +89,7 @@ export default function Footer() {
           </div>
         </div>
       </div>
-      {open && <SupportPopup onClose={()=>setOpen(false)} />}
+      {open && <SupportPopup open={open} onClose={()=>setOpen(false)} />}
     </footer>
   );
 }
