@@ -29,7 +29,7 @@ const DEMO_CREDENTIALS = [
     password: 'password123',
     description: 'Full system access',
     icon: Shield,
-    color: 'bg-red-100 text-red-800'
+    color: 'bg-destructive/10 text-destructive-foreground border-destructive/20'
   },
   {
     role: 'Admin',
@@ -37,7 +37,7 @@ const DEMO_CREDENTIALS = [
     password: 'password123',
     description: 'Administrative access',
     icon: User,
-    color: 'bg-blue-100 text-blue-800'
+    color: 'bg-primary/10 text-primary-foreground border-primary/20'
   },
   {
     role: 'Property Manager',
@@ -45,7 +45,7 @@ const DEMO_CREDENTIALS = [
     password: 'password123',
     description: 'Property management',
     icon: Building2,
-    color: 'bg-green-100 text-green-800'
+    color: 'bg-success/10 text-success-foreground border-success/20'
   },
   {
     role: 'Tenant',
@@ -53,7 +53,7 @@ const DEMO_CREDENTIALS = [
     password: 'password123',
     description: 'Tenant portal access',
     icon: Users,
-    color: 'bg-purple-100 text-purple-800'
+    color: 'bg-secondary/10 text-secondary-foreground border-secondary/20'
   },
   {
     role: 'Vendor',
@@ -61,7 +61,7 @@ const DEMO_CREDENTIALS = [
     password: 'password123',
     description: 'Vendor marketplace access',
     icon: Users,
-    color: 'bg-orange-100 text-orange-800'
+    color: 'bg-warning/10 text-warning-foreground border-warning/20'
   }
 ];
 
@@ -72,7 +72,7 @@ const CORPORATE_CREDENTIALS = [
     password: 'password123',
     description: 'Corporate account access',
     icon: Building2,
-    color: 'bg-green-100 text-green-800'
+    color: 'bg-success/10 text-success-foreground border-success/20'
   },
   {
     role: 'Admin (Corporate)',
@@ -80,7 +80,7 @@ const CORPORATE_CREDENTIALS = [
     password: 'password123',
     description: 'Corporate administrative access',
     icon: User,
-    color: 'bg-blue-100 text-blue-800'
+    color: 'bg-primary/10 text-primary-foreground border-primary/20'
   }
 ];
 
@@ -187,15 +187,12 @@ export default function LoginPage() {
     return Object.keys(next).length === 0;
   };
 
-  const postLoginRouteFor = (role?: string): string => {
+  // [CODE REVIEW FIX]: Simplified redirect logic - always go to /fm/dashboard
+  // The dashboard page will handle role-based redirects (TENANT -> /fm/properties, VENDOR -> /fm/marketplace)
+  const postLoginRedirect = (): string => {
     if (redirectTarget && redirectTarget.startsWith('/') && !redirectTarget.startsWith('//')) {
       return redirectTarget;
     }
-
-    const r = (role || '').toUpperCase();
-    if (r === 'SUPER_ADMIN' || r === 'CORPORATE_ADMIN' || r === 'FM_MANAGER') return '/fm/dashboard';
-    if (r === 'TENANT') return '/fm/properties';
-    if (r === 'VENDOR') return '/fm/marketplace';
     return '/fm/dashboard';
   };
 
@@ -238,7 +235,7 @@ export default function LoginPage() {
         setSuccess(true);
 
         // Determine redirect target (default to /fm/dashboard)
-        const redirectTo = redirectTarget || '/fm/dashboard';
+        const redirectTo = postLoginRedirect();
 
         // Small delay to ensure session is established
         setTimeout(() => {
@@ -575,8 +572,8 @@ export default function LoginPage() {
 
               {/* Corporate Account Credentials */}
               {loginMethod === 'corporate' && (
-                <div className={`p-4 bg-blue-50 rounded-2xl border border-blue-200 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <h3 className="text-sm font-medium text-blue-800 mb-3">
+                <div className={`p-4 bg-primary/5 rounded-2xl border border-primary/20 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <h3 className="text-sm font-medium text-primary mb-3">
                     {t('login.corporateAccountEmployee', 'Corporate Account (Employee Number):')}
                   </h3>
                   <div className="space-y-2">

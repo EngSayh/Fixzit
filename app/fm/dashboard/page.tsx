@@ -185,14 +185,14 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t('dashboard.assetsUnderMaintenance')}</CardTitle>
-            <Wrench className="h-4 w-4 text-orange-600" />
+            <Wrench className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.assets.maintenance}</div>
             <p className="text-xs text-muted-foreground">
               {stats.assets.critical} critical assets
             </p>
-            <Link href="/fm/assets" className="text-xs text-orange-600 hover:underline flex items-center mt-2">
+            <Link href="/fm/assets" className="text-xs text-warning hover:underline flex items-center mt-2">
               View assets <ChevronRight className="w-3 h-3" />
             </Link>
           </CardContent>
@@ -230,13 +230,13 @@ export default function DashboardPage() {
           <CardContent>
             <div className="space-y-4">
               {workOrders?.items?.slice(0, 5).map((wo: WorkOrder) => (
-                <div key={wo._id} className="flex items-center justify-between">
+                <div key={wo.id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className={`w-2 h-2 rounded-full ${
-                      wo.priority === 'CRITICAL' ? 'bg-red-500' :
-                      wo.priority === 'HIGH' ? 'bg-orange-500' :
+                      wo.priority === 'CRITICAL' ? 'bg-destructive' :
+                      wo.priority === 'HIGH' ? 'bg-warning' :
                       wo.priority === 'MEDIUM' ? 'bg-yellow-500' :
-                      'bg-green-500'
+                      'bg-success'
                     }`} />
                     <div>
                       <p className="font-medium text-sm">{wo.code}</p>
