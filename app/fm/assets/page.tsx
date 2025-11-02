@@ -234,11 +234,11 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ACTIVE':
-        return 'bg-green-100 text-green-800';
+        return 'bg-success/10 text-success-foreground';
       case 'MAINTENANCE':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-warning/10 text-yellow-800';
       case 'OUT_OF_SERVICE':
-        return 'bg-red-100 text-red-800';
+        return 'bg-destructive/10 text-destructive-foreground';
       default:
         return 'bg-muted text-foreground';
     }
@@ -273,9 +273,9 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Criticality:</span>
             <Badge variant="outline" className={
-              asset.criticality === 'CRITICAL' ? 'border-red-300 text-red-700' :
-              asset.criticality === 'HIGH' ? 'border-orange-300 text-orange-700' :
-              asset.criticality === 'MEDIUM' ? 'border-yellow-300 text-yellow-700' :
+              asset.criticality === 'CRITICAL' ? 'border-destructive/30 text-destructive' :
+              asset.criticality === 'HIGH' ? 'border-orange-300 text-warning' :
+              asset.criticality === 'MEDIUM' ? 'border-yellow-300 text-warning' :
               'border-border text-foreground'
             }>
               {asset.criticality}

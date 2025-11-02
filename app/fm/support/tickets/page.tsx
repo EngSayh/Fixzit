@@ -149,9 +149,9 @@ export default function SupportTicketsPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs rounded-full ${
-                      ticket.priority === 'Urgent' ? 'bg-red-100 text-red-800' :
-                      ticket.priority === 'High' ? 'bg-orange-100 text-orange-800' :
-                      ticket.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                      ticket.priority === 'Urgent' ? 'bg-destructive/10 text-destructive-foreground' :
+                      ticket.priority === 'High' ? 'bg-warning/10 text-orange-800' :
+                      ticket.priority === 'Medium' ? 'bg-warning/10 text-yellow-800' :
                       'bg-muted text-foreground'
                     }`}>
                       {ticket.priority}

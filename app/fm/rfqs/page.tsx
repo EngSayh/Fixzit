@@ -222,15 +222,15 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
       case 'DRAFT':
         return 'bg-muted text-foreground';
       case 'PUBLISHED':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-primary/10 text-primary-foreground';
       case 'BIDDING':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-warning/10 text-yellow-800';
       case 'CLOSED':
-        return 'bg-orange-100 text-orange-800';
+        return 'bg-warning/10 text-orange-800';
       case 'AWARDED':
-        return 'bg-green-100 text-green-800';
+        return 'bg-success/10 text-success-foreground';
       case 'CANCELLED':
-        return 'bg-red-100 text-red-800';
+        return 'bg-destructive/10 text-destructive-foreground';
       default:
         return 'bg-muted text-foreground';
     }

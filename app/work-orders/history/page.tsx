@@ -43,9 +43,9 @@ export default function ServiceHistoryPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'completed': return 'bg-success/10 text-success-foreground border-success/20';
+      case 'cancelled': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
+      case 'pending': return 'bg-warning/10 text-yellow-800 border-warning/20';
       default: return 'bg-muted text-foreground border-border';
     }
   };

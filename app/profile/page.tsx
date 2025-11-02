@@ -281,7 +281,7 @@ export default function ProfilePage() {
               </div>
               <div className="flex justify-between items-center py-2 border-b border-border">
                 <span className="text-sm text-muted-foreground">{t('profile.card.accountStatus', 'Account Status')}</span>
-                <span className="text-sm font-medium text-green-600">{t('profile.card.active', 'Active')}</span>
+                <span className="text-sm font-medium text-success">{t('profile.card.active', 'Active')}</span>
               </div>
             </div>
           </div>

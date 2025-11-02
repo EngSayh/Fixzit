@@ -516,7 +516,7 @@ export default function NotificationsPage() {
                     <div className="text-xl">{getTypeIcon(notif.type)}</div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className={`font-medium ${notif.read ? 'text-foreground' : 'text-blue-900'}`}>
+                        <h3 className={`font-medium ${notif.read ? 'text-foreground' : 'text-primary'}`}>
                           {notif.title}
                         </h3>
                         {!notif.read && (

@@ -257,8 +257,8 @@ export default function CatalogPage() {
                   </div>
                   <span className={`text-xs px-2 py-1 rounded-full ${
                     product.inStock
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-red-100 text-red-800'
+                      ? 'bg-success/10 text-success-foreground'
+                      : 'bg-destructive/10 text-destructive-foreground'
                   }`}>
                     {product.inStock ? 'In Stock' : 'Out of Stock'}
                   </span>

@@ -380,7 +380,7 @@ export default function NewPaymentPage() {
     switch (paymentMethod) {
       case 'BANK_TRANSFER':
         return (
-          <div className="space-y-4 p-4 bg-blue-50 rounded-2xl">
+          <div className="space-y-4 p-4 bg-primary/10 rounded-2xl">
             <h3 className="font-medium text-primary">{t('Bank Transfer Details')}</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -452,7 +452,7 @@ export default function NewPaymentPage() {
 
       case 'CHEQUE':
         return (
-          <div className="space-y-4 p-4 bg-purple-50 rounded-2xl">
+          <div className="space-y-4 p-4 bg-secondary/10 rounded-2xl">
             <h3 className="font-medium text-secondary">{t('Cheque Details')}</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -513,7 +513,7 @@ export default function NewPaymentPage() {
 
       case 'CARD':
         return (
-          <div className="space-y-4 p-4 bg-green-50 rounded-2xl">
+          <div className="space-y-4 p-4 bg-success/10 rounded-2xl">
             <h3 className="font-medium text-success">{t('Card Payment Details')}</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -791,7 +791,7 @@ export default function NewPaymentPage() {
               <button
                 type="button"
                 onClick={() => setShowInvoiceAllocation(!showInvoiceAllocation)}
-                className="px-4 py-2 text-sm bg-blue-100 text-blue-700 rounded-2xl hover:bg-blue-200"
+                className="px-4 py-2 text-sm bg-primary/10 text-primary rounded-2xl hover:bg-primary/20"
               >
                 {showInvoiceAllocation ? t('Hide Invoices') : t('Allocate to Invoices')}
               </button>
@@ -830,7 +830,7 @@ export default function NewPaymentPage() {
                       <button
                         type="button"
                         onClick={clearAllocations}
-                        className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
+                        className="px-3 py-1 text-sm bg-destructive/10 text-destructive rounded hover:bg-destructive/20"
                       >
                         {t('Clear All')}
                       </button>
@@ -863,13 +863,13 @@ export default function NewPaymentPage() {
                         </thead>
                         <tbody className="bg-card divide-y divide-border">
                           {allocations.map(allocation => (
-                            <tr key={allocation.id} className={allocation.selected ? 'bg-blue-50' : ''}>
+                            <tr key={allocation.id} className={allocation.selected ? 'bg-primary/10' : ''}>
                               <td className="px-3 py-2">
                                 <input
                                   type="checkbox"
                                   checked={allocation.selected}
                                   onChange={() => toggleInvoiceSelection(allocation.id)}
-                                  className="w-4 h-4 text-blue-600 rounded"
+                                  className="w-4 h-4 text-primary rounded"
                                 />
                               </td>
                               <td className="px-3 py-2 text-sm font-medium text-foreground">
@@ -911,15 +911,15 @@ export default function NewPaymentPage() {
                             {paymentAmountNum.toFixed(2)} {currency}
                           </p>
                         </div>
-                        <div className="bg-blue-50 p-3 rounded">
+                        <div className="bg-primary/10 p-3 rounded">
                           <p className="text-muted-foreground">{t('Allocated')}</p>
-                          <p className="text-lg font-bold text-blue-700">
+                          <p className="text-lg font-bold text-primary">
                             {totalAllocated.toFixed(2)} {currency}
                           </p>
                         </div>
-                        <div className={`p-3 rounded ${unallocatedAmount < 0 ? 'bg-red-50' : 'bg-green-50'}`}>
+                        <div className={`p-3 rounded ${unallocatedAmount < 0 ? 'bg-destructive/10' : 'bg-success/10'}`}>
                           <p className="text-muted-foreground">{t('Unallocated')}</p>
-                          <p className={`text-lg font-bold ${unallocatedAmount < 0 ? 'text-red-700' : 'text-green-700'}`}>
+                          <p className={`text-lg font-bold ${unallocatedAmount < 0 ? 'text-destructive' : 'text-success'}`}>
                             {unallocatedAmount.toFixed(2)} {currency}
                           </p>
                         </div>
@@ -937,8 +937,8 @@ export default function NewPaymentPage() {
 
         {/* Error Display */}
         {errors.submit && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
-            <p className="text-sm text-red-700">{errors.submit}</p>
+          <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-4">
+            <p className="text-sm text-destructive">{errors.submit}</p>
           </div>
         )}
 

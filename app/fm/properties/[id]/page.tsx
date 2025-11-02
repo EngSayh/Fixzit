@@ -227,8 +227,8 @@ export default function PropertyDetailsPage() {
                       </div>
                       <div className="text-right">
                         <Badge className={
-                          unit.status === 'OCCUPIED' ? 'bg-green-100 text-green-800' :
-                          unit.status === 'VACANT' ? 'bg-yellow-100 text-yellow-800' :
+                          unit.status === 'OCCUPIED' ? 'bg-success/10 text-success-foreground' :
+                          unit.status === 'VACANT' ? 'bg-warning/10 text-yellow-800' :
                           'bg-muted text-foreground'
                         }>
                           {unit.status}
@@ -371,8 +371,8 @@ export default function PropertyDetailsPage() {
                     .map((issue, index: number) => (
                       <div key={index} className="flex items-center space-x-2 text-sm">
                         <AlertCircle className={`w-4 h-4 ${
-                          issue.severity === 'HIGH' ? 'text-red-600' :
-                          issue.severity === 'MEDIUM' ? 'text-yellow-600' :
+                          issue.severity === 'HIGH' ? 'text-destructive' :
+                          issue.severity === 'MEDIUM' ? 'text-warning' :
                           'text-muted-foreground'
                         }`} />
                         <span>{issue.description}</span>

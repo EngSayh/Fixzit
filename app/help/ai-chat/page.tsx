@@ -160,7 +160,7 @@ export default function AIChatPage() {
                           <li key={i}>
                             <a
                               href={`/help/${citation.slug}`}
-                              className="text-sm text-blue-600 hover:underline block"
+                              className="text-sm text-primary hover:underline block"
                             >
                               {i + 1}. {citation.title}
                             </a>
