@@ -171,8 +171,8 @@ export default function NewBudgetPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('finance.budget.newBudget', 'New Budget')}</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">{t('finance.budget.subtitle', 'Create a new budget for expense tracking and control')}</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('finance.budget.newBudget', 'New Budget')}</h1>
+          <p className="text-muted-foreground">{t('finance.budget.subtitle', 'Create a new budget for expense tracking and control')}</p>
         </div>
         <div className="flex gap-2">
           <button 
@@ -208,7 +208,7 @@ export default function NewBudgetPage() {
                   value={budgetName}
                   onChange={(e) => setBudgetName(e.target.value)}
                   placeholder={t('finance.budget.namePlaceholder', 'Q1 2025 Maintenance Budget')}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
               <div>
@@ -218,7 +218,7 @@ export default function NewBudgetPage() {
                 <select 
                   value={periodType}
                   onChange={(e) => setPeriodType(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="">{t('finance.budget.selectPeriod', 'Select Period')}</option>
                   <option value="monthly">{t('finance.budget.monthly', 'Monthly')}</option>
@@ -235,7 +235,7 @@ export default function NewBudgetPage() {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
               <div>
@@ -246,7 +246,7 @@ export default function NewBudgetPage() {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
               <div>
@@ -256,7 +256,7 @@ export default function NewBudgetPage() {
                 <select 
                   value={propertyId}
                   onChange={(e) => setPropertyId(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="all">{t('finance.allProperties', 'All Properties')}</option>
                   <option value="tower-a">Tower A</option>
@@ -271,7 +271,7 @@ export default function NewBudgetPage() {
                 <select 
                   value={budgetOwner}
                   onChange={(e) => setBudgetOwner(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="">{t('finance.budget.selectOwner', 'Select Owner')}</option>
                   <option value="property-manager">{t('finance.budget.propertyManager', 'Property Manager')}</option>
@@ -298,7 +298,7 @@ export default function NewBudgetPage() {
                     <select 
                       value={cat.category}
                       onChange={(e) => handleCategoryChange(cat.id, 'category', e.target.value)}
-                      className="w-full px-2 py-2 border border-border rounded focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                      className="w-full px-2 py-2 border border-border rounded focus:ring-2 focus:ring-primary focus:border-transparent"
                     >
                       <option value="">{t('finance.budget.selectCategory', 'Select Category')}</option>
                       <option value="maintenance">{t('finance.expense.maintenance', 'Maintenance & Repairs')}</option>
@@ -317,7 +317,7 @@ export default function NewBudgetPage() {
                         value={cat.amount || ''}
                         onChange={(e) => handleCategoryChange(cat.id, 'amount', parseFloat(e.target.value) || 0)}
                         placeholder="0.00"
-                        className="w-full px-2 py-2 pr-12 border border-border rounded focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                        className="w-full px-2 py-2 pr-12 border border-border rounded focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
                       <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">SAR</span>
                     </div>
@@ -328,14 +328,14 @@ export default function NewBudgetPage() {
                       value={cat.percentage || ''}
                       onChange={(e) => handleCategoryChange(cat.id, 'percentage', parseFloat(e.target.value) || 0)}
                       placeholder="0"
-                      className="w-full px-2 py-2 border border-border rounded focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                      className="w-full px-2 py-2 border border-border rounded focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </div>
                   <div className="col-span-1">
                     <button 
                       onClick={() => handleRemoveCategory(cat.id)}
                       disabled={categories.length === 1}
-                      className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-darkest)] disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="text-destructive hover:text-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       🗑️
                     </button>
@@ -361,7 +361,7 @@ export default function NewBudgetPage() {
                   id="alerts"
                   checked={enableAlerts}
                   onChange={(e) => setEnableAlerts(e.target.checked)}
-                  className="mr-3 h-4 w-4 text-[var(--fixzit-blue)] focus:ring-[var(--fixzit-blue)] border-border rounded"
+                  className="mr-3 h-4 w-4 text-primary focus:ring-primary border-border rounded"
                 />
                 <label htmlFor="alerts" className="text-sm text-foreground">
                   {t('finance.budget.enableAlerts', 'Enable budget alerts when spending exceeds 80% of category budget')}
@@ -373,7 +373,7 @@ export default function NewBudgetPage() {
                   id="approvals"
                   checked={requireApprovals}
                   onChange={(e) => setRequireApprovals(e.target.checked)}
-                  className="mr-3 h-4 w-4 text-[var(--fixzit-blue)] focus:ring-[var(--fixzit-blue)] border-border rounded"
+                  className="mr-3 h-4 w-4 text-primary focus:ring-primary border-border rounded"
                 />
                 <label htmlFor="approvals" className="text-sm text-foreground">
                   {t('finance.budget.requireApprovals', 'Require approval for expenses exceeding SAR 5,000')}
@@ -385,7 +385,7 @@ export default function NewBudgetPage() {
                   id="carryover"
                   checked={allowCarryover}
                   onChange={(e) => setAllowCarryover(e.target.checked)}
-                  className="mr-3 h-4 w-4 text-[var(--fixzit-blue)] focus:ring-[var(--fixzit-blue)] border-border rounded"
+                  className="mr-3 h-4 w-4 text-primary focus:ring-primary border-border rounded"
                 />
                 <label htmlFor="carryover" className="text-sm text-foreground">
                   {t('finance.budget.allowCarryover', 'Allow unused budget to carry over to next period')}
@@ -405,7 +405,7 @@ export default function NewBudgetPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={t('finance.budget.descriptionPlaceholder', 'Describe the purpose and scope of this budget...')}
-                className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
           </div>
@@ -497,12 +497,12 @@ export default function NewBudgetPage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.recentActivity', 'Recent Activity')}</h3>
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[var(--fixzit-success-light)] rounded-full"></div>
+                <div className="w-2 h-2 bg-success/20 rounded-full"></div>
                 <span className="text-muted-foreground">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
                 <span className="text-muted-foreground ml-auto">1m ago</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full"></div>
+                <div className="w-2 h-2 bg-primary/20 rounded-full"></div>
                 <span className="text-muted-foreground">{t('finance.budget.periodSet', 'Budget period set')}</span>
                 <span className="text-muted-foreground ml-auto">3m ago</span>
               </div>
