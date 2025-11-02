@@ -9,7 +9,7 @@ interface RFQCategory {
 }
 
 interface RFQItem {
-  _id: string;
+  id: string;
   title: string;
   categoryId?: string;
   quantity?: number;
@@ -170,7 +170,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
       <div className="space-y-4">
         {rfqs.length ? (
           rfqs.map(rfq => (
-            <article key={rfq._id} className="rounded-3xl bg-card p-6 shadow">
+            <article key={rfq.id} className="rounded-3xl bg-card p-6 shadow">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-[#0F1111]">{rfq.title}</h3>
