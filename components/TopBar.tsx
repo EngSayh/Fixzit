@@ -276,7 +276,7 @@ export default function TopBar() {
       await signOut({ callbackUrl: '/login', redirect: true });
     } catch (error) {
       console.error('Logout error:', error);
-      window.location.href = '/login';
+      // NextAuth signOut handles redirect, no manual redirect needed
     }
   };
 

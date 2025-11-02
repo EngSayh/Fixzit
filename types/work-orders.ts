@@ -77,7 +77,7 @@ export interface WorkOrderTimeline {
 }
 
 export interface WorkOrderProperty {
-  _id: string;
+  id: string;
   name: string;
   address: string;
   city?: string;
@@ -88,14 +88,14 @@ export interface WorkOrderProperty {
 }
 
 export interface WorkOrderUnit {
-  _id: string;
+  id: string;
   unitNumber?: string;
   floor?: string | number;
   property?: string;
 }
 
 export interface WorkOrder {
-  _id: string;
+  id: string;
   workOrderNumber?: string;
   woNumber?: string;
   title: string;

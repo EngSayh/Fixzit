@@ -8,7 +8,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 // ============================================================================
 
 interface IAccountTransaction {
-  _id: string;
+  id: string;
   date: string;
   journalNumber: string;
   description: string;

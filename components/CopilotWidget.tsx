@@ -143,13 +143,13 @@ function renderStructuredData(message: ChatMessage, locale: 'en' | 'ar') {
         <div className="mt-3 space-y-2 text-xs">
           <div className="flex justify-between"><span>{locale === 'ar' ? 'الدخل' : 'Income'}</span><span>{message.data.totals.income.toLocaleString(undefined, { style: 'currency', currency: message.data.currency })}</span></div>
           <div className="flex justify-between"><span>{locale === 'ar' ? 'المصروفات' : 'Expenses'}</span><span>{message.data.totals.expenses.toLocaleString(undefined, { style: 'currency', currency: message.data.currency })}</span></div>
-          <div className="flex justify-between font-semibold text-[#0061A8]"><span>{locale === 'ar' ? 'الصافي' : 'Net'}</span><span>{message.data.totals.net.toLocaleString(undefined, { style: 'currency', currency: message.data.currency })}</span></div>
+          <div className="flex justify-between font-semibold text-primary"><span>{locale === 'ar' ? 'الصافي' : 'Net'}</span><span>{message.data.totals.net.toLocaleString(undefined, { style: 'currency', currency: message.data.currency })}</span></div>
         </div>
       );
 
     case 'attachment':
       return (
-        <div className="mt-3 flex items-center gap-2 text-xs text-[#0061A8]">
+        <div className="mt-3 flex items-center gap-2 text-xs text-primary">
           <CheckCircle2 className="h-4 w-4" />
           <a href={message.data.attachment.url} target="_blank" rel="noreferrer" className="underline">
             {message.data.attachment.name}
@@ -447,8 +447,8 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
         return (
           <div className="space-y-3">
             <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
-            <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground hover:border-[#0061A8]">
-              <Upload className="mb-2 h-5 w-5 text-[#0061A8]" />
+            <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground hover:border-primary">
+              <Upload className="mb-2 h-5 w-5 text-primary" />
               <span>{values.file?.name || t.chooseFile}</span>
               <input type="file" className="hidden" accept="image/*" onChange={(e) => updateForm(tool, 'file', e.target.files?.[0])} />
             </label>
@@ -481,7 +481,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       transition={{ duration: 0.2 }}
       className={`overflow-hidden rounded-2xl border border-border bg-card shadow-2xl ${embedded ? 'w-full' : 'w-[360px] max-w-[90vw]'}`}
     >
-      <div className="flex items-start justify-between bg-[#0061A8] px-4 py-3 text-white">
+      <div className="flex items-start justify-between bg-primary px-4 py-3 text-white">
         <div>
           <div className="flex items-center gap-2 font-semibold"><Bot className="h-5 w-5" />{t.title}</div>
           <p className="text-xs opacity-80">{t.subtitle(profile?.session.name, profile?.session.role)}</p>
@@ -495,7 +495,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
 
       <div className="flex items-center justify-between gap-2 border-b border-border bg-muted px-4 py-2 text-[11px] text-muted-foreground">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-[#00A859]" />
+          <ShieldCheck className="h-4 w-4 text-success" />
           {t.privacy}
         </div>
         {!isOnline && (
@@ -517,7 +517,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       >
         {messages.map(message => (
           <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${message.role === 'user' ? 'bg-[#00A859] text-white' : message.role === 'system' ? 'bg-amber-50 text-amber-800' : 'border border-border bg-card text-foreground'}`}>
+            <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${message.role === 'user' ? 'bg-success text-white' : message.role === 'system' ? 'bg-amber-50 text-amber-800' : 'border border-border bg-card text-foreground'}`}>
               <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
               {renderStructuredData(message, locale)}
               {message.sources && message.sources.length > 0 && (
@@ -558,7 +558,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
               <button
                 key={action.name}
                 onClick={() => setActiveTool(prev => prev === action.name ? null : action.name)}
-                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition ${activeTool === action.name ? 'border-[#0061A8] bg-[#0061A8]/10 text-[#0061A8]' : 'border-border bg-card text-foreground hover:border-[#0061A8] hover:text-[#0061A8]'}`}
+                className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition ${activeTool === action.name ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-foreground hover:border-primary hover:text-primary'}`}
               >
                 {toolIcons[action.name] || <ClipboardList className="h-4 w-4" />}
                 {action.label}
@@ -580,7 +580,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
                   <button type="button" onClick={() => { resetForm(activeTool); setActiveTool(null); }} className="rounded-full px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted">
                     {t.cancel}
                   </button>
-                  <button type="button" onClick={() => submitTool(activeTool)} className="rounded-full bg-[#0061A8] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#004f88]">
+                  <button type="button" onClick={() => submitTool(activeTool)} className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#004f88]">
                     {t.run}
                   </button>
                 </div>
@@ -608,7 +608,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
           <button
             onClick={sendMessage}
             disabled={!input.trim() || loading || !isOnline}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-[#00A859] text-white shadow transition hover:bg-[#008d48] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-success text-white shadow transition hover:bg-[#008d48] disabled:cursor-not-allowed disabled:opacity-50"
             aria-label={t.send}
             title={!isOnline ? t.offline : t.send}
           >
@@ -636,7 +636,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
         <motion.button
           whileTap={{ scale: 0.94 }}
           onClick={() => setIsOpen(prev => !prev)}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-[#0061A8] text-white shadow-xl transition hover:bg-[#004f88]"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-xl transition hover:bg-[#004f88]"
           aria-label={isOpen ? t.close : t.open}
         >
           {isOpen ? <X className="h-6 w-6" /> : <Bot className="h-6 w-6" />}

@@ -18,7 +18,7 @@ import {
 import { createSecureResponse } from '@/server/security/headers';
 
 const UpsertSchema = z.object({
-  _id: z.string().optional(),
+  id: z.string().optional(),
   categoryId: z.string().min(1),
   sku: z.string().min(1).max(100),
   slug: z.string().min(1).max(200),
@@ -297,11 +297,11 @@ export async function POST(request: NextRequest) {
     let product;
     let statusCode = 200;
     
-    if (payload._id) {
+    if (payload.id) {
       // Update existing product (with tenant isolation check)
       product = await Product.findOneAndUpdate(
         { 
-          _id: objectIdFrom(payload._id), 
+          _id: objectIdFrom(payload.id), 
           orgId: context.orgId, 
           vendorId: context.userId 
         },

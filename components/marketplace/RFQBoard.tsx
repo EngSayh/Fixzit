@@ -72,12 +72,12 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold text-[#0F1111]">Request for Quotations</h1>
+          <h1 className="text-3xl font-semibold text-foreground">Request for Quotations</h1>
           <p className="text-sm text-muted-foreground">Coordinate bulk sourcing with approved vendors.</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="rounded-full bg-[#0061A8] px-5 py-2 text-sm font-semibold text-white hover:bg-[#00558F]"
+          className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-[#00558F]"
         >
           {showForm ? 'Close form' : 'Create RFQ'}
         </button>
@@ -85,7 +85,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
 
       {showForm && (
         <div className="rounded-3xl bg-card p-6 shadow">
-          <h2 className="text-lg font-semibold text-[#0F1111]">New RFQ</h2>
+          <h2 className="text-lg font-semibold text-foreground">New RFQ</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <label className="text-sm text-muted-foreground">
               Title
@@ -153,7 +153,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
             <button
               onClick={createRFQ}
               disabled={submitting}
-              className="rounded-full bg-[#FFB400] px-5 py-2 text-sm font-semibold text-black hover:bg-[#FFCB4F] disabled:opacity-60"
+              className="rounded-full bg-warning px-5 py-2 text-sm font-semibold text-black hover:bg-[#FFCB4F] disabled:opacity-60"
             >
               {submitting ? 'Submitting…' : 'Submit RFQ'}
             </button>
@@ -173,7 +173,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
             <article key={rfq.id} className="rounded-3xl bg-card p-6 shadow">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-[#0F1111]">{rfq.title}</h3>
+                  <h3 className="text-lg font-semibold text-foreground">{rfq.title}</h3>
                   <p className="text-sm text-muted-foreground">Created {new Date(rfq.createdAt).toLocaleDateString()}</p>
                   <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
                     {rfq.categoryId && (
@@ -196,15 +196,15 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
                     )}
                   </div>
                 </div>
-                <span className="self-start rounded-full bg-[#0061A8]/10 px-4 py-1 text-xs font-semibold text-[#0061A8]">
+                <span className="self-start rounded-full bg-primary/10 px-4 py-1 text-xs font-semibold text-primary">
                   {rfq.status}
                 </span>
               </div>
             </article>
           ))
         ) : (
-          <div className="rounded-3xl border border-dashed border-[#0061A8]/40 bg-card p-10 text-center text-muted-foreground">
-            <p className="text-lg font-semibold text-[#0F1111]">No RFQs yet</p>
+          <div className="rounded-3xl border border-dashed border-primary/40 bg-card p-10 text-center text-muted-foreground">
+            <p className="text-lg font-semibold text-foreground">No RFQs yet</p>
             <p className="mt-2 text-sm">Create an RFQ to engage approved vendors.</p>
           </div>
         )}

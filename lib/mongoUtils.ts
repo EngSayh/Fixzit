@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
  */
 
 interface CounterDoc {
-  _id: string;
+  _id: string;  // MongoDB native _id field used as counter name
   seq: number;
 }
 

@@ -147,7 +147,7 @@ export async function GET(req: NextRequest) {
 // ============================================================================
 
 interface IAccountNode {
-  _id: Types.ObjectId;
+  id: Types.ObjectId;
   accountCode: string;
   accountName: string;
   accountType: string;
@@ -167,12 +167,12 @@ function buildAccountTree(accounts: unknown[]): IAccountNode[] {
   
   // First pass: create map with children arrays
   typedAccounts.forEach(account => {
-    accountMap.set(account._id.toString(), { ...account, children: [] });
+    accountMap.set(account.id.toString(), { ...account, children: [] });
   });
   
   // Second pass: build tree
   typedAccounts.forEach(account => {
-    const node = accountMap.get(account._id.toString());
+    const node = accountMap.get(account.id.toString());
     if (!node) return;
     
     if (account.parentId) {

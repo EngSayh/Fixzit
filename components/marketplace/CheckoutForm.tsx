@@ -50,7 +50,7 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl bg-card p-6 shadow">
       <div>
-        <h2 className="text-lg font-semibold text-[#0F1111]">Delivery details</h2>
+        <h2 className="text-lg font-semibold text-foreground">Delivery details</h2>
         <p className="text-sm text-muted-foreground">Ship to your facilities hub with SLA tracking.</p>
       </div>
       <div className="space-y-3 text-sm">
@@ -81,7 +81,7 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
           />
         </label>
       </div>
-      <div className="rounded-2xl bg-[#0061A8]/5 p-4 text-sm text-[#0F1111]">
+      <div className="rounded-2xl bg-primary/5 p-4 text-sm text-foreground">
         <div className="flex justify-between">
           <span>Subtotal</span>
           <span>
@@ -94,7 +94,7 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
             {totals.vat.toFixed(2)} {currency}
           </span>
         </div>
-        <div className="mt-2 flex justify-between text-base font-semibold text-[#0061A8]">
+        <div className="mt-2 flex justify-between text-base font-semibold text-primary">
           <span>Total</span>
           <span>
             {totals.grand.toFixed(2)} {currency}
@@ -102,11 +102,11 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
         </div>
       </div>
       {error && <p className="text-sm text-[var(--fixzit-danger)]">{error}</p>}
-      {success && <p className="text-sm text-[#00A859]">Checkout submitted. Redirecting…</p>}
+      {success && <p className="text-sm text-success">Checkout submitted. Redirecting…</p>}
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-full bg-[#FFB400] px-6 py-3 text-sm font-semibold text-black hover:bg-[#FFCB4F] disabled:opacity-60"
+        className="w-full rounded-full bg-warning px-6 py-3 text-sm font-semibold text-black hover:bg-warning/90 disabled:opacity-60"
       >
         {loading ? 'Submitting…' : 'Submit for approval'}
       </button>

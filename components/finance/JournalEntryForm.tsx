@@ -21,7 +21,7 @@ interface IJournalLine {
 }
 
 interface IChartAccount {
-  _id: string;
+  id: string;
   code: string;
   name: string;
   nameAr?: string;
@@ -176,7 +176,7 @@ export default function JournalEntryForm({
 
       // If account changed, update code and name
       if (field === 'accountId') {
-        const account = chartAccounts.find(acc => acc._id === value);
+        const account = chartAccounts.find(acc => acc.id === value);
         if (account) {
           updated.accountCode = account.code;
           updated.accountName = account.name;
@@ -495,7 +495,7 @@ export default function JournalEntryForm({
                       >
                         <option value="">{loadingAccounts ? t('Loading...') : t('Select Account')}</option>
                         {(filteredAccounts[line.id] ?? chartAccounts).map(acc => (
-                          <option key={acc._id} value={acc._id}>
+                          <option key={acc.id} value={acc.id}>
                             {acc.code} - {acc.name}
                           </option>
                         ))}

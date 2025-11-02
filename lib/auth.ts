@@ -7,7 +7,7 @@ import { db } from '@/lib/mongo';
 // Type definition for User document - used as documentation reference
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface _UserDocument {
-  _id: { toString(): string };
+  _id: { toString(): string };  // MongoDB native _id field
   email: string;
   password: string; // Changed from passwordHash
   isActive?: boolean;
