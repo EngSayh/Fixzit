@@ -1,9 +1,10 @@
 // ESLint 9 Flat Config - Migration from .eslintrc.cjs
-// @ts-check
+// Note: @ts-check disabled for react-hooks plugin (legacy plugin format not fully compatible with flat config types)
 
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
+import reactHooksPlugin from 'eslint-plugin-react-hooks';
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 export default [
@@ -63,6 +64,7 @@ export default [
     },
     plugins: {
       '@typescript-eslint': tseslint.plugin,
+      'react-hooks': reactHooksPlugin,
     },
     rules: {
       ...eslint.configs.recommended.rules,
@@ -76,6 +78,10 @@ export default [
       }],
       '@typescript-eslint/no-var-requires': 'off',
       '@typescript-eslint/ban-ts-comment': 'warn',
+
+      /* React Hooks - CRITICAL (PR #69/#71 flagged missing rules) */
+      'react-hooks/rules-of-hooks': 'error',  // ✅ Enforce Hook calling rules
+      'react-hooks/exhaustive-deps': 'warn',   // ✅ Validate Hook dependencies
 
       /* JavaScript */
       'no-var': 'off',
@@ -124,7 +130,7 @@ export default [
     rules: {
       'no-var': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
-      'no-undef': 'off',
+      // 'no-undef' NOT disabled - TypeScript handles undefined variable checks
     },
   },
 
@@ -146,6 +152,7 @@ export default [
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/ban-ts-comment': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
+      // Keep 'no-undef' disabled for scripts (may use Node.js globals like __dirname, process)
       'no-undef': 'off',
     },
   },
