@@ -84,7 +84,7 @@ export default function PayrollPage() {
       case 'APPROVED':
         return 'bg-success/10 text-success-foreground border-success/30';
       case 'LOCKED':
-        return 'bg-secondary/10 text-purple-800 border-purple-300';
+        return 'bg-secondary/10 text-secondary border-secondary';
       default:
         return 'bg-muted text-foreground border-border';
     }
@@ -128,7 +128,7 @@ export default function PayrollPage() {
             {t('hr.payroll.subtitle', 'Create and manage monthly payroll runs')}
           </p>
         </div>
-        <Button className="bg-primary hover:bg-blue-700 text-white">
+        <Button className="bg-primary hover:bg-primary text-white">
           <Plus className="h-4 w-4 mr-2" />
           {t('hr.payroll.createNew', 'Create New Run')}
         </Button>
@@ -222,7 +222,7 @@ export default function PayrollPage() {
                   {run.status === 'DRAFT' && (
                     <Button
                       size="sm"
-                      className="bg-primary hover:bg-blue-700 text-white"
+                      className="bg-primary hover:bg-primary text-white"
                       onClick={() => handleCalculate(run.id)}
                     >
                       <Calculator className="h-4 w-4 mr-2" />
@@ -233,7 +233,7 @@ export default function PayrollPage() {
                   {(run.status === 'CALCULATED' || run.status === 'APPROVED') && (
                     <Button
                       size="sm"
-                      className="bg-green-600 hover:bg-green-700 text-white"
+                      className="bg-success hover:bg-success text-white"
                       onClick={() => handleExportWPS(run.id)}
                     >
                       <Download className="h-4 w-4 mr-2" />
@@ -245,7 +245,7 @@ export default function PayrollPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-success border-green-600 hover:bg-success/10"
+                      className="text-success border-success hover:bg-success/10"
                     >
                       {t('hr.payroll.approve', 'Approve')}
                     </Button>

@@ -584,7 +584,7 @@ Continue to learn about tenant relations!
 
                 <button
                   onClick={() => markStepComplete(currentStep)}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-2xl hover:bg-green-700 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-success text-white rounded-2xl hover:bg-success transition-colors"
                 >
                   <CheckCircle className="w-4 h-4" />
                   Mark Complete

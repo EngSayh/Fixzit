@@ -319,7 +319,7 @@ export default function ReferralProgramPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-red-900 mb-2">Error Loading Referral Data</h3>
+              <h3 className="text-lg font-semibold text-destructive mb-2">Error Loading Referral Data</h3>
               <p className="text-destructive mb-4" data-testid="error-message">{error}</p>
               <button
                 onClick={() => {
@@ -426,7 +426,7 @@ export default function ReferralProgramPage() {
                     {referralCode.shortUrl}
                   </div>
                   {isCodeExpiredOrDepleted() && (
-                    <div className="bg-warning/100/20 border border-yellow-300 rounded p-2 mb-4 text-sm" data-testid="code-status-warning">
+                    <div className="bg-warning/100/20 border border-warning rounded p-2 mb-4 text-sm" data-testid="code-status-warning">
                       ⚠️ This code has expired or reached its usage limit
                     </div>
                   )}
@@ -485,7 +485,7 @@ export default function ReferralProgramPage() {
               <div className="flex gap-3">
                 <button
                   onClick={shareViaWhatsApp}
-                  className="flex-1 bg-success/100 hover:bg-green-600 px-4 py-2 rounded-2xl font-medium transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 bg-success/100 hover:bg-success px-4 py-2 rounded-2xl font-medium transition-colors flex items-center justify-center gap-2"
                   data-testid="share-whatsapp"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -577,9 +577,9 @@ export default function ReferralProgramPage() {
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                             referral.rewardStatus === 'PAID'
-                              ? 'bg-success/10 text-success-foreground dark:bg-success/20 dark:text-green-200'
+                              ? 'bg-success/10 text-success-foreground dark:bg-success/20 dark:text-success'
                               : referral.rewardStatus === 'APPROVED'
-                              ? 'bg-primary/10 text-primary-foreground dark:bg-blue-900 dark:text-blue-200'
+                              ? 'bg-primary/10 text-primary-foreground dark:bg-primary dark:text-primary'
                               : 'bg-warning/10 text-warning-foreground dark:bg-warning/20 dark:text-warning-foreground'
                           }`}>
                             {referral.rewardStatus}

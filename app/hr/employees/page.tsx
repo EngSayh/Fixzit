@@ -68,11 +68,11 @@ export default function EmployeesPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Active':
-        return 'bg-success/10 text-success-foreground border-green-300';
+        return 'bg-success/10 text-success-foreground border-success';
       case 'Inactive':
         return 'bg-muted text-foreground border-border';
       case 'On Leave':
-        return 'bg-warning/10 text-orange-800 border-orange-300';
+        return 'bg-warning/10 text-warning border-warning';
       default:
         return 'bg-muted text-foreground border-border';
     }
@@ -101,7 +101,7 @@ export default function EmployeesPage() {
             {t('hr.employees.subtitle', 'Manage your organization\'s employees')}
           </p>
         </div>
-        <Button className="bg-primary hover:bg-blue-700 text-white">
+        <Button className="bg-primary hover:bg-primary text-white">
           <Plus className="h-4 w-4 mr-2" />
           {t('hr.employees.addNew', 'Add Employee')}
         </Button>
@@ -124,7 +124,7 @@ export default function EmployeesPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-primary"
             >
               <option value="all">{t('hr.employees.filter.allStatus', 'All Status')}</option>
               <option value="Active">{t('hr.employees.status.active', 'Active')}</option>

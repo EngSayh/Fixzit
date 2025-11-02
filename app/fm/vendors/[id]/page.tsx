@@ -55,7 +55,7 @@ const statusColors: Record<string, string> = {
   PENDING: 'bg-warning/10 text-warning-foreground',
   SUSPENDED: 'bg-destructive/10 text-destructive-foreground',
   REJECTED: 'bg-muted text-foreground',
-  BLACKLISTED: 'bg-destructive/20 text-red-900',
+  BLACKLISTED: 'bg-destructive/20 text-destructive',
 };
 
 export default function VendorDetailsPage() {
@@ -168,7 +168,7 @@ export default function VendorDetailsPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Rating</p>
                     <div className="flex items-center">
-                      <Star className="w-4 h-4 text-yellow-500 mr-1" />
+                      <Star className="w-4 h-4 text-warning mr-1" />
                       <p className="font-medium">{vendor.rating.toFixed(1)} / 5.0</p>
                     </div>
                   </div>
@@ -365,7 +365,7 @@ export default function VendorDetailsPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Rating</span>
                   <div className="flex items-center">
-                    <Star className="w-4 h-4 text-yellow-500 mr-1" />
+                    <Star className="w-4 h-4 text-warning mr-1" />
                     <span className="font-medium">{vendor.rating.toFixed(1)}</span>
                   </div>
                 </div>

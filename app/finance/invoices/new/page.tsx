@@ -461,7 +461,7 @@ export default function NewInvoicePage() {
                   type="date"
                   value={issueDate}
                   onChange={(e) => setIssueDate(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.issueDate ? 'border-red-500' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.issueDate ? 'border-destructive' : 'border-border'}`}
                 />
                 {errors.issueDate && <p className="text-destructive text-xs mt-1">{errors.issueDate}</p>}
               </div>
@@ -473,7 +473,7 @@ export default function NewInvoicePage() {
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.dueDate ? 'border-red-500' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.dueDate ? 'border-destructive' : 'border-border'}`}
                 />
                 {errors.dueDate && <p className="text-destructive text-xs mt-1">{errors.dueDate}</p>}
               </div>
@@ -512,7 +512,7 @@ export default function NewInvoicePage() {
                       setCustomerName(e.target.options[e.target.selectedIndex].text);
                     }
                   }}
-                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.customerName ? 'border-red-500' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.customerName ? 'border-destructive' : 'border-border'}`}
                 >
                   <option value="">{t('finance.selectCustomer', 'Select Customer')}</option>
                   <option value="cust1">John Smith - Tower A</option>
@@ -585,14 +585,14 @@ export default function NewInvoicePage() {
                           value={item.description}
                           onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
                           placeholder={t('finance.invoice.itemDescription', 'Item description')}
-                          className={`w-full px-2 py-1 text-sm border rounded ${errors[`lineItem.${index}.description`] ? 'border-red-500' : 'border-border'}`}
+                          className={`w-full px-2 py-1 text-sm border rounded ${errors[`lineItem.${index}.description`] ? 'border-destructive' : 'border-border'}`}
                         />
                       </td>
                       <td className="px-2 py-2">
                         <select
                           value={item.accountId}
                           onChange={(e) => updateLineItem(item.id, 'accountId', e.target.value)}
-                          className={`w-full px-2 py-1 text-sm border rounded ${errors[`lineItem.${index}.accountId`] ? 'border-red-500' : 'border-border'}`}
+                          className={`w-full px-2 py-1 text-sm border rounded ${errors[`lineItem.${index}.accountId`] ? 'border-destructive' : 'border-border'}`}
                           disabled={loadingAccounts}
                         >
                           <option value="">{loadingAccounts ? t('common.loading', 'Loading...') : t('finance.selectAccount', 'Select Account')}</option>
@@ -612,7 +612,7 @@ export default function NewInvoicePage() {
                           onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 1)}
                           min="1"
                           step="1"
-                          className={`w-16 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.quantity`] ? 'border-red-500' : 'border-border'}`}
+                          className={`w-16 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.quantity`] ? 'border-destructive' : 'border-border'}`}
                         />
                       </td>
                       <td className="px-2 py-2">
@@ -622,7 +622,7 @@ export default function NewInvoicePage() {
                           onChange={(e) => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
                           min="0"
                           step="0.01"
-                          className={`w-24 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.unitPrice`] ? 'border-red-500' : 'border-border'}`}
+                          className={`w-24 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.unitPrice`] ? 'border-destructive' : 'border-border'}`}
                         />
                       </td>
                       <td className="px-2 py-2">

@@ -140,7 +140,7 @@ export default function AuditLogViewer() {
 
   const getActionColor = (action: string) => {
     switch (action) {
-      case 'CREATE': return 'text-success bg-success/10 dark:bg-success/10 dark:text-green-400';
+      case 'CREATE': return 'text-success bg-success/10 dark:bg-success/10 dark:text-success';
       case 'UPDATE': return 'text-primary bg-primary/10 dark:bg-primary/10 dark:text-primary';
       case 'DELETE': return 'text-destructive bg-destructive/10 dark:bg-destructive/10 dark:text-destructive';
       case 'LOGIN': return 'text-secondary bg-secondary/10 dark:bg-secondary/10 dark:text-secondary';
