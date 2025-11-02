@@ -58,7 +58,7 @@ function setEnv(obj: Record<string, string | undefined>) {
 
 describe('paytabsBase', () => {
   it('returns base URL for known regions and falls back to GLOBAL', () => {
-    const { paytabsBase } = lib;
+    const { paytabsBase } = lib as any;
     expect(paytabsBase('KSA')).toBe('https://secure.paytabs.sa');
     expect(paytabsBase('UAE')).toBe('https://secure.paytabs.com');
     expect(paytabsBase('EGYPT')).toBe('https://secure-egypt.paytabs.com');
@@ -78,7 +78,7 @@ describe('createHppRequest', () => {
   afterAll(restoreEnv);
 
   it('POSTs to region-specific endpoint with correct headers and body', async () => {
-    const { createHppRequest } = lib;
+    const { createHppRequest } = lib as any;
     const payload = { a: 1, b: 'x' };
 
     mockFetchOnce(async (input, init) => {
@@ -97,7 +97,7 @@ describe('createHppRequest', () => {
   });
 
   it('falls back to GLOBAL region when unknown', async () => {
-    const { createHppRequest } = lib;
+    const { createHppRequest } = lib as any;
 
     mockFetchOnce(async (input, _init) => {
       expect(String(input)).toBe('https://secure-global.paytabs.com/payment/request');
@@ -111,7 +111,7 @@ describe('createHppRequest', () => {
   it('uses PAYTABS_API_SERVER_KEY if PAYTABS_SERVER_KEY missing (indirect via headers variable)', async () => {
     const restore = setEnv({ PAYTABS_SERVER_KEY: undefined, PAYTABS_API_SERVER_KEY: 'api_sv_key' });
     try {
-      const { createHppRequest } = lib;
+      const { createHppRequest } = lib as any;
 
       mockFetchOnce(async (_input, init) => {
         expect(init?.headers).toMatchObject({ authorization: 'api_sv_key' });
@@ -139,7 +139,7 @@ describe('createPaymentPage', () => {
   });
 
   it('returns success with url and transaction id when redirect_url present', async () => {
-    const { createPaymentPage } = lib;
+    const { createPaymentPage } = lib as any;
     const request = {
       invoiceId: 'INV-1',
       currency: 'SAR',
@@ -187,7 +187,7 @@ describe('createPaymentPage', () => {
   });
 
   it('generates cart_id when invoiceId is missing and handles failure without redirect_url', async () => {
-    const { createPaymentPage } = lib;
+    const { createPaymentPage } = lib as any;
     const request = {
       currency: 'SAR',
       amount: 50,
@@ -215,7 +215,7 @@ describe('createPaymentPage', () => {
   });
 
   it('returns generic error when fetch throws', async () => {
-    const { createPaymentPage } = lib;
+    const { createPaymentPage } = lib as any;
 
     // Throw error
     // @ts-ignore
@@ -257,7 +257,7 @@ describe('verifyPayment', () => {
   });
 
   it('POSTs to query endpoint and returns parsed JSON', async () => {
-    const { verifyPayment } = lib;
+    const { verifyPayment } = lib as any;
 
     mockFetchOnce(async (input, init) => {
       expect(String(input)).toBe('https://api.example.com/payment/query');
@@ -276,7 +276,7 @@ describe('verifyPayment', () => {
   });
 
   it('rethrows on fetch error', async () => {
-    const { verifyPayment } = lib;
+    const { verifyPayment } = lib as any;
 
     // @ts-ignore
     global.fetch = vi.fn(async () => {
@@ -293,19 +293,18 @@ describe('validateCallbackRaw (HMAC SHA-256 verification)', () => {
 
   // Minimal mock for WebCrypto subtle.sign producing deterministic bytes
   function setCryptoMock(signatureBytes: Uint8Array) {
-    // @ts-ignore
-    global.crypto = {
+    (global as any).crypto = {
       subtle: {
-        importKey: vi.fn(async () => ({})),
+        importKey: vi.fn(async () => ({} as CryptoKey)),
         sign: vi.fn(async (_algo: string, _key: any, _data: ArrayBuffer) => {
-          return signatureBytes.buffer;
+          return signatureBytes.buffer as ArrayBuffer;
         }),
-      },
+      } as any,
     };
   }
 
   it('returns false when server key missing or signature missing', async () => {
-    const { validateCallbackRaw } = lib;
+    const { validateCallbackRaw } = lib as any;
 
     // No server key
     const restore = setEnv({ PAYTABS_API_SERVER_KEY: undefined, PAYTABS_SERVER_KEY: undefined });
@@ -318,7 +317,7 @@ describe('validateCallbackRaw (HMAC SHA-256 verification)', () => {
   });
 
   it('returns true on exact signature match (constant-time compare)', async () => {
-    const { validateCallbackRaw } = lib;
+    const { validateCallbackRaw } = lib as any;
     // signature bytes -> hex "0a0b0c"
     const bytes = new Uint8Array([0x0a, 0x0b, 0x0c]);
     setCryptoMock(bytes);
@@ -329,7 +328,7 @@ describe('validateCallbackRaw (HMAC SHA-256 verification)', () => {
   });
 
   it('returns false on length mismatch', async () => {
-    const { validateCallbackRaw } = lib;
+    const { validateCallbackRaw } = lib as any;
     const bytes = new Uint8Array([0xde, 0xad, 0xbe, 0xef]); // hex "deadbeef"
     setCryptoMock(bytes);
     const notSameLen = 'deadbee'; // one nibble short
@@ -338,21 +337,20 @@ describe('validateCallbackRaw (HMAC SHA-256 verification)', () => {
   });
 
   it('returns false when any character differs', async () => {
-    const { validateCallbackRaw } = lib;
+    const { validateCallbackRaw } = lib as any;
     const bytes = new Uint8Array([0xaa, 0xbb]); // "aabb"
     setCryptoMock(bytes);
     expect(await validateCallbackRaw('raw', 'aaba')).toBe(false);
   });
 
   it('returns false on crypto error', async () => {
-    const { validateCallbackRaw } = lib;
+    const { validateCallbackRaw } = lib as any;
     // Force subtle.sign to throw
-    // @ts-ignore
-    global.crypto = {
+    (global as any).crypto = {
       subtle: {
-        importKey: vi.fn(async () => ({})),
+        importKey: vi.fn(async () => ({} as CryptoKey)),
         sign: vi.fn(async () => { throw new Error('subtle failed'); }),
-      },
+      } as any,
     };
     const res = await validateCallbackRaw('raw', '00');
     expect(res).toBe(false);
@@ -374,7 +372,7 @@ describe('constants and helpers', () => {
   });
 
   it('CURRENCIES includes SAR, USD, EUR, AED', () => {
-    const { CURRENCIES } = lib;
+    const { CURRENCIES } = lib as any;
     expect(CURRENCIES.SAR).toBe('SAR');
     expect(CURRENCIES.USD).toBe('USD');
     expect(CURRENCIES.EUR).toBe('EUR');
@@ -382,7 +380,7 @@ describe('constants and helpers', () => {
   });
 
   it('getAvailablePaymentMethods returns enabled list with expected shapes', () => {
-    const { getAvailablePaymentMethods, PAYMENT_METHODS } = lib;
+    const { getAvailablePaymentMethods, PAYMENT_METHODS } = lib as any;
     const list = getAvailablePaymentMethods();
     expect(Array.isArray(list)).toBe(true);
     // ensure unique ids and all enabled

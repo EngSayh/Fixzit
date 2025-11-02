@@ -35,7 +35,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('returns 404 when product is not found', async () => {
-    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null)
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(null)
 
     const req = {} as any // Minimal NextRequest stub
     const res = await GET(req, { params: Promise.resolve({ slug: 'non-existent' }) })
@@ -46,14 +46,14 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('returns product with computed buyBox (happy path with all fields)', async () => {
-    const doc: any = {
+    const doc = {
       _id: 'p1',
       name: 'Test Product',
       slug: 'test-product',
       prices: [{ listPrice: 123.45, currency: 'USD' }],
       inventories: [{ onHand: 10, leadDays: 5 }]
     };
-    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(doc)
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc)
 
     const req = {} as any
     const res = await GET(req, { params: Promise.resolve({ slug: 'test-product' }) })
@@ -72,12 +72,12 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('defaults currency to SAR when missing', async () => {
-    const doc: any = {
+    const doc = {
       slug: 'no-currency',
       prices: [{ listPrice: 50 }], // no currency
       inventories: [{ onHand: 3, leadDays: 2 }]
     };
-    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(doc)
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: Promise.resolve({ slug: 'no-currency' }) })
     const body = await readJson(res as any)
@@ -89,12 +89,12 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('handles missing prices by setting price null and default currency', async () => {
-    const doc: any = {
+    const doc = {
       slug: 'no-prices',
       // prices missing
       inventories: [{ onHand: 1, leadDays: 1 }]
     };
-    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(doc)
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: Promise.resolve({ slug: 'no-prices' }) })
     const body = await readJson(res as any)
@@ -106,12 +106,12 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('handles empty prices array by setting price null and default currency', async () => {
-    const doc: any = {
+    const doc = {
       slug: 'empty-prices',
       prices: [],
       inventories: [{ onHand: 1, leadDays: 4 }]
     };
-    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(doc)
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: Promise.resolve({ slug: 'empty-prices' }) })
     const body = await readJson(res as any)
@@ -123,12 +123,12 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('computes inStock as false when onHand is 0 or falsy', async () => {
-    const doc: any = {
+    const doc = {
       slug: 'out-of-stock',
       prices: [{ listPrice: 10, currency: 'EUR' }],
       inventories: [{ onHand: 0, leadDays: 7 }]
     };
-    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(doc)
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: Promise.resolve({ slug: 'out-of-stock' }) })
     const body = await readJson(res as any)
@@ -139,12 +139,12 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('defaults leadDays to 3 when inventories missing', async () => {
-    const doc: any = {
+    const doc = {
       slug: 'no-inventories',
       prices: [{ listPrice: 99.99, currency: 'GBP' }]
       // inventories missing
     };
-    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(doc)
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: Promise.resolve({ slug: 'no-inventories' }) })
     const body = await readJson(res as any)
@@ -156,12 +156,12 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('defaults leadDays to 3 when first inventory missing leadDays', async () => {
-    const doc: any = {
+    const doc = {
       slug: 'no-leaddays',
       prices: [{ listPrice: 1.23, currency: 'JPY' }],
       inventories: [{ onHand: 2 /* leadDays missing */ }]
     };
-    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(doc)
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc)
 
     const res = await GET({} as any, { params: Promise.resolve({ slug: 'no-leaddays' }) })
     const body = await readJson(res as any)
@@ -171,7 +171,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('handles errors from data layer by returning 500', async () => {
-    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('DB failure'))
+    (MarketplaceProduct.findOne as any).mockRejectedValueOnce(new Error('DB failure'))
 
     const res = await GET({} as any, { params: Promise.resolve({ slug: 'boom' }) })
 
@@ -180,8 +180,8 @@ describe('GET /api/marketplace/products/[slug]', () => {
   })
 
   test('uses the provided slug param in the query', async () => {
-    const doc: any = { slug: 'unique-slug', prices: [], inventories: [] };
-    (MarketplaceProduct.findOne as ReturnType<typeof vi.fn>).mockResolvedValueOnce(doc)
+    const doc = { slug: 'unique-slug', prices: [], inventories: [] };
+    (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc)
 
     await GET({} as any, { params: Promise.resolve({ slug: 'unique-slug' }) })
 
