@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -21,7 +22,7 @@ interface PropertyUnit {
 }
 
 interface PropertyItem {
-  _id: string;
+  id: string;
   name?: string;
   code?: string;
   type?: string;
@@ -41,6 +42,7 @@ interface PropertyItem {
 }
 
 export default function PropertiesPage() {
+  const router = useRouter();
   const { t } = useTranslation();
   const { data: session } = useSession();
   const orgId = session?.user?.orgId;
@@ -139,7 +141,7 @@ export default function PropertiesPage() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {(properties as PropertyItem[]).map((property) => (
-              <PropertyCard key={property._id} property={property} orgId={orgId} onUpdated={mutate} />
+              <PropertyCard key={property.id} property={property} orgId={orgId} onUpdated={mutate} />
             ))}
           </div>
 
@@ -164,6 +166,7 @@ export default function PropertiesPage() {
 }
 
 function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; orgId?: string; onUpdated: () => void }) {
+  const router = useRouter();
   const { t } = useTranslation();
   
   const handleDelete = async () => {
@@ -172,7 +175,7 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
 
     const toastId = toast.loading('Deleting property...');
     try {
-      const res = await fetch(`/api/properties/${property._id}`, {
+      const res = await fetch(`/api/properties/${property.id}`, {
         method: 'DELETE',
         headers: { 'x-tenant-id': orgId }
       });
@@ -296,14 +299,14 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={() => window.location.href = `/fm/properties/${property._id}`}
+            onClick={() => router.push(`/fm/properties/${property.id}`)}
           >
             <Eye className="w-4 h-4" />
           </Button>
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={() => window.location.href = `/fm/properties/${property._id}/edit`}
+            onClick={() => router.push(`/fm/properties/${property.id}/edit`)}
           >
             <Edit className="w-4 h-4" />
           </Button>
