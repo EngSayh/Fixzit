@@ -77,7 +77,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-[#00558F]"
+          className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-primary/90"
         >
           {showForm ? 'Close form' : 'Create RFQ'}
         </button>
@@ -153,7 +153,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
             <button
               onClick={createRFQ}
               disabled={submitting}
-              className="rounded-full bg-warning px-5 py-2 text-sm font-semibold text-black hover:bg-[#FFCB4F] disabled:opacity-60"
+              className="rounded-full bg-warning px-5 py-2 text-sm font-semibold text-black hover:bg-warning/90 disabled:opacity-60"
             >
               {submitting ? 'Submitting…' : 'Submit RFQ'}
             </button>

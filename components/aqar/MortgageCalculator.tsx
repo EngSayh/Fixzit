@@ -181,7 +181,7 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
       {/* Results Section */}
       <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 mb-6">
         <h3 className="text-lg font-bold text-foreground mb-4">{t('aqar.mortgage.monthlyPayment', 'Monthly Payment')}</h3>
-        <div className="text-4xl font-bold text-[#FF8C00] mb-6">
+        <div className="text-4xl font-bold text-warning mb-6">
           {formatCurrency(monthlyPayment)}
           <span className="text-sm font-normal text-muted-foreground">/{t('aqar.mortgage.months', 'month')}</span>
         </div>

@@ -289,7 +289,7 @@ export default function CatalogView({
                       <span className="text-sm text-muted-foreground ml-1">/ {product.unit}</span>
                     </div>
                     <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                      <Badge variant="outline" className="border-[#00A859] text-success">
+                      <Badge variant="outline" className="border-success text-success">
                         Stock: {product.stock}
                       </Badge>
                       {product.category?.name && (
