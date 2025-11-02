@@ -237,11 +237,12 @@ export default function LoginPage() {
         // Determine redirect target (default to /fm/dashboard)
         const redirectTo = postLoginRedirect();
 
-        // Small delay to ensure session is established
+        // Give NextAuth time to establish session cookies before redirect
+        // This prevents race conditions where middleware/dashboard loads before session is ready
         setTimeout(() => {
-          // Use router.replace to maintain SPA navigation
-          router.replace(redirectTo);
-        }, 500);
+          // Force a full page navigation to ensure middleware runs with new session
+          window.location.href = redirectTo;
+        }, 800);
       }
     } catch (err) {
       console.error('Login error:', err);

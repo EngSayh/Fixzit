@@ -103,12 +103,25 @@ export default function DashboardPage() {
 
   const isLoading = woLoading || propsLoading || assetsLoading || invoicesLoading;
 
+  // Handle authentication loading state
+  if (sessionStatus === 'loading') {
+    return <StatsCardSkeleton count={4} />;
+  }
+
+  // If not authenticated after loading, redirect to login (middleware should handle this, but belt-and-suspenders)
+  if (sessionStatus === 'unauthenticated') {
+    router.replace('/login');
+    return <StatsCardSkeleton count={4} />;
+  }
+
   if (!session) {
     return <StatsCardSkeleton count={4} />;
   }
 
   if (!orgId) {
-    return <p>Error: No organization ID found in session</p>;
+    return <div className="p-8 text-center">
+      <p className="text-lg text-muted-foreground">No organization found. Please contact support.</p>
+    </div>;
   }
 
   const stats = {
