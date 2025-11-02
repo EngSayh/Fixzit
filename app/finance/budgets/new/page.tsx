@@ -5,12 +5,13 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import Decimal from 'decimal.js';
 
 interface BudgetCategory {
   id: string;
   category: string;
-  amount: number;
-  percentage: number;
+  amount: string; // Store as string to prevent float issues
+  percentage: string; // Store as string
 }
 
 export default function NewBudgetPage() {
@@ -26,7 +27,7 @@ export default function NewBudgetPage() {
   const [propertyId, setPropertyId] = useState('all');
   const [budgetOwner, setBudgetOwner] = useState('');
   const [categories, setCategories] = useState<BudgetCategory[]>([
-    { id: '1', category: '', amount: 0, percentage: 0 }
+    { id: '1', category: '', amount: '0', percentage: '0' }
   ]);
   const [enableAlerts, setEnableAlerts] = useState(true);
   const [requireApprovals, setRequireApprovals] = useState(false);
@@ -34,10 +35,19 @@ export default function NewBudgetPage() {
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Calculate total budget and summary
-  const totalBudget = categories.reduce((sum, cat) => sum + (cat.amount || 0), 0);
-  const allocatedBudget = categories.filter(c => c.category).reduce((sum, cat) => sum + (cat.amount || 0), 0);
-  const remainingBudget = totalBudget - allocatedBudget;
+  // Calculate totals using Decimal.js for precision
+  // SOURCE OF TRUTH: Category amounts (not totalBudget)
+  const totalBudget = categories.reduce((sum, cat) => {
+    return sum.plus(new Decimal(cat.amount || '0'));
+  }, new Decimal(0));
+  
+  const allocatedBudget = categories
+    .filter(c => c.category)
+    .reduce((sum, cat) => {
+      return sum.plus(new Decimal(cat.amount || '0'));
+    }, new Decimal(0));
+  
+  const remainingBudget = totalBudget.minus(allocatedBudget);
 
   // Register form for tracking (no initial fields needed - will track via updateField calls)
   React.useEffect(() => {
@@ -49,7 +59,7 @@ export default function NewBudgetPage() {
   // Add new category row
   const handleAddCategory = () => {
     const newId = (Math.max(...categories.map(c => parseInt(c.id))) + 1).toString();
-    setCategories([...categories, { id: newId, category: '', amount: 0, percentage: 0 }]);
+    setCategories([...categories, { id: newId, category: '', amount: '0', percentage: '0' }]);
   };
 
   // Remove category row
@@ -60,28 +70,60 @@ export default function NewBudgetPage() {
   };
 
   // Update category field
-  const handleCategoryChange = (id: string, field: keyof BudgetCategory, value: string | number) => {
-    setCategories(categories.map(cat => {
-      if (cat.id === id) {
+  // SOURCE OF TRUTH: Amount is primary, percentage is derived
+  const handleCategoryChange = (id: string, field: keyof BudgetCategory, value: string) => {
+    setCategories(prevCategories => {
+      return prevCategories.map(cat => {
+        if (cat.id !== id) return cat;
+        
         const updated = { ...cat, [field]: value };
-        // Auto-calculate percentage when amount changes
-        if (field === 'amount' && totalBudget > 0) {
-          updated.percentage = Math.round(((updated.amount as number) / totalBudget) * 100);
+        
+        // Calculate current total (excluding this category to avoid circular logic)
+        const otherCategoriesTotal = prevCategories
+          .filter(c => c.id !== id)
+          .reduce((sum, c) => sum.plus(new Decimal(c.amount || '0')), new Decimal(0));
+        
+        const newTotal = otherCategoriesTotal.plus(new Decimal(updated.amount || '0'));
+        
+        // Auto-calculate percentage when amount changes (derived from amount)
+        if (field === 'amount') {
+          if (newTotal.greaterThan(0)) {
+            const pct = new Decimal(updated.amount || '0')
+              .dividedBy(newTotal)
+              .times(100);
+            updated.percentage = pct.toFixed(2);
+          } else {
+            updated.percentage = '0';
+          }
         }
-        // Auto-calculate amount when percentage changes
-        if (field === 'percentage' && totalBudget > 0) {
-          updated.amount = Math.round((totalBudget * (updated.percentage as number)) / 100);
+        
+        // Auto-calculate amount when percentage changes (if total is known)
+        if (field === 'percentage' && newTotal.greaterThan(0)) {
+          const amt = newTotal
+            .times(new Decimal(updated.percentage || '0'))
+            .dividedBy(100);
+          updated.amount = amt.toFixed(2);
         }
+        
         return updated;
-      }
-      return cat;
-    }));
+      });
+    });
   };
 
   // Save as draft
   const handleSaveDraft = async () => {
     try {
       setIsSubmitting(true);
+      
+      // Convert string values to numbers for API using Decimal for precision
+      const apiCategories = categories
+        .filter(c => c.category)
+        .map(c => ({
+          category: c.category,
+          amount: Number(new Decimal(c.amount || '0').toFixed(2)),
+          percentage: Number(new Decimal(c.percentage || '0').toFixed(2))
+        }));
+      
       const response = await fetch('/api/finance/budgets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,7 +134,7 @@ export default function NewBudgetPage() {
           endDate,
           propertyId: propertyId === 'all' ? null : propertyId,
           budgetOwner,
-          categories: categories.filter(c => c.category),
+          categories: apiCategories,
           settings: { enableAlerts, requireApprovals, allowCarryover },
           description,
           status: 'draft'
@@ -136,6 +178,16 @@ export default function NewBudgetPage() {
 
     try {
       setIsSubmitting(true);
+      
+      // Convert string values to numbers for API using Decimal for precision
+      const apiCategories = categories
+        .filter(c => c.category)
+        .map(c => ({
+          category: c.category,
+          amount: Number(new Decimal(c.amount || '0').toFixed(2)),
+          percentage: Number(new Decimal(c.percentage || '0').toFixed(2))
+        }));
+      
       const response = await fetch('/api/finance/budgets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -146,7 +198,7 @@ export default function NewBudgetPage() {
           endDate,
           propertyId: propertyId === 'all' ? null : propertyId,
           budgetOwner,
-          categories: categories.filter(c => c.category),
+          categories: apiCategories,
           settings: { enableAlerts, requireApprovals, allowCarryover },
           description,
           status: 'active'
@@ -315,7 +367,7 @@ export default function NewBudgetPage() {
                       <input
                         type="number"
                         value={cat.amount || ''}
-                        onChange={(e) => handleCategoryChange(cat.id, 'amount', parseFloat(e.target.value) || 0)}
+                        onChange={(e) => handleCategoryChange(cat.id, 'amount', e.target.value)}
                         placeholder="0.00"
                         className="w-full px-2 py-2 pr-12 border border-border rounded focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
@@ -326,7 +378,7 @@ export default function NewBudgetPage() {
                     <input
                       type="number"
                       value={cat.percentage || ''}
-                      onChange={(e) => handleCategoryChange(cat.id, 'percentage', parseFloat(e.target.value) || 0)}
+                      onChange={(e) => handleCategoryChange(cat.id, 'percentage', e.target.value)}
                       placeholder="0"
                       className="w-full px-2 py-2 border border-border rounded focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
