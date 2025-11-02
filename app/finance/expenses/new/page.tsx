@@ -476,8 +476,8 @@ export default function NewExpensePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('finance.expense.title', 'New Expense')}</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">{t('finance.expense.subtitle', 'Record a new business expense with line items and approvals')}</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('finance.expense.title', 'New Expense')}</h1>
+          <p className="text-muted-foreground">{t('finance.expense.subtitle', 'Record a new business expense with line items and approvals')}</p>
         </div>
         <div className="flex gap-2">
           <button 
@@ -912,7 +912,7 @@ export default function NewExpensePage() {
                 <span className="text-sm text-muted-foreground">{t('finance.expense.maintenanceBudget', 'Maintenance Budget')}</span>
                 <div className="flex items-center gap-2">
                   <div className="w-16 h-2 bg-muted rounded">
-                    <div className="w-3/4 h-full bg-[var(--fixzit-success-light)] rounded"></div>
+                    <div className="w-3/4 h-full bg-success/20 rounded"></div>
                   </div>
                   <span className="text-xs text-muted-foreground">75%</span>
                 </div>
@@ -921,7 +921,7 @@ export default function NewExpensePage() {
                 <span className="text-sm text-muted-foreground">{t('finance.expense.utilitiesBudget', 'Utilities Budget')}</span>
                 <div className="flex items-center gap-2">
                   <div className="w-16 h-2 bg-muted rounded">
-                    <div className="w-1/2 h-full bg-[var(--fixzit-accent-light)] rounded"></div>
+                    <div className="w-1/2 h-full bg-accent/20 rounded"></div>
                   </div>
                   <span className="text-xs text-muted-foreground">50%</span>
                 </div>
@@ -937,21 +937,21 @@ export default function NewExpensePage() {
                   <p className="text-sm font-medium">EXP-247</p>
                   <p className="text-xs text-muted-foreground">AC Maintenance</p>
                 </div>
-                <span className="text-sm font-medium text-[var(--fixzit-danger)]">-SAR 150</span>
+                <span className="text-sm font-medium text-destructive">-SAR 150</span>
               </div>
               <div className="flex justify-between items-center p-2 bg-muted rounded">
                 <div>
                   <p className="text-sm font-medium">EXP-246</p>
                   <p className="text-xs text-muted-foreground">Office Supplies</p>
                 </div>
-                <span className="text-sm font-medium text-[var(--fixzit-danger)]">-SAR 85</span>
+                <span className="text-sm font-medium text-destructive">-SAR 85</span>
               </div>
               <div className="flex justify-between items-center p-2 bg-muted rounded">
                 <div>
                   <p className="text-sm font-medium">EXP-245</p>
                   <p className="text-xs text-muted-foreground">Electrical Repair</p>
                 </div>
-                <span className="text-sm font-medium text-[var(--fixzit-danger)]">-SAR 320</span>
+                <span className="text-sm font-medium text-destructive">-SAR 320</span>
               </div>
             </div>
           </div>
@@ -975,7 +975,7 @@ export default function NewExpensePage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.recentActivity', 'Recent Activity')}</h3>
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[var(--fixzit-success-light)] rounded-full"></div>
+                <div className="w-2 h-2 bg-success/20 rounded-full"></div>
                 <span className="text-muted-foreground">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
                 <span className="text-muted-foreground ml-auto">2m ago</span>
               </div>
