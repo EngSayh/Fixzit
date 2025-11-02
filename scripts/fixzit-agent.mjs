@@ -32,6 +32,14 @@ const CONFIG = {
 // Ensure directories exist
 await $`mkdir -p ${CONFIG.reportsDir} ${CONFIG.tasksDir}`;
 
+// Global state for error tracking
+const STATE = {
+  success: true,
+  errors: [],
+  devServerPid: null,
+  devServerProc: null
+};
+
 console.log(chalk.blue('━'.repeat(60)));
 console.log(chalk.blue.bold('🤖 Fixzit Agent: STRICT v4 + Governance V5'));
 console.log(chalk.blue('━'.repeat(60)));
@@ -69,7 +77,10 @@ async function ensureDependencies() {
       console.log(chalk.green('✅ All dependencies installed'));
     }
   } catch (error) {
-    console.error(chalk.red(`❌ Dependency check failed: ${error.message}`));
+    const err = error;
+    STATE.success = false;
+    STATE.errors.push({ step: 'Dependencies', error: err.message });
+    console.error(chalk.red(`❌ Dependency check failed: ${err.message}`));
     throw error;
   }
 }
@@ -290,8 +301,13 @@ async function runHFVTests() {
   try {
     await $`npx playwright test tests/hfv.e2e.spec.ts --reporter=html`;
     console.log(chalk.green('✅ HFV tests complete'));
+    return true;
   } catch (error) {
-    console.error(chalk.red(`❌ HFV tests failed: ${error.message}`));
+    const err = error;
+    STATE.success = false;
+    STATE.errors.push({ step: 'HFV Tests', error: err.message });
+    console.error(chalk.red(`❌ HFV tests failed: ${err.message}`));
+    return false;
   }
 }
 
@@ -345,6 +361,21 @@ ${CONFIG.apply ? '✅ Changes applied automatically' : '⚠️  Dry-run mode: Re
 }
 
 /**
+ * Cleanup dev server on exit
+ */
+async function cleanupDevServer() {
+  if (STATE.devServerProc) {
+    try {
+      console.log(chalk.yellow('\n🧹 Cleaning up dev server...'));
+      STATE.devServerProc.kill();
+      console.log(chalk.green('✅ Dev server stopped'));
+    } catch (error) {
+      console.error(chalk.yellow('⚠️  Could not stop dev server automatically'));
+    }
+  }
+}
+
+/**
  * Main Execution
  */
 async function main() {
@@ -362,20 +393,44 @@ async function main() {
     const serverReady = await startDevServer();
     
     if (serverReady) {
-      await runHFVTests();
+      const testsPass = await runHFVTests();
+      if (!testsPass) {
+        STATE.success = false;
+      }
+    } else {
+      STATE.success = false;
+      STATE.errors.push({ step: 'Dev Server', error: 'Failed to start' });
     }
     
     if (CONFIG.report) {
       await generateReport(fixes, similarHits, duplicates);
     }
     
-    console.log(chalk.green.bold('\n✅ Fixzit Agent Complete!'));
-    console.log(chalk.gray(`\nReports: ${CONFIG.reportsDir}`));
-    console.log(chalk.gray(`Dev Server: http://localhost:${CONFIG.port}`));
-    console.log(chalk.gray(`\nTo stop dev server: pnpm run fixzit:agent:stop`));
+    if (STATE.success) {
+      console.log(chalk.green.bold('\n✅ Fixzit Agent Complete!'));
+      console.log(chalk.gray(`\nReports: ${CONFIG.reportsDir}`));
+      console.log(chalk.gray(`Dev Server: http://localhost:${CONFIG.port}`));
+      console.log(chalk.gray(`\nTo stop dev server: pnpm run fixzit:agent:stop`));
+    } else {
+      console.log(chalk.red.bold('\n❌ Fixzit Agent completed with errors:'));
+      STATE.errors.forEach((e, i) => {
+        console.log(chalk.red(`  ${i + 1}. ${e.step}: ${e.error}`));
+      });
+      console.log(chalk.gray(`\nPartial reports: ${CONFIG.reportsDir}`));
+    }
   } catch (error) {
-    console.error(chalk.red.bold('\n❌ Fixzit Agent Failed:'), error.message);
-    process.exit(1);
+    const err = error;
+    STATE.success = false;
+    console.error(chalk.red.bold('\n❌ Fixzit Agent Failed:'), err.message);
+  } finally {
+    // Always cleanup dev server
+    await cleanupDevServer();
+    
+    // Exit with proper code for CI/CD
+    if (!STATE.success) {
+      console.error(chalk.red('\n💥 Exiting with code 1 (failures detected)'));
+      process.exit(1);
+    }
   }
 }
 
