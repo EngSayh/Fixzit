@@ -268,7 +268,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="space-y-4">
               {properties?.items?.slice(0, 5).map((property: Property) => (
-                <div key={property._id} className="flex items-center justify-between">
+                <div key={property.id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <Building2 className="w-4 h-4 text-muted-foreground" />
                     <div>
