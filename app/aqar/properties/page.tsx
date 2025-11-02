@@ -94,7 +94,7 @@ export default function AqarPropertiesPage() {
             const price = p.market?.listingPrice || 0;
             const badge = p.subtype || p.type || 'Property';
             return (
-              <article key={p._id} className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+              <article key={p.id} className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
                 <div className="relative w-full h-48">
                   <Image src={photo} alt={p.name} fill className="object-cover" />
                   <span className="absolute top-2 left-2 bg-card/90 text-foreground text-xs px-2 py-1 rounded">{badge}</span>
