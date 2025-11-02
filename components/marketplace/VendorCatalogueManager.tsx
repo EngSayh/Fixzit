@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 interface VendorProduct {
-  _id: string;
+  id: string;
   title: { en: string };
   sku: string;
   status: string;
@@ -127,7 +127,7 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
         {products.length ? (
           <div className="grid gap-4 md:grid-cols-2">
             {products.map(product => (
-              <article key={product._id} className="rounded-3xl bg-card p-5 shadow">
+              <article key={product.id} className="rounded-3xl bg-card p-5 shadow">
                 <h3 className="text-lg font-semibold text-[#0F1111]">{product.title.en}</h3>
                 <p className="text-sm text-muted-foreground">SKU {product.sku}</p>
                 <p className="text-sm text-muted-foreground">
