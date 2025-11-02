@@ -108,7 +108,7 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
             type="button"
             onClick={handleAddToCart}
             disabled={adding}
-            className="flex items-center gap-2 rounded-full bg-warning px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#FFCB4F] disabled:cursor-not-allowed disabled:opacity-70"
+            className="flex items-center gap-2 rounded-full bg-warning px-4 py-2 text-sm font-semibold text-black transition hover:bg-warning/90 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {adding ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <ShoppingCart size={16} aria-hidden />}
             {adding ? 'Adding…' : 'Add to Cart'}

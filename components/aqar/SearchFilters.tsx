@@ -213,7 +213,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           <SlidersHorizontal className="w-4 h-4" />
           <span>{t('aqar.filters.filtersButton', 'Filters')}</span>
           {activeFilterCount() > 0 && (
-            <span className="bg-[#FF8C00] text-white text-xs px-2 py-0.5 rounded-full">
+            <span className="bg-warning text-white text-xs px-2 py-0.5 rounded-full">
               {activeFilterCount()}
             </span>
           )}
@@ -236,7 +236,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   onClick={() => togglePropertyType(type.value)}
                   className={`p-3 rounded-lg border-2 text-center transition-colors ${
                     filters.propertyTypes?.includes(type.value)
-                      ? 'border-[#FFB400] bg-orange-50'
+                      ? 'border-warning bg-orange-50'
                       : 'border-border hover:border-border'
                   }`}
                 >
@@ -310,7 +310,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   onClick={() => toggleBedrooms(count)}
                   className={`px-4 py-2 rounded-lg border-2 transition-colors ${
                     filters.bedrooms?.includes(count)
-                      ? 'border-[#FFB400] bg-orange-50 text-foreground'
+                      ? 'border-warning bg-orange-50 text-foreground'
                       : 'border-border hover:border-border text-foreground'
                   }`}
                 >
@@ -333,7 +333,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   onClick={() => toggleBathrooms(count)}
                   className={`px-4 py-2 rounded-lg border-2 transition-colors ${
                     filters.bathrooms?.includes(count)
-                      ? 'border-[#FFB400] bg-orange-50 text-foreground'
+                      ? 'border-warning bg-orange-50 text-foreground'
                       : 'border-border hover:border-border text-foreground'
                   }`}
                 >
@@ -538,7 +538,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
             )}
             <button
               onClick={clearFilters}
-              className="ml-auto text-sm text-[#FF8C00] hover:text-warning font-medium"
+              className="ml-auto text-sm text-warning hover:text-warning font-medium"
             >
               {t('aqar.filters.clearAll', 'Clear All')}
             </button>

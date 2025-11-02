@@ -163,7 +163,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     return (
       <>
         <HtmlAttrs />
-        <div className="min-h-screen bg-[#F9FAFB]">
+        <div className="min-h-screen bg-muted/30">
           <AutoFixInitializer />
           <AutoIncidentReporter />
           <PreferenceBroadcast />
@@ -180,7 +180,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <HtmlAttrs />
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="min-h-screen bg-muted/30">
         <AutoFixInitializer />
         <ResponsiveLayout
           header={<TopBar />}

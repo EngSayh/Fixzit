@@ -308,7 +308,7 @@ export default function ViewingScheduler({
                         onClick={() => setSelectedTime(time)}
                         className={`py-2 rounded-lg border text-sm transition-colors ${
                           selectedTime === time
-                            ? 'border-[#FFB400] bg-orange-50 text-foreground font-semibold'
+                            ? 'border-warning bg-orange-50 text-foreground font-semibold'
                             : 'border-border hover:border-border text-foreground'
                         }`}
                       >

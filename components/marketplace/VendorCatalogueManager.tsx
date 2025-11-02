@@ -116,7 +116,7 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
         <button
           onClick={addProduct}
           disabled={loading}
-          className="mt-4 rounded-full bg-warning px-5 py-2 text-sm font-semibold text-black hover:bg-[#FFCB4F] disabled:opacity-60"
+          className="mt-4 rounded-full bg-warning px-5 py-2 text-sm font-semibold text-black hover:bg-warning/90 disabled:opacity-60"
         >
           {loading ? 'Saving…' : 'Publish product'}
         </button>
