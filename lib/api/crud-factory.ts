@@ -220,7 +220,22 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
 
       // Apply onCreate hook if provided
       if (onCreate) {
-        entityData = await onCreate(entityData, user);
+        try {
+          entityData = await onCreate(entityData, user);
+        } catch (hookError: unknown) {
+          const correlationId = crypto.randomUUID();
+          console.error(`[POST /api/${entityName}] onCreate hook error:`, {
+            correlationId,
+            userId: user.id,
+            orgId: user.orgId,
+            role: user.role,
+            timestamp: new Date().toISOString(),
+            error: hookError instanceof Error ? hookError.message : String(hookError),
+            stack: hookError instanceof Error ? hookError.stack : undefined,
+          });
+          
+          throw new Error(`onCreate hook failed: ${hookError instanceof Error ? hookError.message : String(hookError)}`);
+        }
       }
 
       // Create entity
