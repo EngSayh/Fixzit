@@ -309,8 +309,8 @@ export default function FMPage() {
               { name: 'Plumbing', icon: '🔧', count: 8, color: 'bg-success/100', key: 'plumbing' },
               { name: 'Cleaning', icon: '🧹', count: 15, color: 'bg-warning/100', key: 'cleaning' },
               { name: 'Electrical', icon: '⚡', count: 10, color: 'bg-secondary/100', key: 'electrical' },
-              { name: 'Painting', icon: '🎨', count: 6, color: 'bg-pink-500', key: 'painting' },
-              { name: 'Elevators', icon: '🛗', count: 4, color: 'bg-indigo-500', key: 'elevators' },
+              { name: 'Painting', icon: '🎨', count: 6, color: 'bg-accent/100', key: 'painting' },
+              { name: 'Elevators', icon: '🛗', count: 4, color: 'bg-primary/100', key: 'elevators' },
             ].map((service) => (
               <Card key={service.key} className="hover:shadow-lg transition-shadow cursor-pointer">
                 <CardContent className="p-6 text-center">

@@ -34,14 +34,14 @@ export default function NewWorkOrderPage() {
                 <input
                   type="text"
                   placeholder={t('workOrders.new.titlePlaceholder', 'Enter work order title...')}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   {t('workOrders.priority', 'Priority')} *
                 </label>
-                <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+                <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
                   <option value="">{t('workOrders.selectPriority', 'Select Priority')}</option>
                   <option value="P1">{t('workOrders.priority.p1', 'P1 - Critical')}</option>
                   <option value="P2">{t('workOrders.priority.p2', 'P2 - High')}</option>
@@ -59,7 +59,7 @@ export default function NewWorkOrderPage() {
                 <label className="block text-sm font-medium text-foreground mb-2">
                   {t('common.property', 'Property')} *
                 </label>
-                <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+                <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
                   <option value="">{t('common.selectProperty', 'Select Property')}</option>
                   <option value="tower-a">Tower A</option>
                   <option value="tower-b">Tower B</option>
@@ -73,7 +73,7 @@ export default function NewWorkOrderPage() {
                 <input
                   type="text"
                   placeholder={t('workOrders.new.locationPlaceholder', 'Unit number or specific location...')}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
             </div>
@@ -88,7 +88,7 @@ export default function NewWorkOrderPage() {
               <textarea
                 rows={4}
                 placeholder={t('workOrders.new.descriptionPlaceholder', 'Describe the work that needs to be done...')}
-                className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
           </div>
@@ -100,7 +100,7 @@ export default function NewWorkOrderPage() {
                 <label className="block text-sm font-medium text-foreground mb-2">
                   {t('workOrders.assignTo', 'Assign To')}
                 </label>
-                <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+                <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
                   <option value="">{t('workOrders.selectTechnician', 'Select Technician')}</option>
                   <option value="tech-1">Ahmed Al-Rashid</option>
                   <option value="tech-2">Mohammed Al-Saud</option>
@@ -113,7 +113,7 @@ export default function NewWorkOrderPage() {
                 </label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
             </div>

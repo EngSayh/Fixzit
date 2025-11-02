@@ -69,7 +69,7 @@ export default function AqarPropertiesPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by city, district, or title"
-            className="w-full pl-10 pr-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+            className="w-full pl-10 pr-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-warning focus:border-transparent"
           />
         </div>
         <div className="text-sm text-muted-foreground">{filtered.length} properties</div>

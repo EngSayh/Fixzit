@@ -208,7 +208,7 @@ export default async function AboutPage() {
 
       <div className={`min-h-screen bg-gradient-to-b from-white to-gray-50 ${isRTL ? 'rtl' : 'ltr'}`}>
         {/* Hero Section */}
-        <section className="bg-gradient-to-r from-[#0061A8] via-[#0061A8] to-[#00A859] text-white py-12">
+        <section className="bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--primary))] to-[hsl(var(--success))] text-white py-12">
           <div className="mx-auto max-w-7xl px-4 lg:px-6">
             <div className="flex items-center gap-4 mb-4">
               <Building2 className="w-12 h-12" aria-hidden="true" />
@@ -289,7 +289,7 @@ export default async function AboutPage() {
                     <div className="font-semibold text-foreground mb-1">{t('about.email', 'Email')}</div>
                     <a 
                       href={`mailto:${CONTACT_INFO.email}`}
-                      className="text-primary hover:text-[var(--fixzit-primary-darker)]"
+                      className="text-primary hover:text-primary"
                       aria-label={t('about.emailLabel', `Send email to ${CONTACT_INFO.email}`)}
                     >
                       {CONTACT_INFO.email}
@@ -303,7 +303,7 @@ export default async function AboutPage() {
                     <div className="font-semibold text-foreground mb-1">{t('about.phone', 'Phone')}</div>
                     <a 
                       href={`tel:${CONTACT_INFO.phone.replace(/[^+\d]/g, '')}`}
-                      className="text-primary hover:text-[var(--fixzit-primary-darker)]"
+                      className="text-primary hover:text-primary"
                       aria-label={t('about.phoneLabel', `Call ${CONTACT_INFO.phone}`)}
                     >
                       {CONTACT_INFO.phone}

@@ -375,7 +375,7 @@ export default function NotificationsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Notifications</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">{notifications.length}</p>
+              <p className="text-2xl font-bold text-primary">{notifications.length}</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">📢</div>
           </div>
@@ -404,7 +404,7 @@ export default function NotificationsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Today</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-success)]">
+              <p className="text-2xl font-bold text-success">
                 {notifications.filter((n: NotificationDoc) => new Date(n.timestamp).toDateString() === new Date().toDateString()).length}
               </p>
             </div>
@@ -511,7 +511,7 @@ export default function NotificationsPage() {
                       type="checkbox"
                       checked={selectedNotifications.has(String(notif.id || ''))}
                       onChange={() => handleSelectNotification(String(notif.id || ''))}
-                      className="mt-1 h-4 w-4 text-[var(--fixzit-primary)] focus:ring-blue-500 border-border rounded"
+                      className="mt-1 h-4 w-4 text-primary focus:ring-blue-500 border-border rounded"
                     />
                     <div className="text-xl">{getTypeIcon(notif.type)}</div>
                     <div className="flex-1">
@@ -543,7 +543,7 @@ export default function NotificationsPage() {
                     {!notif.read && (
                       <button
                         onClick={() => markAsRead(String(notif.id || ''))}
-                        className="p-1 text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] hover:bg-[var(--fixzit-primary-lighter)] rounded"
+                        className="p-1 text-primary hover:text-primary hover:bg-primary/10 rounded"
                         title="Mark as read"
                       >
                         <Check size={16} />
@@ -624,14 +624,14 @@ export default function NotificationsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <button
             onClick={handleEmailSettings}
-            className="btn-ghost text-center hover:bg-[var(--fixzit-primary-lightest)] transition-colors"
+            className="btn-ghost text-center hover:bg-primary/10 transition-colors"
           >
             <div className="text-2xl mb-2">📧</div>
             <div className="text-sm font-medium">Email Settings</div>
           </button>
           <button
             onClick={handlePushNotifications}
-            className="btn-ghost text-center hover:bg-[var(--fixzit-success-lightest)] transition-colors"
+            className="btn-ghost text-center hover:bg-success/10 transition-colors"
           >
             <div className="text-2xl mb-2">📱</div>
             <div className="text-sm font-medium">Push Notifications</div>
@@ -659,7 +659,7 @@ export default function NotificationsPage() {
           </button>
           <button
             onClick={handleClearAll}
-            className="btn-ghost text-center hover:bg-[var(--fixzit-danger-lightest)] transition-colors"
+            className="btn-ghost text-center hover:bg-destructive/10 transition-colors"
           >
             <div className="text-2xl mb-2">🗑️</div>
             <div className="text-sm font-medium">Clear All</div>

@@ -197,7 +197,7 @@ export default function HelpHome() {
                     <div className="flex items-center gap-2 mb-2">
                       {getCategoryIcon(tutorial.category)}
                       <span className="text-sm text-muted-foreground">{tutorial.category}</span>
-                      {tutorial.featured && <Star className="w-4 h-4 text-[var(--fixzit-accent-light)]" />}
+                      {tutorial.featured && <Star className="w-4 h-4 text-accent" />}
                     </div>
                     <h3 className="text-lg font-semibold text-foreground mb-2">{tutorial.title}</h3>
                     <p className="text-muted-foreground text-sm mb-4">{tutorial.description}</p>
@@ -216,7 +216,7 @@ export default function HelpHome() {
                   </div>
                   <Link
                     href={`/help/tutorial/${tutorial.id}`}
-                    className="text-primary hover:text-[var(--fixzit-primary-darker)] font-medium text-sm flex items-center gap-1"
+                    className="text-primary hover:text-primary font-medium text-sm flex items-center gap-1"
                   >
                     Start Tutorial
                     <ChevronRight className="w-4 h-4" />
@@ -225,7 +225,7 @@ export default function HelpHome() {
 
                 <div className="w-full bg-muted rounded-full h-2">
                   <div
-                    className="bg-[var(--fixzit-primary)] h-2 rounded-full"
+                    className="bg-primary h-2 rounded-full"
                     style={{ width: tutorial.completed ? '100%' : '0%' }}
                   ></div>
                 </div>
@@ -279,7 +279,7 @@ export default function HelpHome() {
                       </div>
                       <Link
                         href={`/help/article/${article.id}`}
-                        className="text-primary hover:text-[var(--fixzit-primary-darker)] font-medium text-sm flex items-center gap-1"
+                        className="text-primary hover:text-primary font-medium text-sm flex items-center gap-1"
                       >
                         Read More
                         <ChevronRight className="w-4 h-4" />
@@ -314,7 +314,7 @@ export default function HelpHome() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="text-center">
-              <div className="w-16 h-16 bg-[var(--fixzit-primary-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Building2 className="w-8 h-8 text-primary" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">Properties</h3>
@@ -324,7 +324,7 @@ export default function HelpHome() {
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 bg-[var(--fixzit-success-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Wrench className="w-8 h-8 text-success" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">Work Orders</h3>
@@ -334,7 +334,7 @@ export default function HelpHome() {
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 bg-[var(--fixzit-secondary-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users className="w-8 h-8 text-secondary-foreground" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">Vendors</h3>
@@ -344,7 +344,7 @@ export default function HelpHome() {
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 bg-[var(--fixzit-accent-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <DollarSign className="w-8 h-8 text-accent-foreground" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">Finance</h3>

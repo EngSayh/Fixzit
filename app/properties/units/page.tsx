@@ -91,7 +91,7 @@ export default function PropertiesUnitsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Units</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">156</p>
+              <p className="text-2xl font-bold text-primary">156</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">🏢</div>
           </div>
@@ -100,7 +100,7 @@ export default function PropertiesUnitsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Occupied</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-success)]">142</p>
+              <p className="text-2xl font-bold text-success">142</p>
             </div>
             <div className="text-[var(--fixzit-success-lighter)]">👥</div>
           </div>
@@ -129,7 +129,7 @@ export default function PropertiesUnitsPage() {
       <div className="card">
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
               <option>All Properties</option>
               <option>Tower A</option>
               <option>Tower B</option>
@@ -137,7 +137,7 @@ export default function PropertiesUnitsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
               <option>All Types</option>
               <option>Studio</option>
               <option>1BR Apartment</option>
@@ -147,7 +147,7 @@ export default function PropertiesUnitsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
               <option>All Status</option>
               <option>Occupied</option>
               <option>Vacant</option>
@@ -204,8 +204,8 @@ export default function PropertiesUnitsPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">{t('common.edit', 'Edit')}</button>
-                      <button className="text-[var(--fixzit-success)] hover:text-[var(--fixzit-success-darkest)]">View Tenant</button>
+                      <button className="text-primary hover:text-primary">{t('common.edit', 'Edit')}</button>
+                      <button className="text-success hover:text-[var(--fixzit-success-darkest)]">View Tenant</button>
                     </div>
                   </td>
                 </tr>

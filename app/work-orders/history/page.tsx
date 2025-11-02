@@ -70,7 +70,7 @@ export default function ServiceHistoryPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('workOrders.history.totalCompleted', 'Total Completed')}</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-success)]">247</p>
+              <p className="text-2xl font-bold text-success">247</p>
             </div>
             <div className="text-[var(--fixzit-success-lighter)]">✅</div>
           </div>
@@ -79,7 +79,7 @@ export default function ServiceHistoryPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('common.thisMonth', 'This Month')}</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">23</p>
+              <p className="text-2xl font-bold text-primary">23</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
           </div>
@@ -108,7 +108,7 @@ export default function ServiceHistoryPage() {
       <div className="card">
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
               <option>All Properties</option>
               <option>Tower A</option>
               <option>Tower B</option>
@@ -116,7 +116,7 @@ export default function ServiceHistoryPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
               <option>All Technicians</option>
               <option>Ahmed Al-Rashid</option>
               <option>Mohammed Al-Saud</option>
@@ -127,14 +127,14 @@ export default function ServiceHistoryPage() {
             <input
               type="date"
               placeholder="From Date"
-              className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </div>
           <div className="flex-1 min-w-48">
             <input
               type="date"
               placeholder="To Date"
-              className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </div>
           <button className="btn-primary">{t('workOrders.filter', 'Filter')}</button>
@@ -190,8 +190,8 @@ export default function ServiceHistoryPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">{t('workOrders.history.view', 'View')}</button>
-                      <button className="text-[var(--fixzit-success)] hover:text-[var(--fixzit-success-darkest)]">{t('workOrders.history.invoice', 'Invoice')}</button>
+                      <button className="text-primary hover:text-primary">{t('workOrders.history.view', 'View')}</button>
+                      <button className="text-success hover:text-[var(--fixzit-success-darkest)]">{t('workOrders.history.invoice', 'Invoice')}</button>
                     </div>
                   </td>
                 </tr>

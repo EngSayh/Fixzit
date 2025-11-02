@@ -167,7 +167,7 @@ export default function CatalogPage() {
                 placeholder="Search products, categories, or vendors..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-[#00A859] focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
               />
             </div>
 
@@ -175,7 +175,7 @@ export default function CatalogPage() {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-[#00A859] focus:border-transparent"
+                className="px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
               >
                 {categories.map(category => (
                   <option key={category} value={category}>
@@ -187,7 +187,7 @@ export default function CatalogPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-[#00A859] focus:border-transparent"
+                className="px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
               >
                 <option value="relevance">Relevance</option>
                 <option value="price-low">Price: Low to High</option>

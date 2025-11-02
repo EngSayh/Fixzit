@@ -512,7 +512,7 @@ export default function NewExpensePage() {
                 <select 
                   value={expenseType}
                   onChange={(e) => setExpenseType(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="OPERATIONAL">{t('finance.expense.operational', 'Operational')}</option>
                   <option value="MAINTENANCE">{t('finance.expense.maintenance', 'Maintenance')}</option>
@@ -530,7 +530,7 @@ export default function NewExpensePage() {
                   type="date"
                   value={expenseDate}
                   onChange={(e) => setExpenseDate(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.expenseDate ? 'border-destructive' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.expenseDate ? 'border-destructive' : 'border-border'}`}
                 />
                 {errors.expenseDate && <p className="text-destructive text-xs mt-1">{errors.expenseDate}</p>}
               </div>
@@ -542,7 +542,7 @@ export default function NewExpensePage() {
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
               <div>
@@ -552,7 +552,7 @@ export default function NewExpensePage() {
                 <select 
                   value={propertyId}
                   onChange={(e) => setPropertyId(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="">{t('finance.allProperties', 'All Properties')}</option>
                   <option value="prop1">Tower A</option>
@@ -578,7 +578,7 @@ export default function NewExpensePage() {
                     const vendor = vendors.find(v => v.id === e.target.value);
                     if (vendor) setVendorName(vendor.name);
                   }}
-                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.vendorName ? 'border-destructive' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.vendorName ? 'border-destructive' : 'border-border'}`}
                   disabled={loadingVendors}
                 >
                   <option value="">{loadingVendors ? t('common.loading', 'Loading...') : t('finance.expense.selectVendor', 'Select Vendor')}</option>
@@ -597,7 +597,7 @@ export default function NewExpensePage() {
                   value={vendorName}
                   onChange={(e) => setVendorName(e.target.value)}
                   placeholder={t('finance.expense.vendorNamePlaceholder', 'Enter vendor name')}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
             </div>
@@ -616,7 +616,7 @@ export default function NewExpensePage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder={t('finance.expense.descriptionPlaceholder', 'Brief description of the expense...')}
-                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent ${errors.description ? 'border-destructive' : 'border-border'}`}
+                  className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.description ? 'border-destructive' : 'border-border'}`}
                 />
                 {errors.description && <p className="text-destructive text-xs mt-1">{errors.description}</p>}
               </div>
@@ -629,7 +629,7 @@ export default function NewExpensePage() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder={t('finance.notesPlaceholder', 'Additional notes...')}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
             </div>
@@ -819,7 +819,7 @@ export default function NewExpensePage() {
                 <select 
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="CASH">{t('finance.payment.cash', 'Cash')}</option>
                   <option value="BANK_TRANSFER">{t('finance.payment.bankTransfer', 'Bank Transfer')}</option>
@@ -835,7 +835,7 @@ export default function NewExpensePage() {
                 <select 
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
                   <option value="SAR">SAR - Saudi Riyal</option>
                   <option value="USD">USD - US Dollar</option>

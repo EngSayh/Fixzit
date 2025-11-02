@@ -54,10 +54,10 @@ export default function PropertiesInspectionsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)] border-[var(--fixzit-success-lighter)]';
-      case 'scheduled': return 'bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)] border-[var(--fixzit-primary-lighter)]';
+      case 'completed': return 'bg-success/10 text-success border-[var(--fixzit-success-lighter)]';
+      case 'scheduled': return 'bg-primary/10 text-primary border-[var(--fixzit-primary-lighter)]';
       case 'in-progress': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
-      case 'overdue': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
+      case 'overdue': return 'bg-destructive/10 text-destructive border-[var(--fixzit-danger-lighter)]';
       case 'cancelled': return 'bg-muted text-foreground border-border';
       default: return 'bg-muted text-foreground border-border';
     }
@@ -65,8 +65,8 @@ export default function PropertiesInspectionsPage() {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'Safety': return 'bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)] border-[var(--fixzit-primary-lighter)]';
-      case 'Fire Safety': return 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)] border-[var(--fixzit-danger-lighter)]';
+      case 'Safety': return 'bg-primary/10 text-primary border-[var(--fixzit-primary-lighter)]';
+      case 'Fire Safety': return 'bg-destructive/10 text-destructive border-[var(--fixzit-danger-lighter)]';
       case 'Mechanical': return 'bg-secondary/10 text-purple-800 border-purple-200';
       case 'Electrical': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
       default: return 'bg-muted text-foreground border-border';
@@ -93,7 +93,7 @@ export default function PropertiesInspectionsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Scheduled</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">12</p>
+              <p className="text-2xl font-bold text-primary">12</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
           </div>
@@ -111,7 +111,7 @@ export default function PropertiesInspectionsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Completed</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-success)]">45</p>
+              <p className="text-2xl font-bold text-success">45</p>
             </div>
             <div className="text-[var(--fixzit-success-lighter)]">✅</div>
           </div>
@@ -131,7 +131,7 @@ export default function PropertiesInspectionsPage() {
       <div className="card">
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
               <option>All Properties</option>
               <option>Tower A</option>
               <option>Tower B</option>
@@ -139,7 +139,7 @@ export default function PropertiesInspectionsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
               <option>All Types</option>
               <option>Safety</option>
               <option>Fire Safety</option>
@@ -148,7 +148,7 @@ export default function PropertiesInspectionsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-48">
-            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-[var(--fixzit-blue)] focus:border-transparent">
+            <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
               <option>All Status</option>
               <option>Scheduled</option>
               <option>In Progress</option>
@@ -208,8 +208,8 @@ export default function PropertiesInspectionsPage() {
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
-                      <button className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darkest)]">{t('common.edit', 'Edit')}</button>
-                      <button className="text-[var(--fixzit-success)] hover:text-[var(--fixzit-success-darkest)]">Start</button>
+                      <button className="text-primary hover:text-primary">{t('common.edit', 'Edit')}</button>
+                      <button className="text-success hover:text-[var(--fixzit-success-darkest)]">Start</button>
                       <button className="text-warning hover:text-orange-900">Report</button>
                     </div>
                   </td>
@@ -221,12 +221,12 @@ export default function PropertiesInspectionsPage() {
       </div>
 
       {/* Overdue Inspections Alert */}
-      <div className="card border-destructive/20 bg-[var(--fixzit-danger-lightest)]">
+      <div className="card border-destructive/20 bg-destructive/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
             <div>
-              <h3 className="font-semibold text-[var(--fixzit-danger-darker)]">Overdue Inspections</h3>
+              <h3 className="font-semibold text-destructive">Overdue Inspections</h3>
               <p className="text-sm text-[var(--fixzit-danger)]">2 inspections are overdue and require immediate attention</p>
             </div>
           </div>
@@ -244,7 +244,7 @@ export default function PropertiesInspectionsPage() {
         </div>
         <div className="space-y-3">
           {inspections.filter(inspection => inspection.status === 'scheduled').map(inspection => (
-            <div key={inspection.id} className="flex items-center justify-between p-3 bg-[var(--fixzit-primary-lightest)] border border-primary/20 rounded-2xl">
+            <div key={inspection.id} className="flex items-center justify-between p-3 bg-primary/10 border border-primary/20 rounded-2xl">
               <div className="flex items-center gap-3">
                 <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
                 <div>
@@ -253,7 +253,7 @@ export default function PropertiesInspectionsPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button className="px-3 py-1 bg-[var(--fixzit-primary)] text-white rounded text-sm hover:bg-[var(--fixzit-primary-dark)]">
+                <button className="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-[var(--fixzit-primary-dark)]">
                   View Details
                 </button>
               </div>

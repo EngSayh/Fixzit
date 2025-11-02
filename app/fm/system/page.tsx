@@ -44,7 +44,7 @@ export default function SystemPage() {
             
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Database Status</span>
-              <span className="text-sm font-medium text-[var(--fixzit-success)]">Connected</span>
+              <span className="text-sm font-medium text-success">Connected</span>
             </div>
           </div>
         </div>

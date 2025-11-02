@@ -319,19 +319,19 @@ export default function PropertyDetailsPage() {
             <CardContent className="space-y-3">
               {property.compliance?.buildingPermit && (
                 <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-[var(--fixzit-success)]" />
+                  <CheckCircle className="w-4 h-4 text-success" />
                   <span className="text-sm">Building Permit: {property.compliance.buildingPermit}</span>
                 </div>
               )}
               {property.compliance?.occupancyCertificate && (
                 <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-[var(--fixzit-success)]" />
+                  <CheckCircle className="w-4 h-4 text-success" />
                   <span className="text-sm">Occupancy Certificate</span>
                 </div>
               )}
               {property.compliance?.insurance?.policyNumber && (
                 <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-[var(--fixzit-success)]" />
+                  <CheckCircle className="w-4 h-4 text-success" />
                   <span className="text-sm">Insurance: {property.compliance.insurance.provider}</span>
                 </div>
               )}

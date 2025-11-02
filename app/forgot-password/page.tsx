@@ -43,8 +43,8 @@ export default function ForgotPassword() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-brand-500 via-success to-accent flex items-center justify-center p-4">
         <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-[var(--fixzit-success-lighter)] rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-8 h-8 text-[var(--fixzit-success)]" />
+          <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-8 h-8 text-success" />
           </div>
           
           <h1 className="text-2xl font-bold text-foreground mb-4">Check Your Email</h1>
@@ -108,7 +108,7 @@ export default function ForgotPassword() {
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-[var(--fixzit-danger-lightest)] border border-destructive/20 rounded-2xl text-[var(--fixzit-danger-dark)]">
+            <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-2xl text-[var(--fixzit-danger-dark)]">
               <AlertCircle className="h-5 w-5" />
               <span className="text-sm">{error}</span>
             </div>

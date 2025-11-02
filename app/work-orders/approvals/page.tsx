@@ -113,7 +113,7 @@ export default function WorkOrderApprovalsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('workOrders.approvals.approvedToday', 'Approved Today')}</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-success)]">5</p>
+              <p className="text-2xl font-bold text-success">5</p>
             </div>
             <div className="text-[var(--fixzit-success-lighter)]">✅</div>
           </div>
@@ -122,7 +122,7 @@ export default function WorkOrderApprovalsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('workOrders.approvals.avgTime', 'Avg. Approval Time')}</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-primary)]">2.3h</p>
+              <p className="text-2xl font-bold text-primary">2.3h</p>
             </div>
             <div className="text-[var(--fixzit-primary-lighter)]">⏱️</div>
           </div>
@@ -142,7 +142,7 @@ export default function WorkOrderApprovalsPage() {
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">{t('workOrders.approvals.pending', 'Pending Approvals')}</h3>
-          <span className="bg-[var(--fixzit-accent-lighter)] text-[var(--fixzit-accent-darker)] px-3 py-1 rounded-full text-sm font-medium">
+          <span className="bg-accent/10 text-[var(--fixzit-accent-darker)] px-3 py-1 rounded-full text-sm font-medium">
             {pendingApprovals.length} {t('workOrders.pending', 'pending')}
           </span>
         </div>
