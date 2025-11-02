@@ -43,7 +43,7 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
         <div className="grid md:grid-cols-[1fr_280px] gap-8">
           <div className="bg-card rounded-2xl shadow-md border border-border p-8">
             <article
-              className="prose prose-lg max-w-none prose-headings:text-[var(--fixzit-text)] prose-a:text-[var(--fixzit-blue)] prose-strong:text-[var(--fixzit-text)]"
+              className="prose prose-lg max-w-none prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground"
               dangerouslySetInnerHTML={{ __html: await renderMarkdownSanitized(a.content) }}
             />
             
@@ -52,7 +52,7 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
                 <div>Last updated {a.updatedAt ? new Date(a.updatedAt).toLocaleDateString() : ''}</div>
                 <Link 
                   href="/help" 
-                  className="text-[var(--fixzit-blue)] hover:text-[var(--fixzit-blue)]/80 font-medium"
+                  className="text-primary hover:text-primary/80 font-medium"
                 >
                   ← All articles
                 </Link>
@@ -63,7 +63,7 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
           {/* Sidebar */}
           <aside className="space-y-4">
             <div className="bg-card rounded-2xl shadow-md border border-border p-4">
-              <h3 className="font-semibold text-[var(--fixzit-text)] mb-3">Was this helpful?</h3>
+              <h3 className="font-semibold text-foreground mb-3">Was this helpful?</h3>
               <div className="flex gap-2">
                 <button aria-label="Mark article as helpful" className="flex-1 px-3 py-2 border border-border rounded-2xl hover:bg-muted">
                   👍 Yes
@@ -79,7 +79,7 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
               <p className="text-sm mb-3">Our support team is here to assist you.</p>
               <Link 
                 href="/support/my-tickets"
-                className="block w-full bg-card text-[var(--fixzit-blue)] px-4 py-2 rounded-2xl font-medium hover:bg-muted text-center"
+                className="block w-full bg-card text-primary px-4 py-2 rounded-2xl font-medium hover:bg-muted text-center"
               >
                 Contact Support
               </Link>
