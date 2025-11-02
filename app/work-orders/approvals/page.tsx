@@ -66,20 +66,20 @@ export default function WorkOrderApprovalsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
-      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
-      case 'under-review': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'pending': return 'bg-warning/10 text-warning-foreground border-warning/20';
+      case 'approved': return 'bg-success/10 text-success-foreground border-success/20';
+      case 'rejected': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
+      case 'under-review': return 'bg-primary/10 text-primary-foreground border-primary/20';
       default: return 'bg-muted text-foreground border-border';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'P1': return 'bg-red-500 text-white';
-      case 'P2': return 'bg-orange-500 text-white';
-      case 'P3': return 'bg-yellow-500 text-black';
-      case 'P4': return 'bg-green-500 text-white';
+      case 'P1': return 'bg-destructive/100 text-white';
+      case 'P2': return 'bg-warning/100 text-white';
+      case 'P3': return 'bg-warning/100 text-black';
+      case 'P4': return 'bg-success/100 text-white';
       default: return 'bg-muted0 text-white';
     }
   };

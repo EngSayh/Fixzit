@@ -51,9 +51,9 @@ interface Vendor {
 }
 
 const statusColors: Record<string, string> = {
-  APPROVED: 'bg-green-100 text-green-800',
-  PENDING: 'bg-yellow-100 text-yellow-800',
-  SUSPENDED: 'bg-red-100 text-red-800',
+  APPROVED: 'bg-success/10 text-success-foreground',
+  PENDING: 'bg-warning/10 text-warning-foreground',
+  SUSPENDED: 'bg-destructive/10 text-destructive-foreground',
   REJECTED: 'bg-muted text-foreground',
   BLACKLISTED: 'bg-red-200 text-red-900',
 };
@@ -292,7 +292,7 @@ export default function VendorDetailsPage() {
                         <p className="text-sm text-muted-foreground">Email</p>
                         <a 
                           href={`mailto:${vendor.contact.primary.email}`}
-                          className="font-medium text-blue-600 hover:underline"
+                          className="font-medium text-primary hover:underline"
                         >
                           {vendor.contact.primary.email}
                         </a>
@@ -306,7 +306,7 @@ export default function VendorDetailsPage() {
                         <p className="text-sm text-muted-foreground">Phone</p>
                         <a 
                           href={`tel:${vendor.contact.primary.phone}`}
-                          className="font-medium text-blue-600 hover:underline"
+                          className="font-medium text-primary hover:underline"
                         >
                           {vendor.contact.primary.phone}
                         </a>
@@ -320,7 +320,7 @@ export default function VendorDetailsPage() {
                         <p className="text-sm text-muted-foreground">Mobile</p>
                         <a 
                           href={`tel:${vendor.contact.primary.mobile}`}
-                          className="font-medium text-blue-600 hover:underline"
+                          className="font-medium text-primary hover:underline"
                         >
                           {vendor.contact.primary.mobile}
                         </a>

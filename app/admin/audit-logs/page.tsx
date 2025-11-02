@@ -140,10 +140,10 @@ export default function AuditLogViewer() {
 
   const getActionColor = (action: string) => {
     switch (action) {
-      case 'CREATE': return 'text-green-600 bg-green-100 dark:bg-green-950 dark:text-green-400';
-      case 'UPDATE': return 'text-blue-600 bg-blue-100 dark:bg-blue-950 dark:text-blue-400';
-      case 'DELETE': return 'text-red-600 bg-red-100 dark:bg-red-950 dark:text-red-400';
-      case 'LOGIN': return 'text-purple-600 bg-purple-100 dark:bg-purple-950 dark:text-purple-400';
+      case 'CREATE': return 'text-success bg-success/10 dark:bg-green-950 dark:text-green-400';
+      case 'UPDATE': return 'text-primary bg-primary/10 dark:bg-blue-950 dark:text-blue-400';
+      case 'DELETE': return 'text-destructive bg-destructive/10 dark:bg-red-950 dark:text-red-400';
+      case 'LOGIN': return 'text-secondary bg-secondary/10 dark:bg-purple-950 dark:text-purple-400';
       case 'LOGOUT': return 'text-muted-foreground bg-muted';
       default: return 'text-muted-foreground bg-muted';
     }
@@ -176,16 +176,16 @@ export default function AuditLogViewer() {
 
       {/* Error Alert - Show at top level for better visibility */}
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+        <div className="bg-destructive/10 dark:bg-red-900/20 border border-destructive/20 dark:border-red-800 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-destructive dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold text-red-800 dark:text-red-200 mb-1">
+              <h3 className="text-sm font-semibold text-destructive-foreground dark:text-red-200 mb-1">
                 Error Loading Audit Logs
               </h3>
-              <p className="text-sm text-red-700 dark:text-red-300 break-words">
+              <p className="text-sm text-destructive dark:text-red-300 break-words">
                 {error}
               </p>
               <div className="mt-3 flex gap-2">
@@ -194,7 +194,7 @@ export default function AuditLogViewer() {
                     setError(null);
                     fetchLogs();
                   }}
-                  className="inline-flex items-center gap-1 text-sm font-medium text-red-800 dark:text-red-200 hover:text-red-900 dark:hover:text-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-red-900 rounded px-2 py-1"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-destructive-foreground dark:text-red-200 hover:text-red-900 dark:hover:text-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-red-900 rounded px-2 py-1"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -203,7 +203,7 @@ export default function AuditLogViewer() {
                 </button>
                 <button
                   onClick={() => setError(null)}
-                  className="text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-red-900 rounded px-2 py-1"
+                  className="text-sm font-medium text-destructive dark:text-red-400 hover:text-destructive dark:hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-red-900 rounded px-2 py-1"
                 >
                   Dismiss
                 </button>
@@ -358,15 +358,15 @@ export default function AuditLogViewer() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {log.result.success ? (
-                        <span className="text-green-600">✓ Success</span>
+                        <span className="text-success">✓ Success</span>
                       ) : (
-                        <span className="text-red-600">✗ Failed</span>
+                        <span className="text-destructive">✗ Failed</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                       <button
                         onClick={() => setSelectedLog(log)}
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                        className="text-primary hover:text-primary-foreground dark:text-blue-400 dark:hover:text-blue-300"
                       >
                         View Details
                       </button>
@@ -534,8 +534,8 @@ export default function AuditLogViewer() {
                       <span className="font-medium">Success:</span> {selectedLog.result.success ? 'Yes' : 'No'}
                     </div>
                     {selectedLog.result.errorCode && (
-                      <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded-2xl">
-                        <span className="font-medium text-red-600 dark:text-red-400">Error Code:</span> {selectedLog.result.errorCode}
+                      <div className="bg-destructive/10 dark:bg-red-900/20 p-2 rounded-2xl">
+                        <span className="font-medium text-destructive dark:text-red-400">Error Code:</span> {selectedLog.result.errorCode}
                       </div>
                     )}
                     {selectedLog.result.duration !== undefined && (

@@ -129,24 +129,24 @@ export default function OrdersPage() {
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
-      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'delivered': return 'bg-green-100 text-green-800 border-green-200';
-      case 'approved': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'submitted': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'ordered': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'in progress': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'completed': return 'bg-success/10 text-success-foreground border-success/20';
+      case 'delivered': return 'bg-success/10 text-success-foreground border-success/20';
+      case 'approved': return 'bg-primary/10 text-primary-foreground border-primary/20';
+      case 'submitted': return 'bg-warning/10 text-warning-foreground border-warning/20';
+      case 'ordered': return 'bg-secondary/10 text-purple-800 border-purple-200';
+      case 'in progress': return 'bg-primary/10 text-primary-foreground border-primary/20';
       case 'draft': return 'bg-muted text-foreground border-border';
-      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'cancelled': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
+      case 'pending': return 'bg-warning/10 text-warning-foreground border-warning/20';
       default: return 'bg-muted text-foreground border-border';
     }
   };
 
   // Loading state
   if (!session) return <CardGridSkeleton count={4} />;
-  if (!orgId) return <div className="p-6 text-center text-red-600">Error: Organization ID missing from session</div>;
+  if (!orgId) return <div className="p-6 text-center text-destructive">Error: Organization ID missing from session</div>;
   if (isLoading) return <CardGridSkeleton count={4} />;
-  if (error) return <div className="p-6 text-center text-red-600">Failed to load orders: {error.message}</div>;
+  if (error) return <div className="p-6 text-center text-destructive">Failed to load orders: {error.message}</div>;
 
   return (
     <div className="space-y-6">
@@ -291,7 +291,7 @@ export default function OrdersPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="text-red-600 hover:text-red-700"
+                              className="text-destructive hover:text-destructive"
                               onClick={() => handleDelete(order.id, order.orderNumber || order.id)}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
@@ -386,7 +386,7 @@ export default function OrdersPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-red-600 hover:text-red-700"
+                            className="text-destructive hover:text-destructive"
                             onClick={() => handleDelete(order.id, order.orderNumber || order.id)}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />

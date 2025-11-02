@@ -255,8 +255,8 @@ export default function LoginPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary to-primary/90 flex items-center justify-center p-4">
         <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Check className="w-8 h-8 text-green-600" />
+          <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check className="w-8 h-8 text-success" />
           </div>
           <h2 className="text-2xl font-bold text-foreground mb-2">
             {t('login.success.title', 'Welcome Back!')}
@@ -382,7 +382,7 @@ export default function LoginPage() {
                   </p>
                 )}
                 {errors.identifier && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                  <p className="mt-1 text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.identifier}
                   </p>
@@ -431,13 +431,13 @@ export default function LoginPage() {
                   </button>
                 </div>
                 {capsLockOn && (
-                  <p className="mt-1 text-sm text-yellow-600 flex items-center gap-1">
+                  <p className="mt-1 text-sm text-warning flex items-center gap-1">
                     <AlertTriangle className="h-3 w-3" />
                     {t('login.capsLockOn', 'Caps Lock is on')}
                   </p>
                 )}
                 {errors.password && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                  <p className="mt-1 text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.password}
                   </p>
@@ -464,7 +464,7 @@ export default function LoginPage() {
                 <div
                   role="alert"
                   aria-live="assertive"
-                  className={`flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 ${isRTL ? 'flex-row-reverse' : ''}`}
+                  className={`flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-2xl text-destructive ${isRTL ? 'flex-row-reverse' : ''}`}
                 >
                   <AlertCircle className="h-5 w-5 flex-shrink-0" />
                   <span className="text-sm">{errors.general}</span>

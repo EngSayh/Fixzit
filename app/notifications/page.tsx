@@ -38,9 +38,9 @@ export default function NotificationsPage() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800 border-red-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'low': return 'bg-green-100 text-green-800 border-green-200';
+      case 'high': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
+      case 'medium': return 'bg-warning/10 text-warning-foreground border-warning/20';
+      case 'low': return 'bg-success/10 text-success-foreground border-success/20';
       default: return 'bg-muted text-foreground border-border';
     }
   };
@@ -58,9 +58,9 @@ export default function NotificationsPage() {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'maintenance': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'vendor': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'finance': return 'bg-green-100 text-green-800 border-green-200';
+      case 'maintenance': return 'bg-primary/10 text-primary-foreground border-primary/20';
+      case 'vendor': return 'bg-secondary/10 text-purple-800 border-purple-200';
+      case 'finance': return 'bg-success/10 text-success-foreground border-success/20';
       case 'system': return 'bg-muted text-foreground border-border';
       default: return 'bg-muted text-foreground border-border';
     }
@@ -393,7 +393,7 @@ export default function NotificationsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">High Priority</p>
-              <p className="text-2xl font-bold text-orange-600">
+              <p className="text-2xl font-bold text-warning">
                 {notifications.filter((n: NotificationDoc) => n.priority === 'high').length}
               </p>
             </div>
@@ -502,7 +502,7 @@ export default function NotificationsPage() {
               <div
                 key={String(notif.id || '')}
                 className={`p-4 rounded-2xl border transition-all hover:shadow-md ${
-                  notif.read ? 'bg-card border-border' : 'bg-blue-50 border-blue-200'
+                  notif.read ? 'bg-card border-border' : 'bg-primary/10 border-primary/20'
                 }`}
               >
                 <div className="flex items-start justify-between">
@@ -529,7 +529,7 @@ export default function NotificationsPage() {
                           {notif.category}
                         </span>
                       </div>
-                      <p className={`text-sm ${notif.read ? 'text-muted-foreground' : 'text-blue-700'}`}>
+                      <p className={`text-sm ${notif.read ? 'text-muted-foreground' : 'text-primary'}`}>
                         {notif.message}
                       </p>
                       <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
