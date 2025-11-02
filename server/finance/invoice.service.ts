@@ -1,6 +1,7 @@
-import { InvoiceCreate, InvoicePost } from "./invoice.schema";
+import { InvoiceCreate, InvoicePost } from './invoice.schema';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { Invoice } from '@/server/models/Invoice';
+import Decimal from 'decimal.js';
 
 // Mock implementation retained for optional mock mode
 class MockInvoiceService {
@@ -163,33 +164,40 @@ async function nextInvoiceNumber(tenantId: string) {
 }
 
 function computeTotals(lines: Array<{ qty: number; unitPrice: number; vatRate: number }>) {
-  let subtotal = 0;
-  const taxMap = new Map<number, number>();
+  let subtotal = new Decimal(0);
+  const taxMap = new Map<number, Decimal>();
 
   for (const line of lines) {
-    const lineSubtotal = line.qty * line.unitPrice;
-    const lineTax = lineSubtotal * (line.vatRate / 100);
-    subtotal += lineSubtotal;
-    taxMap.set(line.vatRate, (taxMap.get(line.vatRate) ?? 0) + lineTax);
+    const lineSubtotal = new Decimal(line.qty).times(new Decimal(line.unitPrice));
+    const lineTax = lineSubtotal.times(new Decimal(line.vatRate).dividedBy(100));
+    subtotal = subtotal.plus(lineSubtotal);
+    
+    const currentTax = taxMap.get(line.vatRate) ?? new Decimal(0);
+    taxMap.set(line.vatRate, currentTax.plus(lineTax));
   }
 
-  const taxTotal = Array.from(taxMap.values()).reduce((sum, amount) => sum + amount, 0);
+  const taxTotal = Array.from(taxMap.values()).reduce(
+    (sum, amount) => sum.plus(amount),
+    new Decimal(0)
+  );
+  
   const taxLines = Array.from(taxMap.entries()).map(([rate, amount]) => ({
     type: 'VAT',
     rate,
-    amount: round(amount),
+    amount: Number(amount.toFixed(2)),
     category: 'STANDARD'
   }));
 
   return {
-    subtotal: round(subtotal),
-    taxTotal: round(taxTotal),
-    total: round(subtotal + taxTotal),
+    subtotal: Number(subtotal.toFixed(2)),
+    taxTotal: Number(taxTotal.toFixed(2)),
+    total: Number(subtotal.plus(taxTotal).toFixed(2)),
     taxLines
   };
 }
 
 function round(value: number) {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
+  // Keep for backward compatibility, but use Decimal for precision
+  return Number(new Decimal(value).toFixed(2));
 }
 

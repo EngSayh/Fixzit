@@ -72,7 +72,7 @@ async function ensureDependencies() {
     
     if (missing.length > 0) {
       console.log(chalk.yellow(`Installing missing dependencies: ${missing.join(', ')}`));
-      await $`pnpm add -D ${missing}`;
+      await $`pnpm add -D ${missing.join(' ')}`;
     } else {
       console.log(chalk.green('✅ All dependencies installed'));
     }
@@ -252,8 +252,9 @@ async function startDevServer() {
       // Port not in use, start server
     }
 
-    // Start in background and store process reference
-    devServerProc = (await $`pnpm dev`.nothrow()).child;
+    // Start in background and store process reference (don't await!)
+    const proc = $`pnpm dev`.nothrow();
+    devServerProc = proc.child;
 
     // Cleanup handler to kill dev server on exit
     const cleanup = async () => {

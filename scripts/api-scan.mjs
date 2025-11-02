@@ -37,7 +37,11 @@ async function scanAPI() {
       if (/export\s+async\s+function\s+DELETE/.test(content)) methods.push('DELETE');
 
       // Extract route path from file structure
-      const routePath = '/api/' + path.dirname(file).replace(/\\/g, '/');
+      let routePath = '/api/' + path.dirname(file).replace(/\\/g, '/');
+      // Normalize root route
+      if (routePath === '/api/.') {
+        routePath = '/api';
+      }
 
       endpoints.push({
         path: routePath,

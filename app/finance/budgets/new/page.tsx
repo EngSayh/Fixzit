@@ -97,12 +97,22 @@ export default function NewBudgetPage() {
           }
         }
         
-        // Auto-calculate amount when percentage changes (if total is known)
-        if (field === 'percentage' && newTotal.greaterThan(0)) {
-          const amt = newTotal
-            .times(new Decimal(updated.percentage || '0'))
-            .dividedBy(100);
-          updated.amount = amt.toFixed(2);
+        // Auto-calculate amount when percentage changes (using ratio formula)
+        if (field === 'percentage') {
+          const pct = new Decimal(updated.percentage || '0');
+          if (pct.greaterThan(0) && pct.lessThan(100)) {
+            // Calculate amount from other categories using ratio formula
+            // If user wants X%, then: amount / (other + amount) = X/100
+            // Solving: amount = other * (X/(100-X))
+            const ratio = pct.dividedBy(100);
+            const amt = otherCategoriesTotal
+              .times(ratio)
+              .dividedBy(new Decimal(1).minus(ratio));
+            updated.amount = amt.toFixed(2);
+          } else if (pct.greaterThanOrEqualTo(100) || pct.lessThanOrEqualTo(0)) {
+            // Invalid percentage, reset amount
+            updated.amount = '0';
+          }
         }
         
         return updated;

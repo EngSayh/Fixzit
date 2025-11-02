@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { User } from '@/server/models/User';
 import { connectToDatabase } from '@/lib/mongodb-unified';
+import { rateLimit } from '@/server/security/rateLimit';
+import { rateLimitError } from '@/server/utils/errorResponses';
+import { getClientIP } from '@/server/security/headers';
 
 /**
  * POST /api/auth/credentials
@@ -10,6 +13,13 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
  * This endpoint must run in Node.js runtime (not Edge) to use Mongoose.
  */
 export async function POST(req: NextRequest) {
+  // Rate limiting: 5 attempts per 15 minutes for credential validation
+  const clientIP = getClientIP(req);
+  const rl = rateLimit(`auth-credentials:${clientIP}`, 5, 900000); // 15 minutes
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   try {
     const { identifier, type, password } = await req.json();
 

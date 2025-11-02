@@ -79,14 +79,6 @@ for (const testCase of TEST_MATRIX) {
         evidence.errors = errors;
         throw new Error(`Console errors detected: ${errors.join(', ')}`);
       }
-        page.off('console', consoleListener);
-        page.off('pageerror', pageErrorListener);
-        throw new Error(`Console errors detected: ${errors.join(', ')}`);
-      }
-
-      // Clean up listeners after check
-      page.off('console', consoleListener);
-      page.off('pageerror', pageErrorListener);
 
       // Step 3: VERIFY - Check page structure
       evidence.steps.push({ step: 'VERIFY', action: 'Check Page Structure' });
@@ -108,13 +100,13 @@ for (const testCase of TEST_MATRIX) {
             color: (node as HTMLElement).style?.color || null,
             backgroundColor: (node as HTMLElement).style?.backgroundColor || null,
           }));
-      const hardcodedColors = elements.filter(el => {
+      });
+      
+      const hardcodedColors = elements.filter((el: any) => {
         const hexColorRegex = /#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?\b/;
         const rgbColorRegex = /rgb\(\s*\d+\s*,/;
         const hasHardcodedColor = el.color && (hexColorRegex.test(el.color) || rgbColorRegex.test(el.color));
         const hasHardcodedBg = el.backgroundColor && (hexColorRegex.test(el.backgroundColor) || rgbColorRegex.test(el.backgroundColor));
-        return hasHardcodedColor || hasHardcodedBg;
-      });
         return hasHardcodedColor || hasHardcodedBg;
       });
 
@@ -132,32 +124,33 @@ for (const testCase of TEST_MATRIX) {
         evidence.errors.push('Unauthorized access detected');
         throw new Error('RBAC violation: Unauthorized content visible');
       }
+      
+      // All checks passed!
+      evidence.passed = true;
     } catch (error) {
       evidence.passed = false;
-      evidence.errors.push(error.message);
-      evidence.steps.push({ step: 'FAILED', action: error.message, status: 'ERROR' });
+      evidence.errors.push((error as Error).message);
+      evidence.steps.push({ step: 'FAILED', action: (error as Error).message, status: 'ERROR' });
       
       // Capture failure screenshot
-      const errorScreenshotPath = path.join(EVIDENCE_DIR, `${testCase.role}_${testCase.name.replace(/\s+/g, '_')}_error.png`);
+      const errorScreenshotPath = path.join(
+        EVIDENCE_DIR,
+        `${testCase.role}_${testCase.name.replace(/\s+/g, '_')}_error.png`
+      );
       await page.screenshot({ path: errorScreenshotPath, fullPage: true });
       evidence.screenshots.push(errorScreenshotPath);
 
       throw error;
     } finally {
       // Remove error listeners to prevent memory leaks
-      page.removeListener('console', onConsole);
-      page.removeListener('pageerror', onPageError);
+      page.off('console', onConsole);
+      page.off('pageerror', onPageError);
 
       // Write evidence artifact
-      const evidencePath = path.join(EVIDENCE_DIR, `${testCase.role}_${testCase.name.replace(/\s+/g, '_')}_evidence.json`);
-      await fs.writeFile(evidencePath, JSON.stringify(evidence, null, 2));
-    }
-      evidence.screenshots.push(errorScreenshotPath);
-
-      throw error;
-    } finally {
-      // Write evidence artifact
-      const evidencePath = path.join(EVIDENCE_DIR, `${testCase.role}_${testCase.name.replace(/\s+/g, '_')}_evidence.json`);
+      const evidencePath = path.join(
+        EVIDENCE_DIR,
+        `${testCase.role}_${testCase.name.replace(/\s+/g, '_')}_evidence.json`
+      );
       await fs.writeFile(evidencePath, JSON.stringify(evidence, null, 2));
     }
   });
