@@ -16,7 +16,7 @@ import {
 import Link from 'next/link';
 
 interface Vendor {
-  _id: string;
+  id: string;
   code: string;
   name: string;
   type: string;

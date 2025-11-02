@@ -20,7 +20,7 @@ interface MaintenanceRecord {
 }
 
 interface AssetItem {
-  _id: string;
+  id: string;
   name?: string;
   code?: string;
   type?: string;
@@ -152,7 +152,7 @@ export default function AssetsPage() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {(assets as AssetItem[]).map((asset) => (
-              <AssetCard key={asset._id} asset={asset} onUpdated={mutate} />
+              <AssetCard key={asset.id} asset={asset} onUpdated={mutate} />
             ))}
           </div>
 
@@ -181,12 +181,12 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
   
   const handleView = () => {
     // Placeholder: Navigate to asset detail view or open modal
-    console.log('View asset:', asset._id);
+    console.log('View asset:', asset.id);
   };
 
   const handleEdit = () => {
     // Placeholder: Open edit modal or navigate to edit page
-    console.log('Edit asset:', asset._id);
+    console.log('Edit asset:', asset.id);
     // After successful edit, call onUpdated()
   };
 
@@ -200,7 +200,7 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
     const toastId = toast.loading(`Deleting ${asset.name}...`);
     
     try {
-      const response = await fetch(`/api/assets/${asset._id}`, {
+      const response = await fetch(`/api/assets/${asset.id}`, {
         method: 'DELETE',
         headers: { 'x-tenant-id': orgId }
       });

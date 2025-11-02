@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 interface Vendor {
-  _id: string;
+  id: string;
   code: string;
   name: string;
   type: string;
@@ -195,7 +195,7 @@ export default function FMVendorsPage() {
         <>
           <div className="space-y-4">
             {vendors.map((vendor: Vendor) => (
-              <Card key={vendor._id} className="hover:shadow-md transition-shadow">
+              <Card key={vendor.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -253,7 +253,7 @@ export default function FMVendorsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => router.push(`/fm/vendors/${vendor._id}`)}
+                            onClick={() => router.push(`/fm/vendors/${vendor.id}`)}
                           >
                             <Eye className="h-4 w-4 mr-2" />
                             {t('common.view', 'View')}
@@ -261,7 +261,7 @@ export default function FMVendorsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => router.push(`/fm/vendors/${vendor._id}/edit`)}
+                            onClick={() => router.push(`/fm/vendors/${vendor.id}/edit`)}
                           >
                             <Edit className="h-4 w-4 mr-2" />
                             {t('common.edit', 'Edit')}
@@ -270,7 +270,7 @@ export default function FMVendorsPage() {
                             variant="outline"
                             size="sm"
                             className="text-red-600 hover:text-red-700"
-                            onClick={() => handleDelete(vendor._id, vendor.name)}
+                            onClick={() => handleDelete(vendor.id, vendor.name)}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
                             {t('common.delete', 'Delete')}
