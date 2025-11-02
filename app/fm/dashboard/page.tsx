@@ -235,7 +235,7 @@ export default function DashboardPage() {
                     <div className={`w-2 h-2 rounded-full ${
                       wo.priority === 'CRITICAL' ? 'bg-destructive' :
                       wo.priority === 'HIGH' ? 'bg-warning' :
-                      wo.priority === 'MEDIUM' ? 'bg-yellow-500' :
+                      wo.priority === 'MEDIUM' ? 'bg-warning' :
                       'bg-success'
                     }`} />
                     <div>
