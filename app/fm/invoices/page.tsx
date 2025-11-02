@@ -156,11 +156,11 @@ export default function InvoicesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">{t('fm.invoices.overdue', 'Overdue')}</p>
-                <p className="text-2xl font-bold text-[var(--fixzit-danger)]">
+                <p className="text-2xl font-bold text-destructive">
                   {invoices.filter((inv: Invoice) => inv.status === 'OVERDUE').length}
                 </p>
               </div>
-              <AlertCircle className="w-8 h-8 text-[var(--fixzit-danger)]" />
+              <AlertCircle className="w-8 h-8 text-destructive" />
             </div>
           </CardContent>
         </Card>
@@ -170,11 +170,11 @@ export default function InvoicesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">{t('fm.invoices.pending', 'Pending')}</p>
-                <p className="text-2xl font-bold text-[var(--fixzit-accent)]">
+                <p className="text-2xl font-bold text-accent-foreground">
                   {invoices.filter((inv: Invoice) => inv.status === 'SENT' || inv.status === 'VIEWED').length}
                 </p>
               </div>
-              <Clock className="w-8 h-8 text-[var(--fixzit-accent)]" />
+              <Clock className="w-8 h-8 text-accent-foreground" />
             </div>
           </CardContent>
         </Card>
@@ -184,14 +184,14 @@ export default function InvoicesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">{t('fm.invoices.paidThisMonth', 'Paid This Month')}</p>
-                <p className="text-2xl font-bold text-[var(--fixzit-success)]">
+                <p className="text-2xl font-bold text-success">
                   {invoices.filter((inv: Invoice) => 
                     inv.status === 'PAID' && 
                     new Date(inv.payments?.[0]?.date ?? '').getMonth() === new Date().getMonth()
                   ).length}
                 </p>
               </div>
-              <CheckCircle className="w-8 h-8 text-[var(--fixzit-success)]" />
+              <CheckCircle className="w-8 h-8 text-success" />
             </div>
           </CardContent>
         </Card>
@@ -711,7 +711,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
                     variant="ghost"
                     size="sm"
                     onClick={() => removeItem(index)}
-                    className="text-[var(--fixzit-danger)]"
+                    className="text-destructive"
                   >
                     ×
                   </Button>

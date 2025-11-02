@@ -43,7 +43,7 @@ export default function HelpArticleNotFound() {
           
           <Link
             href="/support/my-tickets"
-            className="block w-full text-[var(--fixzit-blue)] hover:text-[var(--fixzit-blue)]/80 font-medium pt-2"
+            className="block w-full text-primary hover:text-primary/80 font-medium pt-2"
           >
             Contact Support →
           </Link>

@@ -126,16 +126,16 @@ export default function MyTicketsPage() {
                     key={ticket.id}
                     onClick={() => setSelectedTicket(ticket)}
                     className={`p-4 cursor-pointer hover:bg-muted ${
-                      selectedTicket?.id === ticket.id ? 'bg-[var(--fixzit-primary-lightest)]' : ''
+                      selectedTicket?.id === ticket.id ? 'bg-primary/10' : ''
                     }`}
                   >
                     <div className="flex justify-between items-start mb-1">
                       <p className="font-medium text-foreground text-sm">{ticket.code}</p>
                       <span className={`text-xs px-2 py-1 rounded-full ${
-                        ticket.status === 'New' ? 'bg-[var(--fixzit-primary-lightest)] text-[var(--fixzit-primary-darker)]' :
-                        ticket.status === 'Open' ? 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)]' :
+                        ticket.status === 'New' ? 'bg-primary/10 text-primary' :
+                        ticket.status === 'Open' ? 'bg-accent/10 text-accent-foreground' :
                         ticket.status === 'Waiting' ? 'bg-purple-100 text-purple-800' :
-                        ticket.status === 'Resolved' ? 'bg-[var(--fixzit-success-lightest)] text-[var(--fixzit-success-darker)]' :
+                        ticket.status === 'Resolved' ? 'bg-success/10 text-success' :
                         'bg-muted text-foreground'
                       }`}>
                         {ticket.status}
@@ -165,9 +165,9 @@ export default function MyTicketsPage() {
                     </p>
                   </div>
                   <span className={`text-xs px-3 py-1 rounded-full ${
-                    selectedTicket.priority === 'Urgent' ? 'bg-[var(--fixzit-danger-lightest)] text-[var(--fixzit-danger-darker)]' :
-                    selectedTicket.priority === 'High' ? 'bg-[var(--fixzit-warning-lightest)] text-[var(--fixzit-warning-darker)]' :
-                    selectedTicket.priority === 'Medium' ? 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)]' :
+                    selectedTicket.priority === 'Urgent' ? 'bg-destructive/10 text-destructive' :
+                    selectedTicket.priority === 'High' ? 'bg-warning/10 text-warning-foreground' :
+                    selectedTicket.priority === 'Medium' ? 'bg-accent/10 text-accent-foreground' :
                     'bg-muted text-foreground'
                   }`}>
                     {selectedTicket.priority} Priority
@@ -183,7 +183,7 @@ export default function MyTicketsPage() {
                   }`}>
                     <div className={`p-3 rounded-2xl ${
                       msg.byRole === 'ADMIN' 
-                        ? 'bg-[var(--fixzit-primary-lightest)] border border-[var(--fixzit-primary-lighter)]' 
+                        ? 'bg-primary/10 border border-primary/30' 
                         : 'bg-muted border border-border'
                     }`}>
                       <div className="flex justify-between items-start mb-1">

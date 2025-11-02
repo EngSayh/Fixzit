@@ -119,15 +119,15 @@ export default function HelpHome() {
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'facility management':
-        return <Building2 className="w-5 h-5 text-[var(--fixzit-primary)]" />;
+        return <Building2 className="w-5 h-5 text-primary" />;
       case 'work orders':
-        return <Wrench className="w-5 h-5 text-[var(--fixzit-success)]" />;
+        return <Wrench className="w-5 h-5 text-success" />;
       case 'procurement':
-        return <FileText className="w-5 h-5 text-[var(--fixzit-secondary)]" />;
+        return <FileText className="w-5 h-5 text-secondary-foreground" />;
       case 'customer service':
-        return <Users className="w-5 h-5 text-[var(--fixzit-accent)]" />;
+        return <Users className="w-5 h-5 text-accent-foreground" />;
       case 'finance':
-        return <DollarSign className="w-5 h-5 text-[var(--fixzit-success)]" />;
+        return <DollarSign className="w-5 h-5 text-success" />;
       default:
         return <BookOpen className="w-5 h-5 text-muted-foreground" />;
     }
@@ -216,7 +216,7 @@ export default function HelpHome() {
                   </div>
                   <Link
                     href={`/help/tutorial/${tutorial.id}`}
-                    className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] font-medium text-sm flex items-center gap-1"
+                    className="text-primary hover:text-[var(--fixzit-primary-darker)] font-medium text-sm flex items-center gap-1"
                   >
                     Start Tutorial
                     <ChevronRight className="w-4 h-4" />
@@ -230,7 +230,7 @@ export default function HelpHome() {
                   ></div>
                 </div>
                 {tutorial.completed && (
-                  <div className="mt-2 text-[var(--fixzit-success)] text-sm font-medium">
+                  <div className="mt-2 text-success text-sm font-medium">
                     ✓ Completed
                   </div>
                 )}
@@ -279,7 +279,7 @@ export default function HelpHome() {
                       </div>
                       <Link
                         href={`/help/article/${article.id}`}
-                        className="text-[var(--fixzit-primary)] hover:text-[var(--fixzit-primary-darker)] font-medium text-sm flex items-center gap-1"
+                        className="text-primary hover:text-[var(--fixzit-primary-darker)] font-medium text-sm flex items-center gap-1"
                       >
                         Read More
                         <ChevronRight className="w-4 h-4" />
@@ -315,7 +315,7 @@ export default function HelpHome() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="text-center">
               <div className="w-16 h-16 bg-[var(--fixzit-primary-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
-                <Building2 className="w-8 h-8 text-[var(--fixzit-primary)]" />
+                <Building2 className="w-8 h-8 text-primary" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">Properties</h3>
               <p className="text-muted-foreground text-sm">
@@ -325,7 +325,7 @@ export default function HelpHome() {
 
             <div className="text-center">
               <div className="w-16 h-16 bg-[var(--fixzit-success-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
-                <Wrench className="w-8 h-8 text-[var(--fixzit-success)]" />
+                <Wrench className="w-8 h-8 text-success" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">Work Orders</h3>
               <p className="text-muted-foreground text-sm">
@@ -335,7 +335,7 @@ export default function HelpHome() {
 
             <div className="text-center">
               <div className="w-16 h-16 bg-[var(--fixzit-secondary-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-[var(--fixzit-secondary)]" />
+                <Users className="w-8 h-8 text-secondary-foreground" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">Vendors</h3>
               <p className="text-muted-foreground text-sm">
@@ -345,7 +345,7 @@ export default function HelpHome() {
 
             <div className="text-center">
               <div className="w-16 h-16 bg-[var(--fixzit-accent-lighter)] rounded-full flex items-center justify-center mx-auto mb-4">
-                <DollarSign className="w-8 h-8 text-[var(--fixzit-accent)]" />
+                <DollarSign className="w-8 h-8 text-accent-foreground" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">Finance</h3>
               <p className="text-muted-foreground text-sm">
