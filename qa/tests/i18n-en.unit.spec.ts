@@ -105,13 +105,9 @@ test.describe('i18n: English dictionary (en)', () => {
     expect(en.dashboard.kpis).toBe('KPIs & Metrics');
     expect(en.dashboard.quickActions).toBe('Quick Actions');
 
-    // @ts-expect-error - Test structure outdated, needs update
     expect(enAny.workOrders.title).toBe('Work Orders');
-    // @ts-expect-error - Test structure outdated
     expect(enAny.workOrders.create).toBe('Create Work Order');
-    // @ts-expect-error - Test structure outdated
     expect(enAny.workOrders.fields.title).toBe('Title');
-    // @ts-expect-error - Test structure outdated
     expect(enAny.workOrders.fields.priority).toBe('Priority');
     expect(enAny.workOrders.fields.property).toBe('Property');
 
@@ -136,7 +132,6 @@ test.describe('i18n: English dictionary (en)', () => {
     expect(en.landing.title).toBe('Fixzit Enterprise Platform');
     expect(en.landing.subtitle).toBe(
       'Unified Facility Management + Marketplace Solution for modern property operations',
-    // @ts-expect-error - Test structure outdated
     );
     expect(en.landing.hero.cta1).toBe('Access Fixzit FM');
     expect(en.landing.hero.cta2).toBe('Fixzit Souq');
@@ -161,7 +156,6 @@ test.describe('i18n: English dictionary (en)', () => {
   test('validates settings structure and representative values', () => {
     expect(enAny.settings.subtitle).toBe('Manage your account settings and preferences');
 
-    // @ts-expect-error - Test structure outdated
     expect(enAny.settings.tabs.profile).toBe('Profile');
     expect(enAny.settings.tabs.security).toBe('Security');
     expect(enAny.settings.tabs.notifications).toBe('Notifications');

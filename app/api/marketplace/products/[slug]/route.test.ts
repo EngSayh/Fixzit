@@ -40,7 +40,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     const req = {} as any // Minimal NextRequest stub
     const res = await GET(req, { params: Promise.resolve({ slug: 'non-existent' }) })
 
-    expect(MarketplaceProduct.findOne).toHaveBeenCalledWith({ tenantId, slug: 'non-existent' })
+    expect(MarketplaceProduct.findOne as any).toHaveBeenCalledWith({ tenantId, slug: 'non-existent' })
     expect(res.status).toBe(404)
     await expect(readJson(res as any)).resolves.toEqual({ error: 'Not found' })
   })
@@ -58,7 +58,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     const req = {} as any
     const res = await GET(req, { params: Promise.resolve({ slug: 'test-product' }) })
 
-    expect(MarketplaceProduct.findOne).toHaveBeenCalledWith({ tenantId, slug: 'test-product' })
+    expect(MarketplaceProduct.findOne as any).toHaveBeenCalledWith({ tenantId, slug: 'test-product' })
     expect(res.status).toBe(200)
 
     const body = await readJson(res as any)
@@ -185,6 +185,6 @@ describe('GET /api/marketplace/products/[slug]', () => {
 
     await GET({} as any, { params: Promise.resolve({ slug: 'unique-slug' }) })
 
-    expect(MarketplaceProduct.findOne).toHaveBeenCalledWith({ tenantId, slug: 'unique-slug' })
+    expect(MarketplaceProduct.findOne as any).toHaveBeenCalledWith({ tenantId, slug: 'unique-slug' })
   })
 })
