@@ -76,8 +76,8 @@ export default function PropertiesUnitsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">Units & Tenants</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">Manage property units and tenant information</p>
+          <h1 className="text-2xl font-bold text-foreground">Units & Tenants</h1>
+          <p className="text-muted-foreground">Manage property units and tenant information</p>
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary">Import Units</button>
@@ -93,7 +93,7 @@ export default function PropertiesUnitsPage() {
               <p className="text-sm font-medium text-muted-foreground">Total Units</p>
               <p className="text-2xl font-bold text-primary">156</p>
             </div>
-            <div className="text-[var(--fixzit-primary-lighter)]">🏢</div>
+            <div className="text-primary">🏢</div>
           </div>
         </div>
         <div className="card">
@@ -102,23 +102,23 @@ export default function PropertiesUnitsPage() {
               <p className="text-sm font-medium text-muted-foreground">Occupied</p>
               <p className="text-2xl font-bold text-success">142</p>
             </div>
-            <div className="text-[var(--fixzit-success-lighter)]">👥</div>
+            <div className="text-success">👥</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Vacant</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-danger)]">14</p>
+              <p className="text-2xl font-bold text-destructive">14</p>
             </div>
-            <div className="text-[var(--fixzit-danger-lighter)]">🏠</div>
+            <div className="text-[hsl(var(--destructive)) / 0.1]">🏠</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Occupancy Rate</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-secondary)]">91%</p>
+              <p className="text-2xl font-bold text-[hsl(var(--secondary))]">91%</p>
             </div>
             <div className="text-purple-400">📊</div>
           </div>
@@ -205,7 +205,7 @@ export default function PropertiesUnitsPage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
                       <button className="text-primary hover:text-primary">{t('common.edit', 'Edit')}</button>
-                      <button className="text-success hover:text-[var(--fixzit-success-darkest)]">View Tenant</button>
+                      <button className="text-success hover:text-success-foreground">View Tenant</button>
                     </div>
                   </td>
                 </tr>

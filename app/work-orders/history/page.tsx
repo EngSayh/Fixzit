@@ -55,8 +55,8 @@ export default function ServiceHistoryPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('workOrders.history.title', 'Service History')}</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">{t('workOrders.history.subtitle', 'View completed work orders and service history')}</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('workOrders.history.title', 'Service History')}</h1>
+          <p className="text-muted-foreground">{t('workOrders.history.subtitle', 'View completed work orders and service history')}</p>
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary">{t('workOrders.history.exportReport', 'Export Report')}</button>
@@ -72,7 +72,7 @@ export default function ServiceHistoryPage() {
               <p className="text-sm font-medium text-muted-foreground">{t('workOrders.history.totalCompleted', 'Total Completed')}</p>
               <p className="text-2xl font-bold text-success">247</p>
             </div>
-            <div className="text-[var(--fixzit-success-lighter)]">✅</div>
+            <div className="text-success">✅</div>
           </div>
         </div>
         <div className="card">
@@ -81,23 +81,23 @@ export default function ServiceHistoryPage() {
               <p className="text-sm font-medium text-muted-foreground">{t('common.thisMonth', 'This Month')}</p>
               <p className="text-2xl font-bold text-primary">23</p>
             </div>
-            <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
+            <div className="text-primary">📅</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('common.avgRating', 'Avg. Rating')}</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-accent)]">4.8</p>
+              <p className="text-2xl font-bold text-accent">4.8</p>
             </div>
-            <div className="text-[var(--fixzit-accent-lighter)]">⭐</div>
+            <div className="text-accent">⭐</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('common.totalCost', 'Total Cost')}</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-secondary)]">SAR 45,230</p>
+              <p className="text-2xl font-bold text-[hsl(var(--secondary))]">SAR 45,230</p>
             </div>
             <div className="text-purple-400">💰</div>
           </div>
@@ -179,7 +179,7 @@ export default function ServiceHistoryPage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{item.cost}</td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     <div className="flex items-center">
-                      <span className="text-[var(--fixzit-accent-lighter)]">⭐</span>
+                      <span className="text-accent">⭐</span>
                       <span className="ml-1">{item.rating}/5</span>
                     </div>
                   </td>
@@ -191,7 +191,7 @@ export default function ServiceHistoryPage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
                       <button className="text-primary hover:text-primary">{t('workOrders.history.view', 'View')}</button>
-                      <button className="text-success hover:text-[var(--fixzit-success-darkest)]">{t('workOrders.history.invoice', 'Invoice')}</button>
+                      <button className="text-success hover:text-success-foreground">{t('workOrders.history.invoice', 'Invoice')}</button>
                     </div>
                   </td>
                 </tr>

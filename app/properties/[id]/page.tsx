@@ -101,8 +101,8 @@ export default function PropertyDetailPage() {
             </div>
             
             <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <div className="p-3 bg-[var(--fixzit-danger-lighter)] rounded-2xl">
-                <Wrench className="h-6 w-6 text-[var(--fixzit-danger)]" />
+              <div className="p-3 bg-destructive/10 rounded-2xl">
+                <Wrench className="h-6 w-6 text-destructive" />
               </div>
               <div className={isRTL ? 'text-right' : ''}>
                 <p className="text-sm text-muted-foreground">Open Work Orders</p>

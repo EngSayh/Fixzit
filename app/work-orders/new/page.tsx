@@ -11,8 +11,8 @@ export default function NewWorkOrderPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('workOrders.new.title', 'New Work Order')}</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">{t('workOrders.new.subtitle', 'Create a new work order for maintenance or services')}</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('workOrders.new.title', 'New Work Order')}</h1>
+          <p className="text-muted-foreground">{t('workOrders.new.subtitle', 'Create a new work order for maintenance or services')}</p>
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary">{t('common.save', 'Save Draft')}</button>
@@ -127,7 +127,7 @@ export default function NewWorkOrderPage() {
             <div className="border-2 border-dashed border-border rounded-2xl p-6 text-center">
               <div className="text-muted-foreground mb-2">📎</div>
               <p className="text-sm text-muted-foreground">{t('workOrders.dropFiles', 'Drop files here or click to upload')}</p>
-              <button className="mt-2 text-sm text-[var(--fixzit-blue)] hover:underline">
+              <button className="mt-2 text-sm text-primary hover:underline">
                 {t('common.chooseFiles', 'Choose Files')}
               </button>
             </div>
@@ -152,12 +152,12 @@ export default function NewWorkOrderPage() {
             <h3 className="text-lg font-semibold mb-4">{t('workOrders.recentActivity', 'Recent Activity')}</h3>
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[var(--fixzit-success-light)] rounded-full"></div>
+                <div className="w-2 h-2 bg-[hsl(var(--success)) / 0.2] rounded-full"></div>
                 <span className="text-muted-foreground">{t('workOrders.formAutoSaved', 'Form auto-saved')}</span>
                 <span className="text-muted-foreground ml-auto">2m ago</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full"></div>
+                <div className="w-2 h-2 bg-primary/20 rounded-full"></div>
                 <span className="text-muted-foreground">{t('workOrders.propertySelected', 'Property selected')}</span>
                 <span className="text-muted-foreground ml-auto">5m ago</span>
               </div>

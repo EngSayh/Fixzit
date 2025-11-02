@@ -82,7 +82,7 @@ export default function AssetsPage() {
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-[var(--fixzit-primary-dark)]">
+            <Button className="bg-primary hover:bg-primary/90">
               <Plus className="w-4 h-4 mr-2" />
               New Asset
             </Button>
@@ -163,7 +163,7 @@ export default function AssetsPage() {
                 <Building2 className="w-12 h-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">No Assets Found</h3>
                 <p className="text-muted-foreground mb-4">Get started by adding your first asset to the registry.</p>
-                <Button onClick={() => setCreateOpen(true)} className="bg-primary hover:bg-[var(--fixzit-primary-dark)]">
+                <Button onClick={() => setCreateOpen(true)} className="bg-primary hover:bg-primary/90">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Asset
                 </Button>
@@ -223,9 +223,9 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
       case 'ACTIVE':
         return <CheckCircle className="w-4 h-4 text-success" />;
       case 'MAINTENANCE':
-        return <AlertTriangle className="w-4 h-4 text-[var(--fixzit-accent)]" />;
+        return <AlertTriangle className="w-4 h-4 text-accent" />;
       case 'OUT_OF_SERVICE':
-        return <XCircle className="w-4 h-4 text-[var(--fixzit-danger)]" />;
+        return <XCircle className="w-4 h-4 text-destructive" />;
       default:
         return <Settings className="w-4 h-4 text-muted-foreground" />;
     }
@@ -308,7 +308,7 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
             <Button variant="ghost" size="sm" onClick={handleEdit}>
               <Edit className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]" onClick={handleDelete}>
+            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={handleDelete}>
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
@@ -500,7 +500,7 @@ function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-primary hover:bg-[var(--fixzit-primary-dark)]">
+        <Button type="submit" className="bg-primary hover:bg-primary/90">
           Create Asset
         </Button>
       </div>

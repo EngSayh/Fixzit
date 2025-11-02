@@ -49,10 +49,10 @@ export default function PreventiveMaintenancePage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'bg-primary/10 text-primary border-[var(--fixzit-primary-lighter)]';
-      case 'due': return 'bg-warning/10 text-warning border-[var(--fixzit-warning-lighter)]';
-      case 'overdue': return 'bg-destructive/10 text-destructive border-[var(--fixzit-danger-lighter)]';
-      case 'completed': return 'bg-success/10 text-success border-[var(--fixzit-success-lighter)]';
+      case 'scheduled': return 'bg-primary/10 text-primary border-[hsl(var(--primary)) / 0.1]';
+      case 'due': return 'bg-warning/10 text-warning border-warning/20';
+      case 'overdue': return 'bg-destructive/10 text-destructive border-[hsl(var(--destructive)) / 0.1]';
+      case 'completed': return 'bg-success/10 text-success border-[hsl(var(--success)) / 0.1]';
       default: return 'bg-muted text-foreground border-border';
     }
   };
@@ -62,8 +62,8 @@ export default function PreventiveMaintenancePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('workOrders.pm.title', 'Preventive Maintenance')}</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">{t('workOrders.pm.subtitle', 'Schedule and track preventive maintenance activities')}</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('workOrders.pm.title', 'Preventive Maintenance')}</h1>
+          <p className="text-muted-foreground">{t('workOrders.pm.subtitle', 'Schedule and track preventive maintenance activities')}</p>
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary">{t('workOrders.pm.importSchedule', 'Import Schedule')}</button>
@@ -79,25 +79,25 @@ export default function PreventiveMaintenancePage() {
               <p className="text-sm font-medium text-muted-foreground">{t('workOrders.scheduled', 'Scheduled')}</p>
               <p className="text-2xl font-bold text-primary">8</p>
             </div>
-            <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
+            <div className="text-primary">📅</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('workOrders.pm.thisMonth', 'Due This Month')}</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-accent)]">3</p>
+              <p className="text-2xl font-bold text-accent">3</p>
             </div>
-            <div className="text-[var(--fixzit-accent-lighter)]">⚠️</div>
+            <div className="text-accent">⚠️</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('common.overdue', 'Overdue')}</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-danger)]">2</p>
+              <p className="text-2xl font-bold text-destructive">2</p>
             </div>
-            <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
+            <div className="text-[hsl(var(--destructive)) / 0.1]">🔴</div>
           </div>
         </div>
         <div className="card">
@@ -106,7 +106,7 @@ export default function PreventiveMaintenancePage() {
               <p className="text-sm font-medium text-muted-foreground">{t('workOrders.completed', 'Completed')}</p>
               <p className="text-2xl font-bold text-success">15</p>
             </div>
-            <div className="text-[var(--fixzit-success-lighter)]">✅</div>
+            <div className="text-success">✅</div>
           </div>
         </div>
       </div>
@@ -172,7 +172,7 @@ export default function PreventiveMaintenancePage() {
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
                           <button className="text-primary hover:text-primary">{t('common.edit', 'Edit')}</button>
-                          <button className="text-success hover:text-[var(--fixzit-success-darkest)]">Generate</button>
+                          <button className="text-success hover:text-success-foreground">Generate</button>
                         </div>
                       </td>
                     </tr>

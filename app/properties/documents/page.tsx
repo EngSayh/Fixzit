@@ -88,8 +88,8 @@ export default function PropertiesDocumentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">Property Documents</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">Manage property documents, certificates, and legal files</p>
+          <h1 className="text-2xl font-bold text-foreground">Property Documents</h1>
+          <p className="text-muted-foreground">Manage property documents, certificates, and legal files</p>
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary">Document Templates</button>
@@ -105,32 +105,32 @@ export default function PropertiesDocumentsPage() {
               <p className="text-sm font-medium text-muted-foreground">Total Documents</p>
               <p className="text-2xl font-bold text-primary">247</p>
             </div>
-            <div className="text-[var(--fixzit-primary-lighter)]">📄</div>
+            <div className="text-primary">📄</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Expiring Soon</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-accent)]">8</p>
+              <p className="text-2xl font-bold text-accent">8</p>
             </div>
-            <div className="text-[var(--fixzit-accent-lighter)]">⚠️</div>
+            <div className="text-accent">⚠️</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Expired</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-danger)]">3</p>
+              <p className="text-2xl font-bold text-destructive">3</p>
             </div>
-            <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
+            <div className="text-[hsl(var(--destructive)) / 0.1]">🔴</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Storage Used</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-secondary)]">2.4 GB</p>
+              <p className="text-2xl font-bold text-[hsl(var(--secondary))]">2.4 GB</p>
             </div>
             <div className="text-purple-400">💾</div>
           </div>
@@ -143,7 +143,7 @@ export default function PropertiesDocumentsPage() {
           <div className="text-muted-foreground mb-4">📎</div>
           <h3 className="text-lg font-semibold text-foreground mb-2">Upload Documents</h3>
           <p className="text-muted-foreground mb-4">Drag and drop files here or click to browse</p>
-          <button className="px-6 py-3 bg-[var(--fixzit-blue)] text-white rounded-2xl hover:bg-[var(--fixzit-blue)]/90 transition-colors">
+          <button className="px-6 py-3 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors">
             Choose Files
           </button>
           <p className="text-sm text-muted-foreground mt-2">Supports PDF, DOC, JPG up to 10MB each</p>
@@ -238,7 +238,7 @@ export default function PropertiesDocumentsPage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
                       <button className="text-primary hover:text-primary">{t('common.view', 'View')}</button>
-                      <button className="text-success hover:text-[var(--fixzit-success-darkest)]">{t('common.download', 'Download')}</button>
+                      <button className="text-success hover:text-success-foreground">{t('common.download', 'Download')}</button>
                       <button className="text-warning hover:text-orange-900">{t('common.edit', 'Edit')}</button>
                     </div>
                   </td>
@@ -250,16 +250,16 @@ export default function PropertiesDocumentsPage() {
       </div>
 
       {/* Expiring Documents Alert */}
-      <div className="card border-warning/20 bg-[var(--fixzit-accent-lightest)]">
+      <div className="card border-warning/20 bg-accent/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="text-[var(--fixzit-accent-lighter)]">⚠️</div>
+            <div className="text-accent">⚠️</div>
             <div>
-              <h3 className="font-semibold text-[var(--fixzit-accent-darker)]">Documents Expiring Soon</h3>
-              <p className="text-sm text-[var(--fixzit-accent)]">8 documents will expire within the next 30 days</p>
+              <h3 className="font-semibold text-accent">Documents Expiring Soon</h3>
+              <p className="text-sm text-accent">8 documents will expire within the next 30 days</p>
             </div>
           </div>
-          <button className="px-4 py-2 bg-[var(--fixzit-accent)] text-white rounded-2xl hover:bg-[var(--fixzit-accent-dark)] transition-colors">
+          <button className="px-4 py-2 bg-[hsl(var(--accent))] text-white rounded-2xl hover:bg-accent/90 transition-colors">
             Review Now
           </button>
         </div>
@@ -273,16 +273,16 @@ export default function PropertiesDocumentsPage() {
               <p className="text-sm font-medium text-muted-foreground">Legal Documents</p>
               <p className="text-2xl font-bold text-primary">45</p>
             </div>
-            <div className="text-[var(--fixzit-primary-lighter)]">⚖️</div>
+            <div className="text-primary">⚖️</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Safety Certificates</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-danger)]">23</p>
+              <p className="text-2xl font-bold text-destructive">23</p>
             </div>
-            <div className="text-[var(--fixzit-danger-lighter)]">🛡️</div>
+            <div className="text-[hsl(var(--destructive)) / 0.1]">🛡️</div>
           </div>
         </div>
         <div className="card">
@@ -291,14 +291,14 @@ export default function PropertiesDocumentsPage() {
               <p className="text-sm font-medium text-muted-foreground">Contracts</p>
               <p className="text-2xl font-bold text-success">89</p>
             </div>
-            <div className="text-[var(--fixzit-success-lighter)]">📋</div>
+            <div className="text-success">📋</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Insurance</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-secondary)]">12</p>
+              <p className="text-2xl font-bold text-[hsl(var(--secondary))]">12</p>
             </div>
             <div className="text-purple-400">🛡️</div>
           </div>

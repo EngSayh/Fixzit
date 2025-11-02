@@ -350,8 +350,8 @@ export default function NotificationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">Notifications</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">Stay updated with all system notifications and alerts</p>
+          <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
+          <p className="text-muted-foreground">Stay updated with all system notifications and alerts</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -377,16 +377,16 @@ export default function NotificationsPage() {
               <p className="text-sm font-medium text-muted-foreground">Total Notifications</p>
               <p className="text-2xl font-bold text-primary">{notifications.length}</p>
             </div>
-            <div className="text-[var(--fixzit-primary-lighter)]">📢</div>
+            <div className="text-primary">📢</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Unread</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-danger)]">{unreadCount}</p>
+              <p className="text-2xl font-bold text-destructive">{unreadCount}</p>
             </div>
-            <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
+            <div className="text-[hsl(var(--destructive)) / 0.1]">🔴</div>
           </div>
         </div>
         <div className="card">
@@ -408,7 +408,7 @@ export default function NotificationsPage() {
                 {notifications.filter((n: NotificationDoc) => new Date(n.timestamp).toDateString() === new Date().toDateString()).length}
               </p>
             </div>
-            <div className="text-[var(--fixzit-success-lighter)]">📅</div>
+            <div className="text-success">📅</div>
           </div>
         </div>
       </div>
@@ -477,7 +477,7 @@ export default function NotificationsPage() {
           >
             Urgent ({tabCounts.urgent})
             {tabCounts.urgent > 0 && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-[var(--fixzit-danger-light)] rounded-full"></span>
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-destructive/20 rounded-full"></span>
             )}
           </button>
         </div>
@@ -520,7 +520,7 @@ export default function NotificationsPage() {
                           {notif.title}
                         </h3>
                         {!notif.read && (
-                          <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full"></div>
+                          <div className="w-2 h-2 bg-primary/20 rounded-full"></div>
                         )}
                         <span className={`px-2 py-1 text-xs font-semibold rounded-full border ${getPriorityColor(notif.priority)}`}>
                           {notif.priority.toUpperCase()}
@@ -638,14 +638,14 @@ export default function NotificationsPage() {
           </button>
           <button
             onClick={handleMuteCategories}
-            className="btn-ghost text-center hover:bg-[var(--fixzit-accent-lightest)] transition-colors"
+            className="btn-ghost text-center hover:bg-accent/10 transition-colors"
           >
             <div className="text-2xl mb-2">🔕</div>
             <div className="text-sm font-medium">Mute Categories</div>
           </button>
           <button
             onClick={handleNotificationReport}
-            className="btn-ghost text-center hover:bg-[var(--fixzit-secondary-lightest)] transition-colors"
+            className="btn-ghost text-center hover:bg-secondary/10 transition-colors"
           >
             <div className="text-2xl mb-2">📊</div>
             <div className="text-sm font-medium">Notification Report</div>

@@ -40,10 +40,10 @@ export default function SLAWatchlistPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">
+          <h1 className="text-2xl font-bold text-foreground">
             {t('workOrders.sla.watchlist', 'SLA Watchlist')}
           </h1>
-          <p className="text-[var(--fixzit-text-secondary)]">
+          <p className="text-muted-foreground">
             {t('workOrders.sla.subtitle', 'Monitor work orders approaching or breaching SLA deadlines')}
           </p>
         </div>

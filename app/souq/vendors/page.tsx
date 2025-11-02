@@ -8,7 +8,7 @@ export default function VendorsPage() {
           <h1 className="text-2xl font-bold text-foreground">Vendors</h1>
           <p className="text-muted-foreground">Manage approved suppliers and vendors</p>
         </div>
-        <button className="px-4 py-2 bg-[var(--fixzit-success)] text-white rounded-2xl hover:bg-[var(--fixzit-success-dark)] transition-colors">
+        <button className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success/90 transition-colors">
           Add Vendor
         </button>
       </div>
@@ -47,7 +47,7 @@ export default function VendorsPage() {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <span className="text-sm text-foreground">4.8</span>
-                    <span className="ml-1 text-[var(--fixzit-accent-lighter)]">★</span>
+                    <span className="ml-1 text-accent">★</span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -71,7 +71,7 @@ export default function VendorsPage() {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <span className="text-sm text-foreground">4.5</span>
-                    <span className="ml-1 text-[var(--fixzit-accent-lighter)]">★</span>
+                    <span className="ml-1 text-accent">★</span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">

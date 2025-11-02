@@ -132,7 +132,7 @@ export default function VendorDetailsPage() {
           </Button>
           <Button 
             variant="outline" 
-            className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]"
+            className="text-destructive hover:text-destructive"
             onClick={handleDelete}
           >
             <Trash2 className="w-4 h-4 mr-2" />

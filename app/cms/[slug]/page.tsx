@@ -41,7 +41,7 @@ export default async function CmsPageScreen(props: { params: Promise<{slug:strin
       <div className="mx-auto max-w-4xl px-6 py-10">
         <div className="bg-card rounded-2xl shadow-md border border-border p-8">
           <article 
-            className="prose prose-lg max-w-none prose-headings:text-[var(--fixzit-text)] prose-a:text-[var(--fixzit-blue)] prose-strong:text-[var(--fixzit-text)]" 
+            className="prose prose-lg max-w-none prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground" 
             dangerouslySetInnerHTML={{ __html: await renderMarkdown(page.content) }} 
           />
           
@@ -53,7 +53,7 @@ export default async function CmsPageScreen(props: { params: Promise<{slug:strin
               </div>
               <Link 
                 href="/" 
-                className="text-[var(--fixzit-blue)] hover:text-[var(--fixzit-blue)]/80 font-medium"
+                className="text-primary hover:text-primary/80 font-medium"
               >
                 ← Back to home
               </Link>

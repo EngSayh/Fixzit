@@ -222,17 +222,17 @@ export default function CatalogPage() {
                 {/* Badges */}
                 <div className="absolute top-2 left-2 flex flex-col gap-1">
                   {product.isNew && (
-                    <span className="bg-[var(--fixzit-primary-light)] text-white text-xs px-2 py-1 rounded">New</span>
+                    <span className="bg-primary/20 text-white text-xs px-2 py-1 rounded">New</span>
                   )}
                   {product.discount && (
-                    <span className="bg-[var(--fixzit-danger-light)] text-white text-xs px-2 py-1 rounded">
+                    <span className="bg-destructive/20 text-white text-xs px-2 py-1 rounded">
                       -{product.discount}%
                     </span>
                   )}
                 </div>
 
                 <button className="absolute top-2 right-2 p-2 bg-card rounded-full shadow-md hover:bg-muted">
-                  <Heart className="w-4 h-4 text-muted-foreground hover:text-[var(--fixzit-danger-light)]" />
+                  <Heart className="w-4 h-4 text-muted-foreground hover:text-destructive" />
                 </button>
               </div>
 
@@ -242,7 +242,7 @@ export default function CatalogPage() {
 
                 <div className="flex items-center gap-2 mb-2">
                   <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-yellow-400 text-[var(--fixzit-accent-lighter)]" />
+                    <Star className="w-4 h-4 fill-yellow-400 text-accent" />
                     <span className="text-sm font-medium">{product.rating}</span>
                   </div>
                   <span className="text-sm text-muted-foreground">({product.reviews})</span>

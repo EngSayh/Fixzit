@@ -58,9 +58,9 @@ export default function PropertiesLeasesPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active': return 'bg-success/10 text-success border-[var(--fixzit-success-lighter)]';
-      case 'Expiring Soon': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
-      case 'Expired': return 'bg-destructive/10 text-destructive border-[var(--fixzit-danger-lighter)]';
+      case 'Active': return 'bg-success/10 text-success border-[hsl(var(--success)) / 0.1]';
+      case 'Expiring Soon': return 'bg-accent/10 text-accent border-accent/20';
+      case 'Expired': return 'bg-destructive/10 text-destructive border-[hsl(var(--destructive)) / 0.1]';
       case 'Vacant': return 'bg-muted text-foreground border-border';
       default: return 'bg-muted text-foreground border-border';
     }
@@ -68,9 +68,9 @@ export default function PropertiesLeasesPage() {
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
-      case 'Paid': return 'bg-success/10 text-success border-[var(--fixzit-success-lighter)]';
-      case 'Pending': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
-      case 'Overdue': return 'bg-destructive/10 text-destructive border-[var(--fixzit-danger-lighter)]';
+      case 'Paid': return 'bg-success/10 text-success border-[hsl(var(--success)) / 0.1]';
+      case 'Pending': return 'bg-accent/10 text-accent border-accent/20';
+      case 'Overdue': return 'bg-destructive/10 text-destructive border-[hsl(var(--destructive)) / 0.1]';
       case 'N/A': return 'bg-muted text-foreground border-border';
       default: return 'bg-muted text-foreground border-border';
     }
@@ -95,8 +95,8 @@ export default function PropertiesLeasesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('properties.leases.title', 'Lease Management')}</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">{t('properties.leases.subtitle', 'Manage property leases and rental agreements')}</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('properties.leases.title', 'Lease Management')}</h1>
+          <p className="text-muted-foreground">{t('properties.leases.subtitle', 'Manage property leases and rental agreements')}</p>
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary">{t('properties.leases.templates', 'Lease Templates')}</button>
@@ -112,16 +112,16 @@ export default function PropertiesLeasesPage() {
               <p className="text-sm font-medium text-muted-foreground">{t('properties.leases.activeLeases', 'Active Leases')}</p>
               <p className="text-2xl font-bold text-success">142</p>
             </div>
-            <div className="text-[var(--fixzit-success-lighter)]">📄</div>
+            <div className="text-success">📄</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('properties.leases.expiringSoon', 'Expiring Soon')}</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-accent)]">8</p>
+              <p className="text-2xl font-bold text-accent">8</p>
             </div>
-            <div className="text-[var(--fixzit-accent-lighter)]">⚠️</div>
+            <div className="text-accent">⚠️</div>
           </div>
         </div>
         <div className="card">
@@ -130,14 +130,14 @@ export default function PropertiesLeasesPage() {
               <p className="text-sm font-medium text-muted-foreground">{t('properties.leases.monthlyRevenue', 'Monthly Revenue')}</p>
               <p className="text-2xl font-bold text-primary">SAR 1.2M</p>
             </div>
-            <div className="text-[var(--fixzit-primary-lighter)]">💰</div>
+            <div className="text-primary">💰</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('properties.leases.avgLeaseTerm', 'Avg. Lease Term')}</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-secondary)]">18 {t('properties.leases.months', 'months')}</p>
+              <p className="text-2xl font-bold text-[hsl(var(--secondary))]">18 {t('properties.leases.months', 'months')}</p>
             </div>
             <div className="text-purple-400">📅</div>
           </div>
@@ -224,7 +224,7 @@ export default function PropertiesLeasesPage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
                       <button className="text-primary hover:text-primary">{t('common.view', 'View')}</button>
-                      <button className="text-success hover:text-[var(--fixzit-success-darkest)]">{t('common.edit', 'Edit')}</button>
+                      <button className="text-success hover:text-success-foreground">{t('common.edit', 'Edit')}</button>
                       <button className="text-warning hover:text-orange-900">{t('properties.leases.renew', 'Renew')}</button>
                     </div>
                   </td>
@@ -244,7 +244,7 @@ export default function PropertiesLeasesPage() {
             { unit: 'B-305', tenant: 'Sarah Johnson', date: '2024-02-22', days: 19 },
             { unit: 'C-202', tenant: 'Mohammed Ali', date: '2024-03-01', days: 26 },
           ].map((renewal, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-[var(--fixzit-accent-lightest)] rounded-2xl border border-warning/20">
+            <div key={index} className="flex items-center justify-between p-3 bg-accent/10 rounded-2xl border border-warning/20">
               <div>
                 <p className="font-medium">{renewal.unit} - {renewal.tenant}</p>
                 <p className="text-sm text-muted-foreground">{t('properties.leases.expires', 'Expires')}: {renewal.date} ({renewal.days} {t('common.days', 'days')})</p>

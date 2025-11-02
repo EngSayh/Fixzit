@@ -56,7 +56,7 @@ export default function DashboardPage() {
                       <p className="font-medium">WO-{1000 + i} - {t('dashboard.acMaintenance', 'AC Maintenance')}</p>
                       <p className="text-sm text-muted-foreground">{t('dashboard.propertyTowerA', 'Property Tower A')} - {t('dashboard.unit', 'Unit')} 301</p>
                     </div>
-                    <span className="px-3 py-1 text-xs font-medium bg-accent/10 text-[var(--fixzit-accent-darker)] rounded-full">
+                    <span className="px-3 py-1 text-xs font-medium bg-accent/10 text-accent rounded-full">
                       {t('dashboard.statusInProgress', 'In Progress')}
                     </span>
                   </div>
