@@ -182,6 +182,7 @@ export default function ProjectsPage() {
 }
 
 function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgId?: string; onUpdated: () => void }) {
+  const router = useRouter();
   const handleDelete = async () => {
     if (!confirm(`Delete project "${project.name}"? This cannot be undone.`)) return;
     if (!orgId) return toast.error('Organization ID missing');
