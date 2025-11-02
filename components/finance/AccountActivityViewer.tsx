@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 // ============================================================================
@@ -49,6 +50,7 @@ export default function AccountActivityViewer({
   onTransactionClick
 }: IAccountActivityViewerProps) {
   const { t } = useTranslation();
+  const { data: session } = useSession();
 
   // Filter state
   const [startDate, setStartDate] = useState<string>(
@@ -74,13 +76,19 @@ export default function AccountActivityViewer({
   // ============================================================================
 
   useEffect(() => {
-    if (accountId) {
+    if (accountId && session) {
       loadAccountActivity();
     }
-  }, [accountId, startDate, endDate, sourceTypeFilter, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [accountId, startDate, endDate, sourceTypeFilter, currentPage, session]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadAccountActivity = async () => {
     if (!accountId) return;
+    
+    const orgId = session?.user?.orgId;
+    if (!orgId) {
+      setError('Organization ID not found. Please log in again.');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -99,8 +107,12 @@ export default function AccountActivityViewer({
       params.append('page', String(currentPage));
       params.append('limit', String(pageSize));
 
-      const url = `/api/finance/ledger/account-activity/${accountId}?${params.toString()}`;
-      const response = await fetch(url);
+      const url = `/api/org/${orgId}/finance/ledger/account-activity/${accountId}?${params.toString()}`;
+      const response = await fetch(url, {
+        headers: {
+          'x-tenant-id': orgId
+        }
+      });
 
       if (!response.ok) {
         // try to get a specific message from the response
