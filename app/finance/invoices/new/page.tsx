@@ -409,8 +409,8 @@ export default function NewInvoicePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('finance.invoice.newInvoice', 'New Invoice')}</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">{t('finance.invoice.subtitle', 'Create invoice with automatic journal posting')}</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('finance.invoice.newInvoice', 'New Invoice')}</h1>
+          <p className="text-muted-foreground">{t('finance.invoice.subtitle', 'Create invoice with automatic journal posting')}</p>
         </div>
         <div className="flex gap-2">
           <button 
@@ -834,12 +834,12 @@ export default function NewInvoicePage() {
             <h3 className="text-lg font-semibold mb-4">{t('finance.recentActivity', 'Recent Activity')}</h3>
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[var(--fixzit-success-light)] rounded-full"></div>
+                <div className="w-2 h-2 bg-success/20 rounded-full"></div>
                 <span className="text-muted-foreground">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
                 <span className="text-muted-foreground ml-auto">2m ago</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[var(--fixzit-primary-light)] rounded-full"></div>
+                <div className="w-2 h-2 bg-primary/20 rounded-full"></div>
                 <span className="text-muted-foreground">{t('finance.invoice.customerSelected', 'Customer selected')}</span>
                 <span className="text-muted-foreground ml-auto">5m ago</span>
               </div>
