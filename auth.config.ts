@@ -142,58 +142,31 @@ export const authConfig = {
 
           const { loginIdentifier, loginType, password, rememberMe } = parsed.data;
 
-          // 2. Dynamic imports (Edge Runtime compatible)
-          const { connectToDatabase } = await import('@/lib/mongodb-unified');
-          const { User } = await import('@/server/models/User');
-          const bcrypt = await import('bcryptjs');
+          // 2. ⚡ Call API route (Node.js runtime) instead of direct database access
+          // This keeps mongoose out of Edge Runtime bundle
+          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          const response = await fetch(`${baseUrl}/api/auth/credentials`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              identifier: loginIdentifier,
+              type: loginType,
+              password,
+            }),
+          });
 
-          // 3. Connect to database
-          await connectToDatabase();
-
-          // 4. Find user based on login type
-          let user;
-          if (loginType === 'personal') {
-            user = await User.findOne({ email: loginIdentifier });
-          } else {
-            // Corporate login uses employee number (stored in username field)
-            user = await User.findOne({ username: loginIdentifier });
-          }
-
-          if (!user) {
-            console.error('[NextAuth] User not found:', loginIdentifier);
+          if (!response.ok) {
+            console.error('[NextAuth] Credentials validation failed:', response.status);
             return null;
           }
 
-          // 5. Verify password (inline to avoid importing @/lib/auth)
-          const isValid = await bcrypt.compare(password, user.password);
-          if (!isValid) {
-            console.error('[NextAuth] Invalid password for:', loginIdentifier);
-            return null;
-          }
+          const user = await response.json();
 
-          // 6. Check if user is active
-          const isUserActive = user.isActive !== undefined ? user.isActive : (user.status === 'ACTIVE');
-          if (!isUserActive) {
-            console.error('[NextAuth] Inactive user attempted login:', loginIdentifier);
-            return null;
-          }
-
-          // 7. Update last login timestamp
-          // Use updateOne to bypass Mongoose validation (some demo users may not have all required fields)
-          await User.updateOne(
-            { _id: user._id },
-            { $set: { 'security.lastLogin': new Date() } }
-          );
-
-          // 8. Return user object for NextAuth session
+          // 3. Return user object for NextAuth session
           return {
-            id: user._id.toString(),
-            email: user.email,
-            name: `${user.personal?.firstName || ''} ${user.personal?.lastName || ''}`.trim() || user.email,
-            role: user.professional?.role || user.role || 'USER',
-            orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || null),
-            sessionId: null, // NextAuth will generate session ID
-          } as any; // Type assertion to bypass rememberMe field
+            ...user,
+            rememberMe, // Pass through for jwt callback
+          } as any;
         } catch (error) {
           console.error('[NextAuth] Authorize error:', error);
           return null;
