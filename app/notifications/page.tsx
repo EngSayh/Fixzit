@@ -59,7 +59,7 @@ export default function NotificationsPage() {
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'maintenance': return 'bg-primary/10 text-primary-foreground border-primary/20';
-      case 'vendor': return 'bg-secondary/10 text-purple-800 border-purple-200';
+      case 'vendor': return 'bg-secondary/10 text-purple-800 border-secondary/30';
       case 'finance': return 'bg-success/10 text-success-foreground border-success/20';
       case 'system': return 'bg-muted text-foreground border-border';
       default: return 'bg-muted text-foreground border-border';

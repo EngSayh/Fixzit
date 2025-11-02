@@ -97,7 +97,7 @@ export default function InvoicesPage() {
   if (!orgId) {
     return (
       <div className="text-center py-12">
-        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
         <p className="text-destructive">Error: No organization ID found in session</p>
       </div>
     );

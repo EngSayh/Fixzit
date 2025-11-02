@@ -120,7 +120,7 @@ export default function PropertiesUnitsPage() {
               <p className="text-sm font-medium text-muted-foreground">Occupancy Rate</p>
               <p className="text-2xl font-bold text-[hsl(var(--secondary))]">91%</p>
             </div>
-            <div className="text-purple-400">📊</div>
+            <div className="text-secondary">📊</div>
           </div>
         </div>
       </div>

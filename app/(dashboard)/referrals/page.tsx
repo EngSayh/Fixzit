@@ -326,7 +326,7 @@ export default function ReferralProgramPage() {
                   setError(null);
                   fetchReferralData();
                 }}
-                className="bg-red-600 text-white px-4 py-2 rounded-2xl hover:bg-red-700 transition-colors"
+                className="bg-destructive text-white px-4 py-2 rounded-2xl hover:bg-destructive/90 transition-colors"
                 data-testid="retry-button"
               >
                 Try Again
@@ -342,7 +342,7 @@ export default function ReferralProgramPage() {
     return (
       <div className="max-w-7xl mx-auto p-6" data-testid="referral-loading">
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" role="status" aria-label="Loading"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" role="status" aria-label="Loading"></div>
         </div>
       </div>
     );
@@ -450,7 +450,7 @@ export default function ReferralProgramPage() {
                     <button
                       onClick={regenerateCode}
                       disabled={generating}
-                      className="w-full mt-3 bg-warning/100 text-white px-4 py-2 rounded-2xl font-medium hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full mt-3 bg-warning/100 text-white px-4 py-2 rounded-2xl font-medium hover:bg-warning transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       data-testid="regenerate-code-button"
                     >
                       {generating ? 'Regenerating...' : 'Regenerate Code'}
@@ -495,7 +495,7 @@ export default function ReferralProgramPage() {
                 </button>
                 <button
                   onClick={shareViaEmail}
-                  className="flex-1 bg-primary/100 hover:bg-blue-600 px-4 py-2 rounded-2xl font-medium transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 bg-primary/100 hover:bg-primary px-4 py-2 rounded-2xl font-medium transition-colors flex items-center justify-center gap-2"
                   data-testid="share-email"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -577,10 +577,10 @@ export default function ReferralProgramPage() {
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                             referral.rewardStatus === 'PAID'
-                              ? 'bg-success/10 text-success-foreground dark:bg-green-900 dark:text-green-200'
+                              ? 'bg-success/10 text-success-foreground dark:bg-success/20 dark:text-green-200'
                               : referral.rewardStatus === 'APPROVED'
                               ? 'bg-primary/10 text-primary-foreground dark:bg-blue-900 dark:text-blue-200'
-                              : 'bg-warning/10 text-warning-foreground dark:bg-yellow-900 dark:text-yellow-200'
+                              : 'bg-warning/10 text-warning-foreground dark:bg-warning/20 dark:text-warning-foreground'
                           }`}>
                             {referral.rewardStatus}
                           </span>

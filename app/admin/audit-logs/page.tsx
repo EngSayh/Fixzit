@@ -140,10 +140,10 @@ export default function AuditLogViewer() {
 
   const getActionColor = (action: string) => {
     switch (action) {
-      case 'CREATE': return 'text-success bg-success/10 dark:bg-green-950 dark:text-green-400';
-      case 'UPDATE': return 'text-primary bg-primary/10 dark:bg-blue-950 dark:text-blue-400';
-      case 'DELETE': return 'text-destructive bg-destructive/10 dark:bg-red-950 dark:text-red-400';
-      case 'LOGIN': return 'text-secondary bg-secondary/10 dark:bg-purple-950 dark:text-purple-400';
+      case 'CREATE': return 'text-success bg-success/10 dark:bg-success/10 dark:text-green-400';
+      case 'UPDATE': return 'text-primary bg-primary/10 dark:bg-primary/10 dark:text-primary';
+      case 'DELETE': return 'text-destructive bg-destructive/10 dark:bg-destructive/10 dark:text-destructive';
+      case 'LOGIN': return 'text-secondary bg-secondary/10 dark:bg-secondary/10 dark:text-secondary';
       case 'LOGOUT': return 'text-muted-foreground bg-muted';
       default: return 'text-muted-foreground bg-muted';
     }
@@ -176,16 +176,16 @@ export default function AuditLogViewer() {
 
       {/* Error Alert - Show at top level for better visibility */}
       {error && (
-        <div className="bg-destructive/10 dark:bg-red-900/20 border border-destructive/20 dark:border-red-800 rounded-lg p-4">
+        <div className="bg-destructive/10 dark:bg-destructive/10 border border-destructive/20 dark:border-destructive/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-destructive dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-destructive dark:text-destructive flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold text-destructive-foreground dark:text-red-200 mb-1">
+              <h3 className="text-sm font-semibold text-destructive-foreground dark:text-destructive-foreground mb-1">
                 Error Loading Audit Logs
               </h3>
-              <p className="text-sm text-destructive dark:text-red-300 break-words">
+              <p className="text-sm text-destructive dark:text-destructive break-words">
                 {error}
               </p>
               <div className="mt-3 flex gap-2">
@@ -194,7 +194,7 @@ export default function AuditLogViewer() {
                     setError(null);
                     fetchLogs();
                   }}
-                  className="inline-flex items-center gap-1 text-sm font-medium text-destructive-foreground dark:text-red-200 hover:text-red-900 dark:hover:text-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-red-900 rounded px-2 py-1"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-destructive-foreground dark:text-destructive-foreground hover:text-destructive-foreground dark:hover:text-destructive-foreground focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2 dark:focus:ring-offset-destructive rounded px-2 py-1"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -203,7 +203,7 @@ export default function AuditLogViewer() {
                 </button>
                 <button
                   onClick={() => setError(null)}
-                  className="text-sm font-medium text-destructive dark:text-red-400 hover:text-destructive dark:hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-red-900 rounded px-2 py-1"
+                  className="text-sm font-medium text-destructive dark:text-destructive hover:text-destructive dark:hover:text-destructive focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-2 dark:focus:ring-offset-destructive rounded px-2 py-1"
                 >
                   Dismiss
                 </button>
@@ -297,7 +297,7 @@ export default function AuditLogViewer() {
       <div className="bg-card rounded-2xl border border-border overflow-hidden">
         {loading ? (
           <div className="p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             <p className="mt-4 text-muted-foreground">Loading audit logs...</p>
           </div>
         ) : logs.length === 0 ? (
@@ -366,7 +366,7 @@ export default function AuditLogViewer() {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                       <button
                         onClick={() => setSelectedLog(log)}
-                        className="text-primary hover:text-primary-foreground dark:text-blue-400 dark:hover:text-blue-300"
+                        className="text-primary hover:text-primary-foreground dark:text-primary dark:hover:text-primary/80"
                       >
                         View Details
                       </button>
@@ -416,7 +416,7 @@ export default function AuditLogViewer() {
                       onClick={() => setPage(pageNum)}
                       className={`px-4 py-2 text-sm font-medium rounded-2xl ${
                         page === pageNum
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-primary text-white'
                           : 'text-foreground bg-background border border-border hover:bg-muted'
                       }`}
                     >
@@ -534,8 +534,8 @@ export default function AuditLogViewer() {
                       <span className="font-medium">Success:</span> {selectedLog.result.success ? 'Yes' : 'No'}
                     </div>
                     {selectedLog.result.errorCode && (
-                      <div className="bg-destructive/10 dark:bg-red-900/20 p-2 rounded-2xl">
-                        <span className="font-medium text-destructive dark:text-red-400">Error Code:</span> {selectedLog.result.errorCode}
+                      <div className="bg-destructive/10 dark:bg-destructive/10 p-2 rounded-2xl">
+                        <span className="font-medium text-destructive dark:text-destructive">Error Code:</span> {selectedLog.result.errorCode}
                       </div>
                     )}
                     {selectedLog.result.duration !== undefined && (

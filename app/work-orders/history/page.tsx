@@ -45,7 +45,7 @@ export default function ServiceHistoryPage() {
     switch (status) {
       case 'completed': return 'bg-success/10 text-success-foreground border-success/20';
       case 'cancelled': return 'bg-destructive/10 text-destructive-foreground border-destructive/20';
-      case 'pending': return 'bg-warning/10 text-yellow-800 border-warning/20';
+      case 'pending': return 'bg-warning/10 text-warning-foreground border-warning/20';
       default: return 'bg-muted text-foreground border-border';
     }
   };
@@ -99,7 +99,7 @@ export default function ServiceHistoryPage() {
               <p className="text-sm font-medium text-muted-foreground">{t('common.totalCost', 'Total Cost')}</p>
               <p className="text-2xl font-bold text-[hsl(var(--secondary))]">SAR 45,230</p>
             </div>
-            <div className="text-purple-400">💰</div>
+            <div className="text-secondary">💰</div>
           </div>
         </div>
       </div>

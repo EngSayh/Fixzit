@@ -156,7 +156,7 @@ export default function VendorDashboard() {
                     <td className="px-6 py-4">SAR {order.total.toFixed(2)}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        order.status === 'Shipped' ? 'bg-success/10 text-success-foreground' : 'bg-warning/10 text-yellow-800'
+                        order.status === 'Shipped' ? 'bg-success/10 text-success-foreground' : 'bg-warning/10 text-warning-foreground'
                       }`}>
                         {order.status}
                       </span>

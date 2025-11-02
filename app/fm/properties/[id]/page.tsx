@@ -228,7 +228,7 @@ export default function PropertyDetailsPage() {
                       <div className="text-right">
                         <Badge className={
                           unit.status === 'OCCUPIED' ? 'bg-success/10 text-success-foreground' :
-                          unit.status === 'VACANT' ? 'bg-warning/10 text-yellow-800' :
+                          unit.status === 'VACANT' ? 'bg-warning/10 text-warning-foreground' :
                           'bg-muted text-foreground'
                         }>
                           {unit.status}

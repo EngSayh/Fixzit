@@ -463,7 +463,7 @@ export default function NewInvoicePage() {
                   onChange={(e) => setIssueDate(e.target.value)}
                   className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.issueDate ? 'border-red-500' : 'border-border'}`}
                 />
-                {errors.issueDate && <p className="text-red-500 text-xs mt-1">{errors.issueDate}</p>}
+                {errors.issueDate && <p className="text-destructive text-xs mt-1">{errors.issueDate}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
@@ -475,7 +475,7 @@ export default function NewInvoicePage() {
                   onChange={(e) => setDueDate(e.target.value)}
                   className={`w-full px-3 py-2 border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent ${errors.dueDate ? 'border-red-500' : 'border-border'}`}
                 />
-                {errors.dueDate && <p className="text-red-500 text-xs mt-1">{errors.dueDate}</p>}
+                {errors.dueDate && <p className="text-destructive text-xs mt-1">{errors.dueDate}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
@@ -519,7 +519,7 @@ export default function NewInvoicePage() {
                   <option value="cust2">Sarah Johnson - Tower B</option>
                   <option value="cust3">Ahmed Al-Rashid - Villa 9</option>
                 </select>
-                {errors.customerName && <p className="text-red-500 text-xs mt-1">{errors.customerName}</p>}
+                {errors.customerName && <p className="text-destructive text-xs mt-1">{errors.customerName}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
@@ -560,7 +560,7 @@ export default function NewInvoicePage() {
               </button>
             </div>
             
-            {errors.lineItems && <p className="text-red-500 text-sm mb-2">{errors.lineItems}</p>}
+            {errors.lineItems && <p className="text-destructive text-sm mb-2">{errors.lineItems}</p>}
 
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -652,7 +652,7 @@ export default function NewInvoicePage() {
                         {lineItems.length > 1 && (
                           <button
                             onClick={() => removeLineItem(item.id)}
-                            className="text-red-500 hover:text-destructive"
+                            className="text-destructive hover:text-destructive"
                             title={t('common.remove', 'Remove')}
                           >
                             ✕

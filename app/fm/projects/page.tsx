@@ -74,7 +74,7 @@ export default function ProjectsPage() {
   if (!orgId) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-red-500">Error: No organization ID found. Please contact support.</p>
+        <p className="text-destructive">Error: No organization ID found. Please contact support.</p>
       </div>
     );
   }
@@ -89,7 +89,7 @@ export default function ProjectsPage() {
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button className="bg-primary hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" />
               New Project
             </Button>
@@ -168,7 +168,7 @@ export default function ProjectsPage() {
                 <Briefcase className="w-12 h-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">No Projects Found</h3>
                 <p className="text-muted-foreground mb-4">Get started by creating your first project.</p>
-                <Button onClick={() => setCreateOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={() => setCreateOpen(true)} className="bg-primary hover:bg-blue-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Create Project
                 </Button>
@@ -268,7 +268,7 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
           </div>
           <div className="w-full bg-muted rounded-full h-2">
             <div 
-              className="bg-blue-600 h-2 rounded-full transition-all"
+              className="bg-primary h-2 rounded-full transition-all"
               style={{ width: `${project.progress?.overall || 0}%` }}
             />
           </div>
@@ -472,7 +472,7 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+        <Button type="submit" className="bg-primary hover:bg-blue-700">
           Create Project
         </Button>
       </div>

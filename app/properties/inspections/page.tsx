@@ -67,7 +67,7 @@ export default function PropertiesInspectionsPage() {
     switch (type) {
       case 'Safety': return 'bg-primary/10 text-primary border-[hsl(var(--primary)) / 0.1]';
       case 'Fire Safety': return 'bg-destructive/10 text-destructive border-[hsl(var(--destructive)) / 0.1]';
-      case 'Mechanical': return 'bg-secondary/10 text-purple-800 border-purple-200';
+      case 'Mechanical': return 'bg-secondary/10 text-purple-800 border-secondary/30';
       case 'Electrical': return 'bg-accent/10 text-accent border-accent/20';
       default: return 'bg-muted text-foreground border-border';
     }

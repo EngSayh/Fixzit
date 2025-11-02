@@ -67,7 +67,7 @@ export default function AssetsPage() {
   if (!orgId) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-red-500">Error: No organization ID found. Please contact support.</p>
+        <p className="text-destructive">Error: No organization ID found. Please contact support.</p>
       </div>
     );
   }
@@ -236,7 +236,7 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
       case 'ACTIVE':
         return 'bg-success/10 text-success-foreground';
       case 'MAINTENANCE':
-        return 'bg-warning/10 text-yellow-800';
+        return 'bg-warning/10 text-warning-foreground';
       case 'OUT_OF_SERVICE':
         return 'bg-destructive/10 text-destructive-foreground';
       default:

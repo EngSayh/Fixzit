@@ -75,7 +75,7 @@ export default function SupportTicketsPage() {
   if (!orgId) {
     return (
       <div className="p-6">
-        <p className="text-red-500">Error: No organization ID found in session</p>
+        <p className="text-destructive">Error: No organization ID found in session</p>
       </div>
     );
   }
@@ -151,7 +151,7 @@ export default function SupportTicketsPage() {
                     <span className={`px-2 py-1 text-xs rounded-full ${
                       ticket.priority === 'Urgent' ? 'bg-destructive/10 text-destructive-foreground' :
                       ticket.priority === 'High' ? 'bg-warning/10 text-orange-800' :
-                      ticket.priority === 'Medium' ? 'bg-warning/10 text-yellow-800' :
+                      ticket.priority === 'Medium' ? 'bg-warning/10 text-warning-foreground' :
                       'bg-muted text-foreground'
                     }`}>
                       {ticket.priority}

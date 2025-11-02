@@ -82,7 +82,7 @@ export default function EmployeesPage() {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">{t('common.loading', 'Loading...')}</p>
         </div>
       </div>
@@ -101,7 +101,7 @@ export default function EmployeesPage() {
             {t('hr.employees.subtitle', 'Manage your organization\'s employees')}
           </p>
         </div>
-        <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+        <Button className="bg-primary hover:bg-blue-700 text-white">
           <Plus className="h-4 w-4 mr-2" />
           {t('hr.employees.addNew', 'Add Employee')}
         </Button>

@@ -133,7 +133,7 @@ export default function WorkOrderApprovalsPage() {
               <p className="text-sm font-medium text-muted-foreground">{t('workOrders.approvals.totalApproved', 'Total Approved')}</p>
               <p className="text-2xl font-bold text-[hsl(var(--secondary))]">247</p>
             </div>
-            <div className="text-purple-400">📊</div>
+            <div className="text-secondary">📊</div>
           </div>
         </div>
       </div>

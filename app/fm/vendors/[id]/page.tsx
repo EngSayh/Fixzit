@@ -177,7 +177,7 @@ export default function VendorDetailsPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Response Time</p>
                     <div className="flex items-center">
-                      <Clock className="w-4 h-4 text-blue-500 mr-1" />
+                      <Clock className="w-4 h-4 text-primary mr-1" />
                       <p className="font-medium">{vendor.responseTime}</p>
                     </div>
                   </div>
@@ -374,7 +374,7 @@ export default function VendorDetailsPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Avg. Response</span>
                   <div className="flex items-center">
-                    <Clock className="w-4 h-4 text-blue-500 mr-1" />
+                    <Clock className="w-4 h-4 text-primary mr-1" />
                     <span className="font-medium">{vendor.responseTime}</span>
                   </div>
                 </div>
