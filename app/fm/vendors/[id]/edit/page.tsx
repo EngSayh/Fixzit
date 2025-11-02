@@ -23,6 +23,24 @@ import Link from 'next/link';
 import { UpdateVendorSchema, type UpdateVendorInput } from '@/lib/validations/forms';
 import { z } from 'zod';
 
+// ✅ FIX 1: Helper to convert empty strings to undefined for optional fields
+const getOptionalString = (value: string | File | null): string | undefined => {
+  const str = typeof value === 'string' ? value : null;
+  return (str && str.trim()) ? str : undefined;
+};
+
+// ✅ FIX 2: Safe date formatter to prevent crashes on invalid dates
+const toInputDate = (dateString: string | undefined | null): string => {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return ''; // Check for invalid date
+    return date.toISOString().split('T')[0];
+  } catch {
+    return '';
+  }
+};
+
 interface Vendor {
   id: string;
   code: string;
@@ -62,13 +80,20 @@ export default function EditVendorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // ✅ FIX 3: Handle HTTP errors properly to prevent crash on 404/500
   const fetcher = (url: string) => {
     if (!orgId) {
       return Promise.reject(new Error('No organization ID'));
     }
     return fetch(url, { 
       headers: { 'x-tenant-id': orgId } 
-    }).then(r => r.json());
+    }).then(async (r) => {
+      if (!r.ok) {
+        const errorData = await r.json().catch(() => ({ message: 'Failed to fetch vendor' }));
+        throw new Error(errorData.message || `Error ${r.status}`);
+      }
+      return r.json();
+    });
   };
 
   const { data: vendor, error, isLoading } = useSWR<Vendor>(
@@ -84,36 +109,38 @@ export default function EditVendorPage() {
     setErrors({});
 
     const formData = new FormData(e.currentTarget);
-    const specializations = formData.get('specializations')?.toString().split(',').map(s => s.trim()).filter(Boolean) || [];
+    const specializationsStr = getOptionalString(formData.get('specializations'));
+    const specializations = specializationsStr ? specializationsStr.split(',').map(s => s.trim()).filter(Boolean) : undefined;
     
+    // ✅ FIX 4: Use getOptionalString for all optional fields to match validation schema
     const data: Partial<UpdateVendorInput> = {
       id: params.id as string,
-      name: formData.get('name')?.toString() || '',
-      code: formData.get('code')?.toString() || '',
-      type: formData.get('type')?.toString() || '',
-      status: formData.get('status')?.toString() as any,
+      name: formData.get('name')?.toString() || '', // Required field
+      code: getOptionalString(formData.get('code')),
+      type: getOptionalString(formData.get('type')),
+      status: formData.get('status')?.toString() as 'PENDING' | 'APPROVED' | 'SUSPENDED' | 'REJECTED' | 'BLACKLISTED',
       contact: {
         primary: {
-          name: formData.get('contactName')?.toString() || '',
-          email: formData.get('contactEmail')?.toString() || '',
-          phone: formData.get('contactPhone')?.toString() || '',
-          mobile: formData.get('contactMobile')?.toString() || '',
+          name: formData.get('contactName')?.toString() || '', // Required field
+          email: getOptionalString(formData.get('contactEmail')),
+          phone: getOptionalString(formData.get('contactPhone')),
+          mobile: getOptionalString(formData.get('contactMobile')),
         },
         address: {
-          street: formData.get('addressStreet')?.toString() || '',
-          city: formData.get('addressCity')?.toString() || '',
-          region: formData.get('addressRegion')?.toString() || '',
-          postalCode: formData.get('addressPostalCode')?.toString() || '',
+          street: getOptionalString(formData.get('addressStreet')),
+          city: getOptionalString(formData.get('addressCity')),
+          region: getOptionalString(formData.get('addressRegion')),
+          postalCode: getOptionalString(formData.get('addressPostalCode')),
         },
       },
       business: {
         specializations,
-        crNumber: formData.get('crNumber')?.toString() || '',
-        taxNumber: formData.get('taxNumber')?.toString() || '',
-        licenseNumber: formData.get('licenseNumber')?.toString() || '',
-        licenseExpiry: formData.get('licenseExpiry')?.toString() || '',
-        insuranceExpiry: formData.get('insuranceExpiry')?.toString() || '',
-        description: formData.get('businessDescription')?.toString() || '',
+        crNumber: getOptionalString(formData.get('crNumber')),
+        taxNumber: getOptionalString(formData.get('taxNumber')),
+        licenseNumber: getOptionalString(formData.get('licenseNumber')),
+        licenseExpiry: getOptionalString(formData.get('licenseExpiry')),
+        insuranceExpiry: getOptionalString(formData.get('insuranceExpiry')),
+        description: getOptionalString(formData.get('businessDescription')),
       },
     };
 
@@ -424,7 +451,7 @@ export default function EditVendorPage() {
                   id="licenseExpiry"
                   name="licenseExpiry"
                   type="date"
-                  defaultValue={vendor.business?.licenseExpiry ? new Date(vendor.business.licenseExpiry).toISOString().split('T')[0] : ''}
+                  defaultValue={toInputDate(vendor.business?.licenseExpiry)}
                 />
               </div>
             </div>
@@ -436,7 +463,7 @@ export default function EditVendorPage() {
                 id="insuranceExpiry"
                 name="insuranceExpiry"
                 type="date"
-                defaultValue={vendor.business?.insuranceExpiry ? new Date(vendor.business.insuranceExpiry).toISOString().split('T')[0] : ''}
+                defaultValue={toInputDate(vendor.business?.insuranceExpiry)}
               />
             </div>
 
