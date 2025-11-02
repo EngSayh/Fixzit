@@ -9,7 +9,7 @@ const API_ENDPOINT = '/api/admin/audit-logs';
 const DEFAULT_TIMEZONE = 'Asia/Riyadh'; // Fixzit primary timezone
 
 interface AuditLog {
-  _id: string;
+  id: string;
   timestamp: Date;
   action: string;
   entityType: string;
@@ -334,7 +334,7 @@ export default function AuditLogViewer() {
               </thead>
               <tbody className="bg-card divide-y divide-border">
                 {logs.map((log) => (
-                  <tr key={log._id} className="hover:bg-muted">
+                  <tr key={log.id} className="hover:bg-muted">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                       {formatDate(log.timestamp)}
                     </td>
