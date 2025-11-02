@@ -6,7 +6,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import toast from 'react-hot-toast';
 
 interface ReferralCode {
-  _id: string;
+  id: string;
   code: string;
   shortUrl: string;
   reward: {
