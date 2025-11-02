@@ -131,9 +131,21 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
       // Implement search functionality
       if (query && options.searchFields && options.searchFields.length > 0) {
         const escapedQuery = escapeRegex(query);
-        match.$or = options.searchFields.map(field => ({
+        const searchOr = options.searchFields.map(field => ({
           [field]: { $regex: escapedQuery, $options: 'i' }
         }));
+        
+        // If buildFilter already set $or, combine with $and to avoid overwriting
+        if (match.$or) {
+          const existingOr = match.$or;
+          delete match.$or;
+          match.$and = [
+            { $or: existingOr },
+            { $or: searchOr }
+          ];
+        } else {
+          match.$or = searchOr;
+        }
       }
 
       // Execute query with pagination
