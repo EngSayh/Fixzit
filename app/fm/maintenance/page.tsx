@@ -126,7 +126,7 @@ export default function MaintenancePage() {
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-accent/10 rounded-2xl">
-                <Clock className="h-6 w-6 text-[var(--fixzit-accent)]" />
+                <Clock className="h-6 w-6 text-accent" />
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">In Progress</p>
@@ -139,8 +139,8 @@ export default function MaintenancePage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-[var(--fixzit-danger-lighter)] rounded-2xl">
-                <AlertTriangle className="h-6 w-6 text-[var(--fixzit-danger)]" />
+              <div className="p-3 bg-destructive/10 rounded-2xl">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Overdue</p>
@@ -203,7 +203,7 @@ export default function MaintenancePage() {
                       <Edit className="h-4 w-4 mr-2" />
                       {t('common.edit', 'Edit')}
                     </Button>
-                    <Button variant="outline" size="sm" className="text-[var(--fixzit-danger)] hover:text-[var(--fixzit-danger-dark)]">
+                    <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
                       <Trash2 className="h-4 w-4 mr-2" />
                       {t('common.delete', 'Delete')}
                     </Button>

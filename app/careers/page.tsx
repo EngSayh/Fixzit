@@ -388,7 +388,7 @@ export default function CareersPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {jobs.map((job) => (
-              <Card key={job.id} className={`hover:shadow-lg transition-shadow h-full flex flex-col ${job.featured ? 'ring-2 ring-[var(--fixzit-primary)]/20 border-primary/30' : ''}`}>
+              <Card key={job.id} className={`hover:shadow-lg transition-shadow h-full flex flex-col ${job.featured ? 'ring-2 ring-primary/20 border-primary/30' : ''}`}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
@@ -398,7 +398,7 @@ export default function CareersPage() {
                           <CardTitle className="text-xl leading-tight">{job.title}</CardTitle>
                           <div className="text-xs text-muted-foreground">Fixzit Enterprise</div>
                         </div>
-                        {job.urgent && <div title="Urgent Position"><AlertTriangle className="w-5 h-5 text-[var(--fixzit-danger-light)]" /></div>}
+                        {job.urgent && <div title="Urgent Position"><AlertTriangle className="w-5 h-5 text-destructive" /></div>}
                         {job.featured && <div title="Featured Position"><Star className="w-5 h-5 text-accent" /></div>}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
@@ -437,12 +437,12 @@ export default function CareersPage() {
                         {job.status}
                       </Badge>
                       {job.urgent && (
-                        <Badge className="bg-[var(--fixzit-danger-lighter)] text-destructive border-destructive/20 text-xs">
+                        <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-xs">
                           Urgent
                         </Badge>
                       )}
                       {job.featured && (
-                        <Badge className="bg-accent/10 text-[var(--fixzit-accent-darker)] border-warning/20 text-xs">
+                        <Badge className="bg-accent/10 text-accent border-warning/20 text-xs">
                           Featured
                         </Badge>
                       )}
@@ -474,7 +474,7 @@ export default function CareersPage() {
                       <ul className="text-sm text-muted-foreground space-y-1">
                         {job.benefits.slice(0, 2).map((benefit, index) => (
                           <li key={index} className="flex items-start gap-2">
-                            <span className="w-1.5 h-1.5 bg-[var(--fixzit-success)] rounded-full mt-2 flex-shrink-0"></span>
+                            <span className="w-1.5 h-1.5 bg-success rounded-full mt-2 flex-shrink-0"></span>
                             {benefit}
                           </li>
                         ))}
@@ -517,8 +517,8 @@ export default function CareersPage() {
                               </div>
                             </div>
                             <div className="flex flex-col gap-2">
-                              {job.urgent && <Badge className="bg-[var(--fixzit-danger-lighter)] text-destructive border-destructive/20">Urgent</Badge>}
-                              {job.featured && <Badge className="bg-accent/10 text-[var(--fixzit-accent-darker)] border-warning/20">Featured</Badge>}
+                              {job.urgent && <Badge className="bg-destructive/10 text-destructive border-destructive/20">Urgent</Badge>}
+                              {job.featured && <Badge className="bg-accent/10 text-accent border-warning/20">Featured</Badge>}
                             </div>
                           </div>
                         </DialogHeader>
@@ -532,8 +532,8 @@ export default function CareersPage() {
                               <Label className="text-sm font-medium text-success">Salary Range</Label>
                               <p className="text-foreground font-medium">{job.salary}</p>
                             </div>
-                            <div className="bg-[var(--fixzit-secondary-lightest)] p-3 rounded-2xl">
-                              <Label className="text-sm font-medium text-[var(--fixzit-secondary-darker)]">Job Type</Label>
+                            <div className="bg-secondary/10 p-3 rounded-2xl">
+                              <Label className="text-sm font-medium text-secondary">Job Type</Label>
                               <p className="text-foreground font-medium">{job.type}</p>
                             </div>
                           </div>
@@ -560,7 +560,7 @@ export default function CareersPage() {
                               <ul className="space-y-2">
                                 {job.benefits.map((benefit, index) => (
                                   <li key={index} className="flex items-start gap-3">
-                                    <span className="w-2 h-2 bg-[var(--fixzit-success)] rounded-full mt-2 flex-shrink-0"></span>
+                                    <span className="w-2 h-2 bg-success rounded-full mt-2 flex-shrink-0"></span>
                                     <span className="text-foreground">{benefit}</span>
                                   </li>
                                 ))}

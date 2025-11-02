@@ -89,8 +89,8 @@ export default function WorkOrderApprovalsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('workOrders.approvals.title', 'Work Order Approvals')}</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">{t('workOrders.approvals.subtitle', 'Review and approve work orders that require authorization')}</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('workOrders.approvals.title', 'Work Order Approvals')}</h1>
+          <p className="text-muted-foreground">{t('workOrders.approvals.subtitle', 'Review and approve work orders that require authorization')}</p>
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary">{t('workOrders.approvals.rules', 'Approval Rules')}</button>
@@ -104,9 +104,9 @@ export default function WorkOrderApprovalsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('workOrders.approvals.pendingApproval', 'Pending Approval')}</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-accent)]">3</p>
+              <p className="text-2xl font-bold text-accent">3</p>
             </div>
-            <div className="text-[var(--fixzit-accent-lighter)]">⏳</div>
+            <div className="text-accent">⏳</div>
           </div>
         </div>
         <div className="card">
@@ -115,7 +115,7 @@ export default function WorkOrderApprovalsPage() {
               <p className="text-sm font-medium text-muted-foreground">{t('workOrders.approvals.approvedToday', 'Approved Today')}</p>
               <p className="text-2xl font-bold text-success">5</p>
             </div>
-            <div className="text-[var(--fixzit-success-lighter)]">✅</div>
+            <div className="text-success">✅</div>
           </div>
         </div>
         <div className="card">
@@ -124,14 +124,14 @@ export default function WorkOrderApprovalsPage() {
               <p className="text-sm font-medium text-muted-foreground">{t('workOrders.approvals.avgTime', 'Avg. Approval Time')}</p>
               <p className="text-2xl font-bold text-primary">2.3h</p>
             </div>
-            <div className="text-[var(--fixzit-primary-lighter)]">⏱️</div>
+            <div className="text-primary">⏱️</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">{t('workOrders.approvals.totalApproved', 'Total Approved')}</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-secondary)]">247</p>
+              <p className="text-2xl font-bold text-[hsl(var(--secondary))]">247</p>
             </div>
             <div className="text-purple-400">📊</div>
           </div>
@@ -142,7 +142,7 @@ export default function WorkOrderApprovalsPage() {
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">{t('workOrders.approvals.pending', 'Pending Approvals')}</h3>
-          <span className="bg-accent/10 text-[var(--fixzit-accent-darker)] px-3 py-1 rounded-full text-sm font-medium">
+          <span className="bg-accent/10 text-accent px-3 py-1 rounded-full text-sm font-medium">
             {pendingApprovals.length} {t('workOrders.pending', 'pending')}
           </span>
         </div>
@@ -173,10 +173,10 @@ export default function WorkOrderApprovalsPage() {
                 </div>
 
                 <div className="flex gap-2 ml-4">
-                  <button className="px-4 py-2 bg-[var(--fixzit-success)] text-white rounded-2xl hover:bg-[var(--fixzit-success-dark)] transition-colors">
+                  <button className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success/90 transition-colors">
                     {t('common.approve', 'Approve')}
                   </button>
-                  <button className="px-4 py-2 bg-[var(--fixzit-danger)] text-white rounded-2xl hover:bg-[var(--fixzit-danger-dark)] transition-colors">
+                  <button className="px-4 py-2 bg-[hsl(var(--destructive))] text-white rounded-2xl hover:bg-[hsl(var(--destructive)) / 0.9] transition-colors">
                     {t('common.reject', 'Reject')}
                   </button>
                   <button className="px-4 py-2 bg-muted text-foreground rounded-2xl hover:bg-muted/80 transition-colors">

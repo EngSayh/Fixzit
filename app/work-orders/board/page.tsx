@@ -41,10 +41,10 @@ export default function WorkOrdersBoardPage() {
   
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'P1': return 'bg-[var(--fixzit-danger)] text-white';
-      case 'P2': return 'bg-[var(--fixzit-warning)] text-white';
-      case 'P3': return 'bg-[var(--fixzit-accent)] text-foreground';
-      case 'P4': return 'bg-[var(--fixzit-success)] text-white';
+      case 'P1': return 'bg-[hsl(var(--destructive))] text-white';
+      case 'P2': return 'bg-[hsl(var(--warning))] text-white';
+      case 'P3': return 'bg-[hsl(var(--accent))] text-foreground';
+      case 'P4': return 'bg-success text-white';
       default: return 'bg-muted0 text-white';
     }
   };
@@ -54,8 +54,8 @@ export default function WorkOrdersBoardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">{t('workOrders.board.title', 'Work Orders Board')}</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">{t('workOrders.board.description', 'Track and assign work orders across all properties')}</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('workOrders.board.title', 'Work Orders Board')}</h1>
+          <p className="text-muted-foreground">{t('workOrders.board.description', 'Track and assign work orders across all properties')}</p>
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary">{t('workOrders.filter', 'Filter')}</button>
@@ -69,11 +69,11 @@ export default function WorkOrdersBoardPage() {
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground">{t('workOrders.pending', 'Pending')}</h3>
-            <span className="bg-accent/10 text-[var(--fixzit-accent-darker)] px-2 py-1 rounded-full text-xs font-medium">2</span>
+            <span className="bg-accent/10 text-accent px-2 py-1 rounded-full text-xs font-medium">2</span>
           </div>
           <div className="space-y-3">
             {workOrders.filter(wo => wo.status === 'pending').map(wo => (
-              <div key={wo.id} className="p-3 bg-[var(--fixzit-accent-lightest)] border border-warning/20 rounded-2xl">
+              <div key={wo.id} className="p-3 bg-accent/10 border border-warning/20 rounded-2xl">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-sm">{wo.id}</span>
                   <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(wo.priority)}`}>
@@ -84,7 +84,7 @@ export default function WorkOrdersBoardPage() {
                 <p className="text-xs text-muted-foreground">{wo.property}</p>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-xs text-muted-foreground">{wo.assignee}</span>
-                  <span className="text-xs text-[var(--fixzit-danger)]">{wo.daysOpen}d</span>
+                  <span className="text-xs text-destructive">{wo.daysOpen}d</span>
                 </div>
               </div>
             ))}
@@ -121,11 +121,11 @@ export default function WorkOrdersBoardPage() {
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-foreground">{t('workOrders.scheduled', 'Scheduled')}</h3>
-            <span className="bg-secondary/10 text-[var(--fixzit-secondary-darker)] px-2 py-1 rounded-full text-xs font-medium">1</span>
+            <span className="bg-secondary/10 text-secondary px-2 py-1 rounded-full text-xs font-medium">1</span>
           </div>
           <div className="space-y-3">
             {workOrders.filter(wo => wo.status === 'scheduled').map(wo => (
-              <div key={wo.id} className="p-3 bg-[var(--fixzit-secondary-lightest)] border border-purple-200 rounded-2xl">
+              <div key={wo.id} className="p-3 bg-secondary/10 border border-purple-200 rounded-2xl">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium text-sm">{wo.id}</span>
                   <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(wo.priority)}`}>
@@ -136,7 +136,7 @@ export default function WorkOrdersBoardPage() {
                 <p className="text-xs text-muted-foreground">{wo.property}</p>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-xs text-muted-foreground">{wo.assignee}</span>
-                  <span className="text-xs text-[var(--fixzit-secondary)]">{wo.daysOpen}d</span>
+                  <span className="text-xs text-[hsl(var(--secondary))]">{wo.daysOpen}d</span>
                 </div>
               </div>
             ))}
@@ -150,7 +150,7 @@ export default function WorkOrdersBoardPage() {
             <span className="bg-success/10 text-success px-2 py-1 rounded-full text-xs font-medium">0</span>
           </div>
           <div className="text-center py-8">
-            <div className="text-[var(--fixzit-success-lighter)] mb-2">✅</div>
+            <div className="text-success mb-2">✅</div>
             <p className="text-sm text-muted-foreground">{t('workOrders.board.noCompleted', 'No completed work orders')}</p>
           </div>
         </div>

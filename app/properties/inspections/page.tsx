@@ -54,10 +54,10 @@ export default function PropertiesInspectionsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-success/10 text-success border-[var(--fixzit-success-lighter)]';
-      case 'scheduled': return 'bg-primary/10 text-primary border-[var(--fixzit-primary-lighter)]';
-      case 'in-progress': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
-      case 'overdue': return 'bg-destructive/10 text-destructive border-[var(--fixzit-danger-lighter)]';
+      case 'completed': return 'bg-success/10 text-success border-[hsl(var(--success)) / 0.1]';
+      case 'scheduled': return 'bg-primary/10 text-primary border-[hsl(var(--primary)) / 0.1]';
+      case 'in-progress': return 'bg-accent/10 text-accent border-accent/20';
+      case 'overdue': return 'bg-destructive/10 text-destructive border-[hsl(var(--destructive)) / 0.1]';
       case 'cancelled': return 'bg-muted text-foreground border-border';
       default: return 'bg-muted text-foreground border-border';
     }
@@ -65,10 +65,10 @@ export default function PropertiesInspectionsPage() {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'Safety': return 'bg-primary/10 text-primary border-[var(--fixzit-primary-lighter)]';
-      case 'Fire Safety': return 'bg-destructive/10 text-destructive border-[var(--fixzit-danger-lighter)]';
+      case 'Safety': return 'bg-primary/10 text-primary border-[hsl(var(--primary)) / 0.1]';
+      case 'Fire Safety': return 'bg-destructive/10 text-destructive border-[hsl(var(--destructive)) / 0.1]';
       case 'Mechanical': return 'bg-secondary/10 text-purple-800 border-purple-200';
-      case 'Electrical': return 'bg-[var(--fixzit-accent-lightest)] text-[var(--fixzit-accent-darker)] border-[var(--fixzit-accent-lighter)]';
+      case 'Electrical': return 'bg-accent/10 text-accent border-accent/20';
       default: return 'bg-muted text-foreground border-border';
     }
   };
@@ -78,8 +78,8 @@ export default function PropertiesInspectionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--fixzit-text)]">Property Inspections</h1>
-          <p className="text-[var(--fixzit-text-secondary)]">Schedule and track property inspections and audits</p>
+          <h1 className="text-2xl font-bold text-foreground">Property Inspections</h1>
+          <p className="text-muted-foreground">Schedule and track property inspections and audits</p>
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary">Inspection Templates</button>
@@ -95,16 +95,16 @@ export default function PropertiesInspectionsPage() {
               <p className="text-sm font-medium text-muted-foreground">Scheduled</p>
               <p className="text-2xl font-bold text-primary">12</p>
             </div>
-            <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
+            <div className="text-primary">📅</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">In Progress</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-accent)]">3</p>
+              <p className="text-2xl font-bold text-accent">3</p>
             </div>
-            <div className="text-[var(--fixzit-accent-lighter)]">🔄</div>
+            <div className="text-accent">🔄</div>
           </div>
         </div>
         <div className="card">
@@ -113,16 +113,16 @@ export default function PropertiesInspectionsPage() {
               <p className="text-sm font-medium text-muted-foreground">Completed</p>
               <p className="text-2xl font-bold text-success">45</p>
             </div>
-            <div className="text-[var(--fixzit-success-lighter)]">✅</div>
+            <div className="text-success">✅</div>
           </div>
         </div>
         <div className="card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Overdue</p>
-              <p className="text-2xl font-bold text-[var(--fixzit-danger)]">2</p>
+              <p className="text-2xl font-bold text-destructive">2</p>
             </div>
-            <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
+            <div className="text-[hsl(var(--destructive)) / 0.1]">🔴</div>
           </div>
         </div>
       </div>
@@ -209,7 +209,7 @@ export default function PropertiesInspectionsPage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-2">
                       <button className="text-primary hover:text-primary">{t('common.edit', 'Edit')}</button>
-                      <button className="text-success hover:text-[var(--fixzit-success-darkest)]">Start</button>
+                      <button className="text-success hover:text-success-foreground">Start</button>
                       <button className="text-warning hover:text-orange-900">Report</button>
                     </div>
                   </td>
@@ -224,13 +224,13 @@ export default function PropertiesInspectionsPage() {
       <div className="card border-destructive/20 bg-destructive/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="text-[var(--fixzit-danger-lighter)]">🔴</div>
+            <div className="text-[hsl(var(--destructive)) / 0.1]">🔴</div>
             <div>
               <h3 className="font-semibold text-destructive">Overdue Inspections</h3>
-              <p className="text-sm text-[var(--fixzit-danger)]">2 inspections are overdue and require immediate attention</p>
+              <p className="text-sm text-destructive">2 inspections are overdue and require immediate attention</p>
             </div>
           </div>
-          <button className="px-4 py-2 bg-[var(--fixzit-danger)] text-white rounded-2xl hover:bg-[var(--fixzit-danger-dark)] transition-colors">
+          <button className="px-4 py-2 bg-[hsl(var(--destructive))] text-white rounded-2xl hover:bg-[hsl(var(--destructive)) / 0.9] transition-colors">
             Reschedule Now
           </button>
         </div>
@@ -246,14 +246,14 @@ export default function PropertiesInspectionsPage() {
           {inspections.filter(inspection => inspection.status === 'scheduled').map(inspection => (
             <div key={inspection.id} className="flex items-center justify-between p-3 bg-primary/10 border border-primary/20 rounded-2xl">
               <div className="flex items-center gap-3">
-                <div className="text-[var(--fixzit-primary-lighter)]">📅</div>
+                <div className="text-primary">📅</div>
                 <div>
                   <p className="font-medium text-foreground">{inspection.title}</p>
                   <p className="text-sm text-muted-foreground">{inspection.property} • {inspection.scheduledDate}</p>
                 </div>
               </div>
               <div className="flex gap-2">
-                <button className="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-[var(--fixzit-primary-dark)]">
+                <button className="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary/90">
                   View Details
                 </button>
               </div>
