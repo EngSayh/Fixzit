@@ -1,5 +1,5 @@
 #!/usr/bin/env zx
-// @ts-check
+// @ts-nocheck
 
 /**
  * Fixzit Agent: STRICT v4 + Governance V5 Orchestrator

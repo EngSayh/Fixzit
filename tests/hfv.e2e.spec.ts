@@ -34,7 +34,16 @@ const TEST_MATRIX = [
  */
 for (const testCase of TEST_MATRIX) {
   test(`HFV: ${testCase.name} (${testCase.role})`, async ({ page, context }) => {
-    const evidence = {
+    const evidence: {
+      testCase: string;
+      role: string;
+      page: string;
+      timestamp: string;
+      steps: Array<{ step: string; action: string; url?: string; status?: string }>;
+      screenshots: string[];
+      errors: string[];
+      passed: boolean;
+    } = {
       testCase: testCase.name,
       role: testCase.role,
       page: testCase.page,
@@ -45,30 +54,30 @@ for (const testCase of TEST_MATRIX) {
       passed: false,
     };
 
+    // Define error listeners outside try block for cleanup
+    const errors: string[] = [];
+    const onConsole = (msg: any) => {
+      if (msg.type() === 'error') {
+        errors.push(msg.text());
+      }
+    };
+    const onPageError = (error: any) => {
+      errors.push(error.message);
+    };
+
     try {
       // Step 1: HALT - Navigate to page
       evidence.steps.push({ step: 'HALT', action: 'Navigate', url: testCase.page });
       await page.goto(testCase.page, { waitUntil: 'networkidle' });
-      
-      // Capture screenshot
-      const screenshotPath = path.join(EVIDENCE_DIR, `${testCase.role}_${testCase.name.replace(/\s+/g, '_')}_initial.png`);
+
+      // Screenshot after load
+      const screenshotPath = path.join(EVIDENCE_DIR, `${testCase.role}_${testCase.name.replace(/\s+/g, '_')}.png`);
       await page.screenshot({ path: screenshotPath, fullPage: true });
       evidence.screenshots.push(screenshotPath);
 
       // Step 2: FIX - Verify no console errors
       evidence.steps.push({ step: 'FIX', action: 'Check Console Errors' });
-      const errors: string[] = [];
-
-      // Capture all console and page errors
-      const onConsole = (msg: any) => {
-        if (msg.type() === 'error') {
-          errors.push(msg.text());
-        }
-      };
-      const onPageError = (error: any) => {
-        errors.push(error.message);
-      };
-
+      
       page.on('console', onConsole);
       page.on('pageerror', onPageError);
 

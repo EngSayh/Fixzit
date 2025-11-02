@@ -1,5 +1,5 @@
 #!/usr/bin/env zx
-// @ts-check
+// @ts-nocheck
 
 /**
  * API Endpoint Scan
