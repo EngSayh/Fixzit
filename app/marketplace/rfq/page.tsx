@@ -30,7 +30,7 @@ export default async function RFQPage() {
   const rfqs = rfqResponse.data;
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8] flex flex-col">
+    <div className="min-h-screen bg-muted flex flex-col">
       
       <main className="mx-auto max-w-7xl px-4 py-8">
         <RFQBoard categories={_categories} initialRfqs={rfqs} />

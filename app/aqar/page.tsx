@@ -69,7 +69,7 @@ export default function AqarPage() {
           <div className="flex flex-wrap gap-4 justify-center">
             <Link
               href="/aqar/map"
-              className="px-6 py-3 bg-card hover:bg-muted/80 text-[#FFB400] font-semibold rounded-2xl transition-colors"
+              className="px-6 py-3 bg-card hover:bg-muted/80 text-warning font-semibold rounded-2xl transition-colors"
             >
               Explore Map
             </Link>
@@ -100,11 +100,11 @@ export default function AqarPage() {
                   className="bg-card p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow border border-border group"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="p-3 bg-[#FFB400]/10 rounded-2xl group-hover:bg-[#FFB400]/20 transition-colors">
-                      <Icon className="h-6 w-6 text-[#FFB400]" />
+                    <div className="p-3 bg-warning/10 rounded-2xl group-hover:bg-warning/20 transition-colors">
+                      <Icon className="h-6 w-6 text-warning" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold mb-2 text-foreground group-hover:text-[#FFB400]">
+                      <h3 className="text-lg font-semibold mb-2 text-foreground group-hover:text-warning">
                         {feature.title}
                       </h3>
                       <p className="text-sm text-muted-foreground">

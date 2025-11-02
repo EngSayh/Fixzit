@@ -65,7 +65,7 @@ export default function AdminCMS(){
         <select className="px-3 py-2 border border-border rounded-2xl" value={status} onChange={e=>setStatus(e.target.value as "DRAFT"|"PUBLISHED")}>
           <option value="DRAFT">{t('admin.cms.draft', 'DRAFT')}</option><option value="PUBLISHED">{t('admin.cms.published', 'PUBLISHED')}</option>
         </select>
-        <button type="button" className="px-4 py-2 bg-[var(--fixzit-primary)] text-white rounded-2xl hover:bg-[var(--fixzit-primary-dark)]" onClick={save}>{t('common.save', 'Save')}</button>
+        <button type="button" className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90" onClick={save}>{t('common.save', 'Save')}</button>
       </div>
       <input className="w-full px-3 py-2 border border-border rounded-2xl" value={title} onChange={e=>setTitle(e.target.value)} placeholder={t('admin.cms.titleLabel', 'Title')} />
       <textarea className="w-full px-3 py-2 border border-border rounded-2xl h-[420px]" value={content} onChange={e=>setContent(e.target.value)} placeholder={t('admin.cms.content', 'Markdown content...')} />
