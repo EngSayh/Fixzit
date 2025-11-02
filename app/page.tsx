@@ -61,7 +61,7 @@ export default function LandingPage(){
             <div className="bg-muted p-6 rounded-2xl">
               <h3 className="text-xl font-semibold mb-2 text-foreground">{t('landing.features.vendors.title', 'Vendors & RFQs')}</h3>
               <p className="text-muted-foreground mb-4">{t('landing.features.vendors.desc', 'Source materials, manage vendors, and streamline procurement')}</p>
-              <Link href="/fm/vendors" className="text-primary hover:text-primary/90 font-medium">
+              <Link href="/fm/marketplace" className="text-primary hover:text-primary/90 font-medium">
                 {t('landing.features.vendors.cta', 'Explore →')}
               </Link>
             </div>
