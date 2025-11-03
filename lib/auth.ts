@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { randomBytes } from 'crypto';
 import { User } from '@/server/models/User';
 import { db } from '@/lib/mongo';
+import { getJWTSecret as getJWTSecretFromSecretsManager } from '@/lib/secrets';
 
 // Type definition for User document - used as documentation reference
 // eslint-disable-next-line no-unused-vars
@@ -25,35 +25,29 @@ interface _UserDocument {
   [key: string]: unknown; // Allow additional fields
 }
 
-// Lazy initialization - only validate at runtime, not build time
-// JWT secret is loaded on first use, with fallback for development
+/**
+ * SECURITY IMPROVEMENT: JWT secret management with AWS Secrets Manager
+ * 
+ * Priority order:
+ * 1. AWS Secrets Manager (production, cached for 5 minutes)
+ * 2. JWT_SECRET environment variable (all environments)
+ * 3. Ephemeral secret (development only)
+ * 
+ * This ensures:
+ * - Production secrets are never hardcoded
+ * - Secrets can be rotated without code changes
+ * - Development doesn't require AWS credentials
+ * - Secrets are cached to avoid repeated AWS API calls
+ */
 let JWT_SECRET: string | undefined;
 
-function getJWTSecret(): string {
+async function getJWTSecret(): Promise<string> {
   if (JWT_SECRET) {
     return JWT_SECRET;
   }
 
-  const envSecret = process.env.JWT_SECRET?.trim();
-  if (envSecret) {
-    JWT_SECRET = envSecret;
-    return JWT_SECRET;
-  }
-
-  // CRITICAL: Production must have JWT_SECRET configured
-  if (process.env.NODE_ENV === 'production') {
-    console.error('🚨 FATAL: JWT_SECRET is not configured in production environment');
-    console.error('🚨 Application cannot start without JWT_SECRET in production');
-    throw new Error('JWT_SECRET is required in production environment');
-  }
-  
-  // Development/build-time fallback - generate ephemeral secret
-  // NOTE: Tokens will not persist across restarts in development
-  // WARNING: JWT_SECRET not set. Using ephemeral secret for development.
-  // Set JWT_SECRET environment variable for session persistence.
-  const fallbackSecret = randomBytes(32).toString('hex');
-  
-  JWT_SECRET = fallbackSecret;
+  // Use secrets manager with AWS integration
+  JWT_SECRET = await getJWTSecretFromSecretsManager();
   return JWT_SECRET;
 }
 
@@ -74,13 +68,15 @@ export async function verifyPassword(password: string, hashedPassword: string): 
   return bcrypt.compare(password, hashedPassword);
 }
 
-export function generateToken(payload: AuthToken): string {
-  return jwt.sign(payload, getJWTSecret(), { expiresIn: '24h' });
+export async function generateToken(payload: AuthToken): Promise<string> {
+  const secret = await getJWTSecret();
+  return jwt.sign(payload, secret, { expiresIn: '24h' });
 }
 
-export function verifyToken(token: string): AuthToken | null {
+export async function verifyToken(token: string): Promise<AuthToken | null> {
   try {
-    return jwt.verify(token, getJWTSecret()) as AuthToken;
+    const secret = await getJWTSecret();
+    return jwt.verify(token, secret) as AuthToken;
   } catch {
     return null;
   }
@@ -114,7 +110,7 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
     throw new Error('Account is not active');
   }
 
-  const token = generateToken({
+  const token = await generateToken({
     id: user._id.toString(),
     email: user.email,
     role: user.professional?.role || user.role || 'USER',
@@ -134,7 +130,7 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
 }
 
 export async function getUserFromToken(token: string) {
-  const payload = verifyToken(token);
+  const payload = await verifyToken(token);
 
   if (!payload) {
     return null;
