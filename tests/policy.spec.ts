@@ -108,7 +108,7 @@ describe('evaluateMessagePolicy', () => {
   })
 
   it('pattern matching is case-insensitive and phrase variants are detected', () => {
-    const res = evaluateMessagePolicy(makeSession('FINANCE'), 'Request FINANCIALS now\!')
+    const res = evaluateMessagePolicy(makeSession('FINANCE'), 'Request FINANCIALS now!')
     expect(res.allowed).toBe(true)
     expect(res.dataClass).toBe('FINANCE')
   })

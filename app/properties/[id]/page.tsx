@@ -58,7 +58,6 @@ export default function PropertyDetailPage() {
           script.parentNode.removeChild(script);
         }
         // Clean up the global callback
-        // @ts-ignore - Safe to delete runtime property
         delete (window as any).initMap;
       };
     } else {

@@ -154,7 +154,7 @@ skipIfNoComponent('renders children when no error occurs', () => {
 });
 
 skipIfNoComponent('catches error and renders error UI with derived state (message and type)', async () => {
-  const message = "Boom\!";
+  const message = "Boom!";
   await act(async () => {
     render(
       <ErrorBoundary>
@@ -167,7 +167,7 @@ skipIfNoComponent('catches error and renders error UI with derived state (messag
   expect(screen.getByText(/System Error Detected/i)).toBeInTheDocument();
 
   // Error message area should contain our error message (fallback messaging also possible).
-  expect(screen.getByText(/An unexpected error occurred|Boom\!/)).toBeInTheDocument();
+  expect(screen.getByText(/An unexpected error occurred|Boom!/)).toBeInTheDocument();
 
   // Retry indicator
   expect(screen.getByText(/Retry:/)).toHaveTextContent('Retry: 0/3');

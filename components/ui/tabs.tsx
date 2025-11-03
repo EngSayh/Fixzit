@@ -2,14 +2,14 @@ import React from 'react';
 
 interface TabsProps extends React.HTMLAttributes<HTMLDivElement> {}
 interface TabsListProps extends React.HTMLAttributes<HTMLDivElement> {}
-/* eslint-disable no-unused-vars */
+ 
 interface TabsTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   value: string;
 }
 interface TabsContentProps extends React.HTMLAttributes<HTMLDivElement> {
   value: string;
 }
-/* eslint-enable no-unused-vars */
+ 
 
 /* eslint-disable no-unused-vars */
 const TabsContext = React.createContext<{

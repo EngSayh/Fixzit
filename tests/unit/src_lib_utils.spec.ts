@@ -16,7 +16,7 @@ describe("generateSlug", () => {
   });
 
   test("removes characters outside [a-z0-9\\s-]", () => {
-    expect(generateSlug("Hello, World\! #$%&*()[]{}")).toBe("hello-world");
+    expect(generateSlug("Hello, World! #$%&*()[]{}")).toBe("hello-world");
   });
 
   test("replaces consecutive whitespace with a single hyphen", () => {
@@ -36,7 +36,7 @@ describe("generateSlug", () => {
   });
 
   test("handles punctuation and em dashes by removing them", () => {
-    expect(generateSlug("Hello, World\!\!\! Are—you ok?")).toBe("hello-world-areyou-ok");
+    expect(generateSlug("Hello, World!!! Are—you ok?")).toBe("hello-world-areyou-ok");
   });
 
   test("drops non-ASCII letters (accents) and normalizes spaces", () => {

@@ -550,7 +550,7 @@ OrganizationSchema.virtual('subscriptionDaysRemaining').get(function (this: Orga
 });
 
 // ---------- Instance methods ----------
-// eslint-disable-next-line no-unused-vars
+ 
 OrganizationSchema.methods.hasFeature = function (
   this: OrganizationDoc,
   feature: keyof Features,
