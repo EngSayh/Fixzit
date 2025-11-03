@@ -11,11 +11,11 @@ export async function chargeDueMonthlySubs() {
 
   // 💰 FINANCIAL FIX (PR #47): Only charge subscriptions that are DUE
   // Calculate the start of today (00:00:00) in UTC
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
+  const startOfToday = new Date();
+  startOfToday.setUTCHours(0, 0, 0, 0);
   
   // Calculate the end of today (23:59:59) in UTC
-  const endOfToday = new Date(today);
+  const endOfToday = new Date(startOfToday);
   endOfToday.setUTCHours(23, 59, 59, 999);
 
   const dueSubs = await Subscription.find({
@@ -23,7 +23,8 @@ export async function chargeDueMonthlySubs() {
     status: 'ACTIVE',
     'paytabs.token': { $exists: true, $ne: null },
     // ✅ CRITICAL: Only charge if next_billing_date is today or in the past
-    next_billing_date: { $lte: endOfToday }
+    // Must have next_billing_date set (required for ACTIVE subscriptions)
+    next_billing_date: { $exists: true, $lte: endOfToday }
   }).lean();
 
   const results = {
@@ -63,7 +64,11 @@ export async function chargeDueMonthlySubs() {
 
       if (data.tran_ref && data.payment_result?.response_status === 'A') {
         // ✅ Payment successful - update next billing date
-        const nextBillingDate = new Date(subscription.next_billing_date || new Date());
+        // Since query requires next_billing_date to exist, this is always defined
+        if (!subscription.next_billing_date) {
+          throw new Error(`Subscription ${subscription._id} missing next_billing_date despite query filter`);
+        }
+        const nextBillingDate = new Date(subscription.next_billing_date);
         nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
 
         await Subscription.findByIdAndUpdate(subscription._id, {

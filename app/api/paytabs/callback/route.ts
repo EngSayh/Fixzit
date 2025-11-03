@@ -37,7 +37,12 @@ export async function POST(req: NextRequest) {
   const payload = await req.json();
   
   // 🔒 SECURITY FIX (PR #42/#45/#47/#53/#77): Validate PayTabs signature
-  // Extract signature from payload (PayTabs sends it as 'signature' field)
+  // Extract signature from payload.
+  // According to PayTabs API documentation (https://docs.paytabs.com/payment-callback), 
+  // the callback signature is sent in the payload body as 'signature' field.
+  // Fallback fields 'sign' and 'payment_signature' are included for:
+  // - Backward compatibility with older PayTabs API versions
+  // - Different regional PayTabs implementations that may use alternate field names
   const signature = payload.signature || payload.sign || payload.payment_signature;
   
   if (!signature) {

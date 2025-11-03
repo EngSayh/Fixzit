@@ -14,6 +14,22 @@ const PayTabsInfoSchema = new Schema(
   { _id: false }
 );
 
+const BillingHistorySchema = new Schema(
+  {
+    date: { type: Date, required: true },
+    amount: { type: Number, required: true },
+    currency: { type: String, required: true },
+    tran_ref: String,
+    status: { 
+      type: String, 
+      enum: ['SUCCESS', 'FAILED', 'PENDING'],
+      required: true 
+    },
+    error: String,
+  },
+  { _id: false }
+);
+
 const SubscriptionSchema = new Schema(
   {
     tenant_id: { type: Types.ObjectId, ref: 'Organization', required: false },
@@ -54,6 +70,17 @@ const SubscriptionSchema = new Schema(
       enum: ['INCOMPLETE', 'ACTIVE', 'PAST_DUE', 'CANCELED'],
       default: 'INCOMPLETE',
     },
+    next_billing_date: { 
+      type: Date,
+      required: function(this: { status: string }) {
+        // Only required for ACTIVE subscriptions
+        return this.status === 'ACTIVE';
+      }
+    },
+    billing_history: {
+      type: [BillingHistorySchema],
+      default: []
+    },
     paytabs: PayTabsInfoSchema,
     metadata: { type: Schema.Types.Mixed },
   },
@@ -88,5 +115,6 @@ SubscriptionSchema.pre('validate', function(next) {
 SubscriptionSchema.index({ tenant_id: 1, status: 1 });
 SubscriptionSchema.index({ owner_user_id: 1, status: 1 });
 SubscriptionSchema.index({ status: 1 });
+SubscriptionSchema.index({ status: 1, next_billing_date: 1 }); // For recurring billing queries
 
 export default models.Subscription || model('Subscription', SubscriptionSchema);
