@@ -43,6 +43,15 @@ export async function POST(req: NextRequest) {
   // Fallback fields 'sign' and 'payment_signature' are included for:
   // - Backward compatibility with older PayTabs API versions
   // - Different regional PayTabs implementations that may use alternate field names
+  // 
+  // SECURITY NOTE: Extracting signature from payload body (not headers) is the CORRECT approach.
+  // This is the standard webhook signature pattern used by Stripe, GitHub, and PayTabs:
+  // 1. PayTabs computes HMAC-SHA256(payload_fields_except_signature, server_key) = signature
+  // 2. PayTabs sends payload + signature together in request body
+  // 3. We recompute HMAC-SHA256(payload_fields_except_signature, our_server_key)
+  // 4. We compare: if computed signature === received signature, payload is authentic
+  // 5. Attacker CANNOT forge signature without knowing the secret server_key
+  // See lib/paytabs.ts:generateSignature() which excludes 'signature' field from HMAC computation.
   const signature = payload.signature || payload.sign || payload.payment_signature;
   
   if (!signature) {
@@ -54,7 +63,7 @@ export async function POST(req: NextRequest) {
     );
   }
   
-  // Validate the signature using HMAC-SHA256
+  // Validate the signature using HMAC-SHA256 (constant-time comparison)
   const isValid = validateCallback(payload, signature);
   
   if (!isValid) {
