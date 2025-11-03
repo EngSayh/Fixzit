@@ -3,7 +3,6 @@
 // These tests avoid brittle locale assertions by checking patterns and Unicode ranges.
 
 import { describe, it, expect } from 'vitest';
-import { vi } from 'vitest';
 
 import { fmtNumber, fmtDate } from './format';
 

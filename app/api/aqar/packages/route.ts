@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
         return badRequest('Invalid JSON', { correlationId });
       }
       
-      const { type: packageType } = body;
+      const packageType = body.type;
       
       if (!Object.values(PackageType).includes(packageType as PackageType)) {
         return badRequest('Invalid package type. Must be STARTER, STANDARD, or PREMIUM', { correlationId });
