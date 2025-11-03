@@ -4,7 +4,7 @@ import { Job } from '@/server/models/Job';
 import { getUserFromToken } from '@/lib/auth';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {notFoundError, validationError, rateLimitError} from '@/server/utils/errorResponses';
+import {notFoundError, validationError, rateLimitError, unauthorizedError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
 
@@ -39,7 +39,11 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;
-    user?.id || 'system'; // Ensure user is authenticated
+    
+    // Enforce authentication
+    if (!user?.id) {
+      return unauthorizedError('Authentication required to publish jobs');
+    }
     
     const job = await Job.findById(params.id);
     if (!job) return notFoundError("Job");

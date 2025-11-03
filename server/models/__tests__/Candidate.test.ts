@@ -13,7 +13,7 @@
  */
  
 
-import { vi, describe, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, test, expect, beforeEach, afterEach } from 'vitest';
 
 // Helper to reset module registry between branch toggles
 const resetModules = async () => {

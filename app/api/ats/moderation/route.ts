@@ -4,7 +4,7 @@ import { Job } from '@/server/models/Job';
 import { getUserFromToken } from '@/lib/auth';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {notFoundError, validationError, rateLimitError} from '@/server/utils/errorResponses';
+import {notFoundError, validationError, rateLimitError, unauthorizedError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
 
@@ -38,7 +38,12 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-    token ? await getUserFromToken(token) : null; // Ensure user is authenticated
+    const user = token ? await getUserFromToken(token) : null;
+    
+    // Enforce authentication for moderation actions
+    if (!user?.id) {
+      return unauthorizedError('Authentication required for moderation');
+    }
 
     const { jobId, action } = body;
     if (!jobId || !['approve', 'reject'].includes(action)) return validationError("Invalid request");

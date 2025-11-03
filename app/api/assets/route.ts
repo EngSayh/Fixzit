@@ -15,7 +15,7 @@ import { z } from 'zod';
 const createAssetSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
-  assetType: z.enum(["HVAC", "ELECTRICAL", "PLUMBING", "SECURITY", "ELEVATOR", "GENERATOR", "FIRE_SYSTEM", "IT_EQUIPMENT", "VEHICLE", "OTHER"]),
+  type: z.enum(["HVAC", "ELECTRICAL", "PLUMBING", "SECURITY", "ELEVATOR", "GENERATOR", "FIRE_SYSTEM", "IT_EQUIPMENT", "VEHICLE", "OTHER"]),
   category: z.string().min(1),
   manufacturer: z.string().optional(),
   model: z.string().optional(),
