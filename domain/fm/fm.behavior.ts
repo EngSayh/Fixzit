@@ -11,6 +11,7 @@ import mongoose, { Schema, Types } from 'mongoose';
  * 1) Enums & Constants
  * ========================= */
 
+/* eslint-disable no-unused-vars */
 export enum Role {
   SUPER_ADMIN = 'SUPER_ADMIN',
   CORPORATE_ADMIN = 'CORPORATE_ADMIN',
@@ -26,14 +27,17 @@ export enum Role {
   GUEST = 'GUEST',
 }
 
+/* eslint-disable no-unused-vars */
 export enum Plan {
   STARTER = 'STARTER',
   STANDARD = 'STANDARD',
   PRO = 'PRO',
   ENTERPRISE = 'ENTERPRISE',
 }
+/* eslint-enable no-unused-vars */
 
 /** FM modules + submodules (matches Governance V5/V6 tabs) */
+/* eslint-disable no-unused-vars */
 export enum ModuleKey {
   WORK_ORDERS = 'WORK_ORDERS',
   PROPERTIES = 'PROPERTIES',
@@ -56,6 +60,7 @@ export enum SubmoduleKey {
   PROP_INSPECTIONS = 'PROP_INSPECTIONS',
   PROP_DOCUMENTS = 'PROP_DOCUMENTS',
 }
+/* eslint-enable no-unused-vars */
 
 export type Action =
   | 'view' | 'create' | 'update' | 'delete'
@@ -313,6 +318,7 @@ export function can(
  * 5) Work Order State Machine (FSM)
  * ========================= */
 
+/* eslint-disable no-unused-vars */
 export enum WOStatus {
   NEW = 'NEW',
   ASSESSMENT = 'ASSESSMENT',
@@ -326,6 +332,7 @@ export enum WOStatus {
   FINANCIAL_POSTING = 'FINANCIAL_POSTING',
   CLOSED = 'CLOSED',
 }
+/* eslint-enable no-unused-vars */
 
 /** FSM transition definition with optional RBAC action enforcement */
 type TransitionDef = {
