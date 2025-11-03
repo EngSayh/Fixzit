@@ -5,7 +5,7 @@
  * - We verify both mock DB path and real Mongoose path behaviors.
  */
 
-import { vi, describe, it, test, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, test, expect, beforeEach, afterEach } from 'vitest';
 import type { Model } from 'mongoose';
 
 // Important: we must import the module under test AFTER setting up the mocks

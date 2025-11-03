@@ -12,7 +12,7 @@
  *   copy-to-clipboard fallbacks. Mocks are used for fetch and window APIs.
  */
 
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, expect, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 
