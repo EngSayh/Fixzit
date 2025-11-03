@@ -67,7 +67,7 @@ export function getRedisClient(): Redis | null {
     redis.on('error', (err) => {
       console.error('[Redis] Connection error:', {
         message: err.message,
-        code: (err as NodeJS.ErrnoException).code,
+        code: (err as { code?: string }).code,
         timestamp: new Date().toISOString()
       });
       // Reset isConnecting flag on error to allow retry attempts
@@ -159,7 +159,8 @@ export async function isRedisHealthy(): Promise<boolean> {
  * );
  */
 export async function safeRedisOp<T>(
-  operation: (_client: Redis) => Promise<T>,
+  // eslint-disable-next-line no-unused-vars
+  operation: (client: Redis) => Promise<T>,
   fallback: T
 ): Promise<T> {
   const client = getRedisClient();
