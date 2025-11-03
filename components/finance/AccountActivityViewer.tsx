@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 // ============================================================================
@@ -135,10 +135,11 @@ export default function AccountActivityViewer({
   };
 
   // ============================================================================
-  // PAGINATION
+  // PAGINATION - MEMOIZED FOR PERFORMANCE
   // ============================================================================
 
-  const getPaginatedTransactions = (): IAccountTransaction[] => {
+  // Memoize paginated transactions to prevent re-slicing on every render
+  const paginatedTransactions = useMemo((): IAccountTransaction[] => {
     if (!data) return [];
 
     // If server-side pagination is active, the API returns only page transactions
@@ -150,11 +151,14 @@ export default function AccountActivityViewer({
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     return data.transactions.slice(startIndex, endIndex);
-  };
+  }, [data, serverSide, currentPage, pageSize]);
 
-  const totalPages = data
-    ? Math.ceil(((data.totalTransactions ?? data.transactions.length) as number) / pageSize)
-    : 0;
+  // Memoize total pages calculation
+  const totalPages = useMemo(() => {
+    if (!data) return 0;
+    const total = data.totalTransactions ?? data.transactions.length;
+    return Math.ceil(total / pageSize);
+  }, [data, pageSize]);
 
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -446,7 +450,7 @@ export default function AccountActivityViewer({
                 </tr>
 
                 {/* Transaction Rows */}
-                {getPaginatedTransactions().map((txn) => (
+                {paginatedTransactions.map((txn) => (
                   <tr
                     key={txn.id}
                     className="hover:bg-muted cursor-pointer"
