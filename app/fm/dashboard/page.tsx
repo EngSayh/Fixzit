@@ -101,7 +101,7 @@ export default function DashboardPage() {
   const { data: assets, isLoading: assetsLoading } = useSWR(orgId ? '/api/assets?status=MAINTENANCE&limit=5' : null, fetcher);
   const { data: invoices, isLoading: invoicesLoading } = useSWR(orgId ? '/api/finance/invoices?status=OVERDUE&limit=5' : null, fetcher);
 
-  const isLoading = woLoading || propsLoading || assetsLoading || invoicesLoading;
+  const _isLoading = woLoading || propsLoading || assetsLoading || invoicesLoading;
 
   if (!session) {
     return <StatsCardSkeleton count={4} />;

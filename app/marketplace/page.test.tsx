@@ -12,14 +12,14 @@ import { vi } from 'vitest';
 vi.mock('@/lib/marketplace/serverFetch', () => ({
   serverFetchJsonWithTenant: vi.fn().mockImplementation(async (url: string) => {
     // This mock intercepts the component's fetch calls
-    if (url.includes('/api/marketplace/categories')) {
+    if (_url.includes('/api/marketplace/categories')) {
       return { 
         data: [
           { _id: 'cat1', slug: 'test-category', name: { en: 'Test Category' } }
         ] 
       };
     }
-    if (url.includes('/api/marketplace/products')) {
+    if (_url.includes('/api/marketplace/products')) {
       return { 
         data: { 
           items: [
@@ -34,7 +34,7 @@ vi.mock('@/lib/marketplace/serverFetch', () => ({
         } 
       };
     }
-    if (url.includes('/api/marketplace/search')) {
+    if (_url.includes('/api/marketplace/search')) {
       return { 
         data: { 
           items: [
