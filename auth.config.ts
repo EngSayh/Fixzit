@@ -142,7 +142,7 @@ export const authConfig = {
             return null;
           }
 
-          const { loginIdentifier, loginType, password } = parsed.data;
+          const { loginIdentifier, loginType, password, rememberMe } = parsed.data;
 
           // 2. Dynamic imports (Edge Runtime compatible)
           const { connectToDatabase } = await import('@/lib/mongodb-unified');
@@ -195,6 +195,7 @@ export const authConfig = {
             role: user.professional?.role || user.role || 'USER',
             orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || null),
             sessionId: null, // NextAuth will generate session ID
+            rememberMe, // Pass rememberMe to session callbacks
           } as any; // Type assertion to bypass rememberMe field
         } catch (error) {
           console.error('[NextAuth] Authorize error:', error);
