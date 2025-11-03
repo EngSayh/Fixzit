@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     // Always hit same-origin API so cookies are set for the client's site
     const url = new URL('/api/auth/login', req.nextUrl.origin);
 
-    const headers: Record<string, string> = {
+    const headers: HeadersInit = {
       'Content-Type': 'application/json',
       // forward incoming cookies (if any)
       cookie: req.headers.get('cookie') ?? '',
