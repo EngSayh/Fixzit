@@ -154,7 +154,7 @@ export default function FMPage() {
     showSaveConfirm,
     markDirty,
     markClean,
-    handleNavigation: _handleNavigation,
+    // handleNavigation unused - no programmatic navigation in this component
     handleSave,
     handleDiscard,
     handleStay

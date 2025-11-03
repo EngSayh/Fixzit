@@ -12,14 +12,14 @@ import { vi } from 'vitest';
 vi.mock('@/lib/marketplace/serverFetch', () => ({
   serverFetchJsonWithTenant: vi.fn().mockImplementation(async (url: string) => {
     // This mock intercepts the component's fetch calls
-    if (_url.includes('/api/marketplace/categories')) {
+    if (url.includes('/api/marketplace/categories')) {
       return { 
         data: [
           { _id: 'cat1', slug: 'test-category', name: { en: 'Test Category' } }
         ] 
       };
     }
-    if (_url.includes('/api/marketplace/products')) {
+    if (url.includes('/api/marketplace/products')) {
       return { 
         data: { 
           items: [
@@ -34,7 +34,7 @@ vi.mock('@/lib/marketplace/serverFetch', () => ({
         } 
       };
     }
-    if (_url.includes('/api/marketplace/search')) {
+    if (url.includes('/api/marketplace/search')) {
       return { 
         data: { 
           items: [
@@ -62,7 +62,6 @@ vi.mock('@/components/marketplace/ProductCard', () => ({
 }));
 
 // Import after mocks so the module uses mocked dependencies
-// eslint-disable-next-line import/first
 import MarketplacePage from './page';
 
 describe('MarketplacePage', () => {
