@@ -56,7 +56,7 @@ export default function NewPaymentPage() {
 
   // Party details
   const [partyType, setPartyType] = useState<string>('TENANT');
-  const [partyId, _setPartyId] = useState<string>('');
+  const [partyId] = useState<string>('');
   const [partyName, setPartyName] = useState<string>('');
 
   // Method-specific fields - Bank Transfer
@@ -83,7 +83,7 @@ export default function NewPaymentPage() {
 
   // Invoice allocations
   const [allocations, setAllocations] = useState<IInvoiceAllocation[]>([]);
-  const [_availableInvoices, setAvailableInvoices] = useState<IAvailableInvoice[]>([]);
+  const [, setAvailableInvoices] = useState<IAvailableInvoice[]>([]);
   const [showInvoiceAllocation, setShowInvoiceAllocation] = useState<boolean>(false);
 
   // Data lookups
@@ -221,7 +221,7 @@ export default function NewPaymentPage() {
 
   const allocateByPriority = () => {
     // Allocate by due date (oldest first)
-    const _selectedAllocations = allocations
+    allocations
       .filter(a => a.selected)
       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 

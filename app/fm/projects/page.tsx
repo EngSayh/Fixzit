@@ -42,7 +42,6 @@ interface ProjectItem {
 }
 
 export default function ProjectsPage() {
-  const router = useRouter();
   const { data: session } = useSession();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');

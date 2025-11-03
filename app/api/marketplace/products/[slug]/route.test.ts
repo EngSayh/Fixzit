@@ -1,7 +1,6 @@
 // Tests for app/api/marketplace/products/[slug]/route.ts
 // Framework: Vitest
  
-import { NextRequest } from 'next/server'
 import { vi } from 'vitest'
 
 // IMPORTANT: We import the route implementation.

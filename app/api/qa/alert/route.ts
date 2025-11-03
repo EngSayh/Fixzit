@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { getClientIP } from '@/server/security/headers';
 

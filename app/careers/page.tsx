@@ -10,7 +10,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useTranslation } from '@/contexts/TranslationContext';
 import { MapPin, Clock, DollarSign, Users, FileText, Send, Upload, Star, AlertTriangle } from 'lucide-react';
 
 interface Job {
@@ -32,7 +31,6 @@ interface Job {
 }
 
 export default function CareersPage() {
-  const { t: _t } = useTranslation();
   const { data: session } = useSession();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showApplyForm, setShowApplyForm] = useState(false);

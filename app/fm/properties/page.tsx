@@ -42,7 +42,6 @@ interface PropertyItem {
 }
 
 export default function PropertiesPage() {
-  const router = useRouter();
   const { t } = useTranslation();
   const { data: session } = useSession();
   const orgId = session?.user?.orgId;

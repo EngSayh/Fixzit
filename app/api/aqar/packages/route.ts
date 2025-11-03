@@ -58,14 +58,14 @@ export async function POST(request: NextRequest) {
         return badRequest('Invalid JSON', { correlationId });
       }
       
-      const { type } = body;
+      const { type: packageType } = body;
       
-      if (!Object.values(PackageType).includes(type as PackageType)) {
+      if (!Object.values(PackageType).includes(packageType as PackageType)) {
         return badRequest('Invalid package type. Must be STARTER, STANDARD, or PREMIUM', { correlationId });
       }
       
       // Get pricing
-      const pricing = (AqarPackage as never as { getPricing: (type: PackageType) => { price: number; listings: number; days: number } }).getPricing(type as PackageType);
+      const pricing = (AqarPackage as never as { getPricing: (type: PackageType) => { price: number; listings: number; days: number } }).getPricing(packageType as PackageType);
       
       // Use atomic transaction for multi-document operation
       const session = await mongoose.startSession();
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
         pkg = new AqarPackage({
           userId: user.id,
           orgId: user.orgId || user.id,
-          type,
+          type: packageType,
           listingsAllowed: pricing.listings,
           validityDays: pricing.days,
           price: pricing.price,

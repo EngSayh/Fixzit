@@ -5,7 +5,7 @@
  */
  
 
-import { vi, describe, it, test, expect, beforeAll, afterEach } from 'vitest';
+import { vi, describe, test, expect, beforeAll, afterEach } from 'vitest';
 import type { NextRequest } from 'next/server'
 
 // We will mock "next/server" to control NextResponse.json behavior and avoid Next runtime dependencies

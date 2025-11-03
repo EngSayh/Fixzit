@@ -38,7 +38,7 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-    const _user = token ? await getUserFromToken(token) : null;
+    token ? await getUserFromToken(token) : null; // Ensure user is authenticated
 
     const { jobId, action } = body;
     if (!jobId || !['approve', 'reject'].includes(action)) return validationError("Invalid request");

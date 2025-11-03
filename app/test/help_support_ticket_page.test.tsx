@@ -4,7 +4,7 @@
  * Test framework: Vitest + React Testing Library + user-event + jest-dom (jsdom environment)
  */
 
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, expect, beforeEach, afterEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';

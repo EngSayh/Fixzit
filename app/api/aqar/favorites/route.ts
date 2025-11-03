@@ -9,15 +9,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { connectDb } from '@/lib/mongo';
-import { AqarFavorite, AqarListing, AqarProject, IListing, IProject } from '@/models/aqar';
+import { AqarFavorite, AqarListing, AqarProject } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 export const runtime = 'nodejs';
-
-// Strongly-typed favorite with attached target entity
-type _FavoriteWithTarget = Omit<Partial<Record<string, unknown>>, 'target'> & {
-  target?: IListing | IProject | null;
-};
 
 // GET /api/aqar/favorites
 export async function GET(request: NextRequest) {
@@ -80,7 +75,7 @@ export async function GET(request: NextRequest) {
         } else if (fav.targetType === 'PROJECT') {
           projectIds.push(tid);
         }
-      } catch (_e) {
+      } catch {
         // skip invalid ids
         continue;
       }
