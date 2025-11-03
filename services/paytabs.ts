@@ -35,6 +35,32 @@ export function normalizePayTabsPayload(data: unknown): NormalizedPayTabsPayload
   };
 }
 
+/**
+ * Calculate the next billing date based on billing cycle
+ * Handles month-end edge cases by capping to last day of month
+ */
+function calculateNextBillingDate(billingCycle: 'MONTHLY' | 'ANNUAL'): Date {
+  const nextDate = new Date();
+  nextDate.setUTCHours(0, 0, 0, 0);
+  
+  if (billingCycle === 'MONTHLY') {
+    // Get current day to preserve billing day-of-month
+    const currentDay = nextDate.getUTCDate();
+    nextDate.setUTCMonth(nextDate.getUTCMonth() + 1);
+    
+    // Handle month-end edge cases (e.g., Jan 31 -> Feb 28/29)
+    // If the day changed after setMonth, it overflowed to next month
+    if (nextDate.getUTCDate() < currentDay) {
+      // Set to last day of the intended month
+      nextDate.setUTCDate(0);
+    }
+  } else {
+    nextDate.setUTCFullYear(nextDate.getUTCFullYear() + 1);
+  }
+  
+  return nextDate;
+}
+
 export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPayload) {
   if (!payload.cart_id) {
     throw new Error('Missing cart identifier');
@@ -70,16 +96,8 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
   subscription.currency = (payload.currency as unknown) || subscription.currency;
   
   // Set next_billing_date for recurring subscriptions
-  if (!subscription.next_billing_date && subscription.billing_cycle === 'MONTHLY') {
-    const nextBillingDate = new Date();
-    nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
-    nextBillingDate.setUTCHours(0, 0, 0, 0);
-    subscription.next_billing_date = nextBillingDate;
-  } else if (!subscription.next_billing_date && subscription.billing_cycle === 'ANNUAL') {
-    const nextBillingDate = new Date();
-    nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);
-    nextBillingDate.setUTCHours(0, 0, 0, 0);
-    subscription.next_billing_date = nextBillingDate;
+  if (!subscription.next_billing_date) {
+    subscription.next_billing_date = calculateNextBillingDate(subscription.billing_cycle);
   }
   
   subscription.paytabs = {
@@ -92,15 +110,13 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
   } as unknown;
   
   // Record successful payment in billing history
-  if (subscription.billing_history) {
-    subscription.billing_history.push({
-      date: new Date(),
-      amount: subscription.amount,
-      currency: subscription.currency,
-      tran_ref: payload.tran_ref,
-      status: 'SUCCESS'
-    } as never);
-  }
+  subscription.billing_history.push({
+    date: new Date(),
+    amount: subscription.amount,
+    currency: subscription.currency,
+    tran_ref: payload.tran_ref,
+    status: 'SUCCESS'
+  });
   
   await subscription.save();
 
