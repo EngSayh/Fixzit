@@ -249,6 +249,7 @@ BoostSchema.virtual('isActiveNow').get(function (this: IBoost) {
  * Throws if already active, not paid, or conflicts with existing active boost
  * The unique index on (orgId, listingId, type, active: true) provides final race protection
  */
+  // eslint-disable-next-line no-unused-vars
 BoostSchema.methods.activate = async function (this: IBoost) {
   if (this.active) {
     throw new Error('Boost already activated');
@@ -276,6 +277,7 @@ BoostSchema.methods.activate = async function (this: IBoost) {
  * Deactivate boost if expired
  * Used for cleanup jobs or on-demand expiry checks
  */
+  // eslint-disable-next-line no-unused-vars
 BoostSchema.methods.deactivateIfExpired = async function (this: IBoost) {
   if (this.active && this.expiresAt && this.expiresAt < new Date()) {
     this.active = false;
@@ -288,6 +290,7 @@ BoostSchema.methods.deactivateIfExpired = async function (this: IBoost) {
  * Uses atomic $inc to prevent race conditions
  * @returns Updated impressions count
  */
+  // eslint-disable-next-line no-unused-vars
 BoostSchema.methods.recordImpression = async function (this: IBoost) {
   const updated = await (this.constructor as BoostModel).findByIdAndUpdate(
     this._id,
@@ -302,6 +305,7 @@ BoostSchema.methods.recordImpression = async function (this: IBoost) {
  * Uses atomic $inc to prevent race conditions
  * @returns Updated clicks count
  */
+  // eslint-disable-next-line no-unused-vars
 BoostSchema.methods.recordClick = async function (this: IBoost) {
   const updated = await (this.constructor as BoostModel).findByIdAndUpdate(
     this._id,
