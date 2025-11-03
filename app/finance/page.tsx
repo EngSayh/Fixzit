@@ -1,6 +1,6 @@
 "use client";
 import useSWR from "swr";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Separator } from "@/components/ui/separator";
 import { CardGridSkeleton } from '@/components/skeletons';
 import { useTranslation } from '@/contexts/TranslationContext';
+import Decimal from 'decimal.js';
 
 export default function FinancePage() {
   const { t } = useTranslation();
@@ -21,9 +22,9 @@ export default function FinancePage() {
     if (!orgId) {
       return Promise.reject(new Error('No organization ID'));
     }
-    return fetch(url, { 
-      headers: { 'x-tenant-id': orgId }
-    }).then(r => r.json());
+    // SECURITY FIX: orgId is validated server-side from session/JWT
+    // Removed x-tenant-id header to prevent IDOR vulnerability
+    return fetch(url).then(r => r.json());
   };
 
   const { data, mutate, isLoading } = useSWR(
@@ -99,8 +100,8 @@ function Action({ id, action, disabled, onDone, orgId }:{ id:string; action:"POS
       const response = await fetch(`/api/finance/invoices/${id}`, {
         method:"PATCH",
         headers:{ 
-          "Content-Type":"application/json", 
-          "x-tenant-id": orgId
+          "Content-Type":"application/json",
+          // SECURITY FIX: orgId validated server-side from session - removed x-tenant-id header
         },
         body: JSON.stringify({ action })
       });
@@ -120,15 +121,77 @@ function Action({ id, action, disabled, onDone, orgId }:{ id:string; action:"POS
   return <Button variant="secondary" disabled={disabled} onClick={go}>{action}</Button>;
 }
 
+interface InvoiceLine {
+  id: string;
+  description: string;
+  qty: string;
+  unitPrice: string;
+  vatRate: string;
+}
+
+function InvoiceLineItem({ line, onUpdate, t }: { 
+  line: InvoiceLine; 
+  onUpdate: (id: string, key: string, val: string) => void; // eslint-disable-line no-unused-vars
+  t: (key: string, fallback: string) => string; // eslint-disable-line no-unused-vars
+}) {
+  const lineTotal = useMemo(() => {
+    const qty = new Decimal(line.qty || '0');
+    const unitPrice = new Decimal(line.unitPrice || '0');
+    const vatRate = new Decimal(line.vatRate || '0');
+    const subtotal = qty.times(unitPrice);
+    const total = subtotal.times(vatRate.dividedBy(100).plus(1));
+    return total.toFixed(2);
+  }, [line.qty, line.unitPrice, line.vatRate]);
+
+  return (
+    <div className="grid grid-cols-12 gap-2 items-center">
+      <div className="col-span-5">
+        <Input 
+          placeholder={t('finance.description', 'Description')} 
+          value={line.description} 
+          onChange={e => onUpdate(line.id, "description", e.target.value)} 
+        />
+      </div>
+      <div className="col-span-2">
+        <Input 
+          type="number" 
+          placeholder={t('finance.qty', 'Qty')} 
+          value={line.qty} 
+          onChange={e => onUpdate(line.id, "qty", e.target.value)} 
+        />
+      </div>
+      <div className="col-span-2">
+        <Input 
+          type="number" 
+          placeholder={t('finance.unitPrice', 'Unit Price')} 
+          value={line.unitPrice} 
+          onChange={e => onUpdate(line.id, "unitPrice", e.target.value)} 
+        />
+      </div>
+      <div className="col-span-2">
+        <Input 
+          type="number" 
+          placeholder={t('finance.vatPercent', 'VAT %')} 
+          value={line.vatRate} 
+          onChange={e => onUpdate(line.id, "vatRate", e.target.value)} 
+        />
+      </div>
+      <div className="col-span-1 text-right text-sm">
+        {lineTotal}
+      </div>
+    </div>
+  );
+}
+
 function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }) {
   const { t } = useTranslation();
   const [open,setOpen]=useState(false);
   const [issue, setIssue] = useState(new Date().toISOString().slice(0,10));
   const [due, setDue] = useState(new Date(Date.now()+7*864e5).toISOString().slice(0,10));
-  const [lines, setLines] = useState([{ description:"Maintenance Service", qty:1, unitPrice:100, vatRate:15 }]);
+  const [lines, setLines] = useState<InvoiceLine[]>([{ id: crypto.randomUUID(), description:"Maintenance Service", qty:"1", unitPrice:"100", vatRate:"15" }]);
 
-  function updateLine(i:number, key:string, val: string | number) {
-    setLines(prev => prev.map((l,idx)=> idx===i ? { ...l, [key]: key==="description"?val:Number(val) } : l));
+  function updateLine(id:string, key:string, val: string) {
+    setLines(prev => prev.map((l)=> l.id===id ? { ...l, [key]: val } : l));
   }
 
   async function submit() {
@@ -140,15 +203,23 @@ function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }
     const toastId = toast.loading('Creating invoice...');
 
     try {
+      // Convert string values to numbers for API, using Decimal for precision
+      const apiLines = lines.map(l => ({
+        description: l.description,
+        qty: new Decimal(l.qty || '0').toDecimalPlaces(0).toNumber(),
+        unitPrice: new Decimal(l.unitPrice || '0').toDecimalPlaces(2).toNumber(),
+        vatRate: new Decimal(l.vatRate || '0').toDecimalPlaces(2).toNumber()
+      }));
+
       const response = await fetch("/api/finance/invoices", {
         method:"POST",
         headers: { 
-          "Content-Type":"application/json", 
-          "x-tenant-id": orgId
+          "Content-Type":"application/json",
+          // SECURITY FIX: orgId validated server-side from session - removed x-tenant-id header
         },
         body: JSON.stringify({
           issueDate: issue, dueDate: due, currency:"SAR",
-          lines
+          lines: apiLines
         })
       });
 
@@ -197,26 +268,15 @@ function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <div className="font-medium">{t('finance.lines', 'Lines')}</div>
-              <Button variant="secondary" onClick={()=>setLines(prev=>[...prev,{ description:"", qty:1, unitPrice:0, vatRate:15 }])}>{t('finance.addLine', 'Add Line')}</Button>
+              <Button variant="secondary" onClick={()=>setLines(prev=>[...prev,{ id: crypto.randomUUID(), description:"", qty:"1", unitPrice:"0", vatRate:"15" }])}>{t('finance.addLine', 'Add Line')}</Button>
             </div>
-            {lines.map((l, i)=>(
-              <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-5">
-                  <Input placeholder={t('finance.description', 'Description')} value={l.description} onChange={e=>updateLine(i,"description",e.target.value)} />
-                </div>
-                <div className="col-span-2">
-                  <Input type="number" placeholder={t('finance.qty', 'Qty')} value={l.qty} onChange={e=>updateLine(i,"qty",e.target.value)} />
-                </div>
-                <div className="col-span-2">
-                  <Input type="number" placeholder={t('finance.unitPrice', 'Unit Price')} value={l.unitPrice} onChange={e=>updateLine(i,"unitPrice",e.target.value)} />
-                </div>
-                <div className="col-span-2">
-                  <Input type="number" placeholder={t('finance.vatPercent', 'VAT %')} value={l.vatRate} onChange={e=>updateLine(i,"vatRate",e.target.value)} />
-                </div>
-                <div className="col-span-1 text-right text-sm">
-                  {(l.qty*l.unitPrice*(1+l.vatRate/100)).toFixed(2)}
-                </div>
-              </div>
+            {lines.map((l)=>(
+              <InvoiceLineItem 
+                key={l.id} 
+                line={l} 
+                onUpdate={updateLine} 
+                t={t} 
+              />
             ))}
           </div>
           <Separator />
