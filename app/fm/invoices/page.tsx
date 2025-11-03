@@ -286,8 +286,12 @@ export default function InvoicesPage() {
   );
 }
 
-function InvoiceCard({ invoice }: { invoice: Invoice; onUpdated: () => void; orgId: string }) {
+function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdated: () => void; orgId: string }) {
   const { t } = useTranslation();
+  
+  // Suppress unused variable warnings - these props are for future use
+  void onUpdated;
+  void orgId;
 
   const getStatusColor = (status: string) => {
     switch (status) {

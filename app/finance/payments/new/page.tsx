@@ -221,16 +221,25 @@ export default function NewPaymentPage() {
 
   const allocateByPriority = () => {
     // Allocate by due date (oldest first)
-    allocations
+    const selectedInvoices = allocations
       .filter(a => a.selected)
       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
+    // Process selected invoices in priority order (oldest first)
     let remaining = paymentAmountNum;
+    const allocatedMap = new Map<string, number>();
+    
+    for (const invoice of selectedInvoices) {
+      const toAllocate = Math.min(remaining, invoice.amountDue);
+      allocatedMap.set(invoice.invoiceId, toAllocate);
+      remaining -= toAllocate;
+      if (remaining <= 0) break;
+    }
+
+    // Update all allocations with priority-based amounts
     const updated = allocations.map(a => {
-      if (a.selected) {
-        const toAllocate = Math.min(remaining, a.amountDue);
-        remaining -= toAllocate;
-        return { ...a, amountAllocated: toAllocate };
+      if (a.selected && allocatedMap.has(a.invoiceId)) {
+        return { ...a, amountAllocated: allocatedMap.get(a.invoiceId) || 0 };
       }
       return a;
     });
