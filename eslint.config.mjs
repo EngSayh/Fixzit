@@ -53,6 +53,12 @@ export default [
         ...globals.browser,
         ...globals.node,
         ...globals.es2021,
+        // Additional browser/library globals
+        google: 'readonly',
+        NodeJS: 'readonly',
+        RequestInit: 'readonly',
+        HeadersInit: 'readonly',
+        EventListener: 'readonly',
       },
       parser: tseslint.parser,
       parserOptions: {
@@ -128,13 +134,32 @@ export default [
     },
   },
 
-  // Test files - More permissive
+  // Test files - More permissive with test framework globals
   {
     files: ['**/*.test.{ts,tsx,js,jsx}', '**/*.spec.{ts,tsx,js,jsx}', 'qa/**/*', 'tests/**/*'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...globals.es2021,
+        // Vitest/Jest globals
+        describe: 'readonly',
+        test: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        vi: 'readonly',
+        jest: 'readonly',
+      },
+    },
     rules: {
       '@typescript-eslint/ban-ts-comment': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
+      'no-undef': 'off', // Disable for test files since we define globals
     },
   },
 
