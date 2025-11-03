@@ -119,18 +119,24 @@ export async function POST(req: NextRequest) {
   // Historical context: PR reviews flagged tenant isolation bypass where
   // tenantScope fell back to req.headers.get('x-org-id') (client-controlled)
   // CRITICAL: Never trust client-provided headers for tenant scoping
-  const tenantScope = sessionUser?.orgId || null;
   
-  // If no authenticated session, reject with 401 (anonymous incident reporting disabled)
-  // Rationale: Prevents abuse and ensures proper tenant attribution
+  // Feature flag: allow anonymous incident reporting for backwards compatibility
+  const ENABLE_ANONYMOUS_INCIDENTS = process.env.ENABLE_ANONYMOUS_INCIDENTS === 'true';
+  let tenantScope = sessionUser?.orgId || null;
+  
+  // If no authenticated session, optionally allow anonymous reporting under "public" scope
   if (!tenantScope) {
-    return NextResponse.json(
-      { 
-        error: 'Authentication required',
-        detail: 'Incident reporting requires authenticated session for tenant attribution'
-      },
-      { status: 401 }
-    );
+    if (ENABLE_ANONYMOUS_INCIDENTS) {
+      tenantScope = 'public';
+    } else {
+      return NextResponse.json(
+        { 
+          error: 'Authentication required',
+          detail: 'Incident reporting requires authenticated session for tenant attribution'
+        },
+        { status: 401 }
+      );
+    }
   }
   const existing = incidentKey
     ? await native.collection('error_events').findOne({ incidentKey, tenantScope })

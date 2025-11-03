@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { connectDb } from '@/lib/mongo';
 import { Schema, model, models } from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 /**
  * GET /api/admin/users
@@ -175,10 +176,18 @@ export async function POST(request: NextRequest) {
     
     // SECURITY: Hash passwords before storing (CRITICAL)
     // Historical context: Code had TODO comment for 6+ months with plaintext passwords
-    // Import bcrypt for password hashing
-    const bcrypt = await import('bcrypt');
-    const password = body.password || 'ChangeMe123!';
-    const hashedPassword = await bcrypt.hash(password, 12); // 12 rounds = industry standard
+    // Require password in request body - no default passwords for security
+    if (!body.password) {
+      return NextResponse.json(
+        { 
+          error: 'Password required',
+          detail: 'Password must be provided in request body for security. No default passwords allowed.'
+        },
+        { status: 400 }
+      );
+    }
+    
+    const hashedPassword = await bcrypt.hash(body.password, 12); // 12 rounds = industry standard
     
     const newUser = await UserModel.create({
       orgId: session.user.orgId || 'default',
