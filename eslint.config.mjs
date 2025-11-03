@@ -80,8 +80,8 @@ export default [
       '@typescript-eslint/ban-ts-comment': 'warn',
 
       /* React Hooks - CRITICAL (PR #69/#71 flagged missing rules) */
-      'react-hooks/rules-of-hooks': 'error',  // ✅ Enforce Hook calling rules
-      'react-hooks/exhaustive-deps': 'warn',   // ✅ Validate Hook dependencies
+      'react-hooks/rules-of-hooks': 'error',  // [ENABLED] Enforce Hook calling rules
+      'react-hooks/exhaustive-deps': 'warn',   // [ENABLED] Validate Hook dependencies
 
       /* JavaScript */
       'no-var': 'off',
