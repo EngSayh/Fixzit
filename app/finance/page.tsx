@@ -122,17 +122,17 @@ function Action({ id, action, disabled, onDone, orgId }:{ id:string; action:"POS
 }
 
 interface InvoiceLine {
+  id: string;
   description: string;
   qty: string;
   unitPrice: string;
   vatRate: string;
 }
 
-function InvoiceLineItem({ line, index, onUpdate, t }: { 
+function InvoiceLineItem({ line, onUpdate, t }: { 
   line: InvoiceLine; 
-  index: number; 
-  onUpdate: (_i: number, _key: string, _val: string) => void; // eslint-disable-line no-unused-vars
-  t: (_key: string, _fallback: string) => string; // eslint-disable-line no-unused-vars
+  onUpdate: (id: string, key: string, val: string) => void; // eslint-disable-line no-unused-vars
+  t: (key: string, fallback: string) => string; // eslint-disable-line no-unused-vars
 }) {
   const lineTotal = useMemo(() => {
     const qty = new Decimal(line.qty || '0');
@@ -149,7 +149,7 @@ function InvoiceLineItem({ line, index, onUpdate, t }: {
         <Input 
           placeholder={t('finance.description', 'Description')} 
           value={line.description} 
-          onChange={e => onUpdate(index, "description", e.target.value)} 
+          onChange={e => onUpdate(line.id, "description", e.target.value)} 
         />
       </div>
       <div className="col-span-2">
@@ -157,7 +157,7 @@ function InvoiceLineItem({ line, index, onUpdate, t }: {
           type="number" 
           placeholder={t('finance.qty', 'Qty')} 
           value={line.qty} 
-          onChange={e => onUpdate(index, "qty", e.target.value)} 
+          onChange={e => onUpdate(line.id, "qty", e.target.value)} 
         />
       </div>
       <div className="col-span-2">
@@ -165,7 +165,7 @@ function InvoiceLineItem({ line, index, onUpdate, t }: {
           type="number" 
           placeholder={t('finance.unitPrice', 'Unit Price')} 
           value={line.unitPrice} 
-          onChange={e => onUpdate(index, "unitPrice", e.target.value)} 
+          onChange={e => onUpdate(line.id, "unitPrice", e.target.value)} 
         />
       </div>
       <div className="col-span-2">
@@ -173,7 +173,7 @@ function InvoiceLineItem({ line, index, onUpdate, t }: {
           type="number" 
           placeholder={t('finance.vatPercent', 'VAT %')} 
           value={line.vatRate} 
-          onChange={e => onUpdate(index, "vatRate", e.target.value)} 
+          onChange={e => onUpdate(line.id, "vatRate", e.target.value)} 
         />
       </div>
       <div className="col-span-1 text-right text-sm">
@@ -188,10 +188,10 @@ function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }
   const [open,setOpen]=useState(false);
   const [issue, setIssue] = useState(new Date().toISOString().slice(0,10));
   const [due, setDue] = useState(new Date(Date.now()+7*864e5).toISOString().slice(0,10));
-  const [lines, setLines] = useState<InvoiceLine[]>([{ description:"Maintenance Service", qty:"1", unitPrice:"100", vatRate:"15" }]);
+  const [lines, setLines] = useState<InvoiceLine[]>([{ id: crypto.randomUUID(), description:"Maintenance Service", qty:"1", unitPrice:"100", vatRate:"15" }]);
 
-  function updateLine(i:number, key:string, val: string) {
-    setLines(prev => prev.map((l,idx)=> idx===i ? { ...l, [key]: val } : l));
+  function updateLine(id:string, key:string, val: string) {
+    setLines(prev => prev.map((l)=> l.id===id ? { ...l, [key]: val } : l));
   }
 
   async function submit() {
@@ -268,13 +268,12 @@ function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <div className="font-medium">{t('finance.lines', 'Lines')}</div>
-              <Button variant="secondary" onClick={()=>setLines(prev=>[...prev,{ description:"", qty:"1", unitPrice:"0", vatRate:"15" }])}>{t('finance.addLine', 'Add Line')}</Button>
+              <Button variant="secondary" onClick={()=>setLines(prev=>[...prev,{ id: crypto.randomUUID(), description:"", qty:"1", unitPrice:"0", vatRate:"15" }])}>{t('finance.addLine', 'Add Line')}</Button>
             </div>
-            {lines.map((l, i)=>(
+            {lines.map((l)=>(
               <InvoiceLineItem 
-                key={i} 
+                key={l.id} 
                 line={l} 
-                index={i} 
                 onUpdate={updateLine} 
                 t={t} 
               />
