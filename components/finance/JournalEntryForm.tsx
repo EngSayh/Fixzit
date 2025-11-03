@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 // ============================================================================
@@ -98,11 +98,21 @@ export default function JournalEntryForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loadingAccounts, setLoadingAccounts] = useState(false);
 
-  // Calculate totals
-  const totalDebit = lines.reduce((sum, line) => sum + (parseFloat(String(line.debit)) || 0), 0);
-  const totalCredit = lines.reduce((sum, line) => sum + (parseFloat(String(line.credit)) || 0), 0);
-  const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
-  const balanceDifference = totalDebit - totalCredit;
+  // Calculate totals with useMemo for performance optimization
+  // Only recalculate when lines array changes
+  const { totalDebit, totalCredit, isBalanced, balanceDifference } = useMemo(() => {
+    const debit = lines.reduce((sum, line) => sum + (parseFloat(String(line.debit)) || 0), 0);
+    const credit = lines.reduce((sum, line) => sum + (parseFloat(String(line.credit)) || 0), 0);
+    const difference = debit - credit;
+    const balanced = Math.abs(difference) < 0.01 && debit > 0;
+    
+    return {
+      totalDebit: debit,
+      totalCredit: credit,
+      isBalanced: balanced,
+      balanceDifference: difference
+    };
+  }, [lines]);
 
   // ============================================================================
   // LIFECYCLE & DATA LOADING
@@ -198,25 +208,30 @@ export default function JournalEntryForm({
   };
 
   // ============================================================================
-  // ACCOUNT SEARCH
+  // ACCOUNT SEARCH WITH DEBOUNCE
   // ============================================================================
 
   const handleAccountSearch = (lineId: string, searchTerm: string) => {
     setSearchTerms({ ...searchTerms, [lineId]: searchTerm });
-
-    if (!searchTerm.trim()) {
-      setFilteredAccounts({ ...filteredAccounts, [lineId]: chartAccounts });
-      return;
-    }
-
-    const term = searchTerm.toLowerCase();
-    const filtered = chartAccounts.filter(acc =>
-      acc.code.toLowerCase().includes(term) ||
-      acc.name.toLowerCase().includes(term) ||
-      (acc.nameAr && acc.nameAr.includes(term))
-    );
-    setFilteredAccounts({ ...filteredAccounts, [lineId]: filtered });
   };
+
+  // Debounce account filtering to improve performance during typing
+  useEffect(() => {
+    Object.entries(searchTerms).forEach(([lineId, searchTerm]) => {
+      if (!searchTerm.trim()) {
+        setFilteredAccounts(prev => ({ ...prev, [lineId]: chartAccounts }));
+        return;
+      }
+
+      const term = searchTerm.toLowerCase();
+      const filtered = chartAccounts.filter(acc =>
+        acc.code.toLowerCase().includes(term) ||
+        acc.name.toLowerCase().includes(term) ||
+        (acc.nameAr && acc.nameAr.includes(term))
+      );
+      setFilteredAccounts(prev => ({ ...prev, [lineId]: filtered }));
+    });
+  }, [searchTerms, chartAccounts]);
 
   // ============================================================================
   // QUICK BALANCE HELPERS
@@ -343,12 +358,12 @@ export default function JournalEntryForm({
     <div className="space-y-6">
       {/* Header Information */}
       <div className="bg-card shadow-md rounded-2xl p-6 space-y-4">
-        <h3 className="text-lg font-semibold border-b pb-2">{t('Journal Entry Details')}</h3>
+        <h3 className="text-lg font-semibold border-b pb-2">{t('finance.journal.entryDetails', 'Journal Entry Details')}</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              {t('Journal Date')} <span className="text-destructive">*</span>
+              {t('finance.journal.journalDate', 'Journal Date')} <span className="text-destructive">*</span>
             </label>
             <input
               type="date"
@@ -362,33 +377,33 @@ export default function JournalEntryForm({
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
-              {t('Source Type')}
+              {t('finance.journal.sourceType', 'Source Type')}
             </label>
             <select
               value={sourceType}
               onChange={(e) => setSourceType(e.target.value)}
               className="w-full px-3 py-2 border border-border rounded-2xl"
             >
-              <option value="MANUAL">{t('Manual Entry')}</option>
-              <option value="ADJUSTMENT">{t('Adjustment')}</option>
-              <option value="WORK_ORDER">{t('Work Order')}</option>
-              <option value="INVOICE">{t('Invoice')}</option>
-              <option value="PAYMENT">{t('Payment')}</option>
-              <option value="RENT">{t('Rent')}</option>
-              <option value="EXPENSE">{t('Expense')}</option>
+              <option value="MANUAL">{t('finance.journal.sourceType.manual', 'Manual Entry')}</option>
+              <option value="ADJUSTMENT">{t('finance.journal.sourceType.adjustment', 'Adjustment')}</option>
+              <option value="WORK_ORDER">{t('finance.journal.sourceType.workOrder', 'Work Order')}</option>
+              <option value="INVOICE">{t('finance.journal.sourceType.invoice', 'Invoice')}</option>
+              <option value="PAYMENT">{t('finance.journal.sourceType.payment', 'Payment')}</option>
+              <option value="RENT">{t('finance.journal.sourceType.rent', 'Rent')}</option>
+              <option value="EXPENSE">{t('finance.journal.sourceType.expense', 'Expense')}</option>
             </select>
           </div>
 
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-foreground mb-1">
-              {t('Description')} <span className="text-destructive">*</span>
+              {t('common.description', 'Description')} <span className="text-destructive">*</span>
             </label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className={`w-full px-3 py-2 border rounded-2xl ${errors.description ? 'border-destructive' : 'border-border'}`}
-              placeholder={t('Brief description of the journal entry')}
+              placeholder={t('finance.journal.descriptionPlaceholder', 'Brief description of the journal entry')}
               required
             />
             {errors.description && <p className="text-xs text-destructive mt-1">{errors.description}</p>}
@@ -397,14 +412,14 @@ export default function JournalEntryForm({
           {sourceType !== 'MANUAL' && (
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">
-                {t('Source Reference Number')}
+                {t('finance.journal.sourceReference', 'Source Reference Number')}
               </label>
               <input
                 type="text"
                 value={sourceNumber}
                 onChange={(e) => setSourceNumber(e.target.value)}
                 className="w-full px-3 py-2 border border-border rounded-2xl"
-                placeholder={t('Optional')}
+                placeholder={t('common.optional', 'Optional')}
               />
             </div>
           )}
@@ -413,8 +428,8 @@ export default function JournalEntryForm({
 
       {/* Journal Lines */}
       <div className="bg-card shadow-md rounded-2xl p-6 space-y-4">
-        <div className="flex items-center justify-between border-b pb-2">
-          <h3 className="text-lg font-semibold">{t('Journal Lines')}</h3>
+        <div className="flex flex-row items-center justify-between">
+          <h3 className="text-lg font-semibold">{t('finance.journal.journalLines', 'Journal Lines')}</h3>
           <div className="flex gap-2">
             <button
               type="button"
@@ -422,21 +437,21 @@ export default function JournalEntryForm({
               className="px-3 py-1 text-sm bg-primary/10 text-primary rounded hover:bg-primary/20"
               disabled={lines.length < 2}
             >
-              {t('Quick Balance')}
+              {t('finance.journal.quickBalance', 'Quick Balance')}
             </button>
             <button
               type="button"
               onClick={clearAllAmounts}
               className="px-3 py-1 text-sm bg-muted text-foreground rounded hover:bg-muted"
             >
-              {t('Clear Amounts')}
+              {t('finance.journal.clearAmounts', 'Clear Amounts')}
             </button>
             <button
               type="button"
               onClick={addLine}
               className="px-3 py-1 text-sm bg-success text-white rounded hover:bg-success"
             >
-              + {t('Add Line')}
+              + {t('finance.journal.addLine', 'Add Line')}
             </button>
           </div>
         </div>
@@ -456,16 +471,16 @@ export default function JournalEntryForm({
                   #
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                  {t('Account')}
+                  {t('finance.account', 'Account')}
                 </th>
                 <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                  {t('Description')}
+                  {t('common.description', 'Description')}
                 </th>
                 <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-28">
-                  {t('Debit')}
+                  {t('finance.debit', 'Debit')}
                 </th>
                 <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-28">
-                  {t('Credit')}
+                  {t('finance.credit', 'Credit')}
                 </th>
                 <th className="px-2 py-2 w-12"></th>
               </tr>
@@ -483,10 +498,10 @@ export default function JournalEntryForm({
                         type="text"
                         value={searchTerms[line.id] || ''}
                         onChange={(e) => handleAccountSearch(line.id, e.target.value)}
-                        placeholder={loadingAccounts ? String(t('Loading...')) : String(t('Search account by code or name'))}
+                        placeholder={loadingAccounts ? String(t('common.loading', 'Loading...')) : String(t('finance.journal.searchAccount', 'Search account by code or name'))}
                         className="w-full px-2 py-1 text-sm border border-border rounded"
                         disabled={loadingAccounts}
-                        aria-label={String(t('Search account'))}
+                        aria-label={String(t('finance.journal.searchAccountLabel', 'Search account'))}
                       />
 
                       <select
@@ -495,7 +510,7 @@ export default function JournalEntryForm({
                         className={`w-full px-2 py-1 text-sm border rounded ${errors[`line_${index}_account`] ? 'border-destructive' : 'border-border'}`}
                         disabled={loadingAccounts}
                       >
-                        <option value="">{loadingAccounts ? t('Loading...') : t('Select Account')}</option>
+                        <option value="">{loadingAccounts ? t('common.loading', 'Loading...') : t('finance.journal.selectAccount', 'Select Account')}</option>
                         {(filteredAccounts[line.id] ?? chartAccounts).map(acc => (
                           <option key={acc.id} value={acc.id}>
                             {acc.code} - {acc.name}
@@ -514,7 +529,7 @@ export default function JournalEntryForm({
                       value={line.description}
                       onChange={(e) => updateLine(line.id, 'description', e.target.value)}
                       className="w-full px-2 py-1 text-sm border border-border rounded"
-                      placeholder={t('Line description')}
+                      placeholder={t('finance.journal.lineDescription', 'Line description')}
                     />
                   </td>
                   <td className="px-2 py-2">
@@ -545,7 +560,7 @@ export default function JournalEntryForm({
                         type="button"
                         onClick={() => removeLine(line.id)}
                         className="text-destructive hover:text-destructive"
-                        title={t('Remove line')}
+                        title={t('finance.journal.removeLine', 'Remove line')}
                       >
                         ✕
                       </button>
@@ -557,7 +572,7 @@ export default function JournalEntryForm({
             <tfoot className="bg-muted border-t-2 border-border">
               <tr>
                 <td colSpan={3} className="px-2 py-2 text-sm font-semibold text-right">
-                  {t('Totals')}:
+                  {t('common.totals', 'Totals')}:
                 </td>
                 <td className="px-2 py-2 text-sm font-bold text-right">
                   {totalDebit.toFixed(2)}
@@ -577,23 +592,23 @@ export default function JournalEntryForm({
             <div>
               <p className={`font-semibold ${isBalanced ? 'text-success' : 'text-destructive'}`}>
                 {isBalanced ? (
-                  <span>✓ {t('Entry is Balanced')}</span>
+                  <span>✓ {t('finance.journal.entryBalanced', 'Entry is Balanced')}</span>
                 ) : (
-                  <span>✗ {t('Entry is Out of Balance')}</span>
+                  <span>✗ {t('finance.journal.entryUnbalanced', 'Entry is Out of Balance')}</span>
                 )}
               </p>
               {!isBalanced && totalDebit > 0 && (
                 <p className="text-sm text-destructive mt-1">
                   {balanceDifference > 0 
-                    ? t('Debits exceed credits by') + ` ${balanceDifference.toFixed(2)}`
-                    : t('Credits exceed debits by') + ` ${Math.abs(balanceDifference).toFixed(2)}`
+                    ? t('finance.journal.debitsExceed', 'Debits exceed credits by') + ` ${balanceDifference.toFixed(2)}`
+                    : t('finance.journal.creditsExceed', 'Credits exceed debits by') + ` ${Math.abs(balanceDifference).toFixed(2)}`
                   }
                 </p>
               )}
             </div>
             <div className="text-right">
-              <p className="text-sm text-muted-foreground">{t('Total Lines')}: {lines.length}</p>
-              <p className="text-sm text-muted-foreground">{t('Difference')}: {Math.abs(balanceDifference).toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground">{t('finance.journal.totalLines', 'Total Lines')}: {lines.length}</p>
+              <p className="text-sm text-muted-foreground">{t('finance.journal.difference', 'Difference')}: {Math.abs(balanceDifference).toFixed(2)}</p>
             </div>
           </div>
         </div>
@@ -614,7 +629,7 @@ export default function JournalEntryForm({
             className="px-6 py-2 border border-border rounded-2xl text-foreground hover:bg-muted"
             disabled={isSubmitting}
           >
-            {t('Cancel')}
+            {t('common.cancel', 'Cancel')}
           </button>
         )}
         <button
@@ -623,7 +638,7 @@ export default function JournalEntryForm({
           className="px-6 py-2 bg-primary text-white rounded-2xl hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={isSubmitting || !isBalanced || loadingAccounts}
         >
-          {isSubmitting ? t('Saving...') : mode === 'create' ? t('Create Journal Entry') : t('Save Changes')}
+          {isSubmitting ? t('common.saving', 'Saving...') : mode === 'create' ? t('finance.journal.createEntry', 'Create Journal Entry') : t('common.saveChanges', 'Save Changes')}
         </button>
       </div>
 
