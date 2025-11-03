@@ -12,7 +12,7 @@ import ChartAccount from '../../../server/models/finance/ChartAccount';
 import { setTenantContext, setAuditContext, clearContext } from '../../../server/models/plugins/tenantAudit';
 import { toMinor, applyFx } from '../../../server/lib/currency';
 
-// TYPESCRIPT FIX: Use ObjectIds instead of strings for type safety
+// Use ObjectIds for database operations, but convert to string for context functions
 const TEST_ORG_ID = new mongoose.Types.ObjectId();
 const TEST_USER_ID = new mongoose.Types.ObjectId();
 
@@ -26,8 +26,8 @@ describe('postingService Unit Tests', () => {
     await mongoose.connect(MONGODB_URI);
 
     // Set context
-    setTenantContext({ orgId: TEST_ORG_ID });
-    setAuditContext({ userId: TEST_USER_ID });
+    setTenantContext({ orgId: TEST_ORG_ID.toString() });
+    setAuditContext({ userId: TEST_USER_ID.toString() });
 
     // Create test accounts
     const cashAccount = await ChartAccount.create({
