@@ -59,6 +59,9 @@ export default [
         RequestInit: 'readonly',
         HeadersInit: 'readonly',
         EventListener: 'readonly',
+        // Next.js 14+ uses new JSX transform - React is available globally
+        React: 'readonly',
+        JSX: 'readonly',
       },
       parser: tseslint.parser,
       parserOptions: {
