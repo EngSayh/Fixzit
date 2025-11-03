@@ -34,7 +34,7 @@ interface CartData {
 }
 
 export default async function CartPage() {
-  const [_categoriesResponse, cartResponse] = await Promise.all([
+  const [, cartResponse] = await Promise.all([
     serverFetchJsonWithTenant<{ data: unknown }>('/api/marketplace/categories'),
     serverFetchJsonWithTenant<{ data: CartData }>('/api/marketplace/cart')
   ]);
