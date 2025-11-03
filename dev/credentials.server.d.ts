@@ -20,6 +20,7 @@ export interface DemoCredential {
 
 export const ENABLED: boolean;
 
+// eslint-disable-next-line no-unused-vars
 export function findLoginPayloadByRole(role: string): DemoCredential | null;
 
 export function listSanitized(): {

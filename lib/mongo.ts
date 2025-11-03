@@ -19,6 +19,7 @@ import mongoose from 'mongoose';
  */
 
 // Define interfaces for MongoDB database abstraction
+/* eslint-disable no-unused-vars */
 interface Collection {
   find: (query: Record<string, unknown>) => unknown;
   findOne: (query: Record<string, unknown>) => Promise<unknown>;
@@ -37,6 +38,7 @@ interface DatabaseHandle {
   collection: (name: string) => Collection;
   listCollections?: () => { toArray: () => Promise<unknown[]> };
 }
+/* eslint-enable no-unused-vars */
 
 // MongoDB-only implementation - no mock database
 

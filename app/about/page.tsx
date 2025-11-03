@@ -132,9 +132,8 @@ export default async function AboutPage() {
         content = data.content || content;
       }
     }
-  } catch (_err) {
+  } catch {
     // swallow errors and use default content
-    // console.error('Error fetching about content (server):', err);
   }
 
   const renderedContent = await renderMarkdownSanitized(content);

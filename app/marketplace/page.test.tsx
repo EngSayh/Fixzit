@@ -62,7 +62,6 @@ vi.mock('@/components/marketplace/ProductCard', () => ({
 }));
 
 // Import after mocks so the module uses mocked dependencies
-// eslint-disable-next-line import/first
 import MarketplacePage from './page';
 
 describe('MarketplacePage', () => {

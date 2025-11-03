@@ -49,7 +49,7 @@ function typeInto(selectorText: string, value: string) {
 
 describe("SupportPopup - rendering and validation", () => {
   test("disables Submit Ticket and Copy details when subject and description are empty", () => {
-    render(<SupportPopup onClose={vi.fn()} />);
+    render(<SupportPopup open={true} onClose={vi.fn()} />);
     const copyBtn = screen.getByRole("button", { name: /copy details/i });
     const submitBtn = screen.getByTestId("submit-btn") as HTMLButtonElement;
     expect(copyBtn).toBeDisabled();
@@ -57,14 +57,14 @@ describe("SupportPopup - rendering and validation", () => {
   });
 
   test("enables Copy details when subject is provided", () => {
-    render(<SupportPopup onClose={vi.fn()} />);
+    render(<SupportPopup open={true} onClose={vi.fn()} />);
     typeInto("Subject *", "A subject");
     const copyBtn = screen.getByRole("button", { name: /copy details/i });
     expect(copyBtn).toBeEnabled();
   });
 
   test("enables Submit Ticket when both subject and description are provided", () => {
-    render(<SupportPopup onClose={vi.fn()} />);
+    render(<SupportPopup open={true} onClose={vi.fn()} />);
     typeInto("Subject *", "Login fails");
     typeInto("Description *", "Cannot login using SSO.");
     const submitBtn = screen.getByTestId("submit-btn") as HTMLButtonElement;
@@ -72,7 +72,7 @@ describe("SupportPopup - rendering and validation", () => {
   });
 
   test("shows guest-only fields when x-user is not in localStorage", () => {
-    render(<SupportPopup onClose={vi.fn()} />);
+    render(<SupportPopup open={true} onClose={vi.fn()} />);
     expect(screen.getByLabelText(/your name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/email \*/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/phone \(optional\)/i)).toBeInTheDocument();
@@ -80,7 +80,7 @@ describe("SupportPopup - rendering and validation", () => {
 
   test("hides guest-only fields when x-user exists", () => {
     window.localStorage.setItem("x-user", "u123");
-    render(<SupportPopup onClose={vi.fn()} />);
+    render(<SupportPopup open={true} onClose={vi.fn()} />);
     expect(screen.queryByLabelText(/your name/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/email \*/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/phone \(optional\)/i)).not.toBeInTheDocument();
@@ -105,7 +105,7 @@ describe("SupportPopup - errorDetails auto-population", () => {
   };
 
   test("pre-populates subject, priority, type, module and description", () => {
-    render(<SupportPopup onClose={vi.fn()} errorDetails={errorDetails} />);
+    render(<SupportPopup open={true} onClose={vi.fn()} errorDetails={errorDetails} />);
     const subjectInput = screen.getByLabelText("Subject *") as HTMLInputElement;
     expect(subjectInput.value).toMatch(/^System Error: TypeError - Cannot read properties of undefined/);
     const priority = screen.getByLabelText("Priority") as HTMLSelectElement;
@@ -125,7 +125,7 @@ describe("SupportPopup - errorDetails auto-population", () => {
 
 describe("SupportPopup - copy details", () => {
   test("copies subject when description is empty", async () => {
-    render(<SupportPopup onClose={vi.fn()} />);
+    render(<SupportPopup open={true} onClose={vi.fn()} />);
     typeInto("Subject *", "Subject only");
     const copyBtn = screen.getByRole("button", { name: /copy details/i });
     fireEvent.click(copyBtn);
@@ -136,7 +136,7 @@ describe("SupportPopup - copy details", () => {
   });
 
   test("copies description when provided", async () => {
-    render(<SupportPopup onClose={vi.fn()} />);
+    render(<SupportPopup open={true} onClose={vi.fn()} />);
     typeInto("Subject *", "S");
     typeInto("Description *", "Full details...");
     const copyBtn = screen.getByRole("button", { name: /copy details/i });
@@ -147,9 +147,9 @@ describe("SupportPopup - copy details", () => {
   });
 
   test("silently ignores clipboard errors", async () => {
-    // @ts-expect-error override mock
+    // Intentional override of mock for error testing
     navigator.clipboard.writeText = vi.fn().mockRejectedValue(new Error("Clipboard denied"));
-    render(<SupportPopup onClose={vi.fn()} />);
+    render(<SupportPopup open={true} onClose={vi.fn()} />);
     typeInto("Subject *", "X");
     const copyBtn = screen.getByRole("button", { name: /copy details/i });
     fireEvent.click(copyBtn);
@@ -165,7 +165,7 @@ describe("SupportPopup - submission flow", () => {
       window.localStorage.setItem("x-user", "user-token");
     }
     const onClose = vi.fn();
-    render(<SupportPopup onClose={onClose} />);
+    render(<SupportPopup open={true} onClose={onClose} />);
     typeInto("Subject *", "Issue creating invoice");
     typeInto("Description *", "Detailed repro steps...");
 
@@ -197,11 +197,11 @@ describe("SupportPopup - submission flow", () => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
     });
 
-    const [url, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    const [url, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, any];
     expect(url).toBe("/api/support/tickets");
     expect(init?.method).toBe("POST");
     expect(init?.headers).toMatchObject({ "content-type": "application/json" });
-    const body = JSON.parse(init.body);
+    const body = JSON.parse(init.body as string);
     // Required fields
     expect(body).toMatchObject({
       subject: "Issue creating invoice",
@@ -240,8 +240,8 @@ describe("SupportPopup - submission flow", () => {
       expect(global.fetch).toHaveBeenCalled();
     });
 
-    const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
-    const body = JSON.parse(init.body);
+    const [, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, any];
+    const body = JSON.parse(init.body as string);
     expect(body.requester).toBeUndefined();
 
     await waitFor(() => {

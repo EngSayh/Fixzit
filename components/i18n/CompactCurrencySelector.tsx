@@ -24,7 +24,7 @@ export default function CompactCurrencySelector({ className = '' }: CompactCurre
   const handleChange = (newCurrency: string) => {
     // Update currency in context (cast to the expected function shape to avoid `any`)
     if (setCurrency) {
-      (setCurrency as (c: string) => void)(newCurrency);
+      (setCurrency as (val: string) => void)(newCurrency); // eslint-disable-line no-unused-vars
     }
 
     // Persist to localStorage as fallback

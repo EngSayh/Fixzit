@@ -39,7 +39,7 @@ interface Category {
 }
 
 export default async function MarketplaceAdminPage() {
-  const [_categoriesResponse, productsResponse, ordersResponse, rfqResponse] = await Promise.all([
+  const [, productsResponse, ordersResponse, rfqResponse] = await Promise.all([
     serverFetchJsonWithTenant<{ data: Category[] }>('/api/marketplace/categories'),
     serverFetchJsonWithTenant<{ data: { items: Product[] } }>('/api/marketplace/products?limit=50'),
     serverFetchJsonWithTenant<{ data: Order[] }>('/api/marketplace/orders'),

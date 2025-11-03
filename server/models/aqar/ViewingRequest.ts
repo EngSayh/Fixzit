@@ -154,6 +154,6 @@ ViewingRequestSchema.index({ orgId: 1, confirmedDate: 1, status: 1 });
 ViewingRequestSchema.index({ orgId: 1, status: 1 });
 ViewingRequestSchema.index({ orgId: 1, preferredDate: 1 });
 
-const ViewingRequest = models.ViewingRequest || model<ViewingRequest>('ViewingRequest', ViewingRequestSchema);
+const ViewingRequestModel = models.ViewingRequest || model<ViewingRequest>('ViewingRequest', ViewingRequestSchema);
 
-export default ViewingRequest;
+export default ViewingRequestModel;

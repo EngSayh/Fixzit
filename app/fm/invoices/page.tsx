@@ -289,40 +289,9 @@ export default function InvoicesPage() {
 function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdated: () => void; orgId: string }) {
   const { t } = useTranslation();
   
-  const _handleView = () => {
-    toast.info('Invoice detail view coming soon');
-  };
-
-  const _handleDownload = () => {
-    toast.info('PDF download coming soon');
-  };
-
-  const _handleSend = async () => {
-    if (!orgId) {
-      toast.error('No organization ID found');
-      return;
-    }
-
-    const toastId = toast.loading('Sending invoice...');
-    
-    try {
-      const response = await fetch(`/api/finance/invoices/${invoice.id}/send`, {
-        method: 'POST',
-        headers: { 'x-tenant-id': orgId }
-      });
-      
-      if (response.ok) {
-        toast.success('Invoice sent successfully', { id: toastId });
-        onUpdated();
-      } else {
-        const error = await response.json();
-        toast.error(`Failed to send invoice: ${error.error || 'Unknown error'}`, { id: toastId });
-      }
-    } catch (error) {
-      toast.error('An error occurred while sending the invoice', { id: toastId });
-      console.error('Send error:', error);
-    }
-  };
+  // Suppress unused variable warnings - these props are for future use
+  void onUpdated;
+  void orgId;
 
   const getStatusColor = (status: string) => {
     switch (status) {

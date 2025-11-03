@@ -18,6 +18,7 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+/* eslint-disable no-unused-vars */
 export enum BookingStatus {
   PENDING = 'PENDING',
   CONFIRMED = 'CONFIRMED',
@@ -26,6 +27,7 @@ export enum BookingStatus {
   CANCELLED = 'CANCELLED',
   REJECTED = 'REJECTED',
 }
+/* eslint-enable no-unused-vars */
 
 const ACTIVE_STATUSES: BookingStatus[] = [
   BookingStatus.PENDING,
@@ -90,6 +92,7 @@ export interface IBooking extends Document {
   confirm(): Promise<void>;
   checkIn(): Promise<void>;
   checkOut(): Promise<void>;
+  // eslint-disable-next-line no-unused-vars
   cancel(userId: mongoose.Types.ObjectId, reason?: string): Promise<void>;
 }
 
@@ -241,6 +244,7 @@ BookingSchema.pre('validate', function (next) {
  * Confirm a pending booking (PENDING → CONFIRMED)
  * Throws if not in PENDING status
  */
+  // eslint-disable-next-line no-unused-vars
 BookingSchema.methods.confirm = async function (this: IBooking) {
   if (this.status !== BookingStatus.PENDING) {
     throw new Error('Only pending bookings can be confirmed');
@@ -254,6 +258,7 @@ BookingSchema.methods.confirm = async function (this: IBooking) {
  * Validates check-in date is today or in the past
  * Throws if not in CONFIRMED status or if before check-in date
  */
+  // eslint-disable-next-line no-unused-vars
 BookingSchema.methods.checkIn = async function (this: IBooking) {
   if (this.status !== BookingStatus.CONFIRMED) {
     throw new Error('Only confirmed bookings can be checked in');
@@ -271,6 +276,7 @@ BookingSchema.methods.checkIn = async function (this: IBooking) {
  * Check out a checked-in booking (CHECKED_IN → CHECKED_OUT)
  * Throws if not in CHECKED_IN status
  */
+  // eslint-disable-next-line no-unused-vars
 BookingSchema.methods.checkOut = async function (this: IBooking) {
   if (this.status !== BookingStatus.CHECKED_IN) {
     throw new Error('Only checked-in bookings can be checked out');
@@ -329,6 +335,7 @@ BookingSchema.methods.cancel = async function (
 
 /* ---------------- Statics: availability & atomic create ---------------- */
 
+/* eslint-disable no-unused-vars */
 interface BookingModel extends Model<IBooking> {
   /**
    * Check if any active booking overlaps with the given nights
@@ -373,6 +380,7 @@ interface BookingModel extends Model<IBooking> {
     session?: mongoose.ClientSession
   ): Promise<IBooking>;
 }
+/* eslint-enable no-unused-vars */
 
 /**
  * Check if any active booking has reserved any of the given nights

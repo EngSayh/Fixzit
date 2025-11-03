@@ -301,42 +301,5 @@ async function rateLimitAssert(req: NextRequest) {
   rateMap.set(key, rec);
   if (rec.count > MAX_RATE_PER_MIN) throw new Error('Rate limited');
 }
-// Add request validation middleware
-function _validateRequest(body: AskRequest): { valid: boolean; error?: string } {
-  if (!body.question?.trim()) {
-    return { valid: false, error: 'Question is required' };
-  }
-  if (body.limit !== undefined && (!Number.isFinite(body.limit) || body.limit < 1 || body.limit > 8)) {
-    return { valid: false, error: 'Limit must be between 1 and 8' };
-  }
-  if (body.category && typeof body.category !== 'string') {
-    return { valid: false, error: 'Category must be a string' };
-  }
-  return { valid: true };
-}
-
-// Add response caching
-const _responseCache = new Map<string, { data: unknown; timestamp: number }>();
-const _CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-function _getCacheKey(question: string, category?: string, lang?: string): string {
-  return crypto.createHash('sha256')
-    .update(`${question}:${category || ''}:${lang || 'en'}`)
-    .digest('hex');
-}
-
-// Add metrics collection
-async function _trackMetrics(action: string, success: boolean, duration: number) {
-  // Implement your metrics collection here
-  console.log(`Metrics: action=${action}, success=${success}, duration=${duration}ms`);
-}
-
-// Add security headers (Note: middleware should be in middleware.ts file, not in API routes)
-function _addSecurityHeaders(response: NextResponse) {
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('X-Frame-Options', 'DENY');
-  response.headers.set('X-XSS-Protection', '1; mode=block');
-  return response;
-}
 // Note: Next.js restricts API route exports to HTTP methods only (GET, POST, etc.)
 

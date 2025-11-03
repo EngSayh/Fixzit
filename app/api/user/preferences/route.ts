@@ -43,7 +43,7 @@ function deepMerge(...objects: Array<Record<string, unknown> | undefined>) {
  *
  * Get current user's preferences (language, theme, notifications, etc.)
  */
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     const session = await auth();    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

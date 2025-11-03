@@ -9,7 +9,7 @@
  * - Verify query building: text search terms, regex case-insensitivity, sorting, limiting, and tenant scoping.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any, no-unused-vars */
+ 
 
 import { vi } from 'vitest';
 

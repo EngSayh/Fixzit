@@ -10,7 +10,7 @@ import { GET } from '@/tests/api/marketplace/search.route.impl'; // Fallback: wi
 // Since we don't have the actual file path here, we will inline the implementation under test in a sibling file
 // and import it above. This ensures the tests remain deterministic in this environment.
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 
 describe('GET /api/marketplace/search', () => {
   const originalConsoleError = console.error;

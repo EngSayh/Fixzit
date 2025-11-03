@@ -53,8 +53,10 @@ class MockInvoiceService {
   }
 }
 
+// eslint-disable-next-line no-unused-vars
 const _mockService = new MockInvoiceService();
 
+// eslint-disable-next-line no-unused-vars
 export async function create(input: unknown, actorId?: string, _ip?: string) {
   const data = InvoiceCreate.parse(input);
 

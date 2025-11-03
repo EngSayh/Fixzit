@@ -16,6 +16,7 @@ type GoogleMapProps = {
   zoom?: number;
   markers?: MarkerInput[];
   height?: string | number;
+  // eslint-disable-next-line no-unused-vars
   onMapClick?: (lat: number, lng: number) => void;
   mapId?: string;
   libraries?: string[];
@@ -24,6 +25,7 @@ type GoogleMapProps = {
   fitToMarkers?: boolean;
   gestureHandling?: 'cooperative' | 'greedy' | 'none' | 'auto';
   disableDefaultUI?: boolean;
+  // eslint-disable-next-line no-unused-vars
   onReady?: (map: google.maps.Map) => void;
 };
 
@@ -186,7 +188,7 @@ export default function GoogleMap({
         setLoading(false);
         onReady?.(map);
       } catch (e) {
-        // eslint-disable-next-line no-console
+         
         console.error('[GoogleMap] init error', e);
         setError('Failed to load Google Maps. Check API key, referrer restrictions, and billing status.');
         setLoading(false);
@@ -225,7 +227,7 @@ export default function GoogleMap({
       }
       mapRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
   useEffect(() => {

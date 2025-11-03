@@ -45,15 +45,16 @@ interface Product {
 
 export default async function ProductDetail(props: ProductPageProps) {
   const params = await props.params;
-  const [categoriesResponse, productResponse] = await Promise.all([
+  const [, productResponse] = await Promise.all([
     serverFetchJsonWithTenant<{ data: Category[] }>('/api/marketplace/categories'),
     serverFetchJsonWithTenant<{ data: { product: Product; category?: Category } }>(`/api/marketplace/products/${params.slug}`)
   ]);
 
-  const _departments = (categoriesResponse.data as Category[]).map(category => ({
-    slug: category.slug,
-    name: category.name?.en ?? category.slug
-  }));
+  // departments unused - future feature
+  // const departments = (categories.data as Category[]).map(category => ({
+  //   slug: category.slug,
+  //   name: category.name?.en ?? category.slug
+  // }));
 
   const product = productResponse.data.product;
   const category = productResponse.data.category;

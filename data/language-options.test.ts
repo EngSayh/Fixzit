@@ -5,9 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { LANGUAGE_OPTIONS, type LanguageOption } from './language-options';
-
-type Lang = LanguageOption;
+import { LANGUAGE_OPTIONS } from './language-options';
 
 describe('language-options data integrity', () => {
   it('should export a non-empty array', () => {

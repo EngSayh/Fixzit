@@ -11,7 +11,6 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { STORAGE_KEYS } from '@/config/constants';
 import LanguageSelector from '@/components/i18n/LanguageSelector';
 import CurrencySelector from '@/components/i18n/CurrencySelector';
 import GoogleSignInButton from '@/components/auth/GoogleSignInButton';

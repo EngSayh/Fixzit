@@ -787,7 +787,6 @@ export default function NewExpensePage() {
                   <div key={receipt.id} className="relative border border-border rounded-2xl p-2">
                     {receipt.file.type.startsWith('image/') ? (
                       <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={receipt.preview} alt={receipt.file.name} className="w-full h-32 object-cover rounded" />
                       </>
                     ) : (

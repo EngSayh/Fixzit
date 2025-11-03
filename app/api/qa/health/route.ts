@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
   try {
     const memUsage = process.memoryUsage();
     healthStatus.memory = `RSS: ${Math.round(memUsage.rss / 1024 / 1024)}MB, Heap: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`;
-  } catch (error) {
+  } catch {
     healthStatus.memory = 'unknown';
   }
 

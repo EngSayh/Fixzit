@@ -17,7 +17,7 @@ const tryImportCandidates = async () => {
   ];
   for (const p of candidates) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+       
       const m = await import(p);
       if (m.executeTool && m.detectToolFromMessage) {
         return m;

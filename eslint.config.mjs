@@ -53,9 +53,15 @@ export default [
         ...globals.browser,
         ...globals.node,
         ...globals.es2021,
-        // TypeScript DOM types
-        HeadersInit: 'readonly',
+        // Additional browser/library globals
+        google: 'readonly',
+        NodeJS: 'readonly',
         RequestInit: 'readonly',
+        HeadersInit: 'readonly',
+        EventListener: 'readonly',
+        // Next.js 14+ uses new JSX transform - React is available globally
+        React: 'readonly',
+        JSX: 'readonly',
       },
       parser: tseslint.parser,
       parserOptions: {
@@ -87,7 +93,15 @@ export default [
       'no-useless-escape': 'warn',
       'no-mixed-spaces-and-tabs': 'off',
 
-      /* Next.js specific rules - handled by eslint-config-next */
+      /* Next.js specific rules */
+    },
+  },
+
+  // Next.js specific overrides
+  {
+    files: ['**/*.{ts,tsx,js,jsx}'],
+    rules: {
+      '@next/next/no-img-element': 'off', // Allow img tags for data URLs and dynamic images
     },
   },
 
@@ -131,13 +145,39 @@ export default [
     },
   },
 
-  // Test files - More permissive
+  // Test files - More permissive with test framework globals
   {
-    files: ['**/*.test.{ts,tsx,js,jsx}', '**/*.spec.{ts,tsx,js,jsx}', 'qa/**/*', 'tests/**/*'],
+    files: [
+      '**/*.test.{ts,tsx,js,jsx,mjs}', 
+      '**/*.spec.{ts,tsx,js,jsx,mjs}', 
+      'qa/**/*', 
+      'tests/**/*',
+      'server/**/__tests__/**/*',
+    ],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...globals.es2021,
+        // Vitest/Jest globals
+        describe: 'readonly',
+        test: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        vi: 'readonly',
+        jest: 'readonly',
+      },
+    },
     rules: {
       '@typescript-eslint/ban-ts-comment': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
+      'no-unused-vars': 'off', // Also disable base rule for test files
+      'no-undef': 'off', // Disable for test files since we define globals
     },
   },
 

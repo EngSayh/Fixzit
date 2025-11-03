@@ -140,8 +140,10 @@ interface SidebarProps {
   tenantId?: string;
 }
 
+// eslint-disable-next-line no-unused-vars
 export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenantId: _tenantId }: SidebarProps) {
   const pathname = usePathname();
+  // eslint-disable-next-line no-unused-vars
   const { responsiveClasses: _responsiveClasses, screenInfo } = useResponsiveLayout();
 
   // hooks must be top-level

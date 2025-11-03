@@ -8,7 +8,7 @@ import * as repo from "./wo.repo";
 import { audit } from "@/server/copilot/audit";
 
 // Jest/Vitest compatibility shims
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const g = global as any;
 const isVitest = typeof g.vi !== "undefined";
 const testRunner = isVitest ? g.vi : g.jest;
@@ -31,22 +31,22 @@ testRunner.mock("./wo.schema", () => ({
   WoUpdate: { parse: testRunner.fn() },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const mocked = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   woCreate: (repo as any).woCreate as ReturnType<typeof vi.fn>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   woUpdate: (repo as any).woUpdate as ReturnType<typeof vi.fn>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   woGet: (repo as any).woGet as ReturnType<typeof vi.fn>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   woList: (repo as any).woList as ReturnType<typeof vi.fn>,
   audit: audit as unknown as ReturnType<typeof vi.fn>,
   withIdempotency: withIdempotency as unknown as ReturnType<typeof vi.fn>,
   createIdempotencyKey: createIdempotencyKey as unknown as ReturnType<typeof vi.fn>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   WoCreateParse: (WoCreate as any).parse as ReturnType<typeof vi.fn>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   WoUpdateParse: (WoUpdate as any).parse as ReturnType<typeof vi.fn>,
 };
 
@@ -138,7 +138,7 @@ describe("wo.service", () => {
     });
 
     it("rejects invalid status transition", async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const input: any = { status: "completed" }; // Test: invalid transition from NEW - intentionally wrong type
       const patch = { status: "COMPLETED" };
       const existing = { id, code: "WO-4", tenantId, status: "NEW" };

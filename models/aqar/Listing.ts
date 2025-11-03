@@ -8,6 +8,7 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
 // Enums
+/* eslint-disable no-unused-vars */
 export enum ListingIntent {
   BUY = 'BUY',
   RENT = 'RENT',
@@ -58,6 +59,7 @@ export enum RentFrequency {
   MONTHLY = 'MONTHLY',
   YEARLY = 'YEARLY',
 }
+/* eslint-enable no-unused-vars */
 
 // Interfaces
 export interface IListingMedia {
@@ -245,11 +247,13 @@ ListingSchema.index({ publishedAt: -1 }); // Published sort
 ListingSchema.index({ featuredLevel: -1, publishedAt: -1 }); // Featured first
 
 // Virtual for Atlas Search (if enabled)
+// eslint-disable-next-line no-unused-vars
 ListingSchema.virtual('searchText').get(function (this: IListing) {
   return `${this.title || ''} ${this.description || ''} ${this.amenities.join(' ')}`;
 });
 
 // Methods - using atomic updates to prevent race conditions
+// eslint-disable-next-line no-unused-vars
 ListingSchema.methods.incrementViews = async function (this: IListing) {
   await (this.constructor as typeof import('mongoose').Model).updateOne(
     { _id: this._id },
@@ -260,6 +264,7 @@ ListingSchema.methods.incrementViews = async function (this: IListing) {
   );
 };
 
+// eslint-disable-next-line no-unused-vars
 ListingSchema.methods.incrementFavorites = async function (this: IListing) {
   await (this.constructor as typeof import('mongoose').Model).updateOne(
     { _id: this._id },
@@ -267,6 +272,7 @@ ListingSchema.methods.incrementFavorites = async function (this: IListing) {
   );
 };
 
+// eslint-disable-next-line no-unused-vars
 ListingSchema.methods.incrementInquiries = async function (this: IListing) {
   await (this.constructor as typeof import('mongoose').Model).updateOne(
     { _id: this._id },

@@ -62,7 +62,6 @@ describe('Asset model schema', () => {
     const required = ['tenantId', 'code', 'name', 'type', 'category', 'propertyId', 'createdBy'] as const;
     for (const field of required) {
       const data = buildValidAsset();
-      // @ts-expect-error intentional omission
       delete (data as AnyObj)[field];
       const doc = new (Asset as any)(data);
       const err = doc.validateSync();
@@ -108,10 +107,10 @@ describe('Asset model schema', () => {
   });
 
   it('validates maintenanceHistory.type against its enum', () => {
-    const ok = new (Asset as any)(buildValidAsset({ maintenanceHistory: [{ type: 'INSPECTION' }] }));
+    const ok = new (Asset as any)(buildValidAsset({ maintenanceHistory: [{ type: 'INSPECTION' }] as any }));
     expect(ok.validateSync()).toBeUndefined();
 
-    const bad = new (Asset as any)(buildValidAsset({ maintenanceHistory: [{ type: 'RANDOM' as any }] }));
+    const bad = new (Asset as any)(buildValidAsset({ maintenanceHistory: [{ type: 'RANDOM' }] as any }));
     const err = bad.validateSync();
     expect(err).toBeDefined();
     expect((err as AnyObj).errors?.['maintenanceHistory.0.type']).toBeDefined();

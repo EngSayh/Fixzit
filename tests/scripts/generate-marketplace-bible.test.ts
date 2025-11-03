@@ -23,7 +23,7 @@ import { spawnSync } from "child_process";
 // @ts-ignore
 let usingVitest = false;
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+   
   const v = require("vitest");
   if (v && v.describe && v.it) {
     usingVitest = true;
@@ -136,7 +136,7 @@ const expectedContentIncludes = [
     const testUtils = usingVitest
       ? (() => {
           try {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
+             
             const v = require("vitest");
             return v.vi;
           } catch (_) {

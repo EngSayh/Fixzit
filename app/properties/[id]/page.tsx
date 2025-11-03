@@ -10,7 +10,7 @@ export default function PropertyDetailPage() {
   const propertyId = params.id;
   const { isRTL } = useTranslation();
   
-  const [property, _setProperty] = useState({
+  const [property] = useState({
     id: propertyId,
     name: 'Al Faisaliah Tower',
     address: 'King Fahd Road, Riyadh 12211, Saudi Arabia',
@@ -58,7 +58,6 @@ export default function PropertyDetailPage() {
           script.parentNode.removeChild(script);
         }
         // Clean up the global callback
-        // @ts-ignore - Safe to delete runtime property
         delete (window as any).initMap;
       };
     } else {

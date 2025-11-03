@@ -61,8 +61,10 @@ export interface CrudFactoryOptions<T = unknown> {
   /** Optional: Rate limit config (requests per window) */
   rateLimit?: { requests: number; windowMs: number };
   /** Optional: Custom filter builder */
+  // eslint-disable-next-line no-unused-vars
   buildFilter?: (searchParams: URLSearchParams, orgId: string) => Record<string, unknown>;
   /** Optional: Hook to transform data before creation (e.g., add SLA, init state) */
+  // eslint-disable-next-line no-unused-vars
   onCreate?: (data: Record<string, unknown>, user: { id: string; orgId: string; role: string }) => Promise<Record<string, unknown>> | Record<string, unknown>;
 }
 

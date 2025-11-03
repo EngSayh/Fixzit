@@ -58,11 +58,11 @@ const createAssetSchema = z.object({
  * Build Asset Filter
  */
 function buildAssetFilter(searchParams: URLSearchParams, orgId: string) {
-  const filter: Record<string, any> = { orgId };
+  const filter: Record<string, unknown> = { orgId };
 
-  const type = searchParams.get('type');
-  if (type && ["HVAC", "ELECTRICAL", "PLUMBING", "SECURITY", "ELEVATOR", "GENERATOR", "FIRE_SYSTEM", "IT_EQUIPMENT", "VEHICLE", "OTHER"].includes(type)) {
-    filter.type = type;
+  const assetType = searchParams.get('type');
+  if (assetType && ["HVAC", "ELECTRICAL", "PLUMBING", "SECURITY", "ELEVATOR", "GENERATOR", "FIRE_SYSTEM", "IT_EQUIPMENT", "VEHICLE", "OTHER"].includes(assetType)) {
+    filter.type = assetType;
   }
 
   const status = searchParams.get('status');

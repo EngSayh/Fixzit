@@ -58,7 +58,7 @@ export default function AuditLogViewer() {
   const [totalLogs, setTotalLogs] = useState(0);
   
     // Extract locale for internationalization support
-  const { language: _language, locale: userLocale } = useTranslation();
+  const { locale: userLocale } = useTranslation();
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);

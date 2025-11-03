@@ -2,6 +2,7 @@ import { Schema, model, models, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
+// eslint-disable-next-line no-unused-vars
 const _ProjectStatus = ["PLANNING", "APPROVED", "IN_PROGRESS", "ON_HOLD", "COMPLETED", "CANCELLED", "CLOSED"] as const;
 const ProjectType = ["NEW_CONSTRUCTION", "RENOVATION", "MAINTENANCE", "FIT_OUT", "DEMOLITION"] as const;
 

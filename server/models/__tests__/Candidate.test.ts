@@ -11,9 +11,9 @@
  * - For non-mock branch, we mock 'mongoose' model()/models to intercept findOne without requiring a real DB.
  * - For mock branch, we mock '@/lib/mockDb' to control MockModel behavior.
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, test, expect, beforeEach, afterEach } from 'vitest';
 
 // Helper to reset module registry between branch toggles
 const resetModules = async () => {

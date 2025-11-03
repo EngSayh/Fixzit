@@ -9,7 +9,7 @@ import { vi } from 'vitest';
 import type { Db, Collection, MongoClient, Document } from 'mongodb';
 
 // Mock MongoDB collection methods
-export const createMockCollection = <T = Document>(): Partial<Collection<T>> => ({
+export const createMockCollection = <T extends Document = Document>(): Partial<Collection<T>> => ({
   insertOne: vi.fn().mockResolvedValue({ 
     acknowledged: true,
     insertedId: 'mock-id-123' 
@@ -66,7 +66,7 @@ export const createMockCollection = <T = Document>(): Partial<Collection<T>> => 
 
 // Mock MongoDB database
 export const createMockDatabase = (): Partial<Db> => ({
-  collection: vi.fn(<T = Document>(name: string) => createMockCollection<T>() as Collection<T>),
+  collection: vi.fn(<T extends Document = Document>(_name: string) => createMockCollection<T>() as Collection<T>) as any,
   command: vi.fn().mockResolvedValue({ ok: 1 }),
   listCollections: vi.fn().mockReturnValue({
     toArray: vi.fn().mockResolvedValue([]),
@@ -75,7 +75,7 @@ export const createMockDatabase = (): Partial<Db> => ({
 
 // Mock MongoDB client
 export const createMockClient = (): Partial<MongoClient> => ({
-  db: vi.fn((name?: string) => createMockDatabase() as Db),
+  db: vi.fn((_name?: string) => createMockDatabase() as Db),
   close: vi.fn().mockResolvedValue(undefined),
   connect: vi.fn().mockResolvedValue(undefined as unknown as MongoClient),
 });

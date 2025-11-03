@@ -58,7 +58,7 @@ export function logWithCorrelation(
     message,
     ...additional,
   };
-  // eslint-disable-next-line no-console
+   
   console[level](`[MarketplaceCorrelation] ${message}`, logData);
 }
 
