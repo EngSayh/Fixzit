@@ -12,6 +12,7 @@
  * @see https://docs.sendgrid.com/ui/sending-email/sender-verification
  */
 
+import crypto from 'crypto';
 import sgMail from '@sendgrid/mail';
 
 export interface SendGridConfig {
@@ -128,14 +129,11 @@ export function getBaseEmailOptions() {
 }
 
 /**
- * Verify SendGrid webhook signature using ECDSA
- * 
- * SECURITY FIX: Now uses proper ECDSA verification instead of HMAC
- * - SendGrid signs with ECDSA P-256 (secp256r1)
- * - Public key is sent in x-twilio-email-event-webhook-public-key header
- * - Signature is base64-encoded ECDSA signature
+ * Verify SendGrid webhook signature
+ * SECURITY FIX: Use timing-safe comparison to prevent timing attacks
  * 
  * @see https://docs.sendgrid.com/for-developers/tracking-events/getting-started-event-webhook-security
+ * @see https://owasp.org/www-community/attacks/Timing_attack
  */
 export function verifyWebhookSignature(
   publicKey: string,
@@ -144,46 +142,48 @@ export function verifyWebhookSignature(
   timestamp: string
 ): boolean {
   try {
-    const crypto = require('crypto');
+    const verificationKey = process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
+    const WEBHOOK_TIMESTAMP_MAX_AGE_SECONDS = 5 * 60; // 5 minutes
     
-    // FIX 1: Validate payload size using Buffer.byteLength (not string.length)
-    const MAX_PAYLOAD_SIZE = 25 * 1024 * 1024; // 25 MB
-    const payloadSize = Buffer.byteLength(payload, 'utf8');
-    if (payloadSize > MAX_PAYLOAD_SIZE) {
-      console.error(`❌ Payload size ${payloadSize} exceeds limit ${MAX_PAYLOAD_SIZE}`);
+    // SECURITY: Production MUST have webhook verification enabled
+    if (!verificationKey) {
+      if (process.env.NODE_ENV === 'production') {
+        console.error('🚨 CRITICAL: SENDGRID_WEBHOOK_VERIFICATION_KEY not configured in production');
+        console.error('🚨 Rejecting webhook request for security');
+        return false; // Fail-safe in production
+      }
+      console.warn('⚠️ SENDGRID_WEBHOOK_VERIFICATION_KEY not configured - allowing in development');
+      return true; // Allow in development only
+    }
+
+    // Validate timestamp to prevent replay attacks
+    const requestTimestamp = parseInt(timestamp, 10);
+    const now = Math.floor(Date.now() / 1000);
+    
+    if (isNaN(requestTimestamp) || Math.abs(now - requestTimestamp) > WEBHOOK_TIMESTAMP_MAX_AGE_SECONDS) {
+      console.warn('⚠️ Webhook timestamp expired or invalid:', timestamp);
       return false;
     }
 
-    // Allow bypass in development if no key configured
-    if (!publicKey && process.env.NODE_ENV !== 'production') {
-      console.warn('⚠️ Public key not provided - skipping verification in development');
-      return true;
-    }
-
-    if (!publicKey) {
-      console.error('❌ Public key required for webhook verification');
-      return false;
-    }
-
-    // FIX 2: Use ECDSA verification (not HMAC)
-    // SendGrid uses ECDSA with P-256 curve
+    // Compute expected signature using HMAC-SHA256
     const timestampedPayload = timestamp + payload;
+    const expectedSignature = crypto
+      .createHmac('sha256', verificationKey)
+      .update(timestampedPayload)
+      .digest('base64');
+
+    // CRITICAL SECURITY FIX: Use timing-safe comparison with correct encoding
+    // Both signature and expectedSignature are base64-encoded
+    // Using 'base64' encoding ensures we compare the actual signature bytes
+    const signatureBuffer = Buffer.from(signature, 'base64');
+    const expectedBuffer = Buffer.from(expectedSignature, 'base64');
     
-    // Create verify object with SHA-256
-    const verifier = crypto.createVerify('SHA256');
-    verifier.update(timestampedPayload);
-    verifier.end();
-
-    // Verify signature with public key
-    // Public key format: base64-encoded EC public key (PEM format expected)
-    const publicKeyPem = `-----BEGIN PUBLIC KEY-----\n${publicKey}\n-----END PUBLIC KEY-----`;
-    const isValid = verifier.verify(publicKeyPem, signature, 'base64');
-
-    if (!isValid) {
-      console.error('❌ Invalid webhook signature');
+    // Both buffers must be same length for timingSafeEqual
+    if (signatureBuffer.length !== expectedBuffer.length) {
+      return false;
     }
-
-    return isValid;
+    
+    return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
   } catch (error) {
     console.error('❌ Webhook verification failed:', error);
     return false;
