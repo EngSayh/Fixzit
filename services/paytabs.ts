@@ -68,6 +68,20 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
   subscription.status = 'ACTIVE';
   subscription.amount = payload.amount ?? subscription.amount;
   subscription.currency = (payload.currency as unknown) || subscription.currency;
+  
+  // Set next_billing_date for recurring subscriptions
+  if (!subscription.next_billing_date && subscription.billing_cycle === 'MONTHLY') {
+    const nextBillingDate = new Date();
+    nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+    nextBillingDate.setUTCHours(0, 0, 0, 0);
+    subscription.next_billing_date = nextBillingDate;
+  } else if (!subscription.next_billing_date && subscription.billing_cycle === 'ANNUAL') {
+    const nextBillingDate = new Date();
+    nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);
+    nextBillingDate.setUTCHours(0, 0, 0, 0);
+    subscription.next_billing_date = nextBillingDate;
+  }
+  
   subscription.paytabs = {
     ...(subscription.paytabs || {}),
     token: payload.token ?? subscription.paytabs?.token,
@@ -76,6 +90,18 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
     cart_id: subscription.paytabs?.cart_id,
     profile_id: subscription.paytabs?.profile_id,
   } as unknown;
+  
+  // Record successful payment in billing history
+  if (subscription.billing_history) {
+    subscription.billing_history.push({
+      date: new Date(),
+      amount: subscription.amount,
+      currency: subscription.currency,
+      tran_ref: payload.tran_ref,
+      status: 'SUCCESS'
+    } as never);
+  }
+  
   await subscription.save();
 
   if (
