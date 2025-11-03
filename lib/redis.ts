@@ -34,8 +34,8 @@ export function getRedisClient(): Redis | null {
     return null;
   }
 
-  // Return existing connection
-  if (redis && redis.status === 'ready') {
+  // Return existing connection if ready, connecting, or reconnecting
+  if (redis && (redis.status === 'ready' || redis.status === 'connecting' || redis.status === 'reconnecting')) {
     return redis;
   }
 
@@ -44,6 +44,7 @@ export function getRedisClient(): Redis | null {
     return null;
   }
 
+  // Wrap Redis instantiation in try-catch to handle constructor errors
   try {
     isConnecting = true;
     
@@ -66,9 +67,11 @@ export function getRedisClient(): Redis | null {
     redis.on('error', (err) => {
       console.error('[Redis] Connection error:', {
         message: err.message,
-        code: (err as NodeJS.ErrnoException).code,
+        code: (err as { code?: string }).code,
         timestamp: new Date().toISOString()
       });
+      // Reset isConnecting flag on error to allow retry attempts
+      isConnecting = false;
     });
 
     redis.on('connect', () => {
@@ -82,10 +85,18 @@ export function getRedisClient(): Redis | null {
 
     redis.on('close', () => {
       console.warn('[Redis] Connection closed');
+      // Reset isConnecting flag on close to allow reconnection
+      isConnecting = false;
     });
 
     redis.on('reconnecting', () => {
       console.log('[Redis] Reconnecting...');
+    });
+
+    redis.on('end', () => {
+      console.log('[Redis] Connection ended');
+      // Reset isConnecting flag when connection ends
+      isConnecting = false;
     });
 
     return redis;
@@ -148,7 +159,8 @@ export async function isRedisHealthy(): Promise<boolean> {
  * );
  */
 export async function safeRedisOp<T>(
-  operation: (_client: Redis) => Promise<T>,
+  // eslint-disable-next-line no-unused-vars
+  operation: (client: Redis) => Promise<T>,
   fallback: T
 ): Promise<T> {
   const client = getRedisClient();

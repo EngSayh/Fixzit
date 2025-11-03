@@ -41,6 +41,17 @@ export async function GET(req: NextRequest) {
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;
+    
+    // SECURITY: Consistent authentication enforcement across GET and POST
+    // Fallback to NEXT_PUBLIC_ORG_ID for public job listings (if configured)
+    // Otherwise require authentication to prevent anonymous access
+    if (!user && !process.env.NEXT_PUBLIC_ORG_ID) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+    
     const orgId = user?.orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
     
     const { searchParams } = new URL(req.url);
