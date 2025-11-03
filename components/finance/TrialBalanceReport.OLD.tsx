@@ -33,9 +33,11 @@ interface ITrialBalanceData {
 interface ITrialBalanceReportProps {
   initialYear?: number;
   initialPeriod?: number;
+/* eslint-disable no-unused-vars */
   onExport?: (data: ITrialBalanceData) => void;
 }
 
+/* eslint-enable no-unused-vars */
 export default function TrialBalanceReport({
   initialYear = new Date().getFullYear(),
   initialPeriod = new Date().getMonth() + 1,

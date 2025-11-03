@@ -41,9 +41,11 @@ interface ITrialBalanceData {
 interface ITrialBalanceReportProps {
   initialYear?: number;
   initialPeriod?: number;
+/* eslint-disable no-unused-vars */
   onExport?: (data: ITrialBalanceData) => void;
 }
 
+/* eslint-enable no-unused-vars */
 // Constants
 const API_ENDPOINT = '/api/finance/ledger/trial-balance';
 
