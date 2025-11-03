@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { User } from '@/server/models/User';
@@ -43,7 +43,7 @@ function normalizeUserProfile(user: UserProfileDocument) {
  * GET /api/user/profile - Fetch current user's profile
  * @returns User profile data or 401 if not authenticated
  */
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     // Check authentication
     const session = await auth();
