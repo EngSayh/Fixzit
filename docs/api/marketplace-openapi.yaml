@@ -3,25 +3,25 @@ info:
   title: Fixzit Marketplace API
   description: |
     Complete OpenAPI specification for Fixzit Marketplace endpoints.
-    
+
     This API provides comprehensive marketplace functionality including:
-  - Product search and catalog management
-  - Vendor and service provider operations
+    - Product search and catalog management
+    - Vendor and service provider operations
     - Request for Quote (RFQ) system
     - Order management and tracking
     - Payment processing integration
-    
+
     ## Authentication
-    
+
     All endpoints require JWT authentication via the `Authorization` header:
     ```
     Authorization: Bearer <your_jwt_token>
     ```
-    
+
     ## Tenant Isolation
-    
-    All requests are automatically scoped to your organization/tenant using the `x-tenant-id` header.
-    
+
+    All requests are automatically scoped to your organization/tenant using
+    the `x-tenant-id` header.
   version: 1.0.0
   contact:
     name: Fixzit API Support
@@ -43,8 +43,9 @@ paths:
     get:
       summary: Search marketplace products and services
       description: |
-        Comprehensive search across marketplace catalog with advanced filtering,
-        sorting, and pagination. Supports both text search and faceted filtering.
+        Comprehensive search across marketplace catalog with advanced
+        filtering, sorting, and pagination. Supports both text search and
+        faceted filtering.
       operationId: searchMarketplace
       tags:
         - Marketplace Search
@@ -248,7 +249,9 @@ paths:
   /marketplace/vendors/{vendorId}:
     get:
       summary: Get vendor profile and services
-      description: Retrieve detailed vendor information including services, ratings, and portfolio
+      description: |
+        Retrieve detailed vendor information including services, ratings,
+        and portfolio
       operationId: getVendorProfile
       tags:
         - Vendors
@@ -303,7 +306,6 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-<<<<<<< HEAD
 
   schemas:
     MarketplaceSearchResult:
@@ -732,5 +734,3 @@ tags:
 externalDocs:
   description: Fixzit Developer Documentation
   url: https://docs.fixzit.co
-=======
->>>>>>> main
