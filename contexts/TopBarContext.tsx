@@ -39,7 +39,7 @@ export function TopBarProvider({ children }: { children: React.ReactNode }) {
     searchEntities: appConfig.searchEntities,
     quickActions: appConfig.quickActions,
     setApp,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }), [app]); // Only depend on app, not appConfig (derived from app)
 
   return (

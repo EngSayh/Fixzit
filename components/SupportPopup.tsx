@@ -164,7 +164,7 @@ ${errorDetails.error?.componentStack || t('support.noComponentStack', 'No compon
       setPriority('High');
       setText(generateErrorDescription(errorDetails));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [errorDetails]);
 
   const submit = async () => {

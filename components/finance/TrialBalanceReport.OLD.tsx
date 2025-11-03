@@ -65,7 +65,7 @@ export default function TrialBalanceReport({
 
   useEffect(() => {
     loadTrialBalance();
-  }, [year, period]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [year, period]);
 
   const loadTrialBalance = async () => {
     try {

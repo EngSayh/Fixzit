@@ -78,7 +78,7 @@ export default function AccountActivityViewer({
     if (accountId) {
       loadAccountActivity();
     }
-  }, [accountId, startDate, endDate, sourceTypeFilter, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [accountId, startDate, endDate, sourceTypeFilter, currentPage]);
 
   const loadAccountActivity = async () => {
     if (!accountId) return;

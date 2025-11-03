@@ -139,14 +139,14 @@ export default function NewPaymentPage() {
       }
     };
     loadAccounts();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load available invoices when payment type is RECEIVED
   useEffect(() => {
     if (paymentType === 'RECEIVED' && showInvoiceAllocation) {
       loadAvailableInvoices();
     }
-  }, [paymentType, showInvoiceAllocation]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [paymentType, showInvoiceAllocation]);
 
   const loadAvailableInvoices = async () => {
     try {

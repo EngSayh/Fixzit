@@ -87,7 +87,7 @@ export default function SystemVerifier() {
 
   useEffect(() => {
     runVerification();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
   return (
