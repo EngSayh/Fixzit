@@ -64,12 +64,8 @@ export const SelectItem: React.FC<SelectItemProps> = ({ className = '', children
       className={`cursor-pointer select-none py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-muted ${className}`}
       {...props}
     >
-      <span aria-hidden={false}>
-        {label}
-        {description ? (
-          <span className="text-xs text-muted-foreground ml-2">{description}</span>
-        ) : null}
-      </span>
+      {label}
+      {description ? ` ${description}` : ''}
     </option>
   );
 };
