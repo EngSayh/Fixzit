@@ -112,9 +112,7 @@ const ErrorFallbackUI = ({ errorId, onRefresh }: { errorId: string, onRefresh: (
   let t = (key: string, fallback: string) => fallback;
   
   try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const { useTranslation } = require('@/contexts/TranslationContext');
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const { t: translationHook } = useTranslation();
     t = translationHook;
   } catch {

@@ -223,6 +223,7 @@ function FeatureListItem({ text }: FeatureListItemProps) {
  */
 interface SuccessViewProps {
   onClose: () => void;
+  // eslint-disable-next-line no-unused-vars
   t: (key: string, fallback?: string) => string;
 }
 

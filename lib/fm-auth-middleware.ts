@@ -169,6 +169,7 @@ export function userCan(
 /**
  * Extract property ownership context for ABAC checks
  */
+// eslint-disable-next-line no-unused-vars
 export async function getPropertyOwnership(_propertyId: string): Promise<{
   ownerId: string;
   orgId: string;
