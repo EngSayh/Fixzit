@@ -1,27 +1,25 @@
 version: v2
 approval_rules:
-  # ✅ ALIGNED WITH POLICY: Auto-approve enabled as documented
-  # in copilot-instructions.md. This workspace has auto-approve enabled
-  # for agent actions per lines 24-27 of copilot-instructions.md.
-  # Using explicit allow-list with secure patterns for safe operations.
-  - pattern: ".*"
-    auto_approve: true  # ✅ DEFAULT ALLOW: All commands pre-approved
+  # ✅ SECURITY: Explicit allow-list approach (no catch-all pattern)
+  # Auto-approve enabled for safe operations only as documented in
+  # copilot-instructions.md. Each pattern is carefully scoped to prevent
+  # dangerous operations while enabling autonomous agent workflow.
 
-  # ⚠️ SECURITY: Restricted read-only operations to safe subdirectories
-  # Prevent access to sensitive files like /etc/passwd or API keys
+  # ⚠️ SECURITY: Restricted read-only file operations to safe subdirectories
+  # Prevents access to sensitive files like /etc/passwd or API keys
   - pattern: >-
-      ^find \\./\\(src|docs|app|components|lib|config|types|utils
-      |contexts|pages|public\\) -name .*$
+      ^find \./(?:src|docs|app|components|lib|config|types|utils
+      |contexts|pages|public) -name .*$
     auto_approve: true
 
   - pattern: >-
-      ^cat \\./\\(src|docs|app|components|lib|config|types|utils
-      |contexts|pages|public\\)/[^ ]+$
+      ^cat \./(?:src|docs|app|components|lib|config|types|utils
+      |contexts|pages|public)/[^ ]+$
     auto_approve: true
 
   - pattern: >-
-      ^grep( -[A-Za-z]+)* [^ ]+ \\./\\(src|docs|app|components|lib
-      |config|types|utils|contexts|pages|public\\)/
+      ^grep( -[A-Za-z]+)* [^ ]+ \./(?:src|docs|app|components|lib
+      |config|types|utils|contexts|pages|public)/
     auto_approve: true
 
   # Safe basic commands (no dangerous parameters)
@@ -32,13 +30,13 @@ approval_rules:
   - pattern: "^(npm|pnpm|yarn) (run|test|build) .*"
     auto_approve: true
 
-  # ⚠️ SECURITY: Git read operations only (removed 'remote' to prevent
-  # malicious URL changes)
+  # ⚠️ SECURITY: Git read operations only (removed 'remote add/set-url'
+  # to prevent malicious URL changes)
   - pattern: "^git (status|log|diff|show|branch) .*"
     auto_approve: true
 
-  # Git remote restricted to read-only operations
-  - pattern: "^git remote (-v|show)$"
+  # Git remote restricted to read-only operations with optional remote name
+  - pattern: "^git remote (-v|show.*)$"
     auto_approve: true
 
 run_permissions:
