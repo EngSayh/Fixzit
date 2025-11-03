@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { ReferralCodeModel } from '@/server/models/ReferralCode';
 import { connectDb } from '@/lib/mongo';
@@ -10,7 +10,7 @@ import { Types } from 'mongoose';
  * 
  * Generate a new referral code for the current user
  */
-export async function POST(_request: NextRequest) {
+export async function POST() {
   try {
     const session = await auth();
     
