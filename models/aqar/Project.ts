@@ -7,12 +7,14 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+/* eslint-disable no-unused-vars */
 export enum ProjectStatus {
   DRAFT = 'DRAFT',
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
   COMPLETED = 'COMPLETED',
 }
+/* eslint-enable no-unused-vars */
 
 export interface IUnitType {
   name: string;           // e.g., "2 Bedroom Apartment"

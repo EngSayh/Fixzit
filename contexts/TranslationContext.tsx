@@ -14,6 +14,7 @@ import { STORAGE_KEYS, COOKIE_KEYS, APP_DEFAULTS } from '@/config/constants';
 
 export type Language = LanguageCode;
 
+/* eslint-disable no-unused-vars */
 interface TranslationContextType {
   language: Language;
   locale: string;
@@ -22,6 +23,7 @@ interface TranslationContextType {
   t: (key: string, fallback?: string) => string;
   isRTL: boolean;
 }
+/* eslint-enable no-unused-vars */
 
 const TranslationContext = createContext<TranslationContextType | undefined>(undefined);
 
@@ -2205,6 +2207,7 @@ export function useTranslation() {
     return {
       language: APP_DEFAULTS.language as Language,
       locale: APP_DEFAULTS.locale,
+      // eslint-disable-next-line no-unused-vars
       setLanguage: (_lang: Language) => {},
       setLocale: () => {},
       t: (key: string, fallback: string = key): string => fallback,

@@ -214,10 +214,12 @@ export interface IProject {
 }
 
 type ProjectDoc = HydratedDocument<IProject>;
+/* eslint-disable no-unused-vars */
 type ProjectModel = Model<IProject> & {
   setStatus(projectId: Types.ObjectId, next: TProjectStatus, who: Types.ObjectId | string): Promise<ProjectDoc | null>;
   recomputeBudget(projectId: Types.ObjectId): Promise<ProjectDoc | null>;
 };
+/* eslint-enable no-unused-vars */
 
 // ---------- Schema ----------
 const ProjectSchema = new Schema<IProject, ProjectModel>(

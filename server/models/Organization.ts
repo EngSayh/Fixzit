@@ -58,10 +58,12 @@ type Usage = {
 };
 
 type OrganizationDoc = HydratedDocument<IOrganization>;
+/* eslint-disable no-unused-vars */
 type OrganizationModel = Model<IOrganization> & {
   incrementUsage(orgId: string, patch: Partial<Usage>): Promise<OrganizationDoc | null>;
   setSubscriptionStatus(orgId: string, status: TSubscriptionStatus): Promise<OrganizationDoc | null>;
 };
+/* eslint-enable no-unused-vars */
 
 export interface IOrganization {
   orgId: string;
