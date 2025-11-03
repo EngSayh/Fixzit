@@ -30,7 +30,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     this.state = { hasError: false, errorId: '' };
   }
 
-  static getDerivedStateFromError(_error: Error): ErrorState {
+  static getDerivedStateFromError(): ErrorState {
     const errorId = `ERR-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     return { hasError: true, errorId };
   }
@@ -117,7 +117,7 @@ const ErrorFallbackUI = ({ errorId, onRefresh }: { errorId: string, onRefresh: (
     // eslint-disable-next-line react-hooks/rules-of-hooks
     const { t: translationHook } = useTranslation();
     t = translationHook;
-  } catch (_e) {
+  } catch {
     console.error("Translation context failed in ErrorBoundary, using fallbacks.");
   }
 
