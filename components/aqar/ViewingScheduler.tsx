@@ -42,7 +42,7 @@ export default function ViewingScheduler({
   availableSlots: _availableSlots = [], // Reserved for future use
   onSchedule
 }: ViewingSchedulerProps) {
-  const { isRTL } = useTranslation();
+  const { t, isRTL } = useTranslation();
   const [step, setStep] = useState<'type' | 'datetime' | 'details' | 'confirm' | 'success'>('type');
   const [viewingType, setViewingType] = useState<'IN_PERSON' | 'VIRTUAL' | 'VIDEO_CALL'>('IN_PERSON');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -137,12 +137,12 @@ export default function ViewingScheduler({
             <CheckCircle className="w-8 h-8 text-success" />
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-foreground mb-2">Viewing Scheduled!</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-2">{t('aqar.viewing.scheduled', 'Viewing Scheduled!')}</h2>
         <p className="text-muted-foreground mb-6">
-          Your viewing request has been sent to {agentName}. You will receive a confirmation shortly.
+          {t('aqar.viewing.confirmationSent', `Your viewing request has been sent to ${agentName}. You will receive a confirmation shortly.`)}
         </p>
         <div className="bg-muted rounded-lg p-4 mb-6 text-left">
-          <h3 className="font-semibold text-foreground mb-3">Viewing Details</h3>
+          <h3 className="font-semibold text-foreground mb-3">{t('aqar.viewing.details', 'Viewing Details')}</h3>
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-muted-foreground" />
