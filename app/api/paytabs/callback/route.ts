@@ -1,6 +1,7 @@
 import { NextRequest} from 'next/server';
 import { dbConnect } from '@/db/mongoose';
 import { finalizePayTabsTransaction, normalizePayTabsPayload } from '@/services/paytabs';
+import { validateCallback } from '@/lib/paytabs';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
@@ -34,6 +35,37 @@ export async function POST(req: NextRequest) {
 
   await dbConnect();
   const payload = await req.json();
+  
+  // 🔒 SECURITY FIX (PR #42/#45/#47/#53/#77): Validate PayTabs signature
+  // Extract signature from payload (PayTabs sends it as 'signature' field)
+  const signature = payload.signature || payload.sign || payload.payment_signature;
+  
+  if (!signature) {
+    console.error('PayTabs callback rejected: Missing signature');
+    return createSecureResponse(
+      { error: 'Payment verification failed: Missing signature' },
+      400,
+      req
+    );
+  }
+  
+  // Validate the signature using HMAC-SHA256
+  const isValid = validateCallback(payload, signature);
+  
+  if (!isValid) {
+    console.error('PayTabs callback rejected: Invalid signature', {
+      cart_id: payload.cart_id,
+      tran_ref: payload.tran_ref,
+      timestamp: new Date().toISOString()
+    });
+    return createSecureResponse(
+      { error: 'Payment verification failed: Invalid signature' },
+      403,
+      req
+    );
+  }
+  
+  // ✅ Signature validated - proceed with transaction finalization
   const normalized = normalizePayTabsPayload(payload);
 
   try {
