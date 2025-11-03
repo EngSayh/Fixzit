@@ -54,7 +54,7 @@ async function importPaytabs() {
   ];
   for (const p of candidates) {
     try {
-      // eslint-disable-next-line no-await-in-loop
+       
       return await import(p);
     } catch (_e) {
       // try next candidate

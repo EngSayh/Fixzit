@@ -18,7 +18,7 @@ let lib: PayTabsHelpers;
 // Define the exact path to the PayTabs helpers module here.
 const PAYTABS_HELPERS_MODULE_PATH = '../../lib-paytabs'; // <-- Update this path as needed
 function loadModule() {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+   
   try {
     return require(PAYTABS_HELPERS_MODULE_PATH);
   } catch (e) {

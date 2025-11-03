@@ -47,15 +47,15 @@ vi.mock('next/dynamic', () => {
 let ErrorBoundary: any;
 try {
   // Try likely project paths
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+   
   ErrorBoundary = require('@/components/ErrorBoundary').default;
 } catch {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     ErrorBoundary = require('src/components/ErrorBoundary').default;
   } catch {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+       
       ErrorBoundary = require('../../src/components/ErrorBoundary').default;
     } catch {
       // Last resort: define a proxy that throws to indicate path map required.

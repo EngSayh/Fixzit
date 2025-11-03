@@ -3,7 +3,7 @@
  *
  * Testing library and framework: Vitest
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 
 import { vi, describe, it, test, expect, beforeAll, afterEach } from 'vitest';
 import type { NextRequest } from 'next/server'
@@ -54,7 +54,7 @@ beforeAll(async () => {
   let loaded = false
   for (const p of candidates) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+       
       const mod = require(require('path').resolve(p))
       if (mod && typeof mod.GET === 'function') {
         GET = mod.GET

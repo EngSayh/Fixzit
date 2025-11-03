@@ -15,22 +15,22 @@
 let mod: any;
 try {
   // src layout
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+   
   mod = require('../src/ats/scoring');
 } catch (_) {
   try {
     // lib layout
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     mod = require('../lib/ats/scoring');
   } catch (__ ) {
     try {
       // root layout
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+       
       mod = require('../ats/scoring');
     } catch (___) {
       try {
         // same folder (if functions exist beside tests for PR validation)
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
+         
         mod = require('./ats.scoring');
       } catch (____) {
         // Fallback: inline definitions for PR validation to avoid import failures.

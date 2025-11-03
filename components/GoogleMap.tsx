@@ -186,7 +186,7 @@ export default function GoogleMap({
         setLoading(false);
         onReady?.(map);
       } catch (e) {
-        // eslint-disable-next-line no-console
+         
         console.error('[GoogleMap] init error', e);
         setError('Failed to load Google Maps. Check API key, referrer restrictions, and billing status.');
         setLoading(false);
