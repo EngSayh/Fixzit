@@ -94,6 +94,7 @@ export default [
       'no-mixed-spaces-and-tabs': 'off',
 
       /* Next.js specific rules - handled by eslint-config-next */
+      '@next/next/no-img-element': 'off', // Allow img tags for data URLs and dynamic images
     },
   },
 
@@ -139,7 +140,13 @@ export default [
 
   // Test files - More permissive with test framework globals
   {
-    files: ['**/*.test.{ts,tsx,js,jsx}', '**/*.spec.{ts,tsx,js,jsx}', 'qa/**/*', 'tests/**/*'],
+    files: [
+      '**/*.test.{ts,tsx,js,jsx,mjs}', 
+      '**/*.spec.{ts,tsx,js,jsx,mjs}', 
+      'qa/**/*', 
+      'tests/**/*',
+      'server/**/__tests__/**/*',
+    ],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -162,6 +169,7 @@ export default [
       '@typescript-eslint/ban-ts-comment': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
+      'no-unused-vars': 'off', // Also disable base rule for test files
       'no-undef': 'off', // Disable for test files since we define globals
     },
   },
