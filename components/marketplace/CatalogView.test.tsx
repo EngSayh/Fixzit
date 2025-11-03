@@ -48,6 +48,7 @@ type SWRProductsState = {
   data?: any
   error?: any
   isLoading?: boolean
+  // eslint-disable-next-line no-unused-vars
   mutate?: ReturnType<typeof jestLike.fn> | ((...args: any[]) => any)
 }
 type SWRCategoriesState = {
