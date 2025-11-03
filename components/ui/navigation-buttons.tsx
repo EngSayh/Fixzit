@@ -29,6 +29,11 @@ interface NavigationButtonsProps {
   onSave?: (e?: React.FormEvent) => void | Promise<void>;
   
   /**
+   * Save button type: 'button' (default) or 'submit' (for forms)
+   */
+  saveType?: 'button' | 'submit';
+  
+  /**
    * Custom back URL (defaults to browser back)
    */
   backUrl?: string;
@@ -86,6 +91,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   showBack = true,
   showHome = true,
   onSave,
+  saveType = 'button',
   backUrl,
   homeUrl = '/dashboard',
   saving = false,
@@ -113,7 +119,8 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   };
 
   const handleSave = async (e?: React.FormEvent) => {
-    if (e) {
+    // Only preventDefault if type="button" and we have a click handler
+    if (saveType === 'button' && e) {
       e.preventDefault();
     }
     if (onSave && !saving && !saveDisabled) {
@@ -131,7 +138,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
             variant="outline"
             type="button"
           >
-            <BackIcon className="h-4 w-4 mr-2" />
+            <BackIcon className="h-4 w-4 me-2" />
             {t('navigation.back', 'Back')}
           </Button>
         )}
@@ -142,7 +149,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
             variant="outline"
             type="button"
           >
-            <Home className="h-4 w-4 mr-2" />
+            <Home className="h-4 w-4 me-2" />
             {t('navigation.home', 'Home')}
           </Button>
         )}
@@ -151,19 +158,19 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
       {/* Right side: Save */}
       {showSave && (
         <Button
-          onClick={handleSave}
+          onClick={saveType === 'button' ? handleSave : undefined}
           disabled={saving || saveDisabled}
           variant="default"
-          type="button"
+          type={saveType}
         >
           {saving ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="h-4 w-4 me-2 animate-spin" />
               {t('navigation.saving', 'Saving...')}
             </>
           ) : (
             <>
-              <Save className="h-4 w-4 mr-2" />
+              <Save className="h-4 w-4 me-2" />
               {t(saveLabelKey, 'Save')}
             </>
           )}
@@ -228,50 +235,30 @@ export const FormWithNavigation: React.FC<FormWithNavigationProps> = ({
   className = '',
   position = 'both'
 }) => {
-  const handleSubmit = async (e?: React.FormEvent) => {
-    // Support both direct form submit event and programmatic save via button click
-    const evt = e ?? ({} as React.FormEvent);
-    try {
-      // preventDefault exists on React.FormEvent, guard defensively
-      if (evt && typeof (evt as unknown as { preventDefault?: Function }).preventDefault === 'function') {
-        (evt as unknown as { preventDefault: Function }).preventDefault();
-      }
-    // eslint-disable-next-line no-unused-vars
-    } catch (_err) {
-      // ignore
-    }
-    await onSubmit(evt);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onSubmit(e);
   };
+
+  // Define navigation buttons once to avoid duplication
+  const navButtons = (pos: 'top' | 'bottom') => (
+    <NavigationButtons
+      position={pos}
+      showSave={showSave}
+      showBack={showBack}
+      showHome={showHome}
+      saveType="submit"
+      saving={saving}
+      saveDisabled={saveDisabled}
+      saveLabelKey={saveLabelKey}
+    />
+  );
 
   return (
     <form onSubmit={handleSubmit} className={`space-y-6 ${className}`}>
-      {(position === 'top' || position === 'both') && (
-        <NavigationButtons
-          position="top"
-          showSave={showSave}
-          showBack={showBack}
-          showHome={showHome}
-          onSave={() => handleSubmit()}
-          saving={saving}
-          saveDisabled={saveDisabled}
-          saveLabelKey={saveLabelKey}
-        />
-      )}
-      
+      {(position === 'top' || position === 'both') && navButtons('top')}
       {children}
-      
-      {(position === 'bottom' || position === 'both') && (
-        <NavigationButtons
-          position="bottom"
-          showSave={showSave}
-          showBack={showBack}
-          showHome={showHome}
-          onSave={() => handleSubmit()}
-          saving={saving}
-          saveDisabled={saveDisabled}
-          saveLabelKey={saveLabelKey}
-        />
-      )}
+      {(position === 'bottom' || position === 'both') && navButtons('bottom')}
     </form>
   );
 };
