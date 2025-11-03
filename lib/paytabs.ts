@@ -158,8 +158,7 @@ export function validateCallback(payload: Record<string, unknown>, signature: st
       Buffer.from(calculatedSignature, 'hex'),
       Buffer.from(signature, 'hex')
     );
-  // eslint-disable-next-line no-unused-vars
-  } catch (_error) {
+  } catch {
     // If buffers are different lengths, timingSafeEqual will throw
     return false;
   }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { connectDb } from '@/lib/mongo';
 import { Schema, model, models } from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 /**
  * GET /api/admin/users
@@ -173,13 +174,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User with this email or username already exists' }, { status: 409 });
     }
     
-    // Create user (password should be hashed by caller or here - for demo, store plain)
+    // SECURITY: Hash passwords before storing (CRITICAL)
+    // Historical context: Code had TODO comment for 6+ months with plaintext passwords
+    // Require password in request body - no default passwords for security
+    if (!body.password) {
+      return NextResponse.json(
+        { 
+          error: 'Password required',
+          detail: 'Password must be provided in request body for security. No default passwords allowed.'
+        },
+        { status: 400 }
+      );
+    }
+    
+    const hashedPassword = await bcrypt.hash(body.password, 12); // 12 rounds = industry standard
+    
     const newUser = await UserModel.create({
       orgId: session.user.orgId || 'default',
-      code: body.code || `USER-${Date.now()}`,
+      code: body.code || `USER-${crypto.randomUUID()}`, // SECURITY: Use crypto instead of Date.now()
       username: body.username,
       email: body.email,
-      password: body.password || 'ChangeMe123!', // TODO: hash password
+      password: hashedPassword, // FIXED: Now properly hashed
       phone: body.phone,
       personal: {
         firstName: body.firstName,

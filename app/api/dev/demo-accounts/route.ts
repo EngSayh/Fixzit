@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server';
 
 export async function GET() {
+  // SECURITY: Demo accounts ONLY allowed in strict development mode
+  // Historical context: ENABLED flag allowed production demo mode via env var
+  // CRITICAL: This endpoint exposes test credentials and should NEVER be production-accessible
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Not available' }, { status: 404 });
+  }
+  
   try {
     // Import helpers - keeps logic DRY and secure
     const { ENABLED, listSanitized, assertDemoConfig } = await import('@/dev/credentials.server');

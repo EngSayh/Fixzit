@@ -3,7 +3,6 @@ import { getDatabase } from '@/lib/mongodb-unified';
 import { SupportTicket } from '@/server/models/SupportTicket';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { z } from 'zod';
-import Redis from 'ioredis';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
@@ -84,33 +83,61 @@ export async function POST(req: NextRequest) {
   } catch {
     sessionUser = null;
   }
-  // Distributed rate limiting using Redis for multi-instance environments
-  const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+  // Distributed rate limiting using Redis singleton for multi-instance environments
+  // PERFORMANCE FIX: Use singleton connection instead of new Redis() per request
+  // Historical context: Creating new connection + quit() per request exhausted pool
+  const { getRedisClient } = await import('@/lib/redis');
+  const redis = getRedisClient();
   const ip = getClientIP(req);
   const rateKey = `incidents:rate:${sessionUser?.id ? `u:${sessionUser.id}` : `ip:${ip}`}`;
   const windowSecs = 30; // 30s window
   const maxRequests = 3;
   
-  try {
-    // Use Redis INCR with TTL for atomic rate limiting
-    const count = await redis.incr(rateKey);
-    if (count === 1) {
-      await redis.expire(rateKey, windowSecs);
+  if (redis) {
+    try {
+      // Use Redis INCR with TTL for atomic rate limiting
+      const count = await redis.incr(rateKey);
+      if (count === 1) {
+        await redis.expire(rateKey, windowSecs);
+      }
+      
+      if (count > maxRequests) {
+        // NOTE: Do NOT call redis.quit() - singleton connection is reused
+        return new NextResponse(null, { status: 429 });
+      }
+    } catch (error) {
+      // Fallback: if Redis operation fails, allow the request but log the error
+      console.error('[Incidents] Rate limiting failed:', error instanceof Error ? error.message : 'Unknown error');
     }
-    
-    if (count > maxRequests) {
-      await redis.quit();
-      return new NextResponse(null, { status: 429 });
-    }
-  } catch (error) {
-    // Fallback: if Redis is unavailable, allow the request but log the error
-    console.error('Rate limiting failed:', error instanceof Error ? error.message : 'Unknown error');
-  } finally {
-    await redis.quit();
+    // NOTE: Do NOT call redis.quit() in finally block - connection is reused
+  } else {
+    // Redis unavailable - allow request (fail open for better UX)
+    console.warn('[Incidents] Redis unavailable, rate limiting disabled');
   }
 
-  // Determine tenant scope and dedupe within that scope only
-  const tenantScope = sessionUser?.orgId || req.headers.get('x-org-id') || req.headers.get('x-org') || null;
+  // SECURITY: Determine tenant scope from authenticated session ONLY
+  // Historical context: PR reviews flagged tenant isolation bypass where
+  // tenantScope fell back to req.headers.get('x-org-id') (client-controlled)
+  // CRITICAL: Never trust client-provided headers for tenant scoping
+  
+  // Feature flag: allow anonymous incident reporting for backwards compatibility
+  const ENABLE_ANONYMOUS_INCIDENTS = process.env.ENABLE_ANONYMOUS_INCIDENTS === 'true';
+  let tenantScope = sessionUser?.orgId || null;
+  
+  // If no authenticated session, optionally allow anonymous reporting under "public" scope
+  if (!tenantScope) {
+    if (ENABLE_ANONYMOUS_INCIDENTS) {
+      tenantScope = 'public';
+    } else {
+      return NextResponse.json(
+        { 
+          error: 'Authentication required',
+          detail: 'Incident reporting requires authenticated session for tenant attribution'
+        },
+        { status: 401 }
+      );
+    }
+  }
   const existing = incidentKey
     ? await native.collection('error_events').findOne({ incidentKey, tenantScope })
     : null;

@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
 
     // For now, we'll simulate comprehensive processing
     console.log('🎯 Job Application Received:', {
-      applicationId: `APP-${Date.now()}`,
+      applicationId: `APP-${crypto.randomUUID()}`, // SECURITY: Crypto-random ID, not predictable Date.now()
       timestamp: new Date().toISOString(),
       jobDetails: {
         jobId,
@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
     // Simulate processing delay
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    const applicationId = `APP-${Date.now()}`;
+    const applicationId = `APP-${crypto.randomUUID()}`; // SECURITY: Crypto-random ID
 
     return NextResponse.json({
       success: true,
