@@ -77,12 +77,10 @@ describe('paytabsBase', () => {
     expect(paytabsBase('GLOBAL')).toBe('https://secure-global.paytabs.com');
 
     // Unknown -> fallback to GLOBAL
-    // @ts-expect-error testing unknown region string
-    expect(paytabsBase('UNKNOWN_REGION')).toBe('https://secure-global.paytabs.com');
+    expect(paytabsBase('UNKNOWN_REGION' as any)).toBe('https://secure-global.paytabs.com');
 
     // Default param -> GLOBAL
-    // @ts-expect-error omit param to exercise default
-    expect(paytabsBase()).toBe('https://secure-global.paytabs.com');
+    expect(paytabsBase(undefined as any)).toBe('https://secure-global.paytabs.com');
   });
 });
 

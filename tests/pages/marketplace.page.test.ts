@@ -9,6 +9,7 @@
 
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
+import { describe, test, expect, beforeEach, afterAll, vi } from 'vitest';
 
 // Mock next/link to avoid Next.js runtime during tests
 vi.mock('next/link', () => {
@@ -24,7 +25,6 @@ vi.mock('next/link', () => {
 
 // We will import the page under test via its route path if available.
 // If your repository locates the page at app/marketplace/page.tsx, adjust the import path accordingly.
-// @ts-expect-error - Dynamic import for testing
 import MarketplacePage from '../../app/marketplace/page'; // Adjust this path to match your project structure.
 
 type Product = {
@@ -49,7 +49,6 @@ afterAll(() => {
 });
 
 function mockFetchOk(data: any) {
-  // @ts-expect-error
   global.fetch = vi.fn().mockResolvedValue({
     ok: true,
     json: async () => data,
@@ -57,7 +56,6 @@ function mockFetchOk(data: any) {
 }
 
 function mockFetchFail(status: number = 500) {
-  // @ts-expect-error
   global.fetch = vi.fn().mockResolvedValue({
     ok: false,
     status,
