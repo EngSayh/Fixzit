@@ -74,7 +74,7 @@ describe('QA Alert Route', () => {
       // Setup the chained collection/insertOne mock structure
       const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
       const collection = vi.fn().mockReturnValue({ insertOne });
-      const nativeDb = { collection };
+      const nativeDb = { collection } as any;
       mod.getDatabase.mockResolvedValue(nativeDb);
 
       const event = 'button_click';
@@ -107,7 +107,7 @@ describe('QA Alert Route', () => {
       // Setup the chained collection/find/insertOne mock structure
       const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
       const collection = vi.fn().mockReturnValue({ insertOne });
-      const nativeDb = { collection };
+      const nativeDb = { collection } as any;
       mod.getDatabase.mockResolvedValue(nativeDb);
 
       const event = 'modal_open';
@@ -154,7 +154,7 @@ describe('QA Alert Route', () => {
 
       const insertOne = vi.fn().mockResolvedValue({ acknowledged: true });
       const collection = vi.fn().mockReturnValue({ insertOne });
-      const nativeDb = { collection };
+      const nativeDb = { collection } as any;
       mod.getDatabase.mockResolvedValue(nativeDb);
 
       const req = asNextRequest({
@@ -182,7 +182,7 @@ describe('QA Alert Route', () => {
 
       const insertOne = vi.fn().mockRejectedValue(new Error('insert failed'));
       const collection = vi.fn().mockReturnValue({ insertOne });
-      const nativeDb = { collection };
+      const nativeDb = { collection } as any;
       mod.getDatabase.mockResolvedValue(nativeDb);
 
       const req = asNextRequest({
@@ -228,7 +228,7 @@ describe('QA Alert Route', () => {
       const sort = vi.fn().mockReturnValue({ limit });
       const find = vi.fn().mockReturnValue({ sort });
       const collection = vi.fn().mockReturnValue({ find });
-      const nativeDb = { collection };
+      const nativeDb = { collection } as any;
       mod.getDatabase.mockResolvedValue(nativeDb);
 
       const req = asNextRequest({
@@ -256,7 +256,7 @@ describe('QA Alert Route', () => {
       const find = vi.fn().mockReturnValue({ sort });
       const collection = vi.fn().mockReturnValue({ find });
 
-      const nativeDb = { collection };
+      const nativeDb = { collection } as any;
       mod.getDatabase.mockResolvedValue(nativeDb);
 
       const req = asNextRequest({
@@ -286,7 +286,7 @@ describe('QA Alert Route', () => {
       const sort = vi.fn().mockReturnValue({ limit });
       const find = vi.fn().mockReturnValue({ sort });
       const collection = vi.fn().mockReturnValue({ find });
-      const nativeDb = { collection };
+      const nativeDb = { collection } as any;
       mod.getDatabase.mockResolvedValue(nativeDb);
 
       const req = asNextRequest({

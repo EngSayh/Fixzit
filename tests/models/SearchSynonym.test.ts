@@ -2,6 +2,7 @@
 // Framework: Vitest by replacing jest with vi and expect APIs as needed)
 
 import path from "path"
+import { vi, describe, test, expect, afterEach } from "vitest"
 
 // Utilities to load module fresh with controlled env and mocks
 function withIsolatedModule<T>(env: Record<string, string | undefined>, mocks: { [k: string]: any }, loader: () => T): T {
@@ -15,7 +16,7 @@ function withIsolatedModule<T>(env: Record<string, string | undefined>, mocks: {
   vi.resetModules()
   // Apply require mocks
   Object.entries(mocks).forEach(([mod, impl]) => {
-    vi.doMock(mod, () => impl, { virtual: true })
+    vi.doMock(mod, () => impl)
   })
 
   try {
@@ -70,20 +71,22 @@ describe("models/SearchSynonym - environment-based model selection", () => {
     expect(SearchSynonym.name).toBe("searchsynonyms")
   })
 
-  test("uses real mongoose model when NODE_ENV\!=development (e.g., test) even if MONGODB_URI undefined", () => {
+  test("uses real mongoose model when NODE_ENV!=development (e.g., test) even if MONGODB_URI undefined", () => {
     const fakeSchema = {}
     const fakeModelInst = { __kind: "MongooseModel", modelName: "SearchSynonym" }
-    const mockSchemaCtor = vi.fn().mockImplementation(() => fakeSchema)
     const mockIndex = vi.fn()
-    (mockSchemaCtor as any).prototype = {}
-    (mockSchemaCtor as any).prototype.index = mockIndex
+    const mockSchemaCtor = vi.fn().mockImplementation(() => {
+      const instance = Object.create({ index: mockIndex })
+      Object.assign(instance, fakeSchema)
+      return instance
+    })
 
     const { SearchSynonym } = withIsolatedModule(
       { NODE_ENV: "test", MONGODB_URI: undefined },
       {
         mongoose: {
-          Schema: function(this: any, ...args: any[]) { return new (mockSchemaCtor as any)(...args) },
-          InferSchemaType: {} // not used at runtime
+          Schema: mockSchemaCtor,
+          model: vi.fn().mockReturnValue(fakeModelInst)
         }
       },
       () => require(modulePath)
@@ -96,17 +99,20 @@ describe("models/SearchSynonym - environment-based model selection", () => {
   test("reuses existing mongoose model if models.SearchSynonym exists", () => {
     const fakeSchema = {}
     const existingModel = { __kind: "ExistingMongooseModel", modelName: "SearchSynonym" }
-    const mockSchemaCtor = vi.fn().mockImplementation(() => fakeSchema)
     const mockIndex = vi.fn()
-    (mockSchemaCtor as any).prototype = {}
-    (mockSchemaCtor as any).prototype.index = mockIndex
+    const mockSchemaCtor = vi.fn().mockImplementation(() => {
+      const instance = Object.create({ index: mockIndex })
+      Object.assign(instance, fakeSchema)
+      return instance
+    })
 
     const { SearchSynonym } = withIsolatedModule(
       { NODE_ENV: "production", MONGODB_URI: "mongodb+srv://cluster/some" },
       {
         mongoose: {
-          Schema: function(this: any, ...args: any[]) { return new (mockSchemaCtor as any)(...args) },
+          Schema: mockSchemaCtor,
           model: vi.fn(), // should not be called because models.SearchSynonym exists
+          models: { SearchSynonym: existingModel }
         }
       },
       () => require(modulePath)
@@ -205,16 +211,19 @@ describe("models/SearchSynonym - negative and edge behaviors without DB", () => 
   test("invalid environment combination: NODE_ENV=development with remote MONGODB_URI uses real model", () => {
     const fakeSchema = {}
     const fakeModelInst = { __kind: "MongooseModel", modelName: "SearchSynonym" }
-    const mockSchemaCtor = vi.fn().mockImplementation(() => fakeSchema)
     const mockIndex = vi.fn()
-    (mockSchemaCtor as any).prototype = {}
-    (mockSchemaCtor as any).prototype.index = mockIndex
+    const mockSchemaCtor = vi.fn().mockImplementation(() => {
+      const instance = Object.create({ index: mockIndex })
+      Object.assign(instance, fakeSchema)
+      return instance
+    })
 
     const { SearchSynonym } = withIsolatedModule(
       { NODE_ENV: "development", MONGODB_URI: "mongodb+srv://prod/uri" },
       {
         mongoose: {
-          Schema: function(this: any, ...args: any[]) { return new (mockSchemaCtor as any)(...args) },
+          Schema: mockSchemaCtor,
+          model: vi.fn().mockReturnValue(fakeModelInst)
         }
       },
       () => require(modulePath)

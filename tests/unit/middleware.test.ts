@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
-import { middleware } from '../../middleware';
+import middleware from '../../middleware';
 import { generateToken } from '../../lib/auth';
 
 // Mock environment variables
