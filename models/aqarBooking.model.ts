@@ -18,6 +18,7 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+/* eslint-disable no-unused-vars */
 export enum BookingStatus {
   PENDING = 'PENDING',
   CONFIRMED = 'CONFIRMED',
@@ -26,6 +27,7 @@ export enum BookingStatus {
   CANCELLED = 'CANCELLED',
   REJECTED = 'REJECTED',
 }
+/* eslint-enable no-unused-vars */
 
 const ACTIVE_STATUSES: BookingStatus[] = [
   BookingStatus.PENDING,
@@ -90,6 +92,7 @@ export interface IBooking extends Document {
   confirm(): Promise<void>;
   checkIn(): Promise<void>;
   checkOut(): Promise<void>;
+  // eslint-disable-next-line no-unused-vars
   cancel(userId: mongoose.Types.ObjectId, reason?: string): Promise<void>;
 }
 
@@ -332,6 +335,7 @@ BookingSchema.methods.cancel = async function (
 
 /* ---------------- Statics: availability & atomic create ---------------- */
 
+/* eslint-disable no-unused-vars */
 interface BookingModel extends Model<IBooking> {
   /**
    * Check if any active booking overlaps with the given nights
@@ -376,6 +380,7 @@ interface BookingModel extends Model<IBooking> {
     session?: mongoose.ClientSession
   ): Promise<IBooking>;
 }
+/* eslint-enable no-unused-vars */
 
 /**
  * Check if any active booking has reserved any of the given nights

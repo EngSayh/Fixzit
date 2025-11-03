@@ -22,11 +22,13 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+/* eslint-disable no-unused-vars */
 export enum BoostType {
   FEATURED = 'FEATURED',     // Top placement, highest visibility
   PINNED = 'PINNED',         // Sticky in category listing
   HIGHLIGHTED = 'HIGHLIGHTED', // Visual distinction
 }
+/* eslint-enable no-unused-vars */
 
 export interface IBoost extends Document {
   // Listing / tenancy / user
@@ -68,6 +70,7 @@ export interface IBoost extends Document {
   recordClick(): Promise<{ clicks: number }>;
 }
 
+/* eslint-disable no-unused-vars */
 interface BoostModel extends Model<IBoost> {
   /**
    * Get pricing for a boost type and duration
@@ -99,6 +102,7 @@ interface BoostModel extends Model<IBoost> {
     type?: BoostType
   ): Promise<IBoost[]>;
 }
+/* eslint-enable no-unused-vars */
 
 const BoostSchema = new Schema<IBoost, BoostModel>(
   {
@@ -237,6 +241,7 @@ BoostSchema.pre('save', function (next) {
  * Check if boost is currently active (active flag + not expired)
  * Used for UI display and filtering
  */
+// eslint-disable-next-line no-unused-vars
 BoostSchema.virtual('isActiveNow').get(function (this: IBoost) {
   if (!this.active || !this.expiresAt) return false;
   return this.expiresAt > new Date();

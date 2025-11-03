@@ -65,11 +65,13 @@ export interface AccountActivityEntry extends Omit<ILedgerEntry, 'journalId' | '
   updatedAt?: Date;
 }
 
+/* eslint-disable no-unused-vars */
 export interface ILedgerEntryModel extends Model<ILedgerEntry> {
   getAccountBalance(orgId: Types.ObjectId, accountId: Types.ObjectId, asOfDate?: Date): Promise<number>;
   getTrialBalance(orgId: Types.ObjectId, fiscalYear: number, fiscalPeriod: number): Promise<TrialBalanceEntry[]>;
   getAccountActivity(orgId: Types.ObjectId, accountId: Types.ObjectId, startDate: Date, endDate: Date): Promise<AccountActivityEntry[]>;
 }
+/* eslint-enable no-unused-vars */
 
 const LedgerEntrySchema = new Schema<ILedgerEntry, ILedgerEntryModel>(
   {
