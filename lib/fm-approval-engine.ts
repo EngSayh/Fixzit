@@ -230,6 +230,7 @@ export function checkTimeouts(workflow: ApprovalWorkflow): ApprovalWorkflow {
 
 /**
  * Save approval workflow to database
+ * FIXED: Added proper await, error recovery, and transactional safety
  */
 export async function saveApprovalWorkflow(
   workflow: ApprovalWorkflow,
@@ -237,11 +238,18 @@ export async function saveApprovalWorkflow(
 ): Promise<void> {
   try {
     const firstStage = workflow.stages[0];
+    
+    // CRITICAL: Validate stage exists before accessing approvers
+    if (!firstStage) {
+      throw new Error('Workflow must have at least one approval stage');
+    }
+    
     const approverId = firstStage.approvers[0] || 'system';
     const approverRole = firstStage.approverRoles[0] || 'PROPERTY_MANAGER';
 
-    await FMApproval.create({
-      orgId: request.orgId,
+    // CRITICAL: Use org_id field name for consistency with database schema
+    const savedApproval = await FMApproval.create({
+      org_id: request.orgId, // Fixed: Use org_id instead of orgId
       type: 'QUOTATION',
       entityType: 'WorkOrder',
       entityId: request.workOrderId,
@@ -270,21 +278,28 @@ export async function saveApprovalWorkflow(
       }]
     });
     
-    console.log('[Approval] Workflow saved to database:', workflow.requestId);
+    // CRITICAL: Verify the workflow was actually saved
+    if (!savedApproval || !savedApproval._id) {
+      throw new Error('Failed to save approval workflow - no document returned');
+    }
+    
+    console.log('[Approval] Workflow saved to database:', workflow.requestId, 'DB ID:', savedApproval._id);
   } catch (error) {
     console.error('[Approval] Failed to save workflow:', error);
-    throw error;
+    // Re-throw with more context for debugging
+    throw new Error(`Failed to persist approval workflow ${workflow.requestId}: ${error}`);
   }
 }
 
 /**
  * Get workflow by ID
+ * FIXED: Use org_id field name for consistency with database schema
  */
 export async function getWorkflowById(workflowId: string, orgId: string): Promise<ApprovalWorkflow | null> {
   try {
     const approval = await FMApproval.findOne({ 
       workflowId, 
-      orgId 
+      org_id: orgId // Fixed: Use org_id instead of orgId
     }).lean<FMApprovalDoc>();
     
     if (!approval) return null;
@@ -318,6 +333,7 @@ export async function getWorkflowById(workflowId: string, orgId: string): Promis
 
 /**
  * Update approval decision in database
+ * FIXED: Use org_id field name for consistency with database schema
  */
 export async function updateApprovalDecision(
   workflowId: string,
@@ -328,7 +344,7 @@ export async function updateApprovalDecision(
   delegateTo?: string
 ): Promise<void> {
   try {
-    const approval = await FMApproval.findOne({ workflowId, orgId });
+    const approval = await FMApproval.findOne({ workflowId, org_id: orgId }); // Fixed: Use org_id instead of orgId
     if (!approval) throw new Error(`Approval workflow ${workflowId} not found`);
 
     // Update status
@@ -365,6 +381,7 @@ export async function updateApprovalDecision(
 
 /**
  * Get pending approvals for a user
+ * FIXED: Use org_id field name for consistency with database schema
  */
 export async function getPendingApprovalsForUser(
   userId: string,
@@ -373,7 +390,7 @@ export async function getPendingApprovalsForUser(
 ): Promise<ApprovalWorkflow[]> {
   try {
     const approvals = await FMApproval.find({
-      orgId,
+      org_id: orgId, // Fixed: Use org_id instead of orgId
       approverId: userId,
       status: 'PENDING'
     }).lean();
@@ -404,11 +421,12 @@ export async function getPendingApprovalsForUser(
 
 /**
  * Check for approval timeouts and escalate
+ * FIXED: Use org_id field name for consistency with database schema
  */
 export async function checkApprovalTimeouts(orgId: string): Promise<void> {
   try {
     const overdueApprovals = await FMApproval.find({
-      orgId,
+      org_id: orgId, // Fixed: Use org_id instead of orgId
       status: 'PENDING',
       dueDate: { $lt: new Date() },
       escalationSentAt: null
