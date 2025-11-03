@@ -93,7 +93,14 @@ export default [
       'no-useless-escape': 'warn',
       'no-mixed-spaces-and-tabs': 'off',
 
-      /* Next.js specific rules - handled by eslint-config-next */
+      /* Next.js specific rules */
+    },
+  },
+
+  // Next.js specific overrides
+  {
+    files: ['**/*.{ts,tsx,js,jsx}'],
+    rules: {
       '@next/next/no-img-element': 'off', // Allow img tags for data URLs and dynamic images
     },
   },
