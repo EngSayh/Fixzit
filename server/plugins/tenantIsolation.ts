@@ -68,6 +68,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
   });
 
   // Query middleware for find operations
+  // eslint-disable-next-line no-unused-vars
   schema.pre(/^find/, function(this: Query<unknown, unknown>) {
     const context = getTenantContext();
     
@@ -83,6 +84,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
   });
 
   // Query middleware for count operations
+  // eslint-disable-next-line no-unused-vars
   schema.pre(/^count/, function(this: Query<unknown, unknown>) {
     const context = getTenantContext();
     
@@ -96,6 +98,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
   });
 
   // Query middleware for distinct operations
+  // eslint-disable-next-line no-unused-vars
   schema.pre('distinct', function(this: Query<unknown, unknown>) {
     const context = getTenantContext();
     
@@ -109,6 +112,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
   });
 
   // Update middleware
+  // eslint-disable-next-line no-unused-vars
   schema.pre(/^update/, function(this: Query<unknown, unknown>) {
     const context = getTenantContext();
     
@@ -122,6 +126,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
   });
 
   // Delete middleware
+  // eslint-disable-next-line no-unused-vars
   schema.pre(/^delete/, function(this: Query<unknown, unknown>) {
     const context = getTenantContext();
     
