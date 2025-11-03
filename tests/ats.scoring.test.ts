@@ -68,7 +68,7 @@ try {
 
         function scoreApplication(
           input: ScoreInput,
-          weights: ScoreWeights
+          weights: ScoreWeights = {} // ✅ Make weights optional with a default
         ): number {
           const wSkills = Math.max(0, Math.min(1, weights?.skills ?? 0.6));
 
