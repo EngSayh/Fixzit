@@ -5,7 +5,7 @@ import { User } from '@/server/models/User';
 import { db } from '@/lib/mongo';
 
 // Type definition for User document - used as documentation reference
- 
+// eslint-disable-next-line no-unused-vars
 interface _UserDocument {
   _id: { toString(): string };  // MongoDB native _id field
   email: string;

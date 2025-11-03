@@ -18,7 +18,7 @@ export function ResponsiveContainer({
   padding = 'medium',
   centered = true
 }: ResponsiveContainerProps) {
-  const { screenInfo: _screenInfo, responsiveClasses } = useResponsiveLayout();
+  const { responsiveClasses } = useResponsiveLayout();
 
   const getContainerClass = () => {
     if (size !== 'auto') {

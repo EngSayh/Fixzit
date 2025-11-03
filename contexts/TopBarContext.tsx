@@ -14,6 +14,7 @@ interface TopBarState {
     href: string;
     permission: string;
   }>;
+  // eslint-disable-next-line no-unused-vars
   setApp: (app: AppKey) => void;
 }
 

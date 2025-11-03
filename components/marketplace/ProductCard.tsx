@@ -22,6 +22,7 @@ export interface MarketplaceProductCard {
 
 interface ProductCardProps {
   product: MarketplaceProductCard;
+  // eslint-disable-next-line no-unused-vars
   onAddToCart?: (productId: string) => void;
   isRTL?: boolean;
 }

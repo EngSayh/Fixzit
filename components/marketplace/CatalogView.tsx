@@ -277,7 +277,6 @@ export default function CatalogView({
                 <div className="flex items-start gap-4">
                   <div className="h-20 w-20 rounded-2xl border border-border flex items-center justify-center bg-muted overflow-hidden">
                     {product.images?.[0] ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={product.images[0]} alt={product.title} className="h-full w-full object-cover" />
                     ) : (
                       <span className="text-xs text-muted-foreground text-center px-2">Image not provided</span>

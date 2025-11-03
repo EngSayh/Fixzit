@@ -2,6 +2,7 @@ import React from 'react';
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   children: React.ReactNode;
+  // eslint-disable-next-line no-unused-vars
   onValueChange?: (value: string) => void;
 }
 interface SelectContentProps extends React.HTMLAttributes<HTMLDivElement> {}
