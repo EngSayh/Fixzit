@@ -27691,6 +27691,98 @@ const en = {
       sar: 'SAR',
     },
   },
+  helpCenter: {
+    title: 'Fixzit Knowledge Center',
+    subtitle: 'Interactive tutorials, guides, and resources to master Fixzit Enterprise',
+    askAI: 'Ask AI Assistant',
+    createTicket: 'Create Support Ticket',
+    viewTickets: 'View My Tickets',
+    interactiveTutorials: 'Interactive Tutorials',
+    tutorialsSubtitle: 'Learn Fixzit step-by-step with our guided tutorials',
+    helpArticles: 'Help Articles',
+    articlesSubtitle: 'Quick answers to common questions and detailed guides',
+    systemOverview: 'System Overview',
+    overviewSubtitle: 'Understand how Fixzit Enterprise works',
+    viewAllTutorials: 'View All Tutorials →',
+    viewAllArticles: 'View All Articles →',
+    startTutorial: 'Start Tutorial',
+    readMore: 'Read More',
+    completed: 'Completed',
+    min: 'min',
+    read: 'read',
+    categories: {
+      facilityManagement: 'Facility Management',
+      workOrders: 'Work Orders',
+      procurement: 'Procurement',
+      customerService: 'Customer Service',
+      finance: 'Finance',
+      properties: 'Properties',
+      vendors: 'Vendors',
+    },
+    difficulty: {
+      beginner: 'Beginner',
+      intermediate: 'Intermediate',
+      advanced: 'Advanced',
+    },
+    tutorials: {
+      gettingStarted: {
+        title: 'Getting Started with Fixzit FM',
+        description: 'Learn the basics of facility management in Fixzit',
+      },
+      firstWorkOrder: {
+        title: 'Creating Your First Work Order',
+        description: 'Step-by-step guide to create and assign work orders',
+      },
+      vendorManagement: {
+        title: 'Vendor Management Best Practices',
+        description: 'Learn how to manage vendors and procurement processes',
+      },
+      tenantRelations: {
+        title: 'Tenant Relations & Communication',
+        description: 'Master tenant communication and relationship management',
+      },
+      financialReporting: {
+        title: 'Financial Reporting & Invoicing',
+        description: 'Complete guide to financial management in Fixzit',
+      },
+    },
+    articles: {
+      createProperties: {
+        title: 'How to Create Properties',
+        description: 'Learn how to add and manage properties in the system',
+      },
+      workOrderLifecycle: {
+        title: 'Work Order Lifecycle',
+        description: 'Understanding the complete work order process',
+      },
+      vendorOnboarding: {
+        title: 'Vendor Onboarding Process',
+        description: 'How to add new vendors to your system',
+      },
+      invoiceGeneration: {
+        title: 'Invoice Generation & Payment',
+        description: 'Complete guide to invoicing and payment processing',
+      },
+    },
+    systemModules: {
+      properties: {
+        title: 'Properties',
+        description: 'Manage residential and commercial properties with comprehensive tools',
+      },
+      workOrders: {
+        title: 'Work Orders',
+        description: 'Create, assign, and track maintenance requests with SLA management',
+      },
+      vendors: {
+        title: 'Vendors',
+        description: 'Source materials, manage vendors, and streamline procurement',
+      },
+      finance: {
+        title: 'Finance',
+        description: 'Handle invoicing, payments, and financial reporting',
+      },
+    },
+  },
 };
 
 export default en;

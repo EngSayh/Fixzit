@@ -1,9 +1,10 @@
 'use client';
 
-import { useState} from 'react';
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { MessageSquare, Plus, Bot, BookOpen, Play, ChevronRight, Star, Users, Building2, DollarSign, Wrench, FileText} from 'lucide-react';
+import { MessageSquare, Plus, Bot, BookOpen, Play, ChevronRight, Star, Users, Building2, DollarSign, Wrench, FileText } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface Tutorial {
   id: string;
@@ -29,52 +30,53 @@ const AIChat = dynamic(() => import('@/components/AIChat'), { ssr: false });
 
 export default function HelpHome() {
   const [showAIChat, setShowAIChat] = useState(false);
+  const { t } = useTranslation();
 
   // Interactive tutorials
   const tutorials: Tutorial[] = [
     {
       id: '1',
-      title: 'Getting Started with Fixzit FM',
-      description: 'Learn the basics of facility management in Fixzit',
-      category: 'Facility Management',
-      duration: '15 min',
+      title: t('helpCenter.tutorials.gettingStarted.title'),
+      description: t('helpCenter.tutorials.gettingStarted.description'),
+      category: t('helpCenter.categories.facilityManagement'),
+      duration: `15 ${t('helpCenter.min')}`,
       difficulty: 'Beginner',
       featured: true,
       completed: false
     },
     {
       id: '2',
-      title: 'Creating Your First Work Order',
-      description: 'Step-by-step guide to create and assign work orders',
-      category: 'Work Orders',
-      duration: '10 min',
+      title: t('helpCenter.tutorials.firstWorkOrder.title'),
+      description: t('helpCenter.tutorials.firstWorkOrder.description'),
+      category: t('helpCenter.categories.workOrders'),
+      duration: `10 ${t('helpCenter.min')}`,
       difficulty: 'Beginner',
       completed: false
     },
     {
       id: '3',
-      title: 'Vendor Management Best Practices',
-      description: 'Learn how to manage vendors and procurement processes',
-      category: 'Procurement',
-      duration: '20 min',
+      title: t('helpCenter.tutorials.vendorManagement.title'),
+      description: t('helpCenter.tutorials.vendorManagement.description'),
+      category: t('helpCenter.categories.procurement'),
+      duration: `20 ${t('helpCenter.min')}`,
       difficulty: 'Intermediate',
       completed: false
     },
     {
       id: '4',
-      title: 'Tenant Relations & Communication',
-      description: 'Master tenant communication and relationship management',
-      category: 'Customer Service',
-      duration: '12 min',
+      title: t('helpCenter.tutorials.tenantRelations.title'),
+      description: t('helpCenter.tutorials.tenantRelations.description'),
+      category: t('helpCenter.categories.customerService'),
+      duration: `12 ${t('helpCenter.min')}`,
       difficulty: 'Beginner',
       completed: false
     },
     {
       id: '5',
-      title: 'Financial Reporting & Invoicing',
-      description: 'Complete guide to financial management in Fixzit',
-      category: 'Finance',
-      duration: '25 min',
+      title: t('helpCenter.tutorials.financialReporting.title'),
+      description: t('helpCenter.tutorials.financialReporting.description'),
+      category: t('helpCenter.categories.finance'),
+      duration: `25 ${t('helpCenter.min')}`,
       difficulty: 'Intermediate',
       completed: false
     }
@@ -84,34 +86,34 @@ export default function HelpHome() {
   const helpArticles: HelpArticle[] = [
     {
       id: '1',
-      title: 'How to Create Properties',
-      category: 'Properties',
-      description: 'Learn how to add and manage properties in the system',
-      readTime: '5 min',
+      title: t('helpCenter.articles.createProperties.title'),
+      category: t('helpCenter.categories.properties'),
+      description: t('helpCenter.articles.createProperties.description'),
+      readTime: `5 ${t('helpCenter.min')} ${t('helpCenter.read')}`,
       lastUpdated: '2025-01-15'
     },
     {
       id: '2',
-      title: 'Work Order Lifecycle',
-      category: 'Work Orders',
-      description: 'Understanding the complete work order process',
-      readTime: '8 min',
+      title: t('helpCenter.articles.workOrderLifecycle.title'),
+      category: t('helpCenter.categories.workOrders'),
+      description: t('helpCenter.articles.workOrderLifecycle.description'),
+      readTime: `8 ${t('helpCenter.min')} ${t('helpCenter.read')}`,
       lastUpdated: '2025-01-14'
     },
     {
       id: '3',
-      title: 'Vendor Onboarding Process',
-      category: 'Vendors',
-      description: 'How to add new vendors to your system',
-      readTime: '6 min',
+      title: t('helpCenter.articles.vendorOnboarding.title'),
+      category: t('helpCenter.categories.vendors'),
+      description: t('helpCenter.articles.vendorOnboarding.description'),
+      readTime: `6 ${t('helpCenter.min')} ${t('helpCenter.read')}`,
       lastUpdated: '2025-01-13'
     },
     {
       id: '4',
-      title: 'Invoice Generation & Payment',
-      category: 'Finance',
-      description: 'Complete guide to invoicing and payment processing',
-      readTime: '10 min',
+      title: t('helpCenter.articles.invoiceGeneration.title'),
+      category: t('helpCenter.categories.finance'),
+      description: t('helpCenter.articles.invoiceGeneration.description'),
+      readTime: `10 ${t('helpCenter.min')} ${t('helpCenter.read')}`,
       lastUpdated: '2025-01-12'
     }
   ];
@@ -135,9 +137,15 @@ export default function HelpHome() {
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'Beginner': return 'bg-success/10 text-success-foreground';
-      case 'Intermediate': return 'bg-warning/10 text-warning-foreground';
-      case 'Advanced': return 'bg-destructive/10 text-destructive-foreground';
+      case 'Beginner': 
+      case t('helpCenter.difficulty.beginner'): 
+        return 'bg-success/10 text-success-foreground';
+      case 'Intermediate':
+      case t('helpCenter.difficulty.intermediate'):
+        return 'bg-warning/10 text-warning-foreground';
+      case 'Advanced':
+      case t('helpCenter.difficulty.advanced'):
+        return 'bg-destructive/10 text-destructive-foreground';
       default: return 'bg-muted text-foreground';
     }
   };
@@ -147,9 +155,9 @@ export default function HelpHome() {
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary via-primary to-success text-primary-foreground py-16">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
-          <h1 className="text-4xl font-bold mb-4">Fixzit Knowledge Center</h1>
+          <h1 className="text-4xl font-bold mb-4">{t('helpCenter.title')}</h1>
           <p className="text-xl opacity-90 mb-8">
-            Interactive tutorials, guides, and resources to master Fixzit Enterprise
+            {t('helpCenter.subtitle')}
           </p>
 
           {/* Quick Actions */}
@@ -159,21 +167,21 @@ export default function HelpHome() {
               className="bg-card text-primary px-6 py-3 rounded-2xl font-semibold hover:bg-muted transition-colors flex items-center gap-2"
             >
               <Bot className="w-5 h-5" />
-              Ask AI Assistant
+              {t('helpCenter.askAI')}
             </button>
             <Link
               href="/help/support-ticket"
               className="bg-accent text-foreground px-6 py-3 rounded-2xl font-semibold hover:bg-accent-dark transition-colors flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
-              Create Support Ticket
+              {t('helpCenter.createTicket')}
             </Link>
             <Link
               href="/support/my-tickets"
               className="bg-white/10 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-white/20 transition-colors flex items-center gap-2 border border-white/20"
             >
               <MessageSquare className="w-5 h-5" />
-              View My Tickets
+              {t('helpCenter.viewTickets')}
             </Link>
           </div>
         </div>
@@ -183,9 +191,9 @@ export default function HelpHome() {
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">Interactive Tutorials</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-4">{t('helpCenter.interactiveTutorials')}</h2>
             <p className="text-xl text-muted-foreground">
-              Learn Fixzit step-by-step with our guided tutorials
+              {t('helpCenter.tutorialsSubtitle')}
             </p>
           </div>
 
@@ -218,7 +226,7 @@ export default function HelpHome() {
                     href={`/help/tutorial/${tutorial.id}`}
                     className="text-primary hover:text-primary font-medium text-sm flex items-center gap-1"
                   >
-                    Start Tutorial
+                    {t('helpCenter.startTutorial')}
                     <ChevronRight className="w-4 h-4" />
                   </Link>
                 </div>
@@ -231,7 +239,7 @@ export default function HelpHome() {
                 </div>
                 {tutorial.completed && (
                   <div className="mt-2 text-success text-sm font-medium">
-                    ✓ Completed
+                    ✓ {t('helpCenter.completed')}
                   </div>
                 )}
               </div>
@@ -243,7 +251,7 @@ export default function HelpHome() {
               href="/help/tutorials"
               className="inline-block bg-muted text-foreground px-6 py-3 rounded-2xl font-medium hover:bg-muted transition-colors"
             >
-              View All Tutorials →
+              {t('helpCenter.viewAllTutorials')}
             </Link>
           </div>
         </div>
@@ -253,9 +261,9 @@ export default function HelpHome() {
       <section className="py-16 bg-muted">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">Help Articles</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-4">{t('helpCenter.helpArticles')}</h2>
             <p className="text-xl text-muted-foreground">
-              Quick answers to common questions and detailed guides
+              {t('helpCenter.articlesSubtitle')}
             </p>
           </div>
 
@@ -281,7 +289,7 @@ export default function HelpHome() {
                         href={`/help/article/${article.id}`}
                         className="text-primary hover:text-primary font-medium text-sm flex items-center gap-1"
                       >
-                        Read More
+                        {t('helpCenter.readMore')}
                         <ChevronRight className="w-4 h-4" />
                       </Link>
                     </div>
@@ -296,7 +304,7 @@ export default function HelpHome() {
               href="/help/articles"
               className="inline-block bg-card text-foreground px-6 py-3 rounded-2xl font-medium hover:bg-muted transition-colors border border-border"
             >
-              View All Articles →
+              {t('helpCenter.viewAllArticles')}
             </Link>
           </div>
         </div>
@@ -306,9 +314,9 @@ export default function HelpHome() {
       <section className="py-16">
         <div className="mx-auto max-w-7xl px-4 lg:px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">System Overview</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-4">{t('helpCenter.systemOverview')}</h2>
             <p className="text-xl text-muted-foreground">
-              Understand how Fixzit Enterprise works
+              {t('helpCenter.overviewSubtitle')}
             </p>
           </div>
 
@@ -317,9 +325,9 @@ export default function HelpHome() {
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Building2 className="w-8 h-8 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Properties</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-2">{t('helpCenter.systemModules.properties.title')}</h3>
               <p className="text-muted-foreground text-sm">
-                Manage residential and commercial properties with comprehensive tools
+                {t('helpCenter.systemModules.properties.description')}
               </p>
             </div>
 
@@ -327,9 +335,9 @@ export default function HelpHome() {
               <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Wrench className="w-8 h-8 text-success" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Work Orders</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-2">{t('helpCenter.systemModules.workOrders.title')}</h3>
               <p className="text-muted-foreground text-sm">
-                Create, assign, and track maintenance requests with SLA management
+                {t('helpCenter.systemModules.workOrders.description')}
               </p>
             </div>
 
@@ -337,9 +345,9 @@ export default function HelpHome() {
               <div className="w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Users className="w-8 h-8 text-secondary-foreground" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Vendors</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-2">{t('helpCenter.systemModules.vendors.title')}</h3>
               <p className="text-muted-foreground text-sm">
-                Source materials, manage vendors, and streamline procurement
+                {t('helpCenter.systemModules.vendors.description')}
               </p>
             </div>
 
@@ -347,9 +355,9 @@ export default function HelpHome() {
               <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <DollarSign className="w-8 h-8 text-accent-foreground" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Finance</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-2">{t('helpCenter.systemModules.finance.title')}</h3>
               <p className="text-muted-foreground text-sm">
-                Handle invoicing, payments, and financial reporting
+                {t('helpCenter.systemModules.finance.description')}
               </p>
             </div>
           </div>

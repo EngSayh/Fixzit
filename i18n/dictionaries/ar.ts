@@ -26981,6 +26981,98 @@ const ar = {
       sar: 'ريال',
     },
   },
+  helpCenter: {
+    title: 'مركز المعرفة فيكزت',
+    subtitle: 'دروس تفاعلية وأدلة وموارد لإتقان فيكزت إنتربرايز',
+    askAI: 'اسأل المساعد الذكي',
+    createTicket: 'إنشاء تذكرة دعم',
+    viewTickets: 'عرض تذاكري',
+    interactiveTutorials: 'دروس تفاعلية',
+    tutorialsSubtitle: 'تعلم فيكزت خطوة بخطوة من خلال دروسنا الموجهة',
+    helpArticles: 'مقالات المساعدة',
+    articlesSubtitle: 'إجابات سريعة على الأسئلة الشائعة وأدلة مفصلة',
+    systemOverview: 'نظرة عامة على النظام',
+    overviewSubtitle: 'فهم كيفية عمل فيكزت إنتربرايز',
+    viewAllTutorials: 'عرض جميع الدروس →',
+    viewAllArticles: 'عرض جميع المقالات →',
+    startTutorial: 'بدء الدرس',
+    readMore: 'اقرأ المزيد',
+    completed: 'مكتمل',
+    min: 'دقيقة',
+    read: 'قراءة',
+    categories: {
+      facilityManagement: 'إدارة المنشآت',
+      workOrders: 'أوامر العمل',
+      procurement: 'المشتريات',
+      customerService: 'خدمة العملاء',
+      finance: 'المالية',
+      properties: 'العقارات',
+      vendors: 'الموردون',
+    },
+    difficulty: {
+      beginner: 'مبتدئ',
+      intermediate: 'متوسط',
+      advanced: 'متقدم',
+    },
+    tutorials: {
+      gettingStarted: {
+        title: 'البدء مع فيكزت FM',
+        description: 'تعلم أساسيات إدارة المنشآت في فيكزت',
+      },
+      firstWorkOrder: {
+        title: 'إنشاء أول أمر عمل',
+        description: 'دليل خطوة بخطوة لإنشاء وتعيين أوامر العمل',
+      },
+      vendorManagement: {
+        title: 'أفضل ممارسات إدارة الموردين',
+        description: 'تعلم كيفية إدارة الموردين وعمليات الشراء',
+      },
+      tenantRelations: {
+        title: 'علاقات المستأجرين والتواصل',
+        description: 'إتقان التواصل مع المستأجرين وإدارة العلاقات',
+      },
+      financialReporting: {
+        title: 'التقارير المالية والفوترة',
+        description: 'دليل كامل للإدارة المالية في فيكزت',
+      },
+    },
+    articles: {
+      createProperties: {
+        title: 'كيفية إنشاء العقارات',
+        description: 'تعلم كيفية إضافة وإدارة العقارات في النظام',
+      },
+      workOrderLifecycle: {
+        title: 'دورة حياة أمر العمل',
+        description: 'فهم عملية أمر العمل الكاملة',
+      },
+      vendorOnboarding: {
+        title: 'عملية إضافة الموردين',
+        description: 'كيفية إضافة موردين جدد إلى نظامك',
+      },
+      invoiceGeneration: {
+        title: 'إنشاء الفواتير والدفع',
+        description: 'دليل كامل لإصدار الفواتير ومعالجة الدفع',
+      },
+    },
+    systemModules: {
+      properties: {
+        title: 'العقارات',
+        description: 'إدارة العقارات السكنية والتجارية بأدوات شاملة',
+      },
+      workOrders: {
+        title: 'أوامر العمل',
+        description: 'إنشاء وتعيين وتتبع طلبات الصيانة مع إدارة اتفاقية مستوى الخدمة',
+      },
+      vendors: {
+        title: 'الموردون',
+        description: 'الحصول على المواد وإدارة الموردين وتبسيط عمليات الشراء',
+      },
+      finance: {
+        title: 'المالية',
+        description: 'التعامل مع الفواتير والمدفوعات والتقارير المالية',
+      },
+    },
+  },
 };
 
 export default ar;
