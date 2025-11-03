@@ -45,7 +45,7 @@ describe('RBAC Cross-Tenant Isolation', () => {
   });
 
   describe('Tenant Data Isolation', () => {
-    it('should only return data from user's own tenant', async () => {
+    it("should only return data from user's own tenant", async () => {
       /**
        * Test: User from Tenant 1 should only see Tenant 1 data
        * 

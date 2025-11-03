@@ -12,6 +12,7 @@ export interface ViewingSchedulerProps {
   agentName: string;
   agentPhoto?: string;
   availableSlots?: { date: string; times: string[] }[];
+  // eslint-disable-next-line no-unused-vars
   onSchedule?: (data: ViewingRequestData) => Promise<void>;
 }
 
@@ -35,7 +36,9 @@ export default function ViewingScheduler({
   propertyAddress,
   agentId,
   agentName,
+  // eslint-disable-next-line no-unused-vars
   agentPhoto: _agentPhoto, // Reserved for future use
+  // eslint-disable-next-line no-unused-vars
   availableSlots: _availableSlots = [], // Reserved for future use
   onSchedule
 }: ViewingSchedulerProps) {

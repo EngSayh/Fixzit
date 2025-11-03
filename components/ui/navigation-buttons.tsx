@@ -25,6 +25,7 @@ interface NavigationButtonsProps {
   /**
    * Save button callback. May optionally accept the submit event.
    */
+  // eslint-disable-next-line no-unused-vars
   onSave?: (e?: React.FormEvent) => void | Promise<void>;
   
   /**
@@ -200,6 +201,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
  */
 interface FormWithNavigationProps {
   children: React.ReactNode;
+  // eslint-disable-next-line no-unused-vars
   onSubmit: (e: React.FormEvent) => void | Promise<void>;
   showSave?: boolean;
   showBack?: boolean;
@@ -234,6 +236,7 @@ export const FormWithNavigation: React.FC<FormWithNavigationProps> = ({
       if (evt && typeof (evt as unknown as { preventDefault?: Function }).preventDefault === 'function') {
         (evt as unknown as { preventDefault: Function }).preventDefault();
       }
+    // eslint-disable-next-line no-unused-vars
     } catch (_err) {
       // ignore
     }

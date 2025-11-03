@@ -181,6 +181,7 @@ export async function getPropertyOwnership(_propertyId: string): Promise<{
       ownerId: '',
       orgId: ''
     };
+  // eslint-disable-next-line no-unreachable
   } catch (error) {
     console.error('[FM Auth] Property ownership query failed:', error);
     return null;
