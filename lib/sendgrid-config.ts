@@ -129,8 +129,10 @@ export function getBaseEmailOptions() {
 
 /**
  * Verify SendGrid webhook signature
+ * SECURITY FIX: Use timing-safe comparison to prevent timing attacks
  * 
  * @see https://docs.sendgrid.com/for-developers/tracking-events/getting-started-event-webhook-security
+ * @see https://owasp.org/www-community/attacks/Timing_attack
  */
 export function verifyWebhookSignature(
   publicKey: string,
@@ -142,18 +144,47 @@ export function verifyWebhookSignature(
     const crypto = require('crypto');
     const verificationKey = process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
     
+    // SECURITY: Production MUST have webhook verification enabled
     if (!verificationKey) {
-      console.warn('⚠️ SENDGRID_WEBHOOK_VERIFICATION_KEY not configured - skipping verification');
-      return true; // Allow in development
+      if (process.env.NODE_ENV === 'production') {
+        console.error('🚨 CRITICAL: SENDGRID_WEBHOOK_VERIFICATION_KEY not configured in production');
+        console.error('🚨 Rejecting webhook request for security');
+        return false; // Fail-safe in production
+      }
+      console.warn('⚠️ SENDGRID_WEBHOOK_VERIFICATION_KEY not configured - allowing in development');
+      return true; // Allow in development only
     }
 
+    // Validate timestamp to prevent replay attacks (allow 5-minute window)
+    const requestTimestamp = parseInt(timestamp, 10);
+    const now = Math.floor(Date.now() / 1000);
+    const maxAge = 5 * 60; // 5 minutes
+    
+    if (isNaN(requestTimestamp) || Math.abs(now - requestTimestamp) > maxAge) {
+      console.warn('⚠️ Webhook timestamp expired or invalid:', timestamp);
+      return false;
+    }
+
+    // Compute expected signature
     const timestampedPayload = timestamp + payload;
     const expectedSignature = crypto
       .createHmac('sha256', verificationKey)
       .update(timestampedPayload)
       .digest('base64');
 
-    return signature === expectedSignature;
+    // CRITICAL SECURITY FIX: Use timing-safe comparison
+    // The standard === comparison is vulnerable to timing attacks where
+    // an attacker can deduce the signature byte-by-byte by measuring
+    // response times. crypto.timingSafeEqual ensures constant-time comparison.
+    const signatureBuffer = Buffer.from(signature, 'utf8');
+    const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
+    
+    // Both buffers must be same length for timingSafeEqual
+    if (signatureBuffer.length !== expectedBuffer.length) {
+      return false;
+    }
+    
+    return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
   } catch (error) {
     console.error('❌ Webhook verification failed:', error);
     return false;

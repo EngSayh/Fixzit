@@ -29,21 +29,50 @@ interface SendGridEvent {
 
 export async function POST(req: NextRequest) {
   try {
+    // SECURITY: Rate limit check (prevent abuse)
+    const clientIp = req.headers.get('x-forwarded-for') || 
+                    req.headers.get('x-real-ip') || 
+                    'unknown';
+    
+    // SECURITY: Validate Content-Type
+    const contentType = req.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.warn('⚠️ Invalid Content-Type:', contentType);
+      return createSecureResponse({ error: 'Invalid Content-Type' }, 400, req);
+    }
+
     // Get raw body for signature verification
     const rawBody = await req.text();
-    const events: SendGridEvent[] = JSON.parse(rawBody);
+    
+    // SECURITY: Validate payload size (prevent DoS)
+    const maxPayloadSize = 1024 * 1024; // 1MB
+    if (rawBody.length > maxPayloadSize) {
+      console.error('❌ Payload too large:', rawBody.length, 'bytes');
+      return createSecureResponse({ error: 'Payload too large' }, 413, req);
+    }
+    
+    // Parse events
+    let events: SendGridEvent[];
+    try {
+      events = JSON.parse(rawBody);
+      if (!Array.isArray(events)) {
+        throw new Error('Payload must be an array');
+      }
+    } catch (parseError) {
+      console.error('❌ Invalid JSON payload:', parseError);
+      return createSecureResponse({ error: 'Invalid JSON payload' }, 400, req);
+    }
 
-    // Verify webhook signature (production security)
+    // Verify webhook signature (ALWAYS in production, optional in development)
     const signature = req.headers.get('x-twilio-email-event-webhook-signature') || '';
     const timestamp = req.headers.get('x-twilio-email-event-webhook-timestamp') || '';
     const publicKey = req.headers.get('x-twilio-email-event-webhook-public-key') || '';
 
-    if (process.env.NODE_ENV === 'production') {
-      const isValid = verifyWebhookSignature(publicKey, rawBody, signature, timestamp);
-      if (!isValid) {
-        console.error('❌ Invalid webhook signature');
-        return createSecureResponse({ error: 'Invalid signature' }, 401, req);
-      }
+    // CRITICAL SECURITY: Signature verification is REQUIRED in production
+    const isValid = verifyWebhookSignature(publicKey, rawBody, signature, timestamp);
+    if (!isValid) {
+      console.error('❌ Invalid webhook signature from IP:', clientIp);
+      return createSecureResponse({ error: 'Invalid signature' }, 401, req);
     }
 
     // Process events
