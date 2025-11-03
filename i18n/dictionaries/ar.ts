@@ -202,7 +202,7 @@ const ar = {
       cta3: 'عقار فيكزت',
     },
     features: {
-      titleLanding: 'حل كامل لإدارة المنشآت',
+      title: 'حل كامل لإدارة المنشآت',
     },
   },
   footer: {

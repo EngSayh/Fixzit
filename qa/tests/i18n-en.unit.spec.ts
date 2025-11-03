@@ -136,8 +136,8 @@ test.describe('i18n: English dictionary (en)', () => {
     expect(en.landing.hero.cta1).toBe('Access Fixzit FM');
     expect(en.landing.hero.cta2).toBe('Fixzit Souq');
     expect(en.landing.hero.cta3).toBe('Aqar Real Estate');
-    // TYPESCRIPT FIX: Correct property name is 'titleLanding' not 'title'
-    expect(en.landing.features.titleLanding).toBe('Complete Facility Management Solution');
+    // Correct property name is 'title' to match production code usage
+    expect(en.landing.features.title).toBe('Complete Facility Management Solution');
 
     expect(en.footer.backHome).toBe('Back to Home');
     expect(en.footer.brand).toBe('Fixzit');

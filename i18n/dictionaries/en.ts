@@ -183,7 +183,7 @@ const en = {
       cta3: 'Aqar Real Estate',
     },
     features: {
-      titleLanding: 'Complete Facility Management Solution',
+      title: 'Complete Facility Management Solution',
     },
   },
   footer: {
