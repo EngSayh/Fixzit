@@ -134,7 +134,52 @@ export const SelectGroup: React.FC<SelectGroupProps> = ({ className = '', childr
 };
 SelectGroup.displayName = 'SelectGroup';
 
-// --- DEPRECATED COMPONENTS ---
-// SelectTrigger, SelectContent, and SelectValue have been removed.
-// They provided a misleading API that did not match the native <select> implementation.
-// Use the `placeholder` prop on <Select> instead of <SelectValue>.
+// --- BACKWARD COMPATIBILITY EXPORTS ---
+// These components are provided for backward compatibility with the old API.
+// They are thin wrappers that work with the new native select implementation.
+// New code should use the `placeholder` prop on <Select> instead.
+
+interface SelectTriggerProps extends React.HTMLAttributes<HTMLDivElement> {
+  children?: React.ReactNode;
+}
+
+/**
+ * @deprecated This component is provided for backward compatibility only.
+ * With the new native select implementation, you don't need SelectTrigger.
+ * Just use <Select> with the placeholder prop.
+ */
+export const SelectTrigger: React.FC<SelectTriggerProps> = ({ children }) => {
+  // This component does nothing - it's just a passthrough for compatibility
+  return <>{children}</>;
+};
+SelectTrigger.displayName = 'SelectTrigger';
+
+interface SelectContentProps extends React.HTMLAttributes<HTMLDivElement> {
+  children?: React.ReactNode;
+}
+
+/**
+ * @deprecated This component is provided for backward compatibility only.
+ * With the new native select implementation, you don't need SelectContent.
+ * Just put your SelectItem components directly inside <Select>.
+ */
+export const SelectContent: React.FC<SelectContentProps> = ({ children }) => {
+  // This component does nothing - it's just a passthrough for compatibility
+  return <>{children}</>;
+};
+SelectContent.displayName = 'SelectContent';
+
+interface SelectValueProps extends React.HTMLAttributes<HTMLSpanElement> {
+  placeholder?: string;
+}
+
+/**
+ * @deprecated This component is provided for backward compatibility only.
+ * With the new native select implementation, you don't need SelectValue.
+ * Use the `placeholder` prop on <Select> instead.
+ */
+export const SelectValue: React.FC<SelectValueProps> = () => {
+  // This component does nothing - the native select handles its own value display
+  return null;
+};
+SelectValue.displayName = 'SelectValue';
