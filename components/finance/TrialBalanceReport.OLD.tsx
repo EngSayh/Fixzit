@@ -33,9 +33,11 @@ interface ITrialBalanceData {
 interface ITrialBalanceReportProps {
   initialYear?: number;
   initialPeriod?: number;
+/* eslint-disable no-unused-vars */
   onExport?: (data: ITrialBalanceData) => void;
 }
 
+/* eslint-enable no-unused-vars */
 export default function TrialBalanceReport({
   initialYear = new Date().getFullYear(),
   initialPeriod = new Date().getMonth() + 1,
@@ -65,7 +67,7 @@ export default function TrialBalanceReport({
 
   useEffect(() => {
     loadTrialBalance();
-  }, [year, period]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [year, period]);
 
   const loadTrialBalance = async () => {
     try {

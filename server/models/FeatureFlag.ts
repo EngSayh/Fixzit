@@ -373,6 +373,7 @@ FeatureFlagSchema.methods.toggle = async function(userId: string, reason?: strin
 export type FeatureFlag = InferSchemaType<typeof FeatureFlagSchema>;
 
 // Define static methods interface
+/* eslint-disable no-unused-vars */
 export interface FeatureFlagStaticMethods {
   isEnabled(
     key: string,
@@ -386,6 +387,7 @@ export interface FeatureFlagStaticMethods {
   getConfig(key: string): Promise<Record<string, unknown> | null>;
   recordUsage(key: string, enabled: boolean): Promise<void>;
 }
+/* eslint-enable no-unused-vars */
 
 // Type the model with statics
 export type FeatureFlagModelType = import('mongoose').Model<FeatureFlag> & FeatureFlagStaticMethods;

@@ -234,6 +234,6 @@ PropertyTransactionSchema.index({ orgId: 1, 'seller.userId': 1 });
 PropertyTransactionSchema.index({ orgId: 1, 'tenant.userId': 1 });
 PropertyTransactionSchema.index({ orgId: 1, 'landlord.userId': 1 });
 
-const PropertyTransaction = models.PropertyTransaction || model<PropertyTransaction>('PropertyTransaction', PropertyTransactionSchema);
+const PropertyTransactionModel = models.PropertyTransaction || model<PropertyTransaction>('PropertyTransaction', PropertyTransactionSchema);
 
-export default PropertyTransaction;
+export default PropertyTransactionModel;

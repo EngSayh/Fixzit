@@ -265,6 +265,6 @@ PropertyListingSchema.index({
   'location.address.city': 'text'
 });
 
-const PropertyListing = models.PropertyListing || model<PropertyListing>('PropertyListing', PropertyListingSchema);
+const PropertyListingModel = models.PropertyListing || model<PropertyListing>('PropertyListing', PropertyListingSchema);
 
-export default PropertyListing;
+export default PropertyListingModel;

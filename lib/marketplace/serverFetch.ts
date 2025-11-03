@@ -85,7 +85,7 @@ export async function serverFetchWithTenant(path: string, init?: RequestInit) {
       devMessage: `Request failed: ${response.status} ${response.statusText} for ${url}`,
       correlationId,
     };
-    // eslint-disable-next-line no-console
+     
     console.error('[MarketplaceFetch] request failed', errorPayload);
     throw new Error(JSON.stringify(errorPayload));
   }

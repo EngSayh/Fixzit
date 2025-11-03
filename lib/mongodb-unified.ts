@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 declare global {
-  // eslint-disable-next-line no-var, no-unused-vars
+   
   var _mongooseConnection: typeof mongoose | undefined;
 }
 

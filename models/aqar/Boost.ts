@@ -7,11 +7,13 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+/* eslint-disable no-unused-vars */
 export enum BoostType {
   FEATURED = 'FEATURED',       // Top of search, homepage
   PINNED = 'PINNED',           // Stays at top for duration
   HIGHLIGHTED = 'HIGHLIGHTED', // Visual highlight in results
 }
+/* eslint-enable no-unused-vars */
 
 export interface IBoost extends Document {
   // Listing
@@ -101,6 +103,7 @@ BoostSchema.statics.getPricing = function (type: BoostType, days: number) {
 };
 
 // Methods
+// eslint-disable-next-line no-unused-vars
 BoostSchema.methods.activate = async function (this: IBoost) {
   if (this.active) {
     throw new Error('Boost already activated');
@@ -114,6 +117,7 @@ BoostSchema.methods.activate = async function (this: IBoost) {
   await this.save();
 };
 
+// eslint-disable-next-line no-unused-vars
 BoostSchema.methods.recordImpression = async function (this: IBoost) {
   await (this.constructor as typeof import('mongoose').Model).updateOne(
     { _id: this._id },
@@ -121,6 +125,7 @@ BoostSchema.methods.recordImpression = async function (this: IBoost) {
   );
 };
 
+// eslint-disable-next-line no-unused-vars
 BoostSchema.methods.recordClick = async function (this: IBoost) {
   await (this.constructor as typeof import('mongoose').Model).updateOne(
     { _id: this._id },
@@ -128,6 +133,7 @@ BoostSchema.methods.recordClick = async function (this: IBoost) {
   );
 };
 
+// eslint-disable-next-line no-unused-vars
 BoostSchema.methods.checkExpiry = async function (this: IBoost) {
   if (this.active && this.expiresAt && this.expiresAt < new Date()) {
     this.active = false;

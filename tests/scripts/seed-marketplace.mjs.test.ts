@@ -78,7 +78,7 @@ async function importTargetModule() {
     try {
       // Use file URL for ESM imports if needed
       const fileUrl = url.pathToFileURL(p).href
-      // eslint-disable-next-line @typescript-eslint/no-implied-eval
+       
       return await import(fileUrl)
     } catch (e) {
       // continue to next candidate

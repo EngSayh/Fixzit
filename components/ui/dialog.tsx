@@ -10,6 +10,7 @@ function cn(...inputs: (string | undefined | null | false)[]): string {
 
 interface DialogProps {
   open?: boolean;
+  // eslint-disable-next-line no-unused-vars
   onOpenChange?: (open: boolean) => void;
   children: React.ReactNode;
 }

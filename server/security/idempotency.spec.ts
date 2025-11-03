@@ -3,7 +3,7 @@
  * Framework: Vitest
  */
 
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, expect, beforeEach, afterEach } from 'vitest';
 import { createHash } from 'crypto';
 
 // Import from the module under test.

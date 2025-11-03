@@ -26,6 +26,7 @@ interface FeatureToggleProps {
   /**
    * Callback when toggle state changes
    */
+  // eslint-disable-next-line no-unused-vars
   onChange: (enabled: boolean) => void;
   
   /**

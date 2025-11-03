@@ -52,7 +52,7 @@ const validBody = {
 
 describe('PayTabs POST route', () => {
   const OLD_ENV = process.env
-  let fetchSpy: vi.SpyInstance
+  let fetchSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     vi.useFakeTimers()
@@ -93,7 +93,7 @@ describe('PayTabs POST route', () => {
     // Verify payload constructed properly
     const call = fetchSpy.mock.calls[0]
     expect(call[0]).toBe('https://secure.paytabs.sa/payment/request')
-    const options = call[1]
+    const options = call[1] as any
     expect(options.method).toBe('POST')
     expect(options.headers['Content-Type']).toBe('application/json')
     expect(options.headers['Authorization']).toBe('server-key')
@@ -129,7 +129,7 @@ describe('PayTabs POST route', () => {
     const res = await POST(makeReq(body))
     expect(res.status).toBe(200)
     await (res as any).json()
-    const options = fetchSpy.mock.calls[0][1]
+    const options = fetchSpy.mock.calls[0][1] as any
     const payload = JSON.parse(options.body)
     expect(payload.cart_currency).toBe('SAR')
   })
@@ -183,11 +183,12 @@ describe('PayTabs POST route', () => {
 
   test('aborts fetch after 15s timeout', async () => {
     let capturedSignal: AbortSignal | undefined
-    fetchSpy.mockImplementationOnce((_url: string, opts: any) => {
-      capturedSignal = opts.signal
+    fetchSpy.mockImplementationOnce(((...args: any[]) => {
+      const opts = args[1]
+      capturedSignal = opts?.signal
       return new Promise(() => {}) as any // never resolves until abort
-    })
-    const promise = POST(makeReq(validBody))
+    }) as any)
+    void POST(makeReq(validBody)) // Start request but don't await (will timeout)
     // Fast-forward timers to trigger abort
     vi.advanceTimersByTime(15001)
     // The handler clears the timeout in finally, but since promise never resolves, we cannot await result.

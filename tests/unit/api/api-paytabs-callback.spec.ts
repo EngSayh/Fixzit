@@ -31,7 +31,7 @@ let importError: unknown = null;
 async function resolvePOST(): Promise<void> {
   for (const modPath of candidateImports) {
     try {
-      // eslint-disable-next-line no-await-in-loop
+       
       const mod = await import(`../../${modPath}`);
       if (typeof mod.POST === 'function') {
         POST = mod.POST as (req: NextRequest) => Promise<Response>;

@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, expect, beforeEach } from 'vitest';
 import { GET } from './route';
 import { z } from 'zod';
 import { NextRequest } from 'next/server';
@@ -125,14 +125,14 @@ describe('GET /api/marketplace/categories', () => {
 
   test('responds with 400 on Zod validation error (mocked)', async () => {
     // Spy on ZodObject.parse to throw a ZodError for this invocation
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const parseSpy = vi.spyOn((z as any).ZodObject.prototype, 'parse').mockImplementation(() => {
       throw new z.ZodError([
         {
           code: 'custom',
           message: 'Invalid param',
           path: ['tenantId'],
-        } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+        } as any,  
       ]);
     });
 

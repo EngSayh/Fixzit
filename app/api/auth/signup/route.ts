@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { User } from '@/server/models/User';
 import { getNextAtomicUserCode } from '@/lib/mongoUtils.server';

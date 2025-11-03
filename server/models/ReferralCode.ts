@@ -98,6 +98,7 @@ export interface IReferralCode {
   tags?: string[];
 }
 
+/* eslint-disable no-unused-vars */
 type ReferralCodeDoc = HydratedDocument<IReferralCode> & {
   conversionRateComputed: number;
   isValid(): boolean;
@@ -129,6 +130,7 @@ export interface ReferralCodeStaticMethods {
     transactionId?: string;
   }): Promise<ReferralCodeDoc | null>;
 }
+/* eslint-enable no-unused-vars */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ReferralCodeModelType = Model<IReferralCode, {}, {}, {}, any> & ReferralCodeStaticMethods;
@@ -235,6 +237,7 @@ ReferralCodeSchema.index({ orgId: 1, 'limits.validFrom': 1, 'limits.validUntil':
 ReferralCodeSchema.index({ orgId: 1, status: 1 });
 
 // Virtuals
+// eslint-disable-next-line no-unused-vars
 ReferralCodeSchema.virtual('conversionRateComputed').get(function (this: ReferralCodeDoc) {
   const total = this.stats?.totalReferrals ?? 0;
   const success = this.stats?.successfulReferrals ?? 0;
@@ -242,6 +245,7 @@ ReferralCodeSchema.virtual('conversionRateComputed').get(function (this: Referra
 });
 
 // Instance methods
+// eslint-disable-next-line no-unused-vars
 ReferralCodeSchema.methods.isValid = function (this: ReferralCodeDoc) {
   if (this.status !== 'ACTIVE') return false;
   const now = new Date();

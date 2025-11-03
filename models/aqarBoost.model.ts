@@ -22,11 +22,13 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+/* eslint-disable no-unused-vars */
 export enum BoostType {
   FEATURED = 'FEATURED',     // Top placement, highest visibility
   PINNED = 'PINNED',         // Sticky in category listing
   HIGHLIGHTED = 'HIGHLIGHTED', // Visual distinction
 }
+/* eslint-enable no-unused-vars */
 
 export interface IBoost extends Document {
   // Listing / tenancy / user
@@ -68,6 +70,7 @@ export interface IBoost extends Document {
   recordClick(): Promise<{ clicks: number }>;
 }
 
+/* eslint-disable no-unused-vars */
 interface BoostModel extends Model<IBoost> {
   /**
    * Get pricing for a boost type and duration
@@ -99,6 +102,7 @@ interface BoostModel extends Model<IBoost> {
     type?: BoostType
   ): Promise<IBoost[]>;
 }
+/* eslint-enable no-unused-vars */
 
 const BoostSchema = new Schema<IBoost, BoostModel>(
   {
@@ -237,6 +241,7 @@ BoostSchema.pre('save', function (next) {
  * Check if boost is currently active (active flag + not expired)
  * Used for UI display and filtering
  */
+// eslint-disable-next-line no-unused-vars
 BoostSchema.virtual('isActiveNow').get(function (this: IBoost) {
   if (!this.active || !this.expiresAt) return false;
   return this.expiresAt > new Date();
@@ -249,6 +254,7 @@ BoostSchema.virtual('isActiveNow').get(function (this: IBoost) {
  * Throws if already active, not paid, or conflicts with existing active boost
  * The unique index on (orgId, listingId, type, active: true) provides final race protection
  */
+  // eslint-disable-next-line no-unused-vars
 BoostSchema.methods.activate = async function (this: IBoost) {
   if (this.active) {
     throw new Error('Boost already activated');
@@ -276,6 +282,7 @@ BoostSchema.methods.activate = async function (this: IBoost) {
  * Deactivate boost if expired
  * Used for cleanup jobs or on-demand expiry checks
  */
+  // eslint-disable-next-line no-unused-vars
 BoostSchema.methods.deactivateIfExpired = async function (this: IBoost) {
   if (this.active && this.expiresAt && this.expiresAt < new Date()) {
     this.active = false;
@@ -288,6 +295,7 @@ BoostSchema.methods.deactivateIfExpired = async function (this: IBoost) {
  * Uses atomic $inc to prevent race conditions
  * @returns Updated impressions count
  */
+  // eslint-disable-next-line no-unused-vars
 BoostSchema.methods.recordImpression = async function (this: IBoost) {
   const updated = await (this.constructor as BoostModel).findByIdAndUpdate(
     this._id,
@@ -302,6 +310,7 @@ BoostSchema.methods.recordImpression = async function (this: IBoost) {
  * Uses atomic $inc to prevent race conditions
  * @returns Updated clicks count
  */
+  // eslint-disable-next-line no-unused-vars
 BoostSchema.methods.recordClick = async function (this: IBoost) {
   const updated = await (this.constructor as BoostModel).findByIdAndUpdate(
     this._id,

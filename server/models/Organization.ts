@@ -58,10 +58,12 @@ type Usage = {
 };
 
 type OrganizationDoc = HydratedDocument<IOrganization>;
+/* eslint-disable no-unused-vars */
 type OrganizationModel = Model<IOrganization> & {
   incrementUsage(orgId: string, patch: Partial<Usage>): Promise<OrganizationDoc | null>;
   setSubscriptionStatus(orgId: string, status: TSubscriptionStatus): Promise<OrganizationDoc | null>;
 };
+/* eslint-enable no-unused-vars */
 
 export interface IOrganization {
   orgId: string;
@@ -538,6 +540,7 @@ OrganizationSchema.pre('save', function (next) {
 });
 
 // ---------- Virtuals ----------
+// eslint-disable-next-line no-unused-vars
 OrganizationSchema.virtual('subscriptionDaysRemaining').get(function (this: OrganizationDoc) {
   const end = this.subscription?.endDate ? new Date(this.subscription.endDate).getTime() : null;
   if (!end) return null;
@@ -547,6 +550,7 @@ OrganizationSchema.virtual('subscriptionDaysRemaining').get(function (this: Orga
 });
 
 // ---------- Instance methods ----------
+ 
 OrganizationSchema.methods.hasFeature = function (
   this: OrganizationDoc,
   feature: keyof Features,
@@ -554,6 +558,7 @@ OrganizationSchema.methods.hasFeature = function (
   return Boolean(this.subscription?.features?.[feature]);
 };
 
+// eslint-disable-next-line no-unused-vars
 OrganizationSchema.methods.checkUsageLimits = function (this: OrganizationDoc): string[] {
   const usage = this.subscription.usage;
   const features = this.subscription.features;

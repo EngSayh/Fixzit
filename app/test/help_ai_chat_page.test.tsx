@@ -38,7 +38,7 @@ try {
   }
 } catch (e) {
   // Fallback: if the file path differs, adjust the import to correct location.
-  // eslint-disable-next-line no-console
+   
   console.warn('Adjust AIChatPage import path in help_ai_chat_page.test.tsx to match your repo structure.')
 }
 

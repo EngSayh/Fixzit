@@ -23,7 +23,7 @@ vi.mock('next/link', () => ({
 let ProductPage: any;
 
 const importPageModule = async () => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+   
   const mod = await import('@/app/marketplace/product/[slug]/page');
   return mod;
 };

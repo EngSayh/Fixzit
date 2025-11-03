@@ -23,6 +23,7 @@ let isSystemContext: boolean = false;
  * Set tenant context (DEPRECATED - use runWithContext from authContext)
  * @deprecated Context should be set via authContext.runWithContext()
  */
+// eslint-disable-next-line no-unused-vars
 export function setTenantContext(_context: { orgId: string }): void {
   console.warn('setTenantContext is deprecated. Use authContext.runWithContext() instead.');
 }
@@ -31,6 +32,7 @@ export function setTenantContext(_context: { orgId: string }): void {
  * Set audit context (DEPRECATED - use runWithContext from authContext)
  * @deprecated Context should be set via authContext.runWithContext()
  */
+// eslint-disable-next-line no-unused-vars
 export function setAuditContext(_context: { userId: string; userEmail?: string }): void {
   console.warn('setAuditContext is deprecated. Use authContext.runWithContext() instead.');
 }

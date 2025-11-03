@@ -456,6 +456,7 @@ export default function TopBar() {
  * ✅ EXTRACTED: NotificationPopup Component
  * Handles notification bell, dropdown, and list display
  */
+/* eslint-disable no-unused-vars */
 interface NotificationPopupProps {
   notifOpen: boolean;
   setNotifOpen: (open: boolean) => void;
@@ -471,6 +472,7 @@ interface NotificationPopupProps {
   router: ReturnType<typeof useRouter>;
   t: (key: string, fallback?: string) => string;
 }
+/* eslint-enable no-unused-vars */
 
 function NotificationPopup({
   notifOpen,
@@ -622,6 +624,7 @@ function NotificationPopup({
  * ✅ EXTRACTED: UserMenuPopup Component
  * Handles user avatar, dropdown menu, and logout
  */
+/* eslint-disable no-unused-vars */
 interface UserMenuPopupProps {
   userOpen: boolean;
   setUserOpen: (open: boolean) => void;
@@ -632,6 +635,7 @@ interface UserMenuPopupProps {
   handleLogout: () => void;
   t: (key: string, fallback?: string) => string;
 }
+/* eslint-enable no-unused-vars */
 
 function UserMenuPopup({
   userOpen,

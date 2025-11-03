@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { findLanguageByCode } from '@/data/language-options';
 
+// eslint-disable-next-line no-unused-vars
 type TFn = (key: string, fallback?: string) => string;
 
 /**
@@ -33,6 +34,7 @@ export async function getServerI18n() {
     };
 
     return { t, isRTL } as { t: TFn; isRTL: boolean };
+  // eslint-disable-next-line no-unused-vars
   } catch (_err) {
     return {
       t: (k: string, f: string = k) => f,

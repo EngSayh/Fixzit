@@ -47,7 +47,7 @@ async function loadHomepageData() {
 }
 
 export default async function MarketplaceHome() {
-  const { categories: _categories, featured, carousels } = await loadHomepageData();
+  const { featured, carousels } = await loadHomepageData();
 
   return (
     <div className="min-h-screen bg-muted flex flex-col">

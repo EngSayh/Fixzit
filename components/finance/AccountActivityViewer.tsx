@@ -39,6 +39,7 @@ interface IAccountActivityViewerProps {
   accountId: string;
   initialStartDate?: string;
   initialEndDate?: string;
+  // eslint-disable-next-line no-unused-vars
   onTransactionClick?: (transaction: IAccountTransaction) => void;
 }
 
@@ -77,7 +78,7 @@ export default function AccountActivityViewer({
     if (accountId) {
       loadAccountActivity();
     }
-  }, [accountId, startDate, endDate, sourceTypeFilter, currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [accountId, startDate, endDate, sourceTypeFilter, currentPage]);
 
   const loadAccountActivity = async () => {
     if (!accountId) return;
@@ -108,6 +109,7 @@ export default function AccountActivityViewer({
         try {
           const err = await response.json();
           errMsg = err.message || err.error || errMsg;
+        // eslint-disable-next-line no-unused-vars
         } catch (_err) {
           // ignore
         }
@@ -180,10 +182,11 @@ export default function AccountActivityViewer({
       case 'this-month':
         start = new Date(today.getFullYear(), today.getMonth(), 1);
         break;
-      case 'this-quarter':
+      case 'this-quarter': {
         const quarter = Math.floor(today.getMonth() / 3);
         start = new Date(today.getFullYear(), quarter * 3, 1);
         break;
+      }
       case 'this-year':
         start = new Date(today.getFullYear(), 0, 1);
         break;

@@ -67,6 +67,7 @@ export async function performKbSearch(args: SearchArgs): Promise<unknown[]> {
     ];
     const results = await coll.aggregate(pipe, { maxTimeMS: 3_000 }).toArray();
     return results;
+  // eslint-disable-next-line no-unused-vars
   } catch (_e) {
     // Fallback to lexical search on text when vector index not available
     const safe = new RegExp((q || '').toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');

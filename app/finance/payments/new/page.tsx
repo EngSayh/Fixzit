@@ -56,7 +56,7 @@ export default function NewPaymentPage() {
 
   // Party details
   const [partyType, setPartyType] = useState<string>('TENANT');
-  const [partyId, _setPartyId] = useState<string>('');
+  const [partyId] = useState<string>('');
   const [partyName, setPartyName] = useState<string>('');
 
   // Method-specific fields - Bank Transfer
@@ -83,7 +83,7 @@ export default function NewPaymentPage() {
 
   // Invoice allocations
   const [allocations, setAllocations] = useState<IInvoiceAllocation[]>([]);
-  const [_availableInvoices, setAvailableInvoices] = useState<IAvailableInvoice[]>([]);
+  const [, setAvailableInvoices] = useState<IAvailableInvoice[]>([]);
   const [showInvoiceAllocation, setShowInvoiceAllocation] = useState<boolean>(false);
 
   // Data lookups
@@ -139,14 +139,14 @@ export default function NewPaymentPage() {
       }
     };
     loadAccounts();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load available invoices when payment type is RECEIVED
   useEffect(() => {
     if (paymentType === 'RECEIVED' && showInvoiceAllocation) {
       loadAvailableInvoices();
     }
-  }, [paymentType, showInvoiceAllocation]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [paymentType, showInvoiceAllocation]);
 
   const loadAvailableInvoices = async () => {
     try {
@@ -221,16 +221,25 @@ export default function NewPaymentPage() {
 
   const allocateByPriority = () => {
     // Allocate by due date (oldest first)
-    const _selectedAllocations = allocations
+    const selectedInvoices = allocations
       .filter(a => a.selected)
       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
+    // Process selected invoices in priority order (oldest first)
     let remaining = paymentAmountNum;
+    const allocatedMap = new Map<string, number>();
+    
+    for (const invoice of selectedInvoices) {
+      const toAllocate = Math.min(remaining, invoice.amountDue);
+      allocatedMap.set(invoice.invoiceId, toAllocate);
+      remaining -= toAllocate;
+      if (remaining <= 0) break;
+    }
+
+    // Update all allocations with priority-based amounts
     const updated = allocations.map(a => {
-      if (a.selected) {
-        const toAllocate = Math.min(remaining, a.amountDue);
-        remaining -= toAllocate;
-        return { ...a, amountAllocated: toAllocate };
+      if (a.selected && allocatedMap.has(a.invoiceId)) {
+        return { ...a, amountAllocated: allocatedMap.get(a.invoiceId) || 0 };
       }
       return a;
     });

@@ -12,7 +12,7 @@
  *   copy-to-clipboard fallbacks. Mocks are used for fetch and window APIs.
  */
 
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, expect, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 
@@ -47,15 +47,15 @@ vi.mock('next/dynamic', () => {
 let ErrorBoundary: any;
 try {
   // Try likely project paths
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+   
   ErrorBoundary = require('@/components/ErrorBoundary').default;
 } catch {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     ErrorBoundary = require('src/components/ErrorBoundary').default;
   } catch {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+       
       ErrorBoundary = require('../../src/components/ErrorBoundary').default;
     } catch {
       // Last resort: define a proxy that throws to indicate path map required.
@@ -154,7 +154,7 @@ skipIfNoComponent('renders children when no error occurs', () => {
 });
 
 skipIfNoComponent('catches error and renders error UI with derived state (message and type)', async () => {
-  const message = "Boom\!";
+  const message = "Boom!";
   await act(async () => {
     render(
       <ErrorBoundary>
@@ -167,7 +167,7 @@ skipIfNoComponent('catches error and renders error UI with derived state (messag
   expect(screen.getByText(/System Error Detected/i)).toBeInTheDocument();
 
   // Error message area should contain our error message (fallback messaging also possible).
-  expect(screen.getByText(/An unexpected error occurred|Boom\!/)).toBeInTheDocument();
+  expect(screen.getByText(/An unexpected error occurred|Boom!/)).toBeInTheDocument();
 
   // Retry indicator
   expect(screen.getByText(/Retry:/)).toHaveTextContent('Retry: 0/3');

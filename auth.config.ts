@@ -45,13 +45,15 @@ if (!skipSecretValidation) {
   console.warn('⚠️  SKIP_ENV_VALIDATION=true: Secret validation skipped. Secrets will be required at runtime.');
 }
 
-// Helper functions for OAuth provisioning
-function sanitizeName(name?: string | null): string {
+// Helper functions for OAuth provisioning (reserved for future use)
+// eslint-disable-next-line no-unused-vars
+function _sanitizeName(name?: string | null): string {
   if (!name) return 'Unknown User';
   return name.trim().substring(0, 100);
 }
 
-function sanitizeImage(image?: string | null): string | undefined {
+// eslint-disable-next-line no-unused-vars
+function _sanitizeImage(image?: string | null): string | undefined {
   if (!image) return undefined;
   try {
     const url = new URL(image);
@@ -193,6 +195,7 @@ export const authConfig = {
             role: user.professional?.role || user.role || 'USER',
             orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || null),
             sessionId: null, // NextAuth will generate session ID
+            rememberMe, // Pass rememberMe to session callbacks
           } as any; // Type assertion to bypass rememberMe field
         } catch (error) {
           console.error('[NextAuth] Authorize error:', error);
@@ -206,7 +209,7 @@ export const authConfig = {
     error: '/login',
   },
   callbacks: {
-    async signIn({ user: _user, account: _account, profile: _profile }) {
+    async signIn({ user: _user, account: _account }) {
       // Handle Credentials provider (email/employee login)
       if (_account?.provider === 'credentials') {
         // User is already validated in authorize() function

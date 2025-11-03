@@ -192,6 +192,6 @@ RealEstateAgentSchema.index({
   'bio.ar': 'text'
 });
 
-const RealEstateAgent = models.RealEstateAgent || model<RealEstateAgent>('RealEstateAgent', RealEstateAgentSchema);
+const RealEstateAgentModel = models.RealEstateAgent || model<RealEstateAgent>('RealEstateAgent', RealEstateAgentSchema);
 
-export default RealEstateAgent;
+export default RealEstateAgentModel;

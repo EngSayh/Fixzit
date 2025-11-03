@@ -27,7 +27,7 @@ const loadModelWithEnv = async (env: Partial<NodeJS.ProcessEnv>) => {
     let lastError: any = null;
     for (const c of candidates) {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
+         
         loadedModule = require(c);
         break;
       } catch (e) {

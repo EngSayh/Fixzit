@@ -36,7 +36,7 @@ describe('generateSlug', () => {
   });
 
   test('removes disallowed punctuation and symbols', () => {
-    expect(generateSlug('Hello, world\! @2025 #dev')).toBe('hello-world-2025-dev');
+    expect(generateSlug('Hello, world! @2025 #dev')).toBe('hello-world-2025-dev');
   });
 
   test('removes underscores instead of treating them as separators', () => {
@@ -65,7 +65,7 @@ describe('generateSlug', () => {
   });
 
   test('is idempotent (running twice yields same result)', () => {
-    const once = generateSlug('This  -- is   A TEST\!\!\!');
+    const once = generateSlug('This  -- is   A TEST!!!');
     const twice = generateSlug(once);
     expect(twice).toBe(once);
   });
@@ -76,7 +76,7 @@ describe('generateSlug', () => {
   });
 
   test('handles very long inputs efficiently (sanity checks)', () => {
-    const long = ('A\! ').repeat(5000); // large input
+    const long = ('A! ').repeat(5000); // large input
     const result = generateSlug(long);
     expect(result.length).toBeGreaterThan(0);
     expect(result.startsWith('a')).toBeTruthy();

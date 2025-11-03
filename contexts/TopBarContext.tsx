@@ -14,6 +14,7 @@ interface TopBarState {
     href: string;
     permission: string;
   }>;
+  // eslint-disable-next-line no-unused-vars
   setApp: (app: AppKey) => void;
 }
 
@@ -39,7 +40,7 @@ export function TopBarProvider({ children }: { children: React.ReactNode }) {
     searchEntities: appConfig.searchEntities,
     quickActions: appConfig.quickActions,
     setApp,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }), [app]); // Only depend on app, not appConfig (derived from app)
 
   return (
