@@ -91,6 +91,7 @@ PackageSchema.statics.getPricing = function (type: PackageType) {
 };
 
 // Methods
+// eslint-disable-next-line no-unused-vars
 PackageSchema.methods.activate = async function (this: IPackage): Promise<void> {
   if (this.active) {
     throw new Error('Package already activated');
@@ -104,6 +105,7 @@ PackageSchema.methods.activate = async function (this: IPackage): Promise<void> 
   await this.save();
 };
 
+// eslint-disable-next-line no-unused-vars
 PackageSchema.methods.consumeListing = async function (this: IPackage) {
   // Atomic update to avoid race conditions
   const now = new Date();
@@ -142,6 +144,7 @@ PackageSchema.methods.consumeListing = async function (this: IPackage) {
   this.listingsUsed = updated.listingsUsed as number;
 };
 
+// eslint-disable-next-line no-unused-vars
 PackageSchema.methods.checkExpiry = async function (this: IPackage) {
   if (this.active && this.expiresAt && this.expiresAt < new Date()) {
     this.active = false;

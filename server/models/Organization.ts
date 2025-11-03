@@ -538,6 +538,7 @@ OrganizationSchema.pre('save', function (next) {
 });
 
 // ---------- Virtuals ----------
+// eslint-disable-next-line no-unused-vars
 OrganizationSchema.virtual('subscriptionDaysRemaining').get(function (this: OrganizationDoc) {
   const end = this.subscription?.endDate ? new Date(this.subscription.endDate).getTime() : null;
   if (!end) return null;
@@ -547,6 +548,7 @@ OrganizationSchema.virtual('subscriptionDaysRemaining').get(function (this: Orga
 });
 
 // ---------- Instance methods ----------
+// eslint-disable-next-line no-unused-vars
 OrganizationSchema.methods.hasFeature = function (
   this: OrganizationDoc,
   feature: keyof Features,
@@ -554,6 +556,7 @@ OrganizationSchema.methods.hasFeature = function (
   return Boolean(this.subscription?.features?.[feature]);
 };
 
+// eslint-disable-next-line no-unused-vars
 OrganizationSchema.methods.checkUsageLimits = function (this: OrganizationDoc): string[] {
   const usage = this.subscription.usage;
   const features = this.subscription.features;

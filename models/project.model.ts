@@ -503,6 +503,7 @@ ProjectSchema.pre('save', function (next) {
 });
 
 // ---------- Methods ----------
+// eslint-disable-next-line no-unused-vars
 ProjectSchema.methods.isOverdue = function (this: ProjectDoc): boolean {
   const ms = this.timeline?.milestones || [];
   return ms.some(m => m.dueDate && !m.completionDate && new Date(m.dueDate).getTime() < Date.now());
