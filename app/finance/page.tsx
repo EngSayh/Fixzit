@@ -1,6 +1,6 @@
 "use client";
 import useSWR from "swr";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
@@ -100,7 +100,7 @@ function Action({ id, action, disabled, onDone, orgId }:{ id:string; action:"POS
       const response = await fetch(`/api/finance/invoices/${id}`, {
         method:"PATCH",
         headers:{ 
-          "Content-Type":"application/json"
+          "Content-Type":"application/json",
           // SECURITY FIX: orgId validated server-side from session - removed x-tenant-id header
         },
         body: JSON.stringify({ action })
@@ -128,6 +128,61 @@ interface InvoiceLine {
   vatRate: string;
 }
 
+function InvoiceLineItem({ line, index, onUpdate, t }: { 
+  line: InvoiceLine; 
+  index: number; 
+  onUpdate: (_i: number, _key: string, _val: string) => void; // eslint-disable-line no-unused-vars
+  t: (_key: string, _fallback: string) => string; // eslint-disable-line no-unused-vars
+}) {
+  const lineTotal = useMemo(() => {
+    const qty = new Decimal(line.qty || '0');
+    const unitPrice = new Decimal(line.unitPrice || '0');
+    const vatRate = new Decimal(line.vatRate || '0');
+    const subtotal = qty.times(unitPrice);
+    const total = subtotal.times(vatRate.dividedBy(100).plus(1));
+    return total.toFixed(2);
+  }, [line.qty, line.unitPrice, line.vatRate]);
+
+  return (
+    <div className="grid grid-cols-12 gap-2 items-center">
+      <div className="col-span-5">
+        <Input 
+          placeholder={t('finance.description', 'Description')} 
+          value={line.description} 
+          onChange={e => onUpdate(index, "description", e.target.value)} 
+        />
+      </div>
+      <div className="col-span-2">
+        <Input 
+          type="number" 
+          placeholder={t('finance.qty', 'Qty')} 
+          value={line.qty} 
+          onChange={e => onUpdate(index, "qty", e.target.value)} 
+        />
+      </div>
+      <div className="col-span-2">
+        <Input 
+          type="number" 
+          placeholder={t('finance.unitPrice', 'Unit Price')} 
+          value={line.unitPrice} 
+          onChange={e => onUpdate(index, "unitPrice", e.target.value)} 
+        />
+      </div>
+      <div className="col-span-2">
+        <Input 
+          type="number" 
+          placeholder={t('finance.vatPercent', 'VAT %')} 
+          value={line.vatRate} 
+          onChange={e => onUpdate(index, "vatRate", e.target.value)} 
+        />
+      </div>
+      <div className="col-span-1 text-right text-sm">
+        {lineTotal}
+      </div>
+    </div>
+  );
+}
+
 function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }) {
   const { t } = useTranslation();
   const [open,setOpen]=useState(false);
@@ -151,15 +206,15 @@ function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }
       // Convert string values to numbers for API, using Decimal for precision
       const apiLines = lines.map(l => ({
         description: l.description,
-        qty: Number(new Decimal(l.qty || '0').toFixed()),
-        unitPrice: Number(new Decimal(l.unitPrice || '0').toFixed(2)),
-        vatRate: Number(new Decimal(l.vatRate || '0').toFixed(2))
+        qty: new Decimal(l.qty || '0').toDecimalPlaces(0).toNumber(),
+        unitPrice: new Decimal(l.unitPrice || '0').toDecimalPlaces(2).toNumber(),
+        vatRate: new Decimal(l.vatRate || '0').toDecimalPlaces(2).toNumber()
       }));
 
       const response = await fetch("/api/finance/invoices", {
         method:"POST",
         headers: { 
-          "Content-Type":"application/json"
+          "Content-Type":"application/json",
           // SECURITY FIX: orgId validated server-side from session - removed x-tenant-id header
         },
         body: JSON.stringify({
@@ -216,30 +271,13 @@ function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }
               <Button variant="secondary" onClick={()=>setLines(prev=>[...prev,{ description:"", qty:"1", unitPrice:"0", vatRate:"15" }])}>{t('finance.addLine', 'Add Line')}</Button>
             </div>
             {lines.map((l, i)=>(
-              <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                <div className="col-span-5">
-                  <Input placeholder={t('finance.description', 'Description')} value={l.description} onChange={e=>updateLine(i,"description",e.target.value)} />
-                </div>
-                <div className="col-span-2">
-                  <Input type="number" placeholder={t('finance.qty', 'Qty')} value={l.qty} onChange={e=>updateLine(i,"qty",e.target.value)} />
-                </div>
-                <div className="col-span-2">
-                  <Input type="number" placeholder={t('finance.unitPrice', 'Unit Price')} value={l.unitPrice} onChange={e=>updateLine(i,"unitPrice",e.target.value)} />
-                </div>
-                <div className="col-span-2">
-                  <Input type="number" placeholder={t('finance.vatPercent', 'VAT %')} value={l.vatRate} onChange={e=>updateLine(i,"vatRate",e.target.value)} />
-                </div>
-                <div className="col-span-1 text-right text-sm">
-                  {(() => {
-                    const qty = new Decimal(l.qty || '0');
-                    const unitPrice = new Decimal(l.unitPrice || '0');
-                    const vatRate = new Decimal(l.vatRate || '0');
-                    const subtotal = qty.times(unitPrice);
-                    const total = subtotal.times(vatRate.dividedBy(100).plus(1));
-                    return total.toFixed(2);
-                  })()}
-                </div>
-              </div>
+              <InvoiceLineItem 
+                key={i} 
+                line={l} 
+                index={i} 
+                onUpdate={updateLine} 
+                t={t} 
+              />
             ))}
           </div>
           <Separator />
