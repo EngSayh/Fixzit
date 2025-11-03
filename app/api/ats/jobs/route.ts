@@ -35,10 +35,29 @@ export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
     
+    // SECURITY: Get orgId from authenticated session, NEVER from client input
+    // Historical context: PR reviews flagged tenant isolation bypass where
+    // orgId = searchParams.get('orgId') allowed cross-tenant data access
+    const authHeader = req.headers.get('authorization') || '';
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    const user = token ? await getUserFromToken(token) : null;
+    
+    // SECURITY: Consistent authentication enforcement across GET and POST
+    // Fallback to NEXT_PUBLIC_ORG_ID for public job listings (if configured)
+    // Otherwise require authentication to prevent anonymous access
+    if (!user && !process.env.NEXT_PUBLIC_ORG_ID) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+    
+    const orgId = user?.orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
+    
     const { searchParams } = new URL(req.url);
     const q = searchParams.get('q') || '';
     const status = searchParams.get('status') || 'published';
-    const orgId = searchParams.get('orgId') || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
+    // REMOVED: const orgId = searchParams.get('orgId') - SECURITY VIOLATION
     const department = searchParams.get('department');
     const location = searchParams.get('location');
     const jobType = searchParams.get('jobType');
@@ -89,8 +108,19 @@ export async function POST(req: NextRequest) {
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
     const user = token ? await getUserFromToken(token) : null;
-    const userId = user?.id || 'system';
-    const orgId = user?.orgId || body.orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
+    
+    // SECURITY: Require authentication for job creation
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+    
+    const userId = user.id;
+    // SECURITY: Get orgId from authenticated user ONLY, never from request body
+    // Historical context: body.orgId fallback allowed tenant isolation bypass
+    const orgId = user.orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
     
     const baseSlug = generateSlug(body.title);
     let slug = baseSlug;

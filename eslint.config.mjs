@@ -53,6 +53,9 @@ export default [
         ...globals.browser,
         ...globals.node,
         ...globals.es2021,
+        // TypeScript DOM types
+        HeadersInit: 'readonly',
+        RequestInit: 'readonly',
       },
       parser: tseslint.parser,
       parserOptions: {

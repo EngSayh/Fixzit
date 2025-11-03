@@ -35,7 +35,8 @@ export async function POST() {
       try {
         // In a real implementation, this would call WorkOrder.create()
         // For now, we simulate WO creation and just record it
-        const woNumber = `WO-PM-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+        // SECURITY: Use crypto-random UUID instead of predictable Date.now() + Math.random()
+        const woNumber = `WO-PM-${crypto.randomUUID()}`;
         const workOrderData = {
           title: plan.woTitle,
           description: plan.woDescription || `Preventive maintenance: ${plan.title}`,

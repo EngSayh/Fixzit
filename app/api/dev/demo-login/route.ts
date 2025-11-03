@@ -8,6 +8,17 @@ import { NextRequest, NextResponse } from 'next/server';
  * - Returns JSON { ok?, status?, preferredPath? } to the client
  */
 export async function POST(req: NextRequest) {
+  // SECURITY: Demo login ONLY allowed in strict development mode
+  // Historical context: ENABLED flag allowed production demo mode via env var
+  // CRITICAL: This endpoint bypasses authentication and should NEVER be production-accessible
+  if (process.env.NODE_ENV !== 'development') {
+    console.error('[SECURITY] Demo login attempted in non-development environment', {
+      nodeEnv: process.env.NODE_ENV,
+      clientIp: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+    });
+    return withNoStore(NextResponse.json({ error: 'Not available' }, { status: 404 }));
+  }
+  
   // Gate early — dev only
   const { ENABLED, findLoginPayloadByRole } = await import('@/dev/credentials.server');
   if (!ENABLED) {
