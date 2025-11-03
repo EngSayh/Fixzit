@@ -158,7 +158,7 @@ export function validateCallback(payload: Record<string, unknown>, signature: st
       Buffer.from(calculatedSignature, 'hex'),
       Buffer.from(signature, 'hex')
     );
-  } catch (_error) {
+  } catch {
     // If buffers are different lengths, timingSafeEqual will throw
     return false;
   }
