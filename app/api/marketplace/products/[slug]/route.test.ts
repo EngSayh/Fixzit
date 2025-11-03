@@ -8,13 +8,18 @@ import { vi } from 'vitest'
 // If your project alias resolution differs, adjust the relative path accordingly.
 import { GET } from './route'
 
+// TYPESCRIPT FIX: Import the actual type to fix 'unknown' type errors
+import type { MarketplaceProduct as MarketplaceProductType } from '@/server/models/marketplace/Product'
+import type { Model } from 'mongoose'
+
 // Mock the MarketplaceProduct model imported in the route implementation.
 // The route imports: "@/server/models/MarketplaceProduct"
 vi.mock('@/server/models/MarketplaceProduct', () => {
   return {
+    // TYPESCRIPT FIX: Type the mock as a Mongoose Model to fix 'unknown' errors
     MarketplaceProduct: {
       findOne: vi.fn()
-    }
+    } as unknown as Model<MarketplaceProductType>
   }
 })
 
