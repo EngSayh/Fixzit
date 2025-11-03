@@ -52,7 +52,7 @@ const validBody = {
 
 describe('PayTabs POST route', () => {
   const OLD_ENV = process.env
-  let fetchSpy: vi.SpyInstance
+  let fetchSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     vi.useFakeTimers()
