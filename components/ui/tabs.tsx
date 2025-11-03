@@ -2,13 +2,16 @@ import React from 'react';
 
 interface TabsProps extends React.HTMLAttributes<HTMLDivElement> {}
 interface TabsListProps extends React.HTMLAttributes<HTMLDivElement> {}
+/* eslint-disable no-unused-vars */
 interface TabsTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   value: string;
 }
 interface TabsContentProps extends React.HTMLAttributes<HTMLDivElement> {
   value: string;
 }
+/* eslint-enable no-unused-vars */
 
+/* eslint-disable no-unused-vars */
 const TabsContext = React.createContext<{
   value: string;
   onValueChange: (value: string) => void;
@@ -21,7 +24,8 @@ export const Tabs: React.FC<TabsProps & {
   defaultValue?: string;
   value?: string;
   onValueChange?: (value: string) => void;
-}> = ({ 
+}> = ({
+/* eslint-enable no-unused-vars */ 
   className = '', 
   defaultValue = '',
   value: controlledValue,

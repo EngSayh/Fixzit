@@ -223,6 +223,7 @@ AuditLogSchema.statics.getSummary = async function(orgId: string, period: 'day' 
 // Export type and model with proper typing
 export type AuditLog = InferSchemaType<typeof AuditLogSchema>;
 
+/* eslint-disable no-unused-vars */
 export interface AuditLogStaticMethods {
   log(data: {
     orgId: string;
@@ -252,6 +253,7 @@ export interface AuditLogStaticMethods {
   
   getSummary(orgId: string, period?: 'day' | 'week' | 'month'): Promise<Array<{ _id: string; count: number }>>;
 }
+/* eslint-enable no-unused-vars */
 
 import type { Model } from 'mongoose';
 export type AuditLogModelType = Model<AuditLog> & AuditLogStaticMethods;

@@ -16,6 +16,7 @@ type GoogleMapProps = {
   zoom?: number;
   markers?: MarkerInput[];
   height?: string | number;
+  // eslint-disable-next-line no-unused-vars
   onMapClick?: (lat: number, lng: number) => void;
   mapId?: string;
   libraries?: string[];
@@ -24,6 +25,7 @@ type GoogleMapProps = {
   fitToMarkers?: boolean;
   gestureHandling?: 'cooperative' | 'greedy' | 'none' | 'auto';
   disableDefaultUI?: boolean;
+  // eslint-disable-next-line no-unused-vars
   onReady?: (map: google.maps.Map) => void;
 };
 

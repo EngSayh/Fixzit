@@ -6,10 +6,12 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+/* eslint-disable no-unused-vars */
 export enum FavoriteType {
   LISTING = 'LISTING',
   PROJECT = 'PROJECT',
 }
+/* eslint-enable no-unused-vars */
 
 export interface IFavorite extends Document {
   // User

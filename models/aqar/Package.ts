@@ -7,11 +7,13 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+/* eslint-disable no-unused-vars */
 export enum PackageType {
   STARTER = 'STARTER',     // 50 SAR, 5 listings, 30 days
   STANDARD = 'STANDARD',   // 150 SAR, 20 listings, 30 days
   PREMIUM = 'PREMIUM',     // 250 SAR, 50 listings, 30 days
 }
+/* eslint-enable no-unused-vars */
 
 export interface IPackageMethods {
   activate(): Promise<void>;

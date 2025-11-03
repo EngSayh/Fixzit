@@ -39,6 +39,7 @@ interface IAccountActivityViewerProps {
   accountId: string;
   initialStartDate?: string;
   initialEndDate?: string;
+  // eslint-disable-next-line no-unused-vars
   onTransactionClick?: (transaction: IAccountTransaction) => void;
 }
 
@@ -108,6 +109,7 @@ export default function AccountActivityViewer({
         try {
           const err = await response.json();
           errMsg = err.message || err.error || errMsg;
+        // eslint-disable-next-line no-unused-vars
         } catch (_err) {
           // ignore
         }

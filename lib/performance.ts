@@ -63,6 +63,7 @@ function logMetrics(metrics: PerformanceMetrics) {
 /**
  * Performance monitoring middleware
  */
+// eslint-disable-next-line no-unused-vars
 export function withPerformanceMonitoring(
   handler: (req: NextRequest) => Promise<NextResponse> | NextResponse
 ) {
@@ -185,6 +186,7 @@ interface WebVitalsMetric {
 }
 
 // Extend Window interface for gtag
+/* eslint-disable no-unused-vars */
 declare global {
   interface Window {
     gtag?: (
@@ -194,6 +196,7 @@ declare global {
     ) => void;
   }
 }
+/* eslint-enable no-unused-vars */
 
 /**
  * Client-side performance monitoring

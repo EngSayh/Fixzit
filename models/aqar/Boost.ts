@@ -7,11 +7,13 @@
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+/* eslint-disable no-unused-vars */
 export enum BoostType {
   FEATURED = 'FEATURED',       // Top of search, homepage
   PINNED = 'PINNED',           // Stays at top for duration
   HIGHLIGHTED = 'HIGHLIGHTED', // Visual highlight in results
 }
+/* eslint-enable no-unused-vars */
 
 export interface IBoost extends Document {
   // Listing

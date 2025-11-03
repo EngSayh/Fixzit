@@ -3,11 +3,13 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 
 type Theme = 'light' | 'dark' | 'auto';
 type ResolvedTheme = 'light' | 'dark';
+/* eslint-disable no-unused-vars */
 type Ctx = { 
   theme: Theme; 
   resolvedTheme: ResolvedTheme | null;
   setTheme: (t: Theme) => void;
 };
+/* eslint-enable no-unused-vars */
 
 const ThemeCtx = createContext<Ctx | null>(null);
 
@@ -60,6 +62,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(() => ({
     theme: theme ?? 'light', // Provide fallback for type safety
     resolvedTheme,
+    // eslint-disable-next-line no-unused-vars
     setTheme: setTheme as (t: Theme) => void,
   }), [theme, resolvedTheme]);
 
