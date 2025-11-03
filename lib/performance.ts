@@ -63,8 +63,8 @@ function logMetrics(metrics: PerformanceMetrics) {
 /**
  * Performance monitoring middleware
  */
-// eslint-disable-next-line no-unused-vars
 export function withPerformanceMonitoring(
+  // eslint-disable-next-line no-unused-vars
   handler: (req: NextRequest) => Promise<NextResponse> | NextResponse
 ) {
   return async (req: NextRequest): Promise<NextResponse> => {

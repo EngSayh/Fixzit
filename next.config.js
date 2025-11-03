@@ -133,6 +133,7 @@ const nextConfig = {
   // This webpack config is ONLY used during production builds (`npm run build`)
   // When running `npm run dev`, Turbopack is used instead (configured above)
   //
+  // eslint-disable-next-line no-unused-vars
   webpack: (config, { isServer, dev, nextRuntime }) => {
     // Production-only webpack optimizations below
     
