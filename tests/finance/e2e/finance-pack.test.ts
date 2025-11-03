@@ -28,8 +28,9 @@ describe('Finance Pack E2E Tests', () => {
     const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit-test';
     await mongoose.connect(MONGODB_URI);
 
-    setTenantContext({ orgId: TEST_ORG_ID });
-    setAuditContext({ userId: TEST_USER_ID });
+    // TYPESCRIPT FIX: Context functions expect string IDs, not ObjectId instances
+    setTenantContext({ orgId: TEST_ORG_ID.toString() });
+    setAuditContext({ userId: TEST_USER_ID.toString() });
 
     // Create test accounts
     cashAccountId = (
@@ -150,6 +151,8 @@ describe('Finance Pack E2E Tests', () => {
       // TYPESCRIPT FIX: reversalOf property doesn't exist in IJournal interface
       // Reversal relationship is tracked via description and sourceId
       expect(voided.reversingJournal.description).toContain('VOID');
+      // LOGIC FIX: Also assert the original journal number is present
+      expect(voided.reversingJournal.description).toContain(journal.journalNumber);
 
       // Step 6: Verify balances restored
       const afterVoidCash = (await ChartAccount.findById(cashAccountId))!.balance;
@@ -288,8 +291,9 @@ describe('Finance Pack E2E Tests', () => {
       expect(payment.invoiceAllocations).toHaveLength(3);
       expect(payment.unallocatedAmount).toBe(0); // Fully allocated
 
+      // TYPESCRIPT FIX: Explicit types for reduce callback parameters
       const totalAllocated = payment.invoiceAllocations.reduce(
-        (sum, alloc) => sum + alloc.amount,
+        (sum: number, alloc: { amount: number }) => sum + alloc.amount,
         0
       );
       expect(totalAllocated).toBe(paymentAmount);
@@ -416,25 +420,21 @@ describe('Finance Pack E2E Tests', () => {
         description: 'Multi-currency E2E test',
         sourceType: 'MANUAL',
         userId: TEST_USER_ID,
-        currency: 'SAR',
+        // TYPESCRIPT FIX: currency property removed - tracked at account level
         lines: [
           {
             accountId: cashAccountId,
             debit: amountSAR,
             credit: 0,
             description: 'Cash SAR',
-            currency: 'SAR',
-            foreignCurrencyAmount: amountSAR,
-            exchangeRate: 1,
+            // TYPESCRIPT FIX: currency, foreignCurrencyAmount, exchangeRate removed - tracked at account level
           },
           {
             accountId: revenueAccountId,
             debit: 0,
             credit: amountSAR,
             description: 'Revenue SAR',
-            currency: 'SAR',
-            foreignCurrencyAmount: amountSAR,
-            exchangeRate: 1,
+            // TYPESCRIPT FIX: currency, foreignCurrencyAmount, exchangeRate removed - tracked at account level
           },
         ],
       });

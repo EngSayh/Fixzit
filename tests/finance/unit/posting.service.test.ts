@@ -25,9 +25,9 @@ describe('postingService Unit Tests', () => {
     const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit-test';
     await mongoose.connect(MONGODB_URI);
 
-    // Set context
-    setTenantContext({ orgId: TEST_ORG_ID });
-    setAuditContext({ userId: TEST_USER_ID });
+    // Set context - TYPESCRIPT FIX: Context functions expect string IDs
+    setTenantContext({ orgId: TEST_ORG_ID.toString() });
+    setAuditContext({ userId: TEST_USER_ID.toString() });
 
     // Create test accounts
     const cashAccount = await ChartAccount.create({
@@ -186,7 +186,8 @@ describe('postingService Unit Tests', () => {
       // TYPESCRIPT FIX: IJournal uses 'postingDate' not 'postedAt', and doesn't have 'postedBy'
       expect(result.journal.postingDate).toBeDefined();
       // postedBy tracking is done via updatedBy field in audit trail
-      expect(result.journal.updatedBy).toBeDefined();
+      // LOGIC FIX: Assert the correct user ID was stamped
+      expect(result.journal.updatedBy).toEqual(TEST_USER_ID);
       expect(result.ledgerEntries).toHaveLength(2);
 
       // Verify ledger entries created
