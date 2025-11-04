@@ -66,6 +66,18 @@ describe('postingService Unit Tests', () => {
     // Clear journals and ledger entries before each test
     await Journal.deleteMany({ orgId: TEST_ORG_ID });
     await LedgerEntry.deleteMany({ orgId: TEST_ORG_ID });
+    
+    // Reset account balances to zero
+    const cashAcc = await ChartAccount.findById(cashAccountId);
+    const revAcc = await ChartAccount.findById(revenueAccountId);
+    if (cashAcc) {
+      cashAcc.balance = 0;
+      await cashAcc.save();
+    }
+    if (revAcc) {
+      revAcc.balance = 0;
+      await revAcc.save();
+    }
   });
 
   describe('createJournal', () => {
