@@ -1,4 +1,4 @@
-import { useContext, useMemo } from 'react';
+import { useContext, useCallback } from 'react';
 import { I18nContext } from './I18nProvider';
 
 type Dict = Record<string, unknown>;
@@ -17,9 +17,13 @@ export function useI18n() {
     throw new Error('useI18n must be used within <I18nProvider />');
   }
 
-  const t = useMemo(
-    () => (key: string, vars?: Record<string, string | number>) => {
-      const raw = drill(key, ctx.dict) ?? key;
+  // FIX: Use useCallback to memoize translation function based on dict reference
+  // This ensures 't' has a stable identity when dict doesn't change,
+  // but updates when dict changes
+  const { dict } = ctx;
+  const t = useCallback(
+    (key: string, vars?: Record<string, string | number>) => {
+      const raw = drill(key, dict) ?? key;
       if (typeof raw !== 'string') {
         return key;
       }
@@ -32,7 +36,7 @@ export function useI18n() {
         return acc.replace(new RegExp(`{${token}}`, 'g'), String(vars[token]));
       }, raw);
     },
-    [ctx.dict]
+    [dict] // Recreate function when dict reference changes
   );
 
   return { ...ctx, t };

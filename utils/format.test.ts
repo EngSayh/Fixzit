@@ -89,8 +89,9 @@ describe('fmtDate', () => {
 
   it('formats dates in ar-SA using Arabic-Indic digits when numeric options are used', () => {
     const out = fmtDate(dateISO, 'ar' as Locale, { year: 'numeric', month: '2-digit', day: '2-digit' });
-    // Should be something like ١٥/٠٥/٢٠٢٠
-    expect(out).toMatch(/^[\u0660-\u0669]{2}\/[\u0660-\u0669]{2}\/[\u0660-\u0669]{4}$/);
+    // Should be something like ١٥/٠٥/٢٠٢٠ or ١٥‏/٠٥‏/٢٠٢٠ (with RTL marks U+200F)
+    // Allow optional Unicode control characters (LRM U+200E, RLM U+200F) between parts
+    expect(out).toMatch(/^[\u0660-\u0669]{2}[\u200e\u200f]?\/[\u200e\u200f]?[\u0660-\u0669]{2}[\u200e\u200f]?\/[\u200e\u200f]?[\u0660-\u0669]{4}$/);
   });
 
   it('uses default options (dateStyle: "medium") when options are not provided', () => {

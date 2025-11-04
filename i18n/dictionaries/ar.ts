@@ -1542,6 +1542,7 @@ const ar = {
     poor: 'ضعيف',
   },
   workOrders: {
+    title: 'أوامر العمل',
     workOrder: 'أمر عمل',
     workOrders1: 'أوامر العمل',
     task: 'مهمة',
