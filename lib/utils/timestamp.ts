@@ -119,10 +119,11 @@ export function updateTimestamp<T extends Record<string, unknown>>(obj: T): T & 
 
 /**
  * Format timestamp for different locales
+ * CRITICAL: locale is required - no default to force i18n-aware usage
  */
 export function formatTimestamp(
   timestamp: Date | string | number,
-  locale: string = 'en-US',
+  locale: string,
   options?: Intl.DateTimeFormatOptions
 ): string {
   const date = createSafeTimestamp(timestamp);
@@ -141,10 +142,11 @@ export function formatTimestamp(
 
 /**
  * Get relative time string (e.g., "2 hours ago")
+ * CRITICAL: locale is required - no default to force i18n-aware usage
  */
 export function getRelativeTime(
   timestamp: Date | string | number,
-  locale: string = 'en-US'
+  locale: string
 ): string {
   const date = createSafeTimestamp(timestamp);
   const now = new Date();
