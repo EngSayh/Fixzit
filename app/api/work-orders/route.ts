@@ -35,7 +35,7 @@ const createWorkOrderSchema = z.object({
  * Build Work Order Filter
  */
 function buildWorkOrderFilter(searchParams: URLSearchParams, orgId: string) {
-  const filter: Record<string, any> = { orgId, deletedAt: { $exists: false } };
+  const filter: Record<string, unknown> = { orgId, deletedAt: { $exists: false } };
 
   const status = searchParams.get('status');
   if (status) {
@@ -85,7 +85,7 @@ export const { GET, POST } = createCrudHandlers({
   searchFields: ['code', 'title', 'description', 'category'],
   buildFilter: buildWorkOrderFilter,
   // Custom onCreate hook to add SLA calculations
-  onCreate: async (data: any) => {
+  onCreate: async (data: Record<string, unknown>) => {
     const createdAt = new Date();
     const { slaMinutes, dueAt } = resolveSlaTarget(data.priority as WorkOrderPriority, createdAt);
     

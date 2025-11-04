@@ -118,7 +118,7 @@ function isPublicAsset(pathname: string): boolean {
 // ---------- Auth utilities ----------
 async function getUserFromRequest(req: WrappedReq): Promise<SessionUser | null> {
   const sess = req.auth;
-  return sess?.user ? { ...sess.user, id: sess.user.id || (sess as any).sub } as SessionUser : null;
+  return sess?.user ? { ...sess.user, id: sess.user.id || (sess as { sub?: string }).sub } as SessionUser : null;
 }
 
 function attachUserHeaders(req: NextRequest, user: SessionUser): NextResponse {

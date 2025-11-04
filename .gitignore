@@ -71,3 +71,4 @@ node_modules
 .next/
 .env.production.test
 playwright-report/
+.artifacts/

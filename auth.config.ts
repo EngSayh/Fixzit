@@ -196,7 +196,8 @@ export const authConfig = {
             orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || null),
             sessionId: null, // NextAuth will generate session ID
             rememberMe, // Pass rememberMe to session callbacks
-          } as any; // Type assertion to bypass rememberMe field
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any; // Type assertion necessary - User model cannot be imported in Edge Runtime
         } catch (error) {
           console.error('[NextAuth] Authorize error:', error);
           return null;
@@ -243,10 +244,10 @@ export const authConfig = {
         session.user.id = token.sub;
       }
       if (token?.role) {
-        (session.user as any).role = token.role;
+        (session.user as { role?: string }).role = token.role as string;
       }
       if (token?.orgId) {
-        (session.user as any).orgId = token.orgId;
+        (session.user as { orgId?: string | null }).orgId = token.orgId as string | null;
       }
       return session;
     },
@@ -254,11 +255,11 @@ export const authConfig = {
       // Add user info to token on first sign-in
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role || 'USER';
-        token.orgId = (user as any).orgId || null;
+        token.role = (user as { role?: string }).role || 'USER';
+        token.orgId = (user as { orgId?: string | null }).orgId || null;
         
         // Handle rememberMe for credentials provider
-        if (account?.provider === 'credentials' && (user as any).rememberMe) {
+        if (account?.provider === 'credentials' && (user as { rememberMe?: boolean }).rememberMe) {
           // Extend token lifetime for "remember me"
           // This is handled by session.maxAge, but we can flag it here
           token.rememberMe = true;
