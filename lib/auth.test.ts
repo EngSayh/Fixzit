@@ -117,12 +117,12 @@ describe('auth lib - JWT generation and verification', () => {
       role: 'user',
       orgId: 'org1',
       tenantId: 't',
-    };    const token = auth.generateToken(payload);
+    };    const token = await auth.generateToken(payload);
     expect(typeof token).toBe('string');
     expect(signSpy).toHaveBeenCalledTimes(1);
     expect(signSpy.mock.calls[0][0]).toEqual(payload);
 
-    const verified = auth.verifyToken(token);
+    const verified = await auth.verifyToken(token);
     expect(verified).toEqual(payload);
     expect(verifySpy).toHaveBeenCalledTimes(1);
   });
@@ -133,7 +133,7 @@ describe('auth lib - JWT generation and verification', () => {
     });
 
     const auth = await loadAuthModule();
-    const result = auth.verifyToken('token:invalid');
+    const result = await auth.verifyToken('token:invalid');
     expect(result).toBeNull();
 
     // restore
@@ -303,7 +303,7 @@ describe('auth lib - getUserFromToken', () => {
       orgId: 'org1',
       tenantId: 't',
     };
-    const token = auth.generateToken(payload);
+    const token = await auth.generateToken(payload);
     const res = await auth.getUserFromToken(token);
     expect(res).toBeNull();
   });
@@ -328,7 +328,7 @@ describe('auth lib - getUserFromToken', () => {
     });
 
     const auth = await loadAuthModule();
-    const token = auth.generateToken({
+    const token = await auth.generateToken({
       id: '1',
       email: 'blocked@x.com',
       role: 'USER',
@@ -359,7 +359,7 @@ describe('auth lib - getUserFromToken', () => {
     });
 
     const auth = await loadAuthModule();
-    const token = auth.generateToken({
+    const token = await auth.generateToken({
       id: '42',
       email: 'ok@x.com',
       role: 'ADMIN',
