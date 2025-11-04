@@ -1,11 +1,7 @@
 import React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-
-// Helper function for class merging
-function cn(...inputs: (string | undefined | null | false)[]): string {
-  return inputs.filter(Boolean).join(' ');
-}
+import { cn } from '@/lib/utils';
 
 // --- Dialog Root ---
 export const Dialog = DialogPrimitive.Root;

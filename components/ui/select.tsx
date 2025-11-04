@@ -27,7 +27,17 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
  * use a dedicated Combobox component built with Radix UI.
  */
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className = '', wrapperClassName = '', children, placeholder, onValueChange, onChange, ...props }, ref) => {
+  ({ 
+    className = '', 
+    wrapperClassName = '', 
+    children, 
+    placeholder, 
+    onValueChange, 
+    onChange,
+    value,
+    defaultValue,
+    ...props 
+  }, ref) => {
     
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
       // Propagate the original event
@@ -39,6 +49,11 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         onValueChange(e.target.value);
       }
     };
+
+    // Determine default value: if placeholder provided and component is uncontrolled, default to ''
+    const effectiveDefaultValue = value !== undefined 
+      ? undefined 
+      : (defaultValue ?? (placeholder ? '' : undefined));
 
     return (
       <div className={`relative w-full ${wrapperClassName}`}>
@@ -53,6 +68,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             ${className}
           `}
           onChange={handleChange}
+          value={value}
+          defaultValue={effectiveDefaultValue}
           {...props}
         >
           {/* If a placeholder is provided, render it as the first,

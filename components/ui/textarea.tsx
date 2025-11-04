@@ -32,10 +32,19 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
 
     // --- Auto-Resize Logic ---
     const resize = () => {
-      if (autoResize && internalRef.current) {
+      if (!autoResize || !internalRef.current) return;
+      
+      try {
         const el = internalRef.current;
+        if (!el || !(el instanceof HTMLTextAreaElement)) {
+          console.warn('[Textarea] resize called with invalid ref');
+          return;
+        }
         el.style.height = 'auto'; // Reset height to calculate new scrollHeight
         el.style.height = `${el.scrollHeight}px`; // Set to new scrollHeight
+      } catch (error) {
+        console.error('[Textarea] Auto-resize failed:', error);
+        // Graceful degradation: disable auto-resize on error
       }
     };
 

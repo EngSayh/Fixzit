@@ -18,6 +18,17 @@ interface GlobalSearchProps {
   onResultClick?: () => void;
 }
 
+/**
+ * GlobalSearch Component
+ * 
+ * SECURITY NOTE: Search query sanitization and validation is handled by:
+ * 1. Backend API (/api/search) which should sanitize all input before database queries
+ * 2. React's automatic XSS protection when rendering results
+ * 3. URL encoding via URLSearchParams
+ * 
+ * Verify that /api/search implements proper input validation, parameterized queries,
+ * and output encoding to prevent injection attacks.
+ */
 export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) {
   const router = useRouter();
   const { app, searchPlaceholderKey, searchEntities } = useTopBar(); // FIX: Use searchPlaceholderKey
