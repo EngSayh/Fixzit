@@ -24,7 +24,7 @@ export async function getSessionUser(req: NextRequest): Promise<AuthenticatedUse
     throw new Error('No authentication token found');
   }
 
-  const payload = verifyToken(authToken);
+  const payload = await verifyToken(authToken);
   if (!payload) {
     throw new Error('Invalid authentication token');
   }

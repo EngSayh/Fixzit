@@ -18,7 +18,7 @@ export async function requireSuperAdmin(req: NextRequest): Promise<AuthContext> 
   }
 
   const token = header.slice(7);
-  const payload = verifyToken(token);
+  const payload = await verifyToken(token);
 
   if (!payload || payload.role !== 'SUPER_ADMIN') {
     throw new Response(JSON.stringify({ error: 'FORBIDDEN' }), {

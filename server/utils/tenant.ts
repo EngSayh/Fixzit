@@ -12,11 +12,11 @@ type RequestLike = {
 
 type TokenPayload = { orgId?: string; role?: string } | null | undefined;
 
-export function getAuthFromRequest(req: RequestLike): AuthContext {
+export async function getAuthFromRequest(req: RequestLike): Promise<AuthContext> {
   try {
     const token = req?.cookies?.get?.('fixzit_auth')?.value || req?.headers?.get?.('x-auth-token');
     if (!token) return { orgId: null, role: null };
-    const payload = verifyToken(token) as TokenPayload;
+    const payload = await verifyToken(token) as TokenPayload;
     return { orgId: payload?.orgId ?? null, role: payload?.role ?? null };
   } catch {
     return { orgId: null, role: null };

@@ -30,7 +30,7 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
     throw new Error("Unauthenticated");
   }
   
-  const payload = verifyToken(token);
+  const payload = await verifyToken(token);
   if (!payload) {
     throw new Error("Invalid or expired token");
   }

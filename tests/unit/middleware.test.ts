@@ -32,8 +32,8 @@ describe('Middleware', () => {
   };
 
   // Helper to create valid JWT tokens for testing
-  const makeToken = (payload: { id: string; email: string; role: string; orgId: string }): string => {
-    return generateToken(payload);
+  const makeToken = async (payload: { id: string; email: string; role: string; orgId: string }): Promise<string> => {
+    return await generateToken(payload);
   };
 
   describe('Public Routes', () => {
@@ -92,7 +92,7 @@ describe('Middleware', () => {
     });
 
     it('should allow access to /fm/dashboard with valid token', async () => {
-      const token = makeToken({
+      const token = await makeToken({
         id: '123',
         email: 'test@example.com',
         role: 'EMPLOYEE',
@@ -130,7 +130,7 @@ describe('Middleware', () => {
 
   describe('Role-Based Access Control (RBAC)', () => {
     it('should allow SUPER_ADMIN to access /admin routes', async () => {
-      const token = makeToken({
+      const token = await makeToken({
         id: '123',
         email: 'admin@example.com',
         role: 'SUPER_ADMIN',
@@ -146,7 +146,7 @@ describe('Middleware', () => {
     });
 
     it('should block non-admin from accessing /admin routes', async () => {
-      const token = makeToken({
+      const token = await makeToken({
         id: '123',
         email: 'user@example.com',
         role: 'EMPLOYEE',
@@ -163,7 +163,7 @@ describe('Middleware', () => {
     });
 
     it('should allow EMPLOYEE to access /fm/work-orders', async () => {
-      const token = makeToken({
+      const token = await makeToken({
         id: '123',
         email: 'pm@example.com',
         role: 'EMPLOYEE',
@@ -179,7 +179,7 @@ describe('Middleware', () => {
     });
 
     it('should allow TECHNICIAN to access /fm/work-orders', async () => {
-      const token = makeToken({
+      const token = await makeToken({
         id: '123',
         email: 'tech@example.com',
         role: 'TECHNICIAN',
@@ -205,7 +205,7 @@ describe('Middleware', () => {
     });
 
     it('should allow authenticated API access', async () => {
-      const token = makeToken({
+      const token = await makeToken({
         id: '123',
         email: 'test@example.com',
         role: 'EMPLOYEE',
@@ -288,7 +288,7 @@ describe('Middleware', () => {
     });
 
     it('should allow authenticated users to access /login without redirect', async () => {
-      const token = makeToken({
+      const token = await makeToken({
         id: '123',
         email: 'test@example.com',
         role: 'EMPLOYEE',
@@ -331,7 +331,7 @@ describe('Middleware', () => {
     });
 
     it('should allow valid JWT to proceed without errors', async () => {
-      const token = makeToken({
+      const token = await makeToken({
         id: '123',
         email: 'test@example.com',
         role: 'EMPLOYEE',
