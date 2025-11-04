@@ -34,6 +34,16 @@ async function readJson(res: Response) {
 describe('GET /api/marketplace/products/[slug]', () => {
   const tenantId = 'demo-tenant'
 
+  // Helper to create a mock NextRequest with proper headers and nextUrl
+  const createMockRequest = () => ({
+    headers: new Headers({ 'origin': 'http://localhost:3000' }),
+    nextUrl: {
+      protocol: 'http:',
+      hostname: 'localhost',
+      port: '3000'
+    }
+  } as any)
+
   afterEach(() => {
     vi.clearAllMocks()
   })
@@ -41,7 +51,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
   test('returns 404 when product is not found', async () => {
     (MarketplaceProduct.findOne as any).mockResolvedValueOnce(null)
 
-    const req = {} as any // Minimal NextRequest stub
+    const req = createMockRequest()
     const res = await GET(req, { params: Promise.resolve({ slug: 'non-existent' }) })
 
     expect(MarketplaceProduct.findOne as any).toHaveBeenCalledWith({ tenantId, slug: 'non-existent' })
@@ -59,7 +69,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     };
     (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc)
 
-    const req = {} as any
+    const req = createMockRequest()
     const res = await GET(req, { params: Promise.resolve({ slug: 'test-product' }) })
 
     expect(MarketplaceProduct.findOne as any).toHaveBeenCalledWith({ tenantId, slug: 'test-product' })
@@ -83,7 +93,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     };
     (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc)
 
-    const res = await GET({} as any, { params: Promise.resolve({ slug: 'no-currency' }) })
+    const res = await GET(createMockRequest(), { params: Promise.resolve({ slug: 'no-currency' }) })
     const body = await readJson(res as any)
 
     expect(body.buyBox.currency).toBe('SAR')
@@ -100,7 +110,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     };
     (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc)
 
-    const res = await GET({} as any, { params: Promise.resolve({ slug: 'no-prices' }) })
+    const res = await GET(createMockRequest(), { params: Promise.resolve({ slug: 'no-prices' }) })
     const body = await readJson(res as any)
 
     expect(body.buyBox.price).toBeNull()
@@ -117,7 +127,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     };
     (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc)
 
-    const res = await GET({} as any, { params: Promise.resolve({ slug: 'empty-prices' }) })
+    const res = await GET(createMockRequest(), { params: Promise.resolve({ slug: 'empty-prices' }) })
     const body = await readJson(res as any)
 
     expect(body.buyBox.price).toBeNull()
@@ -134,7 +144,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     };
     (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc)
 
-    const res = await GET({} as any, { params: Promise.resolve({ slug: 'out-of-stock' }) })
+    const res = await GET(createMockRequest(), { params: Promise.resolve({ slug: 'out-of-stock' }) })
     const body = await readJson(res as any)
 
     expect(body.buyBox.inStock).toBe(false)
@@ -150,7 +160,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     };
     (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc)
 
-    const res = await GET({} as any, { params: Promise.resolve({ slug: 'no-inventories' }) })
+    const res = await GET(createMockRequest(), { params: Promise.resolve({ slug: 'no-inventories' }) })
     const body = await readJson(res as any)
 
     expect(body.buyBox.price).toBe(99.99)
@@ -167,7 +177,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     };
     (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc)
 
-    const res = await GET({} as any, { params: Promise.resolve({ slug: 'no-leaddays' }) })
+    const res = await GET(createMockRequest(), { params: Promise.resolve({ slug: 'no-leaddays' }) })
     const body = await readJson(res as any)
 
     expect(body.buyBox.leadDays).toBe(3)
@@ -177,7 +187,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
   test('handles errors from data layer by returning 500', async () => {
     (MarketplaceProduct.findOne as any).mockRejectedValueOnce(new Error('DB failure'))
 
-    const res = await GET({} as any, { params: Promise.resolve({ slug: 'boom' }) })
+    const res = await GET(createMockRequest(), { params: Promise.resolve({ slug: 'boom' }) })
 
     expect(res.status).toBe(500)
     await expect(readJson(res as any)).resolves.toEqual({ error: 'Server error' })
@@ -187,7 +197,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
     const doc = { slug: 'unique-slug', prices: [], inventories: [] };
     (MarketplaceProduct.findOne as any).mockResolvedValueOnce(doc)
 
-    await GET({} as any, { params: Promise.resolve({ slug: 'unique-slug' }) })
+    await GET(createMockRequest(), { params: Promise.resolve({ slug: 'unique-slug' }) })
 
     expect(MarketplaceProduct.findOne as any).toHaveBeenCalledWith({ tenantId, slug: 'unique-slug' })
   })
