@@ -17,7 +17,7 @@
  * ```
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export function useDebounce<T>(value: T, delay: number = 500): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -40,26 +40,37 @@ export function useDebounce<T>(value: T, delay: number = 500): T {
 /**
  * useDebounceCallback Hook
  * 
- * Debounces a callback function to prevent excessive invocations.
- * Returns a memoized debounced version of the callback.
+ * Debounces a callback function to prevent excessive calls.
+ * Useful for event handlers like resize, scroll, or input events.
  * 
  * @example
  * ```tsx
- * const handleSearch = useDebounceCallback((term: string) => {
- *   fetch(`/api/search?q=${term}`);
- * }, 300);
- * 
- * return <input onChange={(e) => handleSearch(e.target.value)} />;
+ * const debouncedSave = useDebounceCallback((value: string) => {
+ *   saveToAPI(value);
+ * }, 1000);
  * ```
  */
 
-import { useCallback, useRef } from 'react';
-
 export function useDebounceCallback<T extends (...args: unknown[]) => unknown>(
   callback: T,
-  delay: number = 500
+  delay: number
 ): (...args: Parameters<T>) => void {
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const callbackRef = useRef(callback);
+
+  // Keep callback ref up to date without recreating the debounced function
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   return useCallback(
     (...args: Parameters<T>) => {
@@ -68,9 +79,9 @@ export function useDebounceCallback<T extends (...args: unknown[]) => unknown>(
       }
 
       timeoutRef.current = setTimeout(() => {
-        callback(...args);
+        callbackRef.current(...args);
       }, delay);
     },
-    [callback, delay]
+    [delay]
   );
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useDebounce } from '@/hooks/useDebounce';
 
 // ============================================================================
 // INTERFACES
@@ -101,8 +102,8 @@ export default function JournalEntryForm({
   // Calculate totals with useMemo for performance optimization
   // Only recalculate when lines array changes
   const { totalDebit, totalCredit, isBalanced, balanceDifference } = useMemo(() => {
-    const debit = lines.reduce((sum, line) => sum + (parseFloat(String(line.debit)) || 0), 0);
-    const credit = lines.reduce((sum, line) => sum + (parseFloat(String(line.credit)) || 0), 0);
+    const debit = lines.reduce((sum, line) => sum + (Number(line.debit) || 0), 0);
+    const credit = lines.reduce((sum, line) => sum + (Number(line.credit) || 0), 0);
     const difference = debit - credit;
     const balanced = Math.abs(difference) < 0.01 && debit > 0;
     
@@ -196,10 +197,10 @@ export default function JournalEntryForm({
       }
 
       // Ensure debit/credit are mutually exclusive
-      if (field === 'debit' && parseFloat(String(value)) > 0) {
+      if (field === 'debit' && (Number(value) || 0) > 0) {
         updated.credit = 0;
       }
-      if (field === 'credit' && parseFloat(String(value)) > 0) {
+      if (field === 'credit' && (Number(value) || 0) > 0) {
         updated.debit = 0;
       }
 
@@ -215,23 +216,29 @@ export default function JournalEntryForm({
     setSearchTerms({ ...searchTerms, [lineId]: searchTerm });
   };
 
-  // Debounce account filtering to improve performance during typing
+  // Debounce account filtering (300ms) to improve performance during typing
+  const debouncedSearchTerms = useDebounce(searchTerms, 300);
+
   useEffect(() => {
-    Object.entries(searchTerms).forEach(([lineId, searchTerm]) => {
+    // Batch all state updates together
+    const newFilteredAccounts: Record<string, IChartAccount[]> = {};
+
+    Object.entries(debouncedSearchTerms).forEach(([lineId, searchTerm]) => {
       if (!searchTerm.trim()) {
-        setFilteredAccounts(prev => ({ ...prev, [lineId]: chartAccounts }));
+        newFilteredAccounts[lineId] = chartAccounts;
         return;
       }
 
       const term = searchTerm.toLowerCase();
-      const filtered = chartAccounts.filter(acc =>
+      newFilteredAccounts[lineId] = chartAccounts.filter(acc =>
         acc.code.toLowerCase().includes(term) ||
         acc.name.toLowerCase().includes(term) ||
         (acc.nameAr && acc.nameAr.includes(term))
       );
-      setFilteredAccounts(prev => ({ ...prev, [lineId]: filtered }));
     });
-  }, [searchTerms, chartAccounts]);
+
+    setFilteredAccounts(prev => ({ ...prev, ...newFilteredAccounts }));
+  }, [debouncedSearchTerms, chartAccounts]);
 
   // ============================================================================
   // QUICK BALANCE HELPERS
@@ -242,14 +249,14 @@ export default function JournalEntryForm({
 
     // Simple heuristic: if first line has debit, balance with credit on second line
     const firstLine = lines[0];
-    const hasDebit = parseFloat(String(firstLine.debit)) > 0;
+    const hasDebit = (Number(firstLine.debit) || 0) > 0;
     
     if (hasDebit) {
-      const amount = parseFloat(String(firstLine.debit));
+      const amount = Number(firstLine.debit) || 0;
       updateLine(lines[1].id, 'credit', amount);
       updateLine(lines[1].id, 'debit', 0);
     } else {
-      const amount = parseFloat(String(firstLine.credit));
+      const amount = Number(firstLine.credit) || 0;
       updateLine(lines[1].id, 'debit', amount);
       updateLine(lines[1].id, 'credit', 0);
     }
@@ -278,12 +285,12 @@ export default function JournalEntryForm({
       if (!line.accountId) {
         newErrors[`line_${index}_account`] = 'Account is required';
       }
-      const lineTotal = parseFloat(String(line.debit)) + parseFloat(String(line.credit));
+      const lineTotal = (Number(line.debit) || 0) + (Number(line.credit) || 0);
       if (lineTotal === 0) {
         newErrors[`line_${index}_amount`] = 'Either debit or credit must be greater than 0';
       }
-      if (parseFloat(String(line.debit)) > 0 && parseFloat(String(line.credit)) > 0) {
-        newErrors[`line_${index}_both`] = 'Cannot have both debit and credit';
+      if ((Number(line.debit) || 0) > 0 && (Number(line.credit) || 0) > 0) {
+        newErrors[`line_${index}_both`] = 'Line cannot have both debit and credit';
       }
     });
 
@@ -320,8 +327,8 @@ export default function JournalEntryForm({
           accountCode: line.accountCode,
           accountName: line.accountName,
           description: line.description,
-          debit: parseFloat(String(line.debit)) || 0,
-          credit: parseFloat(String(line.credit)) || 0,
+          debit: Number(line.debit) || 0,
+          credit: Number(line.credit) || 0,
           propertyId: line.propertyId,
           unitId: line.unitId
         }))
@@ -428,7 +435,7 @@ export default function JournalEntryForm({
 
       {/* Journal Lines */}
       <div className="bg-card shadow-md rounded-2xl p-6 space-y-4">
-        <div className="flex flex-row items-center justify-between">
+        <div className="flex items-center justify-between border-b pb-2">
           <h3 className="text-lg font-semibold">{t('finance.journal.journalLines', 'Journal Lines')}</h3>
           <div className="flex gap-2">
             <button
@@ -538,9 +545,9 @@ export default function JournalEntryForm({
                       step="0.01"
                       min="0"
                       value={line.debit || ''}
-                      onChange={(e) => updateLine(line.id, 'debit', parseFloat(e.target.value) || 0)}
+                      onChange={(e) => updateLine(line.id, 'debit', Number(e.target.value) || 0)}
                       className={`w-full px-2 py-1 text-sm text-right border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? 'border-destructive' : 'border-border'}`}
-                      disabled={parseFloat(String(line.credit)) > 0}
+                      disabled={(Number(line.credit) || 0) > 0}
                     />
                   </td>
                   <td className="px-2 py-2">
@@ -549,9 +556,9 @@ export default function JournalEntryForm({
                       step="0.01"
                       min="0"
                       value={line.credit || ''}
-                      onChange={(e) => updateLine(line.id, 'credit', parseFloat(e.target.value) || 0)}
+                      onChange={(e) => updateLine(line.id, 'credit', Number(e.target.value) || 0)}
                       className={`w-full px-2 py-1 text-sm text-right border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? 'border-destructive' : 'border-border'}`}
-                      disabled={parseFloat(String(line.debit)) > 0}
+                      disabled={(Number(line.debit) || 0) > 0}
                     />
                   </td>
                   <td className="px-2 py-2">
