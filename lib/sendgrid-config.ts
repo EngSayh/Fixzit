@@ -128,7 +128,12 @@ export function getBaseEmailOptions() {
 }
 
 /**
- * Verify SendGrid webhook signature
+ * Verify SendGrid webhook signature using ECDSA
+ * 
+ * SECURITY FIX: Now uses proper ECDSA verification instead of HMAC
+ * - SendGrid signs with ECDSA P-256 (secp256r1)
+ * - Public key is sent in x-twilio-email-event-webhook-public-key header
+ * - Signature is base64-encoded ECDSA signature
  * 
  * @see https://docs.sendgrid.com/for-developers/tracking-events/getting-started-event-webhook-security
  */
@@ -140,20 +145,45 @@ export function verifyWebhookSignature(
 ): boolean {
   try {
     const crypto = require('crypto');
-    const verificationKey = process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
     
-    if (!verificationKey) {
-      console.warn('⚠️ SENDGRID_WEBHOOK_VERIFICATION_KEY not configured - skipping verification');
-      return true; // Allow in development
+    // FIX 1: Validate payload size using Buffer.byteLength (not string.length)
+    const MAX_PAYLOAD_SIZE = 25 * 1024 * 1024; // 25 MB
+    const payloadSize = Buffer.byteLength(payload, 'utf8');
+    if (payloadSize > MAX_PAYLOAD_SIZE) {
+      console.error(`❌ Payload size ${payloadSize} exceeds limit ${MAX_PAYLOAD_SIZE}`);
+      return false;
     }
 
-    const timestampedPayload = timestamp + payload;
-    const expectedSignature = crypto
-      .createHmac('sha256', verificationKey)
-      .update(timestampedPayload)
-      .digest('base64');
+    // Allow bypass in development if no key configured
+    if (!publicKey && process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️ Public key not provided - skipping verification in development');
+      return true;
+    }
 
-    return signature === expectedSignature;
+    if (!publicKey) {
+      console.error('❌ Public key required for webhook verification');
+      return false;
+    }
+
+    // FIX 2: Use ECDSA verification (not HMAC)
+    // SendGrid uses ECDSA with P-256 curve
+    const timestampedPayload = timestamp + payload;
+    
+    // Create verify object with SHA-256
+    const verifier = crypto.createVerify('SHA256');
+    verifier.update(timestampedPayload);
+    verifier.end();
+
+    // Verify signature with public key
+    // Public key format: base64-encoded EC public key (PEM format expected)
+    const publicKeyPem = `-----BEGIN PUBLIC KEY-----\n${publicKey}\n-----END PUBLIC KEY-----`;
+    const isValid = verifier.verify(publicKeyPem, signature, 'base64');
+
+    if (!isValid) {
+      console.error('❌ Invalid webhook signature');
+    }
+
+    return isValid;
   } catch (error) {
     console.error('❌ Webhook verification failed:', error);
     return false;
