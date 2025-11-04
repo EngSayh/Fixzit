@@ -19,11 +19,17 @@ const DEFAULT_WEIGHTS: Required<ScoringWeights> = {
   education: 0.0
 };
 
-const KNOWN_SKILLS = [
+// FIX: Known technology skills for precise extraction (whitelist approach)
+// This prevents false positives like "Elm" and "Rust" while supporting c++, c#, etc.
+const KNOWN_SKILLS = new Set([
   'javascript', 'typescript', 'react', 'node', 'html', 'css',
   'java', 'sql', 'agile', 'c#', 'c++', 'golang', 'docker', 
-  'kubernetes', 'python', 'aws',
-];
+  'kubernetes', 'python', 'aws', 'angular', 'vue', 'nextjs', 'next.js',
+  'mongodb', 'postgresql', 'mysql', 'redis', 'graphql', 'rest',
+  'git', 'jenkins', 'cicd', 'ci/cd', 'devops', 'linux', 'windows',
+  'azure', 'gcp', 'terraform', 'ansible', 'nginx', 'apache',
+  'net', '.net', 'core', 'aws-s3', 's3' // .NET, ASP.NET Core, AWS S3
+]);
 
 export function scoreApplication(
   input: ScoreApplicationInput,
@@ -97,19 +103,26 @@ function clamp(value: number): number {
 
 export function extractSkillsFromText(text: string): string[] {
   if (!text) return [];
+  
+  // FIX: Updated regex to allow "c++", "next.js", "aws-s3", ".net", "node.js"
+  // It now treats letters, numbers, and the symbols +, #, . as part of a single word.
   const tokens = text
     .toLowerCase()
-    .replace(/[^a-z0-9+#\s]/g, ' ') // Keep # for c#
-    .split(/\s+/)
-    .filter(Boolean);
+    .match(/[\w.#+-]+/g) || []; // \w (alphanumeric) + #, ., +, -
 
   const skills = new Set<string>();
-  for (const token of tokens) {
-    if (KNOWN_SKILLS.includes(token)) {
+
+  for (let token of tokens) {
+    // Clean up: remove trailing periods/hyphens
+    token = token.replace(/[.-]+$/, '');
+    
+    // Filter: must be a known skill (for precision)
+    if (KNOWN_SKILLS.has(token)) {
       skills.add(token);
     }
   }
-  return Array.from(skills);
+
+  return Array.from(skills).slice(0, 20); // Limit to 20 skills to prevent spam
 }
 
 export function calculateExperienceFromText(text: string): number {
