@@ -236,10 +236,9 @@ class PostingService {
     // Optional debug trace to help tests diagnose mock persistence issues
     try {
       if (process.env.DEBUG_MOCKS === '1') {
-        // eslint-disable-next-line no-console
         console.debug(`postingService.postJournal: about to save journal id=${journal._id?.toString?.()} status=${journal.status}`);
       }
-    } catch (e) {}
+    } catch {}
     await journal.save();
 
     return {

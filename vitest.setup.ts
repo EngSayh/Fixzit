@@ -122,33 +122,33 @@ vi.mock('@/lib/mongodb-unified', () => {
 (async () => {
   try {
     const journalModule = await import('@/server/models/finance/Journal');
-    const JournalModel = (journalModule as any).default || journalModule;
+    const JournalModel = (journalModule as Record<string, unknown>).default || journalModule;
     // Ensure deleteMany exists on the model (alias to collection.deleteMany if needed)
     if (JournalModel && typeof JournalModel.deleteMany !== 'function' && JournalModel.collection && typeof JournalModel.collection.deleteMany === 'function') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (JournalModel as any).deleteMany = (...args: any[]) => (JournalModel as any).collection.deleteMany(...args);
     }
-  } catch (e) {
+  } catch {
     // Non-fatal; only needed for tests that import these modules
   }
 
   try {
     const ledgerModule = await import('@/server/models/finance/LedgerEntry');
-    const LedgerModel = (ledgerModule as any).default || ledgerModule;
+    const LedgerModel = (ledgerModule as Record<string, unknown>).default || ledgerModule;
     if (LedgerModel && typeof LedgerModel.deleteMany !== 'function' && LedgerModel.collection && typeof LedgerModel.collection.deleteMany === 'function') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (LedgerModel as any).deleteMany = (...args: any[]) => (LedgerModel as any).collection.deleteMany(...args);
     }
-  } catch (e) {}
+  } catch {}
 
   try {
     const chartModule = await import('@/server/models/finance/ChartAccount');
-    const ChartModel = (chartModule as any).default || chartModule;
+    const ChartModel = (chartModule as Record<string, unknown>).default || chartModule;
     if (ChartModel && typeof ChartModel.deleteMany !== 'function' && ChartModel.collection && typeof ChartModel.collection.deleteMany === 'function') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (ChartModel as any).deleteMany = (...args: any[]) => (ChartModel as any).collection.deleteMany(...args);
     }
-  } catch (e) {}
+  } catch {}
 })();
 
 // Environment setup
