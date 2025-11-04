@@ -37,18 +37,13 @@ interface _UserDocument {
  * - Production secrets are never hardcoded
  * - Secrets can be rotated without code changes
  * - Development doesn't require AWS credentials
- * - Secrets are cached to avoid repeated AWS API calls
+ * - Secrets are cached to avoid repeated AWS API calls (5-min TTL in secrets.ts)
+ * - Secret rotation propagates within 5 minutes (no indefinite process cache)
  */
-let JWT_SECRET: string | undefined;
-
 async function getJWTSecret(): Promise<string> {
-  if (JWT_SECRET) {
-    return JWT_SECRET;
-  }
-
-  // Use secrets manager with AWS integration
-  JWT_SECRET = await getJWTSecretFromSecretsManager();
-  return JWT_SECRET;
+  // Delegate to secrets manager - it has proper caching with 5-min TTL
+  // This allows secret rotation to propagate within 5 minutes
+  return await getJWTSecretFromSecretsManager();
 }
 
 export interface AuthToken {
