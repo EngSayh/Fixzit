@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useDebounce } from '@/hooks/useDebounce';
 
 // ============================================================================
 // INTERFACES
@@ -92,6 +93,9 @@ export default function JournalEntryForm({
   const [chartAccounts, setChartAccounts] = useState<IChartAccount[]>([]);
   const [filteredAccounts, setFilteredAccounts] = useState<Record<string, IChartAccount[]>>({});
   const [searchTerms, setSearchTerms] = useState<Record<string, string>>({});
+  
+  // Debounce search terms to prevent excessive filtering
+  const debouncedSearchTerms = useDebounce(searchTerms, 300);
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -135,11 +139,11 @@ export default function JournalEntryForm({
       }
     } catch (error) {
       console.error('Error loading accounts:', error);
-      setErrors({ ...errors, accounts: 'Failed to load chart of accounts' });
+      setErrors(prev => ({ ...prev, accounts: 'Failed to load chart of accounts' }));
     } finally {
       setLoadingAccounts(false);
     }
-  }, [errors, lines]);
+  }, [lines]);
 
   useEffect(() => {
     loadChartOfAccounts();
@@ -217,7 +221,7 @@ export default function JournalEntryForm({
 
   // Debounce account filtering to improve performance during typing
   useEffect(() => {
-    Object.entries(searchTerms).forEach(([lineId, searchTerm]) => {
+    Object.entries(debouncedSearchTerms).forEach(([lineId, searchTerm]) => {
       if (!searchTerm.trim()) {
         setFilteredAccounts(prev => ({ ...prev, [lineId]: chartAccounts }));
         return;
@@ -231,7 +235,7 @@ export default function JournalEntryForm({
       );
       setFilteredAccounts(prev => ({ ...prev, [lineId]: filtered }));
     });
-  }, [searchTerms, chartAccounts]);
+  }, [debouncedSearchTerms, chartAccounts]);
 
   // ============================================================================
   // QUICK BALANCE HELPERS
