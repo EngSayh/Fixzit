@@ -13,6 +13,7 @@
  */
 
 import sgMail from '@sendgrid/mail';
+import crypto from 'crypto';
 
 export interface SendGridConfig {
   apiKey: string;
@@ -141,7 +142,6 @@ export function verifyWebhookSignature(
   timestamp: string
 ): boolean {
   try {
-    const crypto = require('crypto');
     const verificationKey = process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
     
     // SECURITY: Production MUST have webhook verification enabled
