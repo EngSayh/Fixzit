@@ -182,14 +182,19 @@ export default function ViewingScheduler({
     <div className="bg-card rounded-2xl shadow-lg p-6">
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-foreground mb-2">Schedule a Viewing</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-2">{t('aqar.viewing.scheduleTitle', 'Schedule a Viewing')}</h2>
         <p className="text-sm text-muted-foreground">{propertyTitle}</p>
         <p className="text-xs text-muted-foreground">{propertyAddress}</p>
       </div>
 
       {/* Progress Steps */}
       <div className={`flex items-center justify-between mb-8 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        {['Type', 'Date & Time', 'Details', 'Confirm'].map((label, idx) => {
+        {[
+          t('aqar.viewing.steps.type', 'Type'),
+          t('aqar.viewing.steps.dateTime', 'Date & Time'),
+          t('aqar.viewing.steps.details', 'Details'),
+          t('aqar.viewing.steps.confirm', 'Confirm')
+        ].map((label, idx) => {
           const stepKeys = ['type', 'datetime', 'details', 'confirm'];
           const currentIdx = stepKeys.indexOf(step);
           const isActive = idx === currentIdx;
@@ -214,7 +219,7 @@ export default function ViewingScheduler({
       {/* Step 1: Viewing Type */}
       {step === 'type' && (
         <div className="space-y-4">
-          <h3 className="font-semibold text-foreground mb-4">How would you like to view this property?</h3>
+          <h3 className="font-semibold text-foreground mb-4">{t('aqar.viewing.typeQuestion', 'How would you like to view this property?')}</h3>
           
           <button
             onClick={() => setViewingType('IN_PERSON')}
@@ -225,8 +230,8 @@ export default function ViewingScheduler({
             <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <MapPin className="w-6 h-6 text-accent-dark mt-1" />
               <div>
-                <h4 className="font-semibold text-foreground">In-Person Viewing</h4>
-                <p className="text-sm text-muted-foreground">Visit the property with the agent</p>
+                <h4 className="font-semibold text-foreground">{t('aqar.viewing.types.inPerson', 'In-Person Viewing')}</h4>
+                <p className="text-sm text-muted-foreground">{t('aqar.viewing.types.inPersonDesc', 'Visit the property with the agent')}</p>
               </div>
             </div>
           </button>
@@ -240,8 +245,8 @@ export default function ViewingScheduler({
             <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <Video className="w-6 h-6 text-accent-dark mt-1" />
               <div>
-                <h4 className="font-semibold text-foreground">Live Video Call</h4>
-                <p className="text-sm text-muted-foreground">Virtual walkthrough with agent via video call</p>
+                <h4 className="font-semibold text-foreground">{t('aqar.viewing.types.videoCall', 'Live Video Call')}</h4>
+                <p className="text-sm text-muted-foreground">{t('aqar.viewing.types.videoCallDesc', 'Virtual walkthrough with agent via video call')}</p>
               </div>
             </div>
           </button>
@@ -255,8 +260,8 @@ export default function ViewingScheduler({
             <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <Phone className="w-6 h-6 text-accent-dark mt-1" />
               <div>
-                <h4 className="font-semibold text-foreground">Virtual Tour</h4>
-                <p className="text-sm text-muted-foreground">Self-guided 360° virtual tour</p>
+                <h4 className="font-semibold text-foreground">{t('aqar.viewing.types.virtual', 'Virtual Tour')}</h4>
+                <p className="text-sm text-muted-foreground">{t('aqar.viewing.types.virtualDesc', 'Self-guided 360° virtual tour')}</p>
               </div>
             </div>
           </button>
@@ -265,7 +270,7 @@ export default function ViewingScheduler({
             onClick={() => setStep('datetime')}
             className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-accent to-accent-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
           >
-            Continue
+            {t('aqar.viewing.buttons.continue', 'Continue')}
           </button>
         </div>
       )}
@@ -275,7 +280,7 @@ export default function ViewingScheduler({
         <div className="space-y-6">
           {/* Date Selection */}
           <div>
-            <h3 className="font-semibold text-foreground mb-3">Select Date</h3>
+            <h3 className="font-semibold text-foreground mb-3">{t('aqar.viewing.selectDate', 'Select Date')}</h3>
             <div className="grid grid-cols-7 gap-2">
               {availableDates.map((date) => (
                 <button
@@ -289,7 +294,7 @@ export default function ViewingScheduler({
                 >
                   <div className="text-xs font-semibold">{date.toLocaleDateString('en-SA', { weekday: 'short' })}</div>
                   <div className="text-lg font-bold">{date.getDate()}</div>
-                  {isToday(date) && <div className="text-[10px] text-accent-dark">Today</div>}
+                  {isToday(date) && <div className="text-[10px] text-accent-dark">{t('aqar.viewing.today', 'Today')}</div>}
                 </button>
               ))}
             </div>
@@ -298,7 +303,7 @@ export default function ViewingScheduler({
           {/* Time Selection */}
           {selectedDate && (
             <div>
-              <h3 className="font-semibold text-foreground mb-3">Select Time</h3>
+              <h3 className="font-semibold text-foreground mb-3">{t('aqar.viewing.selectTime', 'Select Time')}</h3>
               
               <div className="space-y-4">
                 {/* Morning */}

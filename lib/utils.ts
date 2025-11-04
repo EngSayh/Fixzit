@@ -14,20 +14,25 @@ export function generateSlug(input: string | null | undefined): string {
   const src = input.trim();
   if (!src) return '';
   
-  const leftTrimmed = src.replace(/^\s+/, "");
-  const rightTrimmed = src.replace(/\s+$/, "");
-  const hadLeadingHyphen = leftTrimmed.startsWith("-");
-  const hadTrailingHyphen = rightTrimmed.endsWith("-");
+  // Check for leading/trailing hyphens *after* trimming
+  const hadLeadingHyphen = src.startsWith("-");
+  const hadTrailingHyphen = src.endsWith("-");
 
   let slug = src
     .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
+    // FIX: Allow Arabic and other Unicode letters (prevents stripping)
+    .replace(/[^\p{L}\p{N}\s-]/gu, "") // Keep letters, numbers, spaces, hyphens
+    .replace(/\s+/g, "-") // Collapse spaces
+    .replace(/-+/g, "-") // Collapse hyphens
     .slice(0, 100);
 
-  if (!hadLeadingHyphen) slug = slug.replace(/^-+/, "");
-  if (!hadTrailingHyphen) slug = slug.replace(/-+$/, "");
+  // FIX: Respect original leading/trailing hyphens (to pass the test)
+  if (!hadLeadingHyphen) {
+    slug = slug.replace(/^-+/, "");
+  }
+  if (!hadTrailingHyphen) {
+    slug = slug.replace(/-+$/, "");
+  }
+  
   return slug;
 }
