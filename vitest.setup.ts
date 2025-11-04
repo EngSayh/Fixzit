@@ -128,7 +128,7 @@ vi.mock('@/lib/mongodb-unified', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (JournalModel as any).deleteMany = (...args: any[]) => (JournalModel as any).collection.deleteMany(...args);
     }
-  } catch (e) {
+  } catch {
     // Non-fatal; only needed for tests that import these modules
   }
 
@@ -139,7 +139,9 @@ vi.mock('@/lib/mongodb-unified', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (LedgerModel as any).deleteMany = (...args: any[]) => (LedgerModel as any).collection.deleteMany(...args);
     }
-  } catch (e) {}
+  } catch {
+    // Non-fatal
+  }
 
   try {
     const chartModule = await import('@/server/models/finance/ChartAccount');
@@ -148,7 +150,9 @@ vi.mock('@/lib/mongodb-unified', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (ChartModel as any).deleteMany = (...args: any[]) => (ChartModel as any).collection.deleteMany(...args);
     }
-  } catch (e) {}
+  } catch {
+    // Non-fatal
+  }
 })();
 
 // Environment setup
