@@ -18,9 +18,18 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
   // Development fallback - prioritize for testing
   if (xUserHeader) {
     try {
-      return JSON.parse(xUserHeader) as SessionUser;
+      const parsed = JSON.parse(xUserHeader);
+      // Ensure both orgId and tenantId are set (they should be the same)
+      const tenantValue = parsed.orgId || parsed.tenantId;
+      return {
+        id: parsed.id,
+        role: parsed.role as Role,
+        orgId: tenantValue,
+        tenantId: tenantValue,
+      };
     } catch (e) {
       console.error('Failed to parse x-user header:', e);
+      throw new Error("Invalid x-user header");
     }
   }
   
@@ -35,11 +44,17 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
     throw new Error("Invalid or expired token");
   }
   
+  // Support JWTs with either orgId or tenantId field (they represent the same concept)
+  const tenantValue = payload.orgId || payload.tenantId;
+  if (!tenantValue) {
+    throw new Error("Missing tenant context in token");
+  }
+
   return {
     id: payload.id,
     role: payload.role as Role,
-    orgId: payload.orgId,
-    tenantId: payload.tenantId || payload.orgId // Use tenantId or fallback to orgId
+    orgId: tenantValue,
+    tenantId: tenantValue, // Keep both fields in sync for backward compatibility
   };
 }
 

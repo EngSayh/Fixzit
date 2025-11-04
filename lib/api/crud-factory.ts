@@ -222,7 +222,14 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
 
       // Parse and validate request body
       const body = await req.json();
-      const data = createSchema ? createSchema.parse(body) : body;
+      let data = createSchema ? createSchema.parse(body) : body;
+
+      // Security: Strip tenant-scoping and audit fields from client payload to prevent mass assignment
+      delete data.org_id;
+      delete data.orgId;
+      delete data.tenantId;
+      delete data.createdBy;
+      delete data.updatedBy;
 
       // Prepare entity data
       let entityData = {
@@ -390,7 +397,14 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
       await connectToDatabase();
 
       const body = await req.json();
-      const data = updateSchema ? updateSchema.parse(body) : body;
+      let data = updateSchema ? updateSchema.parse(body) : body;
+
+      // Security: Strip tenant-scoping and audit fields from client payload to prevent mass assignment
+      delete data.org_id;
+      delete data.orgId;
+      delete data.tenantId;
+      delete data.createdBy;
+      delete data.updatedBy;
 
       // Build query: Super Admin can update any tenant's entity
       const query: Record<string, unknown> = { _id: context.params.id };
