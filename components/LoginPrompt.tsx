@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { LogIn, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';

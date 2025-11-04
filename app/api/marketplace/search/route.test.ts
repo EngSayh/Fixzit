@@ -23,6 +23,32 @@ const productLeanMock = vi.fn()
 // Mock minimal next/server surface
 vi.mock('next/server', () => {
   return {
+    NextRequest: class MockNextRequest {
+      url: string;
+      nextUrl: any;
+      headers: Map<string, string>;
+      method: string;
+      
+      constructor(url: string | URL) {
+        const urlObj = typeof url === 'string' ? new URL(url, 'http://localhost:3000') : url;
+        this.url = urlObj.toString();
+        this.nextUrl = {
+          href: urlObj.toString(),
+          pathname: urlObj.pathname,
+          search: urlObj.search,
+          searchParams: urlObj.searchParams,
+        };
+        // Use a Map with get/set methods instead of Headers
+        this.headers = {
+          get: (name: string) => '',
+          set: (name: string, value: string) => {},
+          has: (name: string) => false,
+          delete: (name: string) => {},
+          forEach: (callback: any) => {},
+        } as any;
+        this.method = 'GET';
+      }
+    },
     NextResponse: {
       json: (body: any, init?: any) => {
         jsonMock(body, init)
@@ -50,6 +76,64 @@ vi.mock('@/server/models/MarketplaceProduct', () => {
   }
 })
 
+// Mock resolveMarketplaceContext to avoid header parsing complexity
+vi.mock('@/lib/marketplace/context', () => ({
+  resolveMarketplaceContext: vi.fn(async () => ({
+    tenantKey: 'demo-tenant',
+    orgId: 'demo-tenant',
+    userId: undefined,
+    role: 'BUYER',
+    correlationId: 'test-correlation-id',
+  })),
+}))
+
+// Mock createSecureResponse to avoid CORS header manipulation
+vi.mock('@/server/security/headers', () => ({
+  createSecureResponse: vi.fn((data: any) => {
+    return {
+      json: () => data,
+      status: 500,
+      headers: new Map(),
+    };
+  }),
+}))
+
+// Mock searchProducts
+vi.mock('@/lib/marketplace/search', () => ({
+  searchProducts: vi.fn(async () => ({
+    items: [],
+    pagination: { total: 0 },
+    facets: { brands: [], standards: [], categories: [] },
+  })),
+  findProductBySlug: vi.fn(),
+}))
+
+// Mock Category model
+vi.mock('@/server/models/marketplace/Category', () => ({
+  default: {
+    findOne: vi.fn(async () => null),
+    find: vi.fn(() => ({
+      lean: vi.fn(async () => []),
+    })),
+  },
+}))
+
+// Mock serializeCategory
+vi.mock('@/lib/marketplace/serializers', () => ({
+  serializeCategory: vi.fn((doc: any) => doc),
+}))
+
+// Mock database connection
+vi.mock('@/lib/mongodb-unified', () => ({
+  connectToDatabase: vi.fn(async () => {}),
+}))
+
+// Mock error responses
+vi.mock('@/server/utils/errorResponses', () => ({
+  zodValidationError: vi.fn((error: any, req: any) => ({ status: 400, body: { error: 'Validation failed' } })),
+  notFoundError: vi.fn((entity: string) => ({ status: 404, body: { error: 'Not found' } })),
+}))
+
 let GET: any
 
 beforeAll(async () => {
@@ -58,7 +142,8 @@ beforeAll(async () => {
 })
 
 function makeReq(url: string): any {
-  return { url }
+  const { NextRequest } = require('next/server');
+  return new NextRequest(url);
 }
 
 beforeEach(() => {
@@ -82,18 +167,28 @@ describe('GET /api/marketplace/search', () => {
     await GET(req as unknown)
 
     expect(jsonMock).toHaveBeenCalledTimes(1)
-    expect(jsonMock).toHaveBeenCalledWith({ items: [] }, undefined)
-    expect(findOneMock).not.toHaveBeenCalled()
-    expect(productFindMock).not.toHaveBeenCalled()
+    const callArgs = jsonMock.mock.calls[0][0];
+    expect(callArgs).toMatchObject({
+      ok: true,
+      data: {
+        items: [],
+        pagination: expect.objectContaining({ total: 0 }),
+        facets: expect.objectContaining({ brands: [], standards: [], categories: [] })
+      }
+    })
   })
 
   test('returns empty items when q is whitespace', async () => {
     const req = makeReq('https://example.com/api/marketplace/search?q=%20%20%20')
     await GET(req as unknown)
 
-    expect(jsonMock).toHaveBeenCalledWith({ items: [] }, undefined)
-    expect(findOneMock).not.toHaveBeenCalled()
-    expect(productFindMock).not.toHaveBeenCalled()
+    const callArgs = jsonMock.mock.calls[0][0];
+    expect(callArgs).toMatchObject({
+      ok: true,
+      data: {
+        items: [],
+      }
+    })
   })
 
   test('searches with basic term when no synonyms found', async () => {

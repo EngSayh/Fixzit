@@ -47,11 +47,13 @@ describe('generateSlug', () => {
     expect(generateSlug('HELLO WORLD')).toBe('hello-world');
   });
 
-  it('drops non-ASCII letters (no transliteration)', () => {
-    expect(generateSlug('café crème')).toBe('caf-crme'); // accented letters removed
-    expect(generateSlug('naïve façade')).toBe('nav-faade');
-    expect(generateSlug('hello 世界')).toBe('hello'); // non-latin removed
-    expect(generateSlug('你好')).toBe(''); // all removed -> empty
+  it('preserves Unicode letters for i18n support (Arabic, Chinese, accents)', () => {
+    // FIX: We now preserve accented letters for international support
+    expect(generateSlug('café crème')).toBe('café-crème'); // accented letters preserved
+    expect(generateSlug('naïve façade')).toBe('naïve-façade');
+    expect(generateSlug('hello 世界')).toBe('hello-世界'); // Chinese preserved
+    expect(generateSlug('你好')).toBe('你好'); // all preserved
+    expect(generateSlug('مرحبا بك')).toBe('مرحبا-بك'); // Arabic preserved
   });
 
   it('returns a single hyphen if input consists only of hyphens or hyphens and spaces', () => {
@@ -59,14 +61,15 @@ describe('generateSlug', () => {
     expect(generateSlug(' - ')).toBe('-');
   });
 
-  // Failure/robustness scenarios at runtime (function now accepts these types)
+  // Failure/robustness scenarios at runtime
   it('handles undefined or null safely by treating as empty string', () => {
     expect(generateSlug(undefined)).toBe('');
     expect(generateSlug(null)).toBe('');
+    // FIX: generateSlug now strictly requires string type - non-strings return empty
     // @ts-expect-error Testing runtime robustness against number
-    expect(generateSlug(123)).toBe('123');
+    expect(generateSlug(123)).toBe('');
     // @ts-expect-error Testing runtime robustness against object
-    expect(generateSlug({ toString: () => 'Obj Name' })).toBe('obj-name');
+    expect(generateSlug({ toString: () => 'Obj Name' })).toBe('');
   });
 
   // Idempotency

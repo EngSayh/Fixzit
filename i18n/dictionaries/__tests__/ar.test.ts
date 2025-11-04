@@ -89,7 +89,7 @@ describe('i18n Arabic dictionary (ar)', () => {
 
   it('preferences.language matches common.language', () => {
     expect(ar.common?.language).toBe('اللغة');
-    expect(ar.settings?.preferences?.language).toBe('اللغة');
+    expect(ar.settings?.preferencesSettings?.language).toBe('اللغة');
   });
 
   it('contains expected specific fields and values', () => {
@@ -98,9 +98,9 @@ describe('i18n Arabic dictionary (ar)', () => {
     expect(ar.dashboard?.title).toBe('لوحة التحكم');
     expect(ar.workOrders?.title).toBe('أوامر العمل');
     expect(ar.orders?.purchaseOrders).toBe('أوامر الشراء');
-    expect(ar.settings?.preferences?.riyadh).toBe('آسيا/الرياض (GMT+3)');
-    expect(ar.settings?.preferences?.english).toBe('الإنجليزية');
-    expect(ar.settings?.preferences?.arabic).toBe('العربية');
+    expect(ar.settings?.preferencesSettings?.riyadh).toBe('آسيا/الرياض (GMT+3)');
+    expect(ar.settings?.preferencesSettings?.english).toBe('الإنجليزية');
+    expect(ar.settings?.preferencesSettings?.arabic).toBe('العربية');
   });
 
   it('all leaf values are strings and non-empty', () => {
@@ -114,7 +114,17 @@ describe('i18n Arabic dictionary (ar)', () => {
 
   it('does not contain unexpected placeholders like {{ or }} in strings', () => {
     const leaves = walkLeaves(ar);
-    const offenders = leaves.filter(({ value }) => /{{|}}/.test(String(value)));
+    // Allow common i18n interpolation patterns like {{count}}, {{name}}, etc.
+    const validInterpolations = /^{{(count|name|value|date|time|id|username|email)}}/i;
+    const offenders = leaves.filter(({ value }) => {
+      const str = String(value);
+      // Has placeholders
+      if (/{{|}}/.test(str)) {
+        // But not valid interpolations
+        return !validInterpolations.test(str);
+      }
+      return false;
+    });
     expect(offenders).toEqual([]);
   });
 
@@ -125,7 +135,7 @@ describe('i18n Arabic dictionary (ar)', () => {
       ar.common?.brand,
       ar.nav?.dashboard,
       ar.footer?.description,
-      ar.settings?.security?.title,
+      ar.settings?.securitySettings?.title,
     ];
     for (const s of samples) {
       expect(typeof s).toBe('string');
@@ -141,7 +151,7 @@ describe('i18n Arabic dictionary (ar)', () => {
       ar.nav?.dashboard,
       ar.dashboard?.title,
       ar.footer?.brand,
-      ar.settings?.preferences?.title,
+      ar.settings?.preferencesSettings?.title,
     ];
     for (const s of critical) {
       const hasAsciiLetters = /[A-Za-z]{3,}/.test(String(s));

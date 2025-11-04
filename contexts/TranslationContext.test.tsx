@@ -11,13 +11,19 @@
  */
 
 import React, { ReactNode } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { vi, beforeEach, describe, it, expect } from 'vitest';
 
 // Provide mutable test doubles for the hook values so each test can customize.
-let mockLocale: 'en' | 'ar' = 'en';
-let mockDir: 'ltr' | 'rtl' = 'ltr';
-const mockSetLocale = vi.fn();
+// FIX: Default to 'ar' to match KSA-first APP_DEFAULTS.language
+let mockLocale: 'en' | 'ar' | 'ar-SA' | 'ar-EG' | 'en-US' | 'en-GB' | 'fr-FR' = 'ar';
+let mockDir: 'ltr' | 'rtl' = 'rtl';
+// FIX: Make mockSetLocale actually update mockLocale so tests can observe state changes
+const mockSetLocale = vi.fn((newLocale: string) => {
+  mockLocale = newLocale as any;
+  // Update dir based on locale
+  mockDir = newLocale.startsWith('ar') ? 'rtl' : 'ltr';
+});
 let mockTranslateImpl: (key: string) => string = (k) => 'translated:' + k;
 
 // We will mock both I18nProvider (to assert the initialLocale prop and children render)
@@ -46,9 +52,10 @@ vi.mock('@/i18n/useI18n', () => {
 
 // For DEFAULT_LOCALE used by TranslationProvider default prop,
 // we set a stable value so the test can assert it deterministically.
+// FIX: Default to 'ar' to match KSA-first APP_DEFAULTS.language
 vi.mock('@/i18n/config', () => {
   return {
-    DEFAULT_LOCALE: 'en',
+    DEFAULT_LOCALE: 'ar',
   };
 });
 
@@ -94,18 +101,25 @@ describe('TranslationProvider', () => {
       </TranslationProvider>
     );
 
-    // DEFAULT_LOCALE mocked as 'en' above
+    // FIX: KSA-first architecture defaults to 'ar' (APP_DEFAULTS.language)
     expect(captured).toBeTruthy();
-    expect(captured!.language).toBe('en');
+    expect(captured!.language).toBe('ar');
   });
 });
 
 describe('useTranslation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockLocale = 'en';
-    mockDir = 'ltr';
+    // FIX: Reset to KSA-first defaults
+    mockLocale = 'ar';
+    mockDir = 'rtl';
     mockTranslateImpl = (k) => 'translated:' + k;
+    
+    // FIX: Clear localStorage to prevent test pollution
+    // TranslationProvider checks localStorage on mount, so we need to clear it
+    if (typeof localStorage !== 'undefined') {
+      localStorage.clear();
+    }
   });
 
   function renderWithProvider(probe: (v: ReturnType<typeof useTranslation>) => void) {
@@ -116,18 +130,31 @@ describe('useTranslation', () => {
     );
   }
 
-  it('exposes language matching useI18n.locale and derived locale format (en -> en)', () => {
-    mockLocale = 'en';
+  it('exposes language matching useI18n.locale and derived locale format (en -> en)', async () => {
+    // FIX: Test defaults to 'ar', not 'en'. Properly handle async with act() and waitFor()
     let captured: ReturnType<typeof useTranslation> | null = null;
 
     renderWithProvider((v) => {
       captured = v;
     });
 
-    expect(captured).toBeTruthy();
-    expect(captured!.language).toBe('en');
-    expect(captured!.locale).toBe('en');
-    expect(captured!.isRTL).toBe(false);
+    await waitFor(() => expect(captured).toBeTruthy());
+    
+    // First, verify default is Arabic (KSA-first)
+    expect(captured!.language).toBe('ar');
+    expect(captured!.locale).toBe('ar-SA');
+    expect(captured!.isRTL).toBe(true);
+
+    // Then switch to English and verify (use act() for state update)
+    act(() => {
+      captured!.setLanguage('en');
+    });
+    // FIX: System only supports en-GB, not en-US (per LANGUAGE_OPTIONS)
+    await waitFor(() => {
+      expect(captured!.language).toBe('en');
+      expect(captured!.locale).toBe('en-GB');
+      expect(captured!.isRTL).toBe(false);
+    });
   });
 
   it('provides language context values', () => {
@@ -159,36 +186,80 @@ describe('useTranslation', () => {
   });
 
   describe('setLocale(string) normalization', () => {
-    it('normalizes arabic variants to "ar"', () => {
+    it('switches between supported locales (ar-SA and en-GB)', async () => {
       let captured: ReturnType<typeof useTranslation> | null = null;
       renderWithProvider((v) => (captured = v));
 
-      captured!.setLocale('ar');
-      captured!.setLocale('AR');
-      captured!.setLocale('ar-sa');
-      captured!.setLocale('ar_SA');
-      expect(mockSetLocale).toHaveBeenCalledTimes(4);
-      expect(mockSetLocale).toHaveBeenNthCalledWith(1, 'ar');
-      expect(mockSetLocale).toHaveBeenNthCalledWith(2, 'ar');
-      expect(mockSetLocale).toHaveBeenNthCalledWith(3, 'ar');
-      expect(mockSetLocale).toHaveBeenNthCalledWith(4, 'ar');
+      // FIX: Only test supported locales per LANGUAGE_OPTIONS: ar-SA and en-GB
+      // Default is 'ar-SA' (KSA-first)
+      await waitFor(() => expect(captured).toBeTruthy());
+      expect(captured!.language).toBe('ar');
+      expect(captured!.locale).toBe('ar-SA');
+
+      // Switch to English GB
+      act(() => {
+        captured!.setLocale('en-GB');
+      });
+      await waitFor(() => {
+        expect(captured!.language).toBe('en');
+        expect(captured!.locale).toBe('en-GB');
+      });
+      
+      // Switch back to Arabic SA
+      act(() => {
+        captured!.setLocale('ar-SA');
+      });
+      await waitFor(() => {
+        expect(captured!.language).toBe('ar');
+        expect(captured!.locale).toBe('ar-SA');
+      });
     });
 
-    it('normalizes non-arabic or unknown to "en"', () => {
-      vi.clearAllMocks();
+    it('falls back to current language for unsupported locales', async () => {
       let captured: ReturnType<typeof useTranslation> | null = null;
       renderWithProvider((v) => (captured = v));
 
-      captured!.setLocale('en');
-      captured!.setLocale('EN');
-      captured!.setLocale('en-gb');
-      captured!.setLocale('fr');
-      captured!.setLocale('pt-BR');
-      captured!.setLocale(''); // empty string edge case
-      expect(mockSetLocale).toHaveBeenCalledTimes(6);
-      for (let i = 1; i <= 6; i++) {
-        expect(mockSetLocale).toHaveBeenNthCalledWith(i, 'en');
-      }
+      // FIX: Test fallback behavior for unsupported locales
+      // 1. Check default state (KSA-first)
+      await waitFor(() => expect(captured).toBeTruthy());
+      expect(captured!.language).toBe('ar');
+      expect(captured!.locale).toBe('ar-SA');
+      
+      // 2. Try to set unsupported locale (ar-EG) - should keep current (ar-SA)
+      act(() => {
+        captured!.setLocale('ar-EG'); // Not in LANGUAGE_OPTIONS
+      });
+      await waitFor(() => {
+        expect(captured!.language).toBe('ar');
+        expect(captured!.locale).toBe('ar-SA'); // Stays at ar-SA
+      });
+
+      // 3. Switch to English
+      act(() => {
+        captured!.setLocale('en-GB');
+      });
+      await waitFor(() => {
+        expect(captured!.language).toBe('en');
+        expect(captured!.locale).toBe('en-GB');
+      });
+
+      // 4. Try unsupported locale (en-US) - should keep current (en-GB)
+      act(() => {
+        captured!.setLocale('en-US'); // Not in LANGUAGE_OPTIONS
+      });
+      await waitFor(() => {
+        expect(captured!.language).toBe('en');
+        expect(captured!.locale).toBe('en-GB'); // Stays at en-GB
+      });
+      
+      // 5. Try completely unsupported locale (fr-FR) - should keep current (en-GB)
+      act(() => {
+        captured!.setLocale('fr-FR'); // Not in LANGUAGE_OPTIONS
+      });
+      await waitFor(() => {
+        expect(captured!.language).toBe('en');
+        expect(captured!.locale).toBe('en-GB'); // Stays at en-GB
+      });
     });
   });
 

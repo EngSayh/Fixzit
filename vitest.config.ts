@@ -11,7 +11,7 @@ export default defineConfig({
     globals: true,
     // default env for component/unit tests
     environment: 'jsdom',
-    setupFiles: ['tests/setup.ts'],
+    setupFiles: ['./tests/setup.ts'],
     include: ['**/*.test.ts', '**/*.test.tsx'],
     // keep e2e / playwright out of vitest to avoid "queued" / long runs
     // (run those via `pnpm test:e2e` with Playwright/Jest)
@@ -31,6 +31,12 @@ export default defineConfig({
       ['tests/**/server/**/*.test.{ts,tsx}', 'node'],
       ['tests/**/api/**/*.test.{ts,tsx}', 'node'],
     ],
+    // FIX: Inline next-auth to avoid CJS/ESM issues
+    deps: {
+      inline: [
+        /next-auth/,
+      ],
+    },
     // stable runner settings
     reporters: ['default'], // or 'verbose' or 'dot' or 'junit'
     pool: 'threads',
