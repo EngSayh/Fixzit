@@ -4,6 +4,7 @@
  * Falls back to environment variables for development
  */
 
+import { randomBytes } from 'crypto';
 import { 
   SecretsManagerClient, 
   GetSecretValueCommand 
@@ -24,25 +25,30 @@ function getSecretsClient(): SecretsManagerClient | null {
     return secretsClient;
   }
 
-  // Only use AWS Secrets Manager in production with credentials configured
-  if (
-    process.env.NODE_ENV === 'production' &&
-    process.env.AWS_REGION &&
-    (process.env.AWS_ACCESS_KEY_ID || process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI)
-  ) {
-    secretsClient = new SecretsManagerClient({
-      region: process.env.AWS_REGION,
-      credentials: process.env.AWS_ACCESS_KEY_ID ? {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
-      } : undefined // Use ECS task role if no explicit credentials
-    });
-    
-    console.log('[Secrets] AWS Secrets Manager initialized for region:', process.env.AWS_REGION);
-    return secretsClient;
+  // Initialize if AWS region is configured
+  // Let AWS SDK use its default credential provider chain:
+  // - ECS/EKS task role metadata
+  // - Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+  // - Shared credentials file (~/.aws/credentials)
+  // - EC2 instance metadata
+  const region = process.env.AWS_REGION ?? process.env.AWS_DEFAULT_REGION;
+  if (!region) {
+    return null;
   }
 
-  return null;
+  secretsClient = new SecretsManagerClient({
+    region,
+    // Only provide explicit credentials if both are present
+    credentials: (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY)
+      ? {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+        }
+      : undefined // Use AWS SDK default credential provider chain
+  });
+  
+  console.log('[Secrets] AWS Secrets Manager initialized for region:', region);
+  return secretsClient;
 }
 
 /**
@@ -87,11 +93,14 @@ export async function getSecret(
             expiresAt: Date.now() + CACHE_TTL
           });
           
-          console.log('[Secrets] Retrieved from AWS Secrets Manager:', secretName);
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('[Secrets] Retrieved from AWS Secrets Manager:', secretName);
+          }
           return secretValue;
         }
       } catch (awsError) {
-        console.warn('[Secrets] Failed to retrieve from AWS:', secretName, awsError);
+        const errorMessage = awsError instanceof Error ? awsError.message : String(awsError);
+        console.warn('[Secrets] Failed to retrieve from AWS:', secretName, errorMessage);
         // Fall through to environment variable fallback
       }
     }
@@ -100,16 +109,18 @@ export async function getSecret(
     if (envFallback) {
       const envValue = process.env[envFallback]?.trim();
       if (envValue) {
-        console.log('[Secrets] Using environment variable:', envFallback);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[Secrets] Using environment variable:', envFallback);
+        }
         return envValue;
       }
     }
 
     // Not found
     if (required) {
-      throw new Error(
-        `Required secret '${secretName}' not found in AWS Secrets Manager or environment variable '${envFallback}'`
-      );
+      const errorMessage = `Required secret '${secretName}' not found in AWS Secrets Manager` + 
+        (envFallback ? ` or environment variable '${envFallback}'` : '');
+      throw new Error(errorMessage);
     }
 
     return null;
@@ -143,8 +154,7 @@ export async function getJWTSecret(): Promise<string> {
   // Production MUST have JWT_SECRET configured
   if (process.env.NODE_ENV === 'production') {
     throw new Error(
-      'JWT_SECRET is required in production. ' +
-      'Configure it in AWS Secrets Manager or as environment variable.'
+      `JWT_SECRET is required in production. Configure it in AWS Secrets Manager (using secret name '${awsSecretName}') or as environment variable 'JWT_SECRET'.`
     );
   }
 
@@ -152,7 +162,6 @@ export async function getJWTSecret(): Promise<string> {
   console.warn('[Secrets] No JWT_SECRET configured. Using ephemeral secret for development.');
   console.warn('[Secrets] Set JWT_SECRET environment variable for session persistence.');
   
-  const { randomBytes } = await import('crypto');
   return randomBytes(32).toString('hex');
 }
 

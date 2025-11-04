@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { User } from '@/server/models/User';
 import { db } from '@/lib/mongo';
-import { getJWTSecret as getJWTSecretFromSecretsManager } from '@/lib/secrets';
+import { getJWTSecret as getJWTSecretService } from '@/lib/secrets';
 
 // Type definition for User document - used as documentation reference
 // eslint-disable-next-line no-unused-vars
@@ -41,9 +41,11 @@ interface _UserDocument {
  * - Secret rotation propagates within 5 minutes (no indefinite process cache)
  */
 async function getJWTSecret(): Promise<string> {
-  // Delegate to secrets manager - it has proper caching with 5-min TTL
-  // This allows secret rotation to propagate within 5 minutes
-  return await getJWTSecretFromSecretsManager();
+  // Delegate to secrets service - full priority logic encapsulated there:
+  // 1. AWS Secrets Manager (production, 5-min TTL cache)
+  // 2. JWT_SECRET environment variable
+  // 3. Ephemeral secret (development only)
+  return await getJWTSecretService();
 }
 
 export interface AuthToken {
@@ -65,7 +67,7 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 
 export async function generateToken(payload: AuthToken): Promise<string> {
   const secret = await getJWTSecret();
-  return jwt.sign(payload, secret, { expiresIn: '24h' });
+  return jwt.sign(payload, secret, { expiresIn: '24h', algorithm: 'HS256' });
 }
 
 export async function verifyToken(token: string): Promise<AuthToken | null> {
