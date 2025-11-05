@@ -78,8 +78,9 @@ export function useFMPermissions() {
     plan,
   };
   
-  // 🟥 FIXED: Securely determine org membership from session
-  const isOrgMember = !!ctx.orgId;
+  // 🟥 FIXED: Compute membership dynamically based on target org
+  const isMemberOf = (orgId?: string): boolean =>
+    !!ctx.orgId && (!orgId || orgId === ctx.orgId);
 
   /**
    * Check if user can perform an action on a submodule
@@ -93,7 +94,7 @@ export function useFMPermissions() {
     },
   ): boolean => {
     // Check against the resource's org or the user's org
-    const targetOrgId = options?.orgId || ctx.orgId;
+    const targetOrgId = options?.orgId ?? ctx.orgId;
 
     return can(submodule, action, {
       role: ctx.role,
@@ -101,7 +102,7 @@ export function useFMPermissions() {
       propertyId: options?.propertyId,
       userId: ctx.userId,
       plan: ctx.plan,
-      isOrgMember, // 🟥 FIXED: Use dynamic value derived from session
+      isOrgMember: isMemberOf(targetOrgId), // 🟥 FIXED: Recompute for target org
     });
   };
 

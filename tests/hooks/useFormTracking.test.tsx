@@ -33,7 +33,8 @@ describe('useFormTracking', () => {
     });
 
     // After unmount, the form should be unregistered
-    // We can verify this by checking if the formId is no longer in formStates
+    // Verify using context API that form is no longer tracked
+    expect(contextResult.current.isFormDirty('test-form')).toBe(false);
   });
 
   it('should mark form as dirty in context when isDirty prop becomes true', () => {
@@ -60,8 +61,8 @@ describe('useFormTracking', () => {
       rerender({ formId: 'dirty-form', isDirty: true, onSave });
     });
 
-    // The form should now be marked as dirty in the context
-    // We can verify this by checking hasUnsavedChanges (if any form is dirty)
+    // Verify through context API that form is now marked as dirty
+    expect(contextResult.current.isFormDirty('dirty-form')).toBe(true);
   });
 
   it('should call onSave when global save is triggered', async () => {
