@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logError } from '@/lib/logger';
 
 // ============================================================================
 // INTERFACES
@@ -127,7 +128,7 @@ export default function AccountActivityViewer({
 
       setData(result);
     } catch (err) {
-      console.error('Error loading account activity:', err);
+      logError('Error loading account activity', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);

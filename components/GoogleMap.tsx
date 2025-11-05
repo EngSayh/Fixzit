@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader as Spinner } from 'lucide-react';
+import { logError } from '@/lib/logger';
 
 type LatLng = { lat: number; lng: number };
 type MarkerInput = {
@@ -188,8 +189,7 @@ export default function GoogleMap({
         setLoading(false);
         onReady?.(map);
       } catch (e) {
-         
-        console.error('[GoogleMap] init error', e);
+        logError('[GoogleMap] init error', e);
         setError('Failed to load Google Maps. Check API key, referrer restrictions, and billing status.');
         setLoading(false);
       }

@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsive } from '@/contexts/ResponsiveContext';
 import { useFormState } from '@/contexts/FormStateContext';
+import { logError } from '@/lib/logger';
 
 // Constants
 import { APP_STORAGE_KEYS, STORAGE_KEYS, STORAGE_PREFIXES } from '@/config/constants';
@@ -117,7 +118,7 @@ export default function TopBar() {
           setOrgSettings(data);
         }
       } catch (error) {
-        console.error('Failed to fetch organization settings:', error);
+        logError('Failed to fetch organization settings', error);
       }
     };
     fetchOrgSettings();
@@ -179,7 +180,7 @@ export default function TopBar() {
         setNotifications([]);
       }
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      logError('Failed to fetch notifications', error);
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -275,7 +276,7 @@ export default function TopBar() {
 
       await signOut({ callbackUrl: '/login', redirect: true });
     } catch (error) {
-      console.error('Logout error:', error);
+      logError('Logout error', error);
       // NextAuth signOut handles redirect, no manual redirect needed
     }
   };

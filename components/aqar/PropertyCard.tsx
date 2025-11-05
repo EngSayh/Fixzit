@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Bed, Bath, Maximize, MapPin, Heart, Eye } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logError } from '@/lib/logger';
 import { ContactActions } from './ContactActions';
 
 export interface PropertyCardProps {
@@ -96,7 +97,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
       }
       setIsFavorite(!isFavorite);
     } catch (error) {
-      console.error('Failed to toggle favorite:', error);
+      logError('Failed to toggle favorite', error);
     }
   };
 

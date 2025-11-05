@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useDebounce } from '@/hooks/useDebounce';
+import { logError } from '@/lib/logger';
 
 // ============================================================================
 // INTERFACES
@@ -135,7 +136,7 @@ export default function JournalEntryForm({
         setFilteredAccounts(initial);
       }
     } catch (error) {
-      console.error('Error loading accounts:', error);
+      logError('Error loading accounts', error);
       setErrors({ ...errors, accounts: 'Failed to load chart of accounts' });
     } finally {
       setLoadingAccounts(false);
@@ -350,7 +351,7 @@ export default function JournalEntryForm({
         }
       }
     } catch (error) {
-      console.error('Error submitting journal entry:', error);
+      logError('Error submitting journal entry', error);
       setErrors({ submit: 'An unexpected error occurred' });
     } finally {
       setIsSubmitting(false);

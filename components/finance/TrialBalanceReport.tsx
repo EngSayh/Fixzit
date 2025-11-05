@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logError } from '@/lib/logger';
 import { 
   Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter 
 } from '@/components/ui/card';
@@ -91,7 +92,7 @@ export default function TrialBalanceReport({
       const result = await response.json();
       setData(result);
     } catch (err) {
-      console.error('Error loading trial balance:', err);
+      logError('Error loading trial balance', err);
       setError(err instanceof Error ? err.message : t('common.error.unknown', 'An error occurred'));
     } finally {
       setLoading(false);

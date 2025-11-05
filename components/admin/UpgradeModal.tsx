@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 
 // ✅ FIXED: Add i18n support
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logError } from '@/lib/logger';
 
 // Lucide icons
 import { Lock, CheckCircle } from 'lucide-react';
@@ -85,7 +86,7 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
         handleClose();
       }, 3000);
     } catch (error) {
-      console.error('Failed to submit contact request:', error);
+      logError('Failed to submit contact request', error);
       setError(t('upgrade.error.submitFailed', 'Failed to submit request. Please email sales@fixzit.sa directly.'));
     } finally {
       setSubmitting(false);

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useId } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTopBar } from '@/contexts/TopBarContext';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logError } from '@/lib/logger';
 import { Search, Command } from 'lucide-react';
 
 interface SearchResult {
@@ -79,7 +80,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
         setResults(data.results || []);
         setOpen(true);
       } catch (err) {
-        console.error('Search failed:', err);
+        logError('Search failed', err);
         setError('Search failed. Please try again.');
         setResults([]);
       } finally {

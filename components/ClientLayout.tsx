@@ -14,6 +14,7 @@ const AutoIncidentReporter = dynamic(() => import('@/components/AutoIncidentRepo
 import PreferenceBroadcast from './PreferenceBroadcast';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { UserRole, type UserRoleType } from '@/types/user';
+import { logError } from '@/lib/logger';
 
 type UserRoleOrGuest = UserRoleType | 'guest';
 
@@ -150,7 +151,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   // Protected routes: normal app layout
   const CopilotWidget = dynamic(
     () => import('./CopilotWidget').catch((err) => {
-      console.error('Failed to load CopilotWidget:', err);
+      logError('Failed to load CopilotWidget', err);
       return { default: () => null };
     }), 
     { 

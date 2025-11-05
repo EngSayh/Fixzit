@@ -2,6 +2,7 @@
 
 import { useTopBar } from '@/contexts/TopBarContext';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logInfo } from '@/lib/logger';
 import { useState, useEffect, useRef } from 'react';
 import { Plus, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -53,11 +54,10 @@ export default function QuickActions() {
           if (quickActions[activeIndex]) {
             const action = quickActions[activeIndex];
             // AUDIT: Log user navigation action
-            console.info('[QuickActions] User navigation:', {
+            logInfo('[QuickActions] User navigation', {
               action: action.id,
               href: action.href,
               method: event.key === 'Enter' ? 'keyboard-enter' : 'keyboard-space',
-              timestamp: new Date().toISOString(),
             });
             router.push(action.href);
             setOpen(false);
@@ -120,11 +120,10 @@ export default function QuickActions() {
                 tabIndex={idx === activeIndex ? 0 : -1}
                 onClick={() => {
                   // AUDIT: Log user navigation action
-                  console.info('[QuickActions] User navigation:', {
+                  logInfo('[QuickActions] User navigation', {
                     action: action.id,
                     href: action.href,
                     method: 'click',
-                    timestamp: new Date().toISOString(),
                   });
                   router.push(action.href);
                   setOpen(false);

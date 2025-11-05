@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { Search, ShoppingCart, Star, Store, PackageSearch, Loader2, ShieldCheck, BadgeCheck } from 'lucide-react';
 import { STORAGE_KEYS } from '@/config/constants';
+import { logError } from '@/lib/logger';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -165,7 +166,7 @@ export default function CatalogView({
       setFeedbackMessage(`${product.title} added to cart.`);
       await mutate();
     } catch (err) {
-      console.error(err);
+      logError('Failed to add product to cart', err);
       setFeedbackMessage('We could not add this item to your cart. Please try again.');
     }
   };

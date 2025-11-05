@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { STORAGE_KEYS } from '@/config/constants';
+import { logError } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -382,7 +383,7 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
       reset();
       setOpen(false);
     } catch (error: unknown) {
-      console.error('Failed to create work order', error);
+      logError('Failed to create work order', error);
       const message = error instanceof Error ? error.message : 'Unknown error';
       if (typeof window !== 'undefined') {
         window.alert(`Unable to create work order: ${message}`);
