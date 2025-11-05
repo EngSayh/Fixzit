@@ -236,7 +236,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
               {property.agentId.contact?.phone && (
                 <>
                   <a
-                    href={`tel:${property.agentId?.contact?.phone}`}
+                    href={`tel:${property.agentId?.contact?.phone?.replace(/\D/g, '')}`}
                     onClick={(e) => {
                       e.stopPropagation();
                     }}

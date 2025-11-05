@@ -120,7 +120,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
                 {/* Contact Buttons */}
         <div className="flex gap-1">
           <a
-            href={`tel:${agent.contact.phone}`}
+            href={`tel:${agent.contact.phone.replace(/\D/g, '')}`}
             onClick={(e) => e.stopPropagation()}
             className="p-2 hover:bg-muted rounded-full transition-colors"
             aria-label={t('aqar.agent.call', 'Call agent')}
@@ -277,7 +277,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
         {/* Contact Buttons */}
         <div className="flex gap-2">
           <a
-            href={`tel:${agent.contact.phone}`}
+            href={`tel:${agent.contact.phone.replace(/\D/g, '')}`}
             onClick={(e) => e.stopPropagation()}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFB400] to-[#FF8C00] text-white rounded-2xl hover:shadow-lg transition-shadow"
             aria-label={t('aqar.agent.call', 'Call agent')}
