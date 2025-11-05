@@ -9,6 +9,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import {notFoundError, validationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
+import { logError } from '@/lib/logger';
 
 /**
  * @openapi
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ success: true, data: employee });
   } catch (error) {
-    console.error('Convert to employee error:', error instanceof Error ? error.message : 'Unknown error');
+    logError('Convert to employee error', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: "Failed to convert to employee" }, 500, req);
   }
 }

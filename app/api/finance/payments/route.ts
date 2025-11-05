@@ -10,6 +10,7 @@ import { Payment } from '@/server/models/finance/Payment';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { runWithContext } from '@/server/lib/authContext';
 import { requirePermission } from '@/server/lib/rbac.config';
+import { logError } from '@/lib/logger';
 
 
 const PaymentAllocationSchema = z.object({
@@ -119,7 +120,7 @@ export async function POST(req: NextRequest) {
       }
     );
   } catch (error) {
-    console.error('Error creating payment:', error);
+    logError('Error creating payment', error);
 
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });
@@ -233,7 +234,7 @@ export async function GET(req: NextRequest) {
       }
     );
   } catch (error) {
-    console.error('Error fetching payments:', error);
+    logError('Error fetching payments', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });

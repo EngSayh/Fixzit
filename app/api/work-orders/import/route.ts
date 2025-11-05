@@ -5,6 +5,7 @@ import {requireAbility } from "@/server/middleware/withAuthRbac";
 import { z } from "zod";
 
 import { createSecureResponse } from '@/server/security/headers';
+import { logError } from '@/lib/logger';
 
 // Validation schema for import rows
 const ImportRowSchema = z.object({
@@ -83,7 +84,7 @@ export async function POST(req:NextRequest): Promise<NextResponse> {
       created++;
     } catch (error) {
       const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
-      console.error(`[${correlationId}] Work order import error for row ${i + 1}:`, error instanceof Error ? error.message : 'Unknown error');
+      logError(`[${correlationId}] Work order import error for row ${i + 1}`, error instanceof Error ? error : null);
       errors.push({ row: i + 1, error: 'Failed to import row' });
     }
   }

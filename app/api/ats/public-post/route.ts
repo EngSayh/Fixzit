@@ -7,6 +7,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
+import { logError } from '@/lib/logger';
 
 const publicJobSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(200),
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ success: true, data: job }, { status: 201 });
   } catch (error) {
-    console.error("Public post error:", error instanceof Error ? error.message : 'Unknown error');
+    logError('Public post error', error instanceof Error ? error : null);
     return createSecureResponse({ error: "Failed to submit job" }, 500, req);
   }
 }

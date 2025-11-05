@@ -12,6 +12,7 @@ import {
 } from '@/server/utils/errorResponses';
 import { z } from 'zod';
 import { getClientIP } from '@/server/security/headers';
+import { logError } from '@/lib/logger';
 
 const priceTierSchema = z.object({
   moduleCode: z.string().min(1),
@@ -84,7 +85,7 @@ export async function GET(req: NextRequest) {
         return createErrorResponse('Admin access required', 403);
       }
     }
-    console.error('Price tier fetch failed:', error instanceof Error ? error.message : 'Unknown error');
+    logError('Price tier fetch failed', error instanceof Error ? error.message : 'Unknown error');
     return createErrorResponse('Internal server error', 500);
   }
 }
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
         return createErrorResponse('Admin access required', 403);
       }
     }
-    console.error('Price tier creation failed:', error instanceof Error ? error.message : 'Unknown error');
+    logError('Price tier creation failed', error instanceof Error ? error.message : 'Unknown error');
     return createErrorResponse('Internal server error', 500);
   }
 }

@@ -7,6 +7,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import {notFoundError, validationError, rateLimitError, unauthorizedError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
+import { logError } from '@/lib/logger';
 
 /**
  * @openapi
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     await job.publish();
     return NextResponse.json({ success: true, data: job, message: 'Job published successfully' });
   } catch (error) {
-    console.error('Job publish error:', error instanceof Error ? error.message : 'Unknown error');
+    logError('Job publish error', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: "Failed to publish job" }, 500, req);
   }
 }

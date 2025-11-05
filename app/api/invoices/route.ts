@@ -10,6 +10,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
+import { logError } from '@/lib/logger';
 
 const createInvoiceSchema = z.object({
   type: z.enum(["SALES", "PURCHASE", "RENTAL", "SERVICE", "MAINTENANCE"]),
@@ -184,7 +185,7 @@ export async function POST(req: NextRequest) {
     return createSecureResponse(invoice, 201, req);
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    console.error('[POST /api/invoices] Error creating invoice:', {
+    logError('[POST /api/invoices] Error creating invoice', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
@@ -258,7 +259,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    console.error('[GET /api/invoices] Error fetching invoices:', {
+    logError('[GET /api/invoices] Error fetching invoices', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined

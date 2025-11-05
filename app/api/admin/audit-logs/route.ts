@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { AuditLogModel } from '@/server/models/AuditLog';
 import { connectDb } from '@/lib/mongo';
+import { logError } from '@/lib/logger';
 
 /**
  * GET /api/admin/audit-logs
@@ -87,7 +88,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ logs });
   } catch (error) {
-    console.error('Failed to fetch audit logs:', error);
+    logError('Failed to fetch audit logs', error);
     return NextResponse.json(
       { error: 'Failed to fetch audit logs' },
       { status: 500 }

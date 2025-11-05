@@ -11,6 +11,7 @@ import { rateLimitError, zodValidationError } from '@/server/utils/errorResponse
 import { createSecureResponse } from '@/server/security/headers';
 import { z } from 'zod';
 import { getClientIP } from '@/server/security/headers';
+import { logError } from '@/lib/logger';
 
 const subscriptionSchema = z.object({
   customer: z.object({
@@ -151,7 +152,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    console.error('Subscription creation failed:', error instanceof Error ? error.message : 'Unknown error');
+    logError('Subscription creation failed', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to create subscription' }, 500, req);
   }
 }

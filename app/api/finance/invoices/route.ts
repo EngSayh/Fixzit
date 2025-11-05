@@ -6,6 +6,7 @@ import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { createSecureResponse, getClientIP } from '@/server/security/headers';
 import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { z } from 'zod';
+import { logError } from '@/lib/logger';
 
 const invoiceCreateSchema = z.object({
   customerId: z.string().optional(),
@@ -87,7 +88,7 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ data }, 200, req);
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    console.error('[GET /api/finance/invoices] Error fetching invoices:', {
+    logError('[GET /api/finance/invoices] Error fetching invoices', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
@@ -149,7 +150,7 @@ export async function POST(req: NextRequest) {
       return zodValidationError(error, req);
     }
     const correlationId = crypto.randomUUID();
-    console.error('[POST /api/finance/invoices] Error creating invoice:', {
+    logError('[POST /api/finance/invoices] Error creating invoice', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined

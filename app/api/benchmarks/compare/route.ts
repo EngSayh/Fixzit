@@ -8,6 +8,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
+import { logError } from '@/lib/logger';
 
 const compareSchema = z.object({
   seatTotal: z.number().positive(),
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    console.error('Benchmark comparison failed:', error instanceof Error ? error.message : 'Unknown error');
+    logError('Benchmark comparison failed', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to compare benchmarks' }, 500, req);
   }
 }

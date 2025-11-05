@@ -13,6 +13,7 @@ import { dbConnect } from '@/lib/mongodb-unified';
 import LedgerEntry from '@/server/models/finance/LedgerEntry';
 import ChartAccount from '@/server/models/finance/ChartAccount';
 import { Types } from 'mongoose';
+import { logError } from '@/lib/logger';
 
 // ============================================================================
 // HELPER: Get User Session
@@ -192,7 +193,7 @@ export async function GET(
     );
     
   } catch (error) {
-    console.error('GET /api/finance/ledger/account-activity/[accountId] error:', error);
+    logError('GET /api/finance/ledger/account-activity/[accountId] error', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ error: error.message }, { status: 403 });

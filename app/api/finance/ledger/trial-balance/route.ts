@@ -14,6 +14,7 @@ import { dbConnect } from '@/lib/mongodb-unified';
 import LedgerEntry, { type TrialBalanceEntry } from '@/server/models/finance/LedgerEntry';
 
 import { Types } from 'mongoose';
+import { logError } from '@/lib/logger';
 
 // ============================================================================
 // HELPER: Get User Session
@@ -110,7 +111,7 @@ export async function GET(req: NextRequest) {
     );
     
   } catch (error) {
-    console.error('GET /api/finance/ledger/trial-balance error:', error);
+    logError('GET /api/finance/ledger/trial-balance error', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });

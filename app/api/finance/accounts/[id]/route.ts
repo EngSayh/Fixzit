@@ -53,6 +53,7 @@ async function getUserSession(_req: NextRequest) {
 // ============================================================================
 
 import type { RouteContext } from '@/lib/types/route-context';
+import { logError } from '@/lib/logger';
 
 export async function GET(
   req: NextRequest,
@@ -125,7 +126,7 @@ export async function GET(
     );
     
   } catch (error) {
-    console.error('GET /api/finance/accounts/[id] error:', error);
+    logError('GET /api/finance/accounts/[id] error', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ error: error.message }, { status: 403 });
@@ -200,7 +201,7 @@ export async function PUT(
     );
     
   } catch (error) {
-    console.error('PUT /api/finance/accounts/[id] error:', error);
+    logError('PUT /api/finance/accounts/[id] error', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ error: error.message }, { status: 403 });
@@ -298,7 +299,7 @@ export async function DELETE(
     );
     
   } catch (error) {
-    console.error('DELETE /api/finance/accounts/[id] error:', error);
+    logError('DELETE /api/finance/accounts/[id] error', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ error: error.message }, { status: 403 });

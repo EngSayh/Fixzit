@@ -7,6 +7,7 @@ import { rateLimitError, zodValidationError } from '@/server/utils/errorResponse
 import { createSecureResponse } from '@/server/security/headers';
 import { z } from 'zod';
 import { getClientIP } from '@/server/security/headers';
+import { logError } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
     if (error instanceof Error && error.message === 'Admin access required') {
       return createSecureResponse({ error: 'Admin access required' }, 403, req);
     }
-    console.error('Discount fetch failed:', error instanceof Error ? error.message : 'Unknown error');
+    logError('Discount fetch failed', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }
@@ -115,7 +116,7 @@ export async function PUT(req: NextRequest) {
     if (error instanceof Error && error.message === 'Admin access required') {
       return createSecureResponse({ error: 'Admin access required' }, 403, req);
     }
-    console.error('Discount update failed:', error instanceof Error ? error.message : 'Unknown error');
+    logError('Discount update failed', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }

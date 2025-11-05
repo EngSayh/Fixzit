@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { getClientIP } from '@/server/security/headers';
+import { logError } from '@/lib/logger';
 /**
  * @openapi
  * /api/careers/apply:
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
     // 5. Generate application tracking ID
 
     // For now, we'll simulate comprehensive processing
-    console.log('🎯 Job Application Received:', {
+    logError('🎯 Job Application Received:', {
       applicationId: `APP-${crypto.randomUUID()}`, // SECURITY: Crypto-random ID, not predictable Date.now()
       timestamp: new Date().toISOString(),
       jobDetails: {
@@ -179,7 +180,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('🚨 Job application error:', error instanceof Error ? error.message : 'Unknown error');
+    logError('🚨 Job application error', error instanceof Error ? error.message : 'Unknown error');
 
     // Determine error type and provide appropriate response
     let errorMessage = 'An unexpected error occurred';
@@ -187,7 +188,7 @@ export async function POST(req: NextRequest) {
 
     if (error instanceof Error) {
       // Log actual error server-side but don't expose to client
-      console.error('Job application error details:', error.message, error.stack);
+      logError('Job application error details', error.message, error.stack);
       if (error.message.includes('fetch')) {
         errorMessage = 'Network error';
         errorDetails = 'Please check your internet connection and try again';

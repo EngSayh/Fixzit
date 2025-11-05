@@ -16,6 +16,7 @@ import { ok, badRequest, notFound } from '@/lib/api/http';
 import { isValidObjectIdSafe } from '@/lib/api/validation';
 
 import mongoose from 'mongoose';
+import { logError } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -51,12 +52,12 @@ export async function GET(
           $set: { 'analytics.lastViewedAt': new Date() } 
         }
       ).exec().catch((err: Error) => {
-        console.warn('VIEW_INC_FAILED', { correlationId, id, err: String(err?.message || err) });
+        logError('VIEW_INC_FAILED', { correlationId, id, err: String(err?.message || err) });
       });
       
       return ok({ listing }, { correlationId });
     } catch (error) {
-      console.error('Error fetching listing:', error);
+      logError('Error fetching listing', error);
       return NextResponse.json({ error: 'Failed to fetch listing' }, { status: 500 });
     }
 }
@@ -151,7 +152,7 @@ export async function PATCH(
     
     return NextResponse.json({ listing });
   } catch (error) {
-    console.error('Error updating listing:', error);
+    logError('Error updating listing', error);
     return NextResponse.json({ error: 'Failed to update listing' }, { status: 500 });
   }
 }
@@ -187,7 +188,7 @@ export async function DELETE(
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting listing:', error);
+    logError('Error deleting listing', error);
     return NextResponse.json({ error: 'Failed to delete listing' }, { status: 500 });
   }
 }

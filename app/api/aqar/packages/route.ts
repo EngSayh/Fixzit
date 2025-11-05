@@ -12,6 +12,7 @@ import { connectDb } from '@/lib/mongo';
 import { AqarPackage, AqarPayment, PackageType } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { ok, badRequest, serverError } from '@/lib/api/http';
+import { logError } from '@/lib/logger';
 
 
 export const runtime = 'nodejs';
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ packages });
   } catch (error) {
-    console.error('Error fetching packages:', error);
+    logError('Error fetching packages', error);
     return NextResponse.json({ error: 'Failed to fetch packages' }, { status: 500 });
   }
 }
@@ -121,7 +122,7 @@ export async function POST(request: NextRequest) {
         201
       );
     } catch (e: unknown) {
-      console.error('PACKAGES_POST_ERROR', { correlationId, e: String((e as Error)?.message || e) });
+      logError('PACKAGES_POST_ERROR', { correlationId, e: String((e as Error)?.message || e) });
       return serverError('Unexpected error', { correlationId });
     }
 }

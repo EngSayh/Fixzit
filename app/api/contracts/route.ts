@@ -11,6 +11,7 @@ import {
 } from '@/server/utils/errorResponses';
 import { z } from 'zod';
 import { getClientIP } from '@/server/security/headers';
+import { logError } from '@/lib/logger';
 
 const contractSchema = z.object({
   scope: z.enum(['OWNER_GROUP', 'PROPERTY']),
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    console.error('Contract creation failed:', error instanceof Error ? error.message : 'Unknown error');
+    logError('Contract creation failed', error instanceof Error ? error.message : 'Unknown error');
     return createErrorResponse('Internal server error', 500, req);
   }
 }

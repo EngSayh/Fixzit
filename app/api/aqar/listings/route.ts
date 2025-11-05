@@ -10,6 +10,7 @@ import { connectDb } from '@/lib/mongo';
 import { AqarListing, AqarPackage } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { ok, badRequest, forbidden, serverError } from '@/lib/api/http';
+import { logError } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
       if (/broker ads require/i.test(msg)) {
         return badRequest('Broker ad prerequisites not met', { correlationId });
       }
-      console.error('LISTINGS_POST_ERROR', { correlationId, msg });
+      logError('LISTINGS_POST_ERROR', { correlationId, msg });
       return serverError('Unexpected error', { correlationId });
     }
 }

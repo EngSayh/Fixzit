@@ -40,6 +40,7 @@ const BounceSchema = z.object({
 });
 
 import type { RouteContext } from '@/lib/types/route-context';
+import { logError } from '@/lib/logger';
 
 /**
  * POST /api/finance/payments/:id/[action]
@@ -162,7 +163,7 @@ export async function POST(
       }
     );
   } catch (error) {
-    console.error('Error processing payment action:', error);
+    logError('Error processing payment action', error);
 
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });

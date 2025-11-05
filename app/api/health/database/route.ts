@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { checkDatabaseHealth, getDatabase } from '@/lib/mongodb-unified';
+import { logError } from '@/lib/logger';
 
 /**
  * @openapi
@@ -53,7 +54,7 @@ export async function GET() {
 
   } catch (error) {
     const responseTime = Date.now() - startTime;
-    console.error('Database health check failed:', error instanceof Error ? error.message : 'Unknown error');
+    logError('Database health check failed', error instanceof Error ? error.message : 'Unknown error');
     
     return NextResponse.json({
       status: 'unhealthy',

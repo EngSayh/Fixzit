@@ -11,6 +11,7 @@ import path from 'path';
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { getClientIP } from '@/server/security/headers';
+import { logError } from '@/lib/logger';
 /**
  * @openapi
  * /api/ats/jobs/[id]/apply:
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         await fs.writeFile(filePath, buffer);
         resumeUrl = `/uploads/resumes/${fileName}`;
       } catch (err) {
-        console.error('Resume save failed:', err);
+        logError('Resume save failed', err);
       }
       
       // Basic text surrogate for scoring/search
@@ -232,7 +233,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     }, { status: 201 });
     
   } catch (error) {
-    console.error('Job application error:', error instanceof Error ? error.message : 'Unknown error');
+    logError('Job application error', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'Failed to submit application' },
       { status: 500 }

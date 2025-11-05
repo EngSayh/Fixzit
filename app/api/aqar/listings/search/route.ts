@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
 import { AqarListing } from '@/models/aqar';
+import { logError } from '@/lib/logger';
 
 export const runtime = 'nodejs'; // Atlas Search requires Node.js runtime
 
@@ -163,7 +164,7 @@ export async function GET(request: NextRequest) {
       facets: facets[0] || {},
     });
   } catch (error) {
-    console.error('Error searching listings:', error);
+    logError('Error searching listings', error);
     return NextResponse.json(
       { error: 'Failed to search listings' },
       { status: 500 }

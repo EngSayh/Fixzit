@@ -27,6 +27,7 @@ async function getUserSession(req: NextRequest) {
 }
 
 import type { RouteContext } from '@/lib/types/route-context';
+import { logError } from '@/lib/logger';
 
 /**
  * GET /api/finance/expenses/:id
@@ -71,7 +72,7 @@ export async function GET(req: NextRequest, context: RouteContext<{ id: string }
       }
     );
   } catch (error) {
-    console.error('Error fetching expense:', error);
+    logError('Error fetching expense', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });
@@ -159,7 +160,7 @@ export async function PUT(req: NextRequest, context: RouteContext<{ id: string }
       }
     );
   } catch (error) {
-    console.error('Error updating expense:', error);
+    logError('Error updating expense', error);
 
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });
@@ -242,7 +243,7 @@ export async function DELETE(req: NextRequest, context: RouteContext<{ id: strin
       }
     );
   } catch (error) {
-    console.error('Error cancelling expense:', error);
+    logError('Error cancelling expense', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });

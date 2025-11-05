@@ -15,6 +15,7 @@ import { runWithContext } from '@/server/lib/authContext';
 import { requirePermission } from '@/server/lib/rbac.config';
 import { Types } from 'mongoose';
 import { z } from 'zod';
+import { logError } from '@/lib/logger';
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -130,7 +131,7 @@ export async function GET(req: NextRequest) {
     );
     
   } catch (error) {
-    console.error('GET /api/finance/accounts error:', error);
+    logError('GET /api/finance/accounts error', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ error: error.message }, { status: 403 });
@@ -296,7 +297,7 @@ export async function POST(req: NextRequest) {
     );
     
   } catch (error) {
-    console.error('POST /api/finance/accounts error:', error);
+    logError('POST /api/finance/accounts error', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ error: error.message }, { status: 403 });

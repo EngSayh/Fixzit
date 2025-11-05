@@ -8,6 +8,7 @@ import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
 import { verifyPayment, validateCallback } from '@/lib/paytabs';
+import { logError } from '@/lib/logger';
 
 /**
  * @openapi
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
   
   // 1) Validate signature
   if (!validateCallback(payload, signature)) {
-    console.error('[Billing Callback] Invalid signature from PayTabs');
+    logError('[Billing Callback] Invalid signature from PayTabs', null);
     return createSecureResponse({ error: 'Invalid signature' }, 401, req);
   }
   
@@ -67,7 +68,7 @@ export async function POST(req: NextRequest) {
   try {
     verification = await verifyPayment(tranRef);
   } catch (error) {
-    console.error('[Billing Callback] Failed to verify payment with PayTabs:', error instanceof Error ? error.message : String(error));
+    logError('[Billing Callback] Failed to verify payment with PayTabs', error instanceof Error ? error.message : String(error));
     return createSecureResponse({ error: 'Payment verification failed' }, 500, req);
   }
   
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
   }
   
   if (!isValidPayTabsVerification(verification)) {
-    console.error('[Billing Callback] Invalid verification response structure from PayTabs');
+    logError('[Billing Callback] Invalid verification response structure from PayTabs', null);
     return createSecureResponse({ error: 'Invalid payment verification response' }, 500, req);
   }
   
@@ -116,7 +117,7 @@ export async function POST(req: NextRequest) {
     // Only use verified payment info - never fall back to untrusted callback data
     const paymentInfo = verificationData.payment_info;
     if (!paymentInfo) {
-      console.warn('[Billing Callback] No payment_info in verification response, skipping token storage');
+      logError('[Billing Callback] No payment_info in verification response, skipping token storage');
     } else {
       const pm = await PaymentMethod.create({
         customerId: sub.customerId, 
