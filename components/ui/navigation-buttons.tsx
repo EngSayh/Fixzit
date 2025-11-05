@@ -237,6 +237,10 @@ export const FormWithNavigation: React.FC<FormWithNavigationProps> = ({
 }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Block submit while disabled or already saving
+    if (saving || saveDisabled) {
+      return;
+    }
     await onSubmit(e);
   };
 

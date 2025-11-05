@@ -77,10 +77,13 @@ export default function QuickActions() {
     };
   }, [open, activeIndex, quickActions, router]);
 
-  // Scroll active item into view
+  // Move focus and scroll active item into view for ARIA compliance
   useEffect(() => {
-    if (open && itemRefs.current[activeIndex]) {
-      itemRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest' });
+    if (!open) return;
+    const node = itemRefs.current[activeIndex];
+    if (node) {
+      node.focus();
+      node.scrollIntoView({ block: 'nearest' });
     }
   }, [activeIndex, open]);
 
@@ -104,7 +107,7 @@ export default function QuickActions() {
 
       {open && (
         <div 
-          className="absolute right-0 top-full mt-2 w-56 bg-popover rounded-lg shadow-lg border border-border z-50"
+          className={`absolute ${isRTL ? 'left-0' : 'right-0'} top-full mt-2 w-56 bg-popover rounded-lg shadow-lg border border-border z-50`}
           role="menu"
           aria-label={t('topbar.quickActions', 'Quick actions')}
         >

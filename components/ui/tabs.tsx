@@ -107,10 +107,15 @@ export const TabsTrigger: React.FC<TabsTriggerProps> = ({
     const tablist = target.closest('[role="tablist"]');
     if (!tablist) return;
 
+    // Filter out disabled tabs from navigation
     const triggers = Array.from(
-      tablist.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+      tablist.querySelectorAll<HTMLButtonElement>('[role="tab"]:not(:disabled)')
     );
+    if (triggers.length === 0) return;
+
     const currentIndex = triggers.findIndex((el) => el === target);
+    if (currentIndex === -1) return;
+    
     let nextIndex = currentIndex;
 
     switch (e.key) {
@@ -135,8 +140,14 @@ export const TabsTrigger: React.FC<TabsTriggerProps> = ({
     }
     
     // Set focus and activate the new tab
-    triggers[nextIndex]?.focus();
-    onValueChange(triggers[nextIndex]?.dataset.value || '');
+    const nextTrigger = triggers[nextIndex];
+    if (!nextTrigger) return;
+
+    nextTrigger.focus();
+    const nextValue = nextTrigger.dataset.value;
+    if (nextValue !== undefined) {
+      onValueChange(nextValue);
+    }
   };
 
   return (

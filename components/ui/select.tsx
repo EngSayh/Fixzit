@@ -50,10 +50,16 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       }
     };
 
-    // Determine default value: if placeholder provided and component is uncontrolled, default to ''
-    const effectiveDefaultValue = value !== undefined 
-      ? undefined 
-      : (defaultValue ?? (placeholder ? '' : undefined));
+    // Determine the select props to avoid controlled/uncontrolled conflict
+    const selectProps: React.SelectHTMLAttributes<HTMLSelectElement> = {
+      ...props,
+    };
+
+    if (value !== undefined) {
+      selectProps.value = value;
+    } else {
+      selectProps.defaultValue = defaultValue ?? (placeholder ? '' : undefined);
+    }
 
     return (
       <div className={`relative w-full ${wrapperClassName}`}>
@@ -68,9 +74,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             ${className}
           `}
           onChange={handleChange}
-          value={value}
-          defaultValue={effectiveDefaultValue}
-          {...props}
+          {...selectProps}
         >
           {/* If a placeholder is provided, render it as the first,
             disabled, and hidden-from-list option.
