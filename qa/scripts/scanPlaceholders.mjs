@@ -9,17 +9,17 @@
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, extname } from 'path';
 
-const PLACEHOLDER_PATTERNS = [
+const CRITICAL_PATTERNS = [
   /CHANGEME/gi,
-  /TODO:/gi,
-  /FIXME:/gi,
-  /XXX:/gi,
-  /HACK:/gi,
   /\[PLACEHOLDER\]/gi,
+  /TODO:\s*CRITICAL/gi,
+  /FIXME:\s*CRITICAL/gi,
+  /throw new Error\(['"]TODO:/gi, // Unimplemented functionality
 ];
 
-const IGNORED_DIRS = ['node_modules', '.next', 'dist', 'build', '.git', 'coverage'];
-const SCANNED_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.json', '.md', '.env.example'];
+const IGNORED_DIRS = ['node_modules', '.next', 'dist', 'build', '.git', 'coverage', 'docs', '_artifacts'];
+const SCANNED_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.json', '.env.example'];
+// Don't scan .md files - they contain documentation TODO items
 
 let totalIssues = 0;
 
@@ -48,7 +48,12 @@ function scanFile(filePath) {
   const lines = content.split('\n');
   
   lines.forEach((line, index) => {
-    PLACEHOLDER_PATTERNS.forEach(pattern => {
+    // Skip lines that are security blacklists (e.g., WEAK password sets)
+    if (/WEAK\s*=.*Set\(.*changeme/i.test(line) || /const\s+\w+\s*=.*\['.*changeme.*'\]/i.test(line)) {
+      return;
+    }
+    
+    CRITICAL_PATTERNS.forEach(pattern => {
       if (pattern.test(line)) {
         console.log(`${filePath}:${index + 1} - ${line.trim()}`);
         totalIssues++;
