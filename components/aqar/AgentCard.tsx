@@ -117,10 +117,9 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
         </div>
 
         {/* Contact Buttons */}
-                {/* Contact Buttons */}
         <div className="flex gap-1">
           <a
-            href={`tel:${agent.contact.phone.replace(/\D/g, '')}`}
+            href={`tel:${agent.contact.phone.replace(/[^\d+]/g, '')}`}
             onClick={(e) => e.stopPropagation()}
             className="p-2 hover:bg-muted rounded-full transition-colors"
             aria-label={t('aqar.agent.call', 'Call agent')}
@@ -128,11 +127,11 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
             <Phone className="w-4 h-4 text-muted-foreground" />
           </a>
           <a
-            href={`https://wa.me/${(agent.contact.whatsapp || agent.contact.phone).replace(/\D/g, '')}`}
+            href={`https://wa.me/${(agent.contact.whatsapp || agent.contact.phone).replace(/[^\d+]/g, '')}`}
             onClick={(e) => e.stopPropagation()}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 hover:bg-muted rounded-2xl transition-colors"
+            className="p-2 hover:bg-muted rounded-full transition-colors"
             aria-label={t('aqar.agent.whatsapp', 'WhatsApp agent')}
           >
             <MessageSquare className="w-4 h-4 text-muted-foreground" />
@@ -277,7 +276,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
         {/* Contact Buttons */}
         <div className="flex gap-2">
           <a
-            href={`tel:${agent.contact.phone.replace(/\D/g, '')}`}
+            href={`tel:${agent.contact.phone.replace(/[^\d+]/g, '')}`}
             onClick={(e) => e.stopPropagation()}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFB400] to-[#FF8C00] text-white rounded-2xl hover:shadow-lg transition-shadow"
             aria-label={t('aqar.agent.call', 'Call agent')}
@@ -286,7 +285,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
             <span className="font-semibold">{t('aqar.agent.call', 'Call')}</span>
           </a>
           <a
-            href={`https://wa.me/${(agent.contact.whatsapp || agent.contact.phone).replace(/\D/g, '')}`}
+            href={`https://wa.me/${(agent.contact.whatsapp || agent.contact.phone).replace(/[^\d+]/g, '')}`}
             onClick={(e) => e.stopPropagation()}
             target="_blank"
             rel="noopener noreferrer"
