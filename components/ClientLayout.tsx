@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode, useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import TopBar from './TopBar';
 import Sidebar from './Sidebar';
@@ -21,6 +21,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<UserRoleOrGuest>('guest');
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
+  const router = useRouter();
   
   // ⚡ FIXED: Use GOLD STANDARD unified auth pattern from TopBar.tsx
   // Check BOTH NextAuth session AND JWT-based auth
@@ -117,10 +118,10 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   // Client-side protection: redirect guests only from protected routes
   useEffect(() => {
     if (!loading && role === 'guest' && isProtectedRoute) {
-      // replace to avoid back stack loops
-      window.location.replace('/login');
+      // Use Next.js router.replace to avoid back stack loops and enable client-side navigation
+      router.replace('/login');
     }
-  }, [loading, role, isProtectedRoute]);
+  }, [loading, role, isProtectedRoute, router]);
 
   // Loading shell (protected routes only)
   if (loading && isProtectedRoute) {

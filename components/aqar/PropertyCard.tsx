@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Bed, Bath, Maximize, MapPin, Heart, Eye, Phone, MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -54,6 +54,7 @@ export interface PropertyCardProps {
 
 export default function PropertyCard({ property }: { property: PropertyCardProps }) {
   const { t, isRTL } = useTranslation();
+  const router = useRouter();
   const [isFavorite, setIsFavorite] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 
@@ -98,10 +99,30 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
     }
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Allow default behavior for interactive elements
+    const target = e.target as HTMLElement;
+    if (target.closest('a') || target.closest('button')) {
+      return;
+    }
+    router.push(`/aqar/properties/${property.slug || property.id}`);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      router.push(`/aqar/properties/${property.slug || property.id}`);
+    }
+  };
+
   return (
-    <Link 
-      href={`/aqar/properties/${property.slug || property.id}`}
-      className="block bg-card rounded-2xl shadow-md hover:shadow-xl transition-shadow overflow-hidden group"
+    <article
+      onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
+      role="link"
+      tabIndex={0}
+      className="block bg-card rounded-2xl shadow-md hover:shadow-xl transition-shadow overflow-hidden group cursor-pointer"
+      aria-label={`${t('aqar.propertyCard.viewProperty', 'View property')}: ${propertyTitle}`}
     >
       {/* Image Section */}
       <div className="relative h-64 overflow-hidden bg-muted">
@@ -234,33 +255,35 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
 
             <div className="flex gap-2">
               {property.agentId.contact?.phone && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    window.location.href = `tel:${property.agentId?.contact?.phone}`;
-                  }}
-                  className="p-2 hover:bg-muted rounded-full transition-colors"
-                  aria-label={t('aqar.propertyCard.call', 'Call agent')}
-                >
-                  <Phone className="w-4 h-4 text-muted-foreground" />
-                </button>
+                <>
+                  <a
+                    href={`tel:${(property.agentId?.contact?.phone || '').replace(/[^\d+]/g, '')}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                    className="p-2 hover:bg-muted rounded-full transition-colors"
+                    aria-label={t('aqar.propertyCard.call', 'Call agent')}
+                  >
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                  </a>
+                  <a
+                    href={`https://wa.me/${(property.agentId.contact?.phone || '').replace(/[^\d+]/g, '')}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 hover:bg-muted rounded-full transition-colors"
+                    aria-label={t('aqar.propertyCard.message', 'Message agent')}
+                  >
+                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                  </a>
+                </>
               )}
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  // Open WhatsApp or messaging
-                }}
-                className="p-2 hover:bg-muted rounded-full transition-colors"
-                aria-label={t('aqar.propertyCard.message', 'Message agent')}
-              >
-                <MessageSquare className="w-4 h-4 text-muted-foreground" />
-              </button>
             </div>
           </div>
         )}
       </div>
-    </Link>
+    </article>
   );
 }
