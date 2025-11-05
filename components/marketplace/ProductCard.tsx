@@ -52,7 +52,13 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
       await addProductToCart(product.id, quantity);
       onAddToCart?.(product.id);
     } catch (error) {
-      console.error('Failed to add product to cart', error);
+      import('../../lib/logger').then(({ logError }) => {
+        logError('Failed to add product to cart', error as Error, {
+          component: 'ProductCard',
+          action: 'handleAddToCart',
+          productId: product.id,
+        });
+      });
       if (typeof window !== 'undefined') {
         const message = error instanceof Error ? error.message : 'Unable to add to cart';
         window.alert?.(`Unable to add to cart: ${message}`);
