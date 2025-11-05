@@ -2,9 +2,10 @@
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Bed, Bath, Maximize, MapPin, Heart, Eye, Phone, MessageSquare } from 'lucide-react';
+import { Bed, Bath, Maximize, MapPin, Heart, Eye } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { ContactActions } from './ContactActions';
 
 export interface PropertyCardProps {
   id: string;
@@ -139,7 +140,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-2">
           {property.featured && (
-            <span className="bg-gradient-to-r from-[#FFB400] to-[#FF8C00] text-white px-3 py-1 rounded-full text-xs font-semibold">
+            <span className="bg-gradient-to-r from-accent to-accent/80 text-white px-3 py-1 rounded-full text-xs font-semibold">
               {t('aqar.propertyCard.featured', 'Featured')}
             </span>
           )}
@@ -170,7 +171,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
           aria-label="Add to favorites"
         >
           <Heart
-            className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-destructive' : 'text-foreground'}`}
+            className={`w-5 h-5 ${isFavorite ? 'fill-destructive text-destructive' : 'text-foreground'}`}
           />
         </button>
 
@@ -253,34 +254,13 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
               </div>
             </div>
 
-            <div className="flex gap-2">
-              {property.agentId.contact?.phone && (
-                <>
-                  <a
-                    href={`tel:${(property.agentId?.contact?.phone || '').replace(/[^\d+]/g, '')}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                    className="p-2 hover:bg-muted rounded-full transition-colors"
-                    aria-label={t('aqar.propertyCard.call', 'Call agent')}
-                  >
-                    <Phone className="w-4 h-4 text-muted-foreground" />
-                  </a>
-                  <a
-                    href={`https://wa.me/${(property.agentId.contact?.phone || '').replace(/[^\d+]/g, '')}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 hover:bg-muted rounded-full transition-colors"
-                    aria-label={t('aqar.propertyCard.message', 'Message agent')}
-                  >
-                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                  </a>
-                </>
-              )}
-            </div>
+            {property.agentId.contact?.phone && (
+              <ContactActions 
+                phone={property.agentId.contact.phone}
+                whatsapp={property.agentId.contact.phone}
+                variant="icon"
+              />
+            )}
           </div>
         )}
       </div>
