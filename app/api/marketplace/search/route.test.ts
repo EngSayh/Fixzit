@@ -7,11 +7,12 @@
  * - Edge cases: missing/whitespace query, invalid URL, invalid regex input.
  * - Failure conditions: synonym lookup errors are swallowed; top-level errors return [].
  * - Verify query building: text search terms, regex case-insensitivity, sorting, limiting, and tenant scoping.
+ * 
+ * 🔒 TYPE SAFETY: Uses type-safe mocks from types/test-mocks
  */
 
- 
-
 import { vi } from 'vitest';
+import type { GenericMock, MockNextRequest, MockNextResponse } from '@/types/test-mocks';
 
 const jsonMock = vi.fn()
 const findOneMock = vi.fn()
@@ -21,12 +22,24 @@ const productLimitMock = vi.fn()
 const productLeanMock = vi.fn()
 
 // Mock minimal next/server surface
+// 🔒 TYPE SAFETY: Type-safe Next.js request/response mocks
 vi.mock('next/server', () => {
   return {
-    NextRequest: class MockNextRequest {
+    NextRequest: class MockNextRequestClass {
       url: string;
-      nextUrl: any;
-      headers: Map<string, string>;
+      nextUrl: {
+        href: string;
+        pathname: string;
+        search: string;
+        searchParams: URLSearchParams;
+      };
+      headers: {
+        get: (_name: string) => string;
+        set: (_name: string, _value: string) => void;
+        has: (_name: string) => boolean;
+        delete: (_name: string) => void;
+        forEach: (_callback: (_value: string, _key: string) => void) => void;
+      };
       method: string;
       
       constructor(url: string | URL) {
@@ -40,17 +53,17 @@ vi.mock('next/server', () => {
         };
         // Use a Map with get/set methods instead of Headers
         this.headers = {
-          get: (name: string) => '',
-          set: (name: string, value: string) => {},
-          has: (name: string) => false,
-          delete: (name: string) => {},
-          forEach: (callback: any) => {},
-        } as any;
+          get: (_name: string) => '',
+          set: (_name: string, _value: string) => {},
+          has: (_name: string) => false,
+          delete: (_name: string) => {},
+          forEach: (_callback: (_value: string, _key: string) => void) => {},
+        };
         this.method = 'GET';
       }
     },
     NextResponse: {
-      json: (body: any, init?: any) => {
+      json: (body: unknown, init?: unknown) => {
         jsonMock(body, init)
         return { body, init }
       },
@@ -59,19 +72,21 @@ vi.mock('next/server', () => {
 })
 
 // Mock SearchSynonym model
+// 🔒 TYPE SAFETY: Using unknown[] for variadic arguments
 vi.mock('@/server/models/SearchSynonym', () => {
   return {
     SearchSynonym: {
-      findOne: (...args: any[]) => findOneMock(...args),
+      findOne: (...args: unknown[]) => findOneMock(...args),
     },
   }
 })
 
 // Mock MarketplaceProduct model and its query chain
+// 🔒 TYPE SAFETY: Using unknown[] for variadic arguments
 vi.mock('@/server/models/MarketplaceProduct', () => {
   return {
     MarketplaceProduct: {
-      find: (...args: any[]) => productFindMock(...args),
+      find: (...args: unknown[]) => productFindMock(...args),
     },
   }
 })
@@ -88,8 +103,9 @@ vi.mock('@/lib/marketplace/context', () => ({
 }))
 
 // Mock createSecureResponse to avoid CORS header manipulation
+// 🔒 TYPE SAFETY: Using unknown for response data
 vi.mock('@/server/security/headers', () => ({
-  createSecureResponse: vi.fn((data: any) => {
+  createSecureResponse: vi.fn((data: unknown) => {
     return {
       json: () => data,
       status: 500,
@@ -119,8 +135,9 @@ vi.mock('@/server/models/marketplace/Category', () => ({
 }))
 
 // Mock serializeCategory
+// 🔒 TYPE SAFETY: Using unknown for document serialization
 vi.mock('@/lib/marketplace/serializers', () => ({
-  serializeCategory: vi.fn((doc: any) => doc),
+  serializeCategory: vi.fn((doc: unknown) => doc),
 }))
 
 // Mock database connection
@@ -129,19 +146,22 @@ vi.mock('@/lib/mongodb-unified', () => ({
 }))
 
 // Mock error responses
+// 🔒 TYPE SAFETY: Using unknown for error/request params
 vi.mock('@/server/utils/errorResponses', () => ({
-  zodValidationError: vi.fn((error: any, req: any) => ({ status: 400, body: { error: 'Validation failed' } })),
-  notFoundError: vi.fn((entity: string) => ({ status: 404, body: { error: 'Not found' } })),
+  zodValidationError: vi.fn((_error: unknown, _req: unknown) => ({ status: 400, body: { error: 'Validation failed' } })),
+  notFoundError: vi.fn((_entity: string) => ({ status: 404, body: { error: 'Not found' } })),
 }))
 
-let GET: any
+// 🔒 TYPE SAFETY: GET handler type will be inferred from import
+let GET: typeof import('./route').GET
 
 beforeAll(async () => {
   // Import after mocks so that mocks are applied to the route's imports
   ({ GET } = await import('./route'))
 })
 
-function makeReq(url: string): any {
+// 🔒 TYPE SAFETY: Using unknown return type for test mock
+function makeReq(url: string): unknown {
   const { NextRequest } = require('next/server');
   return new NextRequest(url);
 }

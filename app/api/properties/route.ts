@@ -73,8 +73,9 @@ const createPropertySchema = z.object({
 /**
  * Build Property Filter
  */
+// 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB filter
 function buildPropertyFilter(searchParams: URLSearchParams, orgId: string) {
-  const filter: Record<string, any> = { orgId };
+  const filter: Record<string, unknown> = { orgId };
 
   const type = searchParams.get('type');
   if (type && ["RESIDENTIAL", "COMMERCIAL", "INDUSTRIAL", "MIXED_USE", "LAND"].includes(type)) {

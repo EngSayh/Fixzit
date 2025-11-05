@@ -70,8 +70,8 @@ export async function GET(request: NextRequest) {
     const UserModel = models.User || model('User', UserSchema);
     
     // Build query
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const query: any = {
+    // 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB query
+    const query: Record<string, unknown> = {
       orgId: session.user.orgId || 'default',
     };
     
