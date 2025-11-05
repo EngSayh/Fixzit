@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+// 🟨 FIXED: Import the existing debounce hook
+import { useDebounceCallback } from './useDebounce';
 
 export type ScreenSize = 'mobile' | 'tablet' | 'desktop' | 'large';
 
@@ -55,42 +57,34 @@ export function useScreenSize() {
   const [screenInfo, setScreenInfo] = useState<ScreenInfo>(() => getScreenInfo());
   const [isReady, setIsReady] = useState(false);
 
+  // Memoize the update function
   const updateScreenInfo = useCallback(() => {
-    const newScreenInfo = getScreenInfo();
-    setScreenInfo(newScreenInfo);
+    setScreenInfo(getScreenInfo());
   }, []);
 
+  // 🟨 FIXED: Use the existing useDebounceCallback hook
+  const debouncedUpdateScreenInfo = useDebounceCallback(updateScreenInfo, 150);
+
   useEffect(() => {
-    // Set initial screen info
-    setScreenInfo(getScreenInfo());
+    // Guard for SSR
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    // Set initial screen info on mount
+    updateScreenInfo();
     setIsReady(true);
 
-    // Add event listeners for screen size changes with debouncing
-    if (typeof window !== 'undefined') {
-      let timeoutId: NodeJS.Timeout;
+    window.addEventListener('resize', debouncedUpdateScreenInfo);
+    window.addEventListener('orientationchange', updateScreenInfo);
+    window.addEventListener('load', updateScreenInfo);
 
-      // Debounced handler to prevent excessive fires during resize
-      const debouncedUpdateScreenInfo = () => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-          updateScreenInfo();
-        }, 150); // 150ms debounce
-      };
-
-      window.addEventListener('resize', debouncedUpdateScreenInfo);
-      window.addEventListener('orientationchange', updateScreenInfo); // No debounce for orientation (rare event)
-
-      // Also listen for viewport changes (mobile browsers)
-      window.addEventListener('load', updateScreenInfo);
-
-      return () => {
-        clearTimeout(timeoutId);
-        window.removeEventListener('resize', debouncedUpdateScreenInfo);
-        window.removeEventListener('orientationchange', updateScreenInfo);
-        window.removeEventListener('load', updateScreenInfo);
-      };
-    }
-  }, [updateScreenInfo]);
+    return () => {
+      window.removeEventListener('resize', debouncedUpdateScreenInfo);
+      window.removeEventListener('orientationchange', updateScreenInfo);
+      window.removeEventListener('load', updateScreenInfo);
+    };
+  }, [debouncedUpdateScreenInfo, updateScreenInfo]);
 
   return { screenInfo, isReady, updateScreenInfo };
 }

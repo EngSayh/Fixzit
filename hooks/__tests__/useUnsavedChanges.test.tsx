@@ -1,6 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { useUnsavedChanges } from '../useUnsavedChanges';
+// 🟥 UPDATED: Import from deprecated file
+import { useUnsavedChanges } from '../_deprecated_useUnsavedChanges';
 
 // Mock window.alert
 const mockAlert = vi.fn();
