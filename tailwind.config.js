@@ -93,7 +93,10 @@ const config = {
           DEFAULT: '#0061A8'
         },
         success: '#00a859',
-        warning: '#FFB400',
+        warning: {
+          DEFAULT: '#FFB400',
+          dark: '#FF8C00',
+        },
         danger: '#E74C3C',
         'fz-blue': {
           '400': '#60a5fa',
