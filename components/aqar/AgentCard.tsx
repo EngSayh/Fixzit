@@ -86,7 +86,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
               className="rounded-full"
             />
           ) : (
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FFB400] to-[#FF8C00] flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent to-accent/80 flex items-center justify-center">
               <span className="text-white font-bold text-lg">
                 {agent.firstName?.trim()?.[0] ?? ''}{agent.lastName?.trim()?.[0] ?? ''}
               </span>
@@ -118,11 +118,13 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
         </div>
 
         {/* Contact Buttons */}
-        <ContactActions 
-          phone={agent.contact.phone}
-          whatsapp={agent.contact.whatsapp}
-          variant="icon"
-        />
+        {agent.contact?.phone && (
+          <ContactActions 
+            phone={agent.contact.phone}
+            whatsapp={agent.contact.whatsapp}
+            variant="icon"
+          />
+        )}
       </div>
     );
   }
