@@ -234,17 +234,16 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
 
             <div className="flex gap-2">
               {property.agentId.contact?.phone && (
-                <button
+                <a
+                  href={`tel:${property.agentId?.contact?.phone}`}
                   onClick={(e) => {
-                    e.preventDefault();
                     e.stopPropagation();
-                    window.location.href = `tel:${property.agentId?.contact?.phone}`;
                   }}
                   className="p-2 hover:bg-muted rounded-full transition-colors"
                   aria-label={t('aqar.propertyCard.call', 'Call agent')}
                 >
                   <Phone className="w-4 h-4 text-muted-foreground" />
-                </button>
+                </a>
               )}
               <button
                 onClick={(e) => {
