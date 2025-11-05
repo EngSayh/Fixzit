@@ -20,7 +20,8 @@ export async function POST(req: NextRequest) {
   }
   
   // Gate early — dev only
-  const { ENABLED, findLoginPayloadByRole } = await import('@/dev/credentials.server');
+  // Use webpackIgnore to prevent bundling errors in production builds
+  const { ENABLED, findLoginPayloadByRole } = await import(/* webpackIgnore: true */ '@/dev/credentials.server');
   if (!ENABLED) {
     return withNoStore(NextResponse.json({ error: 'Demo not enabled' }, { status: 403 }));
   }
