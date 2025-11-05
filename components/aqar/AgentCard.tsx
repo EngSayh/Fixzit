@@ -118,20 +118,24 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
 
         {/* Contact Buttons */}
         <div className="flex gap-1">
-          <button
-            onClick={() => window.location.href = `tel:${agent.contact.phone}`}
+          <a
+            href={`tel:${agent.contact.phone.replace(/[^\d+]/g, '')}`}
+            onClick={(e) => e.stopPropagation()}
             className="p-2 hover:bg-muted rounded-full transition-colors"
             aria-label={t('aqar.agent.call', 'Call agent')}
           >
             <Phone className="w-4 h-4 text-muted-foreground" />
-          </button>
-          <button
-            onClick={() => window.open(`https://wa.me/${agent.contact.whatsapp || agent.contact.phone}`, '_blank')}
-            className="p-2 hover:bg-muted rounded-2xl transition-colors"
+          </a>
+          <a
+            href={`https://wa.me/${(agent.contact.whatsapp || agent.contact.phone).replace(/[^\d+]/g, '')}`}
+            onClick={(e) => e.stopPropagation()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 hover:bg-muted rounded-full transition-colors"
             aria-label={t('aqar.agent.whatsapp', 'WhatsApp agent')}
           >
             <MessageSquare className="w-4 h-4 text-muted-foreground" />
-          </button>
+          </a>
         </div>
       </div>
     );
@@ -271,26 +275,26 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
 
         {/* Contact Buttons */}
         <div className="flex gap-2">
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              window.location.href = `tel:${agent.contact.phone}`;
-            }}
+          <a
+            href={`tel:${agent.contact.phone.replace(/[^\d+]/g, '')}`}
+            onClick={(e) => e.stopPropagation()}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFB400] to-[#FF8C00] text-white rounded-2xl hover:shadow-lg transition-shadow"
+            aria-label={t('aqar.agent.call', 'Call agent')}
           >
             <Phone className="w-4 h-4" />
             <span className="font-semibold">{t('aqar.agent.call', 'Call')}</span>
-          </button>
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              window.open(`https://wa.me/${agent.contact.whatsapp || agent.contact.phone}`, '_blank');
-            }}
+          </a>
+          <a
+            href={`https://wa.me/${(agent.contact.whatsapp || agent.contact.phone).replace(/[^\d+]/g, '')}`}
+            onClick={(e) => e.stopPropagation()}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-success text-white rounded-2xl hover:shadow-lg transition-shadow"
+            aria-label={t('aqar.agent.whatsapp', 'WhatsApp agent')}
           >
             <MessageSquare className="w-4 h-4" />
             <span className="font-semibold">{t('aqar.agent.whatsapp', 'WhatsApp')}</span>
-          </button>
+          </a>
         </div>
       </div>
     </Link>
