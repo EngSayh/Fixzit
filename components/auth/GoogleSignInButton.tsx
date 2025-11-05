@@ -34,16 +34,26 @@ export default function GoogleSignInButton() {
       if (result?.error) {
         // Display user-friendly error message
         setError(t('login.signInError', 'Sign-in failed. Please try again.'));
-        // ✅ FIX: Log the actual error string for debugging
-        console.error('Google sign-in failed:', result.error);
+        // Log the actual error string for debugging
+        import('../../lib/logger').then(({ logWarn }) => {
+          logWarn('Google sign-in failed', {
+            component: 'GoogleSignInButton',
+            error: result.error,
+          });
+        });
       } else if (result?.ok) {
         // Successfully signed in, navigate to dashboard
         router.push(result.url || '/dashboard');
       }
     } catch (error) {
       setError(t('login.signInError', 'Sign-in failed. Please try again.'));
-      // ✅ FIX: Log the full error object for debugging
-      console.error('Google sign-in exception:', error);
+      // Log the full error object for debugging
+      import('../../lib/logger').then(({ logError }) => {
+        logError('Google sign-in exception', error as Error, {
+          component: 'GoogleSignInButton',
+          action: 'handleGoogleSignIn',
+        });
+      });
     } finally {
       setIsLoading(false);
     }

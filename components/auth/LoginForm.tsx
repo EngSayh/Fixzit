@@ -138,7 +138,13 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         }
       }
     } catch (err) {
-      console.error('Login error:', err);
+      import('../../lib/logger').then(({ logError }) => {
+        logError('Login error', err as Error, {
+          component: 'LoginForm',
+          action: 'handleLogin',
+          identifier,
+        });
+      });
       setErrors({
         general: t('login.errors.networkError', 'Network error. Please check your connection and try again.')
       });
