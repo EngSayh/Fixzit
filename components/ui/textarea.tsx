@@ -37,13 +37,25 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       try {
         const el = internalRef.current;
         if (!el || !(el instanceof HTMLTextAreaElement)) {
-          console.warn('[Textarea] resize called with invalid ref');
+          import('../../lib/logger').then(({ logWarn }) => {
+            logWarn('[Textarea] resize called with invalid ref', {
+              component: 'Textarea',
+              action: 'resize',
+              autoResize,
+            });
+          });
           return;
         }
         el.style.height = 'auto'; // Reset height to calculate new scrollHeight
         el.style.height = `${el.scrollHeight}px`; // Set to new scrollHeight
       } catch (error) {
-        console.error('[Textarea] Auto-resize failed:', error);
+        import('../../lib/logger').then(({ logError }) => {
+          logError('[Textarea] Auto-resize failed', error as Error, {
+            component: 'Textarea',
+            action: 'resize',
+            autoResize,
+          });
+        });
         // Graceful degradation: disable auto-resize on error
       }
     };
