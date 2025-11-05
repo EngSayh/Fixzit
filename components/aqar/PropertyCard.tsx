@@ -139,7 +139,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-2">
           {property.featured && (
-            <span className="bg-gradient-to-r from-[#FFB400] to-[#FF8C00] text-white px-3 py-1 rounded-full text-xs font-semibold">
+            <span className="bg-gradient-to-r from-warning to-warning/80 text-white px-3 py-1 rounded-full text-xs font-semibold">
               {t('aqar.propertyCard.featured', 'Featured')}
             </span>
           )}

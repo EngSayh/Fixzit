@@ -80,7 +80,7 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
     <div className="bg-card rounded-2xl shadow-lg p-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-3 bg-gradient-to-br from-[#FFB400] to-[#FF8C00] rounded-2xl">
+        <div className="p-3 bg-gradient-to-br from-warning to-warning/80 rounded-2xl">
           <Calculator className="w-6 h-6 text-white" />
         </div>
         <div>
@@ -104,7 +104,8 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             step="50000"
             value={price}
             onChange={(e) => setPrice(Number(e.target.value))}
-            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-[#FFB400]"
+            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning"
+            aria-label={t('aqar.mortgage.priceSlider', 'Property price slider')}
           />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>100K</span>
@@ -127,7 +128,8 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             step="5"
             value={downPayment}
             onChange={(e) => setDownPayment(Number(e.target.value))}
-            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-[#FFB400]"
+            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning"
+            aria-label={t('aqar.mortgage.downPaymentSlider', 'Down payment percentage slider')}
           />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>{MIN_DOWN_PAYMENT}% (Min)</span>
@@ -148,7 +150,8 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             step="0.1"
             value={interestRate}
             onChange={(e) => setInterestRate(Number(e.target.value))}
-            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-[#FFB400]"
+            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning"
+            aria-label={t('aqar.mortgage.interestRateSlider', 'Interest rate slider')}
           />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>3.0%</span>
@@ -169,7 +172,8 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             step="5"
             value={loanTerm}
             onChange={(e) => setLoanTerm(Number(e.target.value))}
-            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-[#FFB400]"
+            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning"
+            aria-label={t('aqar.mortgage.loanTermSlider', 'Loan term slider')}
           />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>5 {t('aqar.mortgage.years', 'years')}</span>

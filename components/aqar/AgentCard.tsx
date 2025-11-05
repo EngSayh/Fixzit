@@ -85,7 +85,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
               className="rounded-full"
             />
           ) : (
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#FFB400] to-[#FF8C00] flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-warning to-warning/80 flex items-center justify-center">
               <span className="text-white font-bold text-lg">
                 {agent.firstName?.trim()?.[0] ?? ''}{agent.lastName?.trim()?.[0] ?? ''}
               </span>
@@ -278,7 +278,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
           <a
             href={`tel:${agent.contact.phone.replace(/[^\d+]/g, '')}`}
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FFB400] to-[#FF8C00] text-white rounded-2xl hover:shadow-lg transition-shadow"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-warning to-warning/80 text-white rounded-2xl hover:shadow-lg transition-shadow"
             aria-label={t('aqar.agent.call', 'Call agent')}
           >
             <Phone className="w-4 h-4" />
