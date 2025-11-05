@@ -80,7 +80,13 @@ async function main(){
     const pwArgs = FAST ? ['-g','@smoke'] : [];
     await run('npx', ['playwright','test', ...pwArgs], 'E2E');
   } finally {
-    dev.kill();
+    if (dev) {
+      try {
+        dev.kill();
+      } catch (e) {
+        // Process may have already exited
+      }
+    }
   }
 
   console.log(pc.green('✔ All QA checks completed. Artifacts in qa/artifacts.'));
