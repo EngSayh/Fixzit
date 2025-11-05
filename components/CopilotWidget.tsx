@@ -434,9 +434,9 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       case 'createWorkOrder':
         return (
           <div className="space-y-3">
-            <input value={values.title} onChange={(e) => updateForm(tool, 'title', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'عنوان المشكلة' : 'Issue title'} />
-            <textarea value={values.description} onChange={(e) => updateForm(tool, 'description', e.target.value)} rows={3} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'تفاصيل إضافية' : 'Additional details'} />
-            <select value={values.priority} onChange={(e) => updateForm(tool, 'priority', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]">
+            <input value={values.title} onChange={(e) => updateForm(tool, 'title', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'عنوان المشكلة' : 'Issue title'} />
+            <textarea value={values.description} onChange={(e) => updateForm(tool, 'description', e.target.value)} rows={3} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'تفاصيل إضافية' : 'Additional details'} />
+            <select value={values.priority} onChange={(e) => updateForm(tool, 'priority', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
               <option value="LOW">{locale === 'ar' ? 'منخفض' : 'Low'}</option>
               <option value="MEDIUM">{locale === 'ar' ? 'متوسط' : 'Medium'}</option>
               <option value="HIGH">{locale === 'ar' ? 'مرتفع' : 'High'}</option>
@@ -447,21 +447,21 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       case 'dispatchWorkOrder':
         return (
           <div className="space-y-3">
-            <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
-            <input value={values.assigneeUserId} onChange={(e) => updateForm(tool, 'assigneeUserId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'معرف الفني (اختياري)' : 'Technician ID (optional)'} />
+            <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
+            <input value={values.assigneeUserId} onChange={(e) => updateForm(tool, 'assigneeUserId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف الفني (اختياري)' : 'Technician ID (optional)'} />
           </div>
         );
       case 'scheduleVisit':
         return (
           <div className="space-y-3">
-            <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
-            <input type="datetime-local" value={values.scheduledFor} onChange={(e) => updateForm(tool, 'scheduledFor', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" />
+            <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
+            <input type="datetime-local" value={values.scheduledFor} onChange={(e) => updateForm(tool, 'scheduledFor', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
         );
       case 'uploadWorkOrderPhoto':
         return (
           <div className="space-y-3">
-            <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
+            <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
             <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground hover:border-primary">
               <Upload className="mb-2 h-5 w-5 text-primary" />
               <span>{values.file?.name || t.chooseFile}</span>
@@ -472,15 +472,15 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       case 'ownerStatements':
         return (
           <div className="space-y-3">
-            <input value={values.ownerId} onChange={(e) => updateForm(tool, 'ownerId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'معرف المالك (اختياري)' : 'Owner ID (optional)'} />
-            <select value={values.period} onChange={(e) => updateForm(tool, 'period', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]">
+            <input value={values.ownerId} onChange={(e) => updateForm(tool, 'ownerId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف المالك (اختياري)' : 'Owner ID (optional)'} />
+            <select value={values.period} onChange={(e) => updateForm(tool, 'period', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
               <option value="YTD">{locale === 'ar' ? 'منذ بداية العام' : 'Year to date'}</option>
               <option value="Q1">Q1</option>
               <option value="Q2">Q2</option>
               <option value="Q3">Q3</option>
               <option value="Q4">Q4</option>
             </select>
-            <input value={values.year} onChange={(e) => updateForm(tool, 'year', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]" placeholder={locale === 'ar' ? 'السنة' : 'Year'} />
+            <input value={values.year} onChange={(e) => updateForm(tool, 'year', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'السنة' : 'Year'} />
           </div>
         );
       default:
@@ -595,7 +595,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
                   <button type="button" onClick={() => { resetForm(activeTool); setActiveTool(null); }} className="rounded-full px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted">
                     {t.cancel}
                   </button>
-                  <button type="button" onClick={() => submitTool(activeTool)} className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#004f88]">
+                  <button type="button" onClick={() => submitTool(activeTool)} className="rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-white hover:bg-primary-dark">
                     {t.run}
                   </button>
                 </div>
@@ -617,13 +617,13 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
               }
             }}
             placeholder={t.placeholder}
-            className="flex-1 rounded-full border border-border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0061A8]"
+            className="flex-1 rounded-full border border-border px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
             disabled={loading}
           />
           <button
             onClick={sendMessage}
             disabled={!input.trim() || loading || !isOnline}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-success text-white shadow transition hover:bg-[#008d48] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-success text-white shadow transition hover:bg-success-dark disabled:cursor-not-allowed disabled:opacity-50"
             aria-label={t.send}
             title={!isOnline ? t.offline : t.send}
           >
@@ -651,7 +651,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
         <motion.button
           whileTap={{ scale: 0.94 }}
           onClick={() => setIsOpen(prev => !prev)}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-xl transition hover:bg-[#004f88]"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-xl transition hover:bg-primary-dark"
           aria-label={isOpen ? t.close : t.open}
         >
           {isOpen ? <X className="h-6 w-6" /> : <Bot className="h-6 w-6" />}
