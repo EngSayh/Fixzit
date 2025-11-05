@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Bed, Bath, Maximize, MapPin, Heart, Eye, Phone, MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -54,6 +54,7 @@ export interface PropertyCardProps {
 
 export default function PropertyCard({ property }: { property: PropertyCardProps }) {
   const { t, isRTL } = useTranslation();
+  const router = useRouter();
   const [isFavorite, setIsFavorite] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 
@@ -98,10 +99,30 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
     }
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Allow default behavior for interactive elements
+    const target = e.target as HTMLElement;
+    if (target.closest('a') || target.closest('button')) {
+      return;
+    }
+    router.push(`/aqar/properties/${property.slug || property.id}`);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      router.push(`/aqar/properties/${property.slug || property.id}`);
+    }
+  };
+
   return (
-    <Link 
-      href={`/aqar/properties/${property.slug || property.id}`}
-      className="block bg-card rounded-2xl shadow-md hover:shadow-xl transition-shadow overflow-hidden group"
+    <article
+      onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
+      role="link"
+      tabIndex={0}
+      className="block bg-card rounded-2xl shadow-md hover:shadow-xl transition-shadow overflow-hidden group cursor-pointer"
+      aria-label={`${t('aqar.propertyCard.viewProperty', 'View property')}: ${propertyTitle}`}
     >
       {/* Image Section */}
       <div className="relative h-64 overflow-hidden bg-muted">
@@ -263,6 +284,6 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
           </div>
         )}
       </div>
-    </Link>
+    </article>
   );
 }
