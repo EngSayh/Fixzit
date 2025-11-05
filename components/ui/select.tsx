@@ -200,6 +200,14 @@ interface SelectValueProps extends React.HTMLAttributes<HTMLSpanElement> {
  * Use the `placeholder` prop on <Select> instead.
  */
 export const SelectValue: React.FC<SelectValueProps> = () => {
+  // Warn developers during development
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn(
+      'SelectValue is deprecated and non-functional with the new native Select. ' +
+      'Use the placeholder prop on <Select> instead: <Select placeholder="...">. ' +
+      'See migration guide for details.'
+    );
+  }
   // This component does nothing - the native select handles its own value display
   return null;
 };

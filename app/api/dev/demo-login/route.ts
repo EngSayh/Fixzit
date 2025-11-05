@@ -20,9 +20,21 @@ export async function POST(req: NextRequest) {
   }
   
   // Gate early — dev only
-  // Use webpackIgnore to prevent bundling errors in production builds
-  const { ENABLED, findLoginPayloadByRole } = await import(/* webpackIgnore: true */ '@/dev/credentials.server');
-  if (!ENABLED) {
+  // Dynamically import dev-only module (won't be bundled in production)
+  let ENABLED = false;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let findLoginPayloadByRole: any = null;
+  
+  try {
+    const module = await import(/* webpackIgnore: true */ '@/dev/credentials.server');
+    ENABLED = module.ENABLED;
+    findLoginPayloadByRole = module.findLoginPayloadByRole;
+  } catch {
+    // Module not available (production build) - fail gracefully
+    return withNoStore(NextResponse.json({ error: 'Demo not enabled' }, { status: 403 }));
+  }
+  
+  if (!ENABLED || !findLoginPayloadByRole) {
     return withNoStore(NextResponse.json({ error: 'Demo not enabled' }, { status: 403 }));
   }
 
