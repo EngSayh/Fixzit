@@ -1,0 +1,270 @@
+# Migration Guide: Deprecated Hooks → useFormTracking
+
+## 🎯 Overview
+
+This document tracks the migration from deprecated hooks to the new consolidated `useFormTracking` hook.
+
+**Related PR**: [#218 - Fix Security Vulnerabilities and Architectural Issues](https://github.com/EngSayh/Fixzit/pull/218)
+
+---
+
+## 📋 Migration Checklist
+
+### Current Consumers (Found 1 active usage):
+
+- [ ] **app/fm/page.tsx** - Uses `useUnsavedChanges` (Priority: HIGH)
+  - Lines: 6, 165
+  - Complexity: MEDIUM
+  - Estimated effort: 30 minutes
+  - UI components: UnsavedChangesWarning, SaveConfirmation (already migrated ✅)
+
+### Test Files (Already migrated to deprecated import):
+- ✅ **hooks/__tests__/useUnsavedChanges.test.tsx** - Updated to use `_deprecated_useUnsavedChanges`
+  - Can be deleted once main file is migrated
+
+---
+
+## 🔄 Migration Pattern
+
+### Before (useUnsavedChanges):
+
+```tsx
+import { useUnsavedChanges, UnsavedChangesWarning, SaveConfirmation } 
+  from '@/hooks/useUnsavedChanges';
+
+function MyComponent() {
+  const {
+    hasUnsavedChanges,
+    showWarning,
+    showSaveConfirm,
+    markDirty,
+    markClean,
+    handleSave,
+    handleDiscard,
+    handleStay
+  } = useUnsavedChanges({
+    message: 'You have unsaved changes...',
+    onSave: async () => {
+      await saveData();
+    }
+  });
+
+  // Manually call markDirty() when data changes
+  const handleChange = (value) => {
+    setValue(value);
+    markDirty();
+  };
+
+  return (
+    <>
+      <input onChange={(e) => handleChange(e.target.value)} />
+      <UnsavedChangesWarning isOpen={showWarning} ... />
+    </>
+  );
+}
+```
+
+### After (useFormTracking):
+
+```tsx
+import { useFormTracking } from '@/hooks/useFormTracking';
+import { UnsavedChangesWarning } from '@/components/common/UnsavedChangesWarning';
+import { SaveConfirmation } from '@/components/common/SaveConfirmation';
+
+function MyComponent() {
+  const [formData, setFormData] = useState(initialData);
+  const [originalData] = useState(initialData);
+  
+  // Derive isDirty from state comparison (component's responsibility)
+  const isDirty = JSON.stringify(formData) !== JSON.stringify(originalData);
+
+  const { handleSubmit } = useFormTracking({
+    formId: 'my-form',
+    isDirty,
+    onSave: async () => {
+      await saveData(formData);
+      setOriginalData(formData); // Reset baseline after save
+    },
+    unsavedMessage: 'You have unsaved changes...' // Optional
+  });
+
+  // No need to call markDirty - state comparison handles it
+  const handleChange = (value) => {
+    setFormData({ ...formData, field: value });
+  };
+
+  return (
+    <>
+      <form onSubmit={handleSubmit}>
+        <input onChange={(e) => handleChange(e.target.value)} />
+        <button type="submit" disabled={!isDirty}>Save</button>
+      </form>
+      {/* UI components same as before */}
+    </>
+  );
+}
+```
+
+---
+
+## 🔑 Key Differences
+
+| Aspect | useUnsavedChanges (OLD) | useFormTracking (NEW) |
+|--------|-------------------------|------------------------|
+| **Dirty Detection** | Manual (`markDirty()`) | Automatic (via `isDirty` prop) |
+| **Data Tracking** | Internal refs + JSON.stringify | Component's responsibility |
+| **UI Components** | Exported from hook | Separate components |
+| **Form Registration** | ❌ No global context | ✅ Registers with FormStateContext |
+| **Browser Guards** | ✅ beforeunload | ✅ beforeunload (improved) |
+| **Save Handler** | `handleSave()` | `handleSubmit()` |
+| **Performance** | ⚠️ JSON.stringify on every check | ✅ Efficient (component-controlled) |
+
+---
+
+## 🚀 Migration Steps for app/fm/page.tsx
+
+### Step 1: Update imports
+```tsx
+// REMOVE
+import { useUnsavedChanges } from '@/hooks/_deprecated_useUnsavedChanges';
+
+// ADD
+import { useFormTracking } from '@/hooks/useFormTracking';
+// Note: UI components already migrated ✅
+```
+
+### Step 2: Add state management for form data
+```tsx
+// Track original state for comparison
+const [originalSearchTerm, setOriginalSearchTerm] = useState('');
+const [originalStatusFilter, setOriginalStatusFilter] = useState('all');
+
+// Compute isDirty
+const isDirty = 
+  searchTerm !== originalSearchTerm || 
+  statusFilter !== originalStatusFilter;
+```
+
+### Step 3: Replace hook usage
+```tsx
+// REPLACE
+const { ... } = useUnsavedChanges({ ... });
+
+// WITH
+const { handleSubmit } = useFormTracking({
+  formId: 'fm-filters',
+  isDirty,
+  onSave: async () => {
+    // Save logic (simulate in this case)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Reset baselines after successful save
+    setOriginalSearchTerm(searchTerm);
+    setOriginalStatusFilter(statusFilter);
+  },
+  unsavedMessage: t('unsaved.message', 'You have unsaved changes...')
+});
+```
+
+### Step 4: Remove markDirty/markClean calls
+```tsx
+// REMOVE these calls
+markDirty();
+markClean();
+
+// State comparison handles dirty detection automatically
+```
+
+### Step 5: Update save button
+```tsx
+<Button
+  variant="outline"
+  size="sm"
+  onClick={handleSubmit} // Changed from handleSave
+  disabled={!isDirty}
+  className="bg-success text-white hover:bg-success/90"
+>
+  {t('common.save', 'Save')}
+</Button>
+```
+
+---
+
+## ⚠️ Common Pitfalls
+
+### 1. **Forgetting to reset baseline after save**
+```tsx
+// ❌ WRONG - isDirty will stay true even after save
+onSave: async () => {
+  await saveData();
+  // Missing: setOriginalData(currentData)
+}
+
+// ✅ CORRECT
+onSave: async () => {
+  await saveData();
+  setOriginalData(currentData); // Reset baseline
+}
+```
+
+### 2. **Using JSON.stringify for complex objects**
+```tsx
+// ⚠️ WORKS but can be slow for large objects
+const isDirty = JSON.stringify(formData) !== JSON.stringify(originalData);
+
+// ✅ BETTER - Use shallow comparison or specific field checks
+const isDirty = formData.name !== originalData.name || 
+                formData.email !== originalData.email;
+
+// ✅ BEST - Use a library like lodash
+import { isEqual } from 'lodash';
+const isDirty = !isEqual(formData, originalData);
+```
+
+### 3. **Not providing a unique formId**
+```tsx
+// ❌ WRONG - Multiple forms with same ID
+useFormTracking({ formId: 'form', ... })
+useFormTracking({ formId: 'form', ... }) // Collision!
+
+// ✅ CORRECT
+useFormTracking({ formId: 'user-profile-form', ... })
+useFormTracking({ formId: 'settings-form', ... })
+```
+
+---
+
+## 📊 Migration Progress
+
+- **Total consumers**: 1 active file
+- **Migrated**: 0 (0%)
+- **Remaining**: 1 (100%)
+- **Target completion**: End of current sprint
+
+---
+
+## 🧹 Cleanup Checklist (After Migration)
+
+Once all consumers are migrated:
+
+- [ ] Delete `hooks/_deprecated_useFormDirtyState.ts`
+- [ ] Delete `hooks/_deprecated_useUnsavedChanges.tsx`
+- [ ] Delete `hooks/__tests__/useUnsavedChanges.test.tsx`
+- [ ] Search codebase for any remaining references
+- [ ] Update this migration document to mark as COMPLETE
+
+---
+
+## 🆘 Need Help?
+
+If you encounter issues during migration:
+
+1. Review the test files for examples:
+   - `tests/hooks/useFormTracking.test.tsx`
+2. Check the consolidated hook implementation:
+   - `hooks/useFormTracking.ts`
+3. Refer to PR #218 for full context
+
+---
+
+**Last Updated**: 2025-11-05  
+**Status**: 🟡 In Progress (0/1 files migrated)
