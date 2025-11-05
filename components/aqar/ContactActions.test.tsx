@@ -27,7 +27,7 @@ describe('ContactActions', () => {
       expect(screen.getByText('WhatsApp')).toBeInTheDocument();
     });
 
-    it('sanitizes hrefs for call and whatsapp links', () => {
+    it('sanitizes hrefs for call and whatsapp links, preserving leading plus', () => {
       render(
         <ContactActions
           phone="+966 (050) 123-4567"
@@ -41,7 +41,7 @@ describe('ContactActions', () => {
         'WhatsApp agent'
       ) as HTMLAnchorElement;
 
-      expect(callLink.href).toBe('tel:9660501234567');
+      expect(callLink.href).toBe('tel:+9660501234567');
       expect(waLink.href).toBe('https://wa.me/0509876543');
     });
 
@@ -50,7 +50,7 @@ describe('ContactActions', () => {
       const waLink = screen.getByLabelText(
         'WhatsApp agent'
       ) as HTMLAnchorElement;
-      expect(waLink.href).toBe('https://wa.me/966555111222');
+      expect(waLink.href).toBe('https://wa.me/+966555111222');
     });
 
     it('stops event propagation when clicked', () => {
