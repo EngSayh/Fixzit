@@ -200,12 +200,27 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
     async function bootstrap() {
       try {
         const res = await fetch('/api/copilot/profile', { cache: 'no-store' });
-        if (!res.ok) throw new Error('Profile request failed');
+        if (!res.ok) {
+          // Silently fall back to guest mode if auth fails
+          setProfile({ session: { role: 'GUEST', tenantId: 'public', locale: 'en' }, tools: [], quickActions: [] });
+          setMessages([{ id: 'guest', role: 'assistant', content: translations.en.guestWarning }]);
+          return;
+        }
+        
+        // Check if response is actually JSON
+        const contentType = res.headers.get('content-type');
+        if (!contentType?.includes('application/json')) {
+          // HTML error page returned, fall back to guest
+          setProfile({ session: { role: 'GUEST', tenantId: 'public', locale: 'en' }, tools: [], quickActions: [] });
+          setMessages([{ id: 'guest', role: 'assistant', content: translations.en.guestWarning }]);
+          return;
+        }
+        
         const json: CopilotProfile = await res.json();
         setProfile(json);
         setMessages([{ id: 'welcome', role: 'assistant', content: translations[json.session.locale].welcome }]);
-      } catch (err) {
-        console.error('Copilot profile error', err);
+      } catch {
+        // Silently handle errors in guest mode (expected for unauthenticated users)
         setProfile({ session: { role: 'GUEST', tenantId: 'public', locale: 'en' }, tools: [], quickActions: [] });
         setMessages([{ id: 'guest', role: 'assistant', content: translations.en.guestWarning }]);
       }

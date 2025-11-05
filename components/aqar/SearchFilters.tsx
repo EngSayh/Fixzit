@@ -161,7 +161,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           placeholder={t('aqar.filters.search', 'Search by location, property name, or keyword...')}
           value={filters.search || ''}
           onChange={(e) => updateFilters({ search: e.target.value })}
-          className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+          className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
         />
       </div>
 
@@ -238,7 +238,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   onClick={() => togglePropertyType(type.value)}
                   className={`p-3 rounded-lg border-2 text-center transition-colors ${
                     filters.propertyTypes?.includes(type.value)
-                      ? 'border-warning bg-orange-50'
+                      ? 'border-warning bg-warning/10'
                       : 'border-border hover:border-border'
                   }`}
                 >
@@ -260,7 +260,11 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                 <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.minimum', 'Minimum')}</label>
                 <input
                   type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1000"
                   placeholder={t('aqar.filters.min', 'Min')}
+                  aria-label={t('aqar.filters.minPriceInput', 'Minimum price')}
                   value={filters.priceMin || ''}
                   onChange={(e) => {
                     const value = e.target.value.trim();
@@ -273,14 +277,18 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                       }
                     }
                   }}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
                 />
               </div>
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.maximum', 'Maximum')}</label>
                 <input
                   type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1000"
                   placeholder={t('aqar.filters.max', 'Max')}
+                  aria-label={t('aqar.filters.maxPriceInput', 'Maximum price')}
                   value={filters.priceMax || ''}
                   onChange={(e) => {
                     const value = e.target.value.trim();
@@ -293,7 +301,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                       }
                     }
                   }}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
                 />
               </div>
             </div>
@@ -312,7 +320,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   onClick={() => toggleBedrooms(count)}
                   className={`px-4 py-2 rounded-lg border-2 transition-colors ${
                     filters.bedrooms?.includes(count)
-                      ? 'border-warning bg-orange-50 text-foreground'
+                      ? 'border-warning bg-warning/10 text-foreground'
                       : 'border-border hover:border-border text-foreground'
                   }`}
                 >
@@ -335,7 +343,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   onClick={() => toggleBathrooms(count)}
                   className={`px-4 py-2 rounded-lg border-2 transition-colors ${
                     filters.bathrooms?.includes(count)
-                      ? 'border-warning bg-orange-50 text-foreground'
+                      ? 'border-warning bg-warning/10 text-foreground'
                       : 'border-border hover:border-border text-foreground'
                   }`}
                 >
@@ -356,7 +364,11 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                 <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.minimum', 'Minimum')}</label>
                 <input
                   type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="10"
                   placeholder={t('aqar.filters.min', 'Min')}
+                  aria-label={t('aqar.filters.minAreaInput', 'Minimum area in square meters')}
                   value={filters.areaMin || ''}
                   onChange={(e) => {
                     const value = e.target.value.trim();
@@ -369,14 +381,18 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                       }
                     }
                   }}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
                 />
               </div>
               <div>
                 <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.maximum', 'Maximum')}</label>
                 <input
                   type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="10"
                   placeholder={t('aqar.filters.max', 'Max')}
+                  aria-label={t('aqar.filters.maxAreaInput', 'Maximum area in square meters')}
                   value={filters.areaMax || ''}
                   onChange={(e) => {
                     const value = e.target.value.trim();
@@ -389,7 +405,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                       }
                     }
                   }}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
                 />
               </div>
             </div>
@@ -407,7 +423,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                 <select
                   value={filters.city || ''}
                   onChange={(e) => updateFilters({ city: e.target.value || undefined })}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
                 >
                   <option value="">{t('aqar.filters.allCities', 'All Cities')}</option>
                   {saudiCities.map((city) => (
@@ -422,7 +438,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   placeholder={t('aqar.filters.enterDistrict', 'Enter district')}
                   value={filters.district || ''}
                   onChange={(e) => updateFilters({ district: e.target.value || undefined })}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
                 />
               </div>
             </div>
@@ -441,7 +457,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                     type="checkbox"
                     checked={filters.amenities?.includes(amenity)}
                     onChange={() => toggleAmenity(amenity)}
-                    className="w-4 h-4 text-warning border-border rounded focus:ring-[#FFB400]"
+                    className="w-4 h-4 text-warning border-border rounded focus:ring-warning"
                   />
                   <span className="text-sm text-foreground">{amenity}</span>
                 </label>
@@ -458,7 +474,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   type="checkbox"
                   checked={filters.furnished || false}
                   onChange={(e) => updateFilters({ furnished: e.target.checked || null })}
-                  className="w-4 h-4 text-warning border-border rounded focus:ring-[#FFB400]"
+                  className="w-4 h-4 text-warning border-border rounded focus:ring-warning"
                 />
                 <span className="text-sm text-foreground">{t('aqar.filters.furnished', 'Furnished')}</span>
               </label>
@@ -467,7 +483,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   type="checkbox"
                   checked={filters.featured || false}
                   onChange={(e) => updateFilters({ featured: e.target.checked })}
-                  className="w-4 h-4 text-warning border-border rounded focus:ring-[#FFB400]"
+                  className="w-4 h-4 text-warning border-border rounded focus:ring-warning"
                 />
                 <span className="text-sm text-foreground">{t('aqar.filters.featuredOnly', 'Featured Properties Only')}</span>
               </label>
@@ -476,7 +492,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   type="checkbox"
                   checked={filters.verified || false}
                   onChange={(e) => updateFilters({ verified: e.target.checked })}
-                  className="w-4 h-4 text-warning border-border rounded focus:ring-[#FFB400]"
+                  className="w-4 h-4 text-warning border-border rounded focus:ring-warning"
                 />
                 <span className="text-sm text-foreground">{t('aqar.filters.verifiedOnly', 'Verified Properties Only')}</span>
               </label>
@@ -489,7 +505,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
             <select
               value={filters.sortBy || 'DATE_DESC'}
               onChange={(e) => updateFilters({ sortBy: e.target.value as PropertyFilters['sortBy'] })}
-              className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-[#FFB400] focus:border-transparent"
+              className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
             >
               <option value="DATE_DESC">{t('aqar.filters.newestFirst', 'Newest First')}</option>
               <option value="PRICE_ASC">{t('aqar.filters.priceLowToHigh', 'Price: Low to High')}</option>
@@ -509,7 +525,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
             </button>
             <button
               onClick={() => setShowAdvanced(false)}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-[#FFB400] to-[#FF8C00] text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-warning to-warning-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
             >
               {t('aqar.filters.applyFilters', 'Apply Filters')}
             </button>
@@ -523,7 +539,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-foreground">{t('aqar.filters.activeFilters', 'Active Filters:')}</span>
             {filters.listingType && filters.listingType !== 'ALL' && (
-              <span className="px-3 py-1 bg-warning text-white text-sm rounded-full flex items-center gap-1">
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-warning text-white text-sm rounded-full">
                 {filters.listingType}
                 <button onClick={() => updateFilters({ listingType: 'ALL' })}>
                   <X className="w-3 h-3" />
@@ -531,7 +547,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
               </span>
             )}
             {(filters.propertyTypes?.length || 0) > 0 && (
-              <span className="px-3 py-1 bg-warning text-white text-sm rounded-full flex items-center gap-1">
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-warning text-white text-sm rounded-full">
                 {filters.propertyTypes!.length} {t('aqar.filters.typesSelected', 'types')}
                 <button onClick={() => updateFilters({ propertyTypes: [] })}>
                   <X className="w-3 h-3" />
@@ -540,7 +556,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
             )}
             <button
               onClick={clearFilters}
-              className="ml-auto text-sm text-warning hover:text-warning font-medium"
+              className="ms-auto text-sm text-warning hover:text-warning font-medium"
             >
               {t('aqar.filters.clearAll', 'Clear All')}
             </button>
