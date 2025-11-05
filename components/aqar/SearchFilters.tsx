@@ -238,7 +238,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   onClick={() => togglePropertyType(type.value)}
                   className={`p-3 rounded-lg border-2 text-center transition-colors ${
                     filters.propertyTypes?.includes(type.value)
-                      ? 'border-warning bg-orange-50'
+                      ? 'border-warning bg-warning/10'
                       : 'border-border hover:border-border'
                   }`}
                 >
@@ -260,7 +260,11 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                 <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.minimum', 'Minimum')}</label>
                 <input
                   type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1000"
                   placeholder={t('aqar.filters.min', 'Min')}
+                  aria-label={t('aqar.filters.minPriceInput', 'Minimum price')}
                   value={filters.priceMin || ''}
                   onChange={(e) => {
                     const value = e.target.value.trim();
@@ -280,7 +284,11 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                 <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.maximum', 'Maximum')}</label>
                 <input
                   type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1000"
                   placeholder={t('aqar.filters.max', 'Max')}
+                  aria-label={t('aqar.filters.maxPriceInput', 'Maximum price')}
                   value={filters.priceMax || ''}
                   onChange={(e) => {
                     const value = e.target.value.trim();
@@ -312,7 +320,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   onClick={() => toggleBedrooms(count)}
                   className={`px-4 py-2 rounded-lg border-2 transition-colors ${
                     filters.bedrooms?.includes(count)
-                      ? 'border-warning bg-orange-50 text-foreground'
+                      ? 'border-warning bg-warning/10 text-foreground'
                       : 'border-border hover:border-border text-foreground'
                   }`}
                 >
@@ -335,7 +343,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                   onClick={() => toggleBathrooms(count)}
                   className={`px-4 py-2 rounded-lg border-2 transition-colors ${
                     filters.bathrooms?.includes(count)
-                      ? 'border-warning bg-orange-50 text-foreground'
+                      ? 'border-warning bg-warning/10 text-foreground'
                       : 'border-border hover:border-border text-foreground'
                   }`}
                 >
@@ -356,7 +364,11 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                 <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.minimum', 'Minimum')}</label>
                 <input
                   type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="10"
                   placeholder={t('aqar.filters.min', 'Min')}
+                  aria-label={t('aqar.filters.minAreaInput', 'Minimum area in square meters')}
                   value={filters.areaMin || ''}
                   onChange={(e) => {
                     const value = e.target.value.trim();
@@ -376,7 +388,11 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
                 <label className="text-sm text-muted-foreground mb-1 block">{t('aqar.filters.maximum', 'Maximum')}</label>
                 <input
                   type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="10"
                   placeholder={t('aqar.filters.max', 'Max')}
+                  aria-label={t('aqar.filters.maxAreaInput', 'Maximum area in square meters')}
                   value={filters.areaMax || ''}
                   onChange={(e) => {
                     const value = e.target.value.trim();
@@ -523,7 +539,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-foreground">{t('aqar.filters.activeFilters', 'Active Filters:')}</span>
             {filters.listingType && filters.listingType !== 'ALL' && (
-              <span className="px-3 py-1 bg-warning text-white text-sm rounded-full flex items-center gap-1">
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-warning text-white text-sm rounded-full">
                 {filters.listingType}
                 <button onClick={() => updateFilters({ listingType: 'ALL' })}>
                   <X className="w-3 h-3" />
@@ -531,7 +547,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
               </span>
             )}
             {(filters.propertyTypes?.length || 0) > 0 && (
-              <span className="px-3 py-1 bg-warning text-white text-sm rounded-full flex items-center gap-1">
+              <span className="inline-flex items-center gap-1 px-3 py-1 bg-warning text-white text-sm rounded-full">
                 {filters.propertyTypes!.length} {t('aqar.filters.typesSelected', 'types')}
                 <button onClick={() => updateFilters({ propertyTypes: [] })}>
                   <X className="w-3 h-3" />
@@ -540,7 +556,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
             )}
             <button
               onClick={clearFilters}
-              className="ml-auto text-sm text-warning hover:text-warning font-medium"
+              className="ms-auto text-sm text-warning hover:text-warning font-medium"
             >
               {t('aqar.filters.clearAll', 'Clear All')}
             </button>

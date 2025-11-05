@@ -94,10 +94,11 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
         {/* Property Price */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-foreground">{t('aqar.mortgage.propertyPrice', 'Property Price')}</label>
+            <label htmlFor="priceSlider" className="text-sm font-medium text-foreground">{t('aqar.mortgage.propertyPrice', 'Property Price')}</label>
             <span className="text-lg font-bold text-foreground">{formatCurrency(price)}</span>
           </div>
           <input
+            id="priceSlider"
             type="range"
             min="100000"
             max="10000000"
@@ -105,7 +106,6 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             value={price}
             onChange={(e) => setPrice(Number(e.target.value))}
             className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning"
-            aria-label={t('aqar.mortgage.priceSlider', 'Property price slider')}
           />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>100K</span>
@@ -116,12 +116,13 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
         {/* Down Payment */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-foreground">
+            <label htmlFor="downPaymentSlider" className="text-sm font-medium text-foreground">
               {t('aqar.mortgage.downPayment', 'Down Payment')} ({downPayment}%)
             </label>
             <span className="text-lg font-bold text-foreground">{formatCurrency(downPaymentAmount)}</span>
           </div>
           <input
+            id="downPaymentSlider"
             type="range"
             min={MIN_DOWN_PAYMENT}
             max="50"
@@ -129,7 +130,6 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             value={downPayment}
             onChange={(e) => setDownPayment(Number(e.target.value))}
             className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning"
-            aria-label={t('aqar.mortgage.downPaymentSlider', 'Down payment percentage slider')}
           />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>{MIN_DOWN_PAYMENT}% (Min)</span>
@@ -140,10 +140,11 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
         {/* Interest Rate */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-foreground">{t('aqar.mortgage.interestRate', 'Interest Rate')}</label>
+            <label htmlFor="interestRateSlider" className="text-sm font-medium text-foreground">{t('aqar.mortgage.interestRate', 'Interest Rate')}</label>
             <span className="text-lg font-bold text-foreground">{interestRate.toFixed(2)}%</span>
           </div>
           <input
+            id="interestRateSlider"
             type="range"
             min="3"
             max="8"
@@ -151,7 +152,6 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             value={interestRate}
             onChange={(e) => setInterestRate(Number(e.target.value))}
             className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning"
-            aria-label={t('aqar.mortgage.interestRateSlider', 'Interest rate slider')}
           />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>3.0%</span>
@@ -162,10 +162,11 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
         {/* Loan Term */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-foreground">{t('aqar.mortgage.loanTerm', 'Loan Term')}</label>
+            <label htmlFor="loanTermSlider" className="text-sm font-medium text-foreground">{t('aqar.mortgage.loanTerm', 'Loan Term')}</label>
             <span className="text-lg font-bold text-foreground">{loanTerm} {t('aqar.mortgage.years', 'years')}</span>
           </div>
           <input
+            id="loanTermSlider"
             type="range"
             min="5"
             max={MAX_LOAN_TERM}
@@ -173,7 +174,6 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             value={loanTerm}
             onChange={(e) => setLoanTerm(Number(e.target.value))}
             className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning"
-            aria-label={t('aqar.mortgage.loanTermSlider', 'Loan term slider')}
           />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>5 {t('aqar.mortgage.years', 'years')}</span>
