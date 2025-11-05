@@ -2,7 +2,11 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { useUnsavedChanges, UnsavedChangesWarning, SaveConfirmation } from '@/hooks/useUnsavedChanges';
+// 🟥 UPDATED: Import deprecated hook (will migrate to useFormTracking later)
+import { useUnsavedChanges } from '@/hooks/_deprecated_useUnsavedChanges';
+// 🟩 UPDATED: Import UI components from new location
+import { UnsavedChangesWarning } from '@/components/common/UnsavedChangesWarning';
+import { SaveConfirmation } from '@/components/common/SaveConfirmation';
 import { Card, CardContent} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';

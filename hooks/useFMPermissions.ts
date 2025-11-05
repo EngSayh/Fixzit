@@ -1,19 +1,44 @@
 /**
  * Client-side FM permissions hook
  * Provides RBAC checks for conditional UI rendering
+ * 
+ * 🟥 SECURITY FIX: Now properly integrates with NextAuth session and org context
+ * - isOrgMember is derived from actual session data (not hardcoded)
+ * - Plan defaults to STARTER (fail-safe) instead of PRO
  */
 
 'use client';
 
+import { useSession } from 'next-auth/react';
 import { can, Role, SubmoduleKey, Action, PLAN_GATES, Plan } from '@/domain/fm/fm.behavior';
+import { useCurrentOrg } from '@/contexts/CurrentOrgContext';
 
 export interface FMPermissionContext {
   role: Role;
   orgId: string;
   propertyId?: string;
   userId: string;
-  plan?: Plan;
+  plan: Plan;
 }
+
+// Map NextAuth roles to internal FM Role enum
+// This provides a single source of truth for role mapping.
+const roleMapping: Record<string, Role> = {
+  SUPER_ADMIN: Role.SUPER_ADMIN,
+  CORPORATE_ADMIN: Role.CORPORATE_ADMIN,
+  FM_MANAGER: Role.MANAGEMENT,
+  MANAGEMENT: Role.MANAGEMENT,
+  FINANCE: Role.FINANCE,
+  HR: Role.HR,
+  EMPLOYEE: Role.EMPLOYEE,
+  PROPERTY_OWNER: Role.PROPERTY_OWNER,
+  OWNER: Role.PROPERTY_OWNER,
+  OWNER_DEPUTY: Role.OWNER_DEPUTY,
+  TECHNICIAN: Role.TECHNICIAN,
+  TENANT: Role.TENANT,
+  VENDOR: Role.VENDOR,
+  GUEST: Role.GUEST,
+};
 
 /**
  * Hook to check FM permissions in React components
@@ -30,37 +55,32 @@ export interface FMPermissionContext {
  * }
  */
 export function useFMPermissions() {
-  // TODO: Replace with actual session hook when available
-  const session = typeof window !== 'undefined' ? { user: { role: 'GUEST', id: '', orgId: '' } } : null;
+  // 🟨 FIXED: Use the actual session hook
+  const { data: session } = useSession();
+  // 🟧 FIXED: Get plan from org context, default to STARTER (fail-safe)
+  const { org } = useCurrentOrg();
+  const plan = org?.plan || Plan.STARTER;
 
-  // Map session role to FM Role enum
-  const roleMapping: Record<string, Role> = {
-    'SUPER_ADMIN': Role.SUPER_ADMIN,
-    'CORPORATE_ADMIN': Role.CORPORATE_ADMIN,
-    'FM_MANAGER': Role.MANAGEMENT,
-    'MANAGEMENT': Role.MANAGEMENT,
-    'FINANCE': Role.FINANCE,
-    'HR': Role.HR,
-    'EMPLOYEE': Role.EMPLOYEE,
-    'PROPERTY_OWNER': Role.PROPERTY_OWNER,
-    'OWNER': Role.PROPERTY_OWNER,
-    'OWNER_DEPUTY': Role.OWNER_DEPUTY,
-    'TECHNICIAN': Role.TECHNICIAN,
-    'TENANT': Role.TENANT,
-    'VENDOR': Role.VENDOR,
-    'GUEST': Role.GUEST,
-  };
-
-  const userRole = session?.user?.role || 'GUEST';
+  const user = session?.user as {
+    id?: string;
+    role?: string;
+    orgId?: string;
+  } | undefined;
+  
+  const userRole = user?.role || 'GUEST';
   const role = roleMapping[userRole] || Role.GUEST;
 
   const ctx: FMPermissionContext = {
     role,
-    userId: session?.user?.id || '',
-    orgId: (session?.user as { orgId?: string })?.orgId || '',
+    userId: user?.id || '',
+    orgId: user?.orgId || '',
     propertyId: undefined,
-    plan: Plan.PRO // TODO: Get from user/org subscription
+    plan,
   };
+  
+  // 🟥 FIXED: Compute membership dynamically based on target org
+  const isMemberOf = (orgId?: string): boolean =>
+    !!ctx.orgId && (!orgId || orgId === ctx.orgId);
 
   /**
    * Check if user can perform an action on a submodule
@@ -71,15 +91,18 @@ export function useFMPermissions() {
     options?: {
       orgId?: string;
       propertyId?: string;
-    }
+    },
   ): boolean => {
+    // Check against the resource's org or the user's org
+    const targetOrgId = options?.orgId ?? ctx.orgId;
+
     return can(submodule, action, {
       role: ctx.role,
-      orgId: options?.orgId || ctx.orgId,
+      orgId: targetOrgId,
       propertyId: options?.propertyId,
       userId: ctx.userId,
-      plan: ctx.plan || Plan.STARTER,
-      isOrgMember: true // TODO: Verify org membership
+      plan: ctx.plan,
+      isOrgMember: isMemberOf(targetOrgId), // 🟥 FIXED: Recompute for target org
     });
   };
 
