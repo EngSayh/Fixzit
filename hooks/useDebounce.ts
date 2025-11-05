@@ -51,10 +51,11 @@ export function useDebounce<T>(value: T, delay: number = 500): T {
  * ```
  */
 
-export function useDebounceCallback<T extends (...args: unknown[]) => unknown>(
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+export function useDebounceCallback<T extends (..._args: unknown[]) => unknown>(
   callback: T,
   delay: number
-): (...args: Parameters<T>) => void {
+): T {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callbackRef = useRef(callback);
 
@@ -73,15 +74,15 @@ export function useDebounceCallback<T extends (...args: unknown[]) => unknown>(
   }, []);
 
   return useCallback(
-    (...args: Parameters<T>) => {
+    ((...args: Parameters<T>) => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
 
       timeoutRef.current = setTimeout(() => {
-        callbackRef.current(...args);
+        callbackRef.current(...(args as unknown[]));
       }, delay);
-    },
+    }) as T,
     [delay]
   );
 }
