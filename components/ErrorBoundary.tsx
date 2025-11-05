@@ -37,7 +37,16 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     const { errorId } = this.state;
-    console.error(`[ErrorBoundary] Caught error ${errorId}:`, error, errorInfo);
+    // Use logger instead of console for production-safe error reporting
+    if (typeof window !== 'undefined') {
+      import('../lib/logger').then(({ logError }) => {
+        logError(`ErrorBoundary caught error ${errorId}`, error, {
+          component: 'ErrorBoundary',
+          errorId,
+          componentStack: errorInfo.componentStack
+        });
+      });
+    }
 
     // --- Safe Incident Reporting ---
     try {
@@ -77,7 +86,15 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
       navigator.sendBeacon('/api/support/incidents', blob);
 
     } catch (reportError) {
-      console.error("Failed to send incident report:", reportError);
+      // Use logger for incident reporting failures
+      if (typeof window !== 'undefined') {
+        import('../lib/logger').then(({ logError }) => {
+          logError('Failed to send incident report', reportError as Error, {
+            component: 'ErrorBoundary',
+            action: 'sendIncidentReport'
+          });
+        });
+      }
     }
   }
 
@@ -116,7 +133,15 @@ const ErrorFallbackUI = ({ errorId, onRefresh }: { errorId: string, onRefresh: (
     const { t: translationHook } = useTranslation();
     t = translationHook;
   } catch {
-    console.error("Translation context failed in ErrorBoundary, using fallbacks.");
+    // Use logger for translation context failures
+    if (typeof window !== 'undefined') {
+      import('../lib/logger').then(({ logWarn }) => {
+        logWarn('Translation context failed in ErrorBoundary, using fallbacks', {
+          component: 'ErrorBoundary',
+          action: 'loadTranslations'
+        });
+      });
+    }
   }
 
   return (
