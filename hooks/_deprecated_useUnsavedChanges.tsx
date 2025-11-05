@@ -1,3 +1,15 @@
+/**
+ * 🟥 DEPRECATED: This hook had multiple responsibilities and used
+ * inefficient change detection.
+ *
+ * - For global state tracking and 'beforeunload' guards, use `useFormTracking`.
+ * - The UI components (`UnsavedChangesWarning`, `SaveConfirmation`)
+ *   have been moved to `components/common/`.
+ *
+ * @deprecated Use `useFormTracking` from hooks/useFormTracking.ts
+ * @deprecated Import UI components from components/common/ instead
+ */
+
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';

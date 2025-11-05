@@ -1,3 +1,10 @@
+/**
+ * 🟥 DEPRECATED: This hook is part of a redundant implementation.
+ * Please use `useFormTracking` instead.
+ *
+ * @deprecated Use `useFormTracking` from hooks/useFormTracking.ts
+ */
+
 'use client';
 
 import { useEffect } from 'react';
