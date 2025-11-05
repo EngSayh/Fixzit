@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
+ * Type for developer credential payload from dev-only module
+ * Ensures type safety when calling findLoginPayloadByRole
+ */
+type DevCredentialPayload = {
+  email: string;
+  password: string;
+  loginType?: 'personal' | 'corporate';
+  employeeNumber?: string;
+  orgId?: string;
+  preferredPath?: string;
+};
+
+/**
  * Server-side demo login endpoint
  * - Looks up server-only credentials by role
  * - Calls your internal /api/auth/login on the same origin
@@ -9,32 +22,33 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function POST(req: NextRequest) {
   // SECURITY: Demo login ONLY allowed in strict development mode
-  // Historical context: ENABLED flag allowed production demo mode via env var
   // CRITICAL: This endpoint bypasses authentication and should NEVER be production-accessible
   if (process.env.NODE_ENV !== 'development') {
     console.error('[SECURITY] Demo login attempted in non-development environment', {
       nodeEnv: process.env.NODE_ENV,
-      clientIp: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+      clientIp: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
     });
     return withNoStore(NextResponse.json({ error: 'Not available' }, { status: 404 }));
   }
-  
+
   // Gate early — dev only
   // Dynamically import dev-only module (won't be bundled in production)
   let ENABLED = false;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let findLoginPayloadByRole: any = null;
-  
+  // eslint-disable-next-line no-unused-vars
+  let findLoginPayloadByRole: (role: string) => DevCredentialPayload | null = () => null;
+
   try {
+    // We use a dynamic import to ensure this file is never bundled in production
     const module = await import(/* webpackIgnore: true */ '@/dev/credentials.server');
-    ENABLED = module.ENABLED;
+    ENABLED = module.ENABLED ?? false;
     findLoginPayloadByRole = module.findLoginPayloadByRole;
-  } catch {
-    // Module not available (production build) - fail gracefully
+  } catch (e) {
+    // Module not available (e.g., production build) - fail gracefully
+    console.error('[Dev Demo Login] Failed to load credentials module:', e);
     return withNoStore(NextResponse.json({ error: 'Demo not enabled' }, { status: 403 }));
   }
-  
-  if (!ENABLED || !findLoginPayloadByRole) {
+
+  if (!ENABLED || typeof findLoginPayloadByRole !== 'function') {
     return withNoStore(NextResponse.json({ error: 'Demo not enabled' }, { status: 403 }));
   }
 
@@ -112,11 +126,15 @@ function withNoStore<T extends NextResponse>(res: T): T {
 
 async function safeParseJson<T>(req: NextRequest): Promise<Partial<T>> {
   try {
-    // Basic content-type guard; still attempt parse to be lenient
+    // Stricter content-type guard - only parse if content-type starts with application/json
     const ct = req.headers.get('content-type') || '';
-    if (!ct.includes('application/json')) return {};
+    if (!ct.startsWith('application/json')) {
+      console.warn('[Dev Demo Login] safeParseJson: Received non-JSON content-type', { contentType: ct });
+      return {};
+    }
     return (await req.json()) as Partial<T>;
-  } catch {
+  } catch (e) {
+    console.error('[Dev Demo Login] safeParseJson: Failed to parse body', e);
     return {};
   }
 }
@@ -124,11 +142,12 @@ async function safeParseJson<T>(req: NextRequest): Promise<Partial<T>> {
 async function safeJsonFromResponse(resp: Response) {
   try {
     const ct = resp.headers.get('content-type') || '';
-    if (!ct.toLowerCase().includes('application/json')) {
+    if (!ct.toLowerCase().startsWith('application/json')) {
       return { ok: resp.ok, status: resp.status };
     }
     return await resp.json();
   } catch {
+    // Handle cases where content-type is json but body is empty
     return { ok: resp.ok, status: resp.status };
   }
 }
