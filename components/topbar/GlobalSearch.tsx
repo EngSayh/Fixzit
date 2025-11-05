@@ -18,6 +18,17 @@ interface GlobalSearchProps {
   onResultClick?: () => void;
 }
 
+/**
+ * GlobalSearch Component
+ * 
+ * SECURITY NOTE: Search query sanitization and validation is handled by:
+ * 1. Backend API (/api/search) which should sanitize all input before database queries
+ * 2. React's automatic XSS protection when rendering results
+ * 3. URL encoding via URLSearchParams
+ * 
+ * Verify that /api/search implements proper input validation, parameterized queries,
+ * and output encoding to prevent injection attacks.
+ */
 export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) {
   const router = useRouter();
   const { app, searchPlaceholderKey, searchEntities } = useTopBar(); // FIX: Use searchPlaceholderKey
@@ -179,7 +190,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
         <div 
           id={listboxId}
           role="listbox"
-          aria-label="Search results"
+          aria-label={t('search.results', 'Search results')}
           className={`absolute top-full ${isRTL ? 'right-0' : 'left-0'} mt-1 bg-popover border border-border rounded-md shadow-lg z-50 max-h-96 overflow-y-auto min-w-full`}
         >
           {loading ? (
@@ -194,13 +205,18 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
           ) : results.length > 0 ? (
             <div className="py-2">
               {results.map((result, index) => (
-                <button
+                <div
                   key={`${result.entity}-${result.id}`}
                   id={`${listboxId}-${index}`}
                   role="option"
                   aria-selected={index === activeIndex}
                   onClick={() => handleResultClick(result.href)}
-                  className={`w-full px-4 py-3 text-left hover:bg-accent border-b border-border last:border-b-0 transition-colors ${
+                  ref={(el) => {
+                    if (index === activeIndex && el) {
+                      el.scrollIntoView({ block: 'nearest' });
+                    }
+                  }}
+                  className={`w-full px-4 py-3 cursor-pointer hover:bg-accent border-b border-border last:border-b-0 transition-colors ${
                     index === activeIndex ? 'bg-accent' : ''
                   }`}
                 >
@@ -215,7 +231,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
                       {result.entity.replace('_', ' ')}
                     </div>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           ) : query && !loading ? (

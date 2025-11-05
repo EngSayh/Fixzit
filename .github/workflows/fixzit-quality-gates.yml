@@ -5,6 +5,12 @@ on:
     branches: [ main, develop ]
   workflow_dispatch: {}
 
+# Prevent concurrent runs for same PR/ref - saves CI resources
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# Least-privilege permissions
 permissions:
   contents: read
   security-events: write
