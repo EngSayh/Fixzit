@@ -509,7 +509,7 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
             </button>
             <button
               onClick={() => setShowAdvanced(false)}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-warning to-warning/80 text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-warning to-warning-dark text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
             >
               {t('aqar.filters.applyFilters', 'Apply Filters')}
             </button>

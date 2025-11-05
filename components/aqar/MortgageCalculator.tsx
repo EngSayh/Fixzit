@@ -80,7 +80,7 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
     <div className="bg-card rounded-2xl shadow-lg p-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-3 bg-gradient-to-br from-warning to-warning/80 rounded-2xl">
+        <div className="p-3 bg-gradient-to-br from-warning to-warning-dark rounded-2xl">
           <Calculator className="w-6 h-6 text-white" />
         </div>
         <div>
