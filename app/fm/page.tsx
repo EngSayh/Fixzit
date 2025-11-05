@@ -1,12 +1,9 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
-// 🟥 UPDATED: Import deprecated hook (will migrate to useFormTracking later)
-import { useUnsavedChanges } from '@/hooks/_deprecated_useUnsavedChanges';
-// 🟩 UPDATED: Import UI components from new location
-import { UnsavedChangesWarning } from '@/components/common/UnsavedChangesWarning';
-import { SaveConfirmation } from '@/components/common/SaveConfirmation';
+// 🟩 MIGRATED: Now using consolidated useFormTracking hook
+import { useFormTracking } from '@/hooks/useFormTracking';
 import { Card, CardContent} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -150,43 +147,33 @@ export default function FMPage() {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  
+  // Track initial state for dirty detection
+  const [initialState] = useState({ searchTerm: '', statusFilter: 'all' });
+  
+  // Derive isDirty from state comparison (component's responsibility per new pattern)
+  const isDirty = searchTerm !== initialState.searchTerm || 
+                  statusFilter !== initialState.statusFilter;
 
-  // Unsaved changes management
-  const {
-    hasUnsavedChanges,
-    showWarning,
-    showSaveConfirm,
-    markDirty,
-    markClean,
-    // handleNavigation unused - no programmatic navigation in this component
-    handleSave,
-    handleDiscard,
-    handleStay
-  } = useUnsavedChanges({
-    message: t('unsaved.message', 'You have unsaved changes. Are you sure you want to leave without saving?'),
-    saveMessage: t('unsaved.saved', 'Your changes have been saved successfully.'),
-    cancelMessage: t('unsaved.cancelled', 'Changes were not saved.'),
+  // 🟩 MIGRATED: Use consolidated useFormTracking hook
+  const { handleSubmit } = useFormTracking({
+    formId: 'fm-page-filters',
+    isDirty,
     onSave: async () => {
-      // Simulate save operation
+      // Simulate save operation (persisting filter preferences)
       await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('Filter preferences saved:', { searchTerm, statusFilter });
     }
   });
 
-  // Track initial values for unsaved changes detection
-  useEffect(() => {
-    markClean(); // Initialize as clean
-  }, [markClean]);
-
-  // Handle search term changes
+  // Handle search term changes - no manual markDirty needed
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
-    markDirty(); // Mark as dirty when search changes
   };
 
-  // Handle status filter changes
+  // Handle status filter changes - no manual markDirty needed  
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
-    markDirty(); // Mark as dirty when filter changes
   };
 
   const vendors = VENDORS;
@@ -275,8 +262,8 @@ export default function FMPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleSave}
-            disabled={!hasUnsavedChanges}
+            onClick={handleSubmit}
+            disabled={!isDirty}
             className="bg-success text-white hover:bg-success/90"
           >
             {t('common.save', 'Save')}
@@ -539,29 +526,11 @@ export default function FMPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Unsaved Changes Warning Dialog */}
-      <UnsavedChangesWarning
-        isOpen={showWarning}
-        onSave={handleSave}
-        onDiscard={handleDiscard}
-        onStay={handleStay}
-        title={t('unsaved.warningTitle', 'Unsaved Changes')}
-        message={t('unsaved.warningMessage', 'You have unsaved changes. Would you like to save them before leaving?')}
-        saveText={t('unsaved.saveChanges', 'Save Changes')}
-        discardText={t('unsaved.discardChanges', 'Discard Changes')}
-        stayText={t('unsaved.stayHere', 'Stay Here')}
-      />
-
-      {/* Save Confirmation Dialog */}
-      <SaveConfirmation
-        isOpen={showSaveConfirm}
-        onConfirm={handleSave}
-        onCancel={handleStay}
-        title={t('unsaved.saveTitle', 'Save Changes')}
-        message={t('unsaved.saveMessage', 'Are you sure you want to save these changes?')}
-        confirmText={t('unsaved.save', 'Save')}
-        cancelText={t('unsaved.cancel', 'Cancel')}
-      />
+      {/* 
+        🟩 MIGRATION NOTE: Dialog components removed
+        useFormTracking now manages dialogs globally via FormStateContext
+        The global dialogs will automatically show when navigating with unsaved changes
+      */}
     </div>
   );
 }
