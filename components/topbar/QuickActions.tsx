@@ -4,15 +4,18 @@ import { useTopBar } from '@/contexts/TopBarContext';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useState, useEffect, useRef } from 'react';
 import { Plus, ChevronDown } from 'lucide-react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function QuickActions() {
   const { quickActions } = useTopBar();
-  const { t, isRTL } = useTranslation(); // FIX: Add t for translation
+  const { t, isRTL } = useTranslation();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Close on outside click and Escape key
+  // Close on outside click and Escape key, handle keyboard navigation
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -20,22 +23,69 @@ export default function QuickActions() {
       }
     };
 
-    const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && open) {
-        setOpen(false);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!open) return;
+
+      switch (event.key) {
+        case 'Escape':
+          event.preventDefault();
+          setOpen(false);
+          break;
+        case 'ArrowDown':
+          event.preventDefault();
+          setActiveIndex((prev) => (prev + 1) % quickActions.length);
+          break;
+        case 'ArrowUp':
+          event.preventDefault();
+          setActiveIndex((prev) => (prev - 1 + quickActions.length) % quickActions.length);
+          break;
+        case 'Home':
+          event.preventDefault();
+          setActiveIndex(0);
+          break;
+        case 'End':
+          event.preventDefault();
+          setActiveIndex(quickActions.length - 1);
+          break;
+        case 'Enter':
+        case ' ':
+          event.preventDefault();
+          if (quickActions[activeIndex]) {
+            const action = quickActions[activeIndex];
+            // AUDIT: Log user navigation action
+            console.info('[QuickActions] User navigation:', {
+              action: action.id,
+              href: action.href,
+              method: event.key === 'Enter' ? 'keyboard-enter' : 'keyboard-space',
+              timestamp: new Date().toISOString(),
+            });
+            router.push(action.href);
+            setOpen(false);
+          }
+          break;
       }
     };
 
     if (open) {
       document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleEscapeKey);
+      document.addEventListener('keydown', handleKeyDown);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscapeKey);
+      document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [open]);
+  }, [open, activeIndex, quickActions, router]);
+
+  // Move focus and scroll active item into view for ARIA compliance
+  useEffect(() => {
+    if (!open) return;
+    const node = itemRefs.current[activeIndex];
+    if (node) {
+      node.focus();
+      node.scrollIntoView({ block: 'nearest' });
+    }
+  }, [activeIndex, open]);
 
   if (quickActions.length === 0) {
     return null;
@@ -56,19 +106,37 @@ export default function QuickActions() {
       </button>
 
       {open && (
-        <div className={`absolute ${isRTL ? 'left-0' : 'right-0'} top-full mt-2 w-56 bg-popover rounded-lg shadow-lg border border-border z-50`}>
-          <div className="p-2" role="menu">
-            {quickActions.map((action) => (
-              <Link
+        <div 
+          className={`absolute ${isRTL ? 'left-0' : 'right-0'} top-full mt-2 w-56 bg-popover rounded-lg shadow-lg border border-border z-50`}
+          role="menu"
+          aria-label={t('topbar.quickActions', 'Quick actions')}
+        >
+          <div className="p-2">
+            {quickActions.map((action, idx) => (
+              <div
                 key={action.id}
-                href={action.href}
-                onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 p-3 rounded-md hover:bg-accent transition-colors text-foreground ${isRTL ? 'flex-row-reverse text-right' : ''}`}
+                ref={(el) => { itemRefs.current[idx] = el; }}
                 role="menuitem"
+                tabIndex={idx === activeIndex ? 0 : -1}
+                onClick={() => {
+                  // AUDIT: Log user navigation action
+                  console.info('[QuickActions] User navigation:', {
+                    action: action.id,
+                    href: action.href,
+                    method: 'click',
+                    timestamp: new Date().toISOString(),
+                  });
+                  router.push(action.href);
+                  setOpen(false);
+                }}
+                onMouseEnter={() => setActiveIndex(idx)}
+                className={`flex items-center gap-3 p-3 rounded-md hover:bg-accent transition-colors text-foreground cursor-pointer ${
+                  idx === activeIndex ? 'ring-2 ring-primary ring-inset' : ''
+                } ${isRTL ? 'flex-row-reverse text-right' : ''}`}
               >
                 <Plus className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm">{t(action.labelKey, action.labelKey)}</span> {/* FIX: Use labelKey and translate */}
-              </Link>
+                <span className="text-sm">{t(action.labelKey, action.labelKey)}</span>
+              </div>
             ))}
           </div>
         </div>

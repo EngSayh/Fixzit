@@ -15,6 +15,13 @@ interface CompactLanguageSelectorProps {
 }
 
 /**
+ * @deprecated This component uses direct DOM manipulation which is an anti-pattern in React.
+ * Use LanguageSelector with appropriate variant instead.
+ * 
+ * ARCHITECTURAL ISSUE: This component directly manipulates document.documentElement
+ * which bypasses React's rendering system and can cause hydration issues.
+ * The TranslationContext already handles lang/dir attributes properly.
+ * 
  * Simplified language selector for authentication pages.
  * Shows only 2-3 common languages in a simple dropdown without search functionality.
  */
