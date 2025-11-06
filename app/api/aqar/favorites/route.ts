@@ -228,12 +228,16 @@ export async function POST(request: NextRequest) {
             $set: { 'analytics.lastFavoritedAt': new Date() }
           }).exec();
         } catch (analyticsError) {
-          logError('Failed to increment listing favorites analytics', {
-            userId: user.id,
-            targetId,
-            targetType,
-            message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
-          });
+          logError(
+            'Failed to increment listing favorites analytics',
+            analyticsError instanceof Error ? analyticsError : new Error('Unknown error'),
+            { 
+              component: 'AqarFavoritesAPI',
+              userId: user.id,
+              targetId,
+              targetType
+            }
+          );
         }
       })();
     } else if (targetType === 'PROJECT') {
@@ -244,12 +248,16 @@ export async function POST(request: NextRequest) {
             $set: { 'analytics.lastFavoritedAt': new Date() }
           }).exec();
         } catch (analyticsError) {
-          logError('Failed to increment project favorites analytics', {
-            userId: user.id,
-            targetId,
-            targetType,
-            message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
-          });
+          logError(
+            'Failed to increment project favorites analytics',
+            analyticsError instanceof Error ? analyticsError : new Error('Unknown error'),
+            { 
+              component: 'AqarFavoritesAPI',
+              userId: user.id,
+              targetId,
+              targetType
+            }
+          );
         }
       })();
     }

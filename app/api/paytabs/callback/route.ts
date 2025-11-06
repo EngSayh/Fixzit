@@ -54,11 +54,16 @@ export async function POST(req: NextRequest) {
   const isValid = validateCallback(payload, signature);
   
   if (!isValid) {
-    logError('PayTabs callback rejected: Invalid signature', {
-      cart_id: payload.cart_id,
-      tran_ref: payload.tran_ref,
-      timestamp: new Date().toISOString()
-    });
+    logError(
+      'PayTabs callback rejected: Invalid signature',
+      new Error('Signature validation failed'),
+      {
+        component: 'PayTabsCallbackAPI',
+        cart_id: payload.cart_id,
+        tran_ref: payload.tran_ref,
+        timestamp: new Date().toISOString()
+      }
+    );
     return createSecureResponse(
       { error: 'Payment verification failed: Invalid signature' },
       403,

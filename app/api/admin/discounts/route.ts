@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
     if (error instanceof Error && error.message === 'Admin access required') {
       return createSecureResponse({ error: 'Admin access required' }, 403, req);
     }
-    logError('Discount fetch failed', error instanceof Error ? error.message : 'Unknown error');
+    logError('Discount fetch failed', error, { component: 'AdminDiscountAPI', operation: 'GET' });
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }
@@ -116,7 +116,7 @@ export async function PUT(req: NextRequest) {
     if (error instanceof Error && error.message === 'Admin access required') {
       return createSecureResponse({ error: 'Admin access required' }, 403, req);
     }
-    logError('Discount update failed', error instanceof Error ? error.message : 'Unknown error');
+    logError('Discount update failed', error, { component: 'AdminDiscountAPI', operation: 'PUT' });
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }

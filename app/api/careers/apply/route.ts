@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
     // 5. Generate application tracking ID
 
     // For now, we'll simulate comprehensive processing
-    logError('🎯 Job Application Received:', {
+    logInfo('🎯 Job Application Received:', {
       applicationId: `APP-${crypto.randomUUID()}`, // SECURITY: Crypto-random ID, not predictable Date.now()
       timestamp: new Date().toISOString(),
       jobDetails: {
