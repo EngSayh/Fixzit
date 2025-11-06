@@ -115,6 +115,15 @@ const nextConfig = {
     },
   },
 
+  // 🛡️ MEMORY PROTECTION: Prevent cache bloat causing OOM (Exit Code 5)
+  // Root Cause: .next/cache was growing to 3GB+ causing memory exhaustion
+  // Solution: Limit cache and enable aggressive cleanup
+  cacheHandler: undefined, // Use default handler with size limits
+  cacheMaxMemorySize: 50 * 1024 * 1024, // 50MB max cache in memory (default: unlimited)
+  
+  // Clean build artifacts on each build to prevent accumulation
+  cleanDistDir: true,
+
   // TypeScript and ESLint - PRODUCTION QUALITY GATES
   // ✅ RESTORED: Build-time type checking and linting enforced
   // These checks are CRITICAL for preventing broken code from reaching production

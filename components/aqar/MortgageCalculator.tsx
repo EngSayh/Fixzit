@@ -105,7 +105,7 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             step="50000"
             value={price}
             onChange={(e) => setPrice(Number(e.target.value))}
-            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning"
+            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2"
           />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>100K</span>
@@ -129,7 +129,7 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             step="5"
             value={downPayment}
             onChange={(e) => setDownPayment(Number(e.target.value))}
-            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning"
+            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2"
           />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>{MIN_DOWN_PAYMENT}% (Min)</span>
@@ -146,16 +146,16 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
           <input
             id="interestRateSlider"
             type="range"
-            min="3"
-            max="8"
+            min="1"
+            max="10"
             step="0.1"
             value={interestRate}
             onChange={(e) => setInterestRate(Number(e.target.value))}
-            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning"
+            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2"
           />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
-            <span>3.0%</span>
-            <span>8.0%</span>
+            <span>1.0%</span>
+            <span>10.0%</span>
           </div>
         </div>
 
@@ -173,7 +173,7 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             step="5"
             value={loanTerm}
             onChange={(e) => setLoanTerm(Number(e.target.value))}
-            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning"
+            className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2"
           />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>5 {t('aqar.mortgage.years', 'years')}</span>
@@ -183,9 +183,9 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
       </div>
 
       {/* Results Section */}
-      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 mb-6">
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 mb-6" role="region" aria-label="Mortgage calculation results">
         <h3 className="text-lg font-bold text-foreground mb-4">{t('aqar.mortgage.monthlyPayment', 'Monthly Payment')}</h3>
-        <div className="text-4xl font-bold text-warning mb-6">
+        <div className="text-4xl font-bold text-warning mb-6" aria-live="polite" aria-atomic="true">
           {formatCurrency(monthlyPayment)}
           <span className="text-sm font-normal text-muted-foreground">/{t('aqar.mortgage.months', 'month')}</span>
         </div>
@@ -238,22 +238,30 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
       <div>
         <button
           onClick={() => setShowAmortization(!showAmortization)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-muted hover:bg-muted rounded-2xl transition-colors"
+          aria-expanded={showAmortization}
+          aria-controls="amortization-schedule"
+          aria-label={`${showAmortization ? 'Hide' : 'View'} amortization schedule`}
+          className="w-full flex items-center justify-between px-4 py-3 bg-muted hover:bg-muted rounded-2xl transition-colors focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2"
         >
           <span className="font-semibold text-foreground">View Amortization Schedule</span>
-          <span className="text-muted-foreground">{showAmortization ? '−' : '+'}</span>
+          <span className="text-muted-foreground" aria-hidden="true">{showAmortization ? '−' : '+'}</span>
         </button>
 
         {showAmortization && (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
+          <div 
+            id="amortization-schedule" 
+            role="region"
+            aria-label="Amortization schedule table"
+            className="mt-4 overflow-x-auto"
+          >
+            <table className="w-full text-sm" role="table">
               <thead>
                 <tr className="bg-muted">
-                  <th className="px-3 py-2 text-left">Month</th>
-                  <th className="px-3 py-2 text-right">Payment</th>
-                  <th className="px-3 py-2 text-right">Principal</th>
-                  <th className="px-3 py-2 text-right">Interest</th>
-                  <th className="px-3 py-2 text-right">Balance</th>
+                  <th scope="col" className="px-3 py-2 text-left">Month</th>
+                  <th scope="col" className="px-3 py-2 text-right">Payment</th>
+                  <th scope="col" className="px-3 py-2 text-right">Principal</th>
+                  <th scope="col" className="px-3 py-2 text-right">Interest</th>
+                  <th scope="col" className="px-3 py-2 text-right">Balance</th>
                 </tr>
               </thead>
               <tbody>
