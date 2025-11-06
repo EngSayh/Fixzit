@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
   // SECURITY: Demo login ONLY allowed in strict development mode
   // CRITICAL: This endpoint bypasses authentication and should NEVER be production-accessible
   if (process.env.NODE_ENV !== 'development') {
-    logError('[SECURITY] Demo login attempted in non-development environment', {
+    logError('[SECURITY] Demo login attempted in non-development environment', new Error('Demo login not allowed in production'), {
+      component: 'DevDemoLogin',
       nodeEnv: process.env.NODE_ENV,
       clientIp: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
     });
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
     findLoginPayloadByRole = module.findLoginPayloadByRole;
   } catch (e) {
     // Module not available (e.g., production build) - fail gracefully
-    logError('[Dev Demo Login] Failed to load credentials module', e);
+    logError('[Dev Demo Login] Failed to load credentials module', e, { component: 'DevDemoLogin' });
     return withNoStore(NextResponse.json({ error: 'Demo not enabled' }, { status: 403 }));
   }
 
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
 
     return res;
   } catch (error) {
-    logError('[Dev Demo Login] Error', error);
+    logError('[Dev Demo Login] Error', error, { component: 'DevDemoLogin' });
     return withNoStore(
       NextResponse.json(
         {
@@ -130,12 +131,12 @@ async function safeParseJson<T>(req: NextRequest): Promise<Partial<T>> {
     // Stricter content-type guard - only parse if content-type starts with application/json
     const ct = req.headers.get('content-type') || '';
     if (!ct.startsWith('application/json')) {
-      logError('[Dev Demo Login] safeParseJson: Received non-JSON content-type', { contentType: ct });
+      logError('[Dev Demo Login] safeParseJson: Received non-JSON content-type', new Error('Invalid content-type'), { component: 'DevDemoLogin', contentType: ct });
       return {};
     }
     return (await req.json()) as Partial<T>;
   } catch (e) {
-    logError('[Dev Demo Login] safeParseJson: Failed to parse body', e);
+    logError('[Dev Demo Login] safeParseJson: Failed to parse body', e, { component: 'DevDemoLogin' });
     return {};
   }
 }

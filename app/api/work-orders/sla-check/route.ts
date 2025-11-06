@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { WorkOrder } from '@/server/models/WorkOrder';
-import { logError } from '@/lib/logger';
+import { logError, logInfo, logWarn } from '@/lib/logger';
 
 /**
  * POST /api/work-orders/sla-check
@@ -43,7 +43,7 @@ export async function POST() {
         const hours = Math.floor(overdue / (1000 * 60 * 60));
         
         // In real implementation, send escalation notifications here
-        logError(`[SLA] BREACH: WO ${wo.workOrderNumber} is ${hours}h overdue`);
+        logWarn(`[SLA] BREACH: WO ${wo.workOrderNumber} is ${hours}h overdue`, { component: 'SLACheck', workOrderId: wo._id, hoursOverdue: hours });
         
         results.notifications.push({
           woNumber: wo.workOrderNumber as string,
@@ -55,7 +55,7 @@ export async function POST() {
         results.atRisk++;
         const minutes = Math.floor(diff / (1000 * 60));
         
-        logError(`[SLA] WARNING: WO ${wo.workOrderNumber} due in ${minutes}m`);
+        logWarn(`[SLA] WARNING: WO ${wo.workOrderNumber} due in ${minutes}m`, { component: 'SLACheck', workOrderId: wo._id, minutesRemaining: minutes });
         
         results.notifications.push({
           woNumber: wo.workOrderNumber as string,
@@ -65,14 +65,14 @@ export async function POST() {
       }
     }
     
-    logError('[SLA] Check complete:', results);
+    logInfo('[SLA] Check complete', { component: 'SLACheck', results });
     
     return NextResponse.json({
       success: true,
       data: results
     });
   } catch (error) {
-    logError('[API] SLA check failed', error instanceof Error ? error.message : 'Unknown error');
+    logError('[API] SLA check failed', error, { component: 'SLACheck' });
     return NextResponse.json(
       { success: false, error: 'SLA check failed' },
       { status: 500 }
@@ -136,7 +136,7 @@ export async function GET() {
       data: preview
     });
   } catch (error) {
-    logError('[API] SLA preview failed', error instanceof Error ? error.message : 'Unknown error');
+    logError('[API] SLA preview failed', error, { component: 'SLACheck' });
     return NextResponse.json(
       { success: false, error: 'SLA preview failed' },
       { status: 500 }
