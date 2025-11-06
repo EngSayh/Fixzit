@@ -5,10 +5,16 @@
   "powershell.sideBar.CommandExplorerVisibility": false,
   "powershell.powerShellDefaultVersion": "PowerShell (disabled)",
 
-  // TypeScript/Node Memory Settings for Large Projects
-  "typescript.tsserver.maxTsServerMemory": 4096,
+  // TypeScript/Node Memory Settings for Large Projects (25K+ files)
+  // Root Cause Fix: Exit Code 5 = OOM caused by TS server + extension host + Turbopack cache
+  "typescript.tsserver.maxTsServerMemory": 3072, // Reduced from 4GB to 3GB to prevent OOM
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false, // Disable project-wide diagnostics
   "typescript.preferences.includePackageJsonAutoImports": "off",
   "typescript.disableAutomaticTypeAcquisition": true,
+  "typescript.suggest.includeAutomaticOptionalChainCompletions": false, // Reduce memory overhead
+  "typescript.tsserver.watchOptions": {
+    "excludeDirectories": ["**/node_modules", "**/.next", "**/.git", "**/dist"]
+  },
 
   "terminal.integrated.env.windows": {
     "NODE_OPTIONS": "--max-old-space-size=4096"

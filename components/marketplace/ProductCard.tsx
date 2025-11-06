@@ -83,7 +83,7 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
           </div>
           {product.rating && product.rating.count > 0 && (
             <div className="flex items-center gap-1 text-xs text-warning">
-              <Star size={14} fill="#FFB400" strokeWidth={0} />
+              <Star size={14} fill="currentColor" className="text-warning" strokeWidth={0} />
               <span>{product.rating.avg.toFixed(1)}</span>
               <span className="text-muted-foreground">({product.rating.count})</span>
             </div>

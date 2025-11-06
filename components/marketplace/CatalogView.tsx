@@ -255,7 +255,7 @@ export default function CatalogView({
                 Reset filters
               </Button>
               {context === 'fm' && (
-                <Button onClick={() => setShowLoginPrompt(true)} className="bg-primary hover:bg-[#00508d]">
+                <Button onClick={() => setShowLoginPrompt(true)} className="bg-primary hover:bg-primary-dark">
                   Invite vendor
                 </Button>
               )}
@@ -320,7 +320,7 @@ export default function CatalogView({
 
                 <div className="flex gap-2 pt-2">
                   <Button
-                    className="flex-1 bg-primary hover:bg-[#00508d]"
+                    className="flex-1 bg-primary hover:bg-primary-dark"
                     onClick={() => handleAddToCart(product)}
                   >
                     <ShoppingCart className="w-4 h-4 mr-2" />
