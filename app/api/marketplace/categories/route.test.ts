@@ -13,7 +13,8 @@ import { getCollections } from '@/lib/db/collections';
 
 type ProductsCollection = { distinct: ReturnType<typeof vi.fn> };
 
-const makeCollections = (distinctValues: unknown[] = [], categoryDocs: any[] = []) => {
+// 🔒 TYPE SAFETY: Using unknown[] for category documents
+const makeCollections = (distinctValues: unknown[] = [], categoryDocs: unknown[] = []) => {
   const toArray = vi.fn().mockResolvedValue(categoryDocs);
   const sort = vi.fn().mockReturnValue({ toArray });
   const find = vi.fn().mockReturnValue({ sort });

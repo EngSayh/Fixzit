@@ -117,7 +117,13 @@ export default function TopBar() {
           setOrgSettings(data);
         }
       } catch (error) {
-        console.error('Failed to fetch organization settings:', error);
+        import('../lib/logger').then(({ logError }) => {
+          logError('Failed to fetch organization settings', error as Error, {
+            component: 'TopBar',
+            action: 'fetchOrgSettings',
+            authenticated: isAuthenticated,
+          });
+        });
       }
     };
     fetchOrgSettings();
@@ -179,7 +185,13 @@ export default function TopBar() {
         setNotifications([]);
       }
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      import('../lib/logger').then(({ logError }) => {
+        logError('Failed to fetch notifications', error as Error, {
+          component: 'TopBar',
+          action: 'fetchNotifications',
+          authenticated: isAuthenticated,
+        });
+      });
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -275,7 +287,13 @@ export default function TopBar() {
 
       await signOut({ callbackUrl: '/login', redirect: true });
     } catch (error) {
-      console.error('Logout error:', error);
+      import('../lib/logger').then(({ logError }) => {
+        logError('Logout error', error as Error, {
+          component: 'TopBar',
+          action: 'handleLogout',
+          authenticated: isAuthenticated,
+        });
+      });
       // NextAuth signOut handles redirect, no manual redirect needed
     }
   };

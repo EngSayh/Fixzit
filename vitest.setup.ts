@@ -122,11 +122,15 @@ vi.mock('@/lib/mongodb-unified', () => {
 (async () => {
   try {
     const journalModule = await import('@/server/models/finance/Journal');
-    const JournalModel = (journalModule as any).default || journalModule;
+    // 🔒 TYPE SAFETY: Use unknown for dynamic module import
+    const JournalModel = (journalModule as { default?: unknown }).default || journalModule;
     // Ensure deleteMany exists on the model (alias to collection.deleteMany if needed)
-    if (JournalModel && typeof JournalModel.deleteMany !== 'function' && JournalModel.collection && typeof JournalModel.collection.deleteMany === 'function') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (JournalModel as any).deleteMany = (...args: any[]) => (JournalModel as any).collection.deleteMany(...args);
+    if (JournalModel && typeof (JournalModel as Record<string, unknown>).deleteMany !== 'function' && 
+        (JournalModel as { collection?: { deleteMany?: unknown } }).collection && 
+        typeof (JournalModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
+      // Add deleteMany alias with proper typing
+      (JournalModel as Record<string, unknown>).deleteMany = (...args: unknown[]) => 
+        ((JournalModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...args);
     }
   } catch {
     // Non-fatal; only needed for tests that import these modules
@@ -134,10 +138,12 @@ vi.mock('@/lib/mongodb-unified', () => {
 
   try {
     const ledgerModule = await import('@/server/models/finance/LedgerEntry');
-    const LedgerModel = (ledgerModule as any).default || ledgerModule;
-    if (LedgerModel && typeof LedgerModel.deleteMany !== 'function' && LedgerModel.collection && typeof LedgerModel.collection.deleteMany === 'function') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (LedgerModel as any).deleteMany = (...args: any[]) => (LedgerModel as any).collection.deleteMany(...args);
+    const LedgerModel = (ledgerModule as { default?: unknown }).default || ledgerModule;
+    if (LedgerModel && typeof (LedgerModel as Record<string, unknown>).deleteMany !== 'function' && 
+        (LedgerModel as { collection?: { deleteMany?: unknown } }).collection && 
+        typeof (LedgerModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
+      (LedgerModel as Record<string, unknown>).deleteMany = (...args: unknown[]) => 
+        ((LedgerModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...args);
     }
   } catch {
     // Non-fatal
@@ -145,10 +151,13 @@ vi.mock('@/lib/mongodb-unified', () => {
 
   try {
     const chartModule = await import('@/server/models/finance/ChartAccount');
-    const ChartModel = (chartModule as any).default || chartModule;
-    if (ChartModel && typeof ChartModel.deleteMany !== 'function' && ChartModel.collection && typeof ChartModel.collection.deleteMany === 'function') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (ChartModel as any).deleteMany = (...args: any[]) => (ChartModel as any).collection.deleteMany(...args);
+    const ChartModel = (chartModule as { default?: unknown }).default || chartModule;
+    if (ChartModel && typeof (ChartModel as Record<string, unknown>).deleteMany !== 'function' && 
+        (ChartModel as { collection?: { deleteMany?: unknown } }).collection && 
+        typeof (ChartModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
+      // 🔒 TYPE SAFETY: Use unknown[] for variadic args
+      (ChartModel as Record<string, unknown>).deleteMany = (...args: unknown[]) => 
+        ((ChartModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...args);
     }
   } catch {
     // Non-fatal

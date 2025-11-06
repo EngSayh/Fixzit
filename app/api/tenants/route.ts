@@ -69,8 +69,9 @@ const createTenantSchema = z.object({
  * Build Tenant Filter
  * Custom filter logic for tenant search/filtering
  */
+// 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB filter
 function buildTenantFilter(searchParams: URLSearchParams, orgId: string) {
-  const filter: Record<string, any> = { orgId };
+  const filter: Record<string, unknown> = { orgId };
 
   const type = searchParams.get('type');
   if (type && ['RESIDENTIAL', 'COMMERCIAL'].includes(type)) {

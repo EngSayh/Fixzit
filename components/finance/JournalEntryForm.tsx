@@ -135,7 +135,13 @@ export default function JournalEntryForm({
         setFilteredAccounts(initial);
       }
     } catch (error) {
-      console.error('Error loading accounts:', error);
+      import('../../lib/logger').then(({ logError }) => {
+        logError('Error loading accounts', error as Error, {
+          component: 'JournalEntryForm',
+          action: 'loadAccounts',
+          linesCount: lines.length,
+        });
+      });
       setErrors({ ...errors, accounts: 'Failed to load chart of accounts' });
     } finally {
       setLoadingAccounts(false);
@@ -350,7 +356,13 @@ export default function JournalEntryForm({
         }
       }
     } catch (error) {
-      console.error('Error submitting journal entry:', error);
+      import('../../lib/logger').then(({ logError }) => {
+        logError('Error submitting journal entry', error as Error, {
+          component: 'JournalEntryForm',
+          action: 'handleSubmit',
+          linesCount: lines.length,
+        });
+      });
       setErrors({ submit: 'An unexpected error occurred' });
     } finally {
       setIsSubmitting(false);

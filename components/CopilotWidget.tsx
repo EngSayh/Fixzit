@@ -298,7 +298,14 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       }
       
       const error = err as Error;
-      console.error('Copilot chat error', error);
+      import('../lib/logger').then(({ logError }) => {
+        logError('Copilot chat error', error, {
+          component: 'CopilotWidget',
+          action: 'handleSendMessage',
+          locale,
+          messageLength: input.length,
+        });
+      });
       
       // Report critical errors to incident system
       if (typeof window !== 'undefined' && error?.message && !error.message.includes('401')) {
@@ -384,7 +391,14 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       }
 
       const error = err as Error;
-      console.error('Tool error', error);
+      import('../lib/logger').then(({ logError }) => {
+        logError('Tool error', error, {
+          component: 'CopilotWidget',
+          action: 'handleSubmitTool',
+          tool,
+          locale,
+        });
+      });
       
       // Report tool errors to incident system
       if (typeof window !== 'undefined' && error?.message && !error.message.includes('401')) {

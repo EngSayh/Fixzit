@@ -83,7 +83,8 @@ export async function GET() {
  * Update current user's preferences with deep merge
  * Preserves nested properties (e.g., partial notifications object won't wipe other notification settings)
  *
- * Body: { language?: string, theme?: string, notifications?: object, [key: string]: any }
+ * 🔒 TYPE SAFETY: Body accepts Record<string, unknown> for flexible preferences
+ * Body: { language?: string, theme?: string, notifications?: object, [key: string]: unknown }
  */
 export async function PUT(request: NextRequest) {
   try {

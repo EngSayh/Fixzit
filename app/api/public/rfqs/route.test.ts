@@ -22,11 +22,13 @@ vi.mock('@/lib/mongo', () => ({
   db: Promise.resolve()
 }));
 
-type RFQDoc = Record<string, any>;
+// 🔒 TYPE SAFETY: Using Record<string, unknown> for RFQ documents
+type RFQDoc = Record<string, unknown>;
 
+// 🔒 TYPE SAFETY: Mock find chain with proper typing
 const findExecChain = () => {
   // Build a chainable mock for Mongoose-like query:
-  const chain: any = {
+  const chain = {
     sort: vi.fn().mockReturnThis(),
     skip: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
@@ -57,6 +59,8 @@ const makeRequest = (params: Record<string, string | number | undefined> = {}) =
 };
 
 // Helper to extract JSON from NextResponse
+// 🔒 TYPE SAFETY: Test helper uses any for flexibility in test assertions
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const readJson = async (res: any) => {
   // next/server NextResponse.json returns a NextResponse-like object with a json() method
   // In Jest environment, the body can be read via res.json()

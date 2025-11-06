@@ -144,9 +144,9 @@ export async function POST(req: NextRequest) {
           authProvider: 'credentials',
         },
       });
-    } catch (dbError: any) {
-      // Handle database-level unique index violation (catches race condition)
-      if (dbError.code === 11000) { 
+    } catch (dbError: unknown) {
+      // 🔒 TYPE SAFETY: Handle MongoDB duplicate key error with type guard
+      if (dbError && typeof dbError === 'object' && 'code' in dbError && dbError.code === 11000) { 
         return duplicateKeyError("An account with this email already exists.");
       }
       // Re-throw other unexpected database errors

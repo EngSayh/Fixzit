@@ -91,7 +91,14 @@ export default function TrialBalanceReport({
       const result = await response.json();
       setData(result);
     } catch (err) {
-      console.error('Error loading trial balance:', err);
+      import('../../lib/logger').then(({ logError }) => {
+        logError('Error loading trial balance', err as Error, {
+          component: 'TrialBalanceReport',
+          action: 'loadData',
+          year,
+          period,
+        });
+      });
       setError(err instanceof Error ? err.message : t('common.error.unknown', 'An error occurred'));
     } finally {
       setLoading(false);
