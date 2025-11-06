@@ -235,7 +235,7 @@ export function AutoFixAgent() {
   // Minimal status colors consistent with brand tokens (no layout changes).
   const badge = useMemo(() => {
     const bad = errors.console + errors.network + errors.hydration;
-    return bad ? '#FFB400' : '#00A859';
+    return bad ? 'hsl(var(--warning))' : 'hsl(var(--success))';
   }, [errors]);
 
   return (
@@ -246,7 +246,7 @@ export function AutoFixAgent() {
     >
       <div id="fixzit-hud"
            style={{ userSelect: 'none', cursor: 'move', fontFamily: 'system-ui, sans-serif',
-                    background: '#0061A8', color: 'white', borderRadius: 8, padding: '6px 10px',  /* FIXED: was #023047 (banned) */
+                    background: 'hsl(var(--primary))', color: 'white', borderRadius: 8, padding: '6px 10px',
                     boxShadow: '0 2px 8px rgba(0,0,0,.2)', width: 180 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <strong>Fixzit QA</strong>
@@ -258,7 +258,7 @@ export function AutoFixAgent() {
         <div style={{ fontSize:12, marginTop:6 }}>
           CE:{errors.console} · NE:{errors.network} · HY:{errors.hydration}
         </div>
-        {halted && <div style={{ fontSize:12, marginTop:6, color:'#FFB400' }}>HALTED: {lastNote || 'diagnosing…'}</div>}
+        {halted && <div style={{ fontSize:12, marginTop:6, color:'hsl(var(--warning))' }}>HALTED: {lastNote || 'diagnosing…'}</div>}
         <div style={{ display:'flex', gap:6, marginTop:6 }}>
           <button type="button" onClick={() => setActive(a => !a)} style={btnStyle}>Agent: {active ? 'On' : 'Off'}</button>
           <button type="button" onClick={() => { setErrors({console:0,network:0,hydration:0}); }} style={btnStyle}>Clear</button>
@@ -269,6 +269,6 @@ export function AutoFixAgent() {
 }
 
 const btnStyle: React.CSSProperties = {
-  background: '#0061A8', color: 'white', border: 'none',
+  background: 'hsl(var(--primary))', color: 'white', border: 'none',
   padding: '4px 8px', borderRadius: 6, fontSize: 12, cursor: 'pointer'
 };
