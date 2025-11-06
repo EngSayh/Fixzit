@@ -12,7 +12,7 @@ type PartialAsset = Partial<AssetDoc> & AnyObj;
 
 function buildValidAsset(overrides: PartialAsset = {}): AnyObj {
   return {
-    tenantId: 'tenant-123',
+    orgId: 'org-123', // Changed from tenantId to orgId (matches tenantIsolationPlugin)
     code: `ASSET-${Math.random().toString(36).slice(2, 8)}`,
     name: 'Main Asset',
     type: 'HVAC',
@@ -59,7 +59,7 @@ describe('Asset model schema', () => {
   });
 
   it('fails validation when required fields are missing', () => {
-    const required = ['tenantId', 'code', 'name', 'type', 'category', 'propertyId', 'createdBy'] as const;
+    const required = ['orgId', 'code', 'name', 'type', 'category', 'propertyId', 'createdBy'] as const; // Changed tenantId to orgId
     for (const field of required) {
       const data = buildValidAsset();
       delete (data as AnyObj)[field];
@@ -133,18 +133,22 @@ describe('Asset model schema', () => {
       indexes.some(([idx]) => Object.keys(fields).length === Object.keys(idx).length &&
         Object.entries(fields).every(([k, v]) => idx[k] === v));
 
-    expect(hasIndex({ tenantId: 1, type: 1 })).toBe(true);
-    expect(hasIndex({ tenantId: 1, status: 1 })).toBe(true);
-    expect(hasIndex({ tenantId: 1, 'pmSchedule.nextPM': 1 })).toBe(true);
-    expect(hasIndex({ tenantId: 1, 'condition.score': 1 })).toBe(true);
+    expect(hasIndex({ orgId: 1, type: 1 })).toBe(true); // Changed tenantId to orgId
+    expect(hasIndex({ orgId: 1, status: 1 })).toBe(true);
+    expect(hasIndex({ orgId: 1, 'pmSchedule.nextPM': 1 })).toBe(true);
+    expect(hasIndex({ orgId: 1, 'condition.score': 1 })).toBe(true);
   });
 
-  it('configures timestamps and unique constraint for "code"', () => {
+  it('configures timestamps and compound unique constraint for "code" with orgId', () => {
     const schema: AnyObj = (Asset as any).schema;
     expect(schema?.options?.timestamps).toBe(true);
 
-    const codePath: AnyObj = schema.path('code');
-    expect(codePath?.options?.unique).toBe(true);
+    // Code uniqueness is enforced via compound index with orgId, not directly on the field
+    const indexes: Array<[Record<string, any>, Record<string, any>]> = (Asset as any).schema.indexes();
+    const hasUniqueCodeIndex = indexes.some(([idx, opts]) => 
+      idx.orgId === 1 && idx.code === 1 && opts?.unique === true
+    );
+    expect(hasUniqueCodeIndex).toBe(true);
 
     expect(schema.path('createdAt')).toBeDefined();
     expect(schema.path('updatedAt')).toBeDefined();

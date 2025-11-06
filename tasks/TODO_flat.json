@@ -1,0 +1,4007 @@
+[
+  {
+    "file": "FIXZIT_AGENT_QUICKSTART.md",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "FIXZIT_AGENT_QUICKSTART.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "auth.config.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "middleware.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "smart-merge-conflicts.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tailwind.config.js",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "DAILY_PROGRESS_REPORTS/2025-01-27-PRODUCTION-IMPROVEMENTS.md",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "DAILY_PROGRESS_REPORTS/2025-01-27-PRODUCTION-IMPROVEMENTS.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "DAILY_PROGRESS_REPORTS/2025-01-improvements-loop-runner.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "DAILY_PROGRESS_REPORTS/AGENT_SESSION_COMPLETE_20251030.md",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "DAILY_PROGRESS_REPORTS/PR-141-COMPLETION-SUMMARY.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "DAILY_PROGRESS_REPORTS/PR-141-FINAL-REVIEW-SUMMARY.md",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "ai/embeddings.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/globals.css",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/not-found.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/AIChat.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/AutoFixInitializer.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/AutoFixInitializer.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/AutoIncidentReporter.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/AutoIncidentReporter.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/ClientLayout.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/ClientLayout.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/CopilotWidget.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/CopilotWidget.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/ErrorBoundary.OLD.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/ErrorBoundary.OLD.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/ErrorBoundary.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/ErrorBoundary.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/ErrorTest.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/Footer.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/GoogleMap.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/GoogleMap.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/HtmlAttrs.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/LoginPrompt.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/Portal.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/PreferenceBroadcast.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/ResponsiveLayout.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/ResponsiveLayout.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/SLATimer.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/Sidebar.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/SupportPopup.OLD.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/SupportPopup.OLD.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/SupportPopup.OLD.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/SupportPopup.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/SupportPopup.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/SupportPopup.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/SystemVerifier.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/SystemVerifier.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/TopBar.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/TopBar.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/TopBar.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "contexts/CurrencyContext.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "contexts/CurrencyContext.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "contexts/FormStateContext.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "contexts/FormStateContext.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "contexts/ResponsiveContext.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "contexts/ThemeContext.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "contexts/TranslationContext.test.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "contexts/TranslationContext.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "contexts/TranslationContext.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "deployment/mongo-init.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/HR_MODULE_BIBLE.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/WORKSPACE_ORGANIZATION.md",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "hooks/useDebounce.ts",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "hooks/useFormTracking.ts",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "hooks/useFormTracking.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "hooks/useScreenSize.ts",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "i18n/I18nProvider.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "i18n/I18nProvider.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "jobs/recurring-charge.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "kb/search.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/AutoFixManager.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/auth-middleware.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "lib/aws-secrets.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/database.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/edge-auth-middleware.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/fm-approval-engine.ts",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "lib/fm-approval-engine.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/fm-auth-middleware.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "lib/fm-auth-middleware.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/fm-finance-hooks.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/logger.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/mongo.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/mongodb-unified.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/paytabs.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/paytabs.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/performance.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/rateLimit.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "lib/redis.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/secrets.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/sendgrid-config.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/zatca.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "models/aqarBoost.model.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "providers/Providers.test.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "providers/Providers.test.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "public/app.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "public/prayer-times.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "public/styles.css",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "public/sw.js",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "public/sw.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "public/ui-bootstrap.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "qa/AutoFixAgent.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "qa/AutoFixAgent.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "qa/ErrorBoundary.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "qa/playwright.config.ts",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "scripts/add-database-indexes.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/analyze-project.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/auto-enhance-routes.js",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "scripts/check-demo-users.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/complete-scope-verification.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/complete-system-audit.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/copilot-index.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/create-demo-users.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/create-file.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/create-project-text-index.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/create-test-data.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/create-text-indexes.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/deploy-db-verify.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/enhance-api-routes.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/ensure-indexes.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/fix-empty-catches.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/fix-en-duplicates.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/fix-html-entities.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/fix-imports-now.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/fix-null-property-codes.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/fix-tsx-entities.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/fix-workorder-index.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/fixzit-comprehensive-audit.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/fixzit-security-fixes.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/fixzit-unified-audit-system.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/generate-marketplace-bible.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/inspect-user.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/janitor.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/kb-change-stream.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/list-users.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/migrate-rfq-bids.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/mongo-check.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/phase1-truth-verifier.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/production-check.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/property-owner-verification.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/rapid-enhance-all.js",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "scripts/rapid-enhance-all.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/reality-check.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/remove-duplicates-v2.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/replace-string-in-file-verbose.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/replace-string-in-file.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/replace.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/scan-hex.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/scanner.js",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "scripts/scanner.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/security-audit.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/security-migration.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/seed-aqar-data.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/seed-aqar-properties.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/seed-chart-accounts.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/seed-chart-of-accounts.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/seed-cms.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/seed-db.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/seed-demo-users.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/seed-marketplace-shared.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/seed-marketplace.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/seed-marketplace.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/seed-realdb.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/seed-subscriptions.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/seed-users.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/seedData.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/seedMarketplace.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/serve-frontend.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/server.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/setup-indexes.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/setup-production-db.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/stop-dev.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/test-all.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/test-auth-config.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/test-auth-fix.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/test-auth.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/test-data.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/test-mongo-connection.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/test-mongodb-atlas.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/test-server.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/truth-verification.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/unified-audit-system.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/universal-verification.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/update-demo-passwords.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/verification-checkpoint.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/verify-api.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/verify-core.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/verify-passwords.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/verify-routes.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/verify-sanitize-and-signed-urls.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/verify.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "stores/useAIChatStore.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/ats.scoring.test.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/hfv.e2e.spec.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/paytabs.test.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/setup-auth.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/setup.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/test_mongodb.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/tools.spec.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tools/extract_coderabbit_prs.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tools/wo-smoke.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "utils/format.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/admin/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/admin/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/administration/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/administration/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/about/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/careers/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/careers/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/finance/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/finance/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/fm/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/forgot-password/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/forgot-password/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/hr/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/login/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/login/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/login/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/logout/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/logout/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/notifications/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/notifications/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/privacy/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/privacy/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/privacy/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/profile/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/reports/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/signup/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/signup/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/signup/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/souq/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/terms/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/terms/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/terms/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/test-rtl/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/admin/UpgradeModal.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/admin/UpgradeModal.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/aqar/MortgageCalculator.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/aqar/PropertyCard.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/aqar/SearchFilters.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/aqar/SearchFilters.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/aqar/ViewingScheduler.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/aqar/ViewingScheduler.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/auth/GoogleSignInButton.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/auth/LoginForm.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/auth/LoginForm.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/auth/LoginForm.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/careers/JobApplicationForm.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/careers/JobApplicationForm.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/finance/AccountActivityViewer.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/finance/AccountActivityViewer.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/finance/AccountActivityViewer.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/finance/JournalEntryForm.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/finance/JournalEntryForm.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/finance/JournalEntryForm.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/finance/TrialBalanceReport.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/finance/TrialBalanceReport.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/finance/TrialBalanceReport.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/fm/WorkOrdersView.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/fm/WorkOrdersView.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/fm/WorkOrdersView.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/forms/ExampleForm.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/forms/ExampleForm.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/i18n/CompactCurrencySelector.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/i18n/CompactLanguageSelector.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/i18n/CompactLanguageSelector.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/i18n/CurrencySelector.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/i18n/CurrencySelector.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/i18n/LanguageSelector.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/i18n/LanguageSelector.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/marketplace/CatalogView.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/marketplace/CatalogView.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/marketplace/CatalogView.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/marketplace/CheckoutForm.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/marketplace/Facets.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/marketplace/PDPBuyBox.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/marketplace/ProductCard.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/marketplace/RFQBoard.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/marketplace/VendorCatalogueManager.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/topbar/AppSwitcher.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/topbar/AppSwitcher.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/topbar/GlobalSearch.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/topbar/GlobalSearch.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/topbar/GlobalSearch.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "components/topbar/QuickActions.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/topbar/QuickActions.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/ui/dialog.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/ui/feature-toggle-skeleton.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/ui/feature-toggle.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/ui/pagination.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/ui/textarea.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/ui/textarea.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/analysis/API_ROUTES_COMPREHENSIVE_ANALYSIS.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/analysis/API_ROUTES_COMPREHENSIVE_ANALYSIS.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/analysis/CODE_QUALITY_COMPLETE_ANALYSIS.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/analysis/WORKFLOW_FAILURES_CATEGORIZATION_2025-10-16.md",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "docs/analysis/system-wide-issues-analysis.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/development/FORMSTATE_CONTEXT_USAGE.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/development/FORMSTATE_CONTEXT_USAGE.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/development/FORMSTATE_INTEGRATION_GUIDE.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/development/FORMSTATE_INTEGRATION_GUIDE.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/development/FORM_SAVE_EVENTS.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/development/FORM_SAVE_EVENTS.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/guides/AWS_SECRETS_SETUP_GUIDE.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/guides/HOW_TO_TEST_AUTO_LOGIN_FIX.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/guides/NEXTAUTH_V5_PRODUCTION_READINESS.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/guides/PR84_CONFLICT_RESOLUTION_GUIDE.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/guides/REMOTE_KEY_MANAGEMENT_GUIDE.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/inventory/paytabs-duplicates.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/progress/ABSOLUTE_PERFECTION_ROADMAP.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/progress/CODERABBIT_696_FIX_PROGRESS.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/progress/CODERABBIT_696_FIX_PROGRESS.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/progress/CONTINUOUS_IMPROVEMENT_SESSION_REPORT.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/progress/CONTINUOUS_TEST_IMPROVEMENT_SESSION_2.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/progress/ESLINT_CLEANUP_PROGRESS.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/progress/MASSIVE_TYPE_SAFETY_PROGRESS.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/progress/PHASE5_6_COMPREHENSIVE_PLAN.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/progress/PR83_FIXES_PLAN.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/progress/PR_COMMENTS_COMPREHENSIVE_FIX_PLAN.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/progress/SESSION_COMPLETE_REPORT.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/progress/SESSION_PROGRESS_REPORT_20251014.md",
+    "pattern": "Undefined Property Access (Potential)",
+    "task": "Investigate potential Undefined Property Access (Potential) issue."
+  },
+  {
+    "file": "docs/progress/SESSION_PROGRESS_REPORT_20251014.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/progress/SUB_BATCH_1_2B_PROGRESS.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/progress/TEST_FIXES_SESSION_30_COMMITS.md",
+    "pattern": "Fragile Relative Imports",
+    "task": "Investigate potential Fragile Relative Imports issue."
+  },
+  {
+    "file": "docs/pull-requests/PR135_COMPLETE_VERIFICATION.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/pull-requests/PR137_CRITICAL_FIXES_COMPLETE.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/pull-requests/PR_ERRORS_COMMENTS_REPORT.md",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "docs/reports/100_PERCENT_COMPLETION_REPORT.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/ADDITIONAL_FIXES_COMPLETED.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/API_ROUTES_100_PERCENT_COMPLETE.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/API_ROUTES_FIX_IMPLEMENTATION_REPORT.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/ARABIC_TRANSLATION_VERIFICATION_COMPLETE.md",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "docs/reports/ARABIC_TRANSLATION_VERIFICATION_COMPLETE.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/CLAUDE_PROMPTS.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/reports/CODERABBIT_696_CATEGORIZED.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/reports/CODERABBIT_696_CATEGORIZED.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/CODERABBIT_696_CATEGORIZED.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/CODE_QUALITY_FINAL_STATUS.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/CODE_REVIEW_FIXES_COMPLETE.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/COMPLETE_FIX_REPORT_OCT26.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/reports/COMPLETE_FIX_REPORT_OCT26.md",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "docs/reports/COMPLETE_FIX_SUMMARY_2025_10_20.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_COMMENT_FIX_STATUS.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_COMMENT_FIX_STATUS.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_COMMENT_FIX_STATUS.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_ERROR_ANALYSIS_SUMMARY.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_ERROR_LIST_48H.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_FIXES_COMPLETE.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_FIXES_COMPLETE.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_SCAN_FINDINGS.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_SCAN_FINDINGS.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/COMPREHENSIVE_SYSTEM_STATUS_REPORT.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/CONSOLIDATION_FINAL_REPORT.md",
+    "pattern": "Alias Misuse ( \"@/src\" )",
+    "task": "Investigate potential Alias Misuse ( \"@/src\" ) issue."
+  },
+  {
+    "file": "docs/reports/CRITICAL_FIXES_REQUIRED.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/reports/CRITICAL_FIXES_REQUIRED.md",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "docs/reports/CRITICAL_FIXES_REQUIRED.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/DUPLICATE_CLEANUP_REPORT.md",
+    "pattern": "Alias Misuse ( \"@/src\" )",
+    "task": "Investigate potential Alias Misuse ( \"@/src\" ) issue."
+  },
+  {
+    "file": "docs/reports/DUPLICATE_CODE_ANALYSIS_REPORT.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/reports/DUPLICATE_CODE_ANALYSIS_REPORT.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/DUPLICATE_CODE_ANALYSIS_REPORT.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/DYNAMIC_IMPORT_IMPLEMENTATION.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/DYNAMIC_IMPORT_IMPLEMENTATION.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/E2E_FIXES_COMPLETE.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/E2E_TEST_FIXES_SUMMARY.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/E2E_TEST_FIXES_SUMMARY.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/ERRORS_FIXED_PAST_15_DAYS.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/reports/ERRORS_FIXED_PAST_15_DAYS.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/ESLINT_ANY_ELIMINATION_REPORT_20251014.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/ESLINT_CATEGORIES_ACTIONABLE.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/reports/ESLINT_CATEGORIES_ACTIONABLE.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/ESLINT_CATEGORIES_ACTIONABLE.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/ESLINT_ELIMINATION_STRATEGY.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/ESLINT_READY_TO_EXECUTE.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/reports/ESLINT_READY_TO_EXECUTE.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/ESLINT_READY_TO_EXECUTE.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/FINAL_COMPREHENSIVE_FIXES_REPORT.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/FINAL_MISSION_REPORT.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/FINAL_MISSION_REPORT.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/FIXES_IMPLEMENTATION_STATUS.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/reports/FIX_SUMMARY.md",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "docs/reports/HEREDOC_SOLUTION.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/IMPORT_FIXES_COMPLETE.md",
+    "pattern": "Alias Misuse ( \"@/src\" )",
+    "task": "Investigate potential Alias Misuse ( \"@/src\" ) issue."
+  },
+  {
+    "file": "docs/reports/JEST_VITEST_MIGRATION_PHASE4_COMPLETE.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/LOCAL_VERIFICATION_COMPLETE.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/LOGIN_PAGE_REFACTORING_COMPLETE.md",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "docs/reports/MONGODB_DEPLOYMENT_READY.md",
+    "pattern": "Alias Misuse ( \"@/src\" )",
+    "task": "Investigate potential Alias Misuse ( \"@/src\" ) issue."
+  },
+  {
+    "file": "docs/reports/MONGODB_UNIFIED_VERIFICATION_COMPLETE.md",
+    "pattern": "Alias Misuse ( \"@/src\" )",
+    "task": "Investigate potential Alias Misuse ( \"@/src\" ) issue."
+  },
+  {
+    "file": "docs/reports/MONGODB_VERIFICATION_REPORT.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/P0_ISSUE_PR_CLOSURE_COMPLETE.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/PHASE1_COMPLETE.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/reports/PHASE1_COMPLETE.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/PHASE_1_COMPLETE.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/reports/PHASE_1_COMPLETE.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/POWERSHELL_HEREDOC_CONFIGURED.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/PR83_FIXES_SUMMARY.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/PR84_FINAL_STATUS.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/PR84_FINAL_STATUS.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/PR_75_FIXES_STATUS.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/PR_FIXES_SUMMARY.md",
+    "pattern": "Alias Misuse ( \"@/src\" )",
+    "task": "Investigate potential Alias Misuse ( \"@/src\" ) issue."
+  },
+  {
+    "file": "docs/reports/QA_IMPLEMENTATION_STATUS.md",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "docs/reports/SUB_BATCH_1_2B_DIAGNOSTIC.md",
+    "pattern": "Undefined Property Access (Potential)",
+    "task": "Investigate potential Undefined Property Access (Potential) issue."
+  },
+  {
+    "file": "docs/reports/SYSTEM_ERRORS_DETAILED_REPORT.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/reports/TEST_COVERAGE_IMPROVEMENT_REPORT.md",
+    "pattern": "Fragile Relative Imports",
+    "task": "Investigate potential Fragile Relative Imports issue."
+  },
+  {
+    "file": "docs/reports/TOOL_VERIFICATION_COMPLETE.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/reports/TRANSLATION_FIXES_COMPLETE_REPORT.md",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "docs/reports/TYPESCRIPT_ZERO_ERRORS_ACHIEVED.md",
+    "pattern": "TypeScript Assignability Issues (Potential)",
+    "task": "Investigate potential TypeScript Assignability Issues (Potential) issue."
+  },
+  {
+    "file": "docs/reports/VERIFICATION_REPORT_20251011.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/security/NEXTAUTH_V5_PRODUCTION_READINESS.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/security/SECURITY_AUDIT_2025_10_20.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/security/SECURITY_AUDIT_ADDITIONAL_FINDINGS.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/security/SECURITY_FIXES_COMPLETE_2025_10_19.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/security/SECURITY_FIXES_COMPLETE_2025_10_19.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/sessions/COMPLETE_TASK_SUMMARY.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/sessions/FIX_SUMMARY_COMPREHENSIVE_2025_10_19.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/sessions/FIX_SUMMARY_COMPREHENSIVE_2025_10_19.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/sessions/FIX_SUMMARY_DOCUMENTATION_CODE_QUALITY_2025_10_19.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/sessions/FIX_SUMMARY_DOCUMENTATION_CODE_QUALITY_2025_10_19.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/sessions/RTL_DROPDOWN_AND_AUTOLOGIN_FIX_2025-10-24.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/sessions/SESSION_COMPLETE_2025_10_19.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/sessions/SESSION_COMPLETE_2025_10_19.md",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "docs/sessions/SESSION_CONTINUATION_2025_10_19.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "lib/analytics/incrementWithRetry.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/api/crud-factory.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/api/http.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "lib/aqar/package-activation.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/audit/middleware.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/db/index.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/errors/ErrorResponse.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "lib/errors/secureErrorResponse.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/i18n/server.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/marketplace/search.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "lib/marketplace/security.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "lib/payments/currencyUtils.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "public/js/saudi-mobile-optimizations.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "qa/tests/00-landing.spec.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "qa/tests/02-rtl-lang.spec.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "qa/tests/debug-login.spec.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/_shared/marketplace.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/security/fix-ip-extraction.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/testing/e2e-all-users-all-pages.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/testing/e2e-production-test.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/testing/test-auth.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/testing/test-e2e-comprehensive.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/testing/test-mongodb-comprehensive.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "scripts/testing/test-system-e2e.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "server/audit/withAudit.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "server/copilot/audit.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "server/middleware/withAuthRbac.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "server/middleware/withAuthRbac.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "server/models/AuditLog.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "server/models/FMApproval.ts",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "server/models/ServiceProvider.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "server/security/headers.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "server/security/ip-utils.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/api/lib-paytabs.test.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/api/paytabs-callback.test.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "tests/api/paytabs-callback.test.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/hooks/useFormTracking.test.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/models/MarketplaceProduct.test.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/pages/product.slug.page.test.ts",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "tests/scripts/generate-marketplace-bible.test.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/scripts/seed-marketplace.mjs.test.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/specs/smoke.spec.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tools/analyzers/analyze-comments.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tools/analyzers/analyze-imports.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tools/analyzers/analyze-system-errors.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tools/fixers/batch-fix-unknown.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tools/fixers/fix-all-unknown-types.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tools/fixers/fix-hardcoded-colors.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tools/fixers/fix-unknown-smart.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tools/scripts-archive/final-typescript-fix.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tools/scripts-archive/fix_merge_conflicts.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tools/scripts-archive/test-powershell-heredoc.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/(dashboard)/referrals/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/(dashboard)/referrals/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/(dashboard)/referrals/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/admin/audit-logs/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/admin/audit-logs/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/admin/audit-logs/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/admin/cms/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/admin/feature-settings/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/admin/feature-settings/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/admin/feature-settings/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/contracts/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/i18n/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/i18n/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/invoices/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/invoices/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/notifications/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/rfqs/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/rfqs/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/search/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/search/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/slas/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/slas/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/vendors/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/vendors/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/aqar/filters/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/aqar/properties/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/aqar/properties/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/careers/[slug]/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/cms/[slug]/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/dev/login-helpers/DevLoginClient.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/dev/login-helpers/DevLoginClient.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/fm/assets/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/fm/assets/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/fm/dashboard/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/fm/dashboard/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/fm/invoices/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/fm/maintenance/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/fm/orders/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/fm/orders/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/fm/projects/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/fm/projects/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/fm/properties/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/fm/properties/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/fm/rfqs/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/fm/rfqs/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/fm/support/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/fm/tenants/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/fm/tenants/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/fm/vendors/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/fm/vendors/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/help/ai-chat/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/help/support-ticket/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/help/support-ticket/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/hr/employees/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/hr/employees/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/hr/employees/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/hr/payroll/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/hr/payroll/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/hr/payroll/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/marketplace/admin/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/marketplace/orders/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/product/[slug]/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/product/[slug]/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/properties/[id]/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/properties/[id]/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/properties/documents/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/properties/inspections/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/properties/leases/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/properties/units/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/souq/catalog/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/souq/vendors/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/support/my-tickets/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/support/my-tickets/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/vendor/dashboard/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/vendor/dashboard/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/work-orders/approvals/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/work-orders/history/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/work-orders/new/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/work-orders/pm/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "i18n/dictionaries/__tests__/ar.test.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "public/assets/css/theme.css",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "server/services/finance/postingService.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/api/marketplace/search.route.impl.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "tests/api/marketplace/search.route.impl.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/finance/e2e/finance-pack.test.ts",
+    "pattern": "Fragile Relative Imports",
+    "task": "Investigate potential Fragile Relative Imports issue."
+  },
+  {
+    "file": "tests/finance/e2e/finance-pack.test.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/finance/unit/posting.service.test.ts",
+    "pattern": "Fragile Relative Imports",
+    "task": "Investigate potential Fragile Relative Imports issue."
+  },
+  {
+    "file": "tests/unit/api/api-paytabs-callback.spec.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "tests/unit/api/api-paytabs-callback.spec.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/unit/api/api-paytabs.spec.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "tests/unit/app/api_help_articles_route.test.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "tests/unit/app/api_help_articles_route.test.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/unit/app/help_ai_chat_page.test.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/unit/components/ErrorBoundary.test.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "tests/unit/components/ErrorBoundary.test.tsx",
+    "pattern": "Undefined Property Access (Potential)",
+    "task": "Investigate potential Undefined Property Access (Potential) issue."
+  },
+  {
+    "file": "tests/unit/providers/Providers.test.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "tools/scripts-archive/dead-code/HelpWidget.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/api/admin/audit-logs/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/admin/audit-logs/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/admin/discounts/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/admin/discounts/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/admin/price-tiers/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/admin/users/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/admin/users/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/aqar/favorites/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/aqar/favorites/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/aqar/leads/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/aqar/leads/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/aqar/listings/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/aqar/packages/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/aqar/packages/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/aqar/properties/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/assets/[id]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/assistant/query/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/assistant/query/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/ats/convert-to-employee/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/ats/convert-to-employee/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/ats/jobs/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/ats/jobs/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/ats/moderation/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/ats/moderation/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/ats/public-post/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/ats/public-post/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/auth/signup/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/benchmarks/compare/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/benchmarks/compare/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/billing/subscribe/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/billing/subscribe/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/careers/apply/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/careers/apply/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/copilot/chat/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/copilot/chat/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/copilot/knowledge/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/copilot/profile/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/dev/demo-accounts/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/dev/demo-accounts/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/dev/demo-login/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/dev/demo-login/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/feeds/indeed/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/finance/accounts/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/finance/accounts/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/finance/expenses/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/finance/expenses/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/finance/invoices/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/finance/invoices/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/finance/journals/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/finance/journals/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/finance/ledger/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/finance/ledger/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/finance/payments/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/finance/payments/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/health/database/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/health/database/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/help/articles/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/help/articles/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/help/ask/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/help/ask/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/hr/employees/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/hr/employees/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/invoices/[id]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/kb/ingest/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/kb/search/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/marketplace/cart/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/marketplace/cart/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/marketplace/categories/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/marketplace/categories/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/marketplace/checkout/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/marketplace/orders/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/marketplace/products/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/marketplace/products/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/marketplace/rfq/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/marketplace/search/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/marketplace/search/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/organization/settings/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/organization/settings/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/payments/callback/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/payments/create/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/payments/paytabs/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/payments/paytabs/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/paytabs/callback/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/paytabs/return/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/performance/metrics/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/performance/metrics/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/pm/generate-wos/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/pm/generate-wos/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/pm/plans/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/pm/plans/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/projects/[id]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/properties/[id]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/public/rfqs/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/public/rfqs/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/qa/alert/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/qa/health/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/qa/health/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/qa/log/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/qa/reconnect/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/qa/reconnect/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/referrals/generate/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/referrals/generate/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/referrals/my-code/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/referrals/my-code/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/subscribe/corporate/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/subscribe/owner/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/support/incidents/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/support/incidents/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/support/tickets/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/support/tickets/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/support/welcome-email/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/tenants/[id]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/user/preferences/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/user/preferences/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/user/profile/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/user/profile/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/vendors/[id]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/webhooks/sendgrid/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/work-orders/import/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/work-orders/sla-check/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/work-orders/sla-check/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/finance/budgets/new/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/finance/budgets/new/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/finance/budgets/new/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/finance/expenses/new/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/finance/expenses/new/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/finance/expenses/new/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/finance/invoices/new/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/finance/invoices/new/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/finance/invoices/new/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/finance/payments/new/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/finance/payments/new/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/finance/payments/new/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/fm/properties/[id]/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/fm/properties/[id]/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/fm/support/tickets/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/fm/support/tickets/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/fm/vendors/[id]/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/fm/vendors/[id]/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/help/tutorial/getting-started/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/help/tutorial/getting-started/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/marketplace/vendor/portal/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/marketplace/vendor/portal/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/work-orders/[id]/parts/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/work-orders/[id]/parts/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/work-orders/[id]/parts/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/api/marketplace/products/route.test.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "tests/unit/api/support/incidents.route.test.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "tests/unit/app/fm/marketplace-page.test.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/api/admin/billing/annual-discount/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/admin/users/[id]/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/admin/users/[id]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/aqar/favorites/[id]/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/aqar/favorites/[id]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/aqar/listings/[id]/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/aqar/listings/[id]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/aqar/listings/search/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/aqar/listings/search/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/ats/applications/[id]/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/ats/applications/[id]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/billing/callback/paytabs/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/cms/pages/[slug]/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/cms/pages/[slug]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/files/resumes/[file]/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/files/resumes/[file]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/files/resumes/presign/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/files/resumes/presign/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/finance/accounts/[id]/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/finance/accounts/[id]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/finance/expenses/[id]/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/finance/expenses/[id]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/finance/invoices/[id]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/finance/ledger/trial-balance/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/finance/ledger/trial-balance/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/help/articles/[id]/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/help/articles/[id]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/hr/payroll/runs/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/hr/payroll/runs/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/integrations/linkedin/apply/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/integrations/linkedin/apply/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/marketplace/products/[slug]/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/marketplace/products/[slug]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/marketplace/vendor/products/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/owners/groups/assign-primary/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/payments/paytabs/callback/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/payments/paytabs/callback/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/pm/plans/[id]/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/pm/plans/[id]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/rfqs/[id]/bids/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/rfqs/[id]/publish/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/rfqs/[id]/publish/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/support/tickets/my/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/fm/vendors/[id]/edit/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/fm/vendors/[id]/edit/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/hr/ats/jobs/new/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/marketplace/vendor/products/upload/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/marketplace/vendor/products/upload/page.tsx",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "aws/dist/docutils/writers/html4css1/html4css1.css",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "qa/qa/artifacts/html-report/trace/index.BZPYnuWQ.js",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "qa/qa/artifacts/html-report/trace/index.BZPYnuWQ.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "qa/qa/artifacts/html-report/trace/sw.bundle.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "tests/unit/api/public/rfqs/route.test.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "tests/unit/components/fm/__tests__/WorkOrdersView.test.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/api/ats/jobs/[id]/apply/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/ats/jobs/[id]/apply/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/ats/jobs/[id]/publish/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/ats/jobs/[id]/publish/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/finance/journals/[id]/post/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/finance/journals/[id]/post/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/finance/journals/[id]/void/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/finance/journals/[id]/void/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/finance/expenses/[id]/[action]/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/finance/expenses/[id]/[action]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/finance/ledger/account-activity/[accountId]/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/finance/ledger/account-activity/[accountId]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/finance/payments/[id]/[action]/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/finance/payments/[id]/[action]/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/support/tickets/[id]/reply/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/work-orders/[id]/attachments/presign/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "qa/qa/artifacts/html-report/trace/assets/codeMirrorModule-B9MwJ51G.js",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "qa/qa/artifacts/html-report/trace/assets/defaultSettingsView-Do_wwdKw.js",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "qa/qa/artifacts/html-report/trace/assets/defaultSettingsView-Do_wwdKw.js",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "qa/qa/artifacts/html-report/trace/assets/defaultSettingsView-Do_wwdKw.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/hr/payroll/runs/[id]/calculate/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/hr/payroll/runs/[id]/calculate/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "aws/dist/docutils/writers/s5_html/themes/default/slides.js",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/api/hr/payroll/runs/[id]/export/wps/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/hr/payroll/runs/[id]/export/wps/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  }
+]
