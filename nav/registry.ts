@@ -26,7 +26,8 @@ export type ModuleDef = {
 export const modules: ModuleDef[] = [
   {
     id: 'dashboard', label: 'Dashboard', route: '/fm/dashboard', icon: LayoutDashboard,
-    roles: ['SUPER_ADMIN','ADMIN','CORP_OWNER','TEAM','TECHNICIAN','PROPERTY_MANAGER','TENANT','VENDOR','GUEST'],
+    // SECURITY FIX: Removed GUEST role - guests should not have dashboard access (principle of least privilege)
+    roles: ['SUPER_ADMIN','ADMIN','CORP_OWNER','TEAM','TECHNICIAN','PROPERTY_MANAGER','TENANT','VENDOR'],
     quickActions: [
       { id: 'qa-new-wo', label: 'New Work Order', path: '/fm/work-orders/new' },
       { id: 'qa-new-invoice', label: 'New Invoice', path: '/fm/finance/invoices/new' },
