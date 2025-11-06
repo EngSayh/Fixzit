@@ -79,7 +79,13 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
         setResults(data.results || []);
         setOpen(true);
       } catch (err) {
-        console.error('Search failed:', err);
+        import('../../lib/logger').then(({ logError }) => {
+          logError('Search failed', err as Error, {
+            component: 'GlobalSearch',
+            action: 'handleSearch',
+            query,
+          });
+        });
         setError('Search failed. Please try again.');
         setResults([]);
       } finally {

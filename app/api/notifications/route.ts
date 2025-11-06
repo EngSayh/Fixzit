@@ -95,7 +95,12 @@ export async function GET(req: NextRequest) {
     notifications.find(filter).sort({ timestamp: -1 }).skip(skip).limit(limit).toArray(),
     notifications.countDocuments(filter)
   ]);
-  const items = rawItems.map((n: any) => ({ id: String(n._id), ...n, _id: undefined }));
+  // 🔒 TYPE SAFETY: Serialize MongoDB documents with explicit type
+  const items = rawItems.map((n) => ({ 
+    id: String((n as { _id: unknown })._id), 
+    ...n, 
+    _id: undefined 
+  }));
 
   return NextResponse.json({
     items,

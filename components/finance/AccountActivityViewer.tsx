@@ -127,7 +127,13 @@ export default function AccountActivityViewer({
 
       setData(result);
     } catch (err) {
-      console.error('Error loading account activity:', err);
+      import('../../lib/logger').then(({ logError }) => {
+        logError('Error loading account activity', err as Error, {
+          component: 'AccountActivityViewer',
+          action: 'loadTransactions',
+          accountId,
+        });
+      });
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);

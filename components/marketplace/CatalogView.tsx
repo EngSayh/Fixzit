@@ -165,7 +165,13 @@ export default function CatalogView({
       setFeedbackMessage(`${product.title} added to cart.`);
       await mutate();
     } catch (err) {
-      console.error(err);
+      import('../../lib/logger').then(({ logError }) => {
+        logError('Failed to add product to cart', err as Error, {
+          component: 'CatalogView',
+          action: 'addToCart',
+          productId: product.id,
+        });
+      });
       setFeedbackMessage('We could not add this item to your cart. Please try again.');
     }
   };

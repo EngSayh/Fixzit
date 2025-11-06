@@ -67,8 +67,9 @@ const vendorQuerySchema = z.object({
 });
 
 // Custom filter builder for vendor-specific search
-function buildVendorFilter(searchParams: URLSearchParams, orgId: string) {
-  const match: Record<string, any> = { tenantId: orgId };
+// 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB filter
+function buildFilter(orgId: string, params: URLSearchParams) {
+  const match: Record<string, unknown> = { tenantId: orgId };
 
   // Validate and sanitize query parameters to prevent NoSQL injection
   const rawParams = {

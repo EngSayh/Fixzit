@@ -96,7 +96,13 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
       }
       setIsFavorite(!isFavorite);
     } catch (error) {
-      console.error('Failed to toggle favorite:', error);
+      import('../../lib/logger').then(({ logError }) => {
+        logError('Failed to toggle favorite', error as Error, {
+          component: 'PropertyCard',
+          action: 'toggleFavorite',
+          propertyId: property.id,
+        });
+      });
     }
   };
 

@@ -39,9 +39,10 @@ const createProjectSchema = z.object({
 
 /**
  * Build Project Filter
+ * 🔒 TYPE SAFETY: Using Record<string, unknown> instead of any
  */
 function buildProjectFilter(searchParams: URLSearchParams, orgId: string) {
-  const filter: Record<string, any> = { orgId };
+  const filter: Record<string, unknown> = { orgId };
 
   const type = searchParams.get('type');
   if (type && ["NEW_CONSTRUCTION", "RENOVATION", "MAINTENANCE", "FIT_OUT", "DEMOLITION"].includes(type)) {
@@ -84,7 +85,8 @@ export const { GET, POST } = createCrudHandlers({
   searchFields: ['name', 'code', 'description', 'location.address', 'location.city'],
   buildFilter: buildProjectFilter,
   // Custom onCreate hook to initialize project state
-  onCreate: async (data: any) => {
+  // 🔒 TYPE SAFETY: Using Record for dynamic project data
+  onCreate: async (data: Record<string, unknown>) => {
     return {
       ...data,
       status: "PLANNING",
