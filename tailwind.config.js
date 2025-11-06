@@ -29,6 +29,7 @@ const config = {
           '800': '#1e40af',
           '900': '#1e3a8a',
           DEFAULT: 'hsl(var(--primary))',
+          dark: '#004f88',  // Darker shade of #0061A8 for hover states
           foreground: 'hsl(var(--primary-foreground))'
         },
         secondary: {
@@ -92,7 +93,10 @@ const config = {
           dark: '#0061A8',  // FIXED: was #023047 (banned)
           DEFAULT: '#0061A8'
         },
-        success: '#00a859',
+        success: {
+          DEFAULT: '#00a859',
+          dark: '#008d48',  // Darker shade for hover states
+        },
         warning: {
           DEFAULT: '#FFB400',
           dark: '#FF8C00',
