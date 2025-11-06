@@ -371,14 +371,19 @@ async function generateMovePlan() {
 
     // Next.js protected patterns (must NOT be moved)
     const PROTECTED_PATTERNS = [
-        /^app\/.*\/layout\.tsx?$/,              // Next.js layouts
-        /^app\/.*\/page\.tsx?$/,                // Next.js pages (check carefully)
-        /^app\/.*\/loading\.tsx?$/,             // Next.js loading states
-        /^app\/.*\/error\.tsx?$/,               // Next.js error boundaries
-        /^app\/.*\/not-found\.tsx?$/,           // Next.js 404 pages
-        /^app\/.*\/template\.tsx?$/,            // Next.js templates
-        /^app\/api\//,                          // Next.js API routes
-        /^app\/\(.*\)\//,                       // Next.js route groups
+        /^app\/layout\.tsx?$/,                  // Root layout
+        /^app\/.*\/layout\.tsx?$/,              // Nested layouts
+        /^app\/page\.tsx?$/,                    // Root page
+        /^app\/.*\/page\.tsx?$/,                // Nested pages
+        /^app\/.*\/loading\.tsx?$/,             // Loading states
+        /^app\/.*\/error\.tsx?$/,               // Error boundaries
+        /^app\/.*\/not-found\.tsx?$/,           // 404 pages
+        /^app\/.*\/template\.tsx?$/,            // Templates
+        /^app\/.*\/default\.tsx?$/,             // Default pages (parallel routes)
+        /^app\/api\//,                          // API routes
+        /^app\/\(.*\)\//,                       // Route groups
+        /^app\/global\.css$/,                   // Global styles
+        /^app\/globals\.css$/,                  // Global styles (alt)
     ];
 
     // Module namespace boundaries (keep separate)
@@ -398,6 +403,13 @@ async function generateMovePlan() {
             // Skip files within module namespaces
             if (MODULE_NAMESPACES.some(ns => file.startsWith(ns))) {
                 continue;
+            }
+
+            // Skip files already in proper utility directories
+            if (file.startsWith('lib/') || file.startsWith('utils/') || file.startsWith('hooks/')) {
+                // Only move if they're clearly misplaced (e.g., lib/fm-* should be in app/fm)
+                const shouldMove = /^(lib|utils|hooks)\/[^\/]*-(dashboard|work-orders|properties|finance|hr|administration|crm|marketplace|support|compliance|reports|system)/.test(file);
+                if (!shouldMove) continue;
             }
 
             let targetBucket = null;

@@ -3,7 +3,7 @@
  * API Endpoint Scanner (Next.js App Router)
  * 
  * Discovers all API routes in the Next.js App Router structure:
- * - Finds **/route.{ts,js} files
+ * - Finds route.ts and route.js files
  * - Extracts exported HTTP methods (GET, POST, PUT, DELETE, etc.)
  * - Generates comprehensive API inventory
  * 

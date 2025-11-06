@@ -1100,11 +1100,6 @@
     "task": "Investigate potential Unhandled Rejections (Potential) issue."
   },
   {
-    "file": "app/reports/page.tsx",
-    "pattern": "Hydration/Server-Client Mismatch (Potential)",
-    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
-  },
-  {
     "file": "app/profile/page.tsx",
     "pattern": "Hydration/Server-Client Mismatch (Potential)",
     "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
@@ -1113,6 +1108,11 @@
     "file": "app/profile/page.tsx",
     "pattern": "Unhandled Rejections (Potential)",
     "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
+    "file": "app/reports/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
   },
   {
     "file": "app/signup/page.tsx",
@@ -2965,22 +2965,22 @@
     "task": "Investigate potential Unhandled Rejections (Potential) issue."
   },
   {
-    "file": "app/api/benchmarks/compare/route.ts",
+    "file": "app/api/billing/subscribe/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
-    "file": "app/api/benchmarks/compare/route.ts",
+    "file": "app/api/billing/subscribe/route.ts",
     "pattern": "Unhandled Rejections (Potential)",
     "task": "Investigate potential Unhandled Rejections (Potential) issue."
   },
   {
-    "file": "app/api/billing/subscribe/route.ts",
+    "file": "app/api/benchmarks/compare/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
-    "file": "app/api/billing/subscribe/route.ts",
+    "file": "app/api/benchmarks/compare/route.ts",
     "pattern": "Unhandled Rejections (Potential)",
     "task": "Investigate potential Unhandled Rejections (Potential) issue."
   },
@@ -3655,22 +3655,22 @@
     "task": "Investigate potential Unhandled Rejections (Potential) issue."
   },
   {
-    "file": "app/api/files/resumes/presign/route.ts",
+    "file": "app/api/finance/accounts/[id]/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
-    "file": "app/api/files/resumes/presign/route.ts",
+    "file": "app/api/finance/accounts/[id]/route.ts",
     "pattern": "Unhandled Rejections (Potential)",
     "task": "Investigate potential Unhandled Rejections (Potential) issue."
   },
   {
-    "file": "app/api/finance/accounts/[id]/route.ts",
+    "file": "app/api/files/resumes/presign/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
-    "file": "app/api/finance/accounts/[id]/route.ts",
+    "file": "app/api/files/resumes/presign/route.ts",
     "pattern": "Unhandled Rejections (Potential)",
     "task": "Investigate potential Unhandled Rejections (Potential) issue."
   },
@@ -3865,6 +3865,16 @@
     "task": "Investigate potential Unhandled Rejections (Potential) issue."
   },
   {
+    "file": "app/api/ats/jobs/[id]/publish/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/ats/jobs/[id]/publish/route.ts",
+    "pattern": "Unhandled Rejections (Potential)",
+    "task": "Investigate potential Unhandled Rejections (Potential) issue."
+  },
+  {
     "file": "app/api/finance/expenses/[id]/[action]/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
@@ -3891,16 +3901,6 @@
   },
   {
     "file": "app/api/finance/journals/[id]/void/route.ts",
-    "pattern": "Unhandled Rejections (Potential)",
-    "task": "Investigate potential Unhandled Rejections (Potential) issue."
-  },
-  {
-    "file": "app/api/ats/jobs/[id]/publish/route.ts",
-    "pattern": "NextResponse Usage",
-    "task": "Investigate potential NextResponse Usage issue."
-  },
-  {
-    "file": "app/api/ats/jobs/[id]/publish/route.ts",
     "pattern": "Unhandled Rejections (Potential)",
     "task": "Investigate potential Unhandled Rejections (Potential) issue."
   },
