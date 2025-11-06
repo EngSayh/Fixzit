@@ -65,10 +65,11 @@ export async function POST(request: NextRequest) {
         (authError.message === 'Unauthorized' || authError.message.includes('No session found'));
       
       if (!isExpectedAuthFailure) {
-        logError('Unexpected auth error in leads POST', {
-          message: authError instanceof Error ? authError.message : 'Unknown error',
-          stack: authError instanceof Error ? authError.stack : undefined,
-        });
+        logError(
+          'Unexpected auth error in leads POST',
+          authError instanceof Error ? authError : new Error('Unknown auth error'),
+          { component: 'AqarLeadsAPI', operation: 'POST_auth' }
+        );
       }
       // Public inquiry - no auth required
     }
@@ -177,7 +178,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ lead }, { status: 201 });
   } catch (error) {
-    logError('Error creating lead', error instanceof Error ? error.message : 'Unknown error');
+    logError('Error creating lead', error, { component: 'AqarLeadsAPI', operation: 'POST' });
     return NextResponse.json({ error: 'Failed to create lead' }, { status: 500 });
   }
 }
@@ -191,7 +192,7 @@ export async function GET(request: NextRequest) {
       user = await getSessionUser(request);
     } catch (authError) {
       // Log only sanitized error message to avoid exposing sensitive data
-      logError('Authentication failed', authError instanceof Error ? authError.message : 'Unknown error');
+      logError('Authentication failed', authError, { component: 'AqarLeadsAPI', operation: 'GET_auth' });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -239,7 +240,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logError('Error fetching leads', error instanceof Error ? error.message : 'Unknown error');
+    logError('Error fetching leads', error, { component: 'AqarLeadsAPI', operation: 'GET' });
     return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 });
   }
 }
