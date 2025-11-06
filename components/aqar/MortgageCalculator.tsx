@@ -154,8 +154,8 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             className="w-full h-2 bg-muted rounded-2xl appearance-none cursor-pointer accent-warning focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2"
           />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
-            <span>3.0%</span>
-            <span>8.0%</span>
+            <span>1.0%</span>
+            <span>10.0%</span>
           </div>
         </div>
 
