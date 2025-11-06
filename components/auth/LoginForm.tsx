@@ -142,7 +142,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         logError('Login error', err as Error, {
           component: 'LoginForm',
           action: 'handleLogin',
-          identifier,
+          // PII removed: identifier field may contain email/employee number
         });
       });
       setErrors({
