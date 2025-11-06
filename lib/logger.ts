@@ -30,7 +30,7 @@ class Logger {
     if (this.isDevelopment && !this.isTest) {
       console.warn('[WARN]', message, context || '');
     }
-    if (!this.isDevelopment && !this.isTest) {
+    if (!this.isTest) {
       this.persistLogToSessionStorage('warn', message, context);
     }
   }
@@ -47,7 +47,7 @@ class Logger {
     }
 
     if (!this.isTest) {
-      this.persistLogToSessionStorage('error', message, { ...context, ...errorDetails });
+      this.persistLogToSessionStorage('error', message, { ...(context || {}), ...errorDetails });
     }
   }
 
