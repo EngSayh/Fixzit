@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    logError('Benchmark comparison failed', error instanceof Error ? error.message : 'Unknown error');
+    logError('Benchmark comparison failed', error, { component: 'BenchmarkCompareAPI', operation: 'POST' });
     return createSecureResponse({ error: 'Failed to compare benchmarks' }, 500, req);
   }
 }

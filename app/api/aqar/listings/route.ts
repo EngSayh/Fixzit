@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       if (/broker ads require/i.test(msg)) {
         return badRequest('Broker ad prerequisites not met', { correlationId });
       }
-      logError('LISTINGS_POST_ERROR', { correlationId, msg });
+      logError('LISTINGS_POST_ERROR', error, { component: 'AqarListingsAPI', operation: 'POST', correlationId });
       return serverError('Unexpected error', { correlationId });
     }
 }

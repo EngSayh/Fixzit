@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ packages });
   } catch (error) {
-    logError('Error fetching packages', error);
+    logError('Error fetching packages', error, { component: 'AqarPackagesAPI', operation: 'GET' });
     return NextResponse.json({ error: 'Failed to fetch packages' }, { status: 500 });
   }
 }
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
         201
       );
     } catch (e: unknown) {
-      logError('PACKAGES_POST_ERROR', { correlationId, e: String((e as Error)?.message || e) });
+      logError('PACKAGES_POST_ERROR', e, { component: 'AqarPackagesAPI', operation: 'POST', correlationId });
       return serverError('Unexpected error', { correlationId });
     }
 }

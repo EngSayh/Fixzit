@@ -52,12 +52,12 @@ export async function GET(
           $set: { 'analytics.lastViewedAt': new Date() } 
         }
       ).exec().catch((err: Error) => {
-        logError('VIEW_INC_FAILED', { correlationId, id, err: String(err?.message || err) });
+        logError('VIEW_INC_FAILED', err, { component: 'AqarListingAPI', correlationId, listingId: id });
       });
       
       return ok({ listing }, { correlationId });
     } catch (error) {
-      logError('Error fetching listing', error);
+      logError('Error fetching listing', error, { component: 'AqarListingAPI', operation: 'GET', correlationId });
       return NextResponse.json({ error: 'Failed to fetch listing' }, { status: 500 });
     }
 }
@@ -152,7 +152,7 @@ export async function PATCH(
     
     return NextResponse.json({ listing });
   } catch (error) {
-    logError('Error updating listing', error);
+    logError('Error updating listing', error, { component: 'AqarListingAPI', operation: 'PATCH' });
     return NextResponse.json({ error: 'Failed to update listing' }, { status: 500 });
   }
 }
@@ -188,7 +188,7 @@ export async function DELETE(
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    logError('Error deleting listing', error);
+    logError('Error deleting listing', error, { component: 'AqarListingAPI', operation: 'DELETE' });
     return NextResponse.json({ error: 'Failed to delete listing' }, { status: 500 });
   }
 }

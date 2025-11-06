@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ success: true, data: employee });
   } catch (error) {
-    logError('Convert to employee error', error instanceof Error ? error.message : 'Unknown error');
+    logError('Convert to employee error', error, { component: 'ATSConvertAPI', operation: 'POST' });
     return createSecureResponse({ error: "Failed to convert to employee" }, 500, req);
   }
 }

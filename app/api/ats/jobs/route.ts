@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
       pagination: { page, limit, total, pages: Math.ceil(total / limit) }
     });
   } catch (error) {
-    logError('Jobs list error', error instanceof Error ? error.message : 'Unknown error');
+    logError('Jobs list error', error, { component: 'ATSJobsAPI', operation: 'GET' });
     return NextResponse.json(
       { success: false, error: 'Failed to fetch jobs' },
       { status: 500 }
@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ success: true, data: job }, { status: 201 });
   } catch (error) {
-    logError('Job creation error', error instanceof Error ? error.message : 'Unknown error');
+    logError('Job creation error', error, { component: 'ATSJobsAPI', operation: 'POST' });
     return NextResponse.json(
       { success: false, error: 'Failed to create job' },
       { status: 500 }

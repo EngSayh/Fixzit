@@ -54,7 +54,7 @@ export async function GET() {
 
   } catch (error) {
     const responseTime = Date.now() - startTime;
-    logError('Database health check failed', error instanceof Error ? error.message : 'Unknown error');
+    logError('Database health check failed', error, { component: 'HealthCheckAPI', operation: 'GET', responseTime });
     
     return NextResponse.json({
       status: 'unhealthy',
