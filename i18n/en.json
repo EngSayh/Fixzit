@@ -1,0 +1,183 @@
+{
+  "landing": {
+    "title": "Fixzit - Complete Property & Facility Management",
+    "subtitle": "Streamline operations, manage work orders, and optimize your real estate portfolio",
+    "hero": {
+      "cta1": "Get Started",
+      "cta2": "Watch Demo",
+      "cta3": "Learn More"
+    },
+    "features": {
+      "title": "Complete Management Solution",
+      "property": {
+        "title": "Property Management",
+        "desc": "Manage your properties, tenants, and leases efficiently",
+        "cta": "Explore Properties"
+      },
+      "workorders": {
+        "title": "Work Order Management",
+        "desc": "Track maintenance requests and assignments in real-time",
+        "cta": "View Work Orders"
+      },
+      "vendors": {
+        "title": "Vendor Management",
+        "desc": "Coordinate with vendors and service providers seamlessly",
+        "cta": "Manage Vendors"
+      },
+      "finance": {
+        "title": "Financial Management",
+        "desc": "Track expenses, invoices, and financial reports",
+        "cta": "View Finances"
+      },
+      "crm": {
+        "title": "CRM & Tenant Relations",
+        "desc": "Build stronger relationships with tenants and clients",
+        "cta": "Explore CRM"
+      },
+      "analytics": {
+        "title": "Analytics & Reports",
+        "desc": "Get insights with comprehensive analytics and reporting",
+        "cta": "View Reports"
+      }
+    },
+    "cta": {
+      "title": "Ready to streamline your operations?",
+      "subtitle": "Join thousands of property managers using Fixzit",
+      "login": "Sign In",
+      "demo": "Request Demo"
+    }
+  },
+  "about": {
+    "metaTitle": "About Fixzit - Property Management Software",
+    "metaDesc": "Learn about Fixzit's mission to revolutionize property and facility management",
+    "title": "About Fixzit",
+    "subtitle": "Transforming Property Management"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "email": "Email",
+      "username": "Username",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "signup": "Sign up"
+    },
+    "signup": {
+      "title": "Create Account",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "username": "Username",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Create Account",
+      "hasAccount": "Already have an account?",
+      "login": "Sign in"
+    },
+    "forgotPassword": {
+      "title": "Reset Password",
+      "email": "Email",
+      "submit": "Send Reset Link",
+      "backToLogin": "Back to Sign In"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back",
+    "metrics": {
+      "properties": "Properties",
+      "workOrders": "Work Orders",
+      "tenants": "Tenants",
+      "vendors": "Vendors"
+    },
+    "recentActivity": "Recent Activity",
+    "quickActions": "Quick Actions"
+  },
+  "workOrders": {
+    "title": "Work Orders",
+    "create": "Create Work Order",
+    "status": {
+      "open": "Open",
+      "inProgress": "In Progress",
+      "pending": "Pending",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "property": "Property",
+      "assignee": "Assigned To",
+      "dueDate": "Due Date",
+      "status": "Status",
+      "priority": "Priority"
+    }
+  },
+  "properties": {
+    "title": "Properties",
+    "create": "Add Property",
+    "fields": {
+      "name": "Property Name",
+      "address": "Address",
+      "type": "Property Type",
+      "units": "Units",
+      "status": "Status"
+    }
+  },
+  "finance": {
+    "title": "Finance",
+    "invoices": "Invoices",
+    "expenses": "Expenses",
+    "payments": "Payments",
+    "reports": "Financial Reports"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "view": "View",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "actions": "Actions"
+  },
+  "navigation": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "properties": "Properties",
+    "workOrders": "Work Orders",
+    "finance": "Finance",
+    "vendors": "Vendors",
+    "crm": "CRM",
+    "reports": "Reports",
+    "settings": "Settings",
+    "help": "Help",
+    "logout": "Logout"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "unauthorized": "You are not authorized to perform this action.",
+    "notFound": "Resource not found.",
+    "validation": "Please check your input and try again."
+  }
+}

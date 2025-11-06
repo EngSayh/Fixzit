@@ -369,11 +369,36 @@ async function generateMovePlan() {
     const extensions = ['.ts', '.tsx', '.js', '.jsx', '.css', '.scss', '.md'];
     const searchPaths = ['app/**/*', 'components/**/*', 'lib/**/*', 'utils/**/*', 'hooks/**/*'];
 
+    // Next.js protected patterns (must NOT be moved)
+    const PROTECTED_PATTERNS = [
+        /^app\/.*\/layout\.tsx?$/,              // Next.js layouts
+        /^app\/.*\/page\.tsx?$/,                // Next.js pages (check carefully)
+        /^app\/.*\/loading\.tsx?$/,             // Next.js loading states
+        /^app\/.*\/error\.tsx?$/,               // Next.js error boundaries
+        /^app\/.*\/not-found\.tsx?$/,           // Next.js 404 pages
+        /^app\/.*\/template\.tsx?$/,            // Next.js templates
+        /^app\/api\//,                          // Next.js API routes
+        /^app\/\(.*\)\//,                       // Next.js route groups
+    ];
+
+    // Module namespace boundaries (keep separate)
+    const MODULE_NAMESPACES = ['app/fm/', 'app/aqar/', 'app/souq/', 'app/admin/'];
+
     try {
         const files = await globby(searchPaths, { cwd: ROOT_DIR, gitignore: true, onlyFiles: true });
 
         for (const file of files) {
              if (!extensions.some(ext => file.endsWith(ext))) continue;
+
+            // Skip Next.js protected files
+            if (PROTECTED_PATTERNS.some(pattern => pattern.test(file))) {
+                continue;
+            }
+
+            // Skip files within module namespaces
+            if (MODULE_NAMESPACES.some(ns => file.startsWith(ns))) {
+                continue;
+            }
 
             let targetBucket = null;
 
