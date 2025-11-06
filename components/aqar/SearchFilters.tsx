@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, SlidersHorizontal, X, MapPin, Home, Bed, Bath, DollarSign, Grid3x3 } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
@@ -38,6 +38,26 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
     sortBy: 'DATE_DESC',
   });
   const [showAdvanced, setShowAdvanced] = useState(false);
+  
+  // Accessibility: Focus management
+  const filtersButtonRef = useRef<HTMLButtonElement>(null);
+  const advancedFiltersRef = useRef<HTMLDivElement>(null);
+  
+  // Accessibility: Keyboard navigation - Close advanced filters with Escape
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showAdvanced) {
+        setShowAdvanced(false);
+        // Restore focus to the filters button
+        filtersButtonRef.current?.focus();
+      }
+    };
+    
+    if (showAdvanced) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [showAdvanced]);
   
   const propertyTypes = [
     { value: 'APARTMENT', label: t('aqar.propertyTypes.apartment', 'Apartment'), icon: '🏢' },
@@ -209,13 +229,17 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
         </button>
         <div className="flex-1" />
         <button
+          ref={filtersButtonRef}
           onClick={() => setShowAdvanced(!showAdvanced)}
+          aria-expanded={showAdvanced}
+          aria-controls="advanced-filters"
+          aria-label={t('aqar.filters.toggleFilters', `${showAdvanced ? 'Hide' : 'Show'} advanced filters${activeFilterCount() > 0 ? ` (${activeFilterCount()} active)` : ''}`)}
           className="flex items-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted transition-colors whitespace-nowrap"
         >
           <SlidersHorizontal className="w-4 h-4" />
           <span>{t('aqar.filters.filtersButton', 'Filters')}</span>
           {activeFilterCount() > 0 && (
-            <span className="bg-warning text-white text-xs px-2 py-0.5 rounded-full">
+            <span className="bg-warning text-white text-xs px-2 py-0.5 rounded-full" aria-live="polite">
               {activeFilterCount()}
             </span>
           )}
@@ -224,25 +248,38 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
       {/* Advanced Filters */}
       {showAdvanced && (
-        <div className="border-t border-border pt-4 space-y-6">
+        <div 
+          id="advanced-filters"
+          ref={advancedFiltersRef}
+          role="region"
+          aria-label={t('aqar.filters.advancedFiltersRegion', 'Advanced filters')}
+          className="border-t border-border pt-4 space-y-6"
+        >
           {/* Property Type */}
           <div>
-            <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-              <Home className="w-4 h-4" />
+            <h3 id="property-type-label" className="font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Home className="w-4 h-4" aria-hidden="true" />
               {t('aqar.filters.propertyType', 'Property Type')}
             </h3>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+            <div 
+              role="group" 
+              aria-labelledby="property-type-label"
+              className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2"
+            >
               {propertyTypes.map((type) => (
                 <button
                   key={type.value}
                   onClick={() => togglePropertyType(type.value)}
-                  className={`p-3 rounded-lg border-2 text-center transition-colors ${
+                  role="checkbox"
+                  aria-checked={filters.propertyTypes?.includes(type.value)}
+                  aria-label={`${type.label} ${t('aqar.filters.propertyTypeOption', 'property type')}`}
+                  className={`p-3 rounded-lg border-2 text-center transition-colors focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2 ${
                     filters.propertyTypes?.includes(type.value)
                       ? 'border-warning bg-warning/10'
                       : 'border-border hover:border-border'
                   }`}
                 >
-                  <div className="text-2xl mb-1">{type.icon}</div>
+                  <div className="text-2xl mb-1" aria-hidden="true">{type.icon}</div>
                   <div className="text-xs font-medium">{type.label}</div>
                 </button>
               ))}
@@ -309,16 +346,19 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
           {/* Bedrooms */}
           <div>
-            <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-              <Bed className="w-4 h-4" />
+            <h3 id="bedrooms-label" className="font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Bed className="w-4 h-4" aria-hidden="true" />
               {t('aqar.filters.bedrooms', 'Bedrooms')}
             </h3>
-            <div className="flex gap-2">
+            <div role="group" aria-labelledby="bedrooms-label" className="flex gap-2">
               {[1, 2, 3, 4, 5].map((count) => (
                 <button
                   key={count}
                   onClick={() => toggleBedrooms(count)}
-                  className={`px-4 py-2 rounded-lg border-2 transition-colors ${
+                  role="checkbox"
+                  aria-checked={filters.bedrooms?.includes(count)}
+                  aria-label={`${count === 5 ? '5 or more' : count} ${t('aqar.filters.bedroomsLabel', 'bedrooms')}`}
+                  className={`px-4 py-2 rounded-lg border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2 ${
                     filters.bedrooms?.includes(count)
                       ? 'border-warning bg-warning/10 text-foreground'
                       : 'border-border hover:border-border text-foreground'
@@ -332,16 +372,19 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
 
           {/* Bathrooms */}
           <div>
-            <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-              <Bath className="w-4 h-4" />
+            <h3 id="bathrooms-label" className="font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Bath className="w-4 h-4" aria-hidden="true" />
               {t('aqar.filters.bathrooms', 'Bathrooms')}
             </h3>
-            <div className="flex gap-2">
+            <div role="group" aria-labelledby="bathrooms-label" className="flex gap-2">
               {[1, 2, 3, 4].map((count) => (
                 <button
                   key={count}
                   onClick={() => toggleBathrooms(count)}
-                  className={`px-4 py-2 rounded-lg border-2 transition-colors ${
+                  role="checkbox"
+                  aria-checked={filters.bathrooms?.includes(count)}
+                  aria-label={`${count === 4 ? '4 or more' : count} ${t('aqar.filters.bathroomsLabel', 'bathrooms')}`}
+                  className={`px-4 py-2 rounded-lg border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-warning focus:ring-offset-2 ${
                     filters.bathrooms?.includes(count)
                       ? 'border-warning bg-warning/10 text-foreground'
                       : 'border-border hover:border-border text-foreground'
