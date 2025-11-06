@@ -54,8 +54,6 @@
     ".next",
     "dist",
     "build",
-    "out",
-    "tests/unit/models/CmsPage.test.ts",
-    "tests/rbac/cross-tenant-isolation.test.ts"
+    "out"
   ]
 }

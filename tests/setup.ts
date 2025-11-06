@@ -12,7 +12,47 @@ global.Response = global.Response || class Response {};
 global.fetch = global.fetch || vi.fn();
 
 // ============================================
-// 1. MOCK MONGOOSE (Fixes "reading 'Mixed'" error)
+// 1. COMPREHENSIVE MODEL MOCKS (Fixes .lean errors)
+// ============================================
+vi.mock('@/server/models/*', () => {
+  const createQueryMock = (result: any = null) => ({
+    lean: vi.fn().mockResolvedValue(result),
+    exec: vi.fn().mockResolvedValue(result),
+    sort: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    skip: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    populate: vi.fn().mockReturnThis(),
+  });
+
+  const MockModel = vi.fn((data: any) => ({
+    ...data,
+    save: vi.fn().mockResolvedValue(data),
+    validate: vi.fn().mockResolvedValue(true),
+  }));
+
+  Object.assign(MockModel, {
+    findById: vi.fn(() => createQueryMock(null)),
+    findOne: vi.fn(() => createQueryMock(null)),
+    find: vi.fn(() => createQueryMock([])),
+    findByIdAndUpdate: vi.fn(() => createQueryMock(null)),
+    findOneAndUpdate: vi.fn(() => createQueryMock(null)),
+    updateOne: vi.fn(() => createQueryMock({ acknowledged: true })),
+    updateMany: vi.fn(() => createQueryMock({ acknowledged: true })),
+    deleteOne: vi.fn(() => createQueryMock({ acknowledged: true })),
+    deleteMany: vi.fn(() => createQueryMock({ acknowledged: true })),
+    countDocuments: vi.fn().mockResolvedValue(0),
+    create: vi.fn().mockResolvedValue({}),
+    insertMany: vi.fn().mockResolvedValue([]),
+    aggregate: vi.fn().mockResolvedValue([]),
+    watch: vi.fn().mockReturnValue({ on: vi.fn(), close: vi.fn() }),
+  });
+
+  return { default: MockModel, ...MockModel };
+});
+
+// ============================================
+// 2. MOCK MONGOOSE (Fixes "reading 'Mixed'" error)
 // ============================================
 vi.mock('mongoose', async (importOriginal) => {
   const originalMongoose = await importOriginal<typeof import('mongoose')>();
