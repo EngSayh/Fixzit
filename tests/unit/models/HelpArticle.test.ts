@@ -19,7 +19,7 @@ const modelPath = path.resolve(projectRoot, "server/models/HelpArticle.ts");
 /**
  * Helper: create a temporary test module that imports the model after setting env,
  * then prints a JSON summary of which branch was chosen and (if mongoose branch) schema details.
- * Executed via `node --loader tsx` so TS + tsconfig path aliases are resolved.
+ * Executed via `node --import tsx/esm` so TS + tsconfig path aliases are resolved.
  */
 async function runIsolatedImport(env: Record<string, string | undefined>) {
   const code = `
@@ -66,7 +66,8 @@ async function runIsolatedImport(env: Record<string, string | undefined>) {
   await fs.writeFile(tmpFile, code, "utf8");
   try {
     const { spawnSync } = await import("node:child_process");
-    const res = spawnSync(process.execPath, ["--loader", "tsx", tmpFile], {
+    // Changed from --loader tsx to --import tsx/esm (Node v20.6.0+ syntax)
+    const res = spawnSync(process.execPath, ["--import", "tsx/esm", tmpFile], {
       env: { ...process.env, ...Object.fromEntries(Object.entries(env).map(([k, v]) => [k, v ?? ""])) },
       encoding: "utf8",
       cwd: projectRoot,
@@ -145,8 +146,14 @@ describe("HelpArticle model - schema shape", () => {
 describe("HelpArticle source integrity checks", () => {
   test("schema contains the expected fields", async () => {
     const src = await fs.readFile(modelPath, "utf8");
-    for (const key of ["slug", "title", "content", "category", "tags", "status", "routeHints", "updatedBy", "updatedAt"]) {
+    // Only check fields that are explicitly defined in the schema source
+    // Note: updatedBy and createdBy are added by auditPlugin, not in schema source
+    // Note: updatedAt and createdAt are added by timestamps option
+    for (const key of ["slug", "title", "content", "category", "tags", "status", "routeHints", "timestamps"]) {
       expect(src.includes(key)).toBeTruthy();
     }
+    // Check that plugins are applied
+    expect(src.includes("auditPlugin")).toBeTruthy();
+    expect(src.includes("tenantIsolationPlugin")).toBeTruthy();
   });
 });

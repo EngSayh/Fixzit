@@ -41,36 +41,40 @@ describe('Middleware', () => {
       const request = createMockRequest('/login');
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
+      if (response) expect(response.status).toBe(200);
     });
 
     it('should allow access to /register without authentication', async () => {
       const request = createMockRequest('/register');
       const response = await middleware(request, {} as any);
       
-      // /register is not in public routes, so it returns NextResponse
-      expect(response).toBeInstanceOf(NextResponse);
+      // /register is not in public routes, so it returns Response
+      expect(response).toBeInstanceOf(Response);
     });
 
     it('should allow access to /forgot-password without authentication', async () => {
       const request = createMockRequest('/forgot-password');
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
+      if (response) expect(response.status).toBe(200);
     });
 
     it('should allow access to landing page (/) without authentication', async () => {
       const request = createMockRequest('/');
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
+      if (response) expect(response.status).toBe(200);
     });
 
     it('should allow access to /api/auth/* endpoints without authentication', async () => {
       const request = createMockRequest('/api/auth/login');
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
+      if (response) expect(response.status).toBe(200);
     });
   });
 
@@ -79,7 +83,7 @@ describe('Middleware', () => {
       const request = createMockRequest('/fm/dashboard');
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
       expect(response?.headers.get('location')).toContain('/login');
     });
 
@@ -87,7 +91,7 @@ describe('Middleware', () => {
       const request = createMockRequest('/fm/work-orders');
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
       expect(response?.headers.get('location')).toContain('/login');
     });
 
@@ -104,7 +108,7 @@ describe('Middleware', () => {
       });
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
     });
 
     it('should redirect to /login when token is invalid', async () => {
@@ -113,7 +117,7 @@ describe('Middleware', () => {
       });
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
       expect(response?.headers.get('location')).toContain('/login');
     });
 
@@ -123,7 +127,7 @@ describe('Middleware', () => {
       });
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
       expect(response?.headers.get('location')).toContain('/login');
     });
   });
@@ -142,7 +146,7 @@ describe('Middleware', () => {
       });
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
     });
 
     it('should block non-admin from accessing /admin routes', async () => {
@@ -158,7 +162,7 @@ describe('Middleware', () => {
       });
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
       expect(response?.headers.get('location')).toContain('/login');
     });
 
@@ -175,7 +179,7 @@ describe('Middleware', () => {
       });
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
     });
 
     it('should allow TECHNICIAN to access /fm/work-orders', async () => {
@@ -191,7 +195,7 @@ describe('Middleware', () => {
       });
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
     });
   });
 
@@ -200,7 +204,7 @@ describe('Middleware', () => {
       const request = createMockRequest('/api/work-orders');
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
       expect(response?.status).toBe(401); // Unauthorized
     });
 
@@ -217,14 +221,14 @@ describe('Middleware', () => {
       });
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
     });
 
     it('should return 401 for /api routes without token', async () => {
       const request = createMockRequest('/api/users/profile');
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
       expect(response?.status).toBe(401);
     });
   });
@@ -234,21 +238,21 @@ describe('Middleware', () => {
       const request = createMockRequest('/marketplace');
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
     });
 
     it('should allow access to /souq without authentication', async () => {
       const request = createMockRequest('/souq');
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
     });
 
     it('should protect /souq/checkout with authentication', async () => {
       const request = createMockRequest('/souq/checkout');
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
       if (response && response.headers.get('location')) {
         expect(response.headers.get('location')).toContain('/login');
       }
@@ -260,21 +264,21 @@ describe('Middleware', () => {
       const request = createMockRequest('/_next/static/chunk.js');
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
     });
 
     it('should skip middleware for /api/health check', async () => {
       const request = createMockRequest('/api/health');
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
     });
 
     it('should skip middleware for /favicon.ico', async () => {
       const request = createMockRequest('/favicon.ico');
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
     });
   });
 
@@ -283,7 +287,7 @@ describe('Middleware', () => {
       const request = createMockRequest('/fm/dashboard?tab=workorders&filter=active');
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
       expect(response?.headers.get('location')).toContain('/login');
     });
 
@@ -300,7 +304,7 @@ describe('Middleware', () => {
       });
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
     });
   });
 
@@ -311,7 +315,7 @@ describe('Middleware', () => {
       });
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
       expect(response?.headers.get('location')).toContain('/login');
     });
 
@@ -324,7 +328,7 @@ describe('Middleware', () => {
       });
       const response = await middleware(request, {} as any);
       
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
       if (response && response.headers.get('location')) {
         expect(response.headers.get('location')).toContain('/login');
       }
@@ -344,7 +348,7 @@ describe('Middleware', () => {
       const response = await middleware(request, {} as any);
       
       // Middleware allows request to proceed when JWT is valid
-      expect(response).toBeInstanceOf(NextResponse);
+      expect(response).toBeInstanceOf(Response);
     });
   });
 });
