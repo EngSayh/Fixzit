@@ -30,9 +30,8 @@ export default function ExampleForm() {
         // Mark form as clean after successful save
         markFormClean(formId);
         
-        // Optionally handle successful save
-        const data = await response.json();
-        logInfo('Save successful', { data });
+        // Log successful save (status only, no PII)
+        logInfo('Save successful', { status: response.status });
       } catch (error) {
         logError('Error saving form', error);
         // Optionally show user-facing error state

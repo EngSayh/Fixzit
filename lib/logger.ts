@@ -27,27 +27,27 @@ class Logger {
   }
 
   warn(message: string, context?: LogContext): void {
-    if (this.isDevelopment || !this.isTest) {
+    if (this.isDevelopment && !this.isTest) {
       console.warn('[WARN]', message, context || '');
     }
     if (!this.isDevelopment && !this.isTest) {
-      this.sendToMonitoring('warn', message, context);
+      this.persistLogToSessionStorage('warn', message, context);
     }
   }
 
   error(message: string, error?: Error | unknown, context?: LogContext): void {
-    const errorInfo = error instanceof Error ? {
+    const errorDetails = error instanceof Error ? {
       message: error.message,
       stack: error.stack,
       name: error.name
-    } : { error };
+    } : { message: String(error), originalError: error };
 
     if (this.isDevelopment && !this.isTest) {
-      console.error('[ERROR]', message, errorInfo, context || '');
+      console.error('[ERROR]', message, errorDetails, context || '');
     }
 
     if (!this.isTest) {
-      this.sendToMonitoring('error', message, { ...context, ...errorInfo });
+      this.persistLogToSessionStorage('error', message, { ...context, ...errorDetails });
     }
   }
 
@@ -57,11 +57,16 @@ class Logger {
     }
   }
 
-  private async sendToMonitoring(
+  /**
+   * Persist logs to session storage for later retrieval
+   * Note: This is NOT external monitoring - logs are stored locally in browser
+   * For production monitoring, integrate with Sentry/DataDog/etc in this method
+   */
+  private persistLogToSessionStorage(
     level: LogLevel,
     message: string,
     context?: LogContext
-  ): Promise<void> {
+  ): void {
     try {
       if (typeof window !== 'undefined' && window.sessionStorage) {
         const logs = JSON.parse(sessionStorage.getItem('app_logs') || '[]');
@@ -71,8 +76,10 @@ class Logger {
       }
     } catch (err) {
       if (this.isDevelopment) {
-        console.error('Failed to send log to monitoring:', err);
+        console.error('Failed to persist log to session storage:', err);
       }
+      // In production, this failure should be handled silently
+      // or sent to a fallback monitoring system to prevent log loss
     }
   }
 }
