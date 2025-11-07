@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     const MAX_PAYLOAD_SIZE_BYTES = 1024 * 1024; // 1MB
     const payloadBytes = Buffer.byteLength(rawBody, 'utf8');
     if (payloadBytes > MAX_PAYLOAD_SIZE_BYTES) {
-      console.error('❌ Payload too large:', payloadBytes, 'bytes');
+      logger.error('❌ Payload too large:', payloadBytes, 'bytes');
       return createSecureResponse({ error: 'Payload too large' }, 413, req);
     }
     
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      console.log(`✅ Processed ${event.event} for ${event.email} (${emailId || event.sg_message_id})`);
+      logger.info(`✅ Processed ${event.event} for ${event.email} (${emailId || event.sg_message_id})`);
     });
 
     await Promise.all(updates);

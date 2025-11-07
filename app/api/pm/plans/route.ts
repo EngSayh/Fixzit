@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { FMPMPlan } from '@/server/models/FMPMPlan';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/pm/plans
@@ -28,7 +30,7 @@ export async function GET(request: Request) {
       count: plans.length
     });
   } catch (error) {
-    console.error('[API] Failed to fetch PM plans:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('[API] Failed to fetch PM plans:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'Failed to fetch PM plans' },
       { status: 500 }
@@ -65,7 +67,7 @@ export async function POST(request: Request) {
       data: plan
     }, { status: 201 });
   } catch (error) {
-    console.error('[API] Failed to create PM plan:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('[API] Failed to create PM plan:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'Failed to create PM plan' },
       { status: 500 }

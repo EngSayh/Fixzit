@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from '@/lib/logger';
 import { getDatabase } from "@/lib/mongodb-unified";
+import { logger } from '@/lib/logger';
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { logger } from '@/lib/logger';
 import { Filter, Document } from 'mongodb';
+import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
+import { logger } from '@/lib/logger';
 import {rateLimitError} from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -170,7 +178,7 @@ export async function GET(req: NextRequest){
     response.headers.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
     return response;
   } catch (error) {
-    console.error('Error fetching help articles:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Error fetching help articles:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to fetch help articles' }, 500, req);
   }
 }

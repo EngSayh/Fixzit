@@ -17,6 +17,7 @@ import CurrencySelector from '@/components/i18n/CurrencySelector';
 // ⚡ PERFORMANCE OPTIMIZATION: Lazy-load OAuth component (only needed for SSO tab)
 import dynamic from 'next/dynamic';
 
+import { logger } from '@/lib/logger';
 const GoogleSignInButton = dynamic(() => import('@/components/auth/GoogleSignInButton'), {
   loading: () => (
     <div className="w-full p-3 border border-border rounded-2xl bg-muted animate-pulse h-12" />
@@ -219,7 +220,7 @@ export default function LoginPage() {
         }, 500);
       }
     } catch (err) {
-      console.error('Login error:', err);
+      logger.error('Login error:', { err });
       setErrors({ general: t('login.errors.networkError', 'Network error. Please check your connection.') });
       setLoading(false);
     }

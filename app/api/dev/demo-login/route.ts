@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   // SECURITY: Demo login ONLY allowed in strict development mode
   // CRITICAL: This endpoint bypasses authentication and should NEVER be production-accessible
   if (process.env.NODE_ENV !== 'development') {
-    console.error('[SECURITY] Demo login attempted in non-development environment', {
+    logger.error('[SECURITY] Demo login attempted in non-development environment', {
       nodeEnv: process.env.NODE_ENV,
       clientIp: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
     });
@@ -130,7 +130,7 @@ async function safeParseJson<T>(req: NextRequest): Promise<Partial<T>> {
     // Stricter content-type guard - only parse if content-type starts with application/json
     const ct = req.headers.get('content-type') || '';
     if (!ct.startsWith('application/json')) {
-      console.warn('[Dev Demo Login] safeParseJson: Received non-JSON content-type', { contentType: ct });
+      logger.warn('[Dev Demo Login] safeParseJson: Received non-JSON content-type', { contentType: ct });
       return {};
     }
     return (await req.json()) as Partial<T>;

@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
       }
     } catch (error) {
       // Fallback: if Redis operation fails, allow the request but log the error
-      console.error('[Incidents] Rate limiting failed:', error instanceof Error ? error.message : 'Unknown error');
+      logger.error('[Incidents] Rate limiting failed:', error instanceof Error ? error.message : 'Unknown error');
     }
     // NOTE: Do NOT call redis.quit() in finally block - connection is reused
   } else {

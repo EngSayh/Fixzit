@@ -1,13 +1,22 @@
 import { NextRequest} from "next/server";
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from '@/lib/logger';
 import { Project } from "@/server/models/Project";
+import { logger } from '@/lib/logger';
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
+import { logger } from '@/lib/logger';
 import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 const updateProjectSchema = z.object({
   name: z.string().min(1).optional(),
@@ -75,7 +84,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
     return createSecureResponse(project, 200, req);
   } catch (error: unknown) {
-    console.error('GET /api/projects/[id] error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('GET /api/projects/[id] error:', error instanceof Error ? error.message : 'Unknown error');
     return handleApiError(error);
   }
 }

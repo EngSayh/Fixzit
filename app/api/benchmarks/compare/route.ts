@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import Benchmark from '@/server/models/Benchmark';
+import { logger } from '@/lib/logger';
 import { computeQuote } from '@/lib/pricing';
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
+import { logger } from '@/lib/logger';
 import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 const compareSchema = z.object({
   seatTotal: z.number().positive(),
@@ -68,7 +77,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    console.error('Benchmark comparison failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Benchmark comparison failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to compare benchmarks' }, 500, req);
   }
 }

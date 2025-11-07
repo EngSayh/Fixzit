@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
 import { serializeProduct } from '@/lib/marketplace/serializers';
+import { logger } from '@/lib/logger';
 import { objectIdFrom } from '@/lib/marketplace/objectIds';
+import { logger } from '@/lib/logger';
 
 import { unauthorizedError, forbiddenError, zodValidationError} from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 const ADMIN_ROLES = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN', 'PROCUREMENT', 'ADMIN']);
 
@@ -91,7 +99,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
     }
-    console.error('Marketplace products list failed', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Marketplace products list failed', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Unable to list products' }, 500, request);
   }
 }
@@ -134,7 +142,7 @@ export async function POST(request: NextRequest) {
     if (typeof error === 'object' && error !== null && 'code' in error && (error as { code: number }).code === 11000) {
       return createSecureResponse({ error: 'Duplicate SKU or slug' }, 409, request);
     }
-    console.error('Marketplace product creation failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Marketplace product creation failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Unable to create product' }, 500, request);
   }
 }

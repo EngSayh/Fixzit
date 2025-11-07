@@ -6,13 +6,21 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { connectDb } from '@/lib/mongo';
+import { logger } from '@/lib/logger';
 import { AqarLead, AqarListing } from '@/models/aqar';
+import { logger } from '@/lib/logger';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { logger } from '@/lib/logger';
 import { incrementAnalyticsWithRetry } from '@/lib/analytics/incrementWithRetry';
+import { logger } from '@/lib/logger';
 import { checkRateLimit } from '@/lib/rateLimit';
+import { logger } from '@/lib/logger';
 import mongoose from 'mongoose';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 // Validation schema for lead creation
 const LeadCreateSchema = z.object({
@@ -64,7 +72,7 @@ export async function POST(request: NextRequest) {
         (authError.message === 'Unauthorized' || authError.message.includes('No session found'));
       
       if (!isExpectedAuthFailure) {
-        console.error('Unexpected auth error in leads POST:', {
+        logger.error('Unexpected auth error in leads POST:', {
           message: authError instanceof Error ? authError.message : 'Unknown error',
           stack: authError instanceof Error ? authError.stack : undefined,
         });
@@ -176,7 +184,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ lead }, { status: 201 });
   } catch (error) {
-    console.error('Error creating lead:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Error creating lead:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Failed to create lead' }, { status: 500 });
   }
 }
@@ -190,7 +198,7 @@ export async function GET(request: NextRequest) {
       user = await getSessionUser(request);
     } catch (authError) {
       // Log only sanitized error message to avoid exposing sensitive data
-      console.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
+      logger.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -238,7 +246,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching leads:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Error fetching leads:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 });
   }
 }

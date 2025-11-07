@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
 import { APPS, AppKey } from '@/config/topbar-modules';
+import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
+import { logger } from '@/lib/logger';
 import {rateLimitError} from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 // Helper function to generate href based on entity type
 function generateHref(entity: string, id: string): string {
@@ -220,7 +227,7 @@ export async function GET(req: NextRequest) {
           });
         }
       } catch (error) {
-        console.warn(`Search failed for entity ${entity}:`, error);
+        logger.warn(`Search failed for entity ${entity}:`, error);
         // Continue with other entities
       }
     }
@@ -230,7 +237,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ results: results.slice(0, 20) });
 
   } catch (error) {
-    console.error('Search API error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Search API error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ results: [] }, 500, req);
   }
 }

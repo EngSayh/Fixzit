@@ -81,7 +81,7 @@ export async function GET(
     const validation = validateWPSFile(wpsFile);
 
     if (!validation.isValid) {
-      console.error('WPS validation failed:', validation.errors);
+      logger.error('WPS validation failed:', validation.errors);
       return NextResponse.json(
         {
           error: 'WPS file validation failed',

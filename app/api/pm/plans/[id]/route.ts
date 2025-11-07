@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { FMPMPlan } from '@/server/models/FMPMPlan';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/pm/plans/[id]
@@ -25,7 +27,7 @@ export async function GET(
       data: plan
     });
   } catch (error) {
-    console.error('[API] Failed to fetch PM plan:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('[API] Failed to fetch PM plan:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'Failed to fetch PM plan' },
       { status: 500 }
@@ -63,7 +65,7 @@ export async function PATCH(
       data: plan
     });
   } catch (error) {
-    console.error('[API] Failed to update PM plan:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('[API] Failed to update PM plan:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'Failed to update PM plan' },
       { status: 500 }
@@ -99,7 +101,7 @@ export async function DELETE(
       message: 'PM plan deactivated'
     });
   } catch (error) {
-    console.error('[API] Failed to delete PM plan:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('[API] Failed to delete PM plan:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'Failed to delete PM plan' },
       { status: 500 }

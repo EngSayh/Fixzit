@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from '@/lib/logger';
 import * as svc from "@/server/finance/invoice.service";
+import { logger } from '@/lib/logger';
 import { rateLimit } from '@/server/security/rateLimit';
+import { logger } from '@/lib/logger';
 import { getUserFromToken } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { logger } from '@/lib/logger';
 import { createSecureResponse, getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const invoiceCreateSchema = z.object({
   customerId: z.string().optional(),
@@ -87,7 +95,7 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ data }, 200, req);
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    console.error('[GET /api/finance/invoices] Error fetching invoices:', {
+    logger.error('[GET /api/finance/invoices] Error fetching invoices:', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
@@ -149,7 +157,7 @@ export async function POST(req: NextRequest) {
       return zodValidationError(error, req);
     }
     const correlationId = crypto.randomUUID();
-    console.error('[POST /api/finance/invoices] Error creating invoice:', {
+    logger.error('[POST /api/finance/invoices] Error creating invoice:', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined

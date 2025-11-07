@@ -115,7 +115,7 @@ function Action({ id, action, disabled, onDone, orgId }:{ id:string; action:"POS
         onDone();
       }
     } catch (error) {
-      console.error(`Error ${action} invoice:`, error);
+      logger.error(`Error ${action} invoice:`, error);
       toast.error(`Error: Failed to ${action} invoice`, { id: toastId });
     }
   }

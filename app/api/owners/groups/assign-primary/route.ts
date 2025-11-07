@@ -1,13 +1,22 @@
 import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
 import OwnerGroup from '@/server/models/OwnerGroup';
+import { logger } from '@/lib/logger';
 import { NextRequest} from 'next/server';
+import { logger } from '@/lib/logger';
 import { getUserFromToken } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
+import { logger } from '@/lib/logger';
 import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 const assignPrimarySchema = z.object({
   buildingId: z.string().min(1),
@@ -78,7 +87,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    console.error('Owner group assignment failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Owner group assignment failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to assign owner group' }, 500, req);
   }
 }

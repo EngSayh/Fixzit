@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse({ success: true }, 200, req);
   } catch (error: unknown) {
-    console.error('Payment callback error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Payment callback error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ 
       error: 'Failed to process payment callback' 
     }, 500, req);

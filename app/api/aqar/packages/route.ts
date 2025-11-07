@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
         201
       );
     } catch (e: unknown) {
-      console.error('PACKAGES_POST_ERROR', { correlationId, e: String((e as Error)?.message || e) });
+      logger.error('PACKAGES_POST_ERROR', { correlationId, e: String((e as Error)?.message || e) });
       return serverError('Unexpected error', { correlationId });
     }
 }

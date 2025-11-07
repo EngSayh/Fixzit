@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   try {
     verification = await verifyPayment(tranRef);
   } catch (error) {
-    console.error('[Billing Callback] Failed to verify payment with PayTabs:', error instanceof Error ? error.message : String(error));
+    logger.error('[Billing Callback] Failed to verify payment with PayTabs:', error instanceof Error ? error.message : String(error));
     return createSecureResponse({ error: 'Payment verification failed' }, 500, req);
   }
   

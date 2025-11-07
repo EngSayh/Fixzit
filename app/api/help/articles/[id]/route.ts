@@ -39,7 +39,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       user = await getSessionUser(req);
     } catch (authError) {
       // Log only sanitized error message to avoid exposing sensitive data
-      console.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
+      logger.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
       return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     }
     
@@ -76,7 +76,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         roleScopes: ['USER'],
         content: article.content || ''
       }))
-      .catch((e) => console.error(`Failed to trigger KB ingest for article ${article.slug}:`, e));
+      .catch((e) => logger.error(`Failed to trigger KB ingest for article ${article.slug}:`, e));
     const response = NextResponse.json(article);
     response.headers.set('Cache-Control', 'no-store, max-age=0');
     return response;

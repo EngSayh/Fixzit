@@ -5,11 +5,17 @@
  */
 
 import { NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 import { connectDb } from '@/lib/mongo';
+import { logger } from '@/lib/logger';
 import { AqarListing, AqarPackage } from '@/models/aqar';
+import { logger } from '@/lib/logger';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { logger } from '@/lib/logger';
 import { ok, badRequest, forbidden, serverError } from '@/lib/api/http';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -85,7 +91,7 @@ export async function POST(request: NextRequest) {
       if (/broker ads require/i.test(msg)) {
         return badRequest('Broker ad prerequisites not met', { correlationId });
       }
-      console.error('LISTINGS_POST_ERROR', { correlationId, msg });
+      logger.error('LISTINGS_POST_ERROR', { correlationId, msg });
       return serverError('Unexpected error', { correlationId });
     }
 }
