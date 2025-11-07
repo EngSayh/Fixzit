@@ -76,7 +76,49 @@
       "forgotPassword": "Forgot password?",
       "submit": "Sign In",
       "noAccount": "Don't have an account?",
-      "signup": "Sign up"
+      "signup": "Sign up",
+      "welcome": "Welcome back",
+      "subtitle": "Sign in to your account",
+      "personalEmailTab": "Personal Email",
+      "corporateAccountTab": "Corporate Account",
+      "ssoLoginTab": "SSO Login",
+      "personalEmail": "Personal Email",
+      "employeeNumber": "Employee Number",
+      "enterEmail": "Enter your email",
+      "enterEmployeeNumber": "Enter employee number",
+      "enterPassword": "Enter your password",
+      "corporateHelp": "Use your corporate employee ID",
+      "hidePassword": "Hide password",
+      "showPassword": "Show password",
+      "capsLockOn": "Caps Lock is ON",
+      "signingIn": "Signing in...",
+      "signIn": "Sign In",
+      "continueWith": "Or continue with",
+      "orUseAccount": "Or use account",
+      "usePersonalEmail": "Use Personal Email",
+      "useCorporateAccount": "Use Corporate Account",
+      "personalEmailAccounts": "Personal Email Accounts",
+      "corporateAccountEmployee": "Corporate Employee",
+      "employeeHash": "Employee #",
+      "errors": {
+        "emailRequired": "Email is required",
+        "emailInvalid": "Invalid email address",
+        "employeeRequired": "Employee number is required",
+        "employeeInvalid": "Invalid employee number",
+        "passwordRequired": "Password is required",
+        "passwordTooShort": "Password must be at least 8 characters",
+        "invalidCredentials": "Invalid email or password",
+        "loginFailed": "Login failed. Please try again.",
+        "networkError": "Network error. Please check your connection."
+      },
+      "success": {
+        "title": "Login Successful",
+        "message": "Redirecting to dashboard..."
+      }
+    },
+    "logout": {
+      "signingOut": "Signing out...",
+      "pleaseWait": "Please wait"
     },
     "signup": {
       "title": "Create Account",
@@ -235,6 +277,86 @@
     "expenses": "Expenses",
     "payments": "Payments",
     "reports": "Financial Reports"
+  },
+  "hr": {
+    "title": "Human Resources",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "employees": "Employees",
+      "payroll": "Payroll",
+      "leave": "Leave Management",
+      "attendance": "Attendance"
+    },
+    "stats": {
+      "totalEmployees": "Total Employees",
+      "monthlyPayroll": "Monthly Payroll",
+      "pendingLeave": "Pending Leave Requests",
+      "attendance": "Attendance Rate"
+    },
+    "quickActions": "Quick Actions",
+    "actions": {
+      "addEmployee": "Add Employee",
+      "addEmployeeDesc": "Register a new employee",
+      "processPayroll": "Process Payroll",
+      "processPayrollDesc": "Run monthly payroll",
+      "approveLeave": "Approve Leave",
+      "approveLeaveDesc": "Review leave requests"
+    },
+    "recentActivity": "Recent Activity",
+    "comingSoon": "Coming Soon"
+  },
+  "crm": {
+    "title": "Customer Relationship Management",
+    "contacts": "Contacts",
+    "leads": "Leads",
+    "opportunities": "Opportunities",
+    "activities": "Activities"
+  },
+  "marketplace": {
+    "title": "Marketplace",
+    "browse": "Browse",
+    "vendors": "Vendors",
+    "services": "Services",
+    "products": "Products",
+    "rfq": "Request for Quote"
+  },
+  "vendors": {
+    "title": "Vendors",
+    "add": "Add Vendor",
+    "list": "Vendor List",
+    "contracts": "Contracts",
+    "performance": "Performance",
+    "payments": "Payments"
+  },
+  "tenants": {
+    "title": "Tenants",
+    "add": "Add Tenant",
+    "list": "Tenant List",
+    "leases": "Leases",
+    "payments": "Payments",
+    "requests": "Maintenance Requests"
+  },
+  "maintenance": {
+    "title": "Maintenance",
+    "description": "Manage maintenance tasks and schedules",
+    "tasks": "Maintenance Tasks",
+    "schedule": "Maintenance Schedule",
+    "history": "Maintenance History",
+    "preventive": "Preventive Maintenance"
+  },
+  "support": {
+    "title": "Support",
+    "tickets": "Support Tickets",
+    "knowledge": "Knowledge Base",
+    "faq": "FAQ",
+    "contact": "Contact Support"
+  },
+  "help": {
+    "title": "Help Center",
+    "search": "Search help articles",
+    "categories": "Categories",
+    "popular": "Popular Articles",
+    "getStarted": "Getting Started"
   },
   "common": {
     "save": "Save",

@@ -76,7 +76,49 @@
       "forgotPassword": "نسيت كلمة المرور؟",
       "submit": "تسجيل الدخول",
       "noAccount": "ليس لديك حساب؟",
-      "signup": "سجل الآن"
+      "signup": "سجل الآن",
+      "welcome": "مرحبًا بعودتك",
+      "subtitle": "سجل الدخول إلى حسابك",
+      "personalEmailTab": "البريد الشخصي",
+      "corporateAccountTab": "حساب الشركة",
+      "ssoLoginTab": "دخول موحد",
+      "personalEmail": "البريد الشخصي",
+      "employeeNumber": "رقم الموظف",
+      "enterEmail": "أدخل بريدك الإلكتروني",
+      "enterEmployeeNumber": "أدخل رقم الموظف",
+      "enterPassword": "أدخل كلمة المرور",
+      "corporateHelp": "استخدم رقم الموظف الخاص بالشركة",
+      "hidePassword": "إخفاء كلمة المرور",
+      "showPassword": "إظهار كلمة المرور",
+      "capsLockOn": "مفتاح Caps Lock مفعّل",
+      "signingIn": "جاري تسجيل الدخول...",
+      "signIn": "تسجيل الدخول",
+      "continueWith": "أو تابع باستخدام",
+      "orUseAccount": "أو استخدم حساب",
+      "usePersonalEmail": "استخدم البريد الشخصي",
+      "useCorporateAccount": "استخدم حساب الشركة",
+      "personalEmailAccounts": "حسابات البريد الشخصي",
+      "corporateAccountEmployee": "موظف الشركة",
+      "employeeHash": "موظف #",
+      "errors": {
+        "emailRequired": "البريد الإلكتروني مطلوب",
+        "emailInvalid": "عنوان بريد إلكتروني غير صحيح",
+        "employeeRequired": "رقم الموظف مطلوب",
+        "employeeInvalid": "رقم موظف غير صحيح",
+        "passwordRequired": "كلمة المرور مطلوبة",
+        "passwordTooShort": "يجب أن تكون كلمة المرور 8 أحرف على الأقل",
+        "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+        "loginFailed": "فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.",
+        "networkError": "خطأ في الشبكة. يرجى التحقق من اتصالك."
+      },
+      "success": {
+        "title": "تم تسجيل الدخول بنجاح",
+        "message": "جاري إعادة التوجيه إلى لوحة التحكم..."
+      }
+    },
+    "logout": {
+      "signingOut": "جاري تسجيل الخروج...",
+      "pleaseWait": "يرجى الانتظار"
     },
     "signup": {
       "title": "إنشاء حساب",
@@ -235,6 +277,86 @@
     "expenses": "المصروفات",
     "payments": "المدفوعات",
     "reports": "التقارير المالية"
+  },
+  "hr": {
+    "title": "الموارد البشرية",
+    "tabs": {
+      "dashboard": "لوحة التحكم",
+      "employees": "الموظفون",
+      "payroll": "كشوف المرتبات",
+      "leave": "إدارة الإجازات",
+      "attendance": "الحضور"
+    },
+    "stats": {
+      "totalEmployees": "إجمالي الموظفين",
+      "monthlyPayroll": "الرواتب الشهرية",
+      "pendingLeave": "طلبات الإجازة المعلقة",
+      "attendance": "معدل الحضور"
+    },
+    "quickActions": "إجراءات سريعة",
+    "actions": {
+      "addEmployee": "إضافة موظف",
+      "addEmployeeDesc": "تسجيل موظف جديد",
+      "processPayroll": "معالجة الرواتب",
+      "processPayrollDesc": "تشغيل الرواتب الشهرية",
+      "approveLeave": "الموافقة على الإجازة",
+      "approveLeaveDesc": "مراجعة طلبات الإجازات"
+    },
+    "recentActivity": "النشاط الأخير",
+    "comingSoon": "قريبًا"
+  },
+  "crm": {
+    "title": "إدارة علاقات العملاء",
+    "contacts": "جهات الاتصال",
+    "leads": "العملاء المحتملون",
+    "opportunities": "الفرص",
+    "activities": "الأنشطة"
+  },
+  "marketplace": {
+    "title": "السوق",
+    "browse": "تصفح",
+    "vendors": "الموردون",
+    "services": "الخدمات",
+    "products": "المنتجات",
+    "rfq": "طلب عرض سعر"
+  },
+  "vendors": {
+    "title": "الموردون",
+    "add": "إضافة مورد",
+    "list": "قائمة الموردين",
+    "contracts": "العقود",
+    "performance": "الأداء",
+    "payments": "المدفوعات"
+  },
+  "tenants": {
+    "title": "المستأجرون",
+    "add": "إضافة مستأجر",
+    "list": "قائمة المستأجرين",
+    "leases": "عقود الإيجار",
+    "payments": "المدفوعات",
+    "requests": "طلبات الصيانة"
+  },
+  "maintenance": {
+    "title": "الصيانة",
+    "description": "إدارة مهام وجداول الصيانة",
+    "tasks": "مهام الصيانة",
+    "schedule": "جدول الصيانة",
+    "history": "تاريخ الصيانة",
+    "preventive": "الصيانة الوقائية"
+  },
+  "support": {
+    "title": "الدعم",
+    "tickets": "تذاكر الدعم",
+    "knowledge": "قاعدة المعرفة",
+    "faq": "الأسئلة الشائعة",
+    "contact": "اتصل بالدعم"
+  },
+  "help": {
+    "title": "مركز المساعدة",
+    "search": "ابحث في المقالات",
+    "categories": "الفئات",
+    "popular": "المقالات الشائعة",
+    "getStarted": "البدء"
   },
   "common": {
     "save": "حفظ",
