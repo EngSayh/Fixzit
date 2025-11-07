@@ -170,7 +170,8 @@ describe('Providers', () => {
     expect(screen.getByTestId('formstate-provider')).toBeInTheDocument();
 
     // Nesting order check via DOM hierarchy
-    // Order: SessionProvider → I18nProvider → TranslationProvider → ResponsiveProvider → CurrencyProvider → ThemeProvider → TopBarProvider → ErrorBoundary → FormStateProvider
+    // Order: ErrorBoundary → SessionProvider → I18nProvider → TranslationProvider → ResponsiveProvider → CurrencyProvider → ThemeProvider → TopBarProvider → FormStateProvider
+    const errorBoundary = screen.getByTestId('error-boundary');
     const session = screen.getByTestId('session-provider');
     const i18n = screen.getByTestId('i18n-provider');
     const translation = screen.getByTestId('translation-provider');
@@ -178,18 +179,17 @@ describe('Providers', () => {
     const currency = screen.getByTestId('currency-provider');
     const theme = screen.getByTestId('theme-provider');
     const topbar = screen.getByTestId('topbar-provider');
-    const errorBoundary = screen.getByTestId('error-boundary');
     const formstate = screen.getByTestId('formstate-provider');
     const child = screen.getByTestId('child');
 
+    expect(errorBoundary).toContainElement(session);
     expect(session).toContainElement(i18n);
     expect(i18n).toContainElement(translation);
     expect(translation).toContainElement(responsive);
     expect(responsive).toContainElement(currency);
     expect(currency).toContainElement(theme);
     expect(theme).toContainElement(topbar);
-    expect(topbar).toContainElement(errorBoundary);
-    expect(errorBoundary).toContainElement(formstate);
+    expect(topbar).toContainElement(formstate);
     expect(formstate).toContainElement(child);
   });
 
