@@ -1,5 +1,6 @@
 import "./globals.css";
-import Providers from "@/providers/Providers";
+// ⚡ PERFORMANCE OPTIMIZATION: Use conditional providers for route-based optimization
+import ConditionalProviders from "@/providers/ConditionalProviders";
 import ClientLayout from "@/components/ClientLayout";
 import { Toaster } from 'sonner';
 import { Inter, Tajawal } from 'next/font/google';
@@ -27,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className={`min-h-screen bg-background ${inter.className} ${tajawal.variable}`}>
-        <Providers>
+        <ConditionalProviders>
           <ClientLayout>
             {children}
           </ClientLayout>
@@ -37,7 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             closeButton
             duration={4000}
           />
-        </Providers>
+        </ConditionalProviders>
       </body>
     </html>
   );
