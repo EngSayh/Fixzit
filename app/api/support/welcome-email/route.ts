@@ -7,6 +7,7 @@ import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 import { 
   getSendGridConfig, 
   getBaseEmailOptions, 
@@ -198,7 +199,7 @@ The Fixzit Enterprise Team
         });
       } catch (dbError) {
         // Email sent but logging failed - don't fail the request
-        console.warn('⚠️ Email sent but database logging failed:', dbError);
+        logger.warn('⚠️ Email sent but database logging failed:', { dbError });
       }
 
       return createSecureResponse({

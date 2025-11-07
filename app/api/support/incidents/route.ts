@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 // Accepts client diagnostic bundles and auto-creates a support ticket.
 // This is non-blocking for the user flow; returns 202 on insert.
 /**
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest) {
     // NOTE: Do NOT call redis.quit() in finally block - connection is reused
   } else {
     // Redis unavailable - allow request (fail open for better UX)
-    console.warn('[Incidents] Redis unavailable, rate limiting disabled');
+    logger.warn('[Incidents] Redis unavailable, rate limiting disabled');
   }
 
   // SECURITY: Determine tenant scope from authenticated session ONLY

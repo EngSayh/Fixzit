@@ -42,6 +42,7 @@ async function getUserSession(req: NextRequest) {
 
 import type { RouteContext } from '@/lib/types/route-context';
 
+import { logger } from '@/lib/logger';
 export async function POST(
   req: NextRequest,
   context: RouteContext<{ id: string }>
@@ -102,7 +103,7 @@ export async function POST(
     );
     
   } catch (error) {
-    console.error('POST /api/finance/journals/[id]/post error:', error);
+    logger.error('POST /api/finance/journals/[id]/post error:', { error });
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });

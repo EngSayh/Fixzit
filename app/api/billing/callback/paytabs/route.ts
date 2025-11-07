@@ -9,6 +9,7 @@ import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
 import { verifyPayment, validateCallback } from '@/lib/paytabs';
 
+import { logger } from '@/lib/logger';
 /**
  * @openapi
  * /api/billing/callback/paytabs:
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
   
   // 1) Validate signature
   if (!validateCallback(payload, signature)) {
-    console.error('[Billing Callback] Invalid signature from PayTabs');
+    logger.error('[Billing Callback] Invalid signature from PayTabs');
     return createSecureResponse({ error: 'Invalid signature' }, 401, req);
   }
   
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
   }
   
   if (!isValidPayTabsVerification(verification)) {
-    console.error('[Billing Callback] Invalid verification response structure from PayTabs');
+    logger.error('[Billing Callback] Invalid verification response structure from PayTabs');
     return createSecureResponse({ error: 'Invalid payment verification response' }, 500, req);
   }
   
@@ -116,7 +117,7 @@ export async function POST(req: NextRequest) {
     // Only use verified payment info - never fall back to untrusted callback data
     const paymentInfo = verificationData.payment_info;
     if (!paymentInfo) {
-      console.warn('[Billing Callback] No payment_info in verification response, skipping token storage');
+      logger.warn('[Billing Callback] No payment_info in verification response, skipping token storage');
     } else {
       const pm = await PaymentMethod.create({
         customerId: sub.customerId, 

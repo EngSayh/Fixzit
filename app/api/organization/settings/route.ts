@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongodb-unified';
 import { Organization } from '@/server/models/Organization';
 
+import { logger } from '@/lib/logger';
 /**
  * @openapi
  * /api/organization/settings:
@@ -55,7 +56,7 @@ export async function GET() {
       secondaryColor: orgDoc?.branding?.secondaryColor || '#00A859'
     });
   } catch (error) {
-    console.error('Error fetching organization settings:', error);
+    logger.error('Error fetching organization settings:', { error });
     // Return default settings on error
     return NextResponse.json({
       name: 'FIXZIT ENTERPRISE',

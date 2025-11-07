@@ -32,6 +32,7 @@ const ApprovalSchema = z.object({
 
 import type { RouteContext } from '@/lib/types/route-context';
 
+import { logger } from '@/lib/logger';
 /**
  * POST /api/finance/expenses/:id/submit|approve|reject
  */
@@ -157,7 +158,7 @@ export async function POST(
       }
     );
   } catch (error) {
-    console.error('Error processing expense action:', error);
+    logger.error('Error processing expense action:', { error });
 
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });

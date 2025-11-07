@@ -4,6 +4,7 @@ import { getDatabase } from '@/lib/mongodb-unified';
 import { verifyWebhookSignature } from '@/lib/sendgrid-config';
 import { getClientIp } from '@/lib/security/client-ip';
 
+import { logger } from '@/lib/logger';
 /**
  * SendGrid Event Webhook Handler
  * 
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
     // SECURITY: Validate Content-Type (exact match)
     const contentType = req.headers.get('content-type');
     if (!contentType || !contentType.startsWith('application/json')) {
-      console.warn('⚠️ Invalid Content-Type:', contentType);
+      logger.warn('⚠️ Invalid Content-Type:', { contentType });
       return createSecureResponse({ error: 'Invalid Content-Type' }, 400, req);
     }
 
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
         throw new Error(`Invalid payload type: Expected array, got ${typeof events}`);
       }
     } catch (parseError) {
-      console.error('❌ Invalid JSON payload:', parseError);
+      logger.error('❌ Invalid JSON payload:', { parseError });
       return createSecureResponse({ error: 'Invalid JSON payload' }, 400, req);
     }
 
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
     // CRITICAL SECURITY: Signature verification with timing-safe comparison
     const isValid = verifyWebhookSignature(publicKey, rawBody, signature, timestamp);
     if (!isValid) {
-      console.error('❌ Invalid webhook signature from IP:', clientIp);
+      logger.error('❌ Invalid webhook signature from IP:', { clientIp });
       return createSecureResponse({ error: 'Invalid signature' }, 401, req);
     }
 
@@ -176,7 +177,7 @@ export async function POST(req: NextRequest) {
     }, 200, req);
 
   } catch (error) {
-    console.error('❌ Webhook processing error:', error);
+    logger.error('❌ Webhook processing error:', { error });
     return createSecureResponse({
       error: 'Failed to process webhook',
       message: error instanceof Error ? error.message : 'Unknown error'

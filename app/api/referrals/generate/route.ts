@@ -5,6 +5,7 @@ import { connectDb } from '@/lib/mongo';
 import { REFERRAL_REWARD, REFERRAL_LIMITS, getReferralValidity } from '@/config/referrals.config';
 import { Types } from 'mongoose';
 
+import { logger } from '@/lib/logger';
 /**
  * POST /api/referrals/generate
  * 
@@ -87,7 +88,7 @@ export async function POST() {
     
     return NextResponse.json({ code: referralCode });
   } catch (error) {
-    console.error('Failed to generate referral code:', error);
+    logger.error('Failed to generate referral code:', { error });
     return NextResponse.json(
       { error: 'Failed to generate referral code' },
       { status: 500 }

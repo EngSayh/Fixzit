@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { WorkOrder } from '@/server/models/WorkOrder';
 
+import { logger } from '@/lib/logger';
 /**
  * POST /api/work-orders/sla-check
  * Check for SLA breaches and send escalation notifications
@@ -64,7 +65,7 @@ export async function POST() {
       }
     }
     
-    console.log('[SLA] Check complete:', results);
+    logger.info('[SLA] Check complete:', { results });
     
     return NextResponse.json({
       success: true,

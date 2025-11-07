@@ -4,6 +4,7 @@ import { connectDb } from '@/lib/mongo';
 import { PayrollRun, Payslip, IPayslip } from '@/models/hr/Payroll';
 import { generateWPSFile, validateWPSFile } from '@/services/hr/wpsService';
 
+import { logger } from '@/lib/logger';
 // GET /api/hr/payroll/runs/[id]/export/wps - Generate WPS/Mudad compliant file
 export async function GET(
   req: NextRequest,
@@ -62,7 +63,7 @@ export async function GET(
 
     // Check for generation errors (e.g., invalid IBANs)
     if (generationErrors.length > 0) {
-      console.warn('WPS generation warnings:', generationErrors);
+      logger.warn('WPS generation warnings:', { generationErrors });
       // If we have no valid records, return error
       if (wpsFile.recordCount === 0) {
         return NextResponse.json(
@@ -107,7 +108,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Error generating WPS file:', error);
+    logger.error('Error generating WPS file:', { error });
     return NextResponse.json(
       { error: 'Failed to generate WPS file' },
       { status: 500 }

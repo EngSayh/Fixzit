@@ -17,6 +17,7 @@ import { isValidObjectIdSafe } from '@/lib/api/validation';
 
 import mongoose from 'mongoose';
 
+import { logger } from '@/lib/logger';
 export const runtime = 'nodejs';
 
 // GET /api/aqar/listings/[id]
@@ -56,7 +57,7 @@ export async function GET(
       
       return ok({ listing }, { correlationId });
     } catch (error) {
-      console.error('Error fetching listing:', error);
+      logger.error('Error fetching listing:', { error });
       return NextResponse.json({ error: 'Failed to fetch listing' }, { status: 500 });
     }
 }
@@ -151,7 +152,7 @@ export async function PATCH(
     
     return NextResponse.json({ listing });
   } catch (error) {
-    console.error('Error updating listing:', error);
+    logger.error('Error updating listing:', { error });
     return NextResponse.json({ error: 'Failed to update listing' }, { status: 500 });
   }
 }
@@ -187,7 +188,7 @@ export async function DELETE(
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting listing:', error);
+    logger.error('Error deleting listing:', { error });
     return NextResponse.json({ error: 'Failed to delete listing' }, { status: 500 });
   }
 }

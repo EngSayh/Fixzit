@@ -10,6 +10,7 @@ import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
 
+import { logger } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 
 type AskRequest = {
@@ -189,7 +190,7 @@ export async function POST(req: NextRequest) {
         content: c.text || '',
         updatedAt: c.updatedAt ? new Date(c.updatedAt) : undefined
       }));
-    } catch (e) { console.error('Vector search failed, falling back to lexical search:', e); }
+    } catch (e) { logger.error('Vector search failed, falling back to lexical search:', { e }); }
 
     if (!docs || docs.length === 0) {
       try {
@@ -264,7 +265,7 @@ if (process.env.REDIS_URL) {
       connectTimeout: 5000,
       commandTimeout: 5000});
   } catch (err) {
-    console.error('Failed to initialize Redis client:', err);
+    logger.error('Failed to initialize Redis client:', { err });
   }
 }
 
@@ -289,7 +290,7 @@ async function rateLimitAssert(req: NextRequest) {
       return;
     } catch (_err: Error | unknown) {
       if ((_err as Error).message === 'Rate limited') throw _err;
-      console.error('Redis rate limit check failed, falling back to in-memory:', _err);
+      logger.error('Redis rate limit check failed, falling back to in-memory:', { _err });
     }
   }
   

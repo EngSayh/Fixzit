@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { MapPin, Clock, DollarSign, Users, FileText, Send, Upload, Star, AlertTriangle } from 'lucide-react';
 
+import { logger } from '@/lib/logger';
 interface Job {
   id: string;
   title: string;
@@ -326,7 +327,7 @@ export default function CareersPage() {
         throw new Error(result.error || 'Failed to submit application');
       }
     } catch (error) {
-      console.error('Application submission error:', error);
+      logger.error('Application submission error:', { error });
 
       const errorMessage = error instanceof Error
         ? `Error: ${error.message}. Please check your internet connection and try again.`

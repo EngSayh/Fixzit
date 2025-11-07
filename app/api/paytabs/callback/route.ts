@@ -8,6 +8,7 @@ import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
 
+import { logger } from '@/lib/logger';
 /**
  * @openapi
  * /api/paytabs/callback:
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
   const signature = payload.signature || payload.sign || payload.payment_signature;
   
   if (!signature) {
-    console.error('PayTabs callback rejected: Missing signature');
+    logger.error('PayTabs callback rejected: Missing signature');
     return createSecureResponse(
       { error: 'Payment verification failed: Missing signature' },
       400,

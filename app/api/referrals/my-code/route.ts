@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { ReferralCodeModel } from '@/server/models/ReferralCode';
 import { connectDb } from '@/lib/mongo';
 
+import { logger } from '@/lib/logger';
 /**
  * GET /api/referrals/my-code
  * 
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Failed to fetch referral code:', error);
+    logger.error('Failed to fetch referral code:', { error });
     return NextResponse.json(
       { error: 'Failed to fetch referral code' },
       { status: 500 }

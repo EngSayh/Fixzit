@@ -14,6 +14,7 @@ import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { ok, badRequest, serverError } from '@/lib/api/http';
 
 
+import { logger } from '@/lib/logger';
 export const runtime = 'nodejs';
 
 // GET /api/aqar/packages
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ packages });
   } catch (error) {
-    console.error('Error fetching packages:', error);
+    logger.error('Error fetching packages:', { error });
     return NextResponse.json({ error: 'Failed to fetch packages' }, { status: 500 });
   }
 }
