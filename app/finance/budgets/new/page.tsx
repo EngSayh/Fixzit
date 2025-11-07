@@ -5,6 +5,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 interface BudgetCategory {
   id: string;
@@ -107,7 +108,7 @@ export default function NewBudgetPage() {
         router.push(`/finance/budgets/${data.id}`);
       }
     } catch (error) {
-      console.error('Error saving draft:', error);
+      logger.error('Error saving budget draft', { error });
       toast.error(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);
@@ -163,7 +164,7 @@ export default function NewBudgetPage() {
         router.push(`/finance/budgets/${data.id}`);
       }
     } catch (error) {
-      console.error('Error creating budget:', error);
+      logger.error('Error creating budget', { error });
       toast.error(t('common.error', 'An error occurred'), { id: toastId });
     } finally {
       setIsSubmitting(false);
