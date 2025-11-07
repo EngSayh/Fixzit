@@ -376,7 +376,9 @@ export default function NewExpensePage() {
       }
 
       toast.success(t('finance.expense.draftSaved', 'Expense draft saved successfully'));
-      router.push(`/finance/expenses/${data.expense.id}`);
+      if (data?.expense?.id) {
+        router.push(`/finance/expenses/${data.expense.id}`);
+      }
     } catch (error) {
       console.error('Error saving draft:', error);
       toast.error(t('common.error', 'An error occurred'));
@@ -440,7 +442,9 @@ export default function NewExpensePage() {
       }
 
       toast.success(t('finance.expense.submitted', 'Expense submitted for approval'));
-      router.push(`/finance/expenses/${data.expense.id}`);
+      if (data?.expense?.id) {
+        router.push(`/finance/expenses/${data.expense.id}`);
+      }
     } catch (error) {
       console.error('Error submitting expense:', error);
       toast.error(t('common.error', 'An error occurred'));

@@ -316,7 +316,9 @@ export default function NewInvoicePage() {
 
       const data = await response.json();
       toast.success(t('finance.invoice.draftSaved', 'Invoice draft saved successfully'));
-      router.push(`/finance/invoices/${data.invoice.id}`);
+      if (data?.invoice?.id) {
+        router.push(`/finance/invoices/${data.invoice.id}`);
+      }
     } catch (error) {
       console.error('Error saving draft:', error);
       toast.error(t('common.error', 'An error occurred'));
@@ -387,12 +389,14 @@ export default function NewInvoicePage() {
 
       const data = await response.json();
       
-      if (data.journal) {
+      if (data?.journal) {
         setJournalPosted(true);
       }
 
       toast.success(t('finance.invoice.created', 'Invoice created successfully'));
-      router.push(`/finance/invoices/${data.invoice.id}`);
+      if (data?.invoice?.id) {
+        router.push(`/finance/invoices/${data.invoice.id}`);
+      }
     } catch (error) {
       console.error('Error creating invoice:', error);
       toast.error(t('common.error', 'An error occurred'));
