@@ -23,6 +23,7 @@ const modelPath = path.resolve(projectRoot, "server/models/HelpArticle.ts");
  */
 async function runIsolatedImport(env: Record<string, string | undefined>) {
   const code = `
+    (async () => {
     ${Object.entries(env)
       .map(([k, v]) => (v === undefined ? `delete process.env["${k}"];` : `process.env["${k}"] = ${JSON.stringify(v)};`))
       .join("\n")}
@@ -61,6 +62,7 @@ async function runIsolatedImport(env: Record<string, string | undefined>) {
     } catch {}
 
     console.log(JSON.stringify({ branch, hasCreate: !!HelpArticle?.create, hasFindOne: !!HelpArticle?.findOne, schemaInfo }));
+    })().catch(err => { console.error(JSON.stringify({ error: err.message })); process.exit(1); });
   `;
   const tmpFile = path.join(os.tmpdir(), `helpArticle-test-${crypto.randomBytes(6).toString("hex")}.ts`);
   await fs.writeFile(tmpFile, code, "utf8");

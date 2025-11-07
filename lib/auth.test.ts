@@ -174,7 +174,7 @@ describe('auth lib - JWT generation and verification', () => {
       tenantId: 't',
       orgId: 't',
     };
-    auth.generateToken(payload);
+    await auth.generateToken(payload);
     expect(signSpy).toHaveBeenCalledWith(payload, 'fixed-secret', expect.any(Object));
   });
 });
