@@ -1,15 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from '@/lib/logger';
 import { Invoice } from "@/server/models/Invoice";
+import { logger } from '@/lib/logger';
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { logger } from '@/lib/logger';
 import { generateZATCAQR } from "@/lib/zatca";
+import { logger } from '@/lib/logger';
 import { nanoid } from "nanoid";
+import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
+import { logger } from '@/lib/logger';
 import {rateLimitError} from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 const createInvoiceSchema = z.object({
   type: z.enum(["SALES", "PURCHASE", "RENTAL", "SERVICE", "MAINTENANCE"]),
@@ -184,7 +195,7 @@ export async function POST(req: NextRequest) {
     return createSecureResponse(invoice, 201, req);
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    console.error('[POST /api/invoices] Error creating invoice:', {
+    logger.error('[POST /api/invoices] Error creating invoice:', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
@@ -258,7 +269,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    console.error('[GET /api/invoices] Error fetching invoices:', {
+    logger.error('[GET /api/invoices] Error fetching invoices:', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined

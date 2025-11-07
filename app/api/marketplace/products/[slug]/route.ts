@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
+import { logger } from '@/lib/logger';
 import { findProductBySlug } from '@/lib/marketplace/search';
+import { logger } from '@/lib/logger';
 import { db } from '@/lib/mongo';
+import { logger } from '@/lib/logger';
 import Category from '@/server/models/marketplace/Category';
+import { logger } from '@/lib/logger';
 import { serializeCategory } from '@/lib/marketplace/serializers';
+import { logger } from '@/lib/logger';
 
 import {notFoundError} from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -51,7 +59,7 @@ export async function GET(request: NextRequest, props: RouteParams) {
       }
     });
   } catch (error) {
-    console.error('Failed to load product details', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Failed to load product details', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Unable to fetch product' }, 500, request);
   }
 }

@@ -52,7 +52,7 @@ export async function GET(
           $set: { 'analytics.lastViewedAt': new Date() } 
         }
       ).exec().catch((err: Error) => {
-        console.warn('VIEW_INC_FAILED', { correlationId, id, err: String(err?.message || err) });
+        logger.warn('VIEW_INC_FAILED', { correlationId, id, err: String(err?.message || err) });
       });
       
       return ok({ listing }, { correlationId });

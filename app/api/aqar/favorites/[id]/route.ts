@@ -5,11 +5,16 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { connectDb } from '@/lib/mongo';
+import { logger } from '@/lib/logger';
 import { AqarFavorite, AqarListing, AqarProject } from '@/models/aqar';
+import { logger } from '@/lib/logger';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { logger } from '@/lib/logger';
 
 import mongoose from 'mongoose';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -28,7 +33,7 @@ export async function DELETE(
       user = await getSessionUser(request);
     } catch (authError) {
       // Log only sanitized error message to avoid exposing sensitive data
-      console.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
+      logger.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -66,7 +71,7 @@ export async function DELETE(
         );
       } catch (analyticsError) {
         // Log analytics error but don't fail the request (deletion already succeeded)
-        console.error('Failed to decrement listing favorites analytics', {
+        logger.error('Failed to decrement listing favorites analytics', {
           targetId: favorite.targetId.toString(),
           message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
         });
@@ -86,7 +91,7 @@ export async function DELETE(
         );
       } catch (analyticsError) {
         // Log analytics error but don't fail the request (deletion already succeeded)
-        console.error('Failed to decrement project favorites analytics', {
+        logger.error('Failed to decrement project favorites analytics', {
           targetId: favorite.targetId.toString(),
           message: analyticsError instanceof Error ? analyticsError.message : 'Unknown error'
         });
@@ -95,7 +100,7 @@ export async function DELETE(
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting favorite:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Error deleting favorite:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Failed to delete favorite' }, { status: 500 });
   }
 }

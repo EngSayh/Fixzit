@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from '@/lib/logger';
 import { Job } from "@/server/models/Job";
+import { logger } from '@/lib/logger';
 import { generateSlug } from "@/lib/utils";
+import { logger } from '@/lib/logger';
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 import { rateLimit } from '@/server/security/rateLimit';
+import { logger } from '@/lib/logger';
 import {rateLimitError} from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 const publicJobSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(200),
@@ -98,7 +107,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ success: true, data: job }, { status: 201 });
   } catch (error) {
-    console.error("Public post error:", error instanceof Error ? error.message : 'Unknown error');
+    logger.error("Public post error:", error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: "Failed to submit job" }, 500, req);
   }
 }

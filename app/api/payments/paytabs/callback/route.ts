@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { validateCallback } from '@/lib/paytabs';
+import { logger } from '@/lib/logger';
 import { rateLimit } from '@/server/security/rateLimit';
+import { logger } from '@/lib/logger';
 import { unauthorizedError, validationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 /**
  * @openapi
@@ -167,7 +173,7 @@ export async function POST(req: NextRequest) {
             complianceStatus: 'CLEARED'
           });
         } catch (dbError) {
-          console.error('[ZATCA] Failed to persist clearance evidence', {
+          logger.error('[ZATCA] Failed to persist clearance evidence', {
             cartId: String(cart_id).slice(0, 8) + '...',
             error: dbError instanceof Error ? dbError.message : String(dbError)
           });
@@ -175,7 +181,7 @@ export async function POST(req: NextRequest) {
           throw new Error(`Payment cleared by ZATCA but failed to persist evidence: ${dbError instanceof Error ? dbError.message : 'Database error'}`);
         }
         
-        console.log('[ZATCA] Fatoora clearance successful', {
+        logger.info('[ZATCA] Fatoora clearance successful', {
           cartId: String(cart_id).slice(0, 8) + '...',
           clearanceId: clearanceId ? String(clearanceId).slice(0, 16) + '...' : 'N/A'
         });
@@ -225,7 +231,7 @@ async function updatePaymentRecord(
 }
       } catch (zatcaError) {
         // Log detailed Fatoora error
-        console.error('[ZATCA] Fatoora clearance FAILED - Payment aborted', {
+        logger.error('[ZATCA] Fatoora clearance FAILED - Payment aborted', {
           cartId: String(cart_id).slice(0, 8) + '...',
           error: zatcaError instanceof Error ? zatcaError.message : String(zatcaError),
           stack: zatcaError instanceof Error ? zatcaError.stack : undefined
@@ -240,7 +246,7 @@ async function updatePaymentRecord(
         }, { status: 500 });
       }
       
-      console.log('Payment successful', { order: String(cart_id).slice(0,8) + '...' });
+      logger.info('Payment successful', { order: String(cart_id).slice(0,8) + '...' });
       
       // TODO: If cart_id refers to an AqarPayment, activate the related package
       // Import and call: activatePackageAfterPayment(cart_id)

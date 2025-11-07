@@ -1,10 +1,16 @@
 import { NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
 import { getDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
+import { logger } from '@/lib/logger';
 import { rateLimitError } from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 /**
  * @openapi
@@ -46,11 +52,11 @@ export async function POST(req: NextRequest) {
       sessionId: req.cookies.get('sessionId')?.value || 'unknown'
     });
 
-    console.log(`📝 QA Log: ${event}`, data);
+    logger.info(`📝 QA Log: ${event}`, data);
 
     return createSecureResponse({ success: true }, 200, req);
   } catch (error) {
-    console.error('Failed to log QA event:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Failed to log QA event:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to log event' }, 500, req);
   }
 }
@@ -85,7 +91,7 @@ export async function GET(req: NextRequest) {
 
     return createSecureResponse({ logs }, 200, req);
   } catch (error) {
-    console.error('Failed to fetch QA logs:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Failed to fetch QA logs:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to fetch logs' }, 500, req);
   }
 }

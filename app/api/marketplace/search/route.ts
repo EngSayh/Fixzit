@@ -1,14 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 import { Types } from 'mongoose';
+import { logger } from '@/lib/logger';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
+import { logger } from '@/lib/logger';
 import { searchProducts } from '@/lib/marketplace/search';
+import { logger } from '@/lib/logger';
 import Category from '@/server/models/marketplace/Category';
+import { logger } from '@/lib/logger';
 import { serializeCategory } from '@/lib/marketplace/serializers';
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
 
 import {zodValidationError} from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 const QuerySchema = z.object({
   q: z.string().optional(),
@@ -95,7 +105,7 @@ export async function GET(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
     }
-    console.error('Marketplace search failed', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Marketplace search failed', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Search failed' }, 500, request);
   }
 }

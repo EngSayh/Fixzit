@@ -233,7 +233,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     }, { status: 201 });
     
   } catch (error) {
-    console.error('Job application error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Job application error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'Failed to submit application' },
       { status: 500 }

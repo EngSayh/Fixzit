@@ -7,10 +7,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import mongoose from 'mongoose';
+import { logger } from '@/lib/logger';
 import { connectDb } from '@/lib/mongo';
+import { logger } from '@/lib/logger';
 import { AqarFavorite, AqarListing, AqarProject } from '@/models/aqar';
+import { logger } from '@/lib/logger';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -25,7 +30,7 @@ export async function GET(request: NextRequest) {
       user = await getSessionUser(request);
     } catch (authError) {
       // Log only sanitized error message to avoid exposing sensitive data
-      console.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
+      logger.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -118,7 +123,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error fetching favorites:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Error fetching favorites:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Failed to fetch favorites' }, { status: 500 });
   }
 }
@@ -134,7 +139,7 @@ export async function POST(request: NextRequest) {
       user = await getSessionUser(request);
     } catch (authError) {
       // Log only sanitized error message to avoid exposing sensitive data
-      console.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
+      logger.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -227,7 +232,7 @@ export async function POST(request: NextRequest) {
             $set: { 'analytics.lastFavoritedAt': new Date() }
           }).exec();
         } catch (analyticsError) {
-          console.error('Failed to increment listing favorites analytics', {
+          logger.error('Failed to increment listing favorites analytics', {
             userId: user.id,
             targetId,
             targetType,
@@ -243,7 +248,7 @@ export async function POST(request: NextRequest) {
             $set: { 'analytics.lastFavoritedAt': new Date() }
           }).exec();
         } catch (analyticsError) {
-          console.error('Failed to increment project favorites analytics', {
+          logger.error('Failed to increment project favorites analytics', {
             userId: user.id,
             targetId,
             targetType,
@@ -255,7 +260,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ favorite }, { status: 201 });
   } catch (error) {
-    console.error('Error adding favorite:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Error adding favorite:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json({ error: 'Failed to add favorite' }, { status: 500 });
   }
 }

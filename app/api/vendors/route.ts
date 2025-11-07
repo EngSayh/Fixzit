@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from '@/lib/logger';
 import { Vendor } from "@/server/models/Vendor";
+import { logger } from '@/lib/logger';
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
+import { logger } from '@/lib/logger';
 import {rateLimitError} from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 const createVendorSchema = z.object({
   name: z.string().min(1),
@@ -99,7 +108,7 @@ export async function POST(req: NextRequest) {
     return createSecureResponse(vendor, 201, req);
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    console.error('[POST /api/vendors] Error creating vendor:', {
+    logger.error('[POST /api/vendors] Error creating vendor:', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
@@ -162,7 +171,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    console.error('[GET /api/vendors] Error fetching vendors:', {
+    logger.error('[GET /api/vendors] Error fetching vendors:', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined

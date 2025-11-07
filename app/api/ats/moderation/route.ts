@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from '@/lib/logger';
 import { Job } from '@/server/models/Job';
+import { logger } from '@/lib/logger';
 import { getUserFromToken } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
+import { logger } from '@/lib/logger';
 import {notFoundError, validationError, rateLimitError, unauthorizedError} from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 /**
  * @openapi
@@ -62,7 +70,7 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: job });
   } catch (error) {
-    console.error('Moderation error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Moderation error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to moderate job' }, 500, req);
   }
 }

@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
 import { Job } from '@/server/models/Job';
+import { logger } from '@/lib/logger';
 import { generateSlug } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 import { getUserFromToken } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
+import { logger } from '@/lib/logger';
 import {rateLimitError} from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 /**
  * @openapi
  * /api/ats/jobs:
@@ -86,7 +94,7 @@ export async function GET(req: NextRequest) {
       pagination: { page, limit, total, pages: Math.ceil(total / limit) }
     });
   } catch (error) {
-    console.error('Jobs list error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Jobs list error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'Failed to fetch jobs' },
       { status: 500 }
@@ -138,7 +146,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ success: true, data: job }, { status: 201 });
   } catch (error) {
-    console.error('Job creation error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Job creation error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'Failed to create job' },
       { status: 500 }

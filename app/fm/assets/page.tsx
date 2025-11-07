@@ -182,12 +182,12 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
   
   const handleView = () => {
     // Placeholder: Navigate to asset detail view or open modal
-    console.log('View asset:', asset.id);
+    logger.info('View asset:', asset.id);
   };
 
   const handleEdit = () => {
     // Placeholder: Open edit modal or navigate to edit page
-    console.log('Edit asset:', asset.id);
+    logger.info('Edit asset:', asset.id);
     // After successful edit, call onUpdated()
   };
 

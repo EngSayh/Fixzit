@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
+import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
+import { logger } from '@/lib/logger';
 import { rateLimitError } from '@/server/utils/errorResponses';
+import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -59,7 +64,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     healthStatus.status = 'degraded';
     healthStatus.database = 'disconnected';
-    console.error('Database health check failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Database health check failed:', error instanceof Error ? error.message : 'Unknown error');
   }
 
   // Check memory usage
