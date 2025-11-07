@@ -115,8 +115,8 @@ const AdminModule: React.FC = () => {
   // Users state
   const [users, setUsers] = useState<User[]>([]);
   // const [_selectedUsers, _setSelectedUsers] = useState<Set<string>>(new Set());
-  const [_userModalOpen, setUserModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [_userModalOpen, _setUserModalOpen] = useState(false);
+  const [_editingUser, _setEditingUser] = useState<User | null>(null);
 
   // Roles state
   const [roles, setRoles] = useState<Role[]>([]);
@@ -368,20 +368,20 @@ const AdminModule: React.FC = () => {
 
   // User actions
   const handleAddUser = () => {
-    setEditingUser(null);
-    setUserModalOpen(true);
+    _setEditingUser(null);
+    _setUserModalOpen(true);
   };
 
   const handleEditUser = (user: User) => {
-    setEditingUser(user);
-    setUserModalOpen(true);
+    _setEditingUser(user);
+    _setUserModalOpen(true);
   };
 
   const handleSaveUser = async (userData: Partial<User>) => {
     try {
-      if (editingUser) {
+      if (_editingUser) {
         // Update existing user
-        // const response = await fetch(`/api/org/users/${editingUser.id}`, {
+        // const response = await fetch(`/api/org/users/${_editingUser.id}`, {
         //   method: 'PUT',
         //   headers: { 'Content-Type': 'application/json' },
         //   body: JSON.stringify(userData)
@@ -389,9 +389,9 @@ const AdminModule: React.FC = () => {
         // const data = await response.json();
         // if (data.error) throw new Error(data.error);
         
-        setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...userData } : u));
+        setUsers(users.map(u => u.id === _editingUser.id ? { ...u, ...userData } : u));
         setSuccessMessage('User updated successfully');
-        logger.info('User updated', { userId: editingUser.id });
+        logger.info('User updated', { userId: _editingUser.id });
       } else {
         // Create new user
         // const response = await fetch('/api/org/users', {
@@ -412,7 +412,7 @@ const AdminModule: React.FC = () => {
         setSuccessMessage('User created successfully');
         logger.info('User created', { userId: newUser.id });
       }
-      setUserModalOpen(false);
+      _setUserModalOpen(false);
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save user';

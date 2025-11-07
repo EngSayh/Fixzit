@@ -7,13 +7,13 @@
  * @module types/test-mocks
  */
 
-import type { Mock } from 'vitest';
+import type { MockedFunction } from 'vitest';
 
 /**
  * Generic mock function that accepts any arguments
  * and returns a specific type
  */
-export type GenericMock<TReturn = unknown> = Mock<unknown[], TReturn>;
+export type GenericMock<TReturn = unknown> = MockedFunction<(...args: unknown[]) => TReturn>;
 
 /**
  * MongoDB collection mock interface
