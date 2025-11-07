@@ -60,7 +60,7 @@ const makeRequest = (params: Record<string, string | number | undefined> = {}) =
 
 // Helper to extract JSON from NextResponse
 // 🔒 TYPE SAFETY: Test helper uses any for flexibility in test assertions
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const readJson = async (res: any) => {
   // next/server NextResponse.json returns a NextResponse-like object with a json() method
   // In Jest environment, the body can be read via res.json()

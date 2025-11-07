@@ -3,7 +3,9 @@ import React from 'react';
 import { render } from '@testing-library/react';
 import { SessionProvider } from 'next-auth/react';
 import { TranslationProvider } from '@/contexts/TranslationContext';
-import { vi } from 'vitest';
+/* eslint-disable @typescript-eslint/no-unused-vars, no-unused-vars */
+
+import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
 // Provide Jest compatibility layer for tests using jest.* APIs

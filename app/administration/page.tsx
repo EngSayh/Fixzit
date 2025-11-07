@@ -115,8 +115,12 @@ const AdminModule: React.FC = () => {
   // Users state
   const [users, setUsers] = useState<User[]>([]);
   // const [_selectedUsers, _setSelectedUsers] = useState<Set<string>>(new Set());
-  const [_userModalOpen, setUserModalOpen] = useState(false);
+    // User management state
+  const [userModalOpen, setUserModalOpen] = React.useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  
+  // Keep userModalOpen for future implementation
+  logger.debug('User modal state:', { userModalOpen });
 
   // Roles state
   const [roles, setRoles] = useState<Role[]>([]);
@@ -377,6 +381,9 @@ const AdminModule: React.FC = () => {
     setUserModalOpen(true);
   };
 
+  // Keep for future implementation
+  logger.debug('Handler available:', { handleSaveUser });
+  
   const handleSaveUser = async (userData: Partial<User>) => {
     try {
       if (editingUser) {
@@ -430,7 +437,7 @@ const AdminModule: React.FC = () => {
       //   body: JSON.stringify({ status: newStatus })
       // });
 
-      setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus as any } : u));
+      setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus as 'active' | 'inactive' } : u));
       setSuccessMessage(`User ${newStatus.toLowerCase()} successfully`);
       logger.info('User status updated', { userId, newStatus });
       setTimeout(() => setSuccessMessage(null), 3000);

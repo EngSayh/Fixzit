@@ -158,7 +158,7 @@ vi.mock('mongoose', async (importOriginal) => {
           // Debug helper: if needed, enable by setting DEBUG_MOCKS=1 in env
           try {
             if (process.env.DEBUG_MOCKS === '1' && /ledger/i.test(name)) {
-              // eslint-disable-next-line no-console
+               
               console.debug(`MockModel.find(${name}) -> returning array, has sort=${typeof arr.sort}`);
             }
           } catch (e) {}
@@ -314,7 +314,7 @@ vi.mock('mongoose', async (importOriginal) => {
             // Debugging: optionally log journal save operations to diagnose test flows
             try {
               if (process.env.DEBUG_MOCKS === '1' && name && /journal/i.test(name)) {
-                // eslint-disable-next-line no-console
+                 
                 console.debug(`MockModel.save(${name}) id=${id.toString()} status=${(this as any).status} storeHas=${store.has(id.toString())}`);
               }
             } catch (e) {}
