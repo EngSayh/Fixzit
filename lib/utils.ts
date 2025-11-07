@@ -20,8 +20,9 @@ export function generateSlug(input: string | null | undefined): string {
 
   let slug = src
     .toLowerCase()
-    // Strip non-ASCII characters (accents, non-Latin letters, special chars)
-    .replace(/[^a-z0-9\s-]/g, "") // Keep only ASCII letters, numbers, spaces, hyphens
+    // FIX: Allow Arabic and other Unicode letters (prevents stripping)
+    // Use Unicode property escapes to match letters in any language
+    .replace(/[^\p{L}\p{N}\s-]/gu, "") // Keep letters, numbers, spaces, hyphens
     .replace(/\s+/g, "-") // Collapse spaces
     .replace(/-+/g, "-") // Collapse hyphens
     .slice(0, 100);
