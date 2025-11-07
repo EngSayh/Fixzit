@@ -17,6 +17,7 @@ import { CardGridSkeleton } from '@/components/skeletons';
 import { Building2, Plus, Search, MapPin, Eye, Edit, Trash2, Home, Building, Factory, Map } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
+import { logger } from '@/lib/logger';
 interface PropertyUnit {
   status?: string;
 }
@@ -409,7 +410,7 @@ function CreatePropertyForm({ onCreated, orgId }: { onCreated: () => void; orgId
         toast.error(`Failed to create property: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      console.error('Error creating property:', error);
+      logger.error('Error creating property:', { error });
       toast.error('Error creating property. Please try again.', { id: toastId });
     }
   };

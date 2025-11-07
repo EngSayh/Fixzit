@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Search, Plus, Eye } from 'lucide-react';
 
+import { logger } from '@/lib/logger';
 interface Employee {
   id: string;
   employeeCode: string;
@@ -46,7 +47,7 @@ export default function EmployeesPage() {
         setEmployees(data);
       }
     } catch (error) {
-      console.error('Error fetching employees:', error);
+      logger.error('Error fetching employees:', { error });
     } finally {
       setLoading(false);
     }

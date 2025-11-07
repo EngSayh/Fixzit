@@ -5,6 +5,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { FileText, Scale, AlertCircle, Mail, Phone } from 'lucide-react';
 import { renderMarkdownSanitized } from '@/lib/markdown';
 
+import { logger } from '@/lib/logger';
 /**
  * Default terms of service content shown when CMS content is not available or not published.
  */
@@ -109,7 +110,7 @@ export default function TermsPage() {
         setContent(DEFAULT_TERMS_CONTENT);
       }
     } catch (err) {
-      console.error('Error fetching terms content:', err);
+      logger.error('Error fetching terms content:', { err });
       setTitle(t('terms.title', 'Terms of Service'));
       setContent(DEFAULT_TERMS_CONTENT);
     } finally {
@@ -129,7 +130,7 @@ export default function TermsPage() {
           setRenderedContent(html);
         })
         .catch(err => {
-          console.error('Error rendering markdown:', err);
+          logger.error('Error rendering markdown:', { err });
           // Fallback to plain text wrapped in paragraphs
           setRenderedContent(`<div class="prose max-w-none"><p>${content.replace(/\n/g, '</p><p>')}</p></div>`);
         });
