@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
-import middleware from '../../middleware';
+import { middleware } from '../../middleware';
 import { generateToken } from '../../lib/auth';
 
 // Mock environment variables
@@ -39,7 +39,7 @@ describe('Middleware', () => {
   describe('Public Routes', () => {
     it('should allow access to /login without authentication', async () => {
       const request = createMockRequest('/login');
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
       if (response) expect(response.status).toBe(200);
@@ -47,7 +47,7 @@ describe('Middleware', () => {
 
     it('should allow access to /register without authentication', async () => {
       const request = createMockRequest('/register');
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       // /register is not in public routes, so it returns Response
       expect(response).toBeInstanceOf(Response);
@@ -55,7 +55,7 @@ describe('Middleware', () => {
 
     it('should allow access to /forgot-password without authentication', async () => {
       const request = createMockRequest('/forgot-password');
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
       if (response) expect(response.status).toBe(200);
@@ -63,7 +63,7 @@ describe('Middleware', () => {
 
     it('should allow access to landing page (/) without authentication', async () => {
       const request = createMockRequest('/');
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
       if (response) expect(response.status).toBe(200);
@@ -71,7 +71,7 @@ describe('Middleware', () => {
 
     it('should allow access to /api/auth/* endpoints without authentication', async () => {
       const request = createMockRequest('/api/auth/login');
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
       if (response) expect(response.status).toBe(200);
@@ -81,7 +81,7 @@ describe('Middleware', () => {
   describe('Protected Routes - Authentication', () => {
     it('should redirect to /login when accessing /fm/dashboard without token', async () => {
       const request = createMockRequest('/fm/dashboard');
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
       expect(response?.headers.get('location')).toContain('/login');
@@ -89,7 +89,7 @@ describe('Middleware', () => {
 
     it('should redirect to /login when accessing /fm/work-orders without token', async () => {
       const request = createMockRequest('/fm/work-orders');
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
       expect(response?.headers.get('location')).toContain('/login');
@@ -106,7 +106,7 @@ describe('Middleware', () => {
       const request = createMockRequest('/fm/dashboard', {
         fixzit_auth: token,
       });
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
     });
@@ -115,7 +115,7 @@ describe('Middleware', () => {
       const request = createMockRequest('/fm/dashboard', {
         fixzit_auth: 'invalid-token',
       });
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
       expect(response?.headers.get('location')).toContain('/login');
@@ -125,7 +125,7 @@ describe('Middleware', () => {
       const request = createMockRequest('/fm/dashboard', {
         fixzit_auth: 'malformed.jwt.token',
       });
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
       expect(response?.headers.get('location')).toContain('/login');
@@ -144,7 +144,7 @@ describe('Middleware', () => {
       const request = createMockRequest('/admin/users', {
         fixzit_auth: token,
       });
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
     });
@@ -160,7 +160,7 @@ describe('Middleware', () => {
       const request = createMockRequest('/admin/users', {
         fixzit_auth: token,
       });
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
       expect(response?.headers.get('location')).toContain('/login');
@@ -177,7 +177,7 @@ describe('Middleware', () => {
       const request = createMockRequest('/fm/work-orders', {
         fixzit_auth: token,
       });
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
     });
@@ -193,7 +193,7 @@ describe('Middleware', () => {
       const request = createMockRequest('/fm/work-orders', {
         fixzit_auth: token,
       });
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
     });
@@ -202,7 +202,7 @@ describe('Middleware', () => {
   describe('API Route Protection', () => {
     it('should protect /api/work-orders with authentication', async () => {
       const request = createMockRequest('/api/work-orders');
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
       expect(response?.status).toBe(401); // Unauthorized
@@ -219,14 +219,14 @@ describe('Middleware', () => {
       const request = createMockRequest('/api/work-orders', {
         fixzit_auth: token,
       });
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
     });
 
     it('should return 401 for /api routes without token', async () => {
       const request = createMockRequest('/api/users/profile');
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
       expect(response?.status).toBe(401);
@@ -236,21 +236,21 @@ describe('Middleware', () => {
   describe('Marketplace Routes', () => {
     it('should allow access to /marketplace without authentication', async () => {
       const request = createMockRequest('/marketplace');
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
     });
 
     it('should allow access to /souq without authentication', async () => {
       const request = createMockRequest('/souq');
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
     });
 
     it('should protect /souq/checkout with authentication', async () => {
       const request = createMockRequest('/souq/checkout');
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
       if (response && response.headers.get('location')) {
@@ -262,21 +262,21 @@ describe('Middleware', () => {
   describe('Static Assets and Special Routes', () => {
     it('should skip middleware for /_next/* routes', async () => {
       const request = createMockRequest('/_next/static/chunk.js');
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
     });
 
     it('should skip middleware for /api/health check', async () => {
       const request = createMockRequest('/api/health');
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
     });
 
     it('should skip middleware for /favicon.ico', async () => {
       const request = createMockRequest('/favicon.ico');
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
     });
@@ -285,7 +285,7 @@ describe('Middleware', () => {
   describe('Redirect Behavior', () => {
     it('should preserve query parameters when redirecting to login', async () => {
       const request = createMockRequest('/fm/dashboard?tab=workorders&filter=active');
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
       expect(response?.headers.get('location')).toContain('/login');
@@ -302,7 +302,7 @@ describe('Middleware', () => {
       const request = createMockRequest('/login', {
         fixzit_auth: token,
       });
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
     });
@@ -313,7 +313,7 @@ describe('Middleware', () => {
       const request = createMockRequest('/fm/dashboard', {
         fixzit_auth: 'malformed.jwt.token',
       });
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
       expect(response?.headers.get('location')).toContain('/login');
@@ -326,7 +326,7 @@ describe('Middleware', () => {
       const request = createMockRequest('/fm/dashboard', {
         fixzit_auth: token,
       });
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       expect(response).toBeInstanceOf(Response);
       if (response && response.headers.get('location')) {
@@ -345,7 +345,7 @@ describe('Middleware', () => {
       const request = createMockRequest('/fm/dashboard', {
         fixzit_auth: token,
       });
-      const response = await middleware(request, {} as any);
+      const response = await middleware(request);
       
       // Middleware allows request to proceed when JWT is valid
       expect(response).toBeInstanceOf(Response);
