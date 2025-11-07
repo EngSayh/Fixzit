@@ -137,7 +137,7 @@ const nextConfig = {
     tsconfigPath: './tsconfig.json'
   },
   eslint: {
-    ignoreDuringBuilds: true, // ⚠️ TEMPORARY: Disable for performance testing
+    ignoreDuringBuilds: false, // ✅ ENFORCE: Build fails if ESLint errors exist
   },
 
   // ✅ FIXED: Turbopack configuration added above to silence warning
