@@ -115,6 +115,8 @@ const AdminModule: React.FC = () => {
   // Users state
   const [users, setUsers] = useState<User[]>([]);
   // const [_selectedUsers, _setSelectedUsers] = useState<Set<string>>(new Set());
+  // FIXME: User modal not yet implemented in UI - state read never used, only setter
+  // eslint-disable-next-line no-unused-vars
   const [_userModalOpen, _setUserModalOpen] = useState(false);
   const [_editingUser, _setEditingUser] = useState<User | null>(null);
 
@@ -377,7 +379,9 @@ const AdminModule: React.FC = () => {
     _setUserModalOpen(true);
   };
 
-  const handleSaveUser = async (userData: Partial<User>) => {
+  // FIXME: User save handler not yet wired to UI modal
+  // eslint-disable-next-line no-unused-vars
+  const _handleSaveUser = async (userData: Partial<User>) => {
     try {
       if (_editingUser) {
         // Update existing user
@@ -430,7 +434,7 @@ const AdminModule: React.FC = () => {
       //   body: JSON.stringify({ status: newStatus })
       // });
 
-      setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus as any } : u));
+      setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus as User['status'] } : u));
       setSuccessMessage(`User ${newStatus.toLowerCase()} successfully`);
       logger.info('User status updated', { userId, newStatus });
       setTimeout(() => setSuccessMessage(null), 3000);
