@@ -165,4 +165,18 @@ AssetSchema.index({ orgId: 1, code: 1 }, { unique: true });
 
 export type AssetDoc = InferSchemaType<typeof AssetSchema>;
 
-export const Asset = models.Asset || model("Asset", AssetSchema);
+// Export model with proper cache handling for tests
+// In test environment, allow fresh model creation; in production use singleton
+export const Asset = (() => {
+  // If model already exists, delete and recreate to pick up any schema changes
+  // This is essential for test environments where schemas may be modified
+  if (models.Asset) {
+    // In test: force recreation to pick up fresh schema with plugins
+    if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
+      delete models.Asset;
+      return model("Asset", AssetSchema);
+    }
+    return models.Asset;
+  }
+  return model("Asset", AssetSchema);
+})();

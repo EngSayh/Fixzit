@@ -3,8 +3,10 @@ import React from 'react';
 import { render } from '@testing-library/react';
 import { SessionProvider } from 'next-auth/react';
 import { TranslationProvider } from '@/contexts/TranslationContext';
-import { vi } from 'vitest';
+import { vi, beforeAll, afterAll, afterEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import mongoose from 'mongoose';
 
 // Provide Jest compatibility layer for tests using jest.* APIs
 if (typeof global !== 'undefined') {
@@ -167,6 +169,71 @@ vi.mock('@/lib/mongodb-unified', () => {
 // Environment setup
 // NODE_ENV is read-only, managed by test runner
 // MongoDB-only configuration for all environments
+
+// --- MongoDB Memory Server Setup ---
+let mongoServer: MongoMemoryServer | undefined;
+
+/**
+ * Start MongoDB Memory Server before all tests
+ * Provides in-memory database for model validation tests
+ */
+beforeAll(async () => {
+  try {
+    // Start MongoDB Memory Server
+    mongoServer = await MongoMemoryServer.create({
+      instance: {
+        dbName: 'fixzit-test',
+      },
+    });
+    
+    const mongoUri = mongoServer.getUri();
+    
+    // Connect mongoose to the in-memory database
+    await mongoose.connect(mongoUri, {
+      autoCreate: true,
+      autoIndex: true,
+    });
+    
+    console.log('✅ MongoDB Memory Server started:', mongoUri);
+  } catch (error) {
+    console.error('❌ Failed to start MongoDB Memory Server:', error);
+    throw error;
+  }
+}, 60000); // 60 second timeout for MongoDB download on first run
+
+/**
+ * Clean up after each test to prevent data leakage between tests
+ */
+afterEach(async () => {
+  if (mongoose.connection.readyState === 1) {
+    // Clear all collections after each test
+    const collections = mongoose.connection.collections;
+    for (const key in collections) {
+      await collections[key].deleteMany({});
+    }
+  }
+});
+
+/**
+ * Stop MongoDB Memory Server after all tests
+ */
+afterAll(async () => {
+  try {
+    // Close mongoose connection
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.connection.close();
+    }
+    
+    // Stop MongoDB Memory Server
+    if (mongoServer) {
+      await mongoServer.stop();
+      console.log('✅ MongoDB Memory Server stopped');
+    }
+  } catch (error) {
+    console.error('❌ Failed to stop MongoDB Memory Server:', error);
+    throw error;
+  }
+}, 30000); // 30 second timeout
 
 // --- Custom Render Function (Wraps all tests) ---
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {

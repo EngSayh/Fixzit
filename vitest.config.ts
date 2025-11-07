@@ -11,7 +11,7 @@ export default defineConfig({
     globals: true,
     // default env for component/unit tests
     environment: 'jsdom',
-    setupFiles: ['./tests/setup.ts'],
+    setupFiles: ['./vitest.setup.ts'],  // USE vitest.setup.ts with MongoDB Memory Server, NOT tests/setup.ts with mocks
     include: ['**/*.test.ts', '**/*.test.tsx'],
     // keep e2e / playwright out of vitest to avoid "queued" / long runs
     // (run those via `pnpm test:e2e` with Playwright/Jest)
