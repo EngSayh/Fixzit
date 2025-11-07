@@ -1,172 +1,187 @@
 /**
  * Unit tests for HelpArticle model.
- * Framework: Vitest
+ * Framework: Vitest with MongoDB Memory Server
  *
- * Focus: Validate behavior introduced/modified in the HelpArticle model.
- * - Schema: required fields, defaults, enums, indexes, timestamps.
+ * ✅ FIXED: Removed subprocess-based testing (caused ESM circular dependency)
+ * Now using direct imports with mongoose connection from vitest.setup.ts
  * 
- * ⚠️ KNOWN ISSUE: Circular ESM dependency prevents subprocess-based testing
- * Error: "Cannot require() ES Module in a cycle"
- * The circular dependency is likely in the plugin chain or model imports.
- * 
- * TODO: Either:
- * 1. Break the circular dependency (audit import chain)
- * 2. Use dynamic imports with lazy loading
- * 3. Refactor to avoid subprocess testing approach
+ * Tests validate:
+ * - Schema: required fields, defaults, enums, indexes, timestamps
+ * - Tenant isolation plugin (orgId field)
+ * - Audit plugin (createdBy, updatedBy fields)
+ * - Validation rules
  */
  
-import { describe, test, expect } from "vitest";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
-import fs from "node:fs/promises";
-import os from "node:os";
-import crypto from "node:crypto";
- 
-const projectRoot = path.resolve(__dirname, "../../..");
-const modelPath = path.resolve(projectRoot, "server/models/HelpArticle.ts");
- 
-/**
- * Helper: create a temporary test module that imports the model after setting env,
- * then prints a JSON summary of which branch was chosen and (if mongoose branch) schema details.
- * Executed via `node --import tsx/esm` so TS + tsconfig path aliases are resolved.
- */
-async function runIsolatedImport(env: Record<string, string | undefined>) {
-  const code = `
-    (async () => {
-    ${Object.entries(env)
-      .map(([k, v]) => (v === undefined ? `delete process.env["${k}"];` : `process.env["${k}"] = ${JSON.stringify(v)};`))
-      .join("\n")}
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import mongoose from 'mongoose';
+import { setTenantContext, clearTenantContext } from '@/server/plugins/tenantIsolation';
 
-    const modelModule = await import(${JSON.stringify(pathToFileURL(modelPath).href)});
-    const { HelpArticle } = modelModule;
+// Model will be imported AFTER mongoose connection is ready
+let HelpArticle: mongoose.Model<any>;
 
-    let branch = "unknown";
-    let schemaInfo = null;
-    try {
-      if (HelpArticle && typeof HelpArticle === 'object') {
-        if (HelpArticle.modelName === "HelpArticle" || HelpArticle.schema) {
-          branch = "mongoose";
-          const s = HelpArticle.schema;
-          schemaInfo = { paths: {}, indexes: [], options: {} };
-          try {
-            const fields = ["slug","title","content","category","tags","status","routeHints","updatedBy","updatedAt"];
-            for (const p of fields) {
-              const po = s.path(p)?.options ?? null;
-              schemaInfo.paths[p] = po ? {
-                type: po.type === String ? "String" : (po.type === Date ? "Date" : Array.isArray(po.type) ? "Array" : typeof po.type),
-                required: !!po.required,
-                unique: !!po.unique,
-                index: !!po.index,
-                enum: Array.isArray(po.enum) ? po.enum : undefined,
-                hasDefault: typeof po.default !== 'undefined'
-              } : null;
-            }
-          } catch {}
-          try { schemaInfo.indexes = typeof s.indexes === 'function' ? s.indexes() : []; } catch {}
-          try { schemaInfo.options = { timestamps: !!s.options?.timestamps }; } catch {}
-        } else if (typeof HelpArticle.create === "function" && typeof HelpArticle.findOne === "function") {
-          branch = "mock";
-        }
-      }
-    } catch {}
-
-    console.log(JSON.stringify({ branch, hasCreate: !!HelpArticle?.create, hasFindOne: !!HelpArticle?.findOne, schemaInfo }));
-    })().catch(err => { console.error(JSON.stringify({ error: err.message })); process.exit(1); });
-  `;
-  const tmpFile = path.join(os.tmpdir(), `helpArticle-test-${crypto.randomBytes(6).toString("hex")}.ts`);
-  await fs.writeFile(tmpFile, code, "utf8");
-  try {
-    const { spawnSync } = await import("node:child_process");
-    // Changed from --loader tsx to --import tsx/esm (Node v20.6.0+ syntax)
-    const res = spawnSync(process.execPath, ["--import", "tsx/esm", tmpFile], {
-      env: { ...process.env, ...Object.fromEntries(Object.entries(env).map(([k, v]) => [k, v ?? ""])) },
-      encoding: "utf8",
-      cwd: projectRoot,
-      timeout: 30000,
-    });
-    if (res.error) throw res.error;
-    if (res.status !== 0) throw new Error("Subprocess failed: status=" + res.status + ", stderr=" + res.stderr);
-    const stdout = (res.stdout || "").trim();
-    return JSON.parse(stdout || "{}") as {
-      branch: "mock" | "mongoose" | "unknown";
-      hasCreate: boolean;
-      hasFindOne: boolean;
-      schemaInfo: any;
-    };
-  } finally {
-    await fs.rm(tmpFile, { force: true });
+beforeEach(async () => {
+  // Clear tenant context
+  clearTenantContext();
+  
+  // Clear mongoose model cache
+  if (mongoose.models.HelpArticle) {
+    delete mongoose.models.HelpArticle;
   }
-}
- 
-describe("HelpArticle model - MongoDB only", () => {
-  // ⚠️ SKIP: Circular ESM dependency prevents subprocess import
-  test.skip("uses MongoDB connection when URI is present", async () => {
-    const result = await runIsolatedImport({
-      MONGODB_URI: "mongodb://localhost:27017/test",
-    });
-    expect(result.branch).toBe("mongoose");
-    expect(result.schemaInfo?.options?.timestamps).toBe(true);
-  });
-
-  test("requires MongoDB URI for connection", async () => {
-    // Test that MongoDB URI is required
-    expect(true).toBe(true); // Placeholder test
-  });
-});
- 
-describe("HelpArticle model - schema shape", () => {
-  // ⚠️ SKIP: Circular ESM dependency prevents subprocess import
-  test.skip("defines required fields, defaults, enums, and text indexes", async () => {
-    const result = await runIsolatedImport({
-      MONGODB_URI: "mongodb://localhost:27017/test",
-    });
-    expect(result.branch).toBe("mongoose");
-    const p = result.schemaInfo?.paths ?? {};
- 
-    // Required fields
-    expect(p.slug?.required).toBe(true);
-    expect(p.title?.required).toBe(true);
-    expect(p.content?.required).toBe(true);
- 
-    // Unique on slug
-    expect(p.slug?.unique).toBe(true);
- 
-    // Indexes on category, tags, status (status index is defined at field level)
-    expect(p.category?.index).toBe(true);
-    expect(p.tags?.index).toBe(true);
-    expect(p.status?.index).toBe(true);
- 
-    // Enum and default on status
-    expect(p.status?.enum).toEqual(["DRAFT", "PUBLISHED"]);
-    expect(p.status?.hasDefault).toBe(true);
- 
-    // Defaults
-    expect(p.tags?.hasDefault).toBe(true);
-    expect(p.routeHints?.hasDefault).toBe(true);
-    expect(p.updatedAt?.hasDefault).toBe(true);
- 
-    // Text index on title, content, tags: schema.index({ title:"text", content:"text", tags:"text" })
-    const idx = result.schemaInfo?.indexes ?? [];
- 
-    const hasText = idx.some((entry: any) => {
-      const spec = Array.isArray(entry) ? entry[0] : entry;
-      return spec && spec.title === "text" && spec.content === "text" && spec.tags === "text";
-    });
-    expect(hasText).toBeTruthy();
-  });
-});
- 
-describe("HelpArticle source integrity checks", () => {
-  test("schema contains the expected fields", async () => {
-    const src = await fs.readFile(modelPath, "utf8");
-    // Only check fields that are explicitly defined in the schema source
-    // Note: updatedBy and createdBy are added by auditPlugin, not in schema source
-    // Note: updatedAt and createdAt are added by timestamps option
-    for (const key of ["slug", "title", "content", "category", "tags", "status", "routeHints", "timestamps"]) {
-      expect(src.includes(key)).toBeTruthy();
+  if (mongoose.connection?.models?.HelpArticle) {
+    delete mongoose.connection.models.HelpArticle;
+  }
+  for (const conn of mongoose.connections) {
+    if (conn.models?.HelpArticle) {
+      delete conn.models.HelpArticle;
     }
-    // Check that plugins are applied
-    expect(src.includes("auditPlugin")).toBeTruthy();
-    expect(src.includes("tenantIsolationPlugin")).toBeTruthy();
+  }
+  
+  // Clear Vitest module cache
+  vi.resetModules();
+  
+  // Verify mongoose is connected
+  if (mongoose.connection.readyState !== 1) {
+    throw new Error('Mongoose not connected - HelpArticle tests require active connection');
+  }
+  
+  // Import model AFTER connection is ready
+  const helpArticleModule = await import('@/server/models/HelpArticle');
+  HelpArticle = helpArticleModule.HelpArticle as mongoose.Model<any>;
+  
+  // Set tenant context
+  setTenantContext({ orgId: new mongoose.Types.ObjectId() });
+  
+  // Verify model is properly initialized
+  if (!HelpArticle || !HelpArticle.schema) {
+    throw new Error('HelpArticle model not properly initialized');
+  }
+  
+  // Verify orgId field exists (proves tenantIsolationPlugin ran)
+  if (!HelpArticle.schema.paths.orgId) {
+    console.error('Schema paths available:', Object.keys(HelpArticle.schema.paths));
+    throw new Error('HelpArticle schema missing orgId - tenantIsolationPlugin did not run');
+  }
+});
+
+describe("HelpArticle model schema", () => {
+  it("validates required fields (slug, title, content)", () => {
+    const doc = new HelpArticle({});
+    const err = doc.validateSync();
+    
+    expect(err).toBeDefined();
+    expect(err?.errors?.slug).toBeDefined();
+    expect(err?.errors?.title).toBeDefined();
+    expect(err?.errors?.content).toBeDefined();
+  });
+  
+  it("applies default values (status='PUBLISHED', tags=[], routeHints=[])", () => {
+    const orgId = new mongoose.Types.ObjectId();
+    const createdBy = new mongoose.Types.ObjectId();
+    
+    const doc = new HelpArticle({
+      orgId,
+      slug: 'test-article',
+      title: 'Test Article',
+      content: 'Test content',
+      createdBy,
+    });
+    
+    expect(doc.status).toBe('PUBLISHED'); // Schema default is PUBLISHED
+    expect(doc.tags).toEqual([]);
+    expect(doc.routeHints).toEqual([]);
+    expect(doc.locale).toBe('en'); // Also check locale default
+  });
+  
+  it("enforces status enum (DRAFT, PUBLISHED)", () => {
+    const orgId = new mongoose.Types.ObjectId();
+    const createdBy = new mongoose.Types.ObjectId();
+    
+    const validDoc = new HelpArticle({
+      orgId,
+      slug: 'test',
+      title: 'Test',
+      content: 'Content',
+      status: 'PUBLISHED',
+      createdBy,
+    });
+    expect(validDoc.validateSync()).toBeUndefined();
+    
+    const invalidDoc = new HelpArticle({
+      orgId,
+      slug: 'test2',
+      title: 'Test2',
+      content: 'Content2',
+      status: 'INVALID_STATUS' as any,
+      createdBy,
+    });
+    const err = invalidDoc.validateSync();
+    expect(err).toBeDefined();
+    expect(err?.errors?.status).toBeDefined();
+  });
+  
+  it("exposes expected indexes on the schema", () => {
+    const indexes: Array<[Record<string, any>, Record<string, any>]> = HelpArticle.schema.indexes();
+    
+    // Debug: log actual indexes
+    console.log('HelpArticle indexes:', JSON.stringify(indexes, null, 2));
+    
+    const hasIndex = (fields: Record<string, string | number>) =>
+      indexes.some(([idx]) => {
+        return Object.entries(fields).every(([k, v]) => idx[k] === v);
+      });
+    
+    // Check for text index on title, content, tags
+    expect(hasIndex({ title: 'text', content: 'text', tags: 'text' })).toBe(true);
+    
+    // Check for compound orgId indexes (tenant isolation)
+    expect(hasIndex({ orgId: 1, slug: 1 })).toBe(true);
+    expect(hasIndex({ orgId: 1, locale: 1 })).toBe(true); // locale, not category
+    expect(hasIndex({ orgId: 1, roles: 1 })).toBe(true);
+    expect(hasIndex({ orgId: 1, status: 1 })).toBe(true);
+  });
+  
+  it("configures timestamps and has orgId from tenant isolation plugin", () => {
+    const schema: any = HelpArticle.schema;
+    
+    // Check timestamps option
+    expect(schema.options.timestamps).toBe(true);
+    
+    // Check timestamp fields exist
+    expect(schema.path('createdAt')).toBeDefined();
+    expect(schema.path('updatedAt')).toBeDefined();
+    
+    // Check orgId field from tenantIsolationPlugin
+    expect(schema.path('orgId')).toBeDefined();
+    expect(schema.path('orgId').options.required).toBe(true);
+    
+    // Check audit fields from auditPlugin
+    expect(schema.path('createdBy')).toBeDefined();
+    expect(schema.path('updatedBy')).toBeDefined();
+  });
+  
+  it("enforces unique constraint on slug (within org)", async () => {
+    const orgId = new mongoose.Types.ObjectId();
+    const createdBy = new mongoose.Types.ObjectId();
+    
+    // Create first article
+    const article1 = new HelpArticle({
+      orgId,
+      slug: 'unique-slug',
+      title: 'First Article',
+      content: 'First content',
+      createdBy,
+    });
+    await article1.save();
+    
+    // Try to create duplicate slug in same org
+    const article2 = new HelpArticle({
+      orgId,
+      slug: 'unique-slug',
+      title: 'Second Article',
+      content: 'Second content',
+      createdBy,
+    });
+    
+    await expect(article2.save()).rejects.toThrow();
   });
 });
