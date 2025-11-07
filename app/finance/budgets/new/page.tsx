@@ -103,7 +103,9 @@ export default function NewBudgetPage() {
       
       const data = await response.json();
       toast.success(t('finance.budget.draftSaved', 'Budget draft saved successfully'));
-      router.push(`/finance/budgets/${data.id}`);
+      if (data?.id) {
+        router.push(`/finance/budgets/${data.id}`);
+      }
     } catch (error) {
       console.error('Error saving draft:', error);
       toast.error(t('common.error', 'An error occurred'));
@@ -157,7 +159,9 @@ export default function NewBudgetPage() {
       
       const data = await response.json();
       toast.success(t('finance.budget.created', 'Budget created successfully'), { id: toastId });
-      router.push(`/finance/budgets/${data.id}`);
+      if (data?.id) {
+        router.push(`/finance/budgets/${data.id}`);
+      }
     } catch (error) {
       console.error('Error creating budget:', error);
       toast.error(t('common.error', 'An error occurred'), { id: toastId });
