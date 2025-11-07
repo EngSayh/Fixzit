@@ -63,7 +63,7 @@ function CaptureContext(props: { onValue?: (v: any) => void }) {
 }
 
 describe('I18nProvider', () => {
-  test('renders children and provides default context values from DEFAULT_LOCALE', () => {
+  test('renders children and provides default context values from DEFAULT_LOCALE', async () => {
     render(
       <I18nProvider>
         <CaptureContext />
@@ -73,8 +73,11 @@ describe('I18nProvider', () => {
     expect(screen.getByTestId('locale').textContent).toBe('en');
     expect(screen.getByTestId('dir').textContent).toBe('ltr');
 
-    const dict = JSON.parse(screen.getByTestId('dict').textContent || '{}');
-    expect(dict).toEqual({ greeting: 'Hello', code: 'en' });
+    // Wait for dictionary to load asynchronously
+    await waitFor(() => {
+      const dict = JSON.parse(screen.getByTestId('dict').textContent || '{}');
+      expect(dict).toEqual({ greeting: 'Hello', code: 'en' });
+    });
 
     // Document attributes should reflect initial locale
     expect(document.documentElement.lang).toBe('en');
@@ -94,8 +97,11 @@ describe('I18nProvider', () => {
     expect(screen.getByTestId('locale').textContent).toBe('ar');
     expect(screen.getByTestId('dir').textContent).toBe('rtl');
 
-    const dict = JSON.parse(screen.getByTestId('dict').textContent || '{}');
-    expect(dict).toEqual({ greeting: 'مرحبا', code: 'ar' });
+    // Wait for dictionary to load asynchronously
+    await waitFor(() => {
+      const dict = JSON.parse(screen.getByTestId('dict').textContent || '{}');
+      expect(dict).toEqual({ greeting: 'مرحبا', code: 'ar' });
+    });
 
     // Document attributes should reflect RTL
     expect(document.documentElement.lang).toBe('ar');
@@ -289,14 +295,20 @@ describe('I18nProvider', () => {
       </I18nProvider>
     );
 
-    const dictEn = JSON.parse(screen.getByTestId('dict').textContent || '{}');
-    expect(dictEn).toEqual({ greeting: 'Hello', code: 'en' });
+    // Wait for initial dictionary to load
+    await waitFor(() => {
+      const dictEn = JSON.parse(screen.getByTestId('dict').textContent || '{}');
+      expect(dictEn).toEqual({ greeting: 'Hello', code: 'en' });
+    });
 
     await act(async () => {
       ctxRef.setLocale('ar');
     });
 
-    const dictAr = JSON.parse(screen.getByTestId('dict').textContent || '{}');
-    expect(dictAr).toEqual({ greeting: 'مرحبا', code: 'ar' });
+    // Wait for Arabic dictionary to load
+    await waitFor(() => {
+      const dictAr = JSON.parse(screen.getByTestId('dict').textContent || '{}');
+      expect(dictAr).toEqual({ greeting: 'مرحبا', code: 'ar' });
+    });
   });
 });
