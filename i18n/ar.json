@@ -51,7 +51,20 @@
     "metaTitle": "عن فكس إت - برنامج إدارة العقارات",
     "metaDesc": "تعرف على مهمة فكس إت في إحداث ثورة في إدارة العقارات والمرافق",
     "title": "عن فكس إت",
-    "subtitle": "تحويل إدارة العقارات"
+    "subtitle": "تحويل إدارة العقارات",
+    "statsSection": "الإحصائيات",
+    "clients": "العملاء",
+    "uptime": "وقت التشغيل",
+    "experience": "سنوات الخبرة",
+    "properties": "العقارات المُدارة",
+    "contentSection": "عن منصتنا",
+    "contactSection": "اتصل بنا",
+    "contactTitle": "تواصل معنا",
+    "contactDesc": "هل لديك أسئلة؟ يسعدنا سماع رأيك.",
+    "email": "عنوان البريد الإلكتروني",
+    "emailLabel": "بريدك الإلكتروني",
+    "phone": "رقم الهاتف",
+    "phoneLabel": "هاتفك"
   },
   "auth": {
     "login": {
@@ -82,6 +95,89 @@
       "email": "البريد الإلكتروني",
       "submit": "إرسال رابط إعادة التعيين",
       "backToLogin": "العودة إلى تسجيل الدخول"
+    }
+  },
+  "admin": {
+    "title": "الإدارة",
+    "signInRequired": "يجب تسجيل الدخول",
+    "accessDenied": "تم رفض الوصول",
+    "insufficientPerms": "صلاحيات غير كافية",
+    "superAdminRequired": "يتطلب صلاحيات مدير عام",
+    "currentRole": "الدور الحالي",
+    "console": "لوحة التحكم الإدارية",
+    "consoleDesc": "إدارة المستخدمين والأدوار وإعدادات النظام",
+    "tabs": {
+      "overview": "نظرة عامة",
+      "users": "المستخدمون",
+      "roles": "الأدوار والصلاحيات",
+      "audit": "سجلات المراجعة",
+      "features": "علامات الميزات"
+    },
+    "overview": {
+      "title": "نظرة عامة إدارية",
+      "quickLinks": "روابط سريعة",
+      "manageUsers": "إدارة المستخدمين",
+      "manageRoles": "إدارة الأدوار",
+      "viewLogs": "عرض سجلات المراجعة",
+      "featureSettings": "إعدادات الميزات"
+    },
+    "users": {
+      "creating": "جاري إنشاء المستخدم...",
+      "createFailed": "فشل إنشاء المستخدم",
+      "createSuccess": "تم إنشاء المستخدم بنجاح",
+      "deleteConfirm": "هل أنت متأكد من حذف هذا المستخدم؟",
+      "deleting": "جاري حذف المستخدم...",
+      "deleteFailed": "فشل حذف المستخدم",
+      "deleteSuccess": "تم حذف المستخدم بنجاح",
+      "exportCsv": "تصدير إلى CSV",
+      "createUser": "إنشاء مستخدم",
+      "createNewUser": "إنشاء مستخدم جديد",
+      "email": "البريد الإلكتروني",
+      "username": "اسم المستخدم",
+      "firstName": "الاسم الأول",
+      "lastName": "اسم العائلة",
+      "phone": "الهاتف",
+      "role": "الدور",
+      "rolePlaceholder": "اختر الدور",
+      "status": "الحالة",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "actions": "الإجراءات",
+      "editUser": "تعديل المستخدم",
+      "deleteUser": "حذف المستخدم",
+      "resetPassword": "إعادة تعيين كلمة المرور",
+      "viewDetails": "عرض التفاصيل"
+    },
+    "roles": {
+      "title": "الأدوار والصلاحيات",
+      "createRole": "إنشاء دور",
+      "editRole": "تعديل الدور",
+      "deleteRole": "حذف الدور",
+      "deleteConfirm": "هل أنت متأكد من حذف هذا الدور؟",
+      "name": "اسم الدور",
+      "description": "الوصف",
+      "permissions": "الصلاحيات",
+      "assignedUsers": "المستخدمون المعينون"
+    },
+    "audit": {
+      "title": "سجلات المراجعة",
+      "action": "الإجراء",
+      "user": "المستخدم",
+      "timestamp": "الوقت",
+      "details": "التفاصيل",
+      "ipAddress": "عنوان IP",
+      "filter": {
+        "dateRange": "نطاق التاريخ",
+        "user": "تصفية حسب المستخدم",
+        "action": "تصفية حسب الإجراء"
+      }
+    },
+    "features": {
+      "title": "علامات الميزات",
+      "enabled": "مفعّل",
+      "disabled": "معطّل",
+      "toggle": "تبديل الميزة",
+      "description": "الوصف"
     }
   },
   "dashboard": {
@@ -150,7 +246,7 @@
     "filter": "تصفية",
     "export": "تصدير",
     "import": "استيراد",
-    "loading": "جار التحميل...",
+    "loading": "جاري التحميل...",
     "error": "خطأ",
     "success": "نجح",
     "confirm": "تأكيد",
@@ -158,7 +254,42 @@
     "back": "رجوع",
     "next": "التالي",
     "previous": "السابق",
-    "actions": "الإجراءات"
+    "actions": "الإجراءات",
+    "unknown": "غير معروف",
+    "yes": "نعم",
+    "no": "لا",
+    "submit": "إرسال",
+    "reset": "إعادة تعيين",
+    "clear": "مسح",
+    "apply": "تطبيق",
+    "refresh": "تحديث",
+    "download": "تنزيل",
+    "upload": "رفع",
+    "create": "إنشاء",
+    "update": "تحديث",
+    "remove": "إزالة",
+    "add": "إضافة",
+    "select": "اختيار",
+    "selectAll": "تحديد الكل",
+    "deselectAll": "إلغاء تحديد الكل",
+    "showMore": "عرض المزيد",
+    "showLess": "عرض أقل",
+    "seeAll": "عرض الكل",
+    "total": "الإجمالي",
+    "subtotal": "المجموع الفرعي",
+    "required": "مطلوب",
+    "optional": "اختياري",
+    "enabled": "مفعّل",
+    "disabled": "معطّل",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "pending": "قيد الانتظار",
+    "approved": "موافق عليه",
+    "rejected": "مرفوض",
+    "draft": "مسودة",
+    "published": "منشور",
+    "archived": "مؤرشف",
+    "deleted": "محذوف"
   },
   "navigation": {
     "home": "الرئيسية",
@@ -179,5 +310,51 @@
     "unauthorized": "غير مصرح لك بتنفيذ هذا الإجراء.",
     "notFound": "المورد غير موجود.",
     "validation": "يرجى التحقق من إدخالك والمحاولة مرة أخرى."
+  },
+  "validation": {
+    "required": "هذا الحقل مطلوب",
+    "email": "يرجى إدخال عنوان بريد إلكتروني صحيح",
+    "phone": "يرجى إدخال رقم هاتف صحيح",
+    "password": {
+      "min": "يجب أن تكون كلمة المرور 8 أحرف على الأقل",
+      "match": "كلمات المرور غير متطابقة",
+      "strength": "كلمة المرور ضعيفة جدًا"
+    },
+    "number": {
+      "min": "يجب أن تكون القيمة {min} على الأقل",
+      "max": "يجب ألا تتجاوز القيمة {max}",
+      "positive": "يجب أن تكون القيمة موجبة"
+    },
+    "date": {
+      "invalid": "تنسيق تاريخ غير صحيح",
+      "future": "يجب أن يكون التاريخ في المستقبل",
+      "past": "يجب أن يكون التاريخ في الماضي"
+    },
+    "file": {
+      "size": "حجم الملف يتجاوز الحد المسموح",
+      "type": "نوع ملف غير صحيح",
+      "required": "يرجى رفع ملف"
+    }
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "markAllRead": "تحديد الكل كمقروء",
+    "clearAll": "مسح الكل",
+    "noNotifications": "لا توجد إشعارات",
+    "types": {
+      "workOrder": "أمر عمل",
+      "payment": "دفعة",
+      "message": "رسالة",
+      "system": "نظام",
+      "alert": "تنبيه"
+    }
+  },
+  "forms": {
+    "unsavedChanges": "لديك تغييرات غير محفوظة. هل أنت متأكد أنك تريد المغادرة؟",
+    "saving": "جاري الحفظ...",
+    "saved": "تم الحفظ بنجاح",
+    "saveFailed": "فشل الحفظ",
+    "required": "الحقول المطلوبة",
+    "optional": "الحقول الاختيارية"
   }
 }

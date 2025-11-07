@@ -51,7 +51,20 @@
     "metaTitle": "About Fixzit - Property Management Software",
     "metaDesc": "Learn about Fixzit's mission to revolutionize property and facility management",
     "title": "About Fixzit",
-    "subtitle": "Transforming Property Management"
+    "subtitle": "Transforming Property Management",
+    "statsSection": "Statistics",
+    "clients": "Clients",
+    "uptime": "Uptime",
+    "experience": "Years Experience",
+    "properties": "Properties Managed",
+    "contentSection": "About Our Platform",
+    "contactSection": "Contact Us",
+    "contactTitle": "Get in Touch",
+    "contactDesc": "Have questions? We'd love to hear from you.",
+    "email": "Email Address",
+    "emailLabel": "Your Email",
+    "phone": "Phone Number",
+    "phoneLabel": "Your Phone"
   },
   "auth": {
     "login": {
@@ -82,6 +95,89 @@
       "email": "Email",
       "submit": "Send Reset Link",
       "backToLogin": "Back to Sign In"
+    }
+  },
+  "admin": {
+    "title": "Administration",
+    "signInRequired": "Sign in required",
+    "accessDenied": "Access denied",
+    "insufficientPerms": "Insufficient permissions",
+    "superAdminRequired": "Super admin access required",
+    "currentRole": "Current Role",
+    "console": "Admin Console",
+    "consoleDesc": "Manage users, roles, and system settings",
+    "tabs": {
+      "overview": "Overview",
+      "users": "Users",
+      "roles": "Roles & Permissions",
+      "audit": "Audit Logs",
+      "features": "Feature Flags"
+    },
+    "overview": {
+      "title": "Admin Overview",
+      "quickLinks": "Quick Links",
+      "manageUsers": "Manage Users",
+      "manageRoles": "Manage Roles",
+      "viewLogs": "View Audit Logs",
+      "featureSettings": "Feature Settings"
+    },
+    "users": {
+      "creating": "Creating user...",
+      "createFailed": "Failed to create user",
+      "createSuccess": "User created successfully",
+      "deleteConfirm": "Are you sure you want to delete this user?",
+      "deleting": "Deleting user...",
+      "deleteFailed": "Failed to delete user",
+      "deleteSuccess": "User deleted successfully",
+      "exportCsv": "Export to CSV",
+      "createUser": "Create User",
+      "createNewUser": "Create New User",
+      "email": "Email",
+      "username": "Username",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "phone": "Phone",
+      "role": "Role",
+      "rolePlaceholder": "Select role",
+      "status": "Status",
+      "active": "Active",
+      "inactive": "Inactive",
+      "actions": "Actions",
+      "editUser": "Edit User",
+      "deleteUser": "Delete User",
+      "resetPassword": "Reset Password",
+      "viewDetails": "View Details"
+    },
+    "roles": {
+      "title": "Roles & Permissions",
+      "createRole": "Create Role",
+      "editRole": "Edit Role",
+      "deleteRole": "Delete Role",
+      "deleteConfirm": "Are you sure you want to delete this role?",
+      "name": "Role Name",
+      "description": "Description",
+      "permissions": "Permissions",
+      "assignedUsers": "Assigned Users"
+    },
+    "audit": {
+      "title": "Audit Logs",
+      "action": "Action",
+      "user": "User",
+      "timestamp": "Timestamp",
+      "details": "Details",
+      "ipAddress": "IP Address",
+      "filter": {
+        "dateRange": "Date Range",
+        "user": "Filter by User",
+        "action": "Filter by Action"
+      }
+    },
+    "features": {
+      "title": "Feature Flags",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "toggle": "Toggle Feature",
+      "description": "Description"
     }
   },
   "dashboard": {
@@ -158,7 +254,42 @@
     "back": "Back",
     "next": "Next",
     "previous": "Previous",
-    "actions": "Actions"
+    "actions": "Actions",
+    "unknown": "Unknown",
+    "yes": "Yes",
+    "no": "No",
+    "submit": "Submit",
+    "reset": "Reset",
+    "clear": "Clear",
+    "apply": "Apply",
+    "refresh": "Refresh",
+    "download": "Download",
+    "upload": "Upload",
+    "create": "Create",
+    "update": "Update",
+    "remove": "Remove",
+    "add": "Add",
+    "select": "Select",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "showMore": "Show More",
+    "showLess": "Show Less",
+    "seeAll": "See All",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "required": "Required",
+    "optional": "Optional",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "draft": "Draft",
+    "published": "Published",
+    "archived": "Archived",
+    "deleted": "Deleted"
   },
   "navigation": {
     "home": "Home",
@@ -179,5 +310,51 @@
     "unauthorized": "You are not authorized to perform this action.",
     "notFound": "Resource not found.",
     "validation": "Please check your input and try again."
+  },
+  "validation": {
+    "required": "This field is required",
+    "email": "Please enter a valid email address",
+    "phone": "Please enter a valid phone number",
+    "password": {
+      "min": "Password must be at least 8 characters",
+      "match": "Passwords do not match",
+      "strength": "Password is too weak"
+    },
+    "number": {
+      "min": "Value must be at least {min}",
+      "max": "Value must not exceed {max}",
+      "positive": "Value must be positive"
+    },
+    "date": {
+      "invalid": "Invalid date format",
+      "future": "Date must be in the future",
+      "past": "Date must be in the past"
+    },
+    "file": {
+      "size": "File size exceeds limit",
+      "type": "Invalid file type",
+      "required": "Please upload a file"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "clearAll": "Clear all",
+    "noNotifications": "No notifications",
+    "types": {
+      "workOrder": "Work Order",
+      "payment": "Payment",
+      "message": "Message",
+      "system": "System",
+      "alert": "Alert"
+    }
+  },
+  "forms": {
+    "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?",
+    "saving": "Saving...",
+    "saved": "Saved successfully",
+    "saveFailed": "Failed to save",
+    "required": "Required fields",
+    "optional": "Optional fields"
   }
 }
