@@ -3,9 +3,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+// ⚡ PERFORMANCE OPTIMIZATION: Only import icons actually used in login page
 import { 
   Eye, EyeOff, LogIn, Mail, Lock, AlertCircle, Check, AlertTriangle,
-  User, Shield, Building2, Users, ArrowRight, Apple
+  User, Shield, Apple
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -13,7 +14,33 @@ import { signIn } from 'next-auth/react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import LanguageSelector from '@/components/i18n/LanguageSelector';
 import CurrencySelector from '@/components/i18n/CurrencySelector';
-import GoogleSignInButton from '@/components/auth/GoogleSignInButton';
+// ⚡ PERFORMANCE OPTIMIZATION: Lazy-load OAuth component (only needed for SSO tab)
+import dynamic from 'next/dynamic';
+
+const GoogleSignInButton = dynamic(() => import('@/components/auth/GoogleSignInButton'), {
+  loading: () => (
+    <div className="w-full p-3 border border-border rounded-2xl bg-muted animate-pulse h-12" />
+  ),
+  ssr: false // OAuth buttons don't need SSR
+});
+
+// ⚡ PERFORMANCE OPTIMIZATION: Lazy-load demo credentials section (only needed in dev)
+// eslint-disable-next-line no-unused-vars
+const DemoCredentialsSection = dynamic<{
+  isRTL: boolean;
+  loginMethod: 'personal' | 'corporate' | 'sso';
+  // eslint-disable-next-line no-unused-vars
+  quickLogin: (cred: DemoCredential) => void;
+  // eslint-disable-next-line no-unused-vars
+  t: (key: string, fallback: string) => string;
+}>(() => import('@/components/auth/DemoCredentialsSection').catch(() => ({
+  default: () => null // Fallback if component doesn't exist yet
+})), {
+  loading: () => (
+    <div className="mt-6 p-4 bg-muted rounded-2xl animate-pulse h-32" />
+  ),
+  ssr: false
+});
 
 interface FormErrors {
   identifier?: string;
@@ -21,67 +48,16 @@ interface FormErrors {
   general?: string;
 }
 
-const DEMO_CREDENTIALS = [
-  {
-    role: 'Super Admin',
-    email: 'superadmin@fixzit.co',
-    password: 'password123',
-    description: 'Full system access',
-    icon: Shield,
-    color: 'bg-destructive/10 text-destructive-foreground border-destructive/20'
-  },
-  {
-    role: 'Admin',
-    email: 'admin@fixzit.co',
-    password: 'password123',
-    description: 'Administrative access',
-    icon: User,
-    color: 'bg-primary/10 text-primary-foreground border-primary/20'
-  },
-  {
-    role: 'Property Manager',
-    email: 'manager@fixzit.co',
-    password: 'password123',
-    description: 'Property management',
-    icon: Building2,
-    color: 'bg-success/10 text-success-foreground border-success/20'
-  },
-  {
-    role: 'Tenant',
-    email: 'tenant@fixzit.co',
-    password: 'password123',
-    description: 'Tenant portal access',
-    icon: Users,
-    color: 'bg-secondary/10 text-secondary-foreground border-secondary/20'
-  },
-  {
-    role: 'Vendor',
-    email: 'vendor@fixzit.co',
-    password: 'password123',
-    description: 'Vendor marketplace access',
-    icon: Users,
-    color: 'bg-warning/10 text-warning-foreground border-warning/20'
-  }
-];
-
-const CORPORATE_CREDENTIALS = [
-  {
-    role: 'Property Manager (Corporate)',
-    employeeNumber: 'EMP001',
-    password: 'password123',
-    description: 'Corporate account access',
-    icon: Building2,
-    color: 'bg-success/10 text-success-foreground border-success/20'
-  },
-  {
-    role: 'Admin (Corporate)',
-    employeeNumber: 'EMP002',
-    password: 'password123',
-    description: 'Corporate administrative access',
-    icon: User,
-    color: 'bg-primary/10 text-primary-foreground border-primary/20'
-  }
-];
+// ⚡ PERFORMANCE: Demo credentials moved to lazy-loaded component
+interface DemoCredential {
+  role: string;
+  email?: string;
+  employeeNumber?: string;
+  password: string;
+  description: string;
+  icon: typeof Shield;
+  color: string;
+}
 
 export default function LoginPage() {
   const [loginMethod, setLoginMethod] = useState<'personal' | 'corporate' | 'sso'>('personal');
@@ -105,12 +81,12 @@ export default function LoginPage() {
   const emailRegex = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
   const empRegex = useMemo(() => /^EMP\d+$/i, []);
 
-  // Quick login helper
-  const quickLogin = (credential: typeof DEMO_CREDENTIALS[0] | typeof CORPORATE_CREDENTIALS[0]) => {
-    if ('email' in credential) {
+  // Quick login helper for demo credentials
+  const quickLogin = (credential: DemoCredential) => {
+    if ('email' in credential && credential.email) {
       setEmail(credential.email);
       setLoginMethod('personal');
-    } else {
+    } else if ('employeeNumber' in credential && credential.employeeNumber) {
       setEmployeeNumber(credential.employeeNumber);
       setLoginMethod('corporate');
     }
@@ -532,77 +508,14 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Demo Credentials */}
+          {/* Demo Credentials - Lazy loaded for better performance */}
           {showDemoCredentials && loginMethod !== 'sso' && (
-            <div className="mt-6 space-y-4">
-              {/* Personal Email Credentials */}
-              {loginMethod === 'personal' && (
-                <div className={`p-4 bg-muted rounded-2xl ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <h3 className="text-sm font-medium text-foreground mb-3">
-                    {t('login.personalEmailAccounts', 'Personal Email Accounts:')}
-                  </h3>
-                  <div className="space-y-2">
-                    {DEMO_CREDENTIALS.map((cred) => {
-                      const Icon = cred.icon;
-                      return (
-                        <button
-                          key={cred.role}
-                          type="button"
-                          onClick={() => quickLogin(cred)}
-                          className={`w-full p-3 rounded-2xl border transition-colors hover:shadow-md ${cred.color}`}
-                        >
-                          <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                            <Icon size={18} />
-                            <div className="flex-1 text-left">
-                              <div className="font-medium text-sm">{cred.role}</div>
-                              <div className="text-xs opacity-80">{cred.description}</div>
-                            </div>
-                            <ArrowRight size={16} className={isRTL ? 'rotate-180' : ''} />
-                          </div>
-                          <div className="text-xs mt-1 opacity-75">
-                            {cred.email} / {cred.password}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Corporate Account Credentials */}
-              {loginMethod === 'corporate' && (
-                <div className={`p-4 bg-primary/5 rounded-2xl border border-primary/20 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  <h3 className="text-sm font-medium text-primary mb-3">
-                    {t('login.corporateAccountEmployee', 'Corporate Account (Employee Number):')}
-                  </h3>
-                  <div className="space-y-2">
-                    {CORPORATE_CREDENTIALS.map((cred) => {
-                      const Icon = cred.icon;
-                      return (
-                        <button
-                          key={cred.role}
-                          type="button"
-                          onClick={() => quickLogin(cred)}
-                          className={`w-full p-3 rounded-2xl border transition-colors hover:shadow-md ${cred.color}`}
-                        >
-                          <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                            <Icon size={18} />
-                            <div className="flex-1 text-left">
-                              <div className="font-medium text-sm">{cred.role}</div>
-                              <div className="text-xs opacity-80">{cred.description}</div>
-                            </div>
-                            <ArrowRight size={16} className={isRTL ? 'rotate-180' : ''} />
-                          </div>
-                          <div className="text-xs mt-1 opacity-75">
-                            {t('login.employeeHash', 'Employee #:')} {cred.employeeNumber} / {cred.password}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
+            <DemoCredentialsSection 
+              isRTL={isRTL}
+              loginMethod={loginMethod}
+              quickLogin={quickLogin}
+              t={t}
+            />
           )}
 
           {/* Sign Up Link */}

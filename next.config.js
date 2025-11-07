@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const isDevelopment = process.env.NODE_ENV === 'development';
 
+// Bundle analyzer configuration
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 const nextConfig = {
   // App Router is enabled by default in Next.js 14
   // No need for experimental.appDir anymore
@@ -300,4 +305,4 @@ const nextConfig = {
   output: 'standalone',
 }
 
-module.exports = nextConfig
+module.exports = withBundleAnalyzer(nextConfig)
