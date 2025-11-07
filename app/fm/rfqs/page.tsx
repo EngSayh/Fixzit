@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { CardGridSkeleton } from '@/components/skeletons';
+import { logger } from '@/lib/logger';
 import { 
   FileText, Plus, Search, DollarSign, 
   MapPin, Eye, Send, Clock,
@@ -434,7 +435,7 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
         toast.error(`Failed to create RFQ: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      console.error('Error creating RFQ:', error);
+      logger.error('Error creating RFQ:', { error });
       toast.error('Error creating RFQ. Please try again.', { id: toastId });
     }
   };

@@ -5,6 +5,7 @@ import { Search, Plus, ShoppingCart } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 
+import { logger } from '@/lib/logger';
 interface PartItem {
   id: string;
   name: string;
@@ -40,7 +41,7 @@ export default function WorkOrderPartsPage() {
         setParts(data.data.products);
       }
     } catch (error) {
-      console.error('Failed to search parts:', error);
+      logger.error('Failed to search parts:', { error });
     } finally {
       setLoading(false);
     }
@@ -97,7 +98,7 @@ export default function WorkOrderPartsPage() {
       total: selectedParts.reduce((sum, p) => sum + (p.price * p.quantity), 0)
     };
     
-    console.log('Creating PO:', po);
+    logger.info('Creating PO:', { po });
     // In production, send to API
     toast.success('Purchase Order created successfully!');
   };
