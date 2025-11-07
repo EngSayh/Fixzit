@@ -357,8 +357,8 @@ skipIfNoComponent('logFixAttempt sends logging payload with URL and userAgent', 
   const [, init] = last;
   const body = JSON.parse(init.body);
   expect(body.event).toBe('AUTO_FIX_ATTEMPT');
-  expect(body.data.url).toBe('https://example.com/app');
-  expect(body.data.userAgent).toBe('jest-test-agent');
+  expect(body?.data?.url).toBe('https://example.com/app');
+  expect(body?.data?.userAgent).toBe('jest-test-agent');
 });
 
 skipIfNoComponent('openSupport toggles SupportPopup visibility when errorReport exists (integration smoke)', async () => {
