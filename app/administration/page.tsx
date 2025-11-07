@@ -437,7 +437,7 @@ const AdminModule: React.FC = () => {
       //   body: JSON.stringify({ status: newStatus })
       // });
 
-      setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus as 'active' | 'inactive' } : u));
+      setUsers(users.map(u => u.id === userId ? { ...u, status: (newStatus.charAt(0).toUpperCase() + newStatus.slice(1)) as 'Active' | 'Inactive' | 'Locked' } : u));
       setSuccessMessage(`User ${newStatus.toLowerCase()} successfully`);
       logger.info('User status updated', { userId, newStatus });
       setTimeout(() => setSuccessMessage(null), 3000);
