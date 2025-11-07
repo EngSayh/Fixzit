@@ -7,6 +7,7 @@ import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
 
+import { logger } from '@/lib/logger';
 /**
  * @openapi
  * /api/kb/ingest:
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
     });
     return createSecureResponse({ ok: true }, 200, req);
   } catch (err) {
-    console.error('kb/ingest error', err);
+    logger.error('kb/ingest error', { err });
     return createSecureResponse({ error: 'Ingest failed' }, 500, req);
   }
 }

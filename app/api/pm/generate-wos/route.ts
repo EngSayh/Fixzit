@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { FMPMPlan } from '@/server/models/FMPMPlan';
 
+import { logger } from '@/lib/logger';
 /**
  * POST /api/pm/generate-wos
  * Auto-generate work orders from PM plans that are due
@@ -56,7 +57,7 @@ export async function POST() {
         
         // Log the WO that would be created
         console.log('[PM] Generated WO:', woNumber, 'from plan', plan.planNumber);
-        console.log('[PM] WO Data:', workOrderData);
+        logger.info('[PM] WO Data:', { workOrderData });
         
         // Record generation in plan
         await plan.recordGeneration(
@@ -78,7 +79,7 @@ export async function POST() {
       }
     }
     
-    console.log('[PM] Generation complete:', results);
+    logger.info('[PM] Generation complete:', { results });
     
     return NextResponse.json({
       success: true,

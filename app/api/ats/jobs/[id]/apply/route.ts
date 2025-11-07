@@ -11,6 +11,7 @@ import path from 'path';
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 /**
  * @openapi
  * /api/ats/jobs/[id]/apply:
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         await fs.writeFile(filePath, buffer);
         resumeUrl = `/uploads/resumes/${fileName}`;
       } catch (err) {
-        console.error('Resume save failed:', err);
+        logger.error('Resume save failed:', { err });
       }
       
       // Basic text surrogate for scoring/search

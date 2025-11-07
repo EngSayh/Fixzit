@@ -6,6 +6,7 @@ import { Employee } from '@/models/hr/Employee';
 import { Timesheet } from '@/models/hr/Attendance';
 import { calculateNetPay } from '@/services/hr/ksaPayrollService';
 
+import { logger } from '@/lib/logger';
 // POST /api/hr/payroll/runs/[id]/calculate - Calculate payroll for all active employees
 export async function POST(
   req: NextRequest,
@@ -141,7 +142,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error('Error calculating payroll:', error);
+    logger.error('Error calculating payroll:', { error });
     return NextResponse.json(
       { error: 'Failed to calculate payroll' },
       { status: 500 }

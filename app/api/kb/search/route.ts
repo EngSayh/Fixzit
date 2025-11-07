@@ -7,6 +7,7 @@ import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
 
+import { logger } from '@/lib/logger';
 // Define proper type for search results
 interface SearchResult {
   articleId: string;
@@ -118,7 +119,7 @@ export async function POST(req: NextRequest) {
       ];
       results = await coll.aggregate(pipe, { maxTimeMS: 3_000 }).toArray() as unknown as SearchResult[];
     } catch (vectorError) {
-      console.warn('Vector search failed, falling back to lexical search:', vectorError);
+      logger.warn('Vector search failed, falling back to lexical search:', { vectorError });
       // Fallback to lexical search on text; require original question text
       const safe = new RegExp((qText || '').toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       const filter = { ...scope, text: safe } as Record<string, unknown>;
@@ -130,7 +131,7 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse({ results }, 200, req);
   } catch (err) {
-    console.error('kb/search error', err);
+    logger.error('kb/search error', { err });
     return createSecureResponse({ error: 'Search failed' }, 500, req);
   }
 }

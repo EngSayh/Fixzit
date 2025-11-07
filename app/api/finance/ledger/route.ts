@@ -17,6 +17,7 @@ import LedgerEntry from '@/server/models/finance/LedgerEntry';
 
 import { Types } from 'mongoose';
 
+import { logger } from '@/lib/logger';
 // ============================================================================
 // HELPER: Get User Session
 // ============================================================================
@@ -129,7 +130,7 @@ export async function GET(req: NextRequest) {
     );
     
   } catch (error) {
-    console.error('GET /api/finance/ledger error:', error);
+    logger.error('GET /api/finance/ledger error:', { error });
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });

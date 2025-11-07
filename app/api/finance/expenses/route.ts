@@ -11,6 +11,7 @@ import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { runWithContext } from '@/server/lib/authContext';
 import { requirePermission } from '@/server/lib/rbac.config';
 
+import { logger } from '@/lib/logger';
 // Validation schemas
 const ExpenseLineItemSchema = z.object({
   description: z.string().min(1),
@@ -127,7 +128,7 @@ export async function POST(req: NextRequest) {
       }
     );
   } catch (error) {
-    console.error('Error creating expense:', error);
+    logger.error('Error creating expense:', { error });
 
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });
@@ -239,7 +240,7 @@ export async function GET(req: NextRequest) {
       }
     );
   } catch (error) {
-    console.error('Error fetching expenses:', error);
+    logger.error('Error fetching expenses:', { error });
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });

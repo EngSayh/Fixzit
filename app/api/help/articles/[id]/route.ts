@@ -7,6 +7,7 @@ import { ObjectId } from "mongodb";
 import {validationError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
+import { logger } from '@/lib/logger';
 const patchSchema = z.object({
   title: z.string().min(2).optional(),
   content: z.string().min(1).optional(),
@@ -86,7 +87,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     if (_err && typeof _err === 'object' && 'code' in _err && _err.code === 11000) {
       return createSecureResponse({ error: 'Duplicate key (e.g., slug) exists' }, 409, req);
     }
-    console.error('PATCH /api/help/articles/[id] failed', _err);
+    logger.error('PATCH /api/help/articles/[id] failed', { _err });
     return createSecureResponse({ error: 'Internal Server Error' }, 500, req);
   }
 }

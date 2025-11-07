@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Bot, User, X, Send } from 'lucide-react';
 
+import { logger } from '@/lib/logger';
 interface Citation {
   title: string;
   slug: string;
@@ -86,7 +87,7 @@ export default function AIChatPage() {
       };
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
-      console.error('AI Chat error:', error);
+      logger.error('AI Chat error:', { error });
       const errorMessage = {
         id: crypto.randomUUID(),
         type: 'bot' as const,

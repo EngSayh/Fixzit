@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { User } from '@/server/models/User';
 import { connectDb } from '@/lib/mongo';
 
+import { logger } from '@/lib/logger';
 /**
  * Deep merge utility to recursively merge nested objects.
  * Non-mutating: call with an empty object as first arg to avoid mutating inputs.
@@ -69,7 +70,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('Failed to fetch user preferences:', error);
+    logger.error('Failed to fetch user preferences:', { error });
     return NextResponse.json(
       { error: 'Failed to fetch preferences' },
       { status: 500 }
@@ -140,7 +141,7 @@ export async function PUT(request: NextRequest) {
       preferences: user.preferences,
     });
   } catch (error) {
-    console.error('Failed to update user preferences:', error);
+    logger.error('Failed to update user preferences:', { error });
     return NextResponse.json(
       { error: 'Failed to update preferences' },
       { status: 500 }

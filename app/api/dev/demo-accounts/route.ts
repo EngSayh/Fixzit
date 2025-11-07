@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+import { logger } from '@/lib/logger';
 export async function GET() {
   // SECURITY: Demo accounts ONLY allowed in strict development mode
   // Historical context: ENABLED flag allowed production demo mode via env var
@@ -26,7 +27,7 @@ export async function GET() {
       headers: { 'Cache-Control': 'no-store' } 
     });
   } catch (error) {
-    console.error('[Dev Demo Accounts] Failed to load credentials:', error);
+    logger.error('[Dev Demo Accounts] Failed to load credentials:', { error });
     return NextResponse.json({
       demo: [],
       corporate: [],

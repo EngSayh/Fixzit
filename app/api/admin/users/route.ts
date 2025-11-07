@@ -4,6 +4,7 @@ import { connectDb } from '@/lib/mongo';
 import { Schema, model, models } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
+import { logger } from '@/lib/logger';
 /**
  * GET /api/admin/users
  * 
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ users, total });
   } catch (error) {
-    console.error('Failed to fetch users:', error);
+    logger.error('Failed to fetch users:', { error });
     return NextResponse.json(
       { error: 'Failed to fetch users' },
       { status: 500 }
@@ -217,7 +218,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ user: newUser }, { status: 201 });
   } catch (error) {
-    console.error('Failed to create user:', error);
+    logger.error('Failed to create user:', { error });
     return NextResponse.json(
       { error: 'Failed to create user' },
       { status: 500 }

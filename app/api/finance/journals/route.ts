@@ -22,6 +22,7 @@ import postingService from '@/server/services/finance/postingService';
 import { Types } from 'mongoose';
 import { z } from 'zod';
 
+import { logger } from '@/lib/logger';
 // ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
@@ -125,7 +126,7 @@ export async function POST(req: NextRequest) {
     );
     
   } catch (error) {
-    console.error('POST /api/finance/journals error:', error);
+    logger.error('POST /api/finance/journals error:', { error });
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });
@@ -222,7 +223,7 @@ export async function GET(req: NextRequest) {
     );
     
   } catch (error) {
-    console.error('GET /api/finance/journals error:', error);
+    logger.error('GET /api/finance/journals error:', { error });
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });

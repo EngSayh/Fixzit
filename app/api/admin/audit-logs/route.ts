@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { AuditLogModel } from '@/server/models/AuditLog';
 import { connectDb } from '@/lib/mongo';
 
+import { logger } from '@/lib/logger';
 /**
  * GET /api/admin/audit-logs
  * 
@@ -87,7 +88,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ logs });
   } catch (error) {
-    console.error('Failed to fetch audit logs:', error);
+    logger.error('Failed to fetch audit logs:', { error });
     return NextResponse.json(
       { error: 'Failed to fetch audit logs' },
       { status: 500 }
