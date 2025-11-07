@@ -12,6 +12,7 @@ import { CardGridSkeleton } from '@/components/skeletons';
 import { useTranslation } from '@/contexts/TranslationContext';
 import Decimal from 'decimal.js';
 
+import { logger } from '@/lib/logger';
 export default function FinancePage() {
   const { t } = useTranslation();
   const { data: session } = useSession();
@@ -233,7 +234,7 @@ function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }
       setOpen(false); 
       onCreated();
     } catch (error) {
-      console.error('Error creating invoice:', error);
+      logger.error('Error creating invoice:', { error });
       toast.error('Error: Failed to create invoice', { id: toastId });
     }
   }

@@ -6,6 +6,7 @@ import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
+import { logger } from '@/lib/logger';
 // ============================================================================
 // INTERFACES
 // ============================================================================
@@ -128,7 +129,7 @@ export default function NewExpensePage() {
           setVendors(data.vendors || []);
         }
       } catch (error) {
-        console.error('Error loading vendors:', error);
+        logger.error('Error loading vendors:', { error });
       } finally {
         setLoadingVendors(false);
       }
@@ -147,7 +148,7 @@ export default function NewExpensePage() {
           setChartAccounts(data.accounts || []);
         }
       } catch (error) {
-        console.error('Error loading accounts:', error);
+        logger.error('Error loading accounts:', { error });
       } finally {
         setLoadingAccounts(false);
       }
@@ -189,7 +190,7 @@ export default function NewExpensePage() {
 
         setBudgetInfo(budgets);
       } catch (error) {
-        console.error('Error loading budget info:', error);
+        logger.error('Error loading budget info:', { error });
       }
     };
 
@@ -380,7 +381,7 @@ export default function NewExpensePage() {
         router.push(`/finance/expenses/${data.expense.id}`);
       }
     } catch (error) {
-      console.error('Error saving draft:', error);
+      logger.error('Error saving draft:', { error });
       toast.error(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);
@@ -446,7 +447,7 @@ export default function NewExpensePage() {
         router.push(`/finance/expenses/${data.expense.id}`);
       }
     } catch (error) {
-      console.error('Error submitting expense:', error);
+      logger.error('Error submitting expense:', { error });
       toast.error(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);
@@ -466,7 +467,7 @@ export default function NewExpensePage() {
         });
       }
     } catch (error) {
-      console.error('Error uploading receipts:', error);
+      logger.error('Error uploading receipts:', { error });
       // Don't throw - expense is already created
     }
   };
