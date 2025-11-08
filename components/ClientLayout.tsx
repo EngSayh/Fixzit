@@ -30,7 +30,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const useSafeSession = () => {
     try {
       return useSession();
-    } catch (_error) {
+    } catch {
       console.warn('[ClientLayout] SessionProvider not available, using JWT fallback');
       return { data: null, status: 'unauthenticated' as const, update: async () => null };
     }
@@ -195,7 +195,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         <AutoFixInitializer />
         <ResponsiveLayout
           header={<TopBar />}
-          sidebar={<Sidebar key={`sidebar-${language}-${isRTL}`} role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" />}
+          sidebar={<Sidebar key={`sidebar-${language}-${isRTL}`} />}
           showSidebarToggle={true}
           footer={<Footer />}
         >
