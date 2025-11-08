@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { connectDb } from '@/lib/mongo';
 import { Schema, model, models } from 'mongoose';
 
+import { logger } from '@/lib/logger';
 /**
  * DELETE /api/admin/users/[id]
  * 
@@ -49,7 +50,7 @@ export async function DELETE(
     
     return NextResponse.json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
-    console.error('Failed to delete user:', error);
+    logger.error('Failed to delete user:', { error });
     return NextResponse.json(
       { error: 'Failed to delete user' },
       { status: 500 }
@@ -141,7 +142,7 @@ export async function PATCH(
     
     return NextResponse.json({ user: updatedUser });
   } catch (error) {
-    console.error('Failed to update user:', error);
+    logger.error('Failed to update user:', { error });
     return NextResponse.json(
       { error: 'Failed to update user' },
       { status: 500 }

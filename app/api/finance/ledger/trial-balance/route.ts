@@ -15,6 +15,7 @@ import LedgerEntry, { type TrialBalanceEntry } from '@/server/models/finance/Led
 
 import { Types } from 'mongoose';
 
+import { logger } from '@/lib/logger';
 // ============================================================================
 // HELPER: Get User Session
 // ============================================================================
@@ -110,7 +111,7 @@ export async function GET(req: NextRequest) {
     );
     
   } catch (error) {
-    console.error('GET /api/finance/ledger/trial-balance error:', error);
+    logger.error('GET /api/finance/ledger/trial-balance error:', { error });
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 describe('Tabs', () => {
   it('renders all tabs and shows default content', () => {

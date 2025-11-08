@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { Application } from '@/server/models/Application';
 import { getUserFromToken } from '@/lib/auth';
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     if (!application) return notFoundError("Application");
     return NextResponse.json({ success: true, data: application });
   } catch (error) {
-    console.error('Application fetch error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Application fetch error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: "Failed to fetch application" }, 500, req);
   }
 }
@@ -81,7 +82,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     await application.save();
     return NextResponse.json({ success: true, data: application });
   } catch (error) {
-    console.error('Application update error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Application update error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: "Failed to update application" }, 500, req);
   }
 }

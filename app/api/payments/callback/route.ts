@@ -9,6 +9,7 @@ import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
 
+import { logger } from '@/lib/logger';
 /**
  * @openapi
  * /api/payments/callback:
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
     const invoice = await Invoice.findById(cart_id);
 
     if (!invoice) {
-      console.error('Invoice not found for payment callback:', cart_id);
+      logger.error('Invoice not found for payment callback:', { cart_id });
       return createSecureResponse({ error: 'Invoice not found' }, 404, req);
     }
 
@@ -120,7 +121,7 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse({ success: true }, 200, req);
   } catch (error: unknown) {
-    console.error('Payment callback error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Payment callback error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ 
       error: 'Failed to process payment callback' 
     }, 500, req);

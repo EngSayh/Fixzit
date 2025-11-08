@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from '@/lib/logger';
 import { getDatabase } from "@/lib/mongodb-unified";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { Filter, Document } from 'mongodb';
@@ -170,7 +171,7 @@ export async function GET(req: NextRequest){
     response.headers.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
     return response;
   } catch (error) {
-    console.error('Error fetching help articles:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Error fetching help articles:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to fetch help articles' }, 500, req);
   }
 }

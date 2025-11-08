@@ -7,6 +7,7 @@ import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 import { 
   getSendGridConfig, 
   getBaseEmailOptions, 
@@ -191,14 +192,14 @@ The Fixzit Enterprise Team
           }
         });
         
-        console.log('✅ Email sent and logged:', {
+        logger.info('✅ Email sent and logged', {
           emailId,
           recipient: body.email,
           timestamp: timestamp.toISOString()
         });
       } catch (dbError) {
         // Email sent but logging failed - don't fail the request
-        console.warn('⚠️ Email sent but database logging failed:', dbError);
+        logger.warn('⚠️ Email sent but database logging failed:', { dbError });
       }
 
       return createSecureResponse({
@@ -213,7 +214,7 @@ The Fixzit Enterprise Team
     } catch (sendGridError: unknown) {
       // SendGrid failed - log error and track failure
       const error = sendGridError as Error;
-      console.error('❌ SendGrid error:', error instanceof Error ? error.message : 'Unknown error');
+      logger.error('❌ SendGrid error:', error instanceof Error ? error.message : 'Unknown error');
       
       try {
         const db = await getDatabase();
@@ -241,7 +242,7 @@ The Fixzit Enterprise Team
 
   } catch (error) {
     const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
-    console.error(`[${correlationId}] Welcome email error:`, error instanceof Error ? error.message : 'Unknown error');
+    logger.error(`[${correlationId}] Welcome email error:`, error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse(
       { error: 'Failed to send welcome email', correlationId },
       500,
@@ -309,7 +310,7 @@ export async function GET(req: NextRequest) {
     }, 200, req);
 
   } catch (error) {
-    console.error('Error querying email status:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Error querying email status:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({
       error: 'Failed to query email status',
       email

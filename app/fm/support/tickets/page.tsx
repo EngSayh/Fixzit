@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { TableSkeleton } from '@/components/skeletons';
 
+import { logger } from '@/lib/logger';
 interface TicketItem {
   id: string;
   code?: string;
@@ -63,7 +64,7 @@ export default function SupportTicketsPage() {
         toast.error(`Failed to update ticket: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      console.error('Error updating ticket:', error);
+      logger.error('Error updating ticket:', { error });
       toast.error('Error updating ticket. Please try again.', { id: toastId });
     }
   };

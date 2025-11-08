@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { CardGridSkeleton } from '@/components/skeletons';
+import { logger } from '@/lib/logger';
 import { 
   Briefcase, Plus, Search, Calendar, DollarSign, Users, Eye, Edit, Trash2, 
   Construction, Hammer, PaintBucket, Building 
@@ -388,7 +389,7 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
         toast.error(`Failed to create project: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      console.error('Error creating project:', error);
+      logger.error('Error creating project:', { error });
       toast.error('Error creating project. Please try again.', { id: toastId });
     }
   };

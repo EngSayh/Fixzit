@@ -1,4 +1,5 @@
 import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
 import DiscountRule from '@/server/models/DiscountRule';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
     if (error instanceof Error && error.message === 'Admin access required') {
       return createSecureResponse({ error: 'Admin access required' }, 403, req);
     }
-    console.error('Discount fetch failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Discount fetch failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }
@@ -115,7 +116,7 @@ export async function PUT(req: NextRequest) {
     if (error instanceof Error && error.message === 'Admin access required') {
       return createSecureResponse({ error: 'Admin access required' }, 403, req);
     }
-    console.error('Discount update failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Discount update failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }

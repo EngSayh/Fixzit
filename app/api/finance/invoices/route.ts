@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from '@/lib/logger';
 import * as svc from "@/server/finance/invoice.service";
 import { rateLimit } from '@/server/security/rateLimit';
 import { getUserFromToken } from '@/lib/auth';
@@ -87,7 +88,7 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ data }, 200, req);
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    console.error('[GET /api/finance/invoices] Error fetching invoices:', {
+    logger.error('[GET /api/finance/invoices] Error fetching invoices:', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
@@ -149,7 +150,7 @@ export async function POST(req: NextRequest) {
       return zodValidationError(error, req);
     }
     const correlationId = crypto.randomUUID();
-    console.error('[POST /api/finance/invoices] Error creating invoice:', {
+    logger.error('[POST /api/finance/invoices] Error creating invoice:', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined

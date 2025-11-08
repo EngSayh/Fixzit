@@ -9,6 +9,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import toast, { Toaster } from 'react-hot-toast';
 import { FormWithNavigation } from '@/components/ui/navigation-buttons';
 
+import { logger } from '@/lib/logger';
 interface ProductImage {
   file: File;
   preview: string;
@@ -154,7 +155,7 @@ export default function VendorProductUploadPage() {
       }, 2000);
 
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Upload error:', { error });
       toast.error(error instanceof Error ? error.message : 'Upload failed');
     } finally {
       setLoading(false);

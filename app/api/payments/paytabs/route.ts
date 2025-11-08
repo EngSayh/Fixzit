@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
 import { rateLimit } from '@/server/security/rateLimit';
@@ -110,7 +111,7 @@ export async function POST(req: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('PayTabs error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('PayTabs error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { ok: false, error: 'Payment processing failed' },
       { status: 500 }

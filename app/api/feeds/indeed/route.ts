@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { Job } from '@/server/models/Job';
 
@@ -88,7 +89,7 @@ export async function GET() {
       headers: { 'Content-Type': 'application/xml; charset=utf-8' } 
     });
   } catch (error) {
-    console.error('Failed to fetch jobs:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Failed to fetch jobs:', error instanceof Error ? error.message : 'Unknown error');
     const errorXml = `<?xml version="1.0" encoding="UTF-8"?>
     <source>
       <publisher>Fixzit</publisher>

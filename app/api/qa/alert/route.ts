@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { getClientIP } from '@/server/security/headers';
 
@@ -45,11 +46,11 @@ export async function POST(req: NextRequest) {
       userAgent: req.headers.get('user-agent'),
     });
 
-    console.warn(`🚨 QA Alert: ${event}`, data);
+    logger.warn(`🚨 QA Alert: ${event}`, data);
 
     return createSecureResponse({ success: true }, 200, req);
   } catch (error) {
-    console.error('Failed to process QA alert:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Failed to process QA alert:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to process alert' }, 500, req);
   }
 }
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
 
     return createSecureResponse({ alerts }, 200, req);
   } catch (error) {
-    console.error('Failed to fetch QA alerts:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Failed to fetch QA alerts:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to fetch alerts' }, 500, req);
   }
 }

@@ -4,6 +4,7 @@
  */
 
 import { FMFinancialTransaction } from '@/server/models/FMFinancialTransaction';
+import { logger } from '@/lib/logger';
 
 export interface WorkOrderFinancialData {
   workOrderId: string;
@@ -106,7 +107,7 @@ export async function onWorkOrderClosed(
     transactionDate: expenseTransaction.date,
     status: 'POSTED'
   });
-  console.log('[Finance] Created expense transaction:', savedExpense.transactionNumber);
+  logger.info(`[Finance] Created expense transaction: ${savedExpense.transactionNumber}`);
   results.expenseTransaction = {
     ...expenseTransaction,
     id: savedExpense._id.toString()
@@ -147,7 +148,7 @@ export async function onWorkOrderClosed(
       dueDate: invoiceTransaction.dueDate,
       status: 'PENDING'
     });
-    console.log('[Finance] Created invoice:', savedInvoice.transactionNumber);
+    logger.info(`[Finance] Created invoice: ${savedInvoice.transactionNumber}`);
     results.invoiceTransaction = {
       ...invoiceTransaction,
       id: savedInvoice._id.toString()
@@ -169,7 +170,7 @@ export async function onWorkOrderClosed(
     await updateOwnerStatement(financialData.ownerId, financialData.propertyId, savedTransactions);
     results.statementUpdated = true;
   } catch (error) {
-    console.error('[Finance] Failed to update owner statement:', error);
+    logger.error('[Finance] Failed to update owner statement:', error);
   }
 
   return results;
@@ -195,9 +196,9 @@ export async function updateOwnerStatement(
     'statementPeriod.year': currentYear
   });
 
-  console.log('[Finance] Updating statement for owner', ownerId, 'property', propertyId);
-  console.log('[Finance] Adding', transactions.length, 'new transactions');
-  console.log('[Finance] Total transactions in period:', existingTransactions.length + transactions.length);
+  logger.info(`[Finance] Updating statement for owner ${ownerId} property ${propertyId}`);
+  logger.info(`[Finance] Adding ${transactions.length} new transactions`);
+  logger.info(`[Finance] Total transactions in period: ${existingTransactions.length + transactions.length}`);
   
   // Calculate totals from database records
   const expenses = existingTransactions
@@ -208,9 +209,9 @@ export async function updateOwnerStatement(
     .filter(t => t.type === 'INVOICE' && t.status === 'PAID')
     .reduce((sum, t) => sum + t.amount, 0);
 
-  console.log('[Finance] Total expenses:', expenses, 'SAR');
-  console.log('[Finance] Total revenue:', revenue, 'SAR');
-  console.log('[Finance] Net balance:', revenue - expenses, 'SAR');
+  logger.info(`[Finance] Total expenses: ${expenses} SAR`);
+  logger.info(`[Finance] Total revenue: ${revenue} SAR`);
+  logger.info(`[Finance] Net balance: ${revenue - expenses} SAR`);
 }
 
 /**
@@ -367,6 +368,6 @@ export async function recordPayment(
     updatedAt: savedPayment.updatedAt
   };
 
-  console.log('[Finance] Recorded payment:', payment.id);
+  logger.info(`[Finance] Recorded payment: ${payment.id}`);
   return payment;
 }

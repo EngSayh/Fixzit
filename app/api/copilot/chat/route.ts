@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from '@/lib/logger';
 import { z } from "zod";
 import { resolveCopilotSession } from "@/server/copilot/session";
 import { evaluateMessagePolicy, describeDataClass, redactSensitiveText, getPermittedTools } from "@/server/copilot/policy";
@@ -181,7 +182,7 @@ export async function POST(req: NextRequest) {
       sources: docs.map(doc => ({ id: doc.id, title: doc.title, score: doc.score, source: doc.source }))
     });
   } catch (error: unknown) {
-    console.error("Copilot chat error:", error instanceof Error ? error.message : 'Unknown error');
+    logger.error("Copilot chat error:", error instanceof Error ? error.message : 'Unknown error');
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     const stack = error instanceof Error ? error.stack : String(error);
     await recordAudit({ session, intent: body.tool?.name || "chat", status: "ERROR", message: errorMessage, prompt: body.message, metadata: { stack, error: String(error) } });

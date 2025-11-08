@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SupportTicket } from "@/server/models/SupportTicket";
 import { z } from "zod";
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest){
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    console.error('Support ticket creation failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Support ticket creation failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to create support ticket' }, 500, req);
   }
 }
@@ -97,7 +98,7 @@ export async function GET(req: NextRequest) {
     try {
       user = await getSessionUser(req);
     } catch (authError) {
-      console.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
+      logger.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
       return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     }
     
@@ -123,7 +124,7 @@ export async function GET(req: NextRequest) {
     ]);
     return NextResponse.json({ items, page, limit, total });
   } catch (error) {
-    console.error('Support tickets query failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Support tickets query failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to fetch support tickets' }, 500, req);
   }
 }

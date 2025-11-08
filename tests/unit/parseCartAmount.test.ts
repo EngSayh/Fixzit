@@ -22,19 +22,19 @@ test('parses values with european decimal comma', () => {
 });
 
 test('rejects malformed inputs', () => {
-  expect(parseCartAmount('')).toBe(null);
-  expect(parseCartAmount('  ')).toBe(null);
-  expect(parseCartAmount('abc')).toBe(null);
-  expect(parseCartAmount('12.34.56')).toBe(null);
-  expect(parseCartAmount('1,2,3')).toBe(null);
-  expect(parseCartAmount(null as any)).toBe(null);
-  expect(parseCartAmount(undefined as any)).toBe(null);
+  expect(parseCartAmount('')).toBe(0);
+  expect(parseCartAmount('  ')).toBe(0);
+  expect(parseCartAmount('abc')).toBe(0);
+  expect(parseCartAmount('12.34.56')).toBe(0);
+  expect(parseCartAmount('1,2,3')).toBe(0);
+  expect(parseCartAmount(null as any)).toBe(0);
+  expect(parseCartAmount(undefined as any)).toBe(0);
 });
 
 test('rejects non-finite numbers', () => {
-  expect(parseCartAmount(Infinity)).toBe(null);
-  expect(parseCartAmount(NaN)).toBe(null);
-  expect(parseCartAmount('NaN')).toBe(null);
+  expect(parseCartAmount(Infinity)).toBe(0);
+  expect(parseCartAmount(NaN)).toBe(0);
+  expect(parseCartAmount('NaN')).toBe(0);
 });
 
 test('parses values with currency markers', () => {

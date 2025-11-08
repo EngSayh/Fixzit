@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { connectToDatabase } from '@/lib/mongodb-unified';
@@ -326,7 +327,7 @@ export async function POST(request: NextRequest) {
     );
     
   } catch (error: unknown) {
-    console.error('Vendor product creation error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Vendor product creation error:', error instanceof Error ? error.message : 'Unknown error');
     if (error instanceof z.ZodError) {
       return zodValidationError(error, request);
     }

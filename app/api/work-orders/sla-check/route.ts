@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { WorkOrder } from '@/server/models/WorkOrder';
 
+import { logger } from '@/lib/logger';
 /**
  * POST /api/work-orders/sla-check
  * Check for SLA breaches and send escalation notifications
@@ -42,7 +43,7 @@ export async function POST() {
         const hours = Math.floor(overdue / (1000 * 60 * 60));
         
         // In real implementation, send escalation notifications here
-        console.log(`[SLA] BREACH: WO ${wo.workOrderNumber} is ${hours}h overdue`);
+        logger.info(`[SLA] BREACH: WO ${wo.workOrderNumber} is ${hours}h overdue`);
         
         results.notifications.push({
           woNumber: wo.workOrderNumber as string,
@@ -54,7 +55,7 @@ export async function POST() {
         results.atRisk++;
         const minutes = Math.floor(diff / (1000 * 60));
         
-        console.log(`[SLA] WARNING: WO ${wo.workOrderNumber} due in ${minutes}m`);
+        logger.info(`[SLA] WARNING: WO ${wo.workOrderNumber} due in ${minutes}m`);
         
         results.notifications.push({
           woNumber: wo.workOrderNumber as string,
@@ -64,14 +65,14 @@ export async function POST() {
       }
     }
     
-    console.log('[SLA] Check complete:', results);
+    logger.info('[SLA] Check complete:', { results });
     
     return NextResponse.json({
       success: true,
       data: results
     });
   } catch (error) {
-    console.error('[API] SLA check failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('[API] SLA check failed:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'SLA check failed' },
       { status: 500 }
@@ -135,7 +136,7 @@ export async function GET() {
       data: preview
     });
   } catch (error) {
-    console.error('[API] SLA preview failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('[API] SLA preview failed:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
       { success: false, error: 'SLA preview failed' },
       { status: 500 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { connectMongo } from '@/lib/mongo';
 import { Job } from '@/server/models/Job';
 import { Candidate } from '@/server/models/Candidate';
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: { applicationId: app._id } }, { status: 201 });
   } catch (error) {
-    console.error('LinkedIn apply error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('LinkedIn apply error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to apply with LinkedIn' }, 500, req);
   }
 }

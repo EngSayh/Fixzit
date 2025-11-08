@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { WorkOrder } from "@/server/models/WorkOrder";
 import {requireAbility } from "@/server/middleware/withAuthRbac";
@@ -83,7 +84,7 @@ export async function POST(req:NextRequest): Promise<NextResponse> {
       created++;
     } catch (error) {
       const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
-      console.error(`[${correlationId}] Work order import error for row ${i + 1}:`, error instanceof Error ? error.message : 'Unknown error');
+      logger.error(`[${correlationId}] Work order import error for row ${i + 1}:`, error instanceof Error ? error.message : 'Unknown error');
       errors.push({ row: i + 1, error: 'Failed to import row' });
     }
   }

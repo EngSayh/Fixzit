@@ -12,6 +12,18 @@ export function parseCartAmount(value: unknown, fallback = 0): number {
     if (/^\(.*\)$/.test(s)) s = '-' + s.slice(1, -1);
     // Keep only digits, separators, and a leading '-'
     s = s.replace(/[^0-9.,-]/g, '').replace(/(?!^)-/g, '');
+    // Remove leading dots that might remain from currency symbols
+    s = s.replace(/^\.+/, '');
+    
+    // Count occurrences of each separator
+    const dotCount = (s.match(/\./g) || []).length;
+    const commaCount = (s.match(/,/g) || []).length;
+    
+    // Validate: if multiple dots, must be valid thousand separator pattern
+    if (dotCount > 1 && !/^-?\d{1,3}(\.\d{3})+$/.test(s)) return fallback;
+    // Validate: if multiple commas, must be valid thousand separator pattern  
+    if (commaCount > 1 && !/^-?\d{1,3}(,\d{3})+$/.test(s)) return fallback;
+    
     const lastDot = s.lastIndexOf('.');
     const lastComma = s.lastIndexOf(',');
     if (lastDot !== -1 && lastComma !== -1) {

@@ -5,6 +5,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { Shield, Lock, Eye, FileText, Mail, Phone } from 'lucide-react';
 import { renderMarkdownSanitized } from '@/lib/markdown';
 
+import { logger } from '@/lib/logger';
 /**
  * Default privacy policy content shown when CMS content is not available or not published.
  * Defined at module level to prevent recreation on each render.
@@ -68,7 +69,7 @@ export default function PrivacyPage() {
         setContent(DEFAULT_PRIVACY_CONTENT);
       }
     } catch (err) {
-      console.error('Error fetching privacy policy:', err);
+      logger.error('Error fetching privacy policy:', { err });
       setTitle(t('privacy.title', 'Privacy Policy'));
       setContent(DEFAULT_PRIVACY_CONTENT);
     } finally {
@@ -88,7 +89,7 @@ export default function PrivacyPage() {
           setRenderedContent(html);
         })
         .catch(err => {
-          console.error('Error rendering markdown:', err);
+          logger.error('Error rendering markdown:', { err });
           // Fallback to plain text wrapped in paragraphs
           setRenderedContent(`<div class="prose max-w-none"><p>${content.replace(/\n/g, '</p><p>')}</p></div>`);
         });

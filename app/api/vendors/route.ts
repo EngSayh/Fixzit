@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Vendor } from "@/server/models/Vendor";
 import { z } from "zod";
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
     return createSecureResponse(vendor, 201, req);
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    console.error('[POST /api/vendors] Error creating vendor:', {
+    logger.error('[POST /api/vendors] Error creating vendor:', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
@@ -162,7 +163,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    console.error('[GET /api/vendors] Error fetching vendors:', {
+    logger.error('[GET /api/vendors] Error fetching vendors:', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined

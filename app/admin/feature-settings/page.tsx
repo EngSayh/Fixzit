@@ -7,6 +7,7 @@ import { FeatureToggleGroupSkeleton } from '@/components/ui/feature-toggle-skele
 import { UpgradeModal } from '@/components/admin/UpgradeModal';
 import toast from 'react-hot-toast';
 
+import { logger } from '@/lib/logger';
 /**
  * Feature flags configuration type
  */
@@ -81,7 +82,7 @@ export default function FeatureSettingsPage() {
         setFeatures(data.features || data);
         setError(null); // Clear any previous errors
       } catch (err) {
-        console.error('Failed to fetch feature flags:', err);
+        logger.error('Failed to fetch feature flags:', { err });
         // Proper Error instance check with fallback
         const errorMessage = err instanceof Error 
           ? err.message 
@@ -143,7 +144,7 @@ export default function FeatureSettingsPage() {
       // The optimistic update is kept unless there's an error
       
     } catch (err) {
-      console.error('Failed to update feature:', err);
+      logger.error('Failed to update feature:', { err });
       const errorMessage = err instanceof Error 
         ? err.message 
         : 'An unknown error occurred while updating feature';

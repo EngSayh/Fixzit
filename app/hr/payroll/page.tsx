@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calculator, Download, Eye, Plus } from 'lucide-react';
 
+import { logger } from '@/lib/logger';
 interface PayrollRun {
   id: string;
   period: string; // YYYY-MM format
@@ -37,7 +38,7 @@ export default function PayrollPage() {
         setPayrollRuns(data);
       }
     } catch (error) {
-      console.error('Error fetching payroll runs:', error);
+      logger.error('Error fetching payroll runs:', { error });
     } finally {
       setLoading(false);
     }
@@ -52,7 +53,7 @@ export default function PayrollPage() {
         await fetchPayrollRuns(); // Refresh the list
       }
     } catch (error) {
-      console.error('Error calculating payroll:', error);
+      logger.error('Error calculating payroll:', { error });
     }
   };
 
@@ -71,7 +72,7 @@ export default function PayrollPage() {
         document.body.removeChild(a);
       }
     } catch (error) {
-      console.error('Error exporting WPS file:', error);
+      logger.error('Error exporting WPS file:', { error });
     }
   };
 

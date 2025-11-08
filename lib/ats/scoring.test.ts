@@ -59,9 +59,9 @@ describe('calculateExperienceFromText', () => {
     expect(calculateExperienceFromText('12+')).toBe(12);
   });
 
-  it('caps experience at 50 years', () => {
-    expect(calculateExperienceFromText('65 years total')).toBe(50);
-    expect(calculateExperienceFromText('99+')).toBe(50);
+  it('caps experience at 40 years', () => {
+    expect(calculateExperienceFromText('65 years total')).toBe(40);
+    expect(calculateExperienceFromText('99+')).toBe(40);
   });
 
   it('extracts the first matching number', () => {

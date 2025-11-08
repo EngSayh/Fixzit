@@ -7,17 +7,12 @@ import path from 'node:path'
 import url from 'node:url'
 
 /**
- * We import the module under test. The snippet provided appears to contain the implementation
- * directly inside tests/scripts/seed-marketplace.mjs.test.ts, which is unusual.
- * In a typical setup, the seeding logic would live in scripts/seed-marketplace.mjs (or src/scripts)
- * and the test would import it. To keep a bias for action, we will:
- * - dynamically import the target module path if it exists in scripts/seed-marketplace.mjs
- * - otherwise, import the current file as module under test (as a fallback) so tests still run.
+ * We import the seed-marketplace.ts module.
+ * The TypeScript version is the production script (used in package.json).
  */
 const repoRoot = path.resolve(process.cwd())
 const candidateModulePaths = [
-  path.join(repoRoot, 'scripts', 'seed-marketplace.mjs'),
-  path.join(repoRoot, 'tests', 'scripts', 'seed-marketplace.mjs.test.ts'), // fallback
+  path.join(repoRoot, 'scripts', 'seed-marketplace.ts'),
 ]
 
 // Lightweight mock in lieu of the actual MockDatabase implementation.

@@ -15,6 +15,7 @@ import { CardGridSkeleton } from '@/components/skeletons';
 import { Users, Plus, Search, Mail, Phone, MapPin, Eye, Edit, Trash2, User, Building, Shield } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
+import { logger } from '@/lib/logger';
 interface TenantProperty {
   occupancy?: {
     status?: string;
@@ -368,7 +369,7 @@ function CreateTenantForm({ onCreated, orgId }: { onCreated: () => void; orgId: 
         toast.error(`Failed to create tenant: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      console.error('Error creating tenant:', error);
+      logger.error('Error creating tenant:', { error });
       toast.error('Error creating tenant. Please try again.', { id: toastId });
     }
   };

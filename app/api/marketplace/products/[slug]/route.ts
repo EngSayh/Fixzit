@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
 import { findProductBySlug } from '@/lib/marketplace/search';
 import { db } from '@/lib/mongo';
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest, props: RouteParams) {
       }
     });
   } catch (error) {
-    console.error('Failed to load product details', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Failed to load product details', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Unable to fetch product' }, 500, request);
   }
 }

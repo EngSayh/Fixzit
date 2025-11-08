@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
+import { logger } from '@/lib/logger';
 // Constants at module scope
 const LOGS_PER_PAGE = 20;
 const API_ENDPOINT = '/api/admin/audit-logs';
@@ -114,7 +115,7 @@ export default function AuditLogViewer() {
       setTotalLogs(data.total || 0);
       setTotalPages(Math.ceil((data.total || 0) / LOGS_PER_PAGE));
     } catch (err) {
-      console.error('Failed to fetch audit logs:', err);
+      logger.error('Failed to fetch audit logs:', { err });
       
       // Handle different error types with user-friendly messages
       let errorMessage = 'An unexpected error occurred. Please try again.';

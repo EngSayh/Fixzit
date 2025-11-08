@@ -3,17 +3,19 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import TopBar from './TopBar';
-import Sidebar from './Sidebar';
-import Footer from './Footer';
 import dynamic from 'next/dynamic';
 import AutoFixInitializer from './AutoFixInitializer';
 import ResponsiveLayout from './ResponsiveLayout';
 import HtmlAttrs from './HtmlAttrs';
-const AutoIncidentReporter = dynamic(() => import('@/components/AutoIncidentReporter'), { ssr: false });
 import PreferenceBroadcast from './PreferenceBroadcast';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { UserRole, type UserRoleType } from '@/types/user';
+
+// Dynamic imports for heavy components to reduce initial bundle size
+const TopBar = dynamic(() => import('./TopBar'), { ssr: false });
+const Sidebar = dynamic(() => import('./Sidebar'), { ssr: false });
+const Footer = dynamic(() => import('./Footer'), { ssr: false });
+const AutoIncidentReporter = dynamic(() => import('@/components/AutoIncidentReporter'), { ssr: false });
 
 type UserRoleOrGuest = UserRoleType | 'guest';
 

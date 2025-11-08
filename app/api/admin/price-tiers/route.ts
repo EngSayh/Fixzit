@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import PriceTier from '@/server/models/PriceTier';
 import Module from '@/server/models/Module';
@@ -84,7 +85,7 @@ export async function GET(req: NextRequest) {
         return createErrorResponse('Admin access required', 403);
       }
     }
-    console.error('Price tier fetch failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Price tier fetch failed:', error instanceof Error ? error.message : 'Unknown error');
     return createErrorResponse('Internal server error', 500);
   }
 }
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
         return createErrorResponse('Admin access required', 403);
       }
     }
-    console.error('Price tier creation failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Price tier creation failed:', error instanceof Error ? error.message : 'Unknown error');
     return createErrorResponse('Internal server error', 500);
   }
 }

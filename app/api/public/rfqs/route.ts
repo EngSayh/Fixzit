@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { RFQ } from '@/server/models/RFQ';
 import { z } from 'zod';
@@ -178,7 +179,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.error('Public RFQ fetch error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Public RFQ fetch error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }

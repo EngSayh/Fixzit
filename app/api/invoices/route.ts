@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Invoice } from "@/server/models/Invoice";
 import { z } from "zod";
@@ -184,7 +185,7 @@ export async function POST(req: NextRequest) {
     return createSecureResponse(invoice, 201, req);
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    console.error('[POST /api/invoices] Error creating invoice:', {
+    logger.error('[POST /api/invoices] Error creating invoice:', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
@@ -258,7 +259,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: unknown) {
     const correlationId = crypto.randomUUID();
-    console.error('[GET /api/invoices] Error fetching invoices:', {
+    logger.error('[GET /api/invoices] Error fetching invoices:', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined

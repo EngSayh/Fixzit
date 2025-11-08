@@ -5,6 +5,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
 
+import { logger } from '@/lib/logger';
 // ============================================================================
 // INTERFACES
 // ============================================================================
@@ -133,7 +134,7 @@ export default function NewPaymentPage() {
           }
         }
       } catch (error) {
-        console.error('Error loading accounts:', error);
+        logger.error('Error loading accounts:', { error });
       } finally {
         setLoadingAccounts(false);
       }
@@ -173,7 +174,7 @@ export default function NewPaymentPage() {
         setAllocations(newAllocations);
       }
     } catch (error) {
-      console.error('Error loading invoices:', error);
+      logger.error('Error loading invoices:', { error });
       setErrors({ ...errors, invoices: 'Failed to load invoices' });
     } finally {
       setLoadingInvoices(false);
@@ -365,7 +366,7 @@ export default function NewPaymentPage() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Payment created:', data);
+        logger.info('Payment created:', { data });
         
         // Show success message (you can add toast notification here)
         router.push('/finance/payments');
@@ -374,7 +375,7 @@ export default function NewPaymentPage() {
         setErrors({ submit: errorData.error || 'Failed to create payment' });
       }
     } catch (error) {
-      console.error('Error creating payment:', error);
+      logger.error('Error creating payment:', { error });
       setErrors({ submit: 'An unexpected error occurred' });
     } finally {
       setIsSubmitting(false);

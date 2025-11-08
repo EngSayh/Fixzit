@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { APPS, AppKey } from '@/config/topbar-modules';
 
@@ -220,7 +221,7 @@ export async function GET(req: NextRequest) {
           });
         }
       } catch (error) {
-        console.warn(`Search failed for entity ${entity}:`, error);
+        logger.warn(`Search failed for entity ${entity}`, { error });
         // Continue with other entities
       }
     }
@@ -230,7 +231,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ results: results.slice(0, 20) });
 
   } catch (error) {
-    console.error('Search API error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Search API error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ results: [] }, 500, req);
   }
 }

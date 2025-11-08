@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { logger } from '@/lib/logger';
 /**
  * Type for developer credential payload from dev-only module
  * Ensures type safety when calling findLoginPayloadByRole
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
   // SECURITY: Demo login ONLY allowed in strict development mode
   // CRITICAL: This endpoint bypasses authentication and should NEVER be production-accessible
   if (process.env.NODE_ENV !== 'development') {
-    console.error('[SECURITY] Demo login attempted in non-development environment', {
+    logger.error('[SECURITY] Demo login attempted in non-development environment', {
       nodeEnv: process.env.NODE_ENV,
       clientIp: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
     });
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
     findLoginPayloadByRole = module.findLoginPayloadByRole;
   } catch (e) {
     // Module not available (e.g., production build) - fail gracefully
-    console.error('[Dev Demo Login] Failed to load credentials module:', e);
+    logger.error('[Dev Demo Login] Failed to load credentials module:', { e });
     return withNoStore(NextResponse.json({ error: 'Demo not enabled' }, { status: 403 }));
   }
 
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
 
     return res;
   } catch (error) {
-    console.error('[Dev Demo Login] Error:', error);
+    logger.error('[Dev Demo Login] Error:', { error });
     return withNoStore(
       NextResponse.json(
         {
@@ -129,12 +130,12 @@ async function safeParseJson<T>(req: NextRequest): Promise<Partial<T>> {
     // Stricter content-type guard - only parse if content-type starts with application/json
     const ct = req.headers.get('content-type') || '';
     if (!ct.startsWith('application/json')) {
-      console.warn('[Dev Demo Login] safeParseJson: Received non-JSON content-type', { contentType: ct });
+      logger.warn('[Dev Demo Login] safeParseJson: Received non-JSON content-type', { contentType: ct });
       return {};
     }
     return (await req.json()) as Partial<T>;
   } catch (e) {
-    console.error('[Dev Demo Login] safeParseJson: Failed to parse body', e);
+    logger.error('[Dev Demo Login] safeParseJson: Failed to parse body', { e });
     return {};
   }
 }

@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { CardGridSkeleton } from '@/components/skeletons';
 import { Building2, Plus, Search, Settings, Eye, Edit, Trash2, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
+import { logger } from '@/lib/logger';
 interface MaintenanceRecord {
   date?: string;
 }
@@ -181,12 +182,12 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
   
   const handleView = () => {
     // Placeholder: Navigate to asset detail view or open modal
-    console.log('View asset:', asset.id);
+    logger.info(`View asset: ${asset.id}`);
   };
 
   const handleEdit = () => {
     // Placeholder: Open edit modal or navigate to edit page
-    console.log('Edit asset:', asset.id);
+    logger.info(`Edit asset: ${asset.id}`);
     // After successful edit, call onUpdated()
   };
 
@@ -213,7 +214,7 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
         toast.error(`Failed to delete asset: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      console.error('Delete error:', error);
+      logger.error('Delete error:', { error });
       toast.error('Error deleting asset. Please try again.', { id: toastId });
     }
   };
@@ -388,7 +389,7 @@ function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
         toast.error(`Failed to create asset: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      console.error('Error creating asset:', error);
+      logger.error('Error creating asset:', { error });
       toast.error('Error creating asset. Please try again.', { id: toastId });
     }
   };

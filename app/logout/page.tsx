@@ -5,6 +5,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { Loader2 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 
+import { logger } from '@/lib/logger';
 export default function LogoutPage() {
   const { t } = useTranslation();
 
@@ -17,7 +18,7 @@ export default function LogoutPage() {
           redirect: true 
         });
       } catch (error) {
-        console.error('Logout error:', error);
+        logger.error('Logout error:', { error });
         // NextAuth signOut handles redirect, no manual redirect needed
       }
     };

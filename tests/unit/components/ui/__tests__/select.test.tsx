@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
-import { Select, SelectItem, SelectGroup } from '../select';
+import { Select, SelectItem, SelectGroup } from '@/components/ui/select';
 
 describe('Select', () => {
   it('renders with placeholder', () => {

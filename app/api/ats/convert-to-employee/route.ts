@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Application } from '@/server/models/Application';
 import { Candidate } from '@/server/models/Candidate';
@@ -82,7 +83,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ success: true, data: employee });
   } catch (error) {
-    console.error('Convert to employee error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Convert to employee error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: "Failed to convert to employee" }, 500, req);
   }
 }

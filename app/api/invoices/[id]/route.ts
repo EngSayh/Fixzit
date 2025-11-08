@@ -1,4 +1,5 @@
 import { NextRequest} from "next/server";
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Invoice } from "@/server/models/Invoice";
 import { z, ZodError } from "zod";
@@ -132,7 +133,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
           invoice.zatca.generatedAt = new Date();
           invoice.zatca.status = "GENERATED";
         } catch (error) {
-          console.error("ZATCA generation failed:", error instanceof Error ? error.message : 'Unknown error');
+          logger.error("ZATCA generation failed:", error instanceof Error ? error.message : 'Unknown error');
           invoice.zatca = invoice.zatca || {};
           invoice.zatca.status = "FAILED";
           invoice.zatca.error = error instanceof Error ? error.message : String(error);
@@ -246,7 +247,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
 
     return createSecureResponse({ success: true }, 200, req);
   } catch (error: unknown) {
-    console.error('Invoice DELETE error:', error instanceof Error ? (error as Error).message : 'Unknown error');
+    logger.error('Invoice DELETE error:', error instanceof Error ? (error as Error).message : 'Unknown error');
     return handleApiError(error);
   }
 }

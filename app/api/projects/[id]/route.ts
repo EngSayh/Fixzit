@@ -1,4 +1,5 @@
 import { NextRequest} from "next/server";
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Project } from "@/server/models/Project";
 import { z } from "zod";
@@ -75,7 +76,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
     return createSecureResponse(project, 200, req);
   } catch (error: unknown) {
-    console.error('GET /api/projects/[id] error:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('GET /api/projects/[id] error:', error instanceof Error ? error.message : 'Unknown error');
     return handleApiError(error);
   }
 }

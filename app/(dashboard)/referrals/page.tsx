@@ -5,6 +5,7 @@ import { NavigationButtons } from '@/components/ui/navigation-buttons';
 import { useTranslation } from '@/contexts/TranslationContext';
 import toast from 'react-hot-toast';
 
+import { logger } from '@/lib/logger';
 interface ReferralCode {
   id: string;
   code: string;
@@ -106,7 +107,7 @@ export default function ReferralProgramPage() {
       try {
         data = await response.json();
       } catch (jsonError) {
-        console.error('Failed to parse referral data JSON:', jsonError);
+        logger.error('Failed to parse referral data JSON:', { jsonError });
         throw new Error('Invalid response format from server');
       }
 
@@ -121,7 +122,7 @@ export default function ReferralProgramPage() {
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
-      console.error('Failed to fetch referral data:', error);
+      logger.error('Failed to fetch referral data:', { error });
       const errorMessage = error instanceof Error ? error.message : 'Failed to load referral data. Please try again.';
       setError(errorMessage);
       toast.error(errorMessage);
@@ -153,7 +154,7 @@ export default function ReferralProgramPage() {
       try {
         data = await response.json();
       } catch (jsonError) {
-        console.error('Failed to parse response JSON:', jsonError);
+        logger.error('Failed to parse response JSON:', { jsonError });
         throw new Error('Invalid response format from server');
       }
 
@@ -170,7 +171,7 @@ export default function ReferralProgramPage() {
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
-      console.error('Failed to perform code action:', error);
+      logger.error('Failed to perform code action:', { error });
       const errorMessage = error instanceof Error ? error.message : 'Operation failed. Please try again.';
       setError(errorMessage);
       toast.error(errorMessage);
@@ -213,7 +214,7 @@ export default function ReferralProgramPage() {
         copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
         return;
       } catch (err) {
-        console.error('Clipboard API write failed:', err);
+        logger.error('Clipboard API write failed:', { err });
         // fall through to DOM fallback
       }
     }
@@ -242,7 +243,7 @@ export default function ReferralProgramPage() {
         toast.error(errorMsg);
       }
     } catch (err) {
-      console.error('Fallback copy failed:', err);
+      logger.error('Fallback copy failed:', { err });
       const errorMsg = 'Failed to copy to clipboard. Please copy manually.';
       setError(errorMsg);
       toast.error(errorMsg);

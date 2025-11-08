@@ -241,6 +241,43 @@ async function mineRecentFixes() {
     }
 }
 
+/**
+ * Context-aware unhandled rejection detection
+ * Returns true only if the file has async/await/promises WITHOUT proper error handling
+ */
+function hasUnhandledRejection(content, filePath) {
+    // Skip if file has proper error handling patterns
+    const hasTryCatch = /try\s*\{[\s\S]*?catch/i.test(content);
+    const hasCatchChaining = /\.catch\s*\(/i.test(content);
+    const hasErrorBoundary = /ErrorBoundary|componentDidCatch/i.test(content);
+    const hasNextCatch = /\.then\([^)]*\)\s*\.catch\(/i.test(content);
+    
+    // Has async/await or promises
+    const hasAsyncCode = /(async\s+function|async\s+\(|\basync\s+\w+|await\s+|\.\s*then\s*\()/i.test(content);
+    
+    if (!hasAsyncCode) {
+        return false; // No async code, no risk
+    }
+    
+    // If has async code but proper error handling, it's OK
+    if (hasTryCatch || hasCatchChaining || hasErrorBoundary || hasNextCatch) {
+        return false; // Properly handled
+    }
+    
+    // Special cases: API routes with NextResponse (intentional pattern)
+    if (/app\/api\/.*route\.(ts|js)/.test(filePath) && /NextResponse\./i.test(content)) {
+        return false; // API routes typically handle errors with NextResponse
+    }
+    
+    // React components with 'use client' and useEffect (has built-in error boundaries)
+    if (/'use client'/.test(content) && /useEffect/.test(content)) {
+        return false; // Client components have error boundary protection
+    }
+    
+    // If we got here: has async code but no visible error handling
+    return true;
+}
+
 async function sweepSimilarIssues() {
     const spinner = ora('Sweeping repository for similar issues based on heuristics...').start();
 
@@ -251,8 +288,8 @@ async function sweepSimilarIssues() {
         { name: 'Fragile Relative Imports', pattern: /import .* from '(\.\.\/){3,}/ },
         { name: 'Alias Misuse ( "@/src" )', pattern: /import .* from '@\/src\// },
         { name: 'NextResponse Usage', pattern: /NextResponse\.(json|redirect|next)/i },
-        { name: 'TypeScript Assignability Issues (Potential)', pattern: /is not assignable to type|Type '.*' does not satisfy/i },
-        { name: 'Unhandled Rejections (Potential)', pattern: /Unhandled Promise Rejection|catch\s*\(/i }
+        { name: 'TypeScript Assignability Issues (Potential)', pattern: /is not assignable to type|Type '.*' does not satisfy/i }
+        // Note: Unhandled Rejections now uses context-aware function below
     ];
 
     const extensions = ['.ts', '.tsx', '.js', '.jsx', '.css', '.scss', '.md'];
@@ -268,6 +305,7 @@ async function sweepSimilarIssues() {
             const content = await fs.promises.readFile(path.join(ROOT_DIR, file), 'utf-8');
             const fileHits = [];
 
+            // Run regex-based heuristics
             heuristics.forEach(heuristic => {
                 const matches = content.match(heuristic.pattern);
                 if (matches) {
@@ -275,6 +313,12 @@ async function sweepSimilarIssues() {
                     todoList.push({ file, pattern: heuristic.name, task: `Investigate potential ${heuristic.name} issue.` });
                 }
             });
+
+            // Run context-aware unhandled rejection detection
+            if (hasUnhandledRejection(content, file)) {
+                fileHits.push({ pattern: 'Unhandled Rejections (Context-Aware)', count: 1 });
+                todoList.push({ file, pattern: 'Unhandled Rejections (Context-Aware)', task: 'Review async code - no visible try/catch or .catch() detected.' });
+            }
 
             if (fileHits.length > 0) {
                 hits.push({ file, hits: fileHits });

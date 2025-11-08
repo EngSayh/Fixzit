@@ -7,6 +7,7 @@ import { ObjectId } from "mongodb";
 import {validationError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
+import { logger } from '@/lib/logger';
 const patchSchema = z.object({
   title: z.string().min(2).optional(),
   content: z.string().min(1).optional(),
@@ -38,7 +39,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       user = await getSessionUser(req);
     } catch (authError) {
       // Log only sanitized error message to avoid exposing sensitive data
-      console.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
+      logger.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
       return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     }
     
@@ -75,7 +76,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         roleScopes: ['USER'],
         content: article.content || ''
       }))
-      .catch((e) => console.error(`Failed to trigger KB ingest for article ${article.slug}:`, e));
+      .catch((e) => logger.error(`Failed to trigger KB ingest for article ${article.slug}:`, e));
     const response = NextResponse.json(article);
     response.headers.set('Cache-Control', 'no-store, max-age=0');
     return response;
@@ -86,7 +87,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     if (_err && typeof _err === 'object' && 'code' in _err && _err.code === 11000) {
       return createSecureResponse({ error: 'Duplicate key (e.g., slug) exists' }, 409, req);
     }
-    console.error('PATCH /api/help/articles/[id] failed', _err);
+    logger.error('PATCH /api/help/articles/[id] failed', { _err });
     return createSecureResponse({ error: 'Internal Server Error' }, 500, req);
   }
 }

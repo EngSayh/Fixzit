@@ -22,7 +22,7 @@ const DEFAULT_WEIGHTS: Required<ScoringWeights> = {
 // FIX: Known technology skills for precise extraction (whitelist approach)
 // This prevents false positives like "Elm" and "Rust" while supporting c++, c#, etc.
 const KNOWN_SKILLS = new Set([
-  'javascript', 'typescript', 'react', 'node', 'html', 'css',
+  'javascript', 'typescript', 'react', 'node', 'node.js', 'html', 'css',
   'java', 'sql', 'agile', 'c#', 'c++', 'golang', 'docker', 
   'kubernetes', 'python', 'aws', 'angular', 'vue', 'nextjs', 'next.js',
   'mongodb', 'postgresql', 'mysql', 'redis', 'graphql', 'rest',
@@ -113,8 +113,8 @@ export function extractSkillsFromText(text: string): string[] {
   const skills = new Set<string>();
 
   for (let token of tokens) {
-    // Clean up: remove trailing periods/hyphens
-    token = token.replace(/[.-]+$/, '');
+    // Clean up: remove leading/trailing periods and hyphens
+    token = token.replace(/^[.-]+/, '').replace(/[.-]+$/, '');
     
     // Filter: must be a known skill (for precision)
     if (KNOWN_SKILLS.has(token)) {
@@ -139,8 +139,8 @@ export function calculateExperienceFromText(text: string): number {
     if (match && match[1]) {
       const parsed = parseInt(match[1], 10);
       if (!Number.isNaN(parsed)) {
-        // Cap experience at 50 years to prevent unrealistic values
-        return Math.min(parsed, 50);
+        // Cap experience at 40 years to prevent unrealistic values
+        return Math.min(parsed, 40);
       }
     }
   }

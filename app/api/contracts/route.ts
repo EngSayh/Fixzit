@@ -1,4 +1,5 @@
 import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
 import ServiceContract from '@/server/models/ServiceContract';
 import { NextRequest } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    console.error('Contract creation failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Contract creation failed:', error instanceof Error ? error.message : 'Unknown error');
     return createErrorResponse('Internal server error', 500, req);
   }
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SLA } from "@/server/models/SLA";
 import { z, ZodError } from "zod";
@@ -154,7 +155,7 @@ export async function POST(req: NextRequest) {
     }
     
     // Log full error server-side
-    console.error('SLA creation failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('SLA creation failed:', error instanceof Error ? error.message : 'Unknown error');
     
     // Return generic error to client
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
@@ -213,7 +214,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: unknown) {
     // Log full error server-side
-    console.error('Failed to fetch SLAs:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Failed to fetch SLAs:', error instanceof Error ? error.message : 'Unknown error');
     
     // Return generic error to client (no sensitive details)
     return createSecureResponse({ error: 'Failed to fetch SLAs' }, 500, req);

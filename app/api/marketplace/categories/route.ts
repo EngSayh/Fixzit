@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import Category from '@/server/models/marketplace/Category';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
       tree
     });
   } catch (error) {
-    console.error('Failed to fetch marketplace categories', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Failed to fetch marketplace categories', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Unable to fetch categories' }, 500, request);
   }
 }

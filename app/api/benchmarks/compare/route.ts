@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import Benchmark from '@/server/models/Benchmark';
 import { computeQuote } from '@/lib/pricing';
 import { connectToDatabase } from '@/lib/mongodb-unified';
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    console.error('Benchmark comparison failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Benchmark comparison failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to compare benchmarks' }, 500, req);
   }
 }

@@ -12,7 +12,7 @@ import { vi } from 'vitest';
 // Module under test: we import the GET handler from the route module sitting next to this test file.
 // If your route file name differs (e.g., route.ts), adjust the import accordingly.
 
-import { GET } from './route';
+import { GET } from '@/app/api/public/rfqs/route';
 
 // Mocks: db and RFQ model
 // We mock the db to avoid real connections, and RFQ model methods used in the handler:

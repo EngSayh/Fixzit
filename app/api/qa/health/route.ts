@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 
 import { rateLimit } from '@/server/security/rateLimit';
@@ -59,7 +60,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     healthStatus.status = 'degraded';
     healthStatus.database = 'disconnected';
-    console.error('Database health check failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Database health check failed:', error instanceof Error ? error.message : 'Unknown error');
   }
 
   // Check memory usage

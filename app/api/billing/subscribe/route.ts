@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import Customer from '@/server/models/Customer';
 import Subscription from '@/server/models/Subscription';
@@ -151,7 +152,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return zodValidationError(error, req);
     }
-    console.error('Subscription creation failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Subscription creation failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to create subscription' }, 500, req);
   }
 }

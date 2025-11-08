@@ -5,6 +5,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { getClientIP } from '@/server/security/headers';
 
+import { logger } from '@/lib/logger';
 /**
  * @openapi
  * /api/qa/reconnect:
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
   try {
     // Force database reconnection by accessing it
     await connectToDatabase();
-    console.log('🔄 Database reconnected successfully');
+    logger.info('🔄 Database reconnected successfully');
 
     return NextResponse.json({
       success: true,
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('❌ Database reconnection failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('❌ Database reconnection failed:', error instanceof Error ? error.message : 'Unknown error');
 
     return NextResponse.json({
       success: false,

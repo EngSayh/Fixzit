@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { logger } from '@/lib/logger';
 import { useTranslation } from '@/contexts/TranslationContext';
 // 🟩 MIGRATED: Now using consolidated useFormTracking hook
 import { useFormTracking } from '@/hooks/useFormTracking';
@@ -162,7 +163,7 @@ export default function FMPage() {
     onSave: async () => {
       // Simulate save operation (persisting filter preferences)
       await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log('Filter preferences saved:', { searchTerm, statusFilter });
+      logger.info(`Filter preferences saved: ${{ searchTerm, statusFilter }}`);
     }
   });
 

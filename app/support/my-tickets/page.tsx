@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { TableSkeleton } from '@/components/skeletons';
 
+import { logger } from '@/lib/logger';
 interface TicketMessage {
   from: string;
   text: string;
@@ -83,7 +84,7 @@ export default function MyTicketsPage() {
         toast.error(`Failed to send reply: ${error.error || 'Please try again.'}`, { id: toastId });
       }
     } catch (error) {
-      console.error('Error sending reply:', error);
+      logger.error('Error sending reply:', { error });
       toast.error('An error occurred. Please try again.', { id: toastId });
     }
   };
