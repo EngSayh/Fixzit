@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { validateCallback } from '@/lib/paytabs';
-import { logger } from '@/lib/logger';
 import { rateLimit } from '@/server/security/rateLimit';
-import { logger } from '@/lib/logger';
 import { unauthorizedError, validationError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
-import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 
 /**
  * @openapi

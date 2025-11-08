@@ -29,17 +29,10 @@ beforeEach(async () => {
     throw new Error('Mongoose not connected - tests require active connection');
   }
   
-  // Clear WorkOrder model from all registries
-  if (mongoose.models.WorkOrder) delete mongoose.models.WorkOrder;
-  if (mongoose.connection?.models?.WorkOrder) delete mongoose.connection.models.WorkOrder;
-  for (const conn of mongoose.connections) {
-    if (conn.models?.WorkOrder) delete conn.models.WorkOrder;
-  }
-  
-  // Clear module cache
+  // Clear module cache to force fresh import
   vi.resetModules();
   
-  // Import model AFTER connection is ready
+  // Import model (will reuse if already registered)
   const workOrderModule = await import('@/server/models/WorkOrder');
   WorkOrder = workOrderModule.WorkOrder as mongoose.Model<any>;
   

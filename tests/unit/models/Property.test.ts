@@ -28,17 +28,10 @@ beforeEach(async () => {
     throw new Error('Mongoose not connected - tests require active connection');
   }
   
-  // Clear Property model from all registries
-  if (mongoose.models.Property) delete mongoose.models.Property;
-  if (mongoose.connection?.models?.Property) delete mongoose.connection.models.Property;
-  for (const conn of mongoose.connections) {
-    if (conn.models?.Property) delete conn.models.Property;
-  }
-  
-  // Clear module cache
+  // Clear module cache to force fresh import
   vi.resetModules();
   
-  // Import model AFTER connection is ready
+  // Import model (will reuse if already registered)
   const propertyModule = await import('@/server/models/Property');
   Property = propertyModule.Property as mongoose.Model<any>;
   

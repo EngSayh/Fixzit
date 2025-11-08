@@ -4,6 +4,7 @@
  */
 
 import { FMFinancialTransaction } from '@/server/models/FMFinancialTransaction';
+import { logger } from '@/lib/logger';
 
 export interface WorkOrderFinancialData {
   workOrderId: string;

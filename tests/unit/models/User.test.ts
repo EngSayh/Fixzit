@@ -31,23 +31,10 @@ beforeEach(async () => {
     throw new Error('Mongoose not connected - tests require active connection');
   }
   
-  // Clear User model from all registries
-  if (mongoose.models.User) {
-    delete mongoose.models.User;
-  }
-  if (mongoose.connection?.models?.User) {
-    delete mongoose.connection.models.User;
-  }
-  for (const conn of mongoose.connections) {
-    if (conn.models?.User) {
-      delete conn.models.User;
-    }
-  }
-  
-  // Clear module cache
+  // Clear module cache to force fresh import
   vi.resetModules();
   
-  // Import model AFTER connection is ready
+  // Import model (will reuse if already registered)
   const userModule = await import('@/modules/users/schema');
   User = userModule.User as mongoose.Model<any>;
   

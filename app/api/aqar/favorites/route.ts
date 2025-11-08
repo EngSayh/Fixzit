@@ -9,13 +9,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import mongoose from 'mongoose';
-import { logger } from '@/lib/logger';
 import { connectDb } from '@/lib/mongo';
-import { logger } from '@/lib/logger';
 import { AqarFavorite, AqarListing, AqarProject } from '@/models/aqar';
-import { logger } from '@/lib/logger';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 

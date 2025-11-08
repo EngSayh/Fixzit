@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { FMPMPlan } from '@/server/models/FMPMPlan';
-import { logger } from '@/lib/logger';
 
 /**
  * GET /api/pm/plans/[id]
