@@ -131,9 +131,10 @@ vi.mock('@/lib/mongodb-unified', () => {
         if (JournalModel && typeof (JournalModel as Record<string, unknown>).deleteMany !== 'function' && 
         (JournalModel as { collection?: { deleteMany?: unknown } }).collection && 
         typeof (JournalModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
-      // Add deleteMany alias with proper typing
-      (JournalModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) => 
-        ((JournalModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
+      // Add deleteMany alias with proper typing and bound context
+      const journalCollection = (JournalModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection;
+      (JournalModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) =>
+        journalCollection.deleteMany.call(journalCollection, ...collectionArgs);
     }
   } catch {
     // Non-fatal; only needed for tests that import these modules
@@ -142,11 +143,12 @@ vi.mock('@/lib/mongodb-unified', () => {
   try {
     const ledgerModule = await import('@/server/models/finance/LedgerEntry');
     const LedgerModel = (ledgerModule as { default?: unknown }).default || ledgerModule;
-        if (LedgerModel && typeof (LedgerModel as Record<string, unknown>).deleteMany !== 'function' && 
+    if (LedgerModel && typeof (LedgerModel as Record<string, unknown>).deleteMany !== 'function' && 
         (LedgerModel as { collection?: { deleteMany?: unknown } }).collection && 
         typeof (LedgerModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
-      (LedgerModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) => 
-        ((LedgerModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
+      const ledgerCollection = (LedgerModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection;
+      (LedgerModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) =>
+        ledgerCollection.deleteMany.call(ledgerCollection, ...collectionArgs);
     }
   } catch {
     // Non-fatal
@@ -158,8 +160,9 @@ vi.mock('@/lib/mongodb-unified', () => {
     if (ChartModel && typeof (ChartModel as Record<string, unknown>).deleteMany !== 'function' && 
         (ChartModel as { collection?: { deleteMany?: unknown } }).collection && 
         typeof (ChartModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
-      (ChartModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) => 
-        ((ChartModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
+      const chartCollection = (ChartModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection;
+      (ChartModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) =>
+        chartCollection.deleteMany.call(chartCollection, ...collectionArgs);
     }
   } catch {
     // Non-fatal

@@ -3,6 +3,7 @@
 ## What Changed
 
 ### ✅ New Test Strategy
+
 - **Philosophy**: Test REAL production system, not mocks
 - **Focus**: Model tests (real MongoDB) + E2E tests (real browser)
 - **Eliminated**: Mock-based unit testing approach
@@ -40,6 +41,7 @@
 ## Current Production Test Suite
 
 ### Model Tests (Real MongoDB Memory Server)
+
 ```bash
 $ pnpm test:models
 
@@ -51,6 +53,7 @@ Test Files:
 ```
 
 **What's Tested**:
+
 - Real MongoDB schema validation
 - Real document creation/updates
 - Real indexes
@@ -58,6 +61,7 @@ Test Files:
 - Real data persistence
 
 ### E2E Tests (Real Browser + Real API)
+
 ```bash
 $ pnpm test:e2e
 
@@ -82,6 +86,7 @@ Test Files:
 ## Running Tests
 
 ### Quick Start
+
 ```bash
 # Run ALL production tests (recommended)
 pnpm test:production
@@ -92,6 +97,7 @@ pnpm test:e2e     # Slower: real browser
 ```
 
 ### For Development
+
 ```bash
 # Debug E2E tests with UI
 pnpm test:ui
@@ -106,12 +112,15 @@ pnpm test:headed
 ## Next Steps
 
 ### Phase 1: Remove Mock Tests (This Week)
+
 1. Mark all mock-based tests with `.skip()`
 2. Archive `tests/unit/api/**` and `tests/unit/components/**`
 3. Remove mock infrastructure from `tests/setup.ts`
 
 ### Phase 2: Expand Model Tests (Week 1-2)
+
 Add real MongoDB tests for:
+
 - User model (auth, permissions)
 - WorkOrder model (status, assignments)
 - Property model (validation, queries)
@@ -122,7 +131,9 @@ Add real MongoDB tests for:
 **Target**: 60+ model tests
 
 ### Phase 3: Build E2E Test Suite (Week 2-4)
+
 Critical user journeys:
+
 - Registration → Login → Profile
 - Property creation → Publishing
 - Work order lifecycle
@@ -135,12 +146,14 @@ Critical user journeys:
 ## Success Metrics
 
 ### Before (Mock-Based)
+
 - 502 total tests (369 passing)
 - Heavy mocking (User model, mongoose, services)
 - Tests implementation details, not behavior
 - Doesn't validate production system
 
 ### After (Production-Ready)
+
 - 15 model tests (real MongoDB) ✅
 - 8+ E2E tests (real browser + API) ✅
 - Zero mocking
@@ -148,6 +161,7 @@ Critical user journeys:
 - Validates actual production system
 
 ### Target (30 days)
+
 - 60+ model tests
 - 30+ E2E tests
 - 40+ integration tests

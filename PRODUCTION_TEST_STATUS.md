@@ -5,26 +5,31 @@
 ## ✅ Production-Ready Tests (REAL Systems)
 
 ### 1. Model Tests (Real MongoDB)
+
 **Status**: 15/15 passing ✅  
 **Framework**: Vitest + MongoDB Memory Server  
 **Command**: `pnpm test:models`
 
 **Test Files**:
+
 - `tests/unit/models/Asset.test.ts` (9 tests)
 - `tests/unit/models/HelpArticle.test.ts` (6 tests)
 
 **What's Tested**:
+
 - Schema validation with REAL MongoDB
 - Model indexes
 - Pre/post hooks
 - Data persistence
 
 ### 2. E2E Tests (Real Browser + API)
+
 **Status**: Ready to run  
 **Framework**: Playwright  
 **Command**: `pnpm test:e2e`
 
 **Test Files**:
+
 - `tests/e2e/database.spec.ts` - Database connectivity (8 tests)
   - Health check with real DB
   - Properties API with real MongoDB
@@ -42,6 +47,7 @@
 - `tests/specs/i18n.spec.ts` - Internationalization
 
 **What's Tested**:
+
 - Complete user workflows
 - Real HTTP requests
 - Real MongoDB queries
@@ -51,11 +57,13 @@
 ## ❌ Legacy Tests (Mocked - To Be Removed)
 
 ### Mock-Based Unit Tests
+
 **Status**: 369/502 passing ⚠️  
 **Command**: `pnpm test:legacy` (renamed from test:api)  
 **Issue**: Heavy mocking, doesn't test production behavior
 
 **Files to Archive**:
+
 - `tests/unit/api/**/*.test.ts` (API routes with mocked DB)
 - `tests/unit/components/**/*.test.tsx` (React components with mocked context)
 - Tests using `vi.mock()`, `vi.resetModules()`
@@ -63,6 +71,7 @@
 ## 📊 Test Coverage Goals
 
 ### Current Coverage
+
 - **Model Tests**: 2 models (Asset, HelpArticle)
 - **E2E Tests**: 4 test files
 - **Total Production Tests**: ~23 tests
@@ -70,6 +79,7 @@
 ### Target Coverage (Next 30 days)
 
 #### Phase 1: Expand Model Tests (Week 1-2)
+
 - [ ] User model (authentication, authorization)
 - [ ] WorkOrder model (status transitions, assignments)
 - [ ] Property model (validation, queries)
@@ -79,6 +89,7 @@
 - **Target**: 60+ model tests
 
 #### Phase 2: Core E2E Journeys (Week 2-3)
+
 - [ ] User registration → Email verification → Login
 - [ ] Create property → Upload images → Publish listing
 - [ ] Create work order → Assign vendor → Mark complete
@@ -88,6 +99,7 @@
 - **Target**: 30+ E2E tests
 
 #### Phase 3: Integration Tests (Week 3-4)
+
 - [ ] API endpoint tests (Playwright request context)
 - [ ] File upload/download flows
 - [ ] Payment gateway integration
@@ -98,6 +110,7 @@
 ## 🚀 Running Production Tests
 
 ### Quick Commands
+
 ```bash
 # Run ALL production tests (models + E2E)
 pnpm test:production
@@ -116,6 +129,7 @@ pnpm test:e2e tests/e2e/database.spec.ts
 ```
 
 ### CI/CD Integration
+
 ```bash
 # Pre-commit hook
 pnpm test:models
@@ -130,6 +144,7 @@ pnpm typecheck && pnpm lint && pnpm test:production
 ## 📈 Migration Progress
 
 ### Completed
+
 - [x] Created production test strategy
 - [x] Identified real vs mock tests
 - [x] Renamed test:api to test:legacy
@@ -137,6 +152,7 @@ pnpm typecheck && pnpm lint && pnpm test:production
 - [x] Documented E2E test infrastructure
 
 ### Next Steps
+
 1. **Remove mock tests** (or mark .skip)
 2. **Expand model tests** for critical models
 3. **Write E2E tests** for critical user journeys
@@ -146,6 +162,7 @@ pnpm typecheck && pnpm lint && pnpm test:production
 ## 🎯 Success Criteria
 
 A test is **production-ready** if:
+
 - ✅ Uses real database (MongoDB Memory Server or test DB)
 - ✅ Uses real HTTP requests (no mocked fetch)
 - ✅ Tests observable behavior, not implementation details
@@ -166,6 +183,7 @@ A test is **production-ready** if:
 ## 📝 Writing New Tests
 
 ### Model Test Template
+
 ```typescript
 // tests/unit/models/YourModel.test.ts
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -184,6 +202,7 @@ describe('YourModel', () => {
 ```
 
 ### E2E Test Template
+
 ```typescript
 // tests/e2e/your-feature.spec.ts
 import { test, expect } from '@playwright/test';

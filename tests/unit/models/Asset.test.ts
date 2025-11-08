@@ -68,6 +68,18 @@ function buildValidAsset(overrides: PartialAsset = {}): AnyObj {
   const createdById = new mongoose.Types.ObjectId();
   const propertyId = new mongoose.Types.ObjectId();
   
+  const condition = {
+    score: 50,
+    sensors: [],
+    alerts: [],
+  };
+
+  const depreciation = {
+    method: 'STRAIGHT_LINE',
+    usefulLifeYears: 10,
+    salvageValue: 0,
+  };
+
   return {
     orgId, // ObjectId (required by plugin)
     code: `ASSET-${Math.random().toString(36).slice(2, 8)}`,
@@ -76,6 +88,8 @@ function buildValidAsset(overrides: PartialAsset = {}): AnyObj {
     category: 'MEP',
     propertyId: propertyId.toString(), // String reference to Property
     createdBy: createdById, // ObjectId reference to User
+    condition,
+    depreciation,
     // Only include simple fields to avoid nested schema type issues
     // The Asset model has complex nested schemas (condition.sensors, condition.alerts, etc.)
     // which have mongoose schema definition issues (type: String gets confused with Schema type definition)
