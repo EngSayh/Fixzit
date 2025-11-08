@@ -1,28 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from '@/lib/logger';
 import { z } from "zod";
-import { logger } from '@/lib/logger';
 import { resolveCopilotSession } from "@/server/copilot/session";
-import { logger } from '@/lib/logger';
 import { evaluateMessagePolicy, describeDataClass, redactSensitiveText, getPermittedTools } from "@/server/copilot/policy";
-import { logger } from '@/lib/logger';
 import { detectToolFromMessage, executeTool } from "@/server/copilot/tools";
-import { logger } from '@/lib/logger';
 import { retrieveKnowledge } from "@/server/copilot/retrieval";
-import { logger } from '@/lib/logger';
 import { generateCopilotResponse } from "@/server/copilot/llm";
-import { logger } from '@/lib/logger';
 import { recordAudit } from "@/server/copilot/audit";
-import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { logger } from '@/lib/logger';
 import {rateLimitError} from '@/server/utils/errorResponses';
-import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 
 const messageSchema = z.object({
   role: z.enum(["user", "assistant"]),

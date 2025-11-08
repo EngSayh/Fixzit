@@ -12,7 +12,7 @@ import { vi } from 'vitest';
 // Module under test: we import the GET handler from the route module sitting next to this test file.
 // If your route file name differs (e.g., route.ts), adjust the import accordingly.
 
-import { GET } from './route';
+import { GET } from '@/app/api/public/rfqs/route';
 
 // Mocks: db and RFQ model
 // We mock the db to avoid real connections, and RFQ model methods used in the handler:
@@ -60,7 +60,7 @@ const makeRequest = (params: Record<string, string | number | undefined> = {}) =
 
 // Helper to extract JSON from NextResponse
 // 🔒 TYPE SAFETY: Test helper uses any for flexibility in test assertions
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const readJson = async (res: any) => {
   // next/server NextResponse.json returns a NextResponse-like object with a json() method
   // In Jest environment, the body can be read via res.json()

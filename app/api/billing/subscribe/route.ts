@@ -1,29 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
 import Customer from '@/server/models/Customer';
-import { logger } from '@/lib/logger';
 import Subscription from '@/server/models/Subscription';
-import { logger } from '@/lib/logger';
 import SubscriptionInvoice from '@/server/models/SubscriptionInvoice';
-import { logger } from '@/lib/logger';
 import { computeQuote } from '@/lib/pricing';
-import { logger } from '@/lib/logger';
 import { createHppRequest } from '@/lib/paytabs';
-import { logger } from '@/lib/logger';
 import { getUserFromToken } from '@/lib/auth';
-import { logger } from '@/lib/logger';
 import { rateLimit } from '@/server/security/rateLimit';
-import { logger } from '@/lib/logger';
 import { rateLimitError, zodValidationError } from '@/server/utils/errorResponses';
-import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 
 const subscriptionSchema = z.object({
   customer: z.object({

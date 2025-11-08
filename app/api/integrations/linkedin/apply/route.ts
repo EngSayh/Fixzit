@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { connectMongo } from '@/lib/mongo';
-import { logger } from '@/lib/logger';
 import { Job } from '@/server/models/Job';
-import { logger } from '@/lib/logger';
 import { Candidate } from '@/server/models/Candidate';
-import { logger } from '@/lib/logger';
 import { Application } from '@/server/models/Application';
-import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { logger } from '@/lib/logger';
 import {notFoundError, validationError, rateLimitError} from '@/server/utils/errorResponses';
-import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 
 /**
  * @openapi

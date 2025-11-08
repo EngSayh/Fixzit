@@ -1,16 +1,11 @@
 import { NextRequest } from 'next/server';
 import { logger } from '@/lib/logger';
 import { getDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { logger } from '@/lib/logger';
 import { rateLimitError } from '@/server/utils/errorResponses';
-import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 
 /**
  * @openapi

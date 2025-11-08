@@ -91,7 +91,7 @@ jestLike.mock('swr', () => {
 })
 
 // After SWR mock is set up above, import component under test
-import CatalogView from './CatalogView'
+import CatalogView from '@/components/marketplace/CatalogView'
 
 // Utility: set SWR states for a given test
 function setSWRProducts(state: Partial<SWRProductsState>) {

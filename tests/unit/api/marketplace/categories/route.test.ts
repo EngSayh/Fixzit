@@ -1,5 +1,5 @@
 import { vi, describe, expect, beforeEach } from 'vitest';
-import { GET } from './route';
+import { GET } from '@/app/api/marketplace/categories/route';
 import { z } from 'zod';
 import { NextRequest } from 'next/server';
 

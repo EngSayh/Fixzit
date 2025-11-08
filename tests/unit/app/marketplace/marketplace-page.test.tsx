@@ -62,7 +62,7 @@ vi.mock('@/components/marketplace/ProductCard', () => ({
 }));
 
 // Import after mocks so the module uses mocked dependencies
-import MarketplacePage from './page';
+import MarketplacePage from '@/app/marketplace/page';
 
 describe('MarketplacePage', () => {
   beforeEach(() => {

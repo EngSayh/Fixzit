@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { SessionProvider } from 'next-auth/react';
-import TopBar from '../TopBar';
+import TopBar from '@/components/TopBar';
 import { TranslationProvider } from '@/contexts/TranslationContext';
 import { ResponsiveProvider } from '@/contexts/ResponsiveContext';
 import { FormStateProvider } from '@/contexts/FormStateContext';

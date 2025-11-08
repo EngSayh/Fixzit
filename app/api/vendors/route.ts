@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { logger } from '@/lib/logger';
 import { Vendor } from "@/server/models/Vendor";
-import { logger } from '@/lib/logger';
 import { z } from "zod";
-import { logger } from '@/lib/logger';
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { logger } from '@/lib/logger';
 import {rateLimitError} from '@/server/utils/errorResponses';
-import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 
 const createVendorSchema = z.object({
   name: z.string().min(1),

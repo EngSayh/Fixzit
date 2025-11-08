@@ -2,11 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { logger } from '@/lib/logger';
 import {rateLimitError} from '@/server/utils/errorResponses';
-import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 /**
  * @openapi
  * /api/careers/apply:
@@ -191,7 +188,7 @@ export async function POST(req: NextRequest) {
 
     if (error instanceof Error) {
       // Log actual error server-side but don't expose to client
-      logger.error('Job application error details:', error.message, error.stack);
+      logger.error('Job application error details:', error);
       if (error.message.includes('fetch')) {
         errorMessage = 'Network error';
         errorDetails = 'Please check your internet connection and try again';

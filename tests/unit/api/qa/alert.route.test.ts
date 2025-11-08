@@ -10,9 +10,18 @@ import * as mongodbUnified from '@/lib/mongodb-unified';
 
 // We will mock the mongo module used by the route
 vi.mock('@/lib/mongodb-unified');
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    warn: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  }
+}));
 
 // Import route handlers AFTER mocking dependencies
 import { POST, GET } from "@/app/api/qa/alert/route";
+import { logger } from '@/lib/logger';
 
 // Type helper for building minimal NextRequest-like object
 
@@ -23,9 +32,15 @@ type NextRequestLike = {
   json: () => Promise<any>;
   headers: HeadersLike;
   ip?: string | null;
+  url?: string;
+  nextUrl?: { protocol: string };
 };
 
-const asNextRequest = (obj: Partial<NextRequestLike>): any => obj as any;
+const asNextRequest = (obj: Partial<NextRequestLike>): any => ({
+  url: 'http://localhost:3000/api/qa/alert',
+  nextUrl: { protocol: 'http:' },
+  ...obj
+});
 
 const buildHeaders = (map: Record<string, string | undefined>) => {
   const norm: Map<string, string> = new Map();
@@ -40,8 +55,6 @@ const buildHeaders = (map: Record<string, string | undefined>) => {
 };
 
 describe('QA Alert Route', () => {
-  let consoleWarnSpy: ReturnType<typeof vi.spyOn>;
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
   let originalEnv: string | undefined;
 
   beforeEach(() => {
@@ -49,10 +62,6 @@ describe('QA Alert Route', () => {
 
     // Save original env
     originalEnv = process.env.NEXT_PUBLIC_USE_MOCK_DB;
-
-    // Spy on console
-    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -62,9 +71,6 @@ describe('QA Alert Route', () => {
     } else {
       process.env.NEXT_PUBLIC_USE_MOCK_DB = originalEnv;
     }
-
-    consoleWarnSpy.mockRestore();
-    consoleErrorSpy.mockRestore();
   });
 
   describe('POST /api/qa/alert', () => {
@@ -93,7 +99,7 @@ describe('QA Alert Route', () => {
       const body = await (res as Response).json();
 
       expect(body).toEqual({ success: true });
-      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('🚨 QA Alert'), data);
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('🚨 QA Alert'), data);
 
       // Verify DB interaction
       expect(mod.getDatabase).toHaveBeenCalled();
@@ -146,7 +152,7 @@ describe('QA Alert Route', () => {
       expect(insertedDoc.timestamp instanceof Date).toBe(true);
 
       // Logs non-mock variant
-      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('🚨 QA Alert: ' + event), payload);
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('🚨 QA Alert: ' + event), payload);
     });
 
     it('uses req.ip fallback when x-forwarded-for header is missing', async () => {
@@ -195,7 +201,7 @@ describe('QA Alert Route', () => {
       expect((res as Response).status).toBe(500);
       const body = await (res as Response).json();
       expect(body).toEqual({ error: 'Failed to process alert' });
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(logger.error).toHaveBeenCalledWith(
         'Failed to process QA alert:',
         expect.anything()
       );
@@ -215,7 +221,7 @@ describe('QA Alert Route', () => {
       const body = await (res as Response).json();
       expect(body).toEqual({ error: 'Failed to process alert' });
       expect(mod.getDatabase).not.toHaveBeenCalled();
-      expect(consoleErrorSpy).toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 
@@ -299,7 +305,7 @@ describe('QA Alert Route', () => {
       expect((res as Response).status).toBe(500);
       const body = await (res as Response).json();
       expect(body).toEqual({ error: 'Failed to fetch alerts' });
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(logger.error).toHaveBeenCalledWith(
         'Failed to fetch QA alerts:',
         expect.anything()
       );

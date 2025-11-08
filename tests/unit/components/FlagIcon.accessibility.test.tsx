@@ -9,7 +9,7 @@ import { render, screen } from '@testing-library/react';
 /**
  * Import the FlagIcon component directly
  */
-import { FlagIcon } from './FlagIcon';
+import { FlagIcon } from '@/components/FlagIcon';
 
 describe('FlagIcon', () => {
   describe('common SVG attributes', () => {

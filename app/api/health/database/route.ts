@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { checkDatabaseHealth, getDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
 
 /**
  * @openapi

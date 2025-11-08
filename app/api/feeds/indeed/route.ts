@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
 import { Job } from '@/server/models/Job';
-import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
