@@ -128,7 +128,6 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
 
 export async function getUserFromToken(token: string) {
   const payload = await verifyToken(token);
-
   if (!payload) {
     return null;
   }
