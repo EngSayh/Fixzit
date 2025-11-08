@@ -7,157 +7,45 @@ import { useMemo } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
 import { type UserRoleType } from '@/types/user';
+import { Headphones } from 'lucide-react';
+
+// ✅ FIX: Import configuration from centralized config file (Governance V5 compliance)
 import {
-  LayoutDashboard, ClipboardList, Building2, DollarSign, Users, Settings, UserCheck,
-  ShoppingBag, Headphones, Shield, BarChart3, Cog, Bell
-} from 'lucide-react';
+  MODULES,
+  USER_LINKS,
+  ROLE_PERMISSIONS,
+  SUBSCRIPTION_PLANS,
+  CATEGORY_FALLBACKS,
+  type ModuleItem
+} from '@/config/navigation';
 
-type LucideIconCmp = React.ComponentType<React.SVGProps<SVGSVGElement>>;
-
-type ModuleItem = {
-  id: string;
-  name: string;          // i18n key
-  icon: LucideIconCmp;
-  path: string;
-  category: keyof typeof CATEGORY_FALLBACKS | string;
-};
-
-type UserLink = {
-  id: string;
-  name: string;          // i18n key
-  icon: LucideIconCmp;
-  path: string;
-};
-
-// ---------- Role-based module permissions ----------
-const ROLE_PERMISSIONS = {
-  SUPER_ADMIN: [
-    'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
-    'projects', 'rfqs', 'invoices', 'finance', 'hr', 'administration',
-    'crm', 'marketplace', 'support', 'compliance', 'reports', 'system'
-  ],
-  CORPORATE_ADMIN: [
-    'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
-    'projects', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'support', 'reports'
-  ],
-  FM_MANAGER: [
-    'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
-    'projects', 'rfqs', 'invoices', 'finance', 'support'
-  ],
-  PROPERTY_MANAGER: [
-    'dashboard', 'properties', 'tenants', 'maintenance', 'reports'
-  ],
-  TENANT: [
-    'dashboard', 'properties', 'tenants', 'support'
-  ],
-  VENDOR: [
-    'dashboard', 'marketplace', 'orders', 'support'
-  ],
-  SUPPORT: [
-    'dashboard', 'support', 'tickets'
-  ],
-  AUDITOR: [
-    'dashboard', 'compliance', 'reports', 'audit'
-  ],
-  PROCUREMENT: [
-    'dashboard', 'vendors', 'rfqs', 'orders', 'procurement'
-  ],
-  EMPLOYEE: [
-    'dashboard', 'hr', 'support'
-  ],
-  CUSTOMER: [
-    'marketplace', 'orders', 'support'
-  ],
-  
-  // Additional roles from central types (with minimal permissions)
-  ADMIN: [
-    'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
-    'projects', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'support', 'reports'
-  ],
-  HR: ['dashboard', 'hr', 'reports'],
-  TECHNICIAN: ['dashboard', 'work-orders', 'support'],
-  OWNER: ['dashboard', 'properties', 'reports', 'support'],
-  VIEWER: ['dashboard', 'reports'],
-  DISPATCHER: ['dashboard', 'work-orders', 'properties']
-} as const;
-
-// ---------- Subscription-based module access ----------
-const SUBSCRIPTION_PLANS = {
-  BASIC: ['dashboard', 'properties', 'tenants', 'maintenance', 'support'],
-  PROFESSIONAL: ['dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'support', 'reports'],
-  ENTERPRISE: ['dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors', 'projects', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'marketplace', 'support', 'compliance', 'reports', 'system', 'administration']
-} as const;
-
-// ---------- Modules ----------
-const MODULES: readonly ModuleItem[] = [
-  { id:'dashboard',    name:'nav.dashboard',          icon:LayoutDashboard, path:'/fm/dashboard',    category:'core' },
-  { id:'work-orders',  name:'nav.work-orders',        icon:ClipboardList,   path:'/fm/work-orders',  category:'fm' },
-  { id:'properties',   name:'nav.properties',         icon:Building2,       path:'/fm/properties',   category:'fm' },
-  { id:'assets',       name:'nav.assets',             icon:Settings,        path:'/fm/assets',       category:'fm' },
-  { id:'tenants',      name:'nav.tenants',            icon:Users,           path:'/fm/tenants',      category:'fm' },
-  { id:'vendors',      name:'nav.vendors',            icon:ShoppingBag,     path:'/fm/vendors',      category:'procurement' },
-  { id:'projects',     name:'nav.projects',           icon:ClipboardList,   path:'/fm/projects',     category:'fm' },
-  { id:'rfqs',         name:'nav.rfqs',               icon:ClipboardList,   path:'/fm/rfqs',         category:'procurement' },
-  { id:'invoices',     name:'nav.invoices',           icon:DollarSign,      path:'/fm/invoices',     category:'finance' },
-  { id:'finance',      name:'nav.finance',            icon:DollarSign,      path:'/fm/finance',      category:'finance' },
-  { id:'hr',           name:'nav.hr',                 icon:Users,           path:'/fm/hr',           category:'hr' },
-  { id:'crm',          name:'nav.crm',                icon:UserCheck,       path:'/fm/crm',          category:'crm' },
-  // 🔧 aligned to /fm/marketplace to match tests and redirects
-  { id:'marketplace',  name:'nav.marketplace',        icon:ShoppingBag,     path:'/fm/marketplace',  category:'marketplace' },
-  { id:'support',      name:'nav.support',            icon:Headphones,      path:'/fm/support',      category:'support' },
-  { id:'compliance',   name:'nav.compliance',         icon:Shield,          path:'/fm/compliance',   category:'compliance' },
-  { id:'reports',      name:'nav.reports',            icon:BarChart3,       path:'/fm/reports',      category:'reporting' },
-  { id:'system',       name:'nav.system',             icon:Cog,             path:'/fm/system',       category:'admin' },
-  { id:'administration', name:'nav.administration',   icon:Settings,        path:'/fm/administration', category:'admin' },
-  { id:'maintenance',  name:'nav.maintenance',        icon:Settings,        path:'/fm/maintenance',  category:'fm' },
-  { id:'orders',       name:'nav.orders',             icon:ClipboardList,   path:'/fm/orders',       category:'procurement' }
-] as const;
-
-// ---------- User account links ----------
-const USER_LINKS: readonly UserLink[] = [
-  { id:'profile',       name:'nav.profile',       icon:UserCheck, path:'/profile' },
-  { id:'settings',      name:'nav.settings',      icon:Settings,   path:'/settings' },
-  { id:'notifications', name:'nav.notifications', icon:Bell,       path:'/notifications' }
-] as const;
-
-const CATEGORY_FALLBACKS = {
-  core: 'Core',
-  fm: 'Facility Management',
-  procurement: 'Procurement',
-  finance: 'Finance',
-  hr: 'Human Resources',
-  crm: 'Customer Relations',
-  marketplace: 'Marketplace',
-  support: 'Support',
-  compliance: 'Compliance',
-  reporting: 'Reporting',
-  admin: 'Administration'
-} as const;
-
+// ✅ FIX: Remove props - role and subscription derived from session (single source of truth)
 interface SidebarProps {
-  role?: UserRoleType | 'guest';
-  subscription?: keyof typeof SUBSCRIPTION_PLANS;
-  tenantId?: string;
+  tenantId?: string; // Optional, kept for potential future use
 }
 
 // eslint-disable-next-line no-unused-vars
-export default function Sidebar({ role = 'guest', subscription = 'BASIC', tenantId: _tenantId }: SidebarProps) {
+export default function Sidebar({ tenantId: _tenantId }: SidebarProps) {
   const pathname = usePathname();
   // eslint-disable-next-line no-unused-vars
   const { responsiveClasses: _responsiveClasses, screenInfo } = useResponsiveLayout();
 
   // hooks must be top-level
   const { t, isRTL: translationIsRTL } = useTranslation();
+  const { data: session, status } = useSession();
+
+  // ✅ FIX: Derive role and subscription directly from session (single source of truth)
+  const isAuthenticated = status === 'authenticated' && session != null;
+  
+  // Extract role from session - ensure it's a valid UserRoleType or 'guest'
+  // @ts-expect-error: NextAuth session.user may have custom properties
+  const role: UserRoleType | 'guest' = isAuthenticated ? (session.user?.role || 'VIEWER') : 'guest';
+  
+  // Extract subscription plan from session - default to 'DEFAULT' for unknown plans
+  // @ts-expect-error: NextAuth session.user may have custom properties
+  const subscription: string = isAuthenticated ? (session.user?.subscriptionPlan || 'DEFAULT') : 'DEFAULT';
 
   const active = useMemo(() => pathname || '', [pathname]);
-
-  // ⚡ FIXED: GOLD STANDARD unified auth pattern from TopBar.tsx
-  // Check BOTH NextAuth session AND JWT-based auth
-  const { data: session, status } = useSession();
-  // ✅ SINGLE AUTH SOURCE: Use NextAuth only (removed dual-auth pattern)
-  // Previously: Component had dual-auth system (NextAuth + JWT via fetch('/api/auth/me'))
-  // This caused race conditions, inconsistent state, and violated single-source-of-truth
-  const isAuthenticated = status === 'authenticated' && session != null;
 
   const allowedModules = useMemo(() => {
     const roleModules = ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] ?? [];

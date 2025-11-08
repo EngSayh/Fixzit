@@ -24,11 +24,19 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
-  
-  // ⚡ FIXED: Use GOLD STANDARD unified auth pattern from TopBar.tsx
-  // Check BOTH NextAuth session AND JWT-based auth
-  const { data: session, status } = useSession();
-  const [authUser, setAuthUser] = useState<{ id?: string; role?: string } | null>(null);
+
+  // ⚡ FIXED: Safe session access using wrapper hook
+  // This hook is called unconditionally to respect Rules of Hooks
+  const useSafeSession = () => {
+    try {
+      return useSession();
+    } catch {
+      console.warn('[ClientLayout] SessionProvider not available, using JWT fallback');
+      return { data: null, status: 'unauthenticated' as const, update: async () => null };
+    }
+  };
+
+  const { data: session, status } = useSafeSession();  const [authUser, setAuthUser] = useState<{ id?: string; role?: string } | null>(null);
 
   const publicRoutes = new Set<string>(['/','/about','/privacy','/terms']);
   const authRoutes = new Set<string>(['/login','/forgot-password','/signup','/reset-password']);
@@ -187,7 +195,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         <AutoFixInitializer />
         <ResponsiveLayout
           header={<TopBar />}
-          sidebar={<Sidebar key={`sidebar-${language}-${isRTL}`} role={role} subscription="PROFESSIONAL" tenantId="demo-tenant" />}
+          sidebar={<Sidebar key={`sidebar-${language}-${isRTL}`} />}
           showSidebarToggle={true}
           footer={<Footer />}
         >
