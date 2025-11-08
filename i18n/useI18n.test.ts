@@ -179,39 +179,78 @@ describe('useI18n', () => {
     expect(result.current.t('msg', { val: { a: 1 } as unknown as number })).toBe('Value: [object Object]');
   });
 
-  // NOTE: This test has a known limitation with @testing-library/react's renderHook.
-  // The `rerender` function doesn't properly propagate wrapper props.
-  // The actual hook implementation IS correct (useCallback has [dict] dependency),
-  // but the test harness can't verify the behavior properly.
-  // See: https://github.com/testing-library/react-testing-library/issues/1106
-  it.skip('t function identity is stable when dict reference is unchanged, and changes when dict reference updates', () => {
+  // This test validates the critical useCallback memoization fix
+  // The useCallback with [dict] dependency ensures t function stability
+  it('t function identity is stable when dict reference is unchanged, and changes when dict reference updates', () => {
     const initialDict = { a: 'A' };
-    const Wrapper: React.FC<PropsWithChildren<{ dict: Dict }>> = ({ children, dict }) =>
-      React.createElement(
-        I18nContext.Provider,
-        { value: { dict, locale: 'en', setLocale: () => {} } as any },
-        children
+    let dictRef = initialDict;
+
+    // Wrapper that reads from dictRef closure
+    const Wrapper: React.FC<PropsWithChildren> = ({ children }) => {
+      const [, forceUpdate] = useState(0);
+      
+      // Expose forceUpdate on wrapper for test control
+      React.useEffect(() => {
+        (Wrapper as any)._forceUpdate = () => forceUpdate(n => n + 1);
+      }, []);
+
+      const value = useMemo(
+        () => ({
+          dict: dictRef,
+          locale: 'en' as const,
+          dir: 'ltr' as const,
+          setLocale: () => {},
+        }),
+        [dictRef]
       );
 
+      return React.createElement(
+        I18nContext.Provider,
+        { value: value as any },
+        children
+      );
+    };
+
     const { result, rerender } = renderHook(() => useI18n(), {
-      wrapper: (p: any) => React.createElement(Wrapper, p),
-      initialProps: { dict: initialDict },
+      wrapper: Wrapper,
     });
 
     const t1 = result.current.t;
 
-    // Rerender with same dict reference: identity should be stable
-    rerender({ dict: initialDict });
+    // Rerender with same dict reference: t function identity should be stable
+    rerender();
     const t2 = result.current.t;
     expect(t2).toBe(t1);
 
-    // Rerender with a new dict reference: identity should change due to useMemo deps
-    const newDict = { a: 'Alpha' };
-    rerender({ dict: newDict });
+    // Multiple rerenders with same dict: still stable
+    rerender();
+    rerender();
     const t3 = result.current.t;
-    expect(t3).not.toBe(t2);
+    expect(t3).toBe(t1);
 
+    // Change to a new dict reference
+    const newDict = { a: 'Alpha' };
+    dictRef = newDict;
+    
+    // Force wrapper to re-render with new dict
+    if ((Wrapper as any)._forceUpdate) {
+      act(() => {
+        (Wrapper as any)._forceUpdate();
+      });
+    }
+    rerender();
+
+    const t4 = result.current.t;
+    
+    // New dict reference should create new t function
+    expect(t4).not.toBe(t1);
+    
     // Validate new dict is used
     expect(result.current.t('a')).toBe('Alpha');
+
+    // But subsequent rerenders with same new dict should be stable
+    rerender();
+    const t5 = result.current.t;
+    expect(t5).toBe(t4);
   });
 });
