@@ -133,7 +133,7 @@ vi.mock('@/lib/mongodb-unified', () => {
       // Add deleteMany alias with proper typing
       // eslint-disable-next-line no-unused-vars
       (JournalModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) => 
-        ((JournalModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
+        ((JournalModel as { collection: { deleteMany: (..._collArgs: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
     }
   } catch {
     // Non-fatal; only needed for tests that import these modules
@@ -147,7 +147,7 @@ vi.mock('@/lib/mongodb-unified', () => {
         typeof (LedgerModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
       // eslint-disable-next-line no-unused-vars
       (LedgerModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) => 
-        ((LedgerModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
+        ((LedgerModel as { collection: { deleteMany: (..._collArgs: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
     }
   } catch {
     // Non-fatal
@@ -162,7 +162,7 @@ vi.mock('@/lib/mongodb-unified', () => {
       // 🔒 TYPE SAFETY: Use unknown[] for variadic args
       // eslint-disable-next-line no-unused-vars
       (ChartModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) => 
-        ((ChartModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
+        ((ChartModel as { collection: { deleteMany: (..._collArgs: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
     }
   } catch {
     // Non-fatal

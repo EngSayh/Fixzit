@@ -133,8 +133,8 @@ async function getAuthSession(request: NextRequest): Promise<SessionUser | null>
     // Type assertion for NextAuth middleware wrapper
     // eslint-disable-next-line no-unused-vars
     type AuthMiddleware = (
-      handler: (req: WrappedReq) => Promise<SessionUser | null>
-    ) => (request: NextRequest) => Promise<SessionUser | null>;
+      _handler: (_req: WrappedReq) => Promise<SessionUser | null>
+    ) => (_request: NextRequest) => Promise<SessionUser | null>;
     const wrappedAuth = auth as unknown as AuthMiddleware;
     
     const handler = wrappedAuth(async (req: WrappedReq) => {
