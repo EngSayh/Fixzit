@@ -63,7 +63,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   const orgId = session?.user?.orgId;
-  const userRole = (session?.user as any)?.role;
+  const userRole = (session?.user as { role?: string })?.role;
 
   // Role-based redirect logic
   useEffect(() => {

@@ -1,12 +1,13 @@
+/* eslint-disable no-unused-vars */
 // Global test setup for Vitest with Jest compatibility
 import React from 'react';
 import { render } from '@testing-library/react';
 import { SessionProvider } from 'next-auth/react';
 import { TranslationProvider } from '@/contexts/TranslationContext';
-/* eslint-disable @typescript-eslint/no-unused-vars, no-unused-vars */
-
-import { afterAll, afterEach, beforeAll, vi } from 'vitest';
+import { vi, beforeAll, afterAll, afterEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import mongoose from 'mongoose';
 
 // Provide Jest compatibility layer for tests using jest.* APIs
 if (typeof global !== 'undefined') {
@@ -165,6 +166,79 @@ vi.mock('@/lib/mongodb-unified', () => {
     // Non-fatal
   }
 })();
+
+// --- MongoDB Memory Server Setup ---
+let mongoServer: MongoMemoryServer | undefined;
+
+/**
+ * Start MongoDB Memory Server before all tests
+ * Provides in-memory database for model validation tests
+ */
+beforeAll(async () => {
+  try {
+    // Start MongoDB Memory Server
+    mongoServer = await MongoMemoryServer.create({
+      instance: {
+        dbName: 'fixzit-test',
+      },
+    });
+    
+    const mongoUri = mongoServer.getUri();
+    
+    // Connect mongoose to the in-memory database
+    await mongoose.connect(mongoUri, {
+      autoCreate: true,
+      autoIndex: true,
+    });
+    
+    console.log('✅ MongoDB Memory Server started:', mongoUri);
+  } catch (error) {
+    console.error('❌ Failed to start MongoDB Memory Server:', error);
+    throw error;
+  }
+}, 60000); // 60 second timeout for MongoDB download on first run
+
+/**
+ * Clean up after each test to prevent data leakage between tests
+ */
+afterEach(async () => {
+  if (mongoose.connection.readyState === 1) {
+    // Clear all collections after each test
+    const collections = mongoose.connection.collections;
+    for (const key in collections) {
+      await collections[key].deleteMany({});
+    }
+  }
+});
+
+/**
+ * Stop MongoDB Memory Server after all tests
+ */
+afterAll(async () => {
+  try {
+    // Clear all models before closing connection using proper Mongoose API
+    if (mongoose.connection && mongoose.connection.models) {
+      const modelNames = Object.keys(mongoose.connection.models);
+      modelNames.forEach((modelName) => {
+        mongoose.connection.deleteModel(modelName);
+      });
+    }
+    
+    // Close mongoose connection
+    if (mongoose.connection && mongoose.connection.readyState !== 0) {
+      await mongoose.connection.close(true); // Force close
+    }
+    
+    // Stop MongoDB Memory Server
+    if (mongoServer) {
+      await mongoServer.stop();
+      console.log('✅ MongoDB Memory Server stopped');
+    }
+  } catch (error) {
+    console.error('❌ Failed to stop MongoDB Memory Server:', error);
+    throw error;
+  }
+}, 30000); // 30 second timeout
 
 // Environment setup
 // NODE_ENV is read-only, managed by test runner
