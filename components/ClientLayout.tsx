@@ -25,9 +25,19 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   
-  // ⚡ FIXED: Use GOLD STANDARD unified auth pattern from TopBar.tsx
-  // Check BOTH NextAuth session AND JWT-based auth
-  const { data: session, status } = useSession();
+  // ⚡ FIXED: Safe session access - handle case when SessionProvider is not available
+  // Use try-catch to prevent crashes on public routes without SessionProvider
+  let session = null;
+  let status: 'loading' | 'authenticated' | 'unauthenticated' = 'unauthenticated';
+  try {
+    const sessionData = useSession();
+    session = sessionData.data;
+    status = sessionData.status;
+  } catch {
+    // SessionProvider not available (public route) - fall back to JWT auth only
+    status = 'unauthenticated';
+  }
+  
   const [authUser, setAuthUser] = useState<{ id?: string; role?: string } | null>(null);
 
   const publicRoutes = new Set<string>(['/','/about','/privacy','/terms']);
