@@ -3,11 +3,8 @@
 import { useEffect, useState } from 'react';
 import { logger } from '@/lib/logger';
 import { useRouter } from 'next/navigation';
-import { logger } from '@/lib/logger';
 import Link from 'next/link';
-import { logger } from '@/lib/logger';
 import { ArrowRight, Shield, User, Building2, Users, Copy, Check } from 'lucide-react';
-import { logger } from '@/lib/logger';
 
 type ListedCred = {
   role: string;
@@ -40,7 +37,7 @@ export default function DevLoginClient() {
         setDemo(d.demo ?? []); 
         setCorp(d.corporate ?? []);
         if (d.warning) {
-          logger.warn('[Dev Login Helpers]', d.warning);
+          logger.warn(`[Dev Login Helpers] ${d.warning}`);
         }
       })
       .catch(err => {

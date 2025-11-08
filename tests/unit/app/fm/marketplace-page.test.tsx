@@ -58,7 +58,7 @@ vi.mock('@/components/marketplace/CatalogView', () => {
 });
 
 // Import after mocks to ensure component uses mocked dependencies
-import MarketplacePage from './page';
+import MarketplacePage from '@/app/fm/marketplace/page';
 
 describe('MarketplacePage', () => {
   beforeEach(() => {

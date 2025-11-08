@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { SWRConfig, mutate as globalMutate } from 'swr';
 
 // Import the component from its actual location
-import WorkOrdersViewDefault, { WorkOrdersView } from '../WorkOrdersView';
+import WorkOrdersViewDefault, { WorkOrdersView } from '@/components/fm/WorkOrdersView';
 
 vi.mock('date-fns', async () => {
   const actual = await vi.importActual<typeof import('date-fns')>('date-fns');

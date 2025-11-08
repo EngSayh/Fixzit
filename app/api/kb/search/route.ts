@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
       ];
       results = await coll.aggregate(pipe, { maxTimeMS: 3_000 }).toArray() as unknown as SearchResult[];
     } catch (vectorError) {
-      logger.warn('Vector search failed, falling back to lexical search:', { vectorError });
+      logger.warn(`Vector search failed, falling back to lexical search: ${{ vectorError }}`);
       // Fallback to lexical search on text; require original question text
       const safe = new RegExp((qText || '').toString().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
       const filter = { ...scope, text: safe } as Record<string, unknown>;

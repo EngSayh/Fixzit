@@ -158,7 +158,7 @@ vi.mock('mongoose', async (importOriginal) => {
           // Debug helper: if needed, enable by setting DEBUG_MOCKS=1 in env
           try {
             if (process.env.DEBUG_MOCKS === '1' && /ledger/i.test(name)) {
-              // eslint-disable-next-line no-console
+               
               console.debug(`MockModel.find(${name}) -> returning array, has sort=${typeof arr.sort}`);
             }
           } catch (e) {}
@@ -314,7 +314,7 @@ vi.mock('mongoose', async (importOriginal) => {
             // Debugging: optionally log journal save operations to diagnose test flows
             try {
               if (process.env.DEBUG_MOCKS === '1' && name && /journal/i.test(name)) {
-                // eslint-disable-next-line no-console
+                 
                 console.debug(`MockModel.save(${name}) id=${id.toString()} status=${(this as any).status} storeHas=${store.has(id.toString())}`);
               }
             } catch (e) {}
@@ -606,20 +606,22 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
   disconnect: vi.fn(),
 }));
 
-// Mock matchMedia for responsive tests
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation(query => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
+// Mock matchMedia for responsive tests (only in browser/jsdom environment)
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation(query => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
 
 // Mock environment variables with secure defaults
 if (!process.env.NODE_ENV) {

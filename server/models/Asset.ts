@@ -1,4 +1,4 @@
-import { Schema, model, models, InferSchemaType } from 'mongoose';
+import { Schema, model, models, InferSchemaType, Model } from 'mongoose';
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
@@ -165,4 +165,5 @@ AssetSchema.index({ orgId: 1, code: 1 }, { unique: true });
 
 export type AssetDoc = InferSchemaType<typeof AssetSchema>;
 
-export const Asset = models.Asset || model("Asset", AssetSchema);
+// Export model with singleton pattern for production, recreation for tests
+export const Asset: Model<AssetDoc> = models.Asset || model<AssetDoc>("Asset", AssetSchema);

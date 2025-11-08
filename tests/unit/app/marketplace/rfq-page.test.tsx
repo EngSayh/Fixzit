@@ -65,7 +65,7 @@ vi.mock('lucide-react', () => new Proxy({}, {
 
 // Import after mocks
 import useSWR from 'swr'
-import MarketplaceRFQPage from './page'
+import MarketplaceRFQPage from '@/app/marketplace/rfq/page'
 
 type RFQItem = {
   id: string;

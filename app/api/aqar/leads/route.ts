@@ -8,19 +8,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { connectDb } from '@/lib/mongo';
-import { logger } from '@/lib/logger';
 import { AqarLead, AqarListing } from '@/models/aqar';
-import { logger } from '@/lib/logger';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { logger } from '@/lib/logger';
 import { incrementAnalyticsWithRetry } from '@/lib/analytics/incrementWithRetry';
-import { logger } from '@/lib/logger';
 import { checkRateLimit } from '@/lib/rateLimit';
-import { logger } from '@/lib/logger';
 import mongoose from 'mongoose';
-import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { logger } from '@/lib/logger';
 
 // Validation schema for lead creation
 const LeadCreateSchema = z.object({

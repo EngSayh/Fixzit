@@ -1,19 +1,12 @@
 import { NextRequest} from 'next/server';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { logger } from '@/lib/logger';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
-import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
 import Order from '@/server/models/marketplace/Order';
-import { logger } from '@/lib/logger';
 import { serializeOrder } from '@/lib/marketplace/serializers';
-import { logger } from '@/lib/logger';
 import { unauthorizedError, zodValidationError} from '@/server/utils/errorResponses';
-import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 
 const QuerySchema = z.object({
   status: z.string().optional()
