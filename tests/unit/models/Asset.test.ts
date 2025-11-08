@@ -28,27 +28,19 @@ beforeEach(async () => {
     throw new Error('Mongoose not connected - tests/unit/models require active connection');
   }
   
-  // 2. Clear from all mongoose registries
-  if (mongoose.models.Asset) {
-    delete mongoose.models.Asset;
-  }
-  if (mongoose.connection?.models?.Asset) {
-    delete mongoose.connection.models.Asset;
-  }
-  for (const conn of mongoose.connections) {
-    if (conn.models?.Asset) {
-      delete conn.models.Asset;
-    }
+  await mongoose.connection.dropDatabase();
+  
+  // Clear model from mongoose cache using proper API
+  if (mongoose.connection.models.Asset) {
+    mongoose.connection.deleteModel('Asset');
   }
   
-  // 3. Clear Vitest module cache to force fresh import
+  // Clear Vitest module cache to force fresh import
   vi.resetModules();
   
-  // 4. Import model AFTER connection is ready - ensures plugins apply correctly
+  // Import model AFTER connection is ready - ensures plugins apply correctly
   const assetModule = await import('@/server/models/Asset');
-  Asset = assetModule.Asset as mongoose.Model<any>;
-  
-  // 5. Set tenant context for tests
+  Asset = assetModule.Asset as mongoose.Model<any>;  // 5. Set tenant context for tests
   setTenantContext({ orgId: 'org-test-123' });
   
   // 6. Verify model is properly initialized

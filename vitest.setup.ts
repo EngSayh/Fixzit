@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // Global test setup for Vitest with Jest compatibility
 import React from 'react';
 import { render } from '@testing-library/react';
@@ -131,9 +132,9 @@ vi.mock('@/lib/mongodb-unified', () => {
         (JournalModel as { collection?: { deleteMany?: unknown } }).collection && 
         typeof (JournalModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
       // Add deleteMany alias with proper typing
-      // eslint-disable-next-line no-unused-vars
+      // @ts-expect-error - Type signature not used in runtime
       (JournalModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) => 
-        ((JournalModel as { collection: { deleteMany: (..._collArgs: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
+        ((JournalModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
     }
   } catch {
     // Non-fatal; only needed for tests that import these modules
@@ -145,9 +146,9 @@ vi.mock('@/lib/mongodb-unified', () => {
     if (LedgerModel && typeof (LedgerModel as Record<string, unknown>).deleteMany !== 'function' && 
         (LedgerModel as { collection?: { deleteMany?: unknown } }).collection && 
         typeof (LedgerModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
-      // eslint-disable-next-line no-unused-vars
+      // @ts-expect-error - Type signature not used in runtime
       (LedgerModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) => 
-        ((LedgerModel as { collection: { deleteMany: (..._collArgs: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
+        ((LedgerModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
     }
   } catch {
     // Non-fatal
@@ -160,9 +161,9 @@ vi.mock('@/lib/mongodb-unified', () => {
         (ChartModel as { collection?: { deleteMany?: unknown } }).collection && 
         typeof (ChartModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
       // 🔒 TYPE SAFETY: Use unknown[] for variadic args
-      // eslint-disable-next-line no-unused-vars
+      // @ts-expect-error - Type signature not used in runtime
       (ChartModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) => 
-        ((ChartModel as { collection: { deleteMany: (..._collArgs: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
+        ((ChartModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
     }
   } catch {
     // Non-fatal
@@ -222,12 +223,11 @@ afterEach(async () => {
  */
 afterAll(async () => {
   try {
-    // Clear all models before closing connection
+    // Clear all models before closing connection using proper Mongoose API
     if (mongoose.connection && mongoose.connection.models) {
       const modelNames = Object.keys(mongoose.connection.models);
       modelNames.forEach((modelName) => {
-        // Use type assertion to work around readonly constraint
-        delete (mongoose.connection.models as Record<string, any>)[modelName];
+        mongoose.connection.deleteModel(modelName);
       });
     }
     

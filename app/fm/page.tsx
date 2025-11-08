@@ -163,7 +163,7 @@ export default function FMPage() {
     onSave: async () => {
       // Simulate save operation (persisting filter preferences)
       await new Promise(resolve => setTimeout(resolve, 1000));
-      logger.info('Filter preferences saved:', { searchTerm, statusFilter });
+      logger.info(`Filter preferences saved: ${{ searchTerm, statusFilter }}`);
     }
   });
 

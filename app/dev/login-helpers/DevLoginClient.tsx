@@ -37,7 +37,7 @@ export default function DevLoginClient() {
         setDemo(d.demo ?? []); 
         setCorp(d.corporate ?? []);
         if (d.warning) {
-          logger.warn('[Dev Login Helpers]', d.warning);
+          logger.warn(`[Dev Login Helpers] ${d.warning}`);
         }
       })
       .catch(err => {

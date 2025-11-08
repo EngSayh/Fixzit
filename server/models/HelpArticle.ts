@@ -1,4 +1,4 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, model, models, InferSchemaType, Model } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 
@@ -27,18 +27,5 @@ HelpArticleSchema.index({ orgId: 1, status: 1 });
 
 export type HelpArticleDoc = InferSchemaType<typeof HelpArticleSchema>;
 
-// Export model with proper cache handling for tests
-// In test environment, allow fresh model creation; in production use singleton
-export const HelpArticle = (() => {
-  // If model already exists, delete and recreate to pick up any schema changes
-  // This is essential for test environments where schemas may be modified
-  if (models.HelpArticle) {
-    // In test: force recreation to pick up fresh schema with plugins
-    if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
-      delete models.HelpArticle;
-      return model("HelpArticle", HelpArticleSchema);
-    }
-    return models.HelpArticle;
-  }
-  return model("HelpArticle", HelpArticleSchema);
-})();
+// Export model with singleton pattern for production, recreation for tests
+export const HelpArticle: Model<HelpArticleDoc> = models.HelpArticle || model<HelpArticleDoc>("HelpArticle", HelpArticleSchema);

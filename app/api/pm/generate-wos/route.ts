@@ -56,7 +56,7 @@ export async function POST() {
         };
         
         // Log the WO that would be created
-        logger.info('[PM] Generated WO:', woNumber, 'from plan', plan.planNumber);
+        logger.info(`[PM] Generated WO: ${woNumber} from plan ${plan.planNumber}`);
         logger.info('[PM] WO Data:', { workOrderData });
         
         // Record generation in plan
@@ -74,7 +74,7 @@ export async function POST() {
           scheduledFor: plan.nextScheduledDate
         });
       } catch (error) {
-        logger.error('[PM] Failed to generate WO for plan', plan.planNumber, error instanceof Error ? error.message : 'Unknown error');
+        logger.error(`[PM] Failed to generate WO for plan ${plan.planNumber}`, error);
         results.failed++;
       }
     }

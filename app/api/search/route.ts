@@ -221,7 +221,7 @@ export async function GET(req: NextRequest) {
           });
         }
       } catch (error) {
-        logger.warn(`Search failed for entity ${entity}:`, error);
+        logger.warn(`Search failed for entity ${entity}`, { error });
         // Continue with other entities
       }
     }

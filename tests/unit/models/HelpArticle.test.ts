@@ -21,19 +21,11 @@ let HelpArticle: mongoose.Model<any>;
 
 beforeEach(async () => {
   // Clear tenant context
-  clearTenantContext();
+  await mongoose.connection.dropDatabase();
   
-  // Clear mongoose model cache
-  if (mongoose.models.HelpArticle) {
-    delete mongoose.models.HelpArticle;
-  }
-  if (mongoose.connection?.models?.HelpArticle) {
-    delete mongoose.connection.models.HelpArticle;
-  }
-  for (const conn of mongoose.connections) {
-    if (conn.models?.HelpArticle) {
-      delete conn.models.HelpArticle;
-    }
+  // Clear model from mongoose cache using proper API
+  if (mongoose.connection.models.HelpArticle) {
+    mongoose.connection.deleteModel('HelpArticle');
   }
   
   // Clear Vitest module cache

@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     const MAX_PAYLOAD_SIZE_BYTES = 1024 * 1024; // 1MB
     const payloadBytes = Buffer.byteLength(rawBody, 'utf8');
     if (payloadBytes > MAX_PAYLOAD_SIZE_BYTES) {
-      logger.error('❌ Payload too large:', payloadBytes, 'bytes');
+      logger.error(`❌ Payload too large: ${payloadBytes} bytes`);
       return createSecureResponse({ error: 'Payload too large' }, 413, req);
     }
     

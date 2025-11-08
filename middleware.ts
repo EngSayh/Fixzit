@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -131,10 +132,10 @@ async function getAuthSession(request: NextRequest): Promise<SessionUser | null>
     const { auth } = await import('@/auth');
     
     // Type assertion for NextAuth middleware wrapper
-    // eslint-disable-next-line no-unused-vars
+    // @ts-expect-error - Type signature parameters not used in runtime
     type AuthMiddleware = (
-      _handler: (_req: WrappedReq) => Promise<SessionUser | null>
-    ) => (_request: NextRequest) => Promise<SessionUser | null>;
+      handler: (req: WrappedReq) => Promise<SessionUser | null>
+    ) => (request: NextRequest) => Promise<SessionUser | null>;
     const wrappedAuth = auth as unknown as AuthMiddleware;
     
     const handler = wrappedAuth(async (req: WrappedReq) => {
