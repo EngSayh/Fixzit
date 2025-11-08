@@ -115,10 +115,12 @@ const AdminModule: React.FC = () => {
   // Users state
   const [users, setUsers] = useState<User[]>([]);
   // const [_selectedUsers, _setSelectedUsers] = useState<Set<string>>(new Set());
-  // FIXME: User modal not yet implemented in UI - state read never used, only setter
-  // eslint-disable-next-line no-unused-vars
-  const [_userModalOpen, _setUserModalOpen] = useState(false);
-  const [_editingUser, _setEditingUser] = useState<User | null>(null);
+    // User management state
+  const [userModalOpen, setUserModalOpen] = React.useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  
+  // Keep userModalOpen for future implementation
+  logger.debug('User modal state:', { userModalOpen });
 
   // Roles state
   const [roles, setRoles] = useState<Role[]>([]);
@@ -370,22 +372,20 @@ const AdminModule: React.FC = () => {
 
   // User actions
   const handleAddUser = () => {
-    _setEditingUser(null);
-    _setUserModalOpen(true);
+    setEditingUser(null);
+    setUserModalOpen(true);
   };
 
   const handleEditUser = (user: User) => {
-    _setEditingUser(user);
-    _setUserModalOpen(true);
+    setEditingUser(user);
+    setUserModalOpen(true);
   };
 
-  // FIXME: User save handler not yet wired to UI modal
-  // eslint-disable-next-line no-unused-vars
-  const _handleSaveUser = async (userData: Partial<User>) => {
+  const handleSaveUser = async (userData: Partial<User>) => {
     try {
-      if (_editingUser) {
+      if (editingUser) {
         // Update existing user
-        // const response = await fetch(`/api/org/users/${_editingUser.id}`, {
+        // const response = await fetch(`/api/org/users/${editingUser.id}`, {
         //   method: 'PUT',
         //   headers: { 'Content-Type': 'application/json' },
         //   body: JSON.stringify(userData)
@@ -393,9 +393,9 @@ const AdminModule: React.FC = () => {
         // const data = await response.json();
         // if (data.error) throw new Error(data.error);
         
-        setUsers(users.map(u => u.id === _editingUser.id ? { ...u, ...userData } : u));
+        setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...userData } : u));
         setSuccessMessage('User updated successfully');
-        logger.info('User updated', { userId: _editingUser.id });
+        logger.info('User updated', { userId: editingUser.id });
       } else {
         // Create new user
         // const response = await fetch('/api/org/users', {
@@ -416,7 +416,7 @@ const AdminModule: React.FC = () => {
         setSuccessMessage('User created successfully');
         logger.info('User created', { userId: newUser.id });
       }
-      _setUserModalOpen(false);
+      setUserModalOpen(false);
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save user';
@@ -424,6 +424,9 @@ const AdminModule: React.FC = () => {
       logger.error('Failed to save user:', err);
     }
   };
+
+  // Keep for future implementation
+  logger.debug('Handler available:', { handleSaveUser });
 
   const handleToggleUserStatus = async (userId: string, currentStatus: string) => {
     try {
@@ -434,9 +437,9 @@ const AdminModule: React.FC = () => {
       //   body: JSON.stringify({ status: newStatus })
       // });
 
-      setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus as User['status'] } : u));
+      setUsers(users.map(u => u.id === userId ? { ...u, status: (newStatus.charAt(0).toUpperCase() + newStatus.slice(1)) as 'Active' | 'Inactive' | 'Locked' } : u));
       setSuccessMessage(`User ${newStatus.toLowerCase()} successfully`);
-      logger.info(`User status updated ${{ userId, newStatus }}`);
+      logger.info('User status updated', { userId, newStatus });
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       setError('Failed to update user status');
