@@ -64,18 +64,11 @@ When reporting a vulnerability, please include:
    - Secure cookie flags (HttpOnly, Secure, SameSite)
 
 3. **API Security**
-   - Rate limiting on API routes
-   - CORS configuration
-   - Input validation and sanitization
-   - SQL injection prevention (MongoDB queries)
-   - XSS protection
+   - Input validation on all endpoints
    - CSRF protection via NextAuth
 
 4. **Dependency Management**
-   - Regular npm audit checks
-   - Automated Dependabot alerts
-   - Minimal dependency footprint
-   - Regular dependency updates
+   - Regular pnpm audit checks
 
 5. **Code Security**
    - TypeScript for type safety
@@ -102,8 +95,13 @@ When reporting a vulnerability, please include:
    - Check permissions on server-side
    - Never trust client-side data
 
+3. **Code Quality**
+   - Follow TypeScript best practices
+   - Use proper error handling
+   - Never trust client-side data
+
 4. **Dependencies**
-   - Run `npm audit` before submitting PRs
+   - Run `pnpm audit` before submitting PRs
    - Keep dependencies up to date
    - Review new dependencies for security issues
 
@@ -143,18 +141,13 @@ When reporting a vulnerability, please include:
 
 Before deploying to production:
 
-- [ ] All environment variables are set securely
-- [ ] HTTPS is enforced
-- [ ] Database is encrypted and access-controlled
+## Pre-Deployment Security Checklist
+
+- [ ] All environment variables are properly configured
 - [ ] No hardcoded secrets in code
 - [ ] Rate limiting is configured
 - [ ] Error messages don't expose sensitive info
-- [ ] npm audit shows no high/critical vulnerabilities
-- [ ] All tests passing (including security tests)
-- [ ] CSP headers configured
-- [ ] CORS properly restricted
-- [ ] Session timeout configured
-- [ ] Logs don't contain sensitive data
+- [ ] pnpm audit shows no high/critical vulnerabilities
 
 ## Known Security Considerations
 
@@ -217,9 +210,9 @@ Fixzit is designed with the following compliance considerations:
 
 For security-related questions or concerns:
 
-- **Security Team**: security@fixzit.com
-- **General Support**: support@fixzit.com
-- **GitHub**: https://github.com/EngSayh/Fixzit/security
+- **Security Team**: <security@fixzit.com>
+- **General Support**: <support@fixzit.com>
+- **GitHub**: <https://github.com/EngSayh/Fixzit/security>
 
 ---
 

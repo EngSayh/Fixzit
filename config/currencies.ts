@@ -43,7 +43,7 @@ export const CURRENCIES: readonly Currency[] = [
     code: 'EUR',
     name: 'Euro',
     symbol: '€',
-    locale: 'en-EU',
+    locale: 'de-DE',
     flag: '🇪🇺',
   },
   {

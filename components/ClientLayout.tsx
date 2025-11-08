@@ -24,21 +24,19 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
-  
-  // ⚡ FIXED: Safe session access - handle case when SessionProvider is not available
-  // Use try-catch to prevent crashes on public routes without SessionProvider
-  let session = null;
-  let status: 'loading' | 'authenticated' | 'unauthenticated' = 'unauthenticated';
-  try {
-    const sessionData = useSession();
-    session = sessionData.data;
-    status = sessionData.status;
-  } catch {
-    // SessionProvider not available (public route) - fall back to JWT auth only
-    status = 'unauthenticated';
-  }
-  
-  const [authUser, setAuthUser] = useState<{ id?: string; role?: string } | null>(null);
+
+  // ⚡ FIXED: Safe session access using wrapper hook
+  // This hook is called unconditionally to respect Rules of Hooks
+  const useSafeSession = () => {
+    try {
+      return useSession();
+    } catch (_error) {
+      console.warn('[ClientLayout] SessionProvider not available, using JWT fallback');
+      return { data: null, status: 'unauthenticated' as const, update: async () => null };
+    }
+  };
+
+  const { data: session, status } = useSafeSession();  const [authUser, setAuthUser] = useState<{ id?: string; role?: string } | null>(null);
 
   const publicRoutes = new Set<string>(['/','/about','/privacy','/terms']);
   const authRoutes = new Set<string>(['/login','/forgot-password','/signup','/reset-password']);
