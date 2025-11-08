@@ -1,6 +1,6 @@
 # Daily Progress Report: Model Tests with MongoDB Memory Server
-**Date**: January 28, 2025
-**Session**: Test Infrastructure Overhaul
+**Date**: November 8, 2025 (updated from January 28, 2025)
+**Session**: Test Infrastructure Overhaul - Complete Separation
 **Branch**: `fix/test-organization-and-failures`
 
 ---
@@ -11,6 +11,12 @@ Per user requirements from past 5 days:
 - ✅ **Production-ready quality** - No placeholders, no shortcuts
 - ✅ **System health monitoring** - Check memory at each step
 - ✅ **Comprehensive tracking** - After each fix, search entire system for similar issues
+
+## ✅ Final Status (November 8, 2025)
+- **Model tests**: 15/15 passing (Asset: 9/9, HelpArticle: 6/6)
+- **API tests**: 315 passing, 43 failing (down from 70 failures)
+- **Total improvement**: From 304 passing / 70 failing to 330 passing / 43 failing
+- **Architecture**: Separated configs working correctly, no connection conflicts
 
 ---
 
@@ -416,22 +422,119 @@ Remove mongoose mocks, make API tests use real MongoDB Memory Server.
 
 ---
 
-## 🚀 Immediate Next Steps
+## 🎉 IMPLEMENTATION COMPLETE (November 8, 2025)
 
-Per user's "Zero tolerance" requirement, I should:
+### ✅ Option A: Separate Vitest Configs - IMPLEMENTED
 
-1. ✅ **Search for similar issues** (Done - found mongoose connection conflicts)
-2. 🔄 **Decide on architecture** (Option A recommended)
-3. 🔄 **Implement solution for all failing tests**
-4. 🔄 **Search for other skipped tests** and fix them
+Created two distinct test configurations with separate npm scripts:
 
-**Current blockers:**
-- 70 failing tests (mostly API routes due to mongoose conflicts)
-- 96 skipped tests (need root cause analysis)
-- 2 unhandled rejections (mongoose connection errors)
+#### 1. Model Tests Configuration
+**File**: `vitest.config.models.ts`
+- **Environment**: Node
+- **Setup**: `vitest.setup.ts` (MongoDB Memory Server)
+- **Include**: `tests/unit/models/**/*.test.{ts,tsx}`
+- **Purpose**: Run model tests with real MongoDB validation
+- **Command**: `pnpm test:models`
 
-**Recommendation**: Create separate test configs (Option A) to properly support both model tests (real DB) and API tests (mocks).
+#### 2. API Tests Configuration
+**File**: `vitest.config.api.ts`
+- **Environment**: jsdom (with node for API routes via environmentMatchGlobs)
+- **Setup**: `tests/setup.ts` (mocked mongoose for fast tests)
+- **Include**: `**/*.test.ts`, `**/*.test.tsx`
+- **Exclude**: `tests/unit/models/**` (run separately)
+- **Purpose**: Run API/component tests with mocks
+- **Command**: `pnpm test:api`
+
+### 📊 Results After Implementation
+
+**Model Tests** (`pnpm test:models`):
+- ✅ Asset.test.ts: 9/9 passing
+- ✅ HelpArticle.test.ts: 6/6 passing
+- ✅ Total: 15/15 passing (100%)
+- ✅ MongoDB Memory Server starts/stops cleanly per test file
+- ✅ Indexes verified (orgId from tenant isolation plugin working)
+
+**API Tests** (`pnpm test:api`):
+- ✅ 315 tests passing
+- ❌ 43 tests failing (down from 70)
+- ⏭️ 31 tests skipped
+- ✅ No more mongoose connection conflicts
+- ✅ Model tests successfully excluded
+
+### � Additional Fixes Applied
+
+1. **HelpArticle Index Sync**: Added `await HelpArticle.syncIndexes()` in test setup to ensure DB-enforced uniqueness constraints work reliably in tests.
+
+2. **Model Export Pattern**: Modified model exports to support test recreation:
+   ```typescript
+   // Pattern applied to Asset, HelpArticle
+   if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
+     delete models.Asset;
+   }
+   export const Asset = models.Asset || model("Asset", AssetSchema);
+   ```
+
+3. **Test Cache Clearing**: Model tests clear mongoose caches before each test:
+   ```typescript
+   beforeEach(async () => {
+     // Clear mongoose.models
+     if (mongoose.models.Asset) delete mongoose.models.Asset;
+     // Clear connection models
+     if (mongoose.connection?.models?.Asset) delete mongoose.connection.models.Asset;
+     // Reset Vitest module cache
+     vi.resetModules();
+     // Import model AFTER clearing caches
+     const assetModule = await import('@/server/models/Asset');
+     Asset = assetModule.Asset;
+   });
+   ```
+
+### 📝 Package.json Scripts Added
+
+```json
+{
+  "test:models": "vitest -c vitest.config.models.ts run",
+  "test:api": "vitest -c vitest.config.api.ts run"
+}
+```
+
+### 🚀 Developer Workflow
+
+**Run all tests in sequence** (recommended for CI):
+```bash
+pnpm test:models && pnpm test:api
+```
+
+**Run model tests only** (when working on models):
+```bash
+pnpm test:models
+```
+
+**Run API/component tests only** (when working on routes/components):
+```bash
+pnpm test:api
+```
+
+### 🔍 Remaining Work
+
+**API Test Failures (43 tests)**:
+Categories of failures:
+1. Mock setup issues (e.g., Candidate tests expecting mocked schema.plugin)
+2. Missing module paths (e.g., SearchSynonym import paths)
+3. Component test expectations (e.g., SupportPopup localStorage checks)
+4. Auth test expectations (e.g., authenticateUser requiring real DB users)
+
+**Skipped Tests (31 tests)**:
+- MarketplaceProduct tests (9 skipped)
+- API route tests (9 skipped)
+- Others require investigation
+
+**Next Steps**:
+1. Triage and fix 43 failing API tests
+2. Review 31 skipped tests and fix or remove skip markers
+3. Add CI configuration to run both test suites
+4. Document patterns in README for other developers
 
 ---
 
-**End of Update - January 28, 2025, 19:02 UTC**
+**End of Update - November 8, 2025, 04:17 UTC**

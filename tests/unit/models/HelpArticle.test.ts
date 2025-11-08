@@ -55,6 +55,10 @@ beforeEach(async () => {
   if (!HelpArticle || !HelpArticle.schema) {
     throw new Error('HelpArticle model not properly initialized');
   }
+
+  // Ensure indexes are created in the in-memory MongoDB before running
+  // tests that rely on DB-enforced uniqueness (unique compound index on orgId+slug)
+  await HelpArticle.syncIndexes();
   
   // Verify orgId field exists (proves tenantIsolationPlugin ran)
   if (!HelpArticle.schema.paths.orgId) {
