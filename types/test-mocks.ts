@@ -15,7 +15,7 @@ import type { Mock } from 'vitest';
  * Generic mock function that accepts any arguments
  * and returns a specific type
  */
-export type GenericMock<TReturn = unknown> = Mock<unknown[], TReturn>;
+export type GenericMock<_TReturn = unknown> = Mock;
 
 /**
  * MongoDB collection mock interface

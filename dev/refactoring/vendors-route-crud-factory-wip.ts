@@ -6,7 +6,7 @@
  * Reduction: 78% less code
  */
 
-/* eslint-disable @typescript-eslint/no-unused-vars, no-unused-vars, no-undef */
+/* eslint-disable @typescript-eslint/no-unused-vars, no-unused-vars */
 
 import { createCrudHandlers } from '@/lib/api/crud-factory';
 import { Vendor } from '@/server/models/Vendor';
@@ -70,15 +70,15 @@ const vendorQuerySchema = z.object({
 // Custom filter builder for vendor-specific search
 // 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB filter
 // Generic query params to MongoDB filter builder
-function _buildFilter<T>(_modelName: string, _params: URLSearchParams): FilterQuery<T> {
-  const filter: FilterQuery<T> = {};
+function buildVendorFilter(_searchParams: URLSearchParams, _orgId: string): Record<string, unknown> {
+  const filter: Record<string, unknown> = {};
 
   // Example: ?status=active&tenantId=abc
-  if (_params.get('status')) {
-    filter.status = _params.get('status') as string;
+  if (_searchParams.get('status')) {
+    filter.status = _searchParams.get('status') as string;
   }
-  if (_params.get('tenantId')) {
-    filter.tenantId = _params.get('tenantId') as string;
+  if (_searchParams.get('tenantId')) {
+    filter.tenantId = _searchParams.get('tenantId') as string;
   }
 
   return filter;

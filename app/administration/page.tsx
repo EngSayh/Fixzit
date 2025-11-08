@@ -381,9 +381,6 @@ const AdminModule: React.FC = () => {
     setUserModalOpen(true);
   };
 
-  // Keep for future implementation
-  logger.debug('Handler available:', { handleSaveUser });
-  
   const handleSaveUser = async (userData: Partial<User>) => {
     try {
       if (editingUser) {
@@ -427,6 +424,9 @@ const AdminModule: React.FC = () => {
       logger.error('Failed to save user:', err);
     }
   };
+
+  // Keep for future implementation
+  logger.debug('Handler available:', { handleSaveUser });
 
   const handleToggleUserStatus = async (userId: string, currentStatus: string) => {
     try {
