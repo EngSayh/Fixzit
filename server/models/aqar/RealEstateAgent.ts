@@ -92,8 +92,10 @@ export interface RealEstateAgent {
 const RealEstateAgentSchema = new Schema<RealEstateAgent>(
   {
     // ⚡ FIXED: Remove global unique: true - will be enforced via compound index with orgId
-    userId: { type: Schema.Types.ObjectId, required: true, index: true },
-    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
+    // Note: index: true removed from userId and orgId to avoid duplicate index warnings
+    // These fields are indexed via composite indexes below (orgId+userId, orgId+status, etc.)
+    userId: { type: Schema.Types.ObjectId, required: true },
+    orgId: { type: Schema.Types.ObjectId, required: true },
     
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },

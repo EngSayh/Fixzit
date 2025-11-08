@@ -337,7 +337,8 @@ async function sweepSimilarIssues() {
 async function staticAnalysis(pm, stage) {
     const eslintSpinner = ora(`Running ESLint (${stage})...`).start();
     try {
-        const eslintResult = await $`${pm} run lint --silent`;
+        // ESLint v9 with flat config doesn't support --silent, use --quiet instead
+        const eslintResult = await $`${pm} run lint --max-warnings=50`;
         await fs.promises.writeFile(path.join(REPORTS_DIR, `eslint_${stage}.log`), eslintResult.stdout + '\n' + eslintResult.stderr);
         eslintSpinner.succeed(`ESLint (${stage}) complete.`);
     } catch (error) {

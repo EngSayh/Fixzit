@@ -16,7 +16,9 @@ const EntityType = [
 
 const AuditLogSchema = new Schema({
   // Organization/Tenant
-  orgId: { type: String, required: true, index: true },
+  // Note: index: true removed from orgId to avoid duplicate index warning
+  // orgId is indexed via composite indexes below (orgId+timestamp, orgId+userId+timestamp, etc.)
+  orgId: { type: String, required: true },
 
   // Action Details
   action: { type: String, enum: ActionType, required: true },

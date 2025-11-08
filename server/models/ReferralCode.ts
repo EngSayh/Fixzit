@@ -139,8 +139,11 @@ type ReferralCodeModelType = Model<IReferralCode, {}, {}, {}, any> & ReferralCod
 const ReferralCodeSchema = new Schema<IReferralCode, ReferralCodeModelType>(
   {
     // tenant via plugin, but declare for typing + indices
+    // Multi-tenancy: which organization this referral code belongs to
+    // Note: index: true removed from orgId to avoid duplicate index warning
+    // orgId is indexed via composite indexes below (orgId+code, orgId+referrerId, etc.)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' } as any,
+    orgId: { type: Schema.Types.ObjectId, required: true, ref: 'Organization' } as any,
 
     referrerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     referrerName: { type: String, trim: true },

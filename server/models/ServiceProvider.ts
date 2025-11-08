@@ -29,7 +29,10 @@ interface IAvailabilitySlot {
 
 const ServiceProviderSchema = new Schema({
   // Multi-tenancy - enforced by plugin, but declared for indexes/types
-  orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: "Organization" },
+  /** Organization that owns this service provider */
+  // Note: index: true removed from orgId to avoid duplicate index warning
+  // orgId is indexed via composite indexes below (orgId+code, orgId+status, etc.)
+  orgId: { type: Schema.Types.ObjectId, required: true, ref: "Organization" },
 
   // Basic Information
   code: { type: String, required: true, trim: true }, // unique within org (see compound index below)

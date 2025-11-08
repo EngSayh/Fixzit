@@ -117,7 +117,9 @@ export interface PropertyListing {
 
 const PropertyListingSchema = new Schema<PropertyListing>(
   {
-    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
+    // Note: index: true removed from orgId to avoid duplicate index warning
+    // orgId is indexed via composite indexes below (orgId+status, etc.)
+    orgId: { type: Schema.Types.ObjectId, required: true },
     agentId: { type: Schema.Types.ObjectId, index: true },
     ownerId: { type: Schema.Types.ObjectId },
     
