@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { Textarea } from '../textarea';
+import { Textarea } from '@/components/ui/textarea';
 
 describe('Textarea', () => {
   it('renders with placeholder', () => {

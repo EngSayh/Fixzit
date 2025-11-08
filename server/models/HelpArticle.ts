@@ -1,4 +1,4 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, model, models, InferSchemaType, Model } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 
@@ -27,5 +27,5 @@ HelpArticleSchema.index({ orgId: 1, status: 1 });
 
 export type HelpArticleDoc = InferSchemaType<typeof HelpArticleSchema>;
 
-// Check if we're using mock database
-export const HelpArticle = models.HelpArticle || model("HelpArticle", HelpArticleSchema);
+// Export model with singleton pattern for production, recreation for tests
+export const HelpArticle: Model<HelpArticleDoc> = models.HelpArticle || model<HelpArticleDoc>("HelpArticle", HelpArticleSchema);

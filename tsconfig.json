@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "ignoreDeprecations": "5.0",
     "target": "es2022",
     "lib": [
       "dom",
@@ -34,7 +33,7 @@
       "jest",
       "vitest/globals"
     ],
-    "baseUrl": ".",
+    "rootDir": ".",
     "paths": {
       "@/*": [
         "./*"

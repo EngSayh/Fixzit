@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from '@/lib/logger';
 import * as svc from "@/server/finance/invoice.service";
-import { logger } from '@/lib/logger';
 import { rateLimit } from '@/server/security/rateLimit';
-import { logger } from '@/lib/logger';
 import { getUserFromToken } from '@/lib/auth';
-import { logger } from '@/lib/logger';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
-import { logger } from '@/lib/logger';
 import { createSecureResponse, getClientIP } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
-import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { logger } from '@/lib/logger';
 
 const invoiceCreateSchema = z.object({
   customerId: z.string().optional(),

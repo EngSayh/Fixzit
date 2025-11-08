@@ -1,27 +1,18 @@
 import { NextRequest } from 'next/server';
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
 import PriceTier from '@/server/models/PriceTier';
-import { logger } from '@/lib/logger';
 import Module from '@/server/models/Module';
-import { logger } from '@/lib/logger';
 import { getUserFromToken } from '@/lib/auth';
-import { logger } from '@/lib/logger';
 import { rateLimit } from '@/server/security/rateLimit';
-import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 import { 
-import { logger } from '@/lib/logger';
   createErrorResponse,
   zodValidationError,
   rateLimitError
 } from '@/server/utils/errorResponses';
 import { z } from 'zod';
-import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 
 const priceTierSchema = z.object({
   moduleCode: z.string().min(1),

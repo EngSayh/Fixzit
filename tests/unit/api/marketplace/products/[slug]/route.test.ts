@@ -5,7 +5,7 @@ import { vi } from 'vitest'
 
 // IMPORTANT: We import the route implementation.
 // If your project alias resolution differs, adjust the relative path accordingly.
-import { GET } from './route'
+import { GET } from '@/app/api/marketplace/products/[slug]/route'
 
 // TYPESCRIPT FIX: Import the actual type to fix 'unknown' type errors
 import type { MarketplaceProduct as MarketplaceProductType } from '@/server/models/marketplace/Product'

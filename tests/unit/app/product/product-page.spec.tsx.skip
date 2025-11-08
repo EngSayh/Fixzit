@@ -7,7 +7,7 @@ import { render, screen, within } from '@testing-library/react'
 import { vi } from 'vitest'
 
 // Next.js server components return JSX from an async function; we can await and then render the result.
-import ProductPage from '../page'
+import ProductPage from '@/app/product/page'
 
 // Mock next/link to render simple anchor for test environment
 vi.mock('next/link', () => {

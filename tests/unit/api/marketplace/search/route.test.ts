@@ -13,6 +13,7 @@
 
 import { vi } from 'vitest';
 import type { GenericMock, MockNextRequest, MockNextResponse } from '@/types/test-mocks';
+import type { NextRequest } from 'next/server';
 
 const jsonMock = vi.fn()
 const findOneMock = vi.fn()
@@ -153,11 +154,11 @@ vi.mock('@/server/utils/errorResponses', () => ({
 }))
 
 // 🔒 TYPE SAFETY: GET handler type will be inferred from import
-let GET: typeof import('./route').GET
+let GET: typeof import('@/app/api/marketplace/search/route').GET
 
 beforeAll(async () => {
   // Import after mocks so that mocks are applied to the route's imports
-  ({ GET } = await import('./route'))
+  ({ GET } = await import('@/app/api/marketplace/search/route'))
 })
 
 // 🔒 TYPE SAFETY: Using unknown return type for test mock
@@ -184,7 +185,7 @@ beforeEach(() => {
 describe('GET /api/marketplace/search', () => {
   test('returns empty items when q is missing', async () => {
     const req = makeReq('https://example.com/api/marketplace/search')
-    await GET(req as unknown)
+    await GET(req as unknown as NextRequest)
 
     expect(jsonMock).toHaveBeenCalledTimes(1)
     const callArgs = jsonMock.mock.calls[0][0];
@@ -200,7 +201,7 @@ describe('GET /api/marketplace/search', () => {
 
   test('returns empty items when q is whitespace', async () => {
     const req = makeReq('https://example.com/api/marketplace/search?q=%20%20%20')
-    await GET(req as unknown)
+    await GET(req as unknown as NextRequest)
 
     const callArgs = jsonMock.mock.calls[0][0];
     expect(callArgs).toMatchObject({
@@ -216,7 +217,7 @@ describe('GET /api/marketplace/search', () => {
     productLeanMock.mockResolvedValue([{ id: 'p1' }])
 
     const req = makeReq('https://example.com/api/marketplace/search?q=Phone&locale=EN&tenantId=t1')
-    await GET(req as unknown)
+    await GET(req as unknown as NextRequest)
 
     expect(findOneMock).toHaveBeenCalledWith({ locale: 'en', term: 'phone' })
 
@@ -251,7 +252,7 @@ describe('GET /api/marketplace/search', () => {
     productLeanMock.mockResolvedValue([{ id: 'p2' }])
 
     const req = makeReq('https://example.com/api/marketplace/search?q=Phone&locale=EN')
-    await GET(req as unknown)
+    await GET(req as unknown as NextRequest)
 
     expect(findOneMock).toHaveBeenCalledWith({ locale: 'en', term: 'phone' })
     expect(productFindMock).toHaveBeenCalledTimes(1)
@@ -272,7 +273,7 @@ describe('GET /api/marketplace/search', () => {
     productLeanMock.mockResolvedValue([])
 
     const req = makeReq('https://example.com/api/marketplace/search?q=watch')
-    await GET(req as unknown)
+    await GET(req as unknown as NextRequest)
 
     expect(findOneMock).toHaveBeenCalledWith({ locale: 'en', term: 'watch' })
     const callArg = productFindMock.mock.calls[0][0]
@@ -285,7 +286,7 @@ describe('GET /api/marketplace/search', () => {
     productLeanMock.mockResolvedValue([{ id: 'p3' }])
 
     const req = makeReq('https://example.com/api/marketplace/search?q=tablet')
-    await GET(req as unknown)
+    await GET(req as unknown as NextRequest)
 
     const callArg = productFindMock.mock.calls[0][0]
     expect(callArg.$or[0].$text.$search).toBe('tablet')
@@ -297,7 +298,7 @@ describe('GET /api/marketplace/search', () => {
     productLeanMock.mockResolvedValue([{ id: 'p4' }])
 
     const req = makeReq('https://example.com/api/marketplace/search?q=bag')
-    await GET(req as unknown)
+    await GET(req as unknown as NextRequest)
 
     const callArg = productFindMock.mock.calls[0][0]
     expect(callArg.$or[0].$text.$search).toBe('bag')
@@ -307,14 +308,14 @@ describe('GET /api/marketplace/search', () => {
   test('invalid regex input triggers top-level catch and returns empty items', async () => {
     // q of '[' makes new RegExp(q, 'i') throw due to unterminated character class
     const req = makeReq('https://example.com/api/marketplace/search?q=%5B')
-    await GET(req as unknown)
+    await GET(req as unknown as NextRequest)
 
     expect(productFindMock).not.toHaveBeenCalled()
     expect(jsonMock).toHaveBeenCalledWith({ items: [] }, undefined)
   })
 
   test('invalid URL triggers top-level catch and returns empty items', async () => {
-    const badReq = { url: 'not a valid url' } as unknown
+    const badReq = { url: 'not a valid url' } as unknown as NextRequest
     await GET(badReq)
 
     expect(jsonMock).toHaveBeenCalledWith({ items: [] }, undefined)

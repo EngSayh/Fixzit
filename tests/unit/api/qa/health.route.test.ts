@@ -7,8 +7,17 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as mongodbUnified from '@/lib/mongodb-unified';
 
 vi.mock('@/lib/mongodb-unified');
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  }
+}));
 
 import { POST, GET } from "@/app/api/qa/health/route";
+import { logger } from '@/lib/logger';
 
 function createMockRequest() {
   return {
@@ -18,15 +27,11 @@ function createMockRequest() {
 }
 
 describe('api/qa/health route - GET', () => {
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    consoleErrorSpy.mockRestore();
     delete (process as any).env.npm_package_version;
   });
 
@@ -71,7 +76,7 @@ describe('api/qa/health route - GET', () => {
     mod.connectToDatabase.mockRejectedValue(err);
 
     const res = await GET(createMockRequest() as any);
-    expect(consoleErrorSpy).toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalled();
     expect(res.status).toBe(503);
     const body = await res.json();
     expect(body.status).toBe('critical');
@@ -80,15 +85,8 @@ describe('api/qa/health route - GET', () => {
 });
 
 describe('api/qa/health route - POST', () => {
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    consoleErrorSpy.mockRestore();
   });
 
   it('returns success when DB reconnects successfully', async () => {

@@ -1,24 +1,15 @@
 import { NextRequest} from "next/server";
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { logger } from '@/lib/logger';
 import { Invoice } from "@/server/models/Invoice";
-import { logger } from '@/lib/logger';
 import { z, ZodError } from "zod";
-import { logger } from '@/lib/logger';
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
-import { logger } from '@/lib/logger';
 import { generateZATCATLV, generateZATCAQR } from "@/lib/zatca";
-import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { logger } from '@/lib/logger';
 import {rateLimitError, handleApiError, zodValidationError} from '@/server/utils/errorResponses';
-import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 
 const updateInvoiceSchema = z.object({
   status: z.enum(["DRAFT", "SENT", "VIEWED", "APPROVED", "REJECTED", "PAID", "OVERDUE", "CANCELLED"]).optional(),

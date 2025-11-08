@@ -436,7 +436,7 @@ const AdminModule: React.FC = () => {
 
       setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus as User['status'] } : u));
       setSuccessMessage(`User ${newStatus.toLowerCase()} successfully`);
-      logger.info('User status updated', { userId, newStatus });
+      logger.info(`User status updated ${{ userId, newStatus }}`);
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       setError('Failed to update user status');

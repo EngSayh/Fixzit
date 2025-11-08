@@ -1,20 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
 import { RFQ } from '@/server/models/RFQ';
-import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import { logger } from '@/lib/logger';
 import { rateLimitError } from '@/server/utils/errorResponses';
-import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 import { getClientIP } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 
 const DEFAULT_PUBLIC_STATUSES = ['PUBLISHED', 'BIDDING'];
 

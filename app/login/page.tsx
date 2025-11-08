@@ -26,7 +26,7 @@ const GoogleSignInButton = dynamic(() => import('@/components/auth/GoogleSignInB
 });
 
 // ⚡ PERFORMANCE OPTIMIZATION: Lazy-load demo credentials section (only needed in dev)
-// eslint-disable-next-line no-unused-vars
+ 
 const DemoCredentialsSection = dynamic<{
   isRTL: boolean;
   loginMethod: 'personal' | 'corporate' | 'sso';

@@ -192,7 +192,7 @@ The Fixzit Enterprise Team
           }
         });
         
-        logger.info('✅ Email sent and logged:', {
+        logger.info('✅ Email sent and logged', {
           emailId,
           recipient: body.email,
           timestamp: timestamp.toISOString()
