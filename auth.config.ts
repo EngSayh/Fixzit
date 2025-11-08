@@ -6,6 +6,16 @@ import { z } from 'zod';
 // import { User } from '@/server/models/User'; // ❌ Breaks Edge Runtime
 // import { verifyPassword } from '@/lib/auth'; // ❌ Imports User model
 
+// Extended user type for auth callbacks
+type ExtendedUser = {
+  id: string;
+  email?: string | null;
+  role?: string;
+  orgId?: string | null;
+  sessionId?: string | null;
+  rememberMe?: boolean;
+};
+
 // Validate required environment variables at startup
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -133,7 +143,8 @@ export const authConfig = {
         password: { label: 'Password', type: 'password' },
         rememberMe: { label: 'Remember Me', type: 'checkbox' },
       },
-      async authorize(credentials) {
+      // eslint-disable-next-line no-unused-vars
+      async authorize(credentials, _request) {
         try {
           // 1. Validate credentials schema
           const parsed = LoginSchema.safeParse(credentials);
@@ -188,7 +199,7 @@ export const authConfig = {
           );
 
           // 8. Return user object for NextAuth session
-          return {
+          const authUser = {
             id: user._id.toString(),
             email: user.email,
             name: `${user.personal?.firstName || ''} ${user.personal?.lastName || ''}`.trim() || user.email,
@@ -196,7 +207,8 @@ export const authConfig = {
             orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || null),
             sessionId: null, // NextAuth will generate session ID
             rememberMe, // Pass rememberMe to session callbacks
-          } as any; // Type assertion to bypass rememberMe field
+          };
+          return authUser;
         } catch (error) {
           console.error('[NextAuth] Authorize error:', error);
           return null;
@@ -243,10 +255,10 @@ export const authConfig = {
         session.user.id = token.sub;
       }
       if (token?.role) {
-        (session.user as any).role = token.role;
+        (session.user as ExtendedUser).role = token.role as string;
       }
       if (token?.orgId) {
-        (session.user as any).orgId = token.orgId;
+        (session.user as ExtendedUser).orgId = token.orgId as string | null;
       }
       return session;
     },
@@ -254,11 +266,11 @@ export const authConfig = {
       // Add user info to token on first sign-in
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role || 'USER';
-        token.orgId = (user as any).orgId || null;
+        token.role = (user as ExtendedUser).role || 'USER';
+        token.orgId = (user as ExtendedUser).orgId || null;
         
         // Handle rememberMe for credentials provider
-        if (account?.provider === 'credentials' && (user as any).rememberMe) {
+        if (account?.provider === 'credentials' && (user as ExtendedUser).rememberMe) {
           // Extend token lifetime for "remember me"
           // This is handled by session.maxAge, but we can flag it here
           token.rememberMe = true;

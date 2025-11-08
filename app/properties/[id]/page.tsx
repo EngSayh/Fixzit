@@ -58,7 +58,7 @@ export default function PropertyDetailPage() {
           script.parentNode.removeChild(script);
         }
         // Clean up the global callback
-        delete (window as any).initMap;
+        delete (window as { initMap?: unknown }).initMap;
       };
     } else {
       initializeMap();

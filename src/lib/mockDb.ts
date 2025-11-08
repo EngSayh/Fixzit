@@ -5,7 +5,7 @@
  * without requiring actual MongoDB connection.
  */
 
-type Doc = Record<string, any>;
+type Doc = Record<string, unknown>;
 
 export class MockDatabase {
   private static instance: MockDatabase;
