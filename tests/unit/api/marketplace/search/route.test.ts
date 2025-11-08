@@ -153,11 +153,11 @@ vi.mock('@/server/utils/errorResponses', () => ({
 }))
 
 // 🔒 TYPE SAFETY: GET handler type will be inferred from import
-let GET: typeof import('./route').GET
+let GET: typeof import('@/app/api/marketplace/search/route').GET
 
 beforeAll(async () => {
   // Import after mocks so that mocks are applied to the route's imports
-  ({ GET } = await import('./route'))
+  ({ GET } = await import('@/app/api/marketplace/search/route'))
 })
 
 // 🔒 TYPE SAFETY: Using unknown return type for test mock
