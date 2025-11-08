@@ -3,24 +3,15 @@
 import { useState, useMemo } from 'react';
 import { logger } from '@/lib/logger';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { logger } from '@/lib/logger';
 // 🟩 MIGRATED: Now using consolidated useFormTracking hook
 import { useFormTracking } from '@/hooks/useFormTracking';
-import { logger } from '@/lib/logger';
 import { Card, CardContent} from '@/components/ui/card';
-import { logger } from '@/lib/logger';
 import { Input } from '@/components/ui/input';
-import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
-import { logger } from '@/lib/logger';
 import { Badge } from '@/components/ui/badge';
-import { logger } from '@/lib/logger';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { logger } from '@/lib/logger';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { logger } from '@/lib/logger';
 import {
-import { logger } from '@/lib/logger';
   Search, Download, Eye, Edit, Trash2,
   Star, Phone, Mail, MapPin, Calendar, DollarSign
 } from 'lucide-react';

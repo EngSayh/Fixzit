@@ -1,21 +1,13 @@
 import { NextRequest } from 'next/server';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { logger } from '@/lib/logger';
 import { resolveMarketplaceContext } from '@/lib/marketplace/context';
-import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import { logger } from '@/lib/logger';
 import Product from '@/server/models/marketplace/Product';
-import { logger } from '@/lib/logger';
 import { serializeProduct } from '@/lib/marketplace/serializers';
-import { logger } from '@/lib/logger';
 import { objectIdFrom } from '@/lib/marketplace/objectIds';
-import { logger } from '@/lib/logger';
 import { rateLimit } from '@/server/security/rateLimit';
-import { logger } from '@/lib/logger';
 import {
-import { logger } from '@/lib/logger';
   unauthorizedError,
   forbiddenError,
   notFoundError,
@@ -25,7 +17,6 @@ import { logger } from '@/lib/logger';
   handleApiError
 } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { logger } from '@/lib/logger';
 
 const UpsertSchema = z.object({
   id: z.string().optional(),
