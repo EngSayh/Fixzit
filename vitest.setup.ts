@@ -128,11 +128,10 @@ vi.mock('@/lib/mongodb-unified', () => {
     // 🔒 TYPE SAFETY: Use unknown for dynamic module import
     const JournalModel = (journalModule as { default?: unknown }).default || journalModule;
     // Ensure deleteMany exists on the model (alias to collection.deleteMany if needed)
-    if (JournalModel && typeof (JournalModel as Record<string, unknown>).deleteMany !== 'function' && 
+        if (JournalModel && typeof (JournalModel as Record<string, unknown>).deleteMany !== 'function' && 
         (JournalModel as { collection?: { deleteMany?: unknown } }).collection && 
         typeof (JournalModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
       // Add deleteMany alias with proper typing
-      // @ts-expect-error - Type signature not used in runtime
       (JournalModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) => 
         ((JournalModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
     }
@@ -143,10 +142,9 @@ vi.mock('@/lib/mongodb-unified', () => {
   try {
     const ledgerModule = await import('@/server/models/finance/LedgerEntry');
     const LedgerModel = (ledgerModule as { default?: unknown }).default || ledgerModule;
-    if (LedgerModel && typeof (LedgerModel as Record<string, unknown>).deleteMany !== 'function' && 
+        if (LedgerModel && typeof (LedgerModel as Record<string, unknown>).deleteMany !== 'function' && 
         (LedgerModel as { collection?: { deleteMany?: unknown } }).collection && 
         typeof (LedgerModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
-      // @ts-expect-error - Type signature not used in runtime
       (LedgerModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) => 
         ((LedgerModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
     }
@@ -160,8 +158,6 @@ vi.mock('@/lib/mongodb-unified', () => {
     if (ChartModel && typeof (ChartModel as Record<string, unknown>).deleteMany !== 'function' && 
         (ChartModel as { collection?: { deleteMany?: unknown } }).collection && 
         typeof (ChartModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
-      // 🔒 TYPE SAFETY: Use unknown[] for variadic args
-      // @ts-expect-error - Type signature not used in runtime
       (ChartModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) => 
         ((ChartModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...collectionArgs);
     }

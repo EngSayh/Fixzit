@@ -132,7 +132,6 @@ async function getAuthSession(request: NextRequest): Promise<SessionUser | null>
     const { auth } = await import('@/auth');
     
     // Type assertion for NextAuth middleware wrapper
-    // @ts-expect-error - Type signature parameters not used in runtime
     type AuthMiddleware = (
       handler: (req: WrappedReq) => Promise<SessionUser | null>
     ) => (request: NextRequest) => Promise<SessionUser | null>;
