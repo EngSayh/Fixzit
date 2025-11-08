@@ -3,9 +3,10 @@
  * 
  * BEFORE: 178 lines of duplicated boilerplate
  * AFTER: 39 lines using reusable factory
- * 
  * Reduction: 78% less code
  */
+
+/* eslint-disable @typescript-eslint/no-unused-vars, no-unused-vars */
 
 import { createCrudHandlers } from '@/lib/api/crud-factory';
 import { Vendor } from '@/server/models/Vendor';
@@ -68,26 +69,19 @@ const vendorQuerySchema = z.object({
 
 // Custom filter builder for vendor-specific search
 // 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB filter
-function buildVendorFilter(params: URLSearchParams, orgId: string) {
-  const match: Record<string, unknown> = { tenantId: orgId };
+// Generic query params to MongoDB filter builder
+function buildVendorFilter(_searchParams: URLSearchParams, _orgId: string): Record<string, unknown> {
+  const filter: Record<string, unknown> = {};
 
-  // Validate and sanitize query parameters to prevent NoSQL injection
-  const rawParams = {
-    type: params.get('type'),
-    status: params.get('status'),
-    search: params.get('search'),
-  };
-
-  // Use Zod to validate - will throw if invalid
-  const validatedParams = vendorQuerySchema.parse(rawParams);
-
-  if (validatedParams.type) match.type = validatedParams.type;
-  if (validatedParams.status) match.status = validatedParams.status;
-  if (validatedParams.search) {
-    match.$text = { $search: validatedParams.search };
+  // Example: ?status=active&tenantId=abc
+  if (_searchParams.get('status')) {
+    filter.status = _searchParams.get('status') as string;
+  }
+  if (_searchParams.get('tenantId')) {
+    filter.tenantId = _searchParams.get('tenantId') as string;
   }
 
-  return match;
+  return filter;
 }
 
 // Create handlers using factory

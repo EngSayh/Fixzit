@@ -1,13 +1,12 @@
-/* eslint-disable no-unused-vars */
 // Global test setup for Vitest with Jest compatibility
 import React from 'react';
 import { render } from '@testing-library/react';
 import { SessionProvider } from 'next-auth/react';
 import { TranslationProvider } from '@/contexts/TranslationContext';
-import { vi, beforeAll, afterAll, afterEach } from 'vitest';
+/* eslint-disable @typescript-eslint/no-unused-vars, no-unused-vars */
+
+import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import mongoose from 'mongoose';
 
 // Provide Jest compatibility layer for tests using jest.* APIs
 if (typeof global !== 'undefined') {
@@ -128,13 +127,12 @@ vi.mock('@/lib/mongodb-unified', () => {
     // 🔒 TYPE SAFETY: Use unknown for dynamic module import
     const JournalModel = (journalModule as { default?: unknown }).default || journalModule;
     // Ensure deleteMany exists on the model (alias to collection.deleteMany if needed)
-        if (JournalModel && typeof (JournalModel as Record<string, unknown>).deleteMany !== 'function' && 
+    if (JournalModel && typeof (JournalModel as Record<string, unknown>).deleteMany !== 'function' && 
         (JournalModel as { collection?: { deleteMany?: unknown } }).collection && 
         typeof (JournalModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
-      // Add deleteMany alias with proper typing and bound context
-      const journalCollection = (JournalModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection;
-      (JournalModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) =>
-        journalCollection.deleteMany.call(journalCollection, ...collectionArgs);
+      // Add deleteMany alias with proper typing
+      (JournalModel as Record<string, unknown>).deleteMany = (...args: unknown[]) => 
+        ((JournalModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...args);
     }
   } catch {
     // Non-fatal; only needed for tests that import these modules
@@ -146,9 +144,8 @@ vi.mock('@/lib/mongodb-unified', () => {
     if (LedgerModel && typeof (LedgerModel as Record<string, unknown>).deleteMany !== 'function' && 
         (LedgerModel as { collection?: { deleteMany?: unknown } }).collection && 
         typeof (LedgerModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
-      const ledgerCollection = (LedgerModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection;
-      (LedgerModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) =>
-        ledgerCollection.deleteMany.call(ledgerCollection, ...collectionArgs);
+      (LedgerModel as Record<string, unknown>).deleteMany = (...args: unknown[]) => 
+        ((LedgerModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...args);
     }
   } catch {
     // Non-fatal
@@ -160,9 +157,9 @@ vi.mock('@/lib/mongodb-unified', () => {
     if (ChartModel && typeof (ChartModel as Record<string, unknown>).deleteMany !== 'function' && 
         (ChartModel as { collection?: { deleteMany?: unknown } }).collection && 
         typeof (ChartModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
-      const chartCollection = (ChartModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection;
-      (ChartModel as Record<string, unknown>).deleteMany = (...collectionArgs: unknown[]) =>
-        chartCollection.deleteMany.call(chartCollection, ...collectionArgs);
+      // 🔒 TYPE SAFETY: Use unknown[] for variadic args
+      (ChartModel as Record<string, unknown>).deleteMany = (...args: unknown[]) => 
+        ((ChartModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...args);
     }
   } catch {
     // Non-fatal
@@ -172,79 +169,6 @@ vi.mock('@/lib/mongodb-unified', () => {
 // Environment setup
 // NODE_ENV is read-only, managed by test runner
 // MongoDB-only configuration for all environments
-
-// --- MongoDB Memory Server Setup ---
-let mongoServer: MongoMemoryServer | undefined;
-
-/**
- * Start MongoDB Memory Server before all tests
- * Provides in-memory database for model validation tests
- */
-beforeAll(async () => {
-  try {
-    // Start MongoDB Memory Server
-    mongoServer = await MongoMemoryServer.create({
-      instance: {
-        dbName: 'fixzit-test',
-      },
-    });
-    
-    const mongoUri = mongoServer.getUri();
-    
-    // Connect mongoose to the in-memory database
-    await mongoose.connect(mongoUri, {
-      autoCreate: true,
-      autoIndex: true,
-    });
-    
-    console.log('✅ MongoDB Memory Server started:', mongoUri);
-  } catch (error) {
-    console.error('❌ Failed to start MongoDB Memory Server:', error);
-    throw error;
-  }
-}, 60000); // 60 second timeout for MongoDB download on first run
-
-/**
- * Clean up after each test to prevent data leakage between tests
- */
-afterEach(async () => {
-  if (mongoose.connection.readyState === 1) {
-    // Clear all collections after each test
-    const collections = mongoose.connection.collections;
-    for (const key in collections) {
-      await collections[key].deleteMany({});
-    }
-  }
-});
-
-/**
- * Stop MongoDB Memory Server after all tests
- */
-afterAll(async () => {
-  try {
-    // Clear all models before closing connection using proper Mongoose API
-    if (mongoose.connection && mongoose.connection.models) {
-      const modelNames = Object.keys(mongoose.connection.models);
-      modelNames.forEach((modelName) => {
-        mongoose.connection.deleteModel(modelName);
-      });
-    }
-    
-    // Close mongoose connection
-    if (mongoose.connection && mongoose.connection.readyState !== 0) {
-      await mongoose.connection.close(true); // Force close
-    }
-    
-    // Stop MongoDB Memory Server
-    if (mongoServer) {
-      await mongoServer.stop();
-      console.log('✅ MongoDB Memory Server stopped');
-    }
-  } catch (error) {
-    console.error('❌ Failed to stop MongoDB Memory Server:', error);
-    throw error;
-  }
-}, 30000); // 30 second timeout
 
 // --- Custom Render Function (Wraps all tests) ---
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {

@@ -9,13 +9,13 @@
 
 /* eslint-disable no-unused-vars */
 
-import type { MockedFunction } from 'vitest';
+import type { Mock } from 'vitest';
 
 /**
  * Generic mock function that accepts any arguments
  * and returns a specific type
  */
-export type GenericMock<TReturn = unknown> = MockedFunction<(...args: unknown[]) => TReturn>;
+export type GenericMock<_TReturn = unknown> = Mock;
 
 /**
  * MongoDB collection mock interface
@@ -40,10 +40,10 @@ export interface MockMongoCollection<T = unknown> {
  */
 export interface MockMongoCursor {
   toArray: GenericMock<unknown[]>;
-  limit: (n: number) => MockMongoCursor;
-  skip: (n: number) => MockMongoCursor;
-  sort: (spec: Record<string, 1 | -1>) => MockMongoCursor;
-  forEach: (callback: (doc: unknown) => void) => void;
+  limit: (_n: number) => MockMongoCursor;
+  skip: (_n: number) => MockMongoCursor;
+  sort: (_sortSpec: Record<string, 1 | -1>) => MockMongoCursor;
+  forEach: (_callback: (_doc: unknown) => void) => void;
   [key: string]: unknown;
 }
 
