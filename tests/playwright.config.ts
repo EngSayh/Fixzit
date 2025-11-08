@@ -1,4 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+
+// Load test environment variables
+dotenv.config({ path: '.env.test' });
 
 const baseURL = process.env.BASE_URL ?? 'http://localhost:3000';
 const isCI = !!process.env.CI;
