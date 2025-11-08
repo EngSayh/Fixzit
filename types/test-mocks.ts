@@ -13,7 +13,7 @@ import type { MockedFunction } from 'vitest';
  * Generic mock function that accepts any arguments
  * and returns a specific type
  */
-export type GenericMock<TReturn = unknown> = MockedFunction<(...args: unknown[]) => TReturn>;
+export type GenericMock<TReturn = unknown> = MockedFunction<(......_args: unknown[]) => TReturn>;
 
 /**
  * MongoDB collection mock interface
@@ -38,10 +38,10 @@ export interface MockMongoCollection<T = unknown> {
  */
 export interface MockMongoCursor {
   toArray: GenericMock<unknown[]>;
-  limit: (_n: number) => MockMongoCursor;
-  skip: (_n: number) => MockMongoCursor;
-  sort: (_sortSpec: Record<string, 1 | -1>) => MockMongoCursor;
-  forEach: (_callback: (_doc: unknown) => void) => void;
+  limit: (_unused: number) => MockMongoCursor;
+  skip: (_unused: number) => MockMongoCursor;
+  sort: (_unusedSortSpec: Record<string, 1 | -1>) => MockMongoCursor;
+  forEach: (_unusedCallback: (_doc: unknown) => void) => void;
   [key: string]: unknown;
 }
 
