@@ -77,6 +77,9 @@ const mockSession = {
     role: 'USER',
     orgId: 'test-org-id',
     sessionId: 'test-session-id',
+    isSuperAdmin: false,
+    permissions: [] as string[],
+    roles: [] as string[],
   },
   expires: '2025-12-31',
 };

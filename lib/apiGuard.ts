@@ -17,8 +17,7 @@
  */
 
 import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/auth';
+import { auth } from '@/auth';
 import { can, createRbacContext } from './rbac';
 import { audit } from './audit';
 
@@ -33,7 +32,7 @@ export function requirePermission(required: string, handler: NextApiHandler): Ne
   return async (req: NextApiRequest, res: NextApiResponse) => {
     try {
       // Get session
-      const session = await getServerSession(req, res, authOptions);
+      const session = await auth();
       
       if (!session?.user) {
         // Audit failed access attempt
@@ -133,7 +132,7 @@ export function requirePermission(required: string, handler: NextApiHandler): Ne
 export function requireAnyPermission(requiredAny: string[], handler: NextApiHandler): NextApiHandler {
   return async (req: NextApiRequest, res: NextApiResponse) => {
     try {
-      const session = await getServerSession(req, res, authOptions);
+      const session = await auth();
       
       if (!session?.user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -183,7 +182,7 @@ export function requireAnyPermission(requiredAny: string[], handler: NextApiHand
 export function requireAllPermissions(requiredAll: string[], handler: NextApiHandler): NextApiHandler {
   return async (req: NextApiRequest, res: NextApiResponse) => {
     try {
-      const session = await getServerSession(req, res, authOptions);
+      const session = await auth();
       
       if (!session?.user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -232,7 +231,7 @@ export function requireAllPermissions(requiredAll: string[], handler: NextApiHan
 export function requireSuperAdmin(handler: NextApiHandler): NextApiHandler {
   return async (req: NextApiRequest, res: NextApiResponse) => {
     try {
-      const session = await getServerSession(req, res, authOptions);
+      const session = await auth();
       
       if (!session?.user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -293,7 +292,7 @@ export async function getRbacContext(
   req: NextApiRequest, 
   res: NextApiResponse
 ): Promise<ReturnType<typeof createRbacContext> | null> {
-  const session = await getServerSession(req, res, authOptions);
+  const session = await auth();
   if (!session?.user) return null;
   return createRbacContext(session.user);
 }
