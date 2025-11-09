@@ -77,6 +77,34 @@ const PropertySchema = new Schema({
     }
   },
 
+  // Owner Portal Integration
+  ownerPortal: {
+    ownerId: { type: Schema.Types.ObjectId, ref: "Owner" },
+    ownerNickname: String, // Friendly name given by owner
+    
+    // Real Estate Agent Assignment
+    agentId: { type: Schema.Types.ObjectId, ref: "User" },
+    agentContractId: { type: Schema.Types.ObjectId, ref: "AgentContract" },
+    agentAssignedDate: Date,
+    
+    // Advertisement
+    currentAdvertisementId: { type: Schema.Types.ObjectId, ref: "Advertisement" },
+    advertisementNumber: String, // Government-issued number
+    advertisementExpiry: Date,
+    
+    // Subscription & Access
+    subscriptionTier: { type: String, enum: ["BASIC", "PRO", "ENTERPRISE"] },
+    enabledFeatures: [String], // UTILITIES_TRACKING, ROI_ANALYTICS, etc.
+    
+    // Portal Preferences
+    preferences: {
+      autoApproveMaintenanceUnder: Number,
+      requireOwnerApprovalForContracts: { type: Boolean, default: true },
+      weeklyReportEnabled: { type: Boolean, default: true },
+      monthlyStatementEnabled: { type: Boolean, default: true }
+    }
+  },
+
   // Units/Spaces
   units: [{
     unitNumber: String,

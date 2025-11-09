@@ -271,8 +271,7 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
   schema.index({ createdBy: 1 });
   schema.index({ updatedBy: 1 });
   schema.index({ version: 1 });
-  schema.index({ createdAt: -1 });
-  schema.index({ updatedAt: -1 });
+  // ⚡ REMOVED: createdAt/updatedAt indexes - already created by timestamps: true option
 }
 
 // Utility function to execute operations with audit context

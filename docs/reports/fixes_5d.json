@@ -1,0 +1,1251 @@
+[
+  {
+    "hash": "94a1ca5a360b5ad75890f89d6c7d5f8c6ab05ae1",
+    "date": "2025-11-08 21:24:31 +0300",
+    "subject": "fix: Address issues #157-162 - Centralization, Security & Code Quality (#270)",
+    "files": [
+      ".github/workflows/codeql.yml",
+      ".github/workflows/security-audit.yml",
+      "AGENT_SYSTEM_SUMMARY.md",
+      "I18N_STABILIZATION_SUMMARY.md",
+      "PR_270_MERGE_READINESS.md",
+      "SECURITY.md",
+      "TEST_COVERAGE_SUMMARY.md",
+      "components/ClientLayout.tsx",
+      "components/Sidebar.tsx",
+      "config/currencies.ts",
+      "config/navigation.ts",
+      "i18n/useI18n.test.ts",
+      "tests/e2e/auth-flow.spec.ts",
+      "tests/e2e/marketplace-flow.spec.ts",
+      "tests/e2e/referrals-flow.spec.ts",
+      "tests/e2e/work-orders-flow.spec.ts",
+      "tests/unit/components/ClientLayout.test.tsx"
+    ]
+  },
+  {
+    "hash": "817f0a516b0e155e9e76e84ed52bd6165f1efc4a",
+    "date": "2025-11-08 16:37:18 +0000",
+    "subject": "docs: add comprehensive system verification report for 2025-11-08",
+    "files": [
+      "DAILY_PROGRESS_REPORTS/2025-11-08_comprehensive_system_verification.md"
+    ]
+  },
+  {
+    "hash": "fa7684e5c60191cb880efbe325af553090c2094f",
+    "date": "2025-11-08 15:46:06 +0000",
+    "subject": "docs: add comprehensive system audit report for 2025-11-08",
+    "files": [
+      "DAILY_PROGRESS_REPORTS/2025-11-08_system_audit_complete.md"
+    ]
+  },
+  {
+    "hash": "1754d2237964d43dbb18c963e36c051313601103",
+    "date": "2025-11-08 15:39:14 +0000",
+    "subject": "fix: resolve auth.config.ts type signature and lint issues",
+    "files": [
+      "app/fm/dashboard/page.tsx",
+      "app/properties/[id]/page.tsx",
+      "auth.config.ts",
+      "src/lib/mockDb.ts",
+      "vitest.setup.ts"
+    ]
+  },
+  {
+    "hash": "267c001519bec9c9008e0a2fefabb377d8ef9d34",
+    "date": "2025-11-08 18:19:10 +0300",
+    "subject": "feat: E2E Stabilization Complete - All 5 Tasks + i18n Expansion (272 keys) (#264)",
+    "files": [
+      "app/administration/page.tsx",
+      "dev/refactoring/vendors-route-crud-factory-wip.ts",
+      "types/test-mocks.ts",
+      "vitest.setup.ts"
+    ]
+  },
+  {
+    "hash": "9667d32c7908d8e5a2b6ae0e5db6903608fc1029",
+    "date": "2025-11-08 18:08:16 +0300",
+    "subject": "fix(auth): avoid persisting jwt verify mock; restore verify implementation and remove debug logs (#266)",
+    "files": [
+      "lib/auth.test.ts",
+      "lib/auth.ts"
+    ]
+  },
+  {
+    "hash": "135f35b228ebd28ef9764b032754a1706af8e9ac",
+    "date": "2025-11-08 17:54:54 +0300",
+    "subject": "feat: Production-Ready Testing with MongoDB Memory Server + Root Cause Type Safety Fixes (#269)",
+    "files": [
+      "DAILY_PROGRESS_REPORTS/2025-01-08_test_fixes.md",
+      "DAILY_PROGRESS_REPORTS/2025-01-28-MODEL-TESTS-MONGODB-MEMORY-SERVER.md",
+      "DAILY_PROGRESS_REPORTS/2025-11-08_comprehensive_system_audit.md",
+      "DAILY_PROGRESS_REPORTS/2025-11-08_production_testing_implementation.md",
+      "PRODUCTION_TESTING_SUMMARY.md",
+      "PRODUCTION_TEST_STATUS.md",
+      "TESTING_STRATEGY.md",
+      "TEST_STATUS_REPORT.md",
+      "app/administration/page.tsx",
+      "app/api/admin/discounts/route.ts",
+      "app/api/admin/price-tiers/route.ts",
+      "app/api/aqar/favorites/[id]/route.ts",
+      "app/api/aqar/favorites/route.ts",
+      "app/api/aqar/leads/route.ts",
+      "app/api/aqar/listings/route.ts",
+      "app/api/ats/applications/[id]/route.ts",
+      "app/api/ats/convert-to-employee/route.ts",
+      "app/api/ats/jobs/[id]/publish/route.ts",
+      "app/api/ats/jobs/route.ts",
+      "app/api/ats/moderation/route.ts",
+      "app/api/ats/public-post/route.ts",
+      "app/api/benchmarks/compare/route.ts",
+      "app/api/billing/subscribe/route.ts",
+      "app/api/careers/apply/route.ts",
+      "app/api/contracts/route.ts",
+      "app/api/copilot/chat/route.ts",
+      "app/api/feeds/indeed/route.ts",
+      "app/api/finance/invoices/route.ts",
+      "app/api/health/database/route.ts",
+      "app/api/help/articles/route.ts",
+      "app/api/integrations/linkedin/apply/route.ts",
+      "app/api/invoices/[id]/route.ts",
+      "app/api/invoices/route.ts",
+      "app/api/kb/search/route.ts",
+      "app/api/marketplace/cart/route.ts",
+      "app/api/marketplace/categories/route.ts",
+      "app/api/marketplace/orders/route.ts",
+      "app/api/marketplace/products/[slug]/route.ts",
+      "app/api/marketplace/products/route.ts",
+      "app/api/marketplace/search/route.ts",
+      "app/api/marketplace/vendor/products/route.ts",
+      "app/api/owners/groups/assign-primary/route.ts",
+      "app/api/payments/paytabs/callback/route.ts",
+      "app/api/payments/paytabs/route.ts",
+      "app/api/pm/generate-wos/route.ts",
+      "app/api/pm/plans/[id]/route.ts",
+      "app/api/pm/plans/route.ts",
+      "app/api/projects/[id]/route.ts",
+      "app/api/public/rfqs/route.ts",
+      "app/api/qa/alert/route.ts",
+      "app/api/qa/health/route.ts",
+      "app/api/qa/log/route.ts",
+      "app/api/search/route.ts",
+      "app/api/slas/route.ts",
+      "app/api/support/tickets/my/route.ts",
+      "app/api/support/tickets/route.ts",
+      "app/api/support/welcome-email/route.ts",
+      "app/api/vendors/route.ts",
+      "app/api/webhooks/sendgrid/route.ts",
+      "app/api/work-orders/import/route.ts",
+      "app/dev/login-helpers/DevLoginClient.tsx",
+      "app/finance/fm-finance-hooks.ts",
+      "app/fm/assets/page.tsx",
+      "app/fm/page.tsx",
+      "app/login/page.tsx",
+      "lib/auth.test.ts",
+      "middleware.ts",
+      "package.json",
+      "pnpm-lock.yaml",
+      "scripts/fix-duplicate-loggers.py",
+      "scripts/fix-duplicate-loggers.sh",
+      "scripts/fix-logger-calls.py",
+      "scripts/skip-mock-tests.sh",
+      "server/models/Asset.ts",
+      "server/models/HelpArticle.ts",
+      "server/models/__tests__/Candidate.test.ts",
+      "server/work-orders/wo.service.test.ts",
+      "tests/debug/inspect-journal.test.ts",
+      "tests/models/MarketplaceProduct.test.ts",
+      "tests/models/SearchSynonym.test.ts",
+      "tests/models/candidate.test.ts",
+      "tests/playwright.config.prod.ts",
+      "tests/playwright.config.ts",
+      "tests/setup.ts",
+      "tests/unit/api/marketplace/categories/route.test.ts",
+      "tests/unit/api/marketplace/products/[slug]/route.test.ts",
+      "tests/unit/api/marketplace/search/route.test.ts",
+      "tests/unit/api/public/rfqs/route.test.ts",
+      "tests/unit/api/qa/alert.route.test.ts",
+      "tests/unit/api/qa/health.route.test.ts",
+      "tests/unit/api/qa/log.route.playwright.test.ts",
+      "tests/unit/app/fm/marketplace-page.test.tsx",
+      "tests/unit/app/help_support_ticket_page.test.tsx",
+      "tests/unit/app/marketplace/marketplace-page.test.tsx",
+      "tests/unit/app/marketplace/rfq-page.test.tsx",
+      "tests/unit/app/product/product-page.spec.tsx.skip",
+      "tests/unit/components/FlagIcon.accessibility.test.tsx",
+      "tests/unit/components/__tests__/TopBar.test.tsx",
+      "tests/unit/components/aqar/ContactActions.test.tsx",
+      "tests/unit/components/fm/__tests__/WorkOrdersView.test.tsx",
+      "tests/unit/components/marketplace/CatalogView.test.tsx",
+      "tests/unit/components/ui/__tests__/label.test.tsx",
+      "tests/unit/components/ui/__tests__/select.test.tsx",
+      "tests/unit/components/ui/__tests__/tabs.test.tsx",
+      "tests/unit/components/ui/__tests__/textarea.test.tsx",
+      "tests/unit/models/Asset.test.ts",
+      "tests/unit/models/HelpArticle.test.ts",
+      "tests/unit/models/Property.test.ts",
+      "tests/unit/models/User.test.ts",
+      "tests/unit/models/WorkOrder.test.ts",
+      "tests/vitest.config.test.ts",
+      "tsconfig.json",
+      "types/test-mocks.ts",
+      "vitest.config.api.ts",
+      "vitest.config.models.ts",
+      "vitest.config.ts",
+      "vitest.setup.ts"
+    ]
+  },
+  {
+    "hash": "2c3ca2042824e3a03fe034408be271510a257aba",
+    "date": "2025-11-07 11:36:38 +0000",
+    "subject": "fix(tests): middleware redirect tests with proper NextAuth mocking",
+    "files": [
+      "tests/unit/middleware.test.ts"
+    ]
+  },
+  {
+    "hash": "456245b7ce06da42eaf428b9d92938b386630e08",
+    "date": "2025-11-07 11:31:54 +0000",
+    "subject": "refactor: eliminate duplicate test files and scripts",
+    "files": [
+      "scripts/seed-marketplace.js",
+      "scripts/seed-marketplace.mjs",
+      "tests/scripts/seed-marketplace.test.ts",
+      "tests/scripts/seed-marketplace.ts.test.ts",
+      "tests/unit/providers/Providers.test.tsx"
+    ]
+  },
+  {
+    "hash": "66421549db2fee47c473cc0ff6bcaeb70a2494a0",
+    "date": "2025-11-07 11:23:26 +0000",
+    "subject": "fix(tests): I18nProvider async dictionary loading",
+    "files": [
+      "i18n/I18nProvider.test.tsx"
+    ]
+  },
+  {
+    "hash": "b367a56c0a9837bb6f17143b53185df913c1dc69",
+    "date": "2025-11-07 11:17:59 +0000",
+    "subject": "fix(tests): skip contradictory generateSlug tests in duplicate file",
+    "files": [
+      "tests/utils.test.ts"
+    ]
+  },
+  {
+    "hash": "740f31f199f91dd855c3e2b646ca9c0ec264c7fa",
+    "date": "2025-11-07 11:14:36 +0000",
+    "subject": "fix(tests): parseCartAmount validation and currency support",
+    "files": [
+      "lib/payments/parseCartAmount.ts",
+      "tests/unit/parseCartAmount.test.ts"
+    ]
+  },
+  {
+    "hash": "ceb15ba7a0be13faeec8bdff9692f50ae5f0bcfd",
+    "date": "2025-11-07 11:05:33 +0000",
+    "subject": "fix(tests): align generateSlug with authoritative lib/utils.test.ts",
+    "files": [
+      "lib/ats/scoring.test.ts",
+      "lib/utils.ts"
+    ]
+  },
+  {
+    "hash": "2086d511cc6e73b6f2a41b2e3ee7211273d9c833",
+    "date": "2025-11-07 11:01:08 +0000",
+    "subject": "fix(tests): ATS scoring test using real implementation",
+    "files": [
+      "lib/ats/scoring.ts",
+      "tests/ats.scoring.test.ts"
+    ]
+  },
+  {
+    "hash": "6cfdec1e3ea0c51b3014819dba9198982db1e85c",
+    "date": "2025-11-07 10:49:02 +0000",
+    "subject": "fix(utils): generateSlug now strips non-ASCII characters",
+    "files": [
+      "lib/utils.ts"
+    ]
+  },
+  {
+    "hash": "0205578bf5622001bbe9725f4bcbb37244d5b467",
+    "date": "2025-11-07 10:39:21 +0000",
+    "subject": "fix(tests): update Provider test for new ErrorBoundary position",
+    "files": [
+      "providers/Providers.test.tsx"
+    ]
+  },
+  {
+    "hash": "1382b8eb2a0ae8a59ca8d98cb2a16cfaceb8b962",
+    "date": "2025-11-07 10:28:43 +0000",
+    "subject": "docs: Test fixing session report - 25% reduction achieved",
+    "files": [
+      "docs/TEST_FIXING_SESSION_2025-01-07.md"
+    ]
+  },
+  {
+    "hash": "4e821fc1ede896fab34583d805a79805f9945a5c",
+    "date": "2025-11-07 10:23:33 +0000",
+    "subject": "fix(tests): middleware test import + mockDb implementation",
+    "files": [
+      "src/lib/mockDb.ts",
+      "tests/unit/middleware.test.ts"
+    ]
+  },
+  {
+    "hash": "44219c5ebcaad7ba7cd8c1b96bd4cf6d3aee70de",
+    "date": "2025-11-07 10:03:33 +0000",
+    "subject": "docs: Session 2025-01-07 final documentation",
+    "files": [
+      "docs/SESSION_2025-01-07_FINAL_SUMMARY.md",
+      "docs/SESSION_COMPLETE_CONSOLE_LOG_PHASE_3.md"
+    ]
+  },
+  {
+    "hash": "7a7095f5b393621901a98fa81c518783e9046357",
+    "date": "2025-11-07 10:00:11 +0000",
+    "subject": "refactor: console.log Phase 3 COMPLETE - 100% logger compliance 🎯",
+    "files": [
+      "app/api/admin/discounts/route.ts",
+      "app/api/admin/price-tiers/route.ts",
+      "app/api/aqar/favorites/[id]/route.ts",
+      "app/api/aqar/favorites/route.ts",
+      "app/api/aqar/leads/route.ts",
+      "app/api/aqar/listings/[id]/route.ts",
+      "app/api/aqar/listings/route.ts",
+      "app/api/aqar/packages/route.ts",
+      "app/api/ats/applications/[id]/route.ts",
+      "app/api/ats/convert-to-employee/route.ts",
+      "app/api/ats/jobs/[id]/apply/route.ts",
+      "app/api/ats/jobs/[id]/publish/route.ts",
+      "app/api/ats/jobs/route.ts",
+      "app/api/ats/moderation/route.ts",
+      "app/api/ats/public-post/route.ts",
+      "app/api/benchmarks/compare/route.ts",
+      "app/api/billing/callback/paytabs/route.ts",
+      "app/api/billing/subscribe/route.ts",
+      "app/api/careers/apply/route.ts",
+      "app/api/contracts/route.ts",
+      "app/api/copilot/chat/route.ts",
+      "app/api/dev/demo-login/route.ts",
+      "app/api/feeds/indeed/route.ts",
+      "app/api/finance/invoices/route.ts",
+      "app/api/health/database/route.ts",
+      "app/api/help/articles/[id]/route.ts",
+      "app/api/help/articles/route.ts",
+      "app/api/help/ask/route.ts",
+      "app/api/hr/payroll/runs/[id]/export/wps/route.ts",
+      "app/api/integrations/linkedin/apply/route.ts",
+      "app/api/invoices/[id]/route.ts",
+      "app/api/invoices/route.ts",
+      "app/api/marketplace/cart/route.ts",
+      "app/api/marketplace/categories/route.ts",
+      "app/api/marketplace/orders/route.ts",
+      "app/api/marketplace/products/[slug]/route.ts",
+      "app/api/marketplace/products/route.ts",
+      "app/api/marketplace/search/route.ts",
+      "app/api/marketplace/vendor/products/route.ts",
+      "app/api/owners/groups/assign-primary/route.ts",
+      "app/api/payments/callback/route.ts",
+      "app/api/payments/paytabs/callback/route.ts",
+      "app/api/payments/paytabs/route.ts",
+      "app/api/paytabs/callback/route.ts",
+      "app/api/pm/generate-wos/route.ts",
+      "app/api/pm/plans/[id]/route.ts",
+      "app/api/pm/plans/route.ts",
+      "app/api/projects/[id]/route.ts",
+      "app/api/public/rfqs/route.ts",
+      "app/api/qa/alert/route.ts",
+      "app/api/qa/health/route.ts",
+      "app/api/qa/log/route.ts",
+      "app/api/qa/reconnect/route.ts",
+      "app/api/search/route.ts",
+      "app/api/slas/route.ts",
+      "app/api/support/incidents/route.ts",
+      "app/api/support/tickets/my/route.ts",
+      "app/api/support/tickets/route.ts",
+      "app/api/support/welcome-email/route.ts",
+      "app/api/vendors/route.ts",
+      "app/api/webhooks/sendgrid/route.ts",
+      "app/api/work-orders/import/route.ts",
+      "app/api/work-orders/sla-check/route.ts",
+      "app/dev/login-helpers/DevLoginClient.tsx",
+      "app/finance/page.tsx",
+      "app/fm/assets/page.tsx",
+      "app/fm/page.tsx",
+      "app/login/page.tsx",
+      "app/logout/page.tsx",
+      "app/marketplace/vendor/products/upload/page.tsx",
+      "app/notifications/page.tsx",
+      "app/support/my-tickets/page.tsx"
+    ]
+  },
+  {
+    "hash": "52367952159d4b757602611f32463b656ae1afc1",
+    "date": "2025-11-07 09:54:50 +0000",
+    "subject": "refactor(modules): console → logger Phase 3.5 - multiple modules",
+    "files": [
+      "app/(dashboard)/referrals/page.tsx",
+      "app/admin/audit-logs/page.tsx",
+      "app/admin/feature-settings/page.tsx",
+      "app/fm/assets/page.tsx",
+      "app/fm/projects/page.tsx",
+      "app/fm/properties/page.tsx",
+      "app/fm/rfqs/page.tsx",
+      "app/fm/support/tickets/page.tsx",
+      "app/fm/tenants/page.tsx",
+      "app/hr/employees/page.tsx",
+      "app/hr/payroll/page.tsx",
+      "app/privacy/page.tsx",
+      "app/profile/page.tsx",
+      "app/terms/page.tsx",
+      "app/work-orders/[id]/parts/page.tsx"
+    ]
+  },
+  {
+    "hash": "809599b06ff9087990ee0899988c093c29cbd913",
+    "date": "2025-11-07 09:52:21 +0000",
+    "subject": "docs: Console.log Phase 3 progress report - 39% complete",
+    "files": [
+      "docs/CONSOLE_LOG_PHASE_3_PROGRESS.md"
+    ]
+  },
+  {
+    "hash": "a6eb6400d10912fd683178e9d80139e66b97f464",
+    "date": "2025-11-07 09:51:07 +0000",
+    "subject": "refactor(finance): replace console.log with logger in fm-finance-hooks",
+    "files": [
+      "app/finance/fm-finance-hooks.ts"
+    ]
+  },
+  {
+    "hash": "c8bf38d22d058dac5659a717ae5de3d5e76e1613",
+    "date": "2025-11-07 09:49:57 +0000",
+    "subject": "refactor(api+modules): mass console → logger replacement - Phase 3.3",
+    "files": [
+      "app/api/admin/audit-logs/route.ts",
+      "app/api/admin/users/[id]/route.ts",
+      "app/api/admin/users/route.ts",
+      "app/api/aqar/listings/[id]/route.ts",
+      "app/api/aqar/listings/search/route.ts",
+      "app/api/aqar/packages/route.ts",
+      "app/api/ats/jobs/[id]/apply/route.ts",
+      "app/api/billing/callback/paytabs/route.ts",
+      "app/api/dev/demo-accounts/route.ts",
+      "app/api/dev/demo-login/route.ts",
+      "app/api/finance/accounts/[id]/route.ts",
+      "app/api/finance/accounts/route.ts",
+      "app/api/finance/expenses/[id]/[action]/route.ts",
+      "app/api/finance/expenses/[id]/route.ts",
+      "app/api/finance/expenses/route.ts",
+      "app/api/finance/journals/[id]/post/route.ts",
+      "app/api/finance/journals/[id]/void/route.ts",
+      "app/api/finance/journals/route.ts",
+      "app/api/finance/ledger/account-activity/[accountId]/route.ts",
+      "app/api/finance/ledger/route.ts",
+      "app/api/finance/ledger/trial-balance/route.ts",
+      "app/api/finance/payments/[id]/[action]/route.ts",
+      "app/api/finance/payments/route.ts",
+      "app/api/help/articles/[id]/route.ts",
+      "app/api/help/ask/route.ts",
+      "app/api/hr/employees/route.ts",
+      "app/api/hr/payroll/runs/[id]/calculate/route.ts",
+      "app/api/hr/payroll/runs/[id]/export/wps/route.ts",
+      "app/api/hr/payroll/runs/route.ts",
+      "app/api/kb/ingest/route.ts",
+      "app/api/kb/search/route.ts",
+      "app/api/organization/settings/route.ts",
+      "app/api/payments/callback/route.ts",
+      "app/api/paytabs/callback/route.ts",
+      "app/api/pm/generate-wos/route.ts",
+      "app/api/qa/reconnect/route.ts",
+      "app/api/referrals/generate/route.ts",
+      "app/api/referrals/my-code/route.ts",
+      "app/api/support/incidents/route.ts",
+      "app/api/support/welcome-email/route.ts",
+      "app/api/user/preferences/route.ts",
+      "app/api/user/profile/route.ts",
+      "app/api/webhooks/sendgrid/route.ts",
+      "app/api/work-orders/sla-check/route.ts",
+      "app/careers/page.tsx",
+      "app/help/ai-chat/page.tsx"
+    ]
+  },
+  {
+    "hash": "b7a169fa911c32a04b1c48dd5a914e726f48355b",
+    "date": "2025-11-07 09:49:22 +0000",
+    "subject": "refactor(finance): complete console.error → logger replacement - Phase 3.2",
+    "files": [
+      "app/finance/expenses/new/page.tsx",
+      "app/finance/invoices/new/page.tsx",
+      "app/finance/page.tsx",
+      "app/finance/payments/new/page.tsx",
+      "scripts/replace-console-with-logger.mjs"
+    ]
+  },
+  {
+    "hash": "feec5fa5c1a164ef17b24d7353cc7936da76768e",
+    "date": "2025-11-07 09:48:32 +0000",
+    "subject": "refactor(finance): replace console.error with logger in budgets - Phase 3.1",
+    "files": [
+      "app/finance/budgets/new/page.tsx"
+    ]
+  },
+  {
+    "hash": "e5b34fa0d0ddbd0fd1275a7bc43ca27929a44f3b",
+    "date": "2025-11-07 09:29:13 +0000",
+    "subject": "docs: comprehensive session report - systematic optimization complete",
+    "files": [
+      "docs/SESSION_2025-11-07_SYSTEMATIC_OPTIMIZATION.md"
+    ]
+  },
+  {
+    "hash": "657ea1ed30ad5e1d738a8d107dc9532d47c4bd3c",
+    "date": "2025-11-07 09:26:58 +0000",
+    "subject": "perf: dynamic imports for TopBar, Sidebar, Footer in ClientLayout",
+    "files": [
+      "components/ClientLayout.tsx"
+    ]
+  },
+  {
+    "hash": "b0e4337eb34950ad7a97d075ca9d0f0267836f0f",
+    "date": "2025-11-07 09:07:13 +0000",
+    "subject": "perf: provider optimization + workspace organization - TBT -170ms",
+    "files": [
+      ".ipynb_checkpoints/Untitled-checkpoint.ipynb",
+      "__pycache__/install-missing-packages.cpython-312.pyc",
+      "__pycache__/verify-imports.cpython-312.pyc",
+      "app/layout.tsx",
+      "app/login/page.tsx",
+      "components/auth/DemoCredentialsSection.tsx",
+      "docs/AGENT_FRESH_RUN_REPORT.md",
+      "docs/CATEGORIZED_TASKS_LIST.md",
+      "docs/FIXZIT_AGENT_COMPLETION_REPORT.md",
+      "docs/FIXZIT_AGENT_QUICKSTART.md",
+      "docs/IMPLEMENTATION_GUIDE.md",
+      "docs/INDEX.md",
+      "docs/PENDING_TASKS_AND_FILE_ORGANIZATION.md",
+      "docs/PR_SUMMARY.md",
+      "docs/QUICK_REFERENCE.md",
+      "docs/SESSION_COMPLETE_ORGANIZATION.md",
+      "docs/SESSION_COMPLETE_TESTING_AND_ORGANIZATION.md",
+      "docs/TASK_COMPLETION_SUMMARY.md",
+      "docs/TEST_FIXES_SUMMARY.md",
+      "docs/TODO_FALSE_POSITIVE_ANALYSIS.md",
+      "docs/UNDEFINED_PROPERTY_FIXES.md",
+      "docs/WORKSPACE_ORGANIZATION_SUMMARY.md",
+      "docs/architecture/PROVIDER_OPTIMIZATION_IMPLEMENTATION.md",
+      "docs/performance/BUILD_RESULTS_LATEST.md",
+      "docs/performance/BUNDLE_ANALYSIS_FINDINGS.md",
+      "docs/performance/OPTIMIZATION_ACTION_PLAN.md",
+      "docs/performance/PERFORMANCE_ANALYSIS_NEXT_STEPS.md",
+      "docs/performance/PERFORMANCE_FINAL_SUMMARY.md",
+      "docs/performance/PERFORMANCE_FIX_GUIDE.md",
+      "docs/performance/PERFORMANCE_OPTIMIZATION_SESSION_SUMMARY.md",
+      "docs/performance/PERFORMANCE_RESULTS.md",
+      "docs/performance/PROVIDER_OPTIMIZATION_RESULTS.md",
+      "docs/performance/SESSION_COMPLETE_SUMMARY.md",
+      "lighthouse-report-final.json",
+      "lighthouse-report-production.json",
+      "lighthouse-report-with-fonts.json",
+      "lighthouse-report.json",
+      "middleware.ts",
+      "next.config.js",
+      "package.json",
+      "pnpm-lock.yaml",
+      "providers/AuthenticatedProviders.tsx",
+      "providers/ConditionalProviders.tsx",
+      "providers/PublicProviders.tsx",
+      "tests/performance/test-provider-optimization.js"
+    ]
+  },
+  {
+    "hash": "4c75f7a81b65155ad464ea2522cba136923f044b",
+    "date": "2025-11-07 07:19:56 +0000",
+    "subject": "docs: deep technical analysis of performance bottlenecks",
+    "files": [
+      "PERFORMANCE_ANALYSIS_NEXT_STEPS.md",
+      "lighthouse-report-with-fonts.json"
+    ]
+  },
+  {
+    "hash": "7100e58a13c787f0e5cce1cb7396006a783d5a29",
+    "date": "2025-11-07 07:04:23 +0000",
+    "subject": "docs: comprehensive performance optimization summary",
+    "files": [
+      "PERFORMANCE_FINAL_SUMMARY.md"
+    ]
+  },
+  {
+    "hash": "8f5381820a22a8a4fbdb2afe6cf517e454d6c3d1",
+    "date": "2025-11-07 07:02:15 +0000",
+    "subject": "perf: font optimization with next/font and ESLint fixes",
+    "files": [
+      "app/administration/page.tsx",
+      "app/layout.tsx",
+      "lighthouse-report-final.json",
+      "next.config.js"
+    ]
+  },
+  {
+    "hash": "d4e7a646c27c7966b86510cfa08718d7f0bc1b51",
+    "date": "2025-11-07 06:21:06 +0000",
+    "subject": "perf: production build fixes and lighthouse audit - 82/100 score achieved",
+    "files": [
+      "PERFORMANCE_RESULTS.md",
+      "app/administration/page.tsx",
+      "dev/refactoring/vendors-route-crud-factory-wip.ts",
+      "lighthouse-report-production.json",
+      "next.config.js",
+      "types/test-mocks.ts"
+    ]
+  },
+  {
+    "hash": "0347902926bb32caa71b4b7810685db3efd422ed",
+    "date": "2025-11-07 05:28:52 +0000",
+    "subject": "perf: implement performance fixes - lazy i18n loading + webpack optimizations",
+    "files": [
+      "PERFORMANCE_FIX_GUIDE.md",
+      "i18n/I18nProvider.tsx",
+      "next.config.js"
+    ]
+  },
+  {
+    "hash": "994caf255208f6cced5aba08a2306996512ed364",
+    "date": "2025-11-07 05:19:24 +0000",
+    "subject": "perf: lighthouse audit complete - 48/100 score, LCP 10.7s (root cause identified)",
+    "files": [
+      "lighthouse-report.json"
+    ]
+  },
+  {
+    "hash": "5e1aaf040d8556b4e6e2ca8e31587e04e02d653d",
+    "date": "2025-11-07 03:54:11 +0000",
+    "subject": "feat(agent): implement context-aware unhandled rejection detection - reduces false positives",
+    "files": [
+      "scripts/fixzit-agent.mjs"
+    ]
+  },
+  {
+    "hash": "b3bc97d5fc23d1b01a23889e70743317df04545d",
+    "date": "2025-11-07 03:51:32 +0000",
+    "subject": "fix(tests): wrap top-level await in async IIFE for HelpArticle test, await generateToken in auth test",
+    "files": [
+      "lib/auth.test.ts",
+      "tests/unit/models/HelpArticle.test.ts"
+    ]
+  },
+  {
+    "hash": "5b7e039440e5ddf707efafd1da20b66d6a8a088a",
+    "date": "2025-11-07 03:47:03 +0000",
+    "subject": "feat(i18n): Phase 3 - expand to 366 keys (+94) - add HR, CRM, Marketplace, extended Login",
+    "files": [
+      "i18n/ar.json",
+      "i18n/en.json"
+    ]
+  },
+  {
+    "hash": "e84024d75935852f23f03bd3014c966245937462",
+    "date": "2025-11-07 03:39:10 +0000",
+    "subject": "docs: comprehensive PR summary for E2E stabilization session",
+    "files": [
+      "PR_SUMMARY.md"
+    ]
+  },
+  {
+    "hash": "1eae179d20eadf9c7efdbb2c14258322603052b8",
+    "date": "2025-11-07 03:37:31 +0000",
+    "subject": "merge: integrate agent file move (lib/fm-finance-hooks.ts → app/finance/)",
+    "files": []
+  },
+  {
+    "hash": "3d0efc8805d14854727929d79a1aff24449313de",
+    "date": "2025-11-07 03:36:52 +0000",
+    "subject": "docs: comprehensive TODO false positive analysis (88-96% FP rate)",
+    "files": [
+      "TODO_FALSE_POSITIVE_ANALYSIS.md"
+    ]
+  },
+  {
+    "hash": "0ac7399376c7f5b1ec79af192580fb88a724a4de",
+    "date": "2025-11-07 03:35:00 +0000",
+    "subject": "feat(i18n): expand translations from 127 to 272 keys - add admin, validation, notifications, forms",
+    "files": [
+      "i18n/ar.json",
+      "i18n/en.json"
+    ]
+  },
+  {
+    "hash": "bd8104f01793721224a0f702a01414894b2c5bd4",
+    "date": "2025-11-07 03:28:49 +0000",
+    "subject": "chore: remove duplicate logo - keep assets/logos/fixzit_official_logo.jpg",
+    "files": [
+      "assets/fixzit_logo.jpg"
+    ]
+  },
+  {
+    "hash": "e4cd278e00ce5a65afcbb49478853d44da097df3",
+    "date": "2025-11-07 03:28:12 +0000",
+    "subject": "fixzit-agent: canonicalize structure + import rewrites (STRICT v4, Gov V5)",
+    "files": [
+      "app/finance/fm-finance-hooks.ts",
+      "tasks/TODO_flat.json",
+      "tmp/fixes_5d_diff.patch"
+    ]
+  },
+  {
+    "hash": "866b94d70d3ccfaf1dcd9f9dd279541047f10fc6",
+    "date": "2025-11-07 03:25:09 +0000",
+    "subject": "chore: update agent-generated reports and diffs",
+    "files": [
+      "tasks/TODO_flat.json",
+      "tmp/fixes_5d_diff.patch"
+    ]
+  },
+  {
+    "hash": "d1ea18540f7d9839af37a1f87af685fa672b126e",
+    "date": "2025-11-07 02:40:27 +0000",
+    "subject": "fix: add optional chaining for undefined property access (7 fixes)",
+    "files": [
+      "UNDEFINED_PROPERTY_FIXES.md",
+      "app/finance/budgets/new/page.tsx",
+      "app/finance/expenses/new/page.tsx",
+      "app/finance/invoices/new/page.tsx",
+      "tests/unit/components/ErrorBoundary.test.tsx"
+    ]
+  },
+  {
+    "hash": "d4efd6419f0f956c4f7754dc210abfd3dc05ec06",
+    "date": "2025-11-06 20:23:24 +0000",
+    "subject": "docs: agent fresh run report with improved heuristics",
+    "files": [
+      "AGENT_FRESH_RUN_REPORT.md"
+    ]
+  },
+  {
+    "hash": "25883c46e04e2e6be8372222261af8cfcbb70a49",
+    "date": "2025-11-06 20:18:33 +0000",
+    "subject": "fix(agent): improve heuristics and fix api-scan syntax",
+    "files": [
+      "scripts/api-scan.mjs",
+      "scripts/fixzit-agent.mjs",
+      "tasks/TODO_flat.json",
+      "tmp/fixes_5d_diff.patch"
+    ]
+  },
+  {
+    "hash": "9294d6c6e4e01bbd259abd5d8faf3e09f890706e",
+    "date": "2025-11-06 20:13:20 +0000",
+    "subject": "chore: update agent-generated reports",
+    "files": [
+      "tasks/TODO_flat.json",
+      "tmp/fixes_5d_diff.patch"
+    ]
+  },
+  {
+    "hash": "c6cc979dcce9f72d39beb84b62da74ba874dfc58",
+    "date": "2025-11-06 20:06:59 +0000",
+    "subject": "docs: task completion summary",
+    "files": [
+      "TASK_COMPLETION_SUMMARY.md"
+    ]
+  },
+  {
+    "hash": "5d94a958b04f13f859065c76c3401591a827335f",
+    "date": "2025-11-06 20:05:39 +0000",
+    "subject": "feat: i18n foundation + agent heuristic improvements",
+    "files": [
+      "i18n/ar.json",
+      "i18n/en.json",
+      "scripts/fixzit-agent.mjs"
+    ]
+  },
+  {
+    "hash": "7beba7c29d1a120f1435a8927e1a280e4e3dad19",
+    "date": "2025-11-06 19:54:57 +0000",
+    "subject": "fix(Category D): File organization cleanup",
+    "files": [
+      "components/ErrorBoundary.OLD.tsx",
+      "components/SupportPopup.OLD.tsx",
+      "docs/FILE_ORGANIZATION_CORRECT.md",
+      "scripts/smart-merge-conflicts.ts"
+    ]
+  },
+  {
+    "hash": "02ac381337e967dcff14075c167b4edde5fe8dd3",
+    "date": "2025-11-06 19:46:59 +0000",
+    "subject": "fix: Category A-B fixes - unused variables and duplicate files",
+    "files": [
+      "FIXZIT_AGENT_COMPLETION_REPORT.md",
+      "FIXZIT_AGENT_QUICKSTART.md",
+      "TEST_FIXES_SUMMARY.md",
+      "app/administration/page.tsx",
+      "assets/logos/company_logo.jpg",
+      "package.json",
+      "pnpm-lock.yaml",
+      "public/img/fixzit-logo.jpg",
+      "public/landing-step1.png",
+      "public/sidebar.png",
+      "scripts/api-scan.mjs",
+      "scripts/codemods/import-rewrite.cjs",
+      "scripts/codemods/replace-console.cjs",
+      "scripts/fixzit-agent.mjs",
+      "scripts/i18n-scan.mjs",
+      "scripts/stop-dev.js",
+      "scripts/test1.txt",
+      "tasks/TODO_flat.json",
+      "tests/hfv.e2e.spec.ts",
+      "tests/unit/middleware.test.ts",
+      "tests/unit/models/Asset.test.ts",
+      "tests/unit/models/HelpArticle.test.ts",
+      "tmp/fixes_5d_diff.patch"
+    ]
+  },
+  {
+    "hash": "f7a93437961e2b77c20343cc9e097bfb808f05eb",
+    "date": "2025-11-06 18:09:03 +0000",
+    "subject": "feat: comprehensive file organization and categorized task list",
+    "files": [
+      "CATEGORIZED_TASKS_LIST.md",
+      "COMPREHENSIVE_SYSTEM_AUDIT_REPORT.md",
+      "PHASE_2_3_4_COMPLETE.md",
+      "SYSTEM_WIDE_FIXES_PROGRESS.md",
+      "docs/404_FIXES_SUMMARY.md",
+      "docs/AGENT_LIVE_PROGRESS.md",
+      "docs/AUTHENTICATION_VERIFICATION_COMPLETE.md",
+      "docs/AUTHORITATIVE_NAVIGATION_FIXES.md",
+      "docs/BUTTON_FIXES_SUMMARY.md",
+      "docs/COMPREHENSIVE_STATUS_REPORT_20251015_1613.md",
+      "docs/CONSOLIDATION_PROGRESS_REPORT.md",
+      "docs/CURRENT_PAGE_MAPPING.md",
+      "docs/DOCUMENTATION_SECURITY_REDACTION_COMPLETE.md",
+      "docs/DOMAIN_FIX_SUMMARY.md",
+      "docs/E2E_TESTING_BLOCKERS_RESOLVED.md",
+      "docs/E2E_TESTING_PLAN.md",
+      "docs/E2E_TESTING_READY_TO_BEGIN.md",
+      "docs/E2E_TESTING_SESSION_ACTIVE.md",
+      "docs/E2E_TEST_RESULTS.md",
+      "docs/FINAL_VERIFICATION_REPORT.md",
+      "docs/FOCUS_MANAGEMENT_AUDIT.md",
+      "docs/LOGIN_FIXES_SUMMARY.md",
+      "docs/LOGIN_PAGE_AUDIT.md",
+      "docs/MODEL_CONSOLIDATION_COMPLETE.md",
+      "docs/PHASE5_AUTH_TESTING_PROGRESS.md",
+      "docs/PHASE5_E2E_EXECUTION_SUMMARY.md",
+      "docs/PHASE_3_COMPLETION_SUMMARY.md",
+      "docs/PR126_FINAL_STATUS.md",
+      "docs/PR126_RECOMMENDATION_TO_CLOSE.md",
+      "docs/PR126_SUCCESS_REPORT.md",
+      "docs/PR126_WORKFLOW_DIAGNOSIS.md",
+      "docs/PR127_COMMENTS_RESOLUTION.md",
+      "docs/PR127_COMMENTS_REVIEW.md",
+      "docs/PR127_FIX_SUMMARY.md",
+      "docs/PRODUCTION_E2E_SECRETS_MANAGEMENT.md",
+      "docs/PRODUCTION_E2E_TESTING.md",
+      "docs/PRODUCTION_READY_SUMMARY.md",
+      "docs/PROGRESS_REPORT.md",
+      "docs/PROJECT_OVERVIEW.md",
+      "docs/PR_SPLIT_STRATEGY.md",
+      "docs/SECURITY_IMPROVEMENTS_COMPLETE.md",
+      "docs/SECURITY_STATUS.md",
+      "docs/SESSION_COMPLETE.md",
+      "docs/SESSION_COMPLETE_SECURITY_PR_REVIEW.md",
+      "docs/TESTING_NOTE.md",
+      "docs/UI_COMPONENTS_COMPLETE_SUMMARY.md",
+      "docs/UI_UX_COMPLIANCE_REPORT.md",
+      "docs/WORKFLOW_FIXES_PROGRESS.md",
+      "docs/architecture/ARCHITECTURE.md",
+      "docs/architecture/BACKBONE_INDEX.md",
+      "docs/architecture/MODULAR_ARCHITECTURE.md",
+      "docs/development/DEPENDENCIES.md",
+      "docs/development/ENHANCEMENT_ROADMAP.md",
+      "docs/development/FORMSTATE_CONTEXT_USAGE.md",
+      "docs/development/FORMSTATE_INTEGRATION_GUIDE.md",
+      "docs/development/FORM_SAVE_EVENTS.md",
+      "docs/development/MIGRATION_DEPRECATED_HOOKS.md",
+      "docs/operations/GITHUB_SECRETS_SETUP_PRODUCTION.md",
+      "docs/operations/SENDGRID_PRODUCTION_GUIDE.md",
+      "docs/testing-notes.md"
+    ]
+  },
+  {
+    "hash": "1824f04984611998f57b0da01ac23b69e7b1ef27",
+    "date": "2025-11-06 18:02:59 +0000",
+    "subject": "docs: add pending tasks and file organization plan",
+    "files": [
+      "PENDING_TASKS_AND_FILE_ORGANIZATION.md"
+    ]
+  },
+  {
+    "hash": "6eee90803a1d8aa6745a0aa16ebc7236097ebd83",
+    "date": "2025-11-06 20:47:53 +0300",
+    "subject": "chore: organize system files and remove legacy code (#261)",
+    "files": [
+      "CRITICAL_AUTH_FIXES_SUMMARY.md",
+      "CRITICAL_TECHNICAL_DEBT_AUDIT.md",
+      "DUPLICATE_FILES_REPORT.md",
+      "DUPLICATE_FILES_REPORT_ROUND2.md",
+      "FINAL_DUPLICATE_REPORT.md",
+      "PROJECT_ORGANIZATION_COMPLETE.md",
+      "SYSTEM_AUDIT_FINDINGS.md",
+      "TEST_FAILURES_REPORT.md",
+      "TEST_PROGRESS_SUMMARY.md",
+      "THEME_UPGRADE_PLAN.md",
+      "THEME_VIOLATIONS_AUDIT.md",
+      "dev/refactoring/README.md",
+      "dev/refactoring/vendors-route-crud-factory-wip.ts",
+      "docs/guides/README_START_HERE.md",
+      "docs/guides/READY_TO_START.md",
+      "docs/guides/START_3_HOUR_TESTING.md",
+      "gitignore",
+      "scripts/temp-verify.mjs",
+      "scripts/temp-verify2.mjs",
+      "scripts/temp-verify3.mjs",
+      "scripts/temp-verify4.mjs",
+      "scripts/temp-verify5.mjs",
+      "tests/unit/api/marketplace/categories/route.test.ts",
+      "tests/unit/api/marketplace/products/[slug]/route.test.ts",
+      "tests/unit/api/marketplace/search/route.test.ts",
+      "tests/unit/api/public/rfqs/route.test.ts",
+      "tests/unit/app/api_help_articles_route.test.ts",
+      "tests/unit/app/fm/marketplace-page.test.tsx",
+      "tests/unit/app/help_ai_chat_page.test.tsx",
+      "tests/unit/app/help_support_ticket_page.test.tsx",
+      "tests/unit/app/marketplace/marketplace-page.test.tsx",
+      "tests/unit/app/marketplace/rfq-page.test.tsx",
+      "tests/unit/app/product/product-page.spec.tsx",
+      "tests/unit/components/FlagIcon.accessibility.test.tsx",
+      "tests/unit/components/__tests__/TopBar.test.tsx",
+      "tests/unit/components/aqar/ContactActions.test.tsx",
+      "tests/unit/components/fm/__tests__/WorkOrdersView.test.tsx",
+      "tests/unit/components/marketplace/CatalogView.test.tsx",
+      "tests/unit/components/ui/__tests__/label.test.tsx",
+      "tests/unit/components/ui/__tests__/select.test.tsx",
+      "tests/unit/components/ui/__tests__/tabs.test.tsx",
+      "tests/unit/components/ui/__tests__/textarea.test.tsx"
+    ]
+  },
+  {
+    "hash": "080aab0aee5f1e4396a6d7835e4aa5e02ba8e876",
+    "date": "2025-11-06 20:47:09 +0300",
+    "subject": "feat: Auto-Restart Mechanism & Development Setup",
+    "files": [
+      "IMPLEMENTATION_GUIDE.md",
+      "ecosystem.config.js",
+      "scripts/setup-dev.sh"
+    ]
+  },
+  {
+    "hash": "f3d03dad171df79669d1a0152cdd5345d4479d35",
+    "date": "2025-11-06 20:46:11 +0300",
+    "subject": "🔧 Category 4: Type Safety - Fix : any warnings in production code (#240)",
+    "files": [
+      "COMPREHENSIVE_SYSTEM_AUDIT_REPORT.md",
+      "SYSTEM_WIDE_FIXES_PROGRESS.md",
+      "app/api/admin/users/route.ts",
+      "app/api/auth/signup/route.ts",
+      "app/api/marketplace/categories/route.test.ts",
+      "app/api/marketplace/search/route.test.ts",
+      "app/api/notifications/route.ts",
+      "app/api/projects/route.ts",
+      "app/api/properties/route.ts",
+      "app/api/public/rfqs/route.test.ts",
+      "app/api/tenants/route.ts",
+      "app/api/user/preferences/route.ts",
+      "app/api/vendors/route.NEW.ts",
+      "app/api/work-orders/route.ts",
+      "components/CopilotWidget.tsx",
+      "components/ErrorBoundary.tsx",
+      "components/TopBar.tsx",
+      "components/aqar/PropertyCard.tsx",
+      "components/auth/GoogleSignInButton.tsx",
+      "components/auth/LoginForm.tsx",
+      "components/finance/AccountActivityViewer.tsx",
+      "components/finance/JournalEntryForm.tsx",
+      "components/finance/TrialBalanceReport.tsx",
+      "components/marketplace/CatalogView.tsx",
+      "components/marketplace/PDPBuyBox.tsx",
+      "components/marketplace/ProductCard.tsx",
+      "components/topbar/GlobalSearch.tsx",
+      "components/topbar/QuickActions.tsx",
+      "components/ui/select.tsx",
+      "components/ui/textarea.tsx",
+      "lib/logger.ts",
+      "types/mongodb.ts",
+      "types/test-mocks.ts",
+      "vitest.setup.ts"
+    ]
+  },
+  {
+    "hash": "62206666ed2d8891a824184ed7331ed57b31e5b2",
+    "date": "2025-11-06 20:43:14 +0300",
+    "subject": "fix: CRITICAL - Security & Reliability Fixes (GUEST Auth + format.ts + Providers) (#263)",
+    "files": [
+      "nav/registry.ts",
+      "providers/Providers.tsx",
+      "tests/unit/nav/registry.test.ts",
+      "tests/unit/providers/Providers.test.tsx",
+      "tests/unit/utils/format.test.ts",
+      "utils/format.ts"
+    ]
+  },
+  {
+    "hash": "9650f082f1eb7b251817c5dfa984152a01466012",
+    "date": "2025-11-06 20:00:46 +0300",
+    "subject": "fix(theme): Category 1 - Theme Compliance System-Wide (20 fixes)",
+    "files": [
+      "PHASE_2_3_4_COMPLETE.md",
+      "components/CopilotWidget.tsx",
+      "components/marketplace/CatalogView.tsx",
+      "components/marketplace/ProductCard.tsx",
+      "docs/analysis/system-wide-issues-analysis.md",
+      "providers/Providers.tsx",
+      "qa/AutoFixAgent.tsx",
+      "tailwind.config.js"
+    ]
+  },
+  {
+    "hash": "786001cc26a0ad266be74b825f99b1e8801ac5eb",
+    "date": "2025-11-06 20:00:35 +0300",
+    "subject": "feat(phase4): Advanced Accessibility & Comprehensive PR Analysis",
+    "files": [
+      ".vscode/settings.json",
+      "components/aqar/MortgageCalculator.tsx",
+      "components/aqar/SearchFilters.tsx",
+      "docs/analysis/closed-pr-comprehensive-analysis.md",
+      "docs/troubleshooting/exit-code-5-memory-fix.md",
+      "next.config.js",
+      "package.json",
+      "scripts/cleanup-dev-cache.sh"
+    ]
+  },
+  {
+    "hash": "206267d5606e05daed2ade9bb92061e7ddb96a5a",
+    "date": "2025-11-06 13:59:40 +0000",
+    "subject": "docs: comprehensive PR review session report (2025-11-06)",
+    "files": [
+      "DAILY_PROGRESS_REPORTS/2025-11-06_PR_REVIEW_SESSION_DETAILED_REPORT.md"
+    ]
+  },
+  {
+    "hash": "aac3d803ad06a11fca9a5e94b861724a086c3bbf",
+    "date": "2025-11-05 17:10:59 +0300",
+    "subject": "feat(aqar): Phase 3 - Theme Compliance (#233)",
+    "files": [
+      "components/CopilotWidget.tsx",
+      "components/aqar/AgentCard.tsx",
+      "components/aqar/MortgageCalculator.tsx",
+      "components/aqar/PropertyCard.tsx",
+      "components/aqar/SearchFilters.tsx",
+      "tailwind.config.js"
+    ]
+  },
+  {
+    "hash": "7abca50d915413beadb1dd0c5d8fda514e283c1b",
+    "date": "2025-11-05 16:53:07 +0300",
+    "subject": "feat(aqar): Phase 2 - Integrate ContactActions Component (#231)",
+    "files": [
+      "components/aqar/AgentCard.tsx",
+      "components/aqar/PropertyCard.tsx"
+    ]
+  },
+  {
+    "hash": "8d0fe89e337a02f48c7bf5cae08b77c8e7bf7fa5",
+    "date": "2025-11-05 15:37:23 +0300",
+    "subject": "fix(security): Category A - Improper Navigation Fixes",
+    "files": [
+      "SYSTEM_AUDIT_FINDINGS.md",
+      "components/ClientLayout.tsx",
+      "components/aqar/AgentCard.tsx",
+      "components/aqar/PropertyCard.tsx"
+    ]
+  },
+  {
+    "hash": "b7b250880f4a114b4dea0face660db910812da89",
+    "date": "2025-11-05 15:16:04 +0300",
+    "subject": "feat(aqar): Architectural Improvements - Phase 1 (#227)",
+    "files": [
+      "components/aqar/ContactActions.test.tsx",
+      "components/aqar/ContactActions.tsx",
+      "utils/formatters.test.ts",
+      "utils/formatters.ts"
+    ]
+  },
+  {
+    "hash": "1753c282281aa6505cb4fbf6fdd9c056a3647af2",
+    "date": "2025-11-05 11:22:37 +0300",
+    "subject": "feat: cleanup deprecated hooks after migration (#223)",
+    "files": [
+      "docs/MIGRATION_DEPRECATED_HOOKS.md",
+      "hooks/__tests__/useUnsavedChanges.test.tsx",
+      "hooks/_deprecated_useFormDirtyState.ts",
+      "hooks/_deprecated_useUnsavedChanges.tsx"
+    ]
+  },
+  {
+    "hash": "b211a3c7279f71710178dbcd1b831267d09c1e67",
+    "date": "2025-11-05 11:18:01 +0300",
+    "subject": "feat: migrate FM page to useFormTracking hook (#222)",
+    "files": [
+      "app/fm/page.tsx"
+    ]
+  },
+  {
+    "hash": "e876b2b4f6ea1043206cdce9cd95db06839d998d",
+    "date": "2025-11-05 11:09:59 +0300",
+    "subject": "fix: critical security vulnerabilities and architectural improvements in React hooks (#218)",
+    "files": [
+      "app/fm/page.tsx",
+      "components/common/SaveConfirmation.tsx",
+      "components/common/UnsavedChangesWarning.tsx",
+      "contexts/CurrentOrgContext.tsx",
+      "docs/MIGRATION_DEPRECATED_HOOKS.md",
+      "hooks/__tests__/useUnsavedChanges.test.tsx",
+      "hooks/_deprecated_useFormDirtyState.ts",
+      "hooks/_deprecated_useUnsavedChanges.tsx",
+      "hooks/useDebounce.ts",
+      "hooks/useFMPermissions.ts",
+      "hooks/useFormTracking.ts",
+      "hooks/useScreenSize.ts",
+      "tests/hooks/useDebounce.test.ts",
+      "tests/hooks/useFMPermissions.test.ts",
+      "tests/hooks/useFormTracking.test.tsx"
+    ]
+  },
+  {
+    "hash": "01f13a86be6336c9ddbf7b73c98bda37a2c19bec",
+    "date": "2025-11-05 03:34:51 +0000",
+    "subject": "refactor(qa): improve placeholder scanner to focus on critical issues",
+    "files": [
+      "qa/scripts/scanPlaceholders.mjs"
+    ]
+  },
+  {
+    "hash": "223f9add8da1bea3e359b2020650f1a8a47ceb7c",
+    "date": "2025-11-05 03:29:58 +0000",
+    "subject": "fix: handle undefined dev process in verify script",
+    "files": [
+      "qa/scripts/verify.mjs"
+    ]
+  },
+  {
+    "hash": "018636165056b82e1d79ecf661b714c92bb9a8a3",
+    "date": "2025-11-05 06:20:27 +0300",
+    "subject": "fix(critical): Multi-tenancy data isolation bug in CRUD factory (#204)",
+    "files": [
+      "lib/api/crud-factory.ts",
+      "server/middleware/withAuthRbac.ts"
+    ]
+  },
+  {
+    "hash": "016c6b06aae0d169a5f8243d2a5adc2c9c6f0206",
+    "date": "2025-11-05 06:14:31 +0300",
+    "subject": "fix(ui): Major Accessibility & Architectural Improvements (#202)",
+    "files": [
+      ".github/workflows/fixzit-quality-gates.yml",
+      "app/api/dev/demo-login/route.ts",
+      "components/i18n/CompactCurrencySelector.tsx",
+      "components/i18n/CompactLanguageSelector.tsx",
+      "components/topbar/GlobalSearch.tsx",
+      "components/topbar/QuickActions.tsx",
+      "components/ui/__tests__/label.test.tsx",
+      "components/ui/__tests__/select.test.tsx",
+      "components/ui/__tests__/tabs.test.tsx",
+      "components/ui/__tests__/textarea.test.tsx",
+      "components/ui/dialog.tsx",
+      "components/ui/label.tsx",
+      "components/ui/navigation-buttons.tsx",
+      "components/ui/select.tsx",
+      "components/ui/separator.tsx",
+      "components/ui/tabs.tsx",
+      "components/ui/textarea.tsx"
+    ]
+  },
+  {
+    "hash": "57cbad6182d38ad79c2b5c41d08b4acdcfbadeea",
+    "date": "2025-11-04 21:54:37 +0300",
+    "subject": "fix(finance): Performance optimizations and i18n improvements (#208)",
+    "files": [
+      "components/finance/AccountActivityViewer.tsx",
+      "components/finance/JournalEntryForm.tsx",
+      "hooks/useDebounce.ts"
+    ]
+  },
+  {
+    "hash": "87518bdfd9540c26c81ef74c444142f1fb544f10",
+    "date": "2025-11-04 21:35:12 +0300",
+    "subject": "fix(critical): SendGrid webhook timing attack and security hardening (#207)",
+    "files": [
+      "app/api/webhooks/sendgrid/route.ts",
+      "lib/sendgrid-config.ts"
+    ]
+  },
+  {
+    "hash": "74eb4e2db77796f0139f1b1b36d778d0e05d0acf",
+    "date": "2025-11-04 21:25:06 +0300",
+    "subject": "fix(critical): AWS Secrets Manager integration for JWT security (#206)",
+    "files": [
+      ".artifacts/pr_comments.json",
+      "lib/auth-middleware.ts",
+      "lib/auth.test.ts",
+      "lib/auth.ts",
+      "lib/authz.ts",
+      "lib/secrets.ts",
+      "server/middleware/withAuthRbac.ts",
+      "server/utils/tenant.ts",
+      "tests/unit/middleware.test.ts"
+    ]
+  },
+  {
+    "hash": "dd13c363fa44643ff7a6bbf3f0a5f6945712ee64",
+    "date": "2025-11-04 21:17:23 +0300",
+    "subject": "fix(critical): Approval engine data loss and tenant isolation bugs (#205)",
+    "files": [
+      "lib/fm-approval-engine.ts"
+    ]
+  },
+  {
+    "hash": "c2666245e4db693e955ec951fc589956182d51d4",
+    "date": "2025-11-04 20:42:38 +0300",
+    "subject": "fix: Delete obsolete files causing architectural conflicts",
+    "files": [
+      "components/finance/TrialBalanceReport.OLD.tsx",
+      "config/modules.ts",
+      "lib/i18n.ts",
+      "lib/mongoUtils.ts",
+      "lib/rbac.ts",
+      "utils/rbac.ts"
+    ]
+  },
+  {
+    "hash": "a5ecd97459f9eaf4f8c2f3d974eabaeac5a25b45",
+    "date": "2025-11-04 19:22:33 +0300",
+    "subject": "fix: Test suite improvements - i18n, mongoose mocks, and utilities (#209)",
+    "files": [
+      "TEST_PROGRESS_SUMMARY.md",
+      "app/api/marketplace/categories/route.test.ts",
+      "app/api/marketplace/products/[slug]/route.test.ts",
+      "app/api/marketplace/search/route.test.ts",
+      "components/LoginPrompt.tsx",
+      "components/aqar/ViewingScheduler.tsx",
+      "components/fm/__tests__/WorkOrdersView.test.tsx",
+      "contexts/TranslationContext.test.tsx",
+      "i18n/dictionaries/__tests__/ar.test.ts",
+      "i18n/dictionaries/ar.ts",
+      "i18n/useI18n.test.ts",
+      "i18n/useI18n.ts",
+      "lib/ats/scoring.ts",
+      "lib/sendgrid-config.ts",
+      "lib/utils.test.ts",
+      "lib/utils.ts",
+      "lib/utils/role-formatter.ts",
+      "lib/utils/timestamp.ts",
+      "server/services/finance/postingService.ts",
+      "tests/debug/inspect-journal.test.ts",
+      "tests/finance/unit/posting.service.test.ts",
+      "tests/setup.ts",
+      "utils/format.test.ts",
+      "vitest.config.ts",
+      "vitest.setup.ts"
+    ]
+  }
+]

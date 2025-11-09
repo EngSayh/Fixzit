@@ -1,4 +1,6 @@
-import { Schema, model, models, Types } from 'mongoose';
+import { Schema, model, models, Types, InferSchemaType } from 'mongoose';
+import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
+import { auditPlugin } from "../plugins/auditPlugin";
 
 const OwnerGroupSchema = new Schema(
   {
@@ -8,20 +10,24 @@ const OwnerGroupSchema = new Schema(
       type: Types.ObjectId, 
       ref: 'User' 
     }],
-    fm_provider_org_id: { type: Types.ObjectId, ref: 'Tenant' },
-    agent_org_id: { type: Types.ObjectId, ref: 'Tenant' },
+    fm_provider_org_id: { type: Types.ObjectId, ref: 'Organization' },
+    agent_org_id: { type: Types.ObjectId, ref: 'Organization' },
     property_ids: [{ 
       type: Types.ObjectId, 
       ref: 'Property' 
     }],
-    // Tenant isolation - primary organization
-    orgId: { 
-      type: Types.ObjectId, 
-      ref: 'Organization',
-      required: true,
-    },
+    // orgId is automatically added by tenantIsolationPlugin
   },
   { timestamps: true }
 );
 
-export default models.OwnerGroup || model('OwnerGroup', OwnerGroupSchema);
+// ⚡ CRITICAL FIX: Apply tenant isolation and audit plugins
+OwnerGroupSchema.plugin(tenantIsolationPlugin);
+OwnerGroupSchema.plugin(auditPlugin);
+
+// ⚡ FIX: Tenant-scoped indexes (orgId added by plugin)
+OwnerGroupSchema.index({ orgId: 1, name: 1 }, { unique: true });
+OwnerGroupSchema.index({ orgId: 1, primary_contact_user_id: 1 });
+
+export type OwnerGroup = InferSchemaType<typeof OwnerGroupSchema>;
+export const OwnerGroupModel = models.OwnerGroup || model('OwnerGroup', OwnerGroupSchema);

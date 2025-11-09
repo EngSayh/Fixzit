@@ -1,6 +1,6 @@
 import PaymentMethod from '@/server/models/PaymentMethod';
 import Subscription from '@/server/models/Subscription';
-import OwnerGroup from '@/server/models/OwnerGroup';
+import { OwnerGroupModel as OwnerGroup } from '@/server/models/OwnerGroup';
 import { provisionSubscriber } from './provision';
 
 export interface NormalizedPayTabsPayload {

@@ -1,6 +1,6 @@
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
-import OwnerGroup from '@/server/models/OwnerGroup';
+import { OwnerGroupModel as OwnerGroup } from '@/server/models/OwnerGroup';
 import { NextRequest} from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { z } from 'zod';

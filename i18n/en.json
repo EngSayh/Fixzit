@@ -358,7 +358,33 @@
     "popular": "Popular Articles",
     "getStarted": "Getting Started"
   },
+  "souq": {
+    "search": {
+      "placeholder": "Search products, services, vendors..."
+    },
+    "newRFQ": "New RFQ",
+    "createPO": "Create Purchase Order",
+    "addItem": "Add Item"
+  },
+  "aqar": {
+    "search": {
+      "placeholder": "Search properties, projects, agents..."
+    },
+    "postProperty": "Post Property",
+    "newValuation": "New Valuation"
+  },
   "common": {
+    "brand": "FIXZIT",
+    "backToHome": "Back to Home",
+    "signIn": "Sign In",
+    "unsavedChanges": "Unsaved Changes",
+    "unsavedChangesMessage": "You have unsaved changes. Are you sure you want to leave this page?",
+    "discard": "Discard Changes",
+    "allCaughtUp": "You're all caught up!",
+    "noNotifications": "No notifications",
+    "unread": "unread",
+    "viewAll": "View All",
+    "preferences": "Preferences",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
@@ -412,6 +438,29 @@
     "published": "Published",
     "archived": "Archived",
     "deleted": "Deleted"
+  },
+  "app": {
+    "fm": "Facility Management",
+    "souq": "Marketplace",
+    "aqar": "Real Estate",
+    "switchApplication": "Switch Application",
+    "currentApp": "Current application",
+    "searchableEntities": "searchable entities"
+  },
+  "nav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "properties": "Properties",
+    "workOrders": "Work Orders",
+    "finance": "Finance",
+    "vendors": "Vendors",
+    "crm": "CRM",
+    "reports": "Reports",
+    "settings": "Settings",
+    "help": "Help",
+    "logout": "Logout",
+    "notifications": "Notifications",
+    "profile": "Profile"
   },
   "navigation": {
     "home": "Home",

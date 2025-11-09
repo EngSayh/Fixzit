@@ -19,6 +19,9 @@ export default [
       'e2e-test-results/**',
       'jscpd-report/**',
       'test-results/**',
+      '**/playwright-report/**',
+      '**/e2e-test-results/**',
+      '**/test-results/**',
       
       // Assets and static files
       'public/**',

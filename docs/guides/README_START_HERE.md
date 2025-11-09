@@ -17,7 +17,7 @@ You can now leave for 3 hours while VS Code runs comprehensive E2E tests.
 
 ### **Option 2: Bash Script (Automated)**
 ```bash
-./start-e2e-testing.sh
+bash scripts/start-e2e-testing.sh
 ```
 This will:
 - ✅ Check prerequisites (port 3000, dependencies, Playwright)
@@ -250,7 +250,7 @@ tail -f tests/logs/dev-server.log
 **Just run this:**
 
 ```bash
-./start-e2e-testing.sh
+bash scripts/start-e2e-testing.sh
 ```
 
 **Or use VS Code Task:**

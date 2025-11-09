@@ -66,8 +66,10 @@ export function clearContext(): void {
  */
 export function tenantAuditPlugin(schema: Schema): void {
   // Add fields
+  // ⚡ FIXED: Removed index: true from orgId to avoid duplicate index warnings
+  // Individual schemas should define their own compound indexes with orgId
   schema.add({
-    orgId: { type: String, required: true, index: true },
+    orgId: { type: String, required: true },
     createdBy: { type: String },
     updatedBy: { type: String },
     isSystem: { type: Boolean, default: false },

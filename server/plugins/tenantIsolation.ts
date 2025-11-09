@@ -29,13 +29,14 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
   const excludeModels = options.excludeModels || ['Organization'];
 
   // Add orgId field to schema (if not already present)
+  // ⚡ FIXED: Removed index: true to avoid duplicate index warnings
+  // Individual schemas should define their own compound indexes with orgId
   if (!schema.paths.orgId) {
     schema.add({
       orgId: { 
         type: Types.ObjectId,
         ref: 'Organization',
-        required: true,
-        index: true
+        required: true
       }
     });
   }

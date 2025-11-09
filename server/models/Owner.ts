@@ -93,6 +93,38 @@ const OwnerSchema = new Schema({
     }
   },
 
+  // Owner Portal - Subscription
+  subscription: {
+    plan: { type: String, enum: ["BASIC", "PRO", "ENTERPRISE"], default: "BASIC" },
+    startDate: Date,
+    endDate: Date, // Null for active indefinite
+    activeUntil: { type: Date, index: true }, // ⚡ Use this for expiry checks, NOT createdAt
+    autoRenew: { type: Boolean, default: false },
+    billingCycle: { type: String, enum: ["MONTHLY", "QUARTERLY", "ANNUALLY"] },
+    
+    // Feature Access
+    features: {
+      maxProperties: { type: Number, default: 1 }, // BASIC: 1, PRO: 5, ENTERPRISE: unlimited
+      utilitiesTracking: { type: Boolean, default: false },
+      roiAnalytics: { type: Boolean, default: false },
+      customReports: { type: Boolean, default: false },
+      apiAccess: { type: Boolean, default: false },
+      dedicatedSupport: { type: Boolean, default: false },
+      multiUserAccess: { type: Boolean, default: false },
+      advancedDelegation: { type: Boolean, default: false }
+    },
+    
+    // Payment
+    lastPaymentDate: Date,
+    lastPaymentAmount: Number,
+    nextBillingDate: Date,
+    paymentMethod: String,
+    invoiceId: { type: Schema.Types.ObjectId, ref: "SubscriptionInvoice" }
+  },
+
+  // Owner Portal - Nickname
+  nickname: String, // Friendly identifier for the owner (e.g., "Mr. Ahmad's Portfolio")
+
   // Documents
   documents: [{
     type: String, // ID_COPY, CR_COPY, VAT_CERTIFICATE, etc.

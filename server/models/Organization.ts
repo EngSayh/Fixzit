@@ -510,12 +510,12 @@ const OrganizationSchema = new Schema<IOrganization, OrganizationModel>(
 OrganizationSchema.plugin(auditPlugin);
 
 // ---------- Indexes ----------
-OrganizationSchema.index({ orgId: 1 }, { unique: true });
-OrganizationSchema.index({ code: 1 }, { unique: true });
+// ⚡ REMOVED: orgId index - already created by unique: true constraint on field (line 260)
+// ⚡ REMOVED: code index - already created by unique: true constraint on field (line 263)
 OrganizationSchema.index({ 'subscription.status': 1 });
 OrganizationSchema.index({ 'subscription.endDate': 1 });
 OrganizationSchema.index({ 'status.isActive': 1 });
-OrganizationSchema.index({ createdAt: -1 });
+// ⚡ REMOVED: createdAt index - already created by timestamps: true option
 
 // ---------- Hooks ----------
 const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 12);

@@ -358,7 +358,33 @@
     "popular": "المقالات الشائعة",
     "getStarted": "البدء"
   },
+  "souq": {
+    "search": {
+      "placeholder": "ابحث عن المنتجات والخدمات والموردين..."
+    },
+    "newRFQ": "طلب عرض سعر جديد",
+    "createPO": "إنشاء أمر شراء",
+    "addItem": "إضافة عنصر"
+  },
+  "aqar": {
+    "search": {
+      "placeholder": "ابحث عن العقارات والمشاريع والوكلاء..."
+    },
+    "postProperty": "نشر عقار",
+    "newValuation": "تقييم جديد"
+  },
   "common": {
+    "brand": "فكس إت",
+    "backToHome": "العودة للصفحة الرئيسية",
+    "signIn": "تسجيل الدخول",
+    "unsavedChanges": "تغييرات غير محفوظة",
+    "unsavedChangesMessage": "لديك تغييرات غير محفوظة. هل أنت متأكد أنك تريد مغادرة هذه الصفحة؟",
+    "discard": "تجاهل التغييرات",
+    "allCaughtUp": "لا توجد إشعارات جديدة!",
+    "noNotifications": "لا توجد إشعارات",
+    "unread": "غير مقروء",
+    "viewAll": "عرض الكل",
+    "preferences": "التفضيلات",
     "save": "حفظ",
     "cancel": "إلغاء",
     "delete": "حذف",
@@ -412,6 +438,29 @@
     "published": "منشور",
     "archived": "مؤرشف",
     "deleted": "محذوف"
+  },
+  "app": {
+    "fm": "إدارة المرافق",
+    "souq": "السوق",
+    "aqar": "العقارات",
+    "switchApplication": "تبديل التطبيق",
+    "currentApp": "التطبيق الحالي",
+    "searchableEntities": "عناصر قابلة للبحث"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "dashboard": "لوحة التحكم",
+    "properties": "العقارات",
+    "workOrders": "أوامر العمل",
+    "finance": "الماليات",
+    "vendors": "الموردون",
+    "crm": "إدارة العملاء",
+    "reports": "التقارير",
+    "settings": "الإعدادات",
+    "help": "المساعدة",
+    "logout": "تسجيل الخروج",
+    "notifications": "الإشعارات",
+    "profile": "الملف الشخصي"
   },
   "navigation": {
     "home": "الرئيسية",
