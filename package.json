@@ -53,6 +53,8 @@
     "test:e2e:loop": "node tests/loop-runner.mjs",
     "test:e2e:setup": "playwright test --config=tests/playwright.config.ts tests/setup-auth.ts",
     "scan:i18n": "node tests/i18n-scan.mjs",
+    "scan:i18n:v2": "node scripts/i18n-scan-v2.mjs",
+    "scan:api": "node scripts/api-scan-v2.mjs",
     "fixzit:agent": "node scripts/fixzit-agent.mjs --report --port 3000 --keepAlive true --limit=0",
     "fixzit:agent:apply": "node scripts/fixzit-agent.mjs --apply --report --port 3000 --keepAlive true --limit=0",
     "fixzit:agent:stop": "node scripts/stop-dev.js",

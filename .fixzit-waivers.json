@@ -1,0 +1,30 @@
+{
+  "routes": {
+    "treat_factory_destructures_as_valid": true,
+    "treat_named_reexports_as_valid": true,
+    "treat_nextauth_v5_handlers_as_valid": true
+  },
+  "console": {
+    "allow_error_and_warn_in_runtime": true,
+    "flag_log_and_dir_only": true
+  },
+  "duplicates": {
+    "ignore_dirs": [
+      "aws/dist",
+      "tmp",
+      ".next",
+      "dist",
+      "build",
+      "coverage",
+      ".turbo",
+      ".vercel"
+    ]
+  },
+  "imports": {
+    "treat_atslash_src_as_alias_to_root": true,
+    "forbid_deep_relatives": true
+  },
+  "i18n": {
+    "merge_translation_context": "contexts/TranslationContext.tsx"
+  }
+}
