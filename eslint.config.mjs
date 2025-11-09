@@ -86,6 +86,11 @@ export default [
         varsIgnorePattern: '^_', 
         caughtErrorsIgnorePattern: '^_' 
       }],
+      'no-unused-vars': ['error', { 
+        argsIgnorePattern: '^_', 
+        varsIgnorePattern: '^_', 
+        caughtErrorsIgnorePattern: '^_' 
+      }],
       '@typescript-eslint/no-var-requires': 'off',
       '@typescript-eslint/ban-ts-comment': 'warn',
 

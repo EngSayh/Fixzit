@@ -24,32 +24,32 @@ export interface UseAuthRbac extends RbacContext {
   /**
    * Check if user has a specific permission
    */
-  can: (perm: string) => boolean;
+  can: (_perm: string) => boolean;
   
   /**
    * Check if user has ANY of the specified permissions
    */
-  canAny: (perms: string[]) => boolean;
+  canAny: (_perms: string[]) => boolean;
   
   /**
    * Check if user has ALL of the specified permissions
    */
-  canAll: (perms: string[]) => boolean;
+  canAll: (_perms: string[]) => boolean;
   
   /**
    * Check if user has permission for a specific module
    */
-  canModule: (module: string) => boolean;
+  canModule: (_module: string) => boolean;
   
   /**
    * Check if user has a specific role
    */
-  hasRole: (roleSlug: string) => boolean;
+  hasRole: (_roleSlug: string) => boolean;
   
   /**
    * Check if user has ANY of the specified roles
    */
-  hasAnyRole: (roleSlugs: string[]) => boolean;
+  hasAnyRole: (_roleSlugs: string[]) => boolean;
   
   /**
    * Session loading state
@@ -86,52 +86,52 @@ export function useAuthRbac(): UseAuthRbac {
   );
   
   const can = useMemo(
-    () => (perm: string) => {
+    () => (_perm: string) => {
       if (isSuperAdmin) return true;
-      return permissions.includes(perm);
+      return permissions.includes(_perm);
     },
     [isSuperAdmin, permissions]
   );
   
   const canAny = useMemo(
-    () => (perms: string[]) => {
+    () => (_perms: string[]) => {
       if (isSuperAdmin) return true;
-      if (!perms || perms.length === 0) return false;
-      return perms.some(p => permissions.includes(p));
+      if (!_perms || _perms.length === 0) return false;
+      return _perms.some(p => permissions.includes(p));
     },
     [isSuperAdmin, permissions]
   );
   
   const canAll = useMemo(
-    () => (perms: string[]) => {
+    () => (_perms: string[]) => {
       if (isSuperAdmin) return true;
-      if (!perms || perms.length === 0) return true;
-      return perms.every(p => permissions.includes(p));
+      if (!_perms || _perms.length === 0) return true;
+      return _perms.every(p => permissions.includes(p));
     },
     [isSuperAdmin, permissions]
   );
   
   const canModule = useMemo(
-    () => (module: string) => {
+    () => (_module: string) => {
       if (isSuperAdmin) return true;
-      return permissions.some(p => p.startsWith(`${module}:`));
+      return permissions.some(p => p.startsWith(`${_module}:`));
     },
     [isSuperAdmin, permissions]
   );
   
   const hasRole = useMemo(
-    () => (roleSlug: string) => {
-      if (isSuperAdmin && roleSlug === 'super_admin') return true;
-      return roles.includes(roleSlug);
+    () => (_roleSlug: string) => {
+      if (isSuperAdmin && _roleSlug === 'super_admin') return true;
+      return roles.includes(_roleSlug);
     },
     [isSuperAdmin, roles]
   );
   
   const hasAnyRole = useMemo(
-    () => (roleSlugs: string[]) => {
-      if (isSuperAdmin && roleSlugs.includes('super_admin')) return true;
-      if (!roleSlugs || roleSlugs.length === 0) return false;
-      return roleSlugs.some(r => roles.includes(r));
+    () => (_roleSlugs: string[]) => {
+      if (isSuperAdmin && _roleSlugs.includes('super_admin')) return true;
+      if (!_roleSlugs || _roleSlugs.length === 0) return false;
+      return _roleSlugs.some(r => roles.includes(r));
     },
     [isSuperAdmin, roles]
   );

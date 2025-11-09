@@ -39,12 +39,12 @@ FooterContentSchema.plugin(auditPlugin);
 FooterContentSchema.index({ orgId: 1, page: 1 }, { unique: true });
 
 // Add helpful method to get content by locale
-FooterContentSchema.methods.getContent = function(locale: 'en' | 'ar'): string {
-  return locale === 'ar' ? this.contentAr : this.contentEn;
+FooterContentSchema.methods.getContent = function(_locale: 'en' | 'ar'): string {
+  return _locale === 'ar' ? this.contentAr : this.contentEn;
 };
 
 export type FooterContentDoc = InferSchemaType<typeof FooterContentSchema> & {
-  getContent(locale: string): string;
+  getContent(_locale: string): string;
 };
 
 export const FooterContent = models.FooterContent || model("FooterContent", FooterContentSchema);

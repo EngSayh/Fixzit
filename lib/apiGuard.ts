@@ -289,8 +289,8 @@ export function requireSuperAdmin(handler: NextApiHandler): NextApiHandler {
  * @returns RBAC context or null if not authenticated
  */
 export async function getRbacContext(
-  req: NextApiRequest, 
-  res: NextApiResponse
+  _req: NextApiRequest, 
+  _res: NextApiResponse
 ): Promise<ReturnType<typeof createRbacContext> | null> {
   const session = await auth();
   if (!session?.user) return null;
