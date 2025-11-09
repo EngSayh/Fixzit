@@ -32,13 +32,13 @@ Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 // Test component that uses translation
 function TestComponent({ testKey }: { testKey: string }) {
-  const { t, language, setLanguage, dir } = useTranslation();
+  const { t, language, setLanguage, isRTL } = useTranslation();
   
   return (
     <div>
       <div data-testid="translation">{t(testKey, 'FALLBACK')}</div>
       <div data-testid="language">{language}</div>
-      <div data-testid="direction">{dir}</div>
+      <div data-testid="direction">{isRTL ? 'rtl' : 'ltr'}</div>
       <button onClick={() => setLanguage('ar')} data-testid="btn-ar">Arabic</button>
       <button onClick={() => setLanguage('en')} data-testid="btn-en">English</button>
     </div>

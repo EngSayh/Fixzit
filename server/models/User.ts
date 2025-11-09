@@ -115,7 +115,7 @@ const UserSchema = new Schema({
   // Security & Access
   security: {
     accessLevel: { type: String, enum: ["READ", "WRITE", "ADMIN"] },
-    permissions: [String], // Specific permissions
+    permissions: [String], // Specific permissions (deprecated - use RBAC roles)
     lastLogin: Date,
     loginAttempts: Number,
     locked: Boolean,
@@ -127,6 +127,10 @@ const UserSchema = new Schema({
       secret: String
     }
   },
+
+  // RBAC - Role-Based Access Control
+  roles: [{ type: Schema.Types.ObjectId, ref: 'Role', index: true }],
+  isSuperAdmin: { type: Boolean, default: false, index: true }, // Fast check for super admin access
 
   // Preferences
   preferences: {
@@ -202,6 +206,7 @@ UserSchema.index({ orgId: 1, 'professional.role': 1 });
 UserSchema.index({ orgId: 1, 'professional.skills.category': 1 });
 UserSchema.index({ orgId: 1, 'workload.available': 1 });
 UserSchema.index({ orgId: 1, 'performance.rating': -1 });
+UserSchema.index({ orgId: 1, isSuperAdmin: 1 }); // RBAC index
 
 export type UserDoc = InferSchemaType<typeof UserSchema>;
 
