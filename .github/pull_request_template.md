@@ -4,6 +4,15 @@
 ### Changes Made
 <!-- Brief description of what was changed and why -->
 
+## Fixzit Quality Gates (must pass)
+- [ ] **API surface validated** (`pnpm run scan:api`) — factory/NextAuth aware
+- [ ] **i18n parity validated** (`pnpm run scan:i18n:v2`) — TranslationContext merged  
+- [ ] **Fixzit Agent (dry)** produced reports (no new critical issues)
+- [ ] **No new console.log/dir** in runtime code
+- [ ] **No new content duplicates** outside vendor/temp
+- [ ] **Waiver schema valid** (`node scripts/waivers-validate.mjs`)
+- [ ] **Delta checks passed** (`node scripts/scan-delta.mjs`)
+
 ## Agent Governor Compliance
 ### Governance Checklist
 - [ ] **Search-first completed** (inventory run, duplicates checked)

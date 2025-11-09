@@ -29,9 +29,8 @@ export default function ExampleForm() {
         // Mark form as clean after successful save
         markFormClean(formId);
         
-        // Optionally handle successful save
-        const data = await response.json();
-        console.log('Save successful:', data);
+        // Success handled silently - form state cleared
+        await response.json();
       } catch (error) {
         console.error('Error saving form:', error);
         // Optionally show user-facing error state

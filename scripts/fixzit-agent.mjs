@@ -87,6 +87,10 @@ async function main() {
     await installTooling(pm);
     await baselineChecks(pm);
 
+    // Phase 2 Canonical Scanners (non-blocking)
+    await $`node scripts/api-scan-v2.mjs`.nothrow();
+    await $`node scripts/i18n-scan-v2.mjs`.nothrow();
+
     const branchName = await gitSafety();
 
     await mineRecentFixes();

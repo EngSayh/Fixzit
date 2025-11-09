@@ -70,6 +70,37 @@ jobs:
               ;;
           esac
 
+      # ---------- Phase 2 Canonical Rules ----------
+      - name: Validate waivers schema
+        shell: bash
+        run: node scripts/waivers-validate.mjs
+
+      - name: API scan (factory/NextAuth aware)
+        shell: bash
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm run scan:api ;;
+            yarn) yarn run scan:api ;;
+            *) npm run scan:api ;;
+          esac
+
+      - name: i18n scan (TranslationContext aware)
+        shell: bash
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm run scan:i18n:v2 ;;
+            yarn) yarn run scan:i18n:v2 ;;
+            *) npm run scan:i18n:v2 ;;
+          esac
+
+      - name: Fixzit Agent (dry, full similarity)
+        shell: bash
+        run: node scripts/fixzit-agent.mjs --report --port 3000 --keepAlive=false --limit=0 || true
+
+      - name: Delta & Regression checks
+        shell: bash
+        run: node scripts/scan-delta.mjs
+
       # ---------- Lint & Types ----------
       - name: Lint
         shell: bash
@@ -308,6 +339,8 @@ jobs:
           path: |
             .artifacts/**
             lhci_reports/**
+            reports/**
+            tmp/**
           retention-days: 30
 
       # ---------- Summary ----------
