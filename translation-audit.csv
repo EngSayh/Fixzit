@@ -1,2 +1,9 @@
 type,key,bare,inEN,inAR,files
 CATALOG_MISSING_AR,Denied\,Denied\,true,false,""
+CATALOG_MISSING_AR,size\,size\,true,false,""
+CATALOG_MISSING_AR,formats\,formats\,true,false,""
+CATALOG_MISSING_AR,dimensions\,dimensions\,true,false,""
+CATALOG_MISSING_EN,Denied\\,Denied\\,false,true,""
+CATALOG_MISSING_EN,size\\,size\\,false,true,""
+CATALOG_MISSING_EN,formats\\,formats\\,false,true,""
+CATALOG_MISSING_EN,dimensions\\,dimensions\\,false,true,""

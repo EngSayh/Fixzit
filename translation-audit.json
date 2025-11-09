@@ -1,17 +1,25 @@
 {
   "stats": {
-    "files": 366,
-    "usedKeys": 1559,
+    "files": 369,
+    "usedKeys": 1584,
     "hasDynamic": true,
-    "enCount": 1903,
-    "arCount": 1902,
-    "parityGap": 1
+    "enCount": 1931,
+    "arCount": 1931,
+    "parityGap": 0
   },
   "missing": {
     "inAr": [
-      "Denied\\"
+      "Denied\\",
+      "size\\",
+      "formats\\",
+      "dimensions\\"
     ],
-    "inEn": [],
+    "inEn": [
+      "Denied\\\\",
+      "size\\\\",
+      "formats\\\\",
+      "dimensions\\\\"
+    ],
     "used": []
   },
   "fileMap": {
@@ -99,6 +107,7 @@
     "common.loading": [
       "/workspaces/Fixzit/app/admin/cms/footer/page.tsx",
       "/workspaces/Fixzit/app/admin/cms/footer/page.tsx",
+      "/workspaces/Fixzit/app/admin/logo/page.tsx",
       "/workspaces/Fixzit/app/finance/expenses/new/page.tsx",
       "/workspaces/Fixzit/app/finance/expenses/new/page.tsx",
       "/workspaces/Fixzit/app/finance/invoices/new/page.tsx",
@@ -201,6 +210,88 @@
     ],
     "admin.cms.content": [
       "/workspaces/Fixzit/app/admin/cms/page.tsx"
+    ],
+    "admin.logo.accessDenied": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.invalidType": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.fileTooLarge": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.noFileSelected": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.uploading": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx",
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.uploadSuccess": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.uploadFailed": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.uploadNetworkError": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.title": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.subtitle": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.currentLogo": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.visibleInTopBar": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.replaceLogo": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.uploadLogo": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.uploadButton": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "common.cancel": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx",
+      "/workspaces/Fixzit/components/SupportPopup.tsx",
+      "/workspaces/Fixzit/components/TopBar.tsx",
+      "/workspaces/Fixzit/components/finance/JournalEntryForm.tsx"
+    ],
+    "admin.logo.chooseFile": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.orDragDrop": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.supportedFormats": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.guidelinesTitle": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.guideline.formats": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.guideline.size": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.guideline.dimensions": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.guideline.transparent": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.guideline.topbar": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "admin.logo.guideline.clickable": [
+      "/workspaces/Fixzit/app/admin/logo/page.tsx"
     ],
     "admin.users.creating": [
       "/workspaces/Fixzit/app/admin/page.tsx"
@@ -3915,11 +4006,6 @@
     "support.phonePlaceholder": [
       "/workspaces/Fixzit/components/SupportPopup.tsx"
     ],
-    "common.cancel": [
-      "/workspaces/Fixzit/components/SupportPopup.tsx",
-      "/workspaces/Fixzit/components/TopBar.tsx",
-      "/workspaces/Fixzit/components/finance/JournalEntryForm.tsx"
-    ],
     "support.copyDetails": [
       "/workspaces/Fixzit/components/SupportPopup.tsx"
     ],
@@ -5035,5 +5121,5 @@
       "/workspaces/Fixzit/contexts/TranslationContext.test.tsx"
     ]
   },
-  "timestamp": "2025-11-09T16:00:07.953Z"
+  "timestamp": "2025-11-09T16:23:36.270Z"
 }
