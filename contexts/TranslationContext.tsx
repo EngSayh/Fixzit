@@ -2043,6 +2043,11 @@ const translations: Record<Language, Record<string, string>> = {
     // Test Keys (used in TranslationContext.test.tsx)
     'greet': 'مرحباً',
     'missing_key': 'missing_key',
+  
+    // Standalone keys (used as values, not translation keys)
+    'employees': 'الموظفين',
+    'accounts': 'الحسابات',
+    'Accounts': 'الحسابات',
   },
   en: {
       // Navigation
@@ -3941,6 +3946,11 @@ const translations: Record<Language, Record<string, string>> = {
     // Test Keys (used in TranslationContext.test.tsx)
     'greet': 'Hello',
     'missing_key': 'missing_key',
+
+    // Standalone keys (used as values, not translation keys)
+    'employees': 'Employees',
+    'accounts': 'Accounts',
+    'Accounts': 'Accounts',
 
     // Product Page
     'product.notFound': 'Not found',
