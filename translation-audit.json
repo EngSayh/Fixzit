@@ -1,14 +1,16 @@
 {
   "stats": {
-    "files": 363,
-    "usedKeys": 1536,
+    "files": 366,
+    "usedKeys": 1559,
     "hasDynamic": true,
-    "enCount": 1879,
-    "arCount": 1879,
-    "parityGap": 0
+    "enCount": 1903,
+    "arCount": 1902,
+    "parityGap": 1
   },
   "missing": {
-    "inAr": [],
+    "inAr": [
+      "Denied\\"
+    ],
     "inEn": [],
     "used": []
   },
@@ -70,6 +72,106 @@
     "about.phoneLabel": [
       "/workspaces/Fixzit/app/about/page.tsx"
     ],
+    "admin.footer.accessDenied": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.loadFailed": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.networkError": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.validation.bothRequired": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.saving": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.saveSuccess": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.saveFailed": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.saveNetworkError": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "common.loading": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx",
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx",
+      "/workspaces/Fixzit/app/finance/expenses/new/page.tsx",
+      "/workspaces/Fixzit/app/finance/expenses/new/page.tsx",
+      "/workspaces/Fixzit/app/finance/invoices/new/page.tsx",
+      "/workspaces/Fixzit/app/hr/employees/page.tsx",
+      "/workspaces/Fixzit/app/hr/payroll/page.tsx",
+      "/workspaces/Fixzit/app/marketplace/vendor/portal/page.tsx",
+      "/workspaces/Fixzit/app/privacy/page.tsx",
+      "/workspaces/Fixzit/app/product/[slug]/page.tsx",
+      "/workspaces/Fixzit/app/terms/page.tsx",
+      "/workspaces/Fixzit/components/TopBar.tsx",
+      "/workspaces/Fixzit/components/finance/JournalEntryForm.tsx",
+      "/workspaces/Fixzit/components/finance/JournalEntryForm.tsx",
+      "/workspaces/Fixzit/components/finance/TrialBalanceReport.tsx"
+    ],
+    "admin.footer.pages.about": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.pages.privacy": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.pages.terms": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.title": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.subtitle": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "common.saving": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx",
+      "/workspaces/Fixzit/components/finance/JournalEntryForm.tsx"
+    ],
+    "common.save": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx",
+      "/workspaces/Fixzit/app/admin/cms/page.tsx",
+      "/workspaces/Fixzit/app/finance/budgets/new/page.tsx",
+      "/workspaces/Fixzit/app/finance/expenses/new/page.tsx",
+      "/workspaces/Fixzit/app/finance/invoices/new/page.tsx",
+      "/workspaces/Fixzit/app/fm/page.tsx",
+      "/workspaces/Fixzit/app/work-orders/new/page.tsx"
+    ],
+    "admin.footer.contentEn": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.contentEnPlaceholder": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "common.characters": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx",
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.contentAr": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.contentArPlaceholder": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.helpTitle": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.help.both": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.help.markdown": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.help.auto": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.footer.help.public": [
+      "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
     "save.saving": [
       "/workspaces/Fixzit/app/admin/cms/page.tsx"
     ],
@@ -93,14 +195,6 @@
     ],
     "admin.cms.published": [
       "/workspaces/Fixzit/app/admin/cms/page.tsx"
-    ],
-    "common.save": [
-      "/workspaces/Fixzit/app/admin/cms/page.tsx",
-      "/workspaces/Fixzit/app/finance/budgets/new/page.tsx",
-      "/workspaces/Fixzit/app/finance/expenses/new/page.tsx",
-      "/workspaces/Fixzit/app/finance/invoices/new/page.tsx",
-      "/workspaces/Fixzit/app/fm/page.tsx",
-      "/workspaces/Fixzit/app/work-orders/new/page.tsx"
     ],
     "admin.cms.titleLabel": [
       "/workspaces/Fixzit/app/admin/cms/page.tsx"
@@ -775,21 +869,6 @@
     ],
     "finance.expense.vendorSupplier": [
       "/workspaces/Fixzit/app/finance/expenses/new/page.tsx"
-    ],
-    "common.loading": [
-      "/workspaces/Fixzit/app/finance/expenses/new/page.tsx",
-      "/workspaces/Fixzit/app/finance/expenses/new/page.tsx",
-      "/workspaces/Fixzit/app/finance/invoices/new/page.tsx",
-      "/workspaces/Fixzit/app/hr/employees/page.tsx",
-      "/workspaces/Fixzit/app/hr/payroll/page.tsx",
-      "/workspaces/Fixzit/app/marketplace/vendor/portal/page.tsx",
-      "/workspaces/Fixzit/app/privacy/page.tsx",
-      "/workspaces/Fixzit/app/product/[slug]/page.tsx",
-      "/workspaces/Fixzit/app/terms/page.tsx",
-      "/workspaces/Fixzit/components/TopBar.tsx",
-      "/workspaces/Fixzit/components/finance/JournalEntryForm.tsx",
-      "/workspaces/Fixzit/components/finance/JournalEntryForm.tsx",
-      "/workspaces/Fixzit/components/finance/TrialBalanceReport.tsx"
     ],
     "finance.expense.selectVendor": [
       "/workspaces/Fixzit/app/finance/expenses/new/page.tsx"
@@ -4791,9 +4870,6 @@
     "finance.journal.difference": [
       "/workspaces/Fixzit/components/finance/JournalEntryForm.tsx"
     ],
-    "common.saving": [
-      "/workspaces/Fixzit/components/finance/JournalEntryForm.tsx"
-    ],
     "finance.journal.createEntry": [
       "/workspaces/Fixzit/components/finance/JournalEntryForm.tsx"
     ],
@@ -4959,5 +5035,5 @@
       "/workspaces/Fixzit/contexts/TranslationContext.test.tsx"
     ]
   },
-  "timestamp": "2025-11-09T15:40:26.762Z"
+  "timestamp": "2025-11-09T16:00:07.953Z"
 }
