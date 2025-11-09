@@ -86,6 +86,7 @@ const translations: Record<Language, Record<string, string>> = {
     'common.allCaughtUp': 'لقد قرأت كل شيء!',
     'common.viewAll': 'عرض جميع الإشعارات',
     'common.backToHome': 'العودة إلى الصفحة الرئيسية',
+    'common.characters': 'حرف',
     
     // AI Chat
     'chat.welcome': 'مرحباً! أنا مساعد فيكزيت الذكي. كيف يمكنني مساعدتك اليوم؟',
@@ -746,6 +747,30 @@ const translations: Record<Language, Record<string, string>> = {
     'admin.cms.content': 'محتوى Markdown...',
     'admin.cms.draft': 'مسودة',
     'admin.cms.published': 'منشور',
+    
+    // Admin - Footer CMS
+    'admin.footer.title': 'إدارة محتوى التذييل',
+    'admin.footer.subtitle': 'إدارة المحتوى ثنائي اللغة لصفحات التذييل (مسؤول النظام فقط)',
+    'admin.footer.accessDenied': 'الوصول مرفوض: يتطلب دور SUPER_ADMIN',
+    'admin.footer.pages.about': 'عنّا',
+    'admin.footer.pages.privacy': 'سياسة الخصوصية',
+    'admin.footer.pages.terms': 'شروط الخدمة',
+    'admin.footer.contentEn': 'المحتوى الإنجليزي',
+    'admin.footer.contentAr': 'المحتوى العربي',
+    'admin.footer.contentEnPlaceholder': 'أدخل المحتوى الإنجليزي هنا...',
+    'admin.footer.contentArPlaceholder': 'أدخل المحتوى العربي هنا...',
+    'admin.footer.loadFailed': 'فشل تحميل المحتوى',
+    'admin.footer.networkError': 'خطأ في الشبكة أثناء تحميل المحتوى',
+    'admin.footer.saving': 'جارٍ حفظ محتوى التذييل...',
+    'admin.footer.saveSuccess': 'تم حفظ محتوى التذييل بنجاح',
+    'admin.footer.saveFailed': 'فشل الحفظ',
+    'admin.footer.saveNetworkError': 'خطأ في الشبكة أثناء الحفظ',
+    'admin.footer.validation.bothRequired': 'المحتوى الإنجليزي والعربي مطلوبان',
+    'admin.footer.helpTitle': 'إرشادات الاستخدام',
+    'admin.footer.help.both': 'المحتوى الإنجليزي والعربي مطلوبان',
+    'admin.footer.help.markdown': 'يدعم النص العادي وتنسيق Markdown',
+    'admin.footer.help.auto': 'يتم نشر المحتوى تلقائيًا بعد الحفظ',
+    'admin.footer.help.public': 'سيرى المستخدمون العامون هذا المحتوى في روابط التذييل',
     
     // Properties - Leases
     'properties.leases.title': 'إدارة عقود الإيجار',
@@ -2106,6 +2131,7 @@ const translations: Record<Language, Record<string, string>> = {
     'common.allCaughtUp': "You're all caught up!",
     'common.viewAll': 'View all notifications',
     'common.backToHome': 'Back to Home',
+    'common.characters': 'characters',
     
     // AI Chat
     'chat.welcome': 'Hello! I\'m your Fixzit AI assistant. How can I help you today?',
@@ -2766,6 +2792,30 @@ const translations: Record<Language, Record<string, string>> = {
     'admin.cms.content': 'Markdown content...',
     'admin.cms.draft': 'DRAFT',
     'admin.cms.published': 'PUBLISHED',
+    
+    // Admin - Footer CMS
+    'admin.footer.title': 'Footer Content Management',
+    'admin.footer.subtitle': 'Manage bilingual content for footer pages (Super Admin only)',
+    'admin.footer.accessDenied': 'Access Denied: SUPER_ADMIN role required',
+    'admin.footer.pages.about': 'About Us',
+    'admin.footer.pages.privacy': 'Privacy Policy',
+    'admin.footer.pages.terms': 'Terms of Service',
+    'admin.footer.contentEn': 'English Content',
+    'admin.footer.contentAr': 'Arabic Content',
+    'admin.footer.contentEnPlaceholder': 'Enter English content here...',
+    'admin.footer.contentArPlaceholder': 'أدخل المحتوى العربي هنا...',
+    'admin.footer.loadFailed': 'Failed to load content',
+    'admin.footer.networkError': 'Network error while loading content',
+    'admin.footer.saving': 'Saving footer content...',
+    'admin.footer.saveSuccess': 'Footer content saved successfully',
+    'admin.footer.saveFailed': 'Save failed',
+    'admin.footer.saveNetworkError': 'Network error while saving',
+    'admin.footer.validation.bothRequired': 'Both English and Arabic content are required',
+    'admin.footer.helpTitle': 'Usage Guidelines',
+    'admin.footer.help.both': 'Both English and Arabic content are required',
+    'admin.footer.help.markdown': 'Supports plain text and Markdown formatting',
+    'admin.footer.help.auto': 'Content is automatically published after saving',
+    'admin.footer.help.public': 'Public users will see this content in footer links',
     
     // Properties - Leases
     'properties.leases.title': 'Lease Management',
