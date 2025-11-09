@@ -77,28 +77,39 @@ function extractLocaleObject(source, localeKey) {
   return null;
 }
 
-// Convert TS-ish object literal to JSON-ish string, then to a plain key map
+// Convert TS-ish object literal to a key set by extracting key names only
 function objectLiteralToKeySet(objLiteral) {
-  // 1) Remove comments
-  let s = objLiteral.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
-  // 2) Quote unquoted keys -> "key":
-  s = s.replace(/(\s|^)([A-Za-z0-9_\-\.]+)\s*:/g, '$1"$2":');
-  // 3) Single → double quotes
-  s = s.replace(/'([^'\\]|\\.)*'/g, m => `"${m.slice(1, -1).replace(/\\"/g, '"').replace(/"/g, '\\"')}"`);
-  // 4) Remove trailing commas
-  s = s.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
-
-  // 5) Safely parse keys with a simple recursive walk (not evaluating values)
   const keys = new Set();
-  function collectKeys(str) {
-    const keyRe = /"([^"]+)"\s*:/g;
-    let m;
-    while ((m = keyRe.exec(str))) {
-      const key = m[1];
-      keys.add(key);
+  
+  // Remove comments first
+  let s = objLiteral.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
+  
+  // Split into lines and extract keys line by line to avoid multi-line matches
+  const lines = s.split('\n');
+  
+  for (const line of lines) {
+    // Match quoted keys followed by colon: 'key': or "key":
+    // Single quotes
+    const singleQuoteMatch = /'([^']+)'\s*:/.exec(line);
+    if (singleQuoteMatch) {
+      const key = singleQuoteMatch[1];
+      // Skip keys ending with backslash (parse artifacts)
+      if (!key.endsWith('\\')) {
+        keys.add(key);
+      }
+    }
+    
+    // Double quotes
+    const doubleQuoteMatch = /"([^"]+)"\s*:/.exec(line);
+    if (doubleQuoteMatch) {
+      const key = doubleQuoteMatch[1];
+      // Skip keys ending with backslash (parse artifacts)
+      if (!key.endsWith('\\')) {
+        keys.add(key);
+      }
     }
   }
-  collectKeys(s);
+  
   return keys;
 }
 
@@ -284,11 +295,13 @@ async function main() {
     ...missingDetail.map(m => `USED_MISSING,${m.key},${m.bare},${m.inEN},${m.inAR},"${m.files.join('; ')}"`),
   ].join('\n');
 
-  await fs.writeFile(path.join(ROOT, 'translation-audit.json'), JSON.stringify(jsonOut, null, 2));
-  await fs.writeFile(path.join(ROOT, 'translation-audit.csv'), CSV);
+  const docsPath = path.join(ROOT, 'docs', 'translations');
+  await fs.mkdir(docsPath, { recursive: true });
+  await fs.writeFile(path.join(docsPath, 'translation-audit.json'), JSON.stringify(jsonOut, null, 2));
+  await fs.writeFile(path.join(docsPath, 'translation-audit.csv'), CSV);
   console.log('\n' + COLOR.g('✅ Artifacts written:'));
-  console.log('  - translation-audit.json');
-  console.log('  - translation-audit.csv');
+  console.log('  - docs/translations/translation-audit.json');
+  console.log('  - docs/translations/translation-audit.csv');
 
   // Optional autofix
   if (DO_FIX && (missingInAr.length || missingInEn.length || missingDetail.length)) {

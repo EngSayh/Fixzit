@@ -3,23 +3,13 @@
     "files": 369,
     "usedKeys": 1584,
     "hasDynamic": true,
-    "enCount": 1931,
-    "arCount": 1931,
+    "enCount": 1927,
+    "arCount": 1927,
     "parityGap": 0
   },
   "missing": {
-    "inAr": [
-      "Denied\\",
-      "size\\",
-      "formats\\",
-      "dimensions\\"
-    ],
-    "inEn": [
-      "Denied\\\\",
-      "size\\\\",
-      "formats\\\\",
-      "dimensions\\\\"
-    ],
+    "inAr": [],
+    "inEn": [],
     "used": []
   },
   "fileMap": {
@@ -5121,5 +5111,5 @@
       "/workspaces/Fixzit/contexts/TranslationContext.test.tsx"
     ]
   },
-  "timestamp": "2025-11-09T16:23:36.270Z"
+  "timestamp": "2025-11-09T16:39:36.668Z"
 }
