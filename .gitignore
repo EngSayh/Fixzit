@@ -44,6 +44,9 @@ Thumbs.db
 *.tmp
 *.log
 
+# Temp directory (prevent tracking large patch files)
+/tmp/
+
 # Local artifacts we'll keep but not commit
 /_archive/
 /_artifacts/
