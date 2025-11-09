@@ -1,7 +1,7 @@
 {
   "stats": {
     "files": 377,
-    "usedKeys": 1584,
+    "usedKeys": 1504,
     "hasDynamic": true,
     "enCount": 1927,
     "arCount": 1927,
@@ -282,267 +282,6 @@
     ],
     "admin.logo.guideline.clickable": [
       "/workspaces/Fixzit/app/admin/logo/page.tsx"
-    ],
-    "admin.users.creating": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.createFailed": [
-      "/workspaces/Fixzit/app/admin/page.tsx",
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.createSuccess": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.deleteConfirm": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.deleting": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.deleteFailed": [
-      "/workspaces/Fixzit/app/admin/page.tsx",
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.deleteSuccess": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.title": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.signInRequired": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.accessDenied": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.insufficientPerms": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.superAdminRequired": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.currentRole": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "common.unknown": [
-      "/workspaces/Fixzit/app/admin/page.tsx",
-      "/workspaces/Fixzit/components/SupportPopup.tsx",
-      "/workspaces/Fixzit/components/SupportPopup.tsx",
-      "/workspaces/Fixzit/components/SupportPopup.tsx",
-      "/workspaces/Fixzit/components/SupportPopup.tsx"
-    ],
-    "admin.console": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.consoleDesc": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.tabs.overview": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.tabs.users": [
-      "/workspaces/Fixzit/app/admin/page.tsx",
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.tabs.roles": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.tabs.audit": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.tabs.features": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.overview.title": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.overview.quickLinks": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.overview.manageUsers": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.overview.manageRoles": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.overview.viewLogs": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.overview.featureSettings": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.exportCsv": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.createUser": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.createNewUser": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.email": [
-      "/workspaces/Fixzit/app/admin/page.tsx",
-      "/workspaces/Fixzit/app/admin/page.tsx",
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.username": [
-      "/workspaces/Fixzit/app/admin/page.tsx",
-      "/workspaces/Fixzit/app/admin/page.tsx",
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.firstName": [
-      "/workspaces/Fixzit/app/admin/page.tsx",
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.lastName": [
-      "/workspaces/Fixzit/app/admin/page.tsx",
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.phone": [
-      "/workspaces/Fixzit/app/admin/page.tsx",
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.role": [
-      "/workspaces/Fixzit/app/admin/page.tsx",
-      "/workspaces/Fixzit/app/admin/page.tsx",
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.rolePlaceholder": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.cancel": [
-      "/workspaces/Fixzit/app/admin/page.tsx",
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.create": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.searchPlaceholder": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.filterRole": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.filterStatus": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.deleteSelected": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.loadFailed": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.noAccess": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.name": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.status": [
-      "/workspaces/Fixzit/app/admin/page.tsx",
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.actions": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.edit": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.delete": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.total": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.usersCount": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.previous": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.page": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.of": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.totalUsers": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.next": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.editUser": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.statusPlaceholder": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.users.saveChanges": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.roles.title": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.roles.comingSoon": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.roles.superAdminDesc": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.roles.adminDesc": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.roles.managerDesc": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.roles.userDesc": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.audit.title": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.audit.filterUser": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.audit.filterAction": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.audit.clear": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.audit.loadFailed": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.audit.time": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.audit.user": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.audit.action": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.audit.entity": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.audit.previous": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.audit.page": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.audit.next": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.features.title": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.features.desc": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
-    ],
-    "admin.features.open": [
-      "/workspaces/Fixzit/app/admin/page.tsx"
     ],
     "aqar.filters.title": [
       "/workspaces/Fixzit/app/aqar/filters/page.tsx"
@@ -3842,6 +3581,12 @@
       "/workspaces/Fixzit/components/SupportPopup.tsx",
       "/workspaces/Fixzit/components/SupportPopup.tsx"
     ],
+    "common.unknown": [
+      "/workspaces/Fixzit/components/SupportPopup.tsx",
+      "/workspaces/Fixzit/components/SupportPopup.tsx",
+      "/workspaces/Fixzit/components/SupportPopup.tsx",
+      "/workspaces/Fixzit/components/SupportPopup.tsx"
+    ],
     "support.message": [
       "/workspaces/Fixzit/components/SupportPopup.tsx"
     ],
@@ -5111,5 +4856,5 @@
       "/workspaces/Fixzit/contexts/TranslationContext.test.tsx"
     ]
   },
-  "timestamp": "2025-11-09T19:17:16.930Z"
+  "timestamp": "2025-11-09T19:19:36.963Z"
 }
