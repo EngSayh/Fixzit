@@ -14,6 +14,9 @@ type ExtendedUser = {
   orgId?: string | null;
   sessionId?: string | null;
   rememberMe?: boolean;
+  isSuperAdmin?: boolean;
+  permissions?: string[];
+  roles?: string[];
 };
 
 // Validate required environment variables at startup
@@ -260,6 +263,16 @@ export const authConfig = {
       if (token?.orgId) {
         (session.user as ExtendedUser).orgId = token.orgId as string | null;
       }
+      // Add RBAC fields to session
+      if (token?.isSuperAdmin !== undefined) {
+        (session.user as ExtendedUser).isSuperAdmin = token.isSuperAdmin as boolean;
+      }
+      if (token?.permissions) {
+        (session.user as ExtendedUser).permissions = token.permissions as string[];
+      }
+      if (token?.roles) {
+        (session.user as ExtendedUser).roles = token.roles as string[];
+      }
       return session;
     },
     async jwt({ token, user, account }) {
@@ -276,6 +289,85 @@ export const authConfig = {
           token.rememberMe = true;
         }
       }
+
+      // Load RBAC data from database on every token refresh
+      // This ensures permissions are always up-to-date
+      if (token?.id) {
+        try {
+          // Dynamic imports to avoid Edge Runtime issues
+          const { connectToDatabase } = await import('@/lib/mongodb-unified');
+          const { User } = await import('@/server/models/User');
+          
+          await connectToDatabase();
+          
+          // Load user with populated roles
+          const dbUser = await User.findById(token.id)
+            .populate('roles')
+            .select('isSuperAdmin roles')
+            .lean() as {
+              isSuperAdmin?: boolean;
+              roles?: Array<{
+                slug?: string;
+                name?: string;
+                permissions?: Array<string | { key: string }>;
+                wildcard?: boolean;
+              }>;
+            } | null;
+          
+          if (dbUser) {
+            // Set Super Admin flag
+            token.isSuperAdmin = dbUser.isSuperAdmin || false;
+            
+            // Extract role slugs
+            token.roles = Array.isArray(dbUser.roles)
+              ? dbUser.roles.map((r) => r.slug || r.name).filter((s): s is string => typeof s === 'string')
+              : [];
+            
+            // Extract permissions from roles
+            const permissionSet = new Set<string>();
+            
+            // Super Admin gets wildcard permission
+            if (dbUser.isSuperAdmin) {
+              permissionSet.add('*');
+            }
+            
+            // Collect permissions from all roles
+            if (Array.isArray(dbUser.roles)) {
+              for (const role of dbUser.roles) {
+                if (role && Array.isArray(role.permissions)) {
+                  for (const perm of role.permissions) {
+                    if (typeof perm === 'string') {
+                      permissionSet.add(perm);
+                    } else if (perm && typeof perm === 'object' && 'key' in perm) {
+                      permissionSet.add(perm.key);
+                    }
+                  }
+                }
+                // If role has wildcard flag, add wildcard
+                if (role && role.wildcard) {
+                  permissionSet.add('*');
+                }
+              }
+            }
+            
+            token.permissions = Array.from(permissionSet);
+          } else {
+            // User not found, clear RBAC data
+            token.isSuperAdmin = false;
+            token.roles = [];
+            token.permissions = [];
+          }
+        } catch (error) {
+          console.error('[NextAuth] Failed to load RBAC data:', error);
+          // On error, keep previous RBAC data or set defaults
+          if (token.isSuperAdmin === undefined) {
+            token.isSuperAdmin = false;
+            token.roles = [];
+            token.permissions = [];
+          }
+        }
+      }
+      
       return token;
     },
   },

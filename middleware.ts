@@ -13,6 +13,9 @@ interface SessionUser {
   email?: string | null;
   role: string;
   orgId: string | null;
+  isSuperAdmin: boolean;
+  permissions: string[];
+  roles: string[];
 }
 
 interface AuthSession {
@@ -139,10 +142,15 @@ async function getAuthSession(request: NextRequest): Promise<SessionUser | null>
     
     const handler = wrappedAuth(async (req: WrappedReq) => {
       const sess = req.auth;
-      return sess?.user ? { 
+      if (!sess?.user) return null;
+      
+      return { 
         ...sess.user, 
-        id: sess.user.id || (sess as { sub?: string }).sub || '' 
-      } as SessionUser : null;
+        id: sess.user.id || (sess as { sub?: string }).sub || '',
+        isSuperAdmin: sess.user.isSuperAdmin || false,
+        permissions: sess.user.permissions || [],
+        roles: sess.user.roles || [],
+      } as SessionUser;
     });
     
     const result = await handler(request);
@@ -153,9 +161,33 @@ async function getAuthSession(request: NextRequest): Promise<SessionUser | null>
   }
 }
 
+// Check if user has a specific permission
+function hasPermission(user: SessionUser | null, permission: string): boolean {
+  if (!user) return false;
+  if (user.isSuperAdmin) return true;
+  if (user.permissions.includes('*')) return true;
+  return user.permissions.includes(permission);
+}
+
+// Check if user has any of the given permissions
+function hasAnyPermission(user: SessionUser | null, permissions: string[]): boolean {
+  if (!user) return false;
+  if (user.isSuperAdmin) return true;
+  if (user.permissions.includes('*')) return true;
+  return permissions.some(p => user.permissions.includes(p));
+}
+
 function attachUserHeaders(req: NextRequest, user: SessionUser): NextResponse {
   const headers = new Headers(req.headers);
-  headers.set('x-user', JSON.stringify({ id: user.id, email: user.email, role: user.role, orgId: user.orgId }));
+  headers.set('x-user', JSON.stringify({ 
+    id: user.id, 
+    email: user.email, 
+    role: user.role, 
+    orgId: user.orgId,
+    isSuperAdmin: user.isSuperAdmin,
+    permissions: user.permissions,
+    roles: user.roles,
+  }));
   if (user.orgId) headers.set('x-org-id', user.orgId);
   return NextResponse.next({ request: { headers } });
 }
@@ -200,9 +232,24 @@ export async function middleware(request: NextRequest) {
 
     // RBAC: Admin and System endpoints require elevated privileges
     if (pathname.startsWith('/api/admin') || pathname.startsWith('/api/system')) {
-      const adminRoles = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN']);
-      if (!adminRoles.has(user.role)) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      // Super Admin always has access
+      if (user.isSuperAdmin) {
+        return attachUserHeaders(request, user);
+      }
+      
+      // Check for admin permissions
+      const hasAdminAccess = hasAnyPermission(user, [
+        'system:admin.access',
+        'system:settings.write',
+        '*',
+      ]);
+      
+      if (!hasAdminAccess) {
+        // Fallback to legacy role check
+        const adminRoles = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN']);
+        if (!adminRoles.has(user.role)) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
       }
     }
 
@@ -226,9 +273,24 @@ export async function middleware(request: NextRequest) {
 
   // Admin RBAC for /admin and /admin/* (consistent with API RBAC)
   if (matchesRoute(pathname, '/admin')) {
-    const adminRoles = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN']);
-    if (!adminRoles.has(user.role)) {
-      return NextResponse.redirect(new URL('/login', request.url));
+    // Super Admin always has access
+    if (user.isSuperAdmin) {
+      return attachUserHeaders(request, user);
+    }
+    
+    // Check for admin permissions
+    const hasAdminAccess = hasAnyPermission(user, [
+      'system:admin.access',
+      'system:settings.write',
+      '*',
+    ]);
+    
+    if (!hasAdminAccess) {
+      // Fallback to legacy role check
+      const adminRoles = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN']);
+      if (!adminRoles.has(user.role)) {
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
     }
   }
 

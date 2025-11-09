@@ -14,6 +14,9 @@ declare module 'next-auth' {
       role: string;
       orgId: string | null;
       sessionId: string | null;
+      isSuperAdmin: boolean;
+      permissions: string[];
+      roles: string[];
     };
   }
 
@@ -22,6 +25,9 @@ declare module 'next-auth' {
     role: string;
     orgId: string | null;
     sessionId: string | null;
+    isSuperAdmin?: boolean;
+    permissions?: string[];
+    roles?: string[];
   }
 }
 
@@ -30,5 +36,8 @@ declare module 'next-auth/jwt' {
     id: string;
     role: string;
     orgId: string | null;
+    isSuperAdmin?: boolean;
+    permissions?: string[];
+    roles?: string[];
   }
 }
