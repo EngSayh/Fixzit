@@ -156,7 +156,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
           .sort(defaultSort)
           .skip((page - 1) * limit)
           .limit(limit)
-          .lean(),
+          .lean(), // Already using .lean() for 5-10x faster queries
         Model.countDocuments(match),
       ]);
 
@@ -169,7 +169,12 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
           pages: Math.ceil(total / limit),
         },
         200,
-        req
+        req,
+        {
+          // Add caching headers for better performance
+          'Cache-Control': 'private, max-age=10, stale-while-revalidate=60',
+          'CDN-Cache-Control': 'max-age=60',
+        }
       );
     } catch (error: unknown) {
       const correlationId = crypto.randomUUID();

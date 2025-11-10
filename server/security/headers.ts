@@ -141,15 +141,25 @@ export function getClientIP(request: NextRequest): string {
 }
 
 /**
- * Secure JSON response helper
+ * Create a secure JSON response with proper headers
  * - Applies CORS and security headers
+ * - Allows custom headers to be passed through
  */
 export function createSecureResponse(
   data: unknown,
   status = 200,
-  request?: NextRequest
+  request?: NextRequest,
+  customHeaders?: Record<string, string>
 ): NextResponse {
   const res = NextResponse.json(data, { status });
+  
+  // Apply custom headers if provided
+  if (customHeaders) {
+    Object.entries(customHeaders).forEach(([key, value]) => {
+      res.headers.set(key, value);
+    });
+  }
+  
   if (request) withCORS(request, res);
   return withSecurityHeaders(res, request);
 }
