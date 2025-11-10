@@ -48,11 +48,16 @@ const fetcher = async (url: string, orgId?: string) => {
   if (!orgId) {
     throw new Error('Organization ID required');
   }
-  const res = await fetch(url, {
-    headers: { 'x-tenant-id': orgId }
-  });
-  if (!res.ok) throw new Error('Failed to fetch vendors');
-  return res.json();
+  try {
+    const res = await fetch(url, {
+      headers: { 'x-tenant-id': orgId }
+    });
+    if (!res.ok) throw new Error('Failed to fetch vendors');
+    return res.json();
+  } catch (error) {
+    console.error('FM vendors fetch error:', error);
+    throw error;
+  }
 };
 
 export default function FMVendorsPage() {

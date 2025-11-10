@@ -31,11 +31,16 @@ interface ApiResponse {
 }
 
 async function fetchPdp(slug: string) {
-  const res = await fetch(`/api/marketplace/products/${slug}`, {
-    cache: 'no-store',
-    credentials: 'include'
-  } as RequestInit);
-  return res.json();
+  try {
+    const res = await fetch(`/api/marketplace/products/${slug}`, {
+      cache: 'no-store',
+      credentials: 'include'
+    } as RequestInit);
+    return res.json();
+  } catch (error) {
+    console.error('Product PDP fetch error:', error);
+    throw error;
+  }
 }
 
 export default function ProductPage(props: { params: Promise<{ slug: string }> }) {
@@ -45,10 +50,15 @@ export default function ProductPage(props: { params: Promise<{ slug: string }> }
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    fetchPdp(params.slug).then(result => {
-      setData(result);
-      setLoading(false);
-    });
+    fetchPdp(params.slug)
+      .then(result => {
+        setData(result);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error('Failed to load product:', error);
+        setLoading(false);
+      });
   }, [params.slug]);
   if (loading || !data) {
     return <div className="p-6">{t('common.loading', 'Loading...')}</div>;
