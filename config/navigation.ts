@@ -25,8 +25,8 @@ export type UserLink = {
 export const ROLE_PERMISSIONS: Record<UserRoleType | 'guest', readonly string[]> = {
   SUPER_ADMIN: [
     'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
-    'projects', 'rfqs', 'invoices', 'finance', 'hr', 'administration',
-    'crm', 'marketplace', 'support', 'compliance', 'reports', 'system'
+    'projects', 'rfqs', 'invoices', 'finance', 'hr', 'admin', 'administration',
+    'crm', 'marketplace', 'support', 'compliance', 'reports', 'system', 'maintenance', 'orders'
   ],
   CORPORATE_ADMIN: [
     'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
@@ -76,33 +76,34 @@ export const ROLE_PERMISSIONS: Record<UserRoleType | 'guest', readonly string[]>
 // ---------- Subscription-based module access ----------
 export const SUBSCRIPTION_PLANS: Record<string, readonly string[]> = {
   BASIC: ['dashboard', 'properties', 'tenants', 'maintenance', 'support'],
-  PROFESSIONAL: ['dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'support', 'reports'],
-  ENTERPRISE: ['dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors', 'projects', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'marketplace', 'support', 'compliance', 'reports', 'system', 'administration'],
+  PROFESSIONAL: ['dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'support', 'reports', 'maintenance', 'orders'],
+  ENTERPRISE: ['dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors', 'projects', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'marketplace', 'support', 'compliance', 'reports', 'system', 'admin', 'administration', 'maintenance', 'orders'],
   DEFAULT: [] // Fallback for unknown plans
 } as const;
 
 // ---------- Modules ----------
 export const MODULES: readonly ModuleItem[] = [
-  { id:'dashboard',    name:'nav.dashboard',          icon:LayoutDashboard, path:'/fm/dashboard',    category:'core' },
-  { id:'work-orders',  name:'nav.work-orders',        icon:ClipboardList,   path:'/fm/work-orders',  category:'fm' },
-  { id:'properties',   name:'nav.properties',         icon:Building2,       path:'/fm/properties',   category:'fm' },
-  { id:'assets',       name:'nav.assets',             icon:Settings,        path:'/fm/assets',       category:'fm' },
-  { id:'tenants',      name:'nav.tenants',            icon:Users,           path:'/fm/tenants',      category:'fm' },
-  { id:'vendors',      name:'nav.vendors',            icon:ShoppingBag,     path:'/fm/vendors',      category:'procurement' },
-  { id:'projects',     name:'nav.projects',           icon:ClipboardList,   path:'/fm/projects',     category:'fm' },
-  { id:'rfqs',         name:'nav.rfqs',               icon:ClipboardList,   path:'/fm/rfqs',         category:'procurement' },
-  { id:'invoices',     name:'nav.invoices',           icon:DollarSign,      path:'/fm/invoices',     category:'finance' },
-  { id:'finance',      name:'nav.finance',            icon:DollarSign,      path:'/fm/finance',      category:'finance' },
-  { id:'hr',           name:'nav.hr',                 icon:Users,           path:'/fm/hr',           category:'hr' },
-  { id:'crm',          name:'nav.crm',                icon:UserCheck,       path:'/fm/crm',          category:'crm' },
-  { id:'marketplace',  name:'nav.marketplace',        icon:ShoppingBag,     path:'/fm/marketplace',  category:'marketplace' },
-  { id:'support',      name:'nav.support',            icon:Headphones,      path:'/fm/support',      category:'support' },
-  { id:'compliance',   name:'nav.compliance',         icon:Shield,          path:'/fm/compliance',   category:'compliance' },
-  { id:'reports',      name:'nav.reports',            icon:BarChart3,       path:'/fm/reports',      category:'reporting' },
-  { id:'system',       name:'nav.system',             icon:Cog,             path:'/fm/system',       category:'admin' },
+  { id:'dashboard',      name:'nav.dashboard',        icon:LayoutDashboard, path:'/fm/dashboard',      category:'core' },
+  { id:'work-orders',    name:'nav.work-orders',      icon:ClipboardList,   path:'/fm/work-orders',    category:'fm' },
+  { id:'properties',     name:'nav.properties',       icon:Building2,       path:'/fm/properties',     category:'fm' },
+  { id:'assets',         name:'nav.assets',           icon:Settings,        path:'/fm/assets',         category:'fm' },
+  { id:'tenants',        name:'nav.tenants',          icon:Users,           path:'/fm/tenants',        category:'fm' },
+  { id:'vendors',        name:'nav.vendors',          icon:ShoppingBag,     path:'/fm/vendors',        category:'procurement' },
+  { id:'projects',       name:'nav.projects',         icon:ClipboardList,   path:'/fm/projects',       category:'fm' },
+  { id:'rfqs',           name:'nav.rfqs',             icon:ClipboardList,   path:'/fm/rfqs',           category:'procurement' },
+  { id:'invoices',       name:'nav.invoices',         icon:DollarSign,      path:'/fm/invoices',       category:'finance' },
+  { id:'finance',        name:'nav.finance',          icon:DollarSign,      path:'/fm/finance',        category:'finance' },
+  { id:'hr',             name:'nav.hr',               icon:Users,           path:'/fm/hr',             category:'hr' },
+  { id:'crm',            name:'nav.crm',              icon:UserCheck,       path:'/fm/crm',            category:'crm' },
+  { id:'marketplace',    name:'nav.marketplace',      icon:ShoppingBag,     path:'/fm/marketplace',    category:'marketplace' },
+  { id:'support',        name:'nav.support',          icon:Headphones,      path:'/fm/support',        category:'support' },
+  { id:'compliance',     name:'nav.compliance',       icon:Shield,          path:'/fm/compliance',     category:'compliance' },
+  { id:'reports',        name:'nav.reports',          icon:BarChart3,       path:'/fm/reports',        category:'reporting' },
+  { id:'system',         name:'nav.system',           icon:Cog,             path:'/fm/system',         category:'admin' },
+  { id:'admin',          name:'nav.administration',   icon:Shield,          path:'/admin',             category:'admin' },
   { id:'administration', name:'nav.administration',   icon:Settings,        path:'/fm/administration', category:'admin' },
-  { id:'maintenance',  name:'nav.maintenance',        icon:Settings,        path:'/fm/maintenance',  category:'fm' },
-  { id:'orders',       name:'nav.orders',             icon:ClipboardList,   path:'/fm/orders',       category:'procurement' }
+  { id:'maintenance',    name:'nav.maintenance',      icon:Settings,        path:'/fm/maintenance',    category:'fm' },
+  { id:'orders',         name:'nav.orders',           icon:ClipboardList,   path:'/fm/orders',         category:'procurement' }
 ] as const;
 
 // ---------- User account links ----------

@@ -164,10 +164,125 @@
       "featureSettings": "إعدادات الميزات"
     },
     "users": {
+      "title": "إدارة المستخدمين",
+      "description": "إدارة المستخدمين والأدوار والصلاحيات",
+      "totalUsers": "إجمالي المستخدمين",
+      "active": "المستخدمون النشطون",
+      "online": "متصل الآن",
       "creating": "جاري إنشاء المستخدم...",
       "createFailed": "فشل إنشاء المستخدم",
       "createSuccess": "تم إنشاء المستخدم بنجاح",
       "deleteConfirm": "هل أنت متأكد من حذف هذا المستخدم؟",
+      "deleting": "جاري حذف المستخدم...",
+      "deleteFailed": "فشل حذف المستخدم",
+      "deleteSuccess": "تم حذف المستخدم بنجاح",
+      "exportCsv": "تصدير إلى CSV",
+      "createUser": "إنشاء مستخدم",
+      "createNewUser": "إنشاء مستخدم جديد",
+      "email": "البريد الإلكتروني",
+      "username": "اسم المستخدم",
+      "firstName": "الاسم الأول",
+      "lastName": "اسم العائلة",
+      "phone": "الهاتف",
+      "role": "الدور",
+      "rolePlaceholder": "اختر دور",
+      "status": "الحالة",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "actions": "الإجراءات",
+      "editUser": "تعديل المستخدم",
+      "deleteUser": "حذف المستخدم",
+      "resetPassword": "إعادة تعيين كلمة المرور",
+      "viewDetails": "عرض التفاصيل"
+    },
+    "roles": {
+      "title": "الأدوار والصلاحيات",
+      "description": "تكوين سياسات RBAC والصلاحيات",
+      "totalRoles": "إجمالي الأدوار",
+      "createRole": "إنشاء دور",
+      "editRole": "تعديل الدور",
+      "deleteRole": "حذف الدور",
+      "deleteConfirm": "هل أنت متأكد من حذف هذا الدور؟",
+      "name": "اسم الدور",
+      "description": "الوصف",
+      "permissions": "الصلاحيات",
+      "assignedUsers": "المستخدمون المعينون"
+    },
+    "audit": {
+      "title": "سجلات المراجعة",
+      "description": "عرض نشاط النظام وسجلات الامتثال",
+      "recentEvents": "الأحداث الأخيرة",
+      "viewLogs": "عرض سجلات المراجعة",
+      "action": "الإجراء",
+      "user": "المستخدم",
+      "timestamp": "الوقت",
+      "details": "التفاصيل",
+      "ipAddress": "عنوان IP",
+      "filter": {
+        "dateRange": "نطاق التاريخ",
+        "user": "تصفية حسب المستخدم",
+        "action": "تصفية حسب الإجراء"
+      }
+    },
+    "cms": {
+      "title": "إدارة المحتوى",
+      "description": "إدارة محتوى CMS والصفحات والوسائط",
+      "totalPages": "إجمالي الصفحات"
+    },
+    "settings": {
+      "title": "إعدادات النظام",
+      "description": "تكوين الإعدادات والتفضيلات على مستوى النظام",
+      "categories": "الفئات"
+    },
+    "features": {
+      "title": "علامات الميزات",
+      "description": "تمكين/تعطيل الميزات ديناميكيًا",
+      "active": "الميزات النشطة",
+      "enabled": "مفعّل",
+      "disabled": "معطّل",
+      "toggle": "تبديل الميزة"
+    },
+    "database": {
+      "title": "إدارة قاعدة البيانات",
+      "description": "مراقبة صحة وأداء قاعدة البيانات",
+      "status": "الحالة",
+      "healthy": "سليم"
+    },
+    "notifications": {
+      "title": "الإشعارات",
+      "description": "إدارة إشعارات النظام والتنبيهات",
+      "pending": "قيد الانتظار"
+    },
+    "email": {
+      "title": "تكوين البريد الإلكتروني",
+      "description": "تكوين إعدادات SMTP وقوالب البريد الإلكتروني",
+      "templates": "القوالب"
+    },
+    "security": {
+      "title": "الأمان",
+      "description": "إدارة سياسات الأمان والمصادقة الثنائية",
+      "policies": "السياسات النشطة"
+    },
+    "monitoring": {
+      "title": "مراقبة النظام",
+      "description": "صحة النظام والمقاييس في الوقت الفعلي",
+      "uptime": "وقت التشغيل"
+    },
+    "reports": {
+      "title": "تقارير الإدارة",
+      "description": "إنشاء تقارير وتحليلات على مستوى الإدارة",
+      "generated": "تم الإنشاء"
+    },
+    "administration": {
+      "title": "إدارة النظام",
+      "subtitle": "إدارة جميع جوانب منصة فكس إت"
+    },
+    "system": {
+      "status": "النظام",
+      "operational": "قيد التشغيل",
+      "monitor": "مراقب النظام"
+    }
+  },
       "deleting": "جاري حذف المستخدم...",
       "deleteFailed": "فشل حذف المستخدم",
       "deleteSuccess": "تم حذف المستخدم بنجاح",

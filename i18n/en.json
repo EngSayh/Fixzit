@@ -164,6 +164,11 @@
       "featureSettings": "Feature Settings"
     },
     "users": {
+      "title": "User Management",
+      "description": "Manage users, roles, and permissions",
+      "totalUsers": "Total Users",
+      "active": "Active Users",
+      "online": "Online Now",
       "creating": "Creating user...",
       "createFailed": "Failed to create user",
       "createSuccess": "User created successfully",
@@ -192,6 +197,8 @@
     },
     "roles": {
       "title": "Roles & Permissions",
+      "description": "Configure RBAC policies and permissions",
+      "totalRoles": "Total Roles",
       "createRole": "Create Role",
       "editRole": "Edit Role",
       "deleteRole": "Delete Role",
@@ -203,6 +210,9 @@
     },
     "audit": {
       "title": "Audit Logs",
+      "description": "View system activity and compliance logs",
+      "recentEvents": "Recent Events",
+      "viewLogs": "View Audit Logs",
       "action": "Action",
       "user": "User",
       "timestamp": "Timestamp",
@@ -214,12 +224,63 @@
         "action": "Filter by Action"
       }
     },
+    "cms": {
+      "title": "Content Management",
+      "description": "Manage CMS content, pages, and media",
+      "totalPages": "Total Pages"
+    },
+    "settings": {
+      "title": "System Settings",
+      "description": "Configure system-wide settings and preferences",
+      "categories": "Categories"
+    },
     "features": {
       "title": "Feature Flags",
+      "description": "Enable/disable features dynamically",
+      "active": "Active Features",
       "enabled": "Enabled",
       "disabled": "Disabled",
-      "toggle": "Toggle Feature",
-      "description": "Description"
+      "toggle": "Toggle Feature"
+    },
+    "database": {
+      "title": "Database Management",
+      "description": "Monitor database health and performance",
+      "status": "Status",
+      "healthy": "Healthy"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Manage system notifications and alerts",
+      "pending": "Pending"
+    },
+    "email": {
+      "title": "Email Configuration",
+      "description": "Configure SMTP settings and email templates",
+      "templates": "Templates"
+    },
+    "security": {
+      "title": "Security",
+      "description": "Manage security policies and 2FA",
+      "policies": "Active Policies"
+    },
+    "monitoring": {
+      "title": "System Monitoring",
+      "description": "Real-time system health and metrics",
+      "uptime": "Uptime"
+    },
+    "reports": {
+      "title": "Admin Reports",
+      "description": "Generate admin-level reports and analytics",
+      "generated": "Generated"
+    },
+    "administration": {
+      "title": "System Administration",
+      "subtitle": "Manage all aspects of the Fixzit platform"
+    },
+    "system": {
+      "status": "System",
+      "operational": "Operational",
+      "monitor": "System Monitor"
     }
   },
   "dashboard": {

@@ -1,7 +1,7 @@
 {
   "stats": {
-    "files": 377,
-    "usedKeys": 1504,
+    "files": 378,
+    "usedKeys": 1551,
     "hasDynamic": true,
     "enCount": 1927,
     "arCount": 1927,
@@ -10,7 +10,381 @@
   "missing": {
     "inAr": [],
     "inEn": [],
-    "used": []
+    "used": [
+      {
+        "key": "admin.users.title",
+        "bare": "admin.users.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.users.description",
+        "bare": "admin.users.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.roles.description",
+        "bare": "admin.roles.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.roles.totalRoles",
+        "bare": "admin.roles.totalRoles",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.audit.description",
+        "bare": "admin.audit.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.audit.recentEvents",
+        "bare": "admin.audit.recentEvents",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.cms.description",
+        "bare": "admin.cms.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.cms.totalPages",
+        "bare": "admin.cms.totalPages",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.settings.title",
+        "bare": "admin.settings.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.settings.description",
+        "bare": "admin.settings.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.settings.categories",
+        "bare": "admin.settings.categories",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.features.description",
+        "bare": "admin.features.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.features.active",
+        "bare": "admin.features.active",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.database.title",
+        "bare": "admin.database.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx",
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.database.description",
+        "bare": "admin.database.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.database.status",
+        "bare": "admin.database.status",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx",
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.title",
+        "bare": "admin.notifications.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.description",
+        "bare": "admin.notifications.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.pending",
+        "bare": "admin.notifications.pending",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.email.title",
+        "bare": "admin.email.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.email.description",
+        "bare": "admin.email.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.email.templates",
+        "bare": "admin.email.templates",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.security.title",
+        "bare": "admin.security.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.security.description",
+        "bare": "admin.security.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.security.policies",
+        "bare": "admin.security.policies",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.monitoring.title",
+        "bare": "admin.monitoring.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx",
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.monitoring.description",
+        "bare": "admin.monitoring.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.monitoring.uptime",
+        "bare": "admin.monitoring.uptime",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx",
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.reports.title",
+        "bare": "admin.reports.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.reports.description",
+        "bare": "admin.reports.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.reports.generated",
+        "bare": "admin.reports.generated",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.administration.title",
+        "bare": "admin.administration.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.administration.subtitle",
+        "bare": "admin.administration.subtitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.system.status",
+        "bare": "admin.system.status",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.system.operational",
+        "bare": "admin.system.operational",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.roles.createRole",
+        "bare": "admin.roles.createRole",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.audit.viewLogs",
+        "bare": "admin.audit.viewLogs",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.system.monitor",
+        "bare": "admin.system.monitor",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.database.healthy",
+        "bare": "admin.database.healthy",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.users.active",
+        "bare": "admin.users.active",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.users.online",
+        "bare": "admin.users.online",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/fm/administration/page.tsx"
+        ]
+      }
+    ]
   },
   "fileMap": {
     "about.metaTitle": [
@@ -101,6 +475,7 @@
       "/workspaces/Fixzit/app/finance/expenses/new/page.tsx",
       "/workspaces/Fixzit/app/finance/expenses/new/page.tsx",
       "/workspaces/Fixzit/app/finance/invoices/new/page.tsx",
+      "/workspaces/Fixzit/app/fm/administration/page.tsx",
       "/workspaces/Fixzit/app/hr/employees/page.tsx",
       "/workspaces/Fixzit/app/hr/payroll/page.tsx",
       "/workspaces/Fixzit/app/marketplace/vendor/portal/page.tsx",
@@ -184,7 +559,8 @@
       "/workspaces/Fixzit/app/admin/cms/page.tsx"
     ],
     "admin.cms.title": [
-      "/workspaces/Fixzit/app/admin/cms/page.tsx"
+      "/workspaces/Fixzit/app/admin/cms/page.tsx",
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
     ],
     "admin.cms.slug": [
       "/workspaces/Fixzit/app/admin/cms/page.tsx"
@@ -1320,6 +1696,155 @@
     ],
     "Create Payment": [
       "/workspaces/Fixzit/app/finance/payments/new/page.tsx"
+    ],
+    "admin.users.title": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.users.description": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.users.totalUsers": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.roles.title": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.roles.description": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.roles.totalRoles": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.audit.title": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.audit.description": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.audit.recentEvents": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.cms.description": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.cms.totalPages": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.settings.title": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.settings.description": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.settings.categories": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.features.title": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.features.description": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.features.active": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.database.title": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx",
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.database.description": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.database.status": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx",
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.notifications.title": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.notifications.description": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.notifications.pending": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.email.title": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.email.description": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.email.templates": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.security.title": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.security.description": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.security.policies": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.monitoring.title": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx",
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.monitoring.description": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.monitoring.uptime": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx",
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.reports.title": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.reports.description": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.reports.generated": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.administration.title": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.administration.subtitle": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "sidebar.role": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx",
+      "/workspaces/Fixzit/components/Sidebar.tsx"
+    ],
+    "admin.system.status": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.system.operational": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "dashboard.quickActions": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.users.createUser": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.roles.createRole": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.audit.viewLogs": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.system.monitor": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.database.healthy": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.users.active": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
+    ],
+    "admin.users.online": [
+      "/workspaces/Fixzit/app/fm/administration/page.tsx"
     ],
     "dashboard.activeWorkOrders": [
       "/workspaces/Fixzit/app/fm/dashboard/page.tsx"
@@ -3533,9 +4058,6 @@
     "sidebar.accountInfo": [
       "/workspaces/Fixzit/components/Sidebar.tsx"
     ],
-    "sidebar.role": [
-      "/workspaces/Fixzit/components/Sidebar.tsx"
-    ],
     "sidebar.planLabel": [
       "/workspaces/Fixzit/components/Sidebar.tsx"
     ],
@@ -4856,5 +5378,5 @@
       "/workspaces/Fixzit/contexts/TranslationContext.test.tsx"
     ]
   },
-  "timestamp": "2025-11-10T05:32:16.956Z"
+  "timestamp": "2025-11-10T05:46:06.499Z"
 }
