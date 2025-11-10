@@ -39,13 +39,17 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     const { errorId } = this.state;
     // Use logger instead of console for production-safe error reporting
     if (typeof window !== 'undefined') {
-      import('../lib/logger').then(({ logError }) => {
-        logError(`ErrorBoundary caught error ${errorId}`, error, {
-          component: 'ErrorBoundary',
-          errorId,
-          componentStack: errorInfo.componentStack
+      import('../lib/logger')
+        .then(({ logError }) => {
+          logError(`ErrorBoundary caught error ${errorId}`, error, {
+            component: 'ErrorBoundary',
+            errorId,
+            componentStack: errorInfo.componentStack
+          });
+        })
+        .catch((err) => {
+          console.error('Failed to import logger:', err);
         });
-      });
     }
 
     // --- Safe Incident Reporting ---
@@ -88,12 +92,16 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
     } catch (reportError) {
       // Use logger for incident reporting failures
       if (typeof window !== 'undefined') {
-        import('../lib/logger').then(({ logError }) => {
-          logError('Failed to send incident report', reportError as Error, {
-            component: 'ErrorBoundary',
-            action: 'sendIncidentReport'
+        import('../lib/logger')
+          .then(({ logError }) => {
+            logError('Failed to send incident report', reportError as Error, {
+              component: 'ErrorBoundary',
+              action: 'sendIncidentReport'
+            });
+          })
+          .catch((err) => {
+            console.error('Failed to import logger:', err);
           });
-        });
       }
     }
   }
@@ -135,12 +143,16 @@ const ErrorFallbackUI = ({ errorId, onRefresh }: { errorId: string, onRefresh: (
   } catch {
     // Use logger for translation context failures
     if (typeof window !== 'undefined') {
-      import('../lib/logger').then(({ logWarn }) => {
-        logWarn('Translation context failed in ErrorBoundary, using fallbacks', {
-          component: 'ErrorBoundary',
-          action: 'loadTranslations'
+      import('../lib/logger')
+        .then(({ logWarn }) => {
+          logWarn('Translation context failed in ErrorBoundary, using fallbacks', {
+            component: 'ErrorBoundary',
+            action: 'loadTranslations'
+          });
+        })
+        .catch((err) => {
+          console.error('Failed to import logger:', err);
         });
-      });
     }
   }
 

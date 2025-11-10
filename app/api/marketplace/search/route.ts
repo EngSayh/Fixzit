@@ -65,9 +65,16 @@ export async function GET(request: NextRequest) {
       skip: (query.page - 1) * query.limit
     });
 
-    const facetCategories = await Category.find({ _id: { $in: facets.categories }, orgId: context.orgId })
-      .lean()
-      .then(docs => docs.map(doc => serializeCategory(doc)));
+    // Fetch categories with error handling
+    let facetCategories: ReturnType<typeof serializeCategory>[] = [];
+    try {
+      const categoryDocs = await Category.find({ _id: { $in: facets.categories }, orgId: context.orgId }).lean();
+      facetCategories = categoryDocs.map(doc => serializeCategory(doc));
+    } catch (error) {
+      console.error('Error fetching marketplace categories:', error instanceof Error ? error.message : 'Unknown error');
+      // Continue with empty categories rather than failing entire request
+      facetCategories = [];
+    }
 
     return NextResponse.json({
       ok: true,
