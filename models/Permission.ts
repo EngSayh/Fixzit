@@ -81,7 +81,5 @@ PermissionSchema.methods.toSafeObject = function () {
 
 export type Permission = InferSchemaType<typeof PermissionSchema>;
 
-// @ts-expect-error Mongoose model type inference is complex
-export default (models.Permission || model<Permission>('Permission', PermissionSchema)) as ReturnType<
-  typeof model<Permission>
->;
+const PermissionModel = models.Permission || model<Permission>('Permission', PermissionSchema);
+export default PermissionModel;

@@ -122,4 +122,5 @@ RoleSchema.virtual('isSuperAdmin').get(function () {
 
 export type Role = InferSchemaType<typeof RoleSchema>;
 
-export default (models.Role || model<Role>('Role', RoleSchema)) as ReturnType<typeof model<Role>>;
+const RoleModel = models.Role || model<Role>('Role', RoleSchema);
+export default RoleModel;

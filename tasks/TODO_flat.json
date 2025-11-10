@@ -325,21 +325,6 @@
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
   {
-    "file": "models/aqarBooking.model.ts",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "models/project.model.ts",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "models/referralCode.model.ts",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
     "file": "lib/audit.ts",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
@@ -390,24 +375,24 @@
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
-    "file": "providers/Providers.test.tsx",
-    "pattern": "Hydration/Server-Client Mismatch (Potential)",
-    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
-  },
-  {
-    "file": "public/app-fixed.js",
+    "file": "models/aqarBooking.model.ts",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
   {
-    "file": "public/styles.css",
-    "pattern": "i18n/RTL Issues (Potential)",
-    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+    "file": "models/project.model.ts",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
   },
   {
-    "file": "public/sw.js",
-    "pattern": "i18n/RTL Issues (Potential)",
-    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+    "file": "models/referralCode.model.ts",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "providers/Providers.test.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
   },
   {
     "file": "qa/AutoFixAgent.tsx",
@@ -465,11 +450,6 @@
     "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
   },
   {
-    "file": "server/README.md",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
     "file": "services/checkout.ts",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
@@ -488,6 +468,26 @@
     "file": "services/provision.ts",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "server/README.md",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "public/app-fixed.js",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "public/styles.css",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "public/sw.js",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
   },
   {
     "file": "tests/copilot.spec.ts",
@@ -625,6 +625,21 @@
     "task": "Investigate potential i18n/RTL Issues (Potential) issue."
   },
   {
+    "file": "components/admin/AccessibleModal.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/admin/AccessibleModal.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "components/admin/UpgradeModal.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
     "file": "components/aqar/MortgageCalculator.tsx",
     "pattern": "i18n/RTL Issues (Potential)",
     "task": "Investigate potential i18n/RTL Issues (Potential) issue."
@@ -645,26 +660,6 @@
     "task": "Investigate potential i18n/RTL Issues (Potential) issue."
   },
   {
-    "file": "components/admin/AccessibleModal.tsx",
-    "pattern": "Hydration/Server-Client Mismatch (Potential)",
-    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
-  },
-  {
-    "file": "components/admin/AccessibleModal.tsx",
-    "pattern": "i18n/RTL Issues (Potential)",
-    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
-  },
-  {
-    "file": "components/admin/UpgradeModal.tsx",
-    "pattern": "i18n/RTL Issues (Potential)",
-    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
-  },
-  {
-    "file": "components/careers/JobApplicationForm.tsx",
-    "pattern": "i18n/RTL Issues (Potential)",
-    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
-  },
-  {
     "file": "components/auth/DemoCredentialsSection.tsx",
     "pattern": "i18n/RTL Issues (Potential)",
     "task": "Investigate potential i18n/RTL Issues (Potential) issue."
@@ -680,6 +675,11 @@
     "task": "Investigate potential i18n/RTL Issues (Potential) issue."
   },
   {
+    "file": "components/careers/JobApplicationForm.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
     "file": "components/finance/AccountActivityViewer.tsx",
     "pattern": "Hydration/Server-Client Mismatch (Potential)",
     "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
@@ -706,16 +706,6 @@
   },
   {
     "file": "components/finance/TrialBalanceReport.tsx",
-    "pattern": "i18n/RTL Issues (Potential)",
-    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
-  },
-  {
-    "file": "components/fm/WorkOrdersView.tsx",
-    "pattern": "Hydration/Server-Client Mismatch (Potential)",
-    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
-  },
-  {
-    "file": "components/fm/WorkOrdersView.tsx",
     "pattern": "i18n/RTL Issues (Potential)",
     "task": "Investigate potential i18n/RTL Issues (Potential) issue."
   },
@@ -723,6 +713,16 @@
     "file": "components/forms/ExampleForm.tsx",
     "pattern": "Hydration/Server-Client Mismatch (Potential)",
     "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/fm/WorkOrdersView.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "components/fm/WorkOrdersView.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
   },
   {
     "file": "components/i18n/CompactCurrencySelector.tsx",
@@ -960,41 +960,6 @@
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
   {
-    "file": "docs/pull-requests/PR135_COMPLETE_VERIFICATION.md",
-    "pattern": "Hydration/Server-Client Mismatch (Potential)",
-    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
-  },
-  {
-    "file": "docs/pull-requests/PR137_CRITICAL_FIXES_COMPLETE.md",
-    "pattern": "NextResponse Usage",
-    "task": "Investigate potential NextResponse Usage issue."
-  },
-  {
-    "file": "docs/pull-requests/PR137_CRITICAL_FIXES_COMPLETE.md",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "docs/pull-requests/PR_131_FIXES_COMPLETE_2025_10_19.md",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "docs/pull-requests/PR_135_CONFLICT_RESOLUTION.md",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "docs/pull-requests/PR_COMMENTS_CHECKLIST.md",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "docs/pull-requests/PR_ERRORS_COMMENTS_REPORT.md",
-    "pattern": "i18n/RTL Issues (Potential)",
-    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
-  },
-  {
     "file": "docs/progress/ABSOLUTE_PERFECTION_ROADMAP.md",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
@@ -1103,6 +1068,41 @@
     "file": "docs/progress/TEST_FRAMEWORK_STANDARDIZATION_PLAN.md",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "docs/pull-requests/PR135_COMPLETE_VERIFICATION.md",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "docs/pull-requests/PR137_CRITICAL_FIXES_COMPLETE.md",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "docs/pull-requests/PR137_CRITICAL_FIXES_COMPLETE.md",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "docs/pull-requests/PR_131_FIXES_COMPLETE_2025_10_19.md",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "docs/pull-requests/PR_135_CONFLICT_RESOLUTION.md",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "docs/pull-requests/PR_COMMENTS_CHECKLIST.md",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "docs/pull-requests/PR_ERRORS_COMMENTS_REPORT.md",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
   },
   {
     "file": "docs/security/NEXTAUTH_VERSION_ANALYSIS.md",
@@ -1645,6 +1645,56 @@
     "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
   },
   {
+    "file": "lib/api/admin.ts",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "lib/api/http.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "lib/db/collections.ts",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "lib/errors/ErrorResponse.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "lib/marketplace/cart.ts",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "lib/marketplace/security.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "lib/security/rate-limit.ts",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "lib/storage/s3.ts",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "modules/organizations/service.ts",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "modules/users/service.ts",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
     "file": "models/aqar/Booking.ts",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
@@ -1686,61 +1736,6 @@
   },
   {
     "file": "models/aqar/SavedSearch.ts",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "modules/organizations/service.ts",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "modules/users/service.ts",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "lib/api/admin.ts",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "lib/api/http.ts",
-    "pattern": "NextResponse Usage",
-    "task": "Investigate potential NextResponse Usage issue."
-  },
-  {
-    "file": "lib/db/collections.ts",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "lib/errors/ErrorResponse.ts",
-    "pattern": "NextResponse Usage",
-    "task": "Investigate potential NextResponse Usage issue."
-  },
-  {
-    "file": "lib/marketplace/cart.ts",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "lib/marketplace/security.ts",
-    "pattern": "NextResponse Usage",
-    "task": "Investigate potential NextResponse Usage issue."
-  },
-  {
-    "file": "lib/security/rate-limit.ts",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "lib/storage/s3.ts",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "public/js/secure-utils.js",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
@@ -1825,11 +1820,6 @@
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
   {
-    "file": "server/finance/invoice.service.ts",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
     "file": "server/copilot/llm.ts",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
@@ -1846,6 +1836,11 @@
   },
   {
     "file": "server/copilot/tools.ts",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "server/finance/invoice.service.ts",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
@@ -1941,6 +1936,11 @@
   },
   {
     "file": "server/work-orders/wo.service.ts",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "public/js/secure-utils.js",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
@@ -2055,11 +2055,6 @@
     "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
   },
   {
-    "file": "app/admin/logo/page.tsx",
-    "pattern": "Hydration/Server-Client Mismatch (Potential)",
-    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
-  },
-  {
     "file": "app/admin/feature-settings/page.tsx",
     "pattern": "Hydration/Server-Client Mismatch (Potential)",
     "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
@@ -2070,17 +2065,52 @@
     "task": "Investigate potential i18n/RTL Issues (Potential) issue."
   },
   {
+    "file": "app/admin/logo/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/aqar/filters/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/aqar/map/page.tsx",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "app/aqar/properties/page.tsx",
+    "pattern": "Hydration/Server-Client Mismatch (Potential)",
+    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
+  },
+  {
+    "file": "app/aqar/properties/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/careers/[slug]/page.tsx",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/careers/[slug]/page.tsx",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "app/api/i18n/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
     "file": "app/api/invoices/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
     "file": "app/api/notifications/route.ts",
-    "pattern": "NextResponse Usage",
-    "task": "Investigate potential NextResponse Usage issue."
-  },
-  {
-    "file": "app/api/i18n/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
@@ -2116,36 +2146,6 @@
   },
   {
     "file": "app/api/work-orders/route.ts",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "app/aqar/filters/page.tsx",
-    "pattern": "Hydration/Server-Client Mismatch (Potential)",
-    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
-  },
-  {
-    "file": "app/aqar/map/page.tsx",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "app/aqar/properties/page.tsx",
-    "pattern": "Hydration/Server-Client Mismatch (Potential)",
-    "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
-  },
-  {
-    "file": "app/aqar/properties/page.tsx",
-    "pattern": "i18n/RTL Issues (Potential)",
-    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
-  },
-  {
-    "file": "app/careers/[slug]/page.tsx",
-    "pattern": "i18n/RTL Issues (Potential)",
-    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
-  },
-  {
-    "file": "app/careers/[slug]/page.tsx",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
@@ -2225,14 +2225,14 @@
     "task": "Investigate potential i18n/RTL Issues (Potential) issue."
   },
   {
-    "file": "app/help/[slug]/page.tsx",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
     "file": "app/fm/vendors/page.tsx",
     "pattern": "i18n/RTL Issues (Potential)",
     "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "app/help/[slug]/page.tsx",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
   },
   {
     "file": "app/help/support-ticket/page.tsx",
@@ -2275,17 +2275,17 @@
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
   {
+    "file": "app/marketplace/checkout/page.tsx",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
     "file": "app/marketplace/orders/page.tsx",
     "pattern": "i18n/RTL Issues (Potential)",
     "task": "Investigate potential i18n/RTL Issues (Potential) issue."
   },
   {
     "file": "app/marketplace/orders/page.tsx",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
-    "file": "app/marketplace/checkout/page.tsx",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
@@ -2400,16 +2400,6 @@
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
   {
-    "file": "public/assets/css/theme.css",
-    "pattern": "i18n/RTL Issues (Potential)",
-    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
-  },
-  {
-    "file": "public/assets/js/header-footer.js",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
-  },
-  {
     "file": "server/models/finance/ChartAccount.ts",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
@@ -2456,6 +2446,16 @@
   },
   {
     "file": "server/services/owner/analytics.ts",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "public/assets/css/theme.css",
+    "pattern": "i18n/RTL Issues (Potential)",
+    "task": "Investigate potential i18n/RTL Issues (Potential) issue."
+  },
+  {
+    "file": "public/assets/js/header-footer.js",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
@@ -2660,12 +2660,12 @@
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
   {
-    "file": "app/api/careers/apply/route.ts",
+    "file": "app/api/billing/subscribe/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
-    "file": "app/api/billing/subscribe/route.ts",
+    "file": "app/api/careers/apply/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
@@ -2675,29 +2675,19 @@
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
   {
+    "file": "app/api/checkout/quote/route.ts",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
     "file": "app/api/checkout/session/route.ts",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
   {
-    "file": "app/api/dev/demo-accounts/route.ts",
-    "pattern": "NextResponse Usage",
-    "task": "Investigate potential NextResponse Usage issue."
-  },
-  {
-    "file": "app/api/dev/demo-login/route.ts",
-    "pattern": "NextResponse Usage",
-    "task": "Investigate potential NextResponse Usage issue."
-  },
-  {
     "file": "app/api/copilot/chat/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
-  },
-  {
-    "file": "app/api/checkout/quote/route.ts",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
   },
   {
     "file": "app/api/copilot/knowledge/route.ts",
@@ -2713,6 +2703,21 @@
     "file": "app/api/feeds/linkedin/route.ts",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
+    "file": "app/api/dev/demo-accounts/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/dev/demo-login/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/health/database/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
   },
   {
     "file": "app/api/finance/accounts/route.ts",
@@ -2735,27 +2740,22 @@
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
-    "file": "app/api/finance/ledger/route.ts",
-    "pattern": "NextResponse Usage",
-    "task": "Investigate potential NextResponse Usage issue."
-  },
-  {
     "file": "app/api/finance/payments/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
-    "file": "app/api/health/database/route.ts",
-    "pattern": "NextResponse Usage",
-    "task": "Investigate potential NextResponse Usage issue."
-  },
-  {
-    "file": "app/api/help/articles/route.ts",
+    "file": "app/api/finance/ledger/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
     "file": "app/api/help/ask/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/help/articles/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
@@ -2815,12 +2815,12 @@
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
-    "file": "app/api/pm/plans/route.ts",
+    "file": "app/api/pm/generate-wos/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
-    "file": "app/api/pm/generate-wos/route.ts",
+    "file": "app/api/pm/plans/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
@@ -2855,12 +2855,12 @@
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
-    "file": "app/api/support/tickets/route.ts",
+    "file": "app/api/support/incidents/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
-    "file": "app/api/support/incidents/route.ts",
+    "file": "app/api/support/tickets/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
@@ -2890,12 +2890,12 @@
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
-    "file": "app/finance/expenses/new/page.tsx",
+    "file": "app/finance/budgets/new/page.tsx",
     "pattern": "Hydration/Server-Client Mismatch (Potential)",
     "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
   },
   {
-    "file": "app/finance/expenses/new/page.tsx",
+    "file": "app/finance/budgets/new/page.tsx",
     "pattern": "i18n/RTL Issues (Potential)",
     "task": "Investigate potential i18n/RTL Issues (Potential) issue."
   },
@@ -2910,12 +2910,12 @@
     "task": "Investigate potential i18n/RTL Issues (Potential) issue."
   },
   {
-    "file": "app/finance/budgets/new/page.tsx",
+    "file": "app/finance/expenses/new/page.tsx",
     "pattern": "Hydration/Server-Client Mismatch (Potential)",
     "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
   },
   {
-    "file": "app/finance/budgets/new/page.tsx",
+    "file": "app/finance/expenses/new/page.tsx",
     "pattern": "i18n/RTL Issues (Potential)",
     "task": "Investigate potential i18n/RTL Issues (Potential) issue."
   },
@@ -3145,17 +3145,17 @@
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
+    "file": "app/api/pm/plans/[id]/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
     "file": "app/api/payments/paytabs/callback/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
     "file": "app/api/public/footer/[page]/route.ts",
-    "pattern": "NextResponse Usage",
-    "task": "Investigate potential NextResponse Usage issue."
-  },
-  {
-    "file": "app/api/pm/plans/[id]/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
@@ -3210,6 +3210,11 @@
     "task": "Investigate potential i18n/RTL Issues (Potential) issue."
   },
   {
+    "file": "tests/unit/api/marketplace/categories/route.test.ts",
+    "pattern": "Unhandled Rejections (Context-Aware)",
+    "task": "Review async code - no visible try/catch or .catch() detected."
+  },
+  {
     "file": "qa/qa/artifacts/html-report/trace/index.BZPYnuWQ.js",
     "pattern": "Hydration/Server-Client Mismatch (Potential)",
     "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
@@ -3218,11 +3223,6 @@
     "file": "qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js",
     "pattern": "Hydration/Server-Client Mismatch (Potential)",
     "task": "Investigate potential Hydration/Server-Client Mismatch (Potential) issue."
-  },
-  {
-    "file": "tests/unit/api/marketplace/categories/route.test.ts",
-    "pattern": "Unhandled Rejections (Context-Aware)",
-    "task": "Review async code - no visible try/catch or .catch() detected."
   },
   {
     "file": "tests/unit/api/marketplace/search/route.test.ts",
@@ -3260,12 +3260,12 @@
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
   {
-    "file": "app/api/admin/billing/pricebooks/[id]/route.ts",
+    "file": "app/api/admin/billing/benchmark/[id]/route.ts",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
   {
-    "file": "app/api/admin/billing/benchmark/[id]/route.ts",
+    "file": "app/api/admin/billing/pricebooks/[id]/route.ts",
     "pattern": "Unhandled Rejections (Context-Aware)",
     "task": "Review async code - no visible try/catch or .catch() detected."
   },
@@ -3290,17 +3290,17 @@
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
-    "file": "app/api/finance/ledger/account-activity/[accountId]/route.ts",
-    "pattern": "NextResponse Usage",
-    "task": "Investigate potential NextResponse Usage issue."
-  },
-  {
     "file": "app/api/finance/journals/[id]/void/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
   {
     "file": "app/api/finance/payments/[id]/[action]/route.ts",
+    "pattern": "NextResponse Usage",
+    "task": "Investigate potential NextResponse Usage issue."
+  },
+  {
+    "file": "app/api/finance/ledger/account-activity/[accountId]/route.ts",
     "pattern": "NextResponse Usage",
     "task": "Investigate potential NextResponse Usage issue."
   },
