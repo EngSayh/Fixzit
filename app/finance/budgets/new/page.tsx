@@ -80,43 +80,49 @@ export default function NewBudgetPage() {
   };
 
   // Save as draft
-  const handleSaveDraft = async () => {
-    try {
-      setIsSubmitting(true);
-      const response = await fetch('/api/finance/budgets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          budgetName,
-          periodType,
-          startDate,
-          endDate,
-          propertyId: propertyId === 'all' ? null : propertyId,
-          budgetOwner,
-          categories: categories.filter(c => c.category),
-          settings: { enableAlerts, requireApprovals, allowCarryover },
-          description,
-          status: 'draft'
-        })
-      });
+  const handleSaveDraft = () => {
+    (async () => {
+      try {
+        setIsSubmitting(true);
+        const response = await fetch('/api/finance/budgets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            budgetName,
+            periodType,
+            startDate,
+            endDate,
+            propertyId: propertyId === 'all' ? null : propertyId,
+            budgetOwner,
+            categories: categories.filter(c => c.category),
+            settings: { enableAlerts, requireApprovals, allowCarryover },
+            description,
+            status: 'draft'
+          })
+        });
 
-      if (!response.ok) throw new Error('Failed to save draft');
-      
-      const data = await response.json();
-      toast.success(t('finance.budget.draftSaved', 'Budget draft saved successfully'));
-      if (data?.id) {
-        router.push(`/finance/budgets/${data.id}`);
+        if (!response.ok) throw new Error('Failed to save draft');
+        
+        const data = await response.json();
+        toast.success(t('finance.budget.draftSaved', 'Budget draft saved successfully'));
+        if (data?.id) {
+          router.push(`/finance/budgets/${data.id}`);
+        }
+      } catch (error) {
+        logger.error('Error saving budget draft', { error });
+        toast.error(t('common.error', 'An error occurred'));
+      } finally {
+        setIsSubmitting(false);
       }
-    } catch (error) {
-      logger.error('Error saving budget draft', { error });
+    })().catch((err) => {
+      logger.error('Unhandled error in handleSaveDraft', { error: err });
       toast.error(t('common.error', 'An error occurred'));
-    } finally {
       setIsSubmitting(false);
-    }
+    });
   };
 
   // Create budget
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     // Validation
     if (!budgetName.trim()) {
       toast.error(t('finance.budget.nameRequired', 'Budget name is required'));
@@ -137,38 +143,44 @@ export default function NewBudgetPage() {
 
     const toastId = toast.loading(t('finance.budget.creating', 'Creating budget...'));
 
-    try {
-      setIsSubmitting(true);
-      const response = await fetch('/api/finance/budgets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          budgetName,
-          periodType,
-          startDate,
-          endDate,
-          propertyId: propertyId === 'all' ? null : propertyId,
-          budgetOwner,
-          categories: categories.filter(c => c.category),
-          settings: { enableAlerts, requireApprovals, allowCarryover },
-          description,
-          status: 'active'
-        })
-      });
+    (async () => {
+      try {
+        setIsSubmitting(true);
+        const response = await fetch('/api/finance/budgets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            budgetName,
+            periodType,
+            startDate,
+            endDate,
+            propertyId: propertyId === 'all' ? null : propertyId,
+            budgetOwner,
+            categories: categories.filter(c => c.category),
+            settings: { enableAlerts, requireApprovals, allowCarryover },
+            description,
+            status: 'active'
+          })
+        });
 
-      if (!response.ok) throw new Error('Failed to create budget');
-      
-      const data = await response.json();
-      toast.success(t('finance.budget.created', 'Budget created successfully'), { id: toastId });
-      if (data?.id) {
-        router.push(`/finance/budgets/${data.id}`);
+        if (!response.ok) throw new Error('Failed to create budget');
+        
+        const data = await response.json();
+        toast.success(t('finance.budget.created', 'Budget created successfully'), { id: toastId });
+        if (data?.id) {
+          router.push(`/finance/budgets/${data.id}`);
+        }
+      } catch (error) {
+        logger.error('Error creating budget', { error });
+        toast.error(t('common.error', 'An error occurred'), { id: toastId });
+      } finally {
+        setIsSubmitting(false);
       }
-    } catch (error) {
-      logger.error('Error creating budget', { error });
+    })().catch((err) => {
+      logger.error('Unhandled error in handleSubmit', { error: err });
       toast.error(t('common.error', 'An error occurred'), { id: toastId });
-    } finally {
       setIsSubmitting(false);
-    }
+    });
   };
 
   return (

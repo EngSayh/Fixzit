@@ -146,7 +146,10 @@ export default function NewPaymentPage() {
         setLoadingAccounts(false);
       }
     };
-    loadAccounts();
+    loadAccounts().catch((err) => {
+      logger.error('Unhandled error in loadAccounts', { error: err });
+      setLoadingAccounts(false);
+    });
   }, []);
 
   // Load available invoices when payment type is RECEIVED
@@ -156,36 +159,42 @@ export default function NewPaymentPage() {
     }
   }, [paymentType, showInvoiceAllocation]);
 
-  const loadAvailableInvoices = async () => {
-    try {
-      setLoadingInvoices(true);
-      // Load unpaid/partially paid invoices
-      const response = await fetch('/api/finance/invoices?status=POSTED&hasBalance=true');
-      if (response.ok) {
-        const data = await response.json();
-        setAvailableInvoices(data.invoices || []);
-        
-        // Initialize allocations from available invoices
-        const newAllocations: IInvoiceAllocation[] = (data.invoices || []).map((inv: IAvailableInvoice) => ({
-          id: inv.id,
-          invoiceId: inv.id,
-          invoiceNumber: inv.invoiceNumber,
-          customerName: inv.customer?.name || 'Unknown',
-          invoiceDate: inv.issueDate,
-          dueDate: inv.dueDate,
-          totalAmount: inv.totalAmount,
-          amountDue: inv.amountDue,
-          amountAllocated: 0,
-          selected: false
-        }));
-        setAllocations(newAllocations);
+  const loadAvailableInvoices = () => {
+    (async () => {
+      try {
+        setLoadingInvoices(true);
+        // Load unpaid/partially paid invoices
+        const response = await fetch('/api/finance/invoices?status=POSTED&hasBalance=true');
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableInvoices(data.invoices || []);
+          
+          // Initialize allocations from available invoices
+          const newAllocations: IInvoiceAllocation[] = (data.invoices || []).map((inv: IAvailableInvoice) => ({
+            id: inv.id,
+            invoiceId: inv.id,
+            invoiceNumber: inv.invoiceNumber,
+            customerName: inv.customer?.name || 'Unknown',
+            invoiceDate: inv.issueDate,
+            dueDate: inv.dueDate,
+            totalAmount: inv.totalAmount,
+            amountDue: inv.amountDue,
+            amountAllocated: 0,
+            selected: false
+          }));
+          setAllocations(newAllocations);
+        }
+      } catch (error) {
+        logger.error('Error loading invoices:', { error });
+        setErrors({ ...errors, invoices: 'Failed to load invoices' });
+      } finally {
+        setLoadingInvoices(false);
       }
-    } catch (error) {
-      logger.error('Error loading invoices:', { error });
+    })().catch((err) => {
+      logger.error('Unhandled error in loadAvailableInvoices', { error: err });
       setErrors({ ...errors, invoices: 'Failed to load invoices' });
-    } finally {
       setLoadingInvoices(false);
-    }
+    });
   };
 
   // ============================================================================
@@ -303,7 +312,7 @@ export default function NewPaymentPage() {
   // FORM SUBMISSION
   // ============================================================================
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -312,81 +321,87 @@ export default function NewPaymentPage() {
 
     setIsSubmitting(true);
 
-    try {
-      // Build method-specific details
-      const bankDetails = paymentMethod === 'BANK_TRANSFER' ? {
-        bankName,
-        accountNumber,
-        accountHolder,
-        swiftCode,
-        iban
-      } : undefined;
+    (async () => {
+      try {
+        // Build method-specific details
+        const bankDetails = paymentMethod === 'BANK_TRANSFER' ? {
+          bankName,
+          accountNumber,
+          accountHolder,
+          swiftCode,
+          iban
+        } : undefined;
 
-      const chequeDetails = paymentMethod === 'CHEQUE' ? {
-        chequeNumber,
-        chequeDate: new Date(chequeDate),
-        bankName: chequeBankName,
-        drawerName
-      } : undefined;
+        const chequeDetails = paymentMethod === 'CHEQUE' ? {
+          chequeNumber,
+          chequeDate: new Date(chequeDate),
+          bankName: chequeBankName,
+          drawerName
+        } : undefined;
 
-      const cardDetails = paymentMethod === 'CARD' ? {
-        cardType,
-        last4Digits,
-        transactionId,
-        authorizationCode
-      } : undefined;
+        const cardDetails = paymentMethod === 'CARD' ? {
+          cardType,
+          last4Digits,
+          transactionId,
+          authorizationCode
+        } : undefined;
 
-      // Build allocations array (only selected invoices with amounts)
-      const invoiceAllocations = allocations
-        .filter(a => a.selected && a.amountAllocated > 0)
-        .map(a => ({
-          invoiceId: a.invoiceId,
-          invoiceNumber: a.invoiceNumber,
-          amount: a.amountAllocated
-        }));
+        // Build allocations array (only selected invoices with amounts)
+        const invoiceAllocations = allocations
+          .filter(a => a.selected && a.amountAllocated > 0)
+          .map(a => ({
+            invoiceId: a.invoiceId,
+            invoiceNumber: a.invoiceNumber,
+            amount: a.amountAllocated
+          }));
 
-      const payload = {
-        paymentType,
-        amount: parseFloat(amount),
-        currency,
-        paymentMethod,
-        paymentDate: new Date(paymentDate),
-        partyType,
-        partyId: partyId || undefined,
-        partyName,
-        referenceNumber: referenceNumber || undefined,
-        notes: notes || undefined,
-        cashAccountId,
-        bankDetails,
-        chequeDetails,
-        cardDetails,
-        allocations: invoiceAllocations,
-        unallocatedAmount,
-        status: 'POSTED' // Auto-post payment
-      };
+        const payload = {
+          paymentType,
+          amount: parseFloat(amount),
+          currency,
+          paymentMethod,
+          paymentDate: new Date(paymentDate),
+          partyType,
+          partyId: partyId || undefined,
+          partyName,
+          referenceNumber: referenceNumber || undefined,
+          notes: notes || undefined,
+          cashAccountId,
+          bankDetails,
+          chequeDetails,
+          cardDetails,
+          allocations: invoiceAllocations,
+          unallocatedAmount,
+          status: 'POSTED' // Auto-post payment
+        };
 
-      const response = await fetch('/api/finance/payments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+        const response = await fetch('/api/finance/payments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        logger.info('Payment created:', { data });
-        
-        // Show success message (you can add toast notification here)
-        router.push('/finance/payments');
-      } else {
-        const errorData = await response.json();
-        setErrors({ submit: errorData.error || 'Failed to create payment' });
+        if (response.ok) {
+          const data = await response.json();
+          logger.info('Payment created:', { data });
+          
+          // Show success message (you can add toast notification here)
+          router.push('/finance/payments');
+        } else {
+          const errorData = await response.json();
+          setErrors({ submit: errorData.error || 'Failed to create payment' });
+        }
+      } catch (error) {
+        logger.error('Error creating payment:', { error });
+        setErrors({ submit: 'An unexpected error occurred' });
+      } finally {
+        setIsSubmitting(false);
       }
-    } catch (error) {
-      logger.error('Error creating payment:', { error });
+    })().catch((err) => {
+      logger.error('Unhandled error in handleSubmit', { error: err });
       setErrors({ submit: 'An unexpected error occurred' });
-    } finally {
       setIsSubmitting(false);
-    }
+    });
   };
 
   // ============================================================================

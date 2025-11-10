@@ -406,6 +406,8 @@
     "common.error": [
       "/workspaces/Fixzit/app/finance/budgets/new/page.tsx",
       "/workspaces/Fixzit/app/finance/budgets/new/page.tsx",
+      "/workspaces/Fixzit/app/finance/budgets/new/page.tsx",
+      "/workspaces/Fixzit/app/finance/budgets/new/page.tsx",
       "/workspaces/Fixzit/app/finance/expenses/new/page.tsx",
       "/workspaces/Fixzit/app/finance/expenses/new/page.tsx",
       "/workspaces/Fixzit/app/finance/invoices/new/page.tsx",
@@ -5004,5 +5006,5 @@
       "/workspaces/Fixzit/contexts/TranslationContext.test.tsx"
     ]
   },
-  "timestamp": "2025-11-10T14:49:50.111Z"
+  "timestamp": "2025-11-10T15:26:29.827Z"
 }
