@@ -1,6 +1,6 @@
 import { NextRequest} from 'next/server';
 import { dbConnect } from '@/db/mongoose';
-import { finalizePayTabsTransaction, normalizePayTabsPayload } from '@/services/paytabs';
+import { finalizePayTabsTransaction, normalizePayTabsPayload } from '@/lib/finance/paytabs';
 import { validateCallback } from '@/lib/paytabs';
 
 import { rateLimit } from '@/server/security/rateLimit';

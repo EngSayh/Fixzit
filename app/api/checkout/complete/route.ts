@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { dbConnect } from '@/db/mongoose';
 import Subscription from '@/server/models/Subscription';
-import { finalizePayTabsTransaction, normalizePayTabsPayload } from '@/services/paytabs';
+import { finalizePayTabsTransaction, normalizePayTabsPayload } from '@/lib/finance/paytabs';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';

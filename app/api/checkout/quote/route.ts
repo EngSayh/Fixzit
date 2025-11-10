@@ -1,6 +1,6 @@
 import { NextRequest} from 'next/server';
 import { dbConnect } from '@/db/mongoose';
-import { quotePrice } from '@/services/pricing';
+import { quotePrice } from '@/lib/finance/pricing';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
