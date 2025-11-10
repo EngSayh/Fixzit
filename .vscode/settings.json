@@ -7,13 +7,26 @@
 
   // TypeScript/Node Memory Settings for Large Projects (25K+ files)
   // Root Cause Fix: Exit Code 5 = OOM caused by TS server + extension host + Turbopack cache
-  "typescript.tsserver.maxTsServerMemory": 3072, // Reduced from 4GB to 3GB to prevent OOM
+  // 2025-11-10: Increased to 8GB to handle large codebase without crashes
+  "typescript.tsserver.maxTsServerMemory": 8192, // Increased from 3GB to 8GB
   "typescript.tsserver.experimental.enableProjectDiagnostics": false, // Disable project-wide diagnostics
   "typescript.preferences.includePackageJsonAutoImports": "off",
   "typescript.disableAutomaticTypeAcquisition": true,
   "typescript.suggest.includeAutomaticOptionalChainCompletions": false, // Reduce memory overhead
   "typescript.tsserver.watchOptions": {
-    "excludeDirectories": ["**/node_modules", "**/.next", "**/.git", "**/dist"]
+    "excludeDirectories": [
+      "**/node_modules",
+      "**/.next",
+      "**/.git",
+      "**/dist",
+      "**/tmp",
+      "**/_artifacts",
+      "**/coverage",
+      "**/e2e-test-results",
+      "**/playwright-report",
+      "**/test-results",
+      "**/jscpd-report"
+    ]
   },
 
   "terminal.integrated.env.windows": {
@@ -152,15 +165,53 @@
   // ChatGPT startup disabled by default - enable per-user preference if desired
   "chatgpt.openOnStartup": false,
 
-  // File Watcher Exclusions
+  // File Watcher Exclusions - Expanded to reduce memory pressure
   "files.watcherExclude": {
     "**/.git/objects/**": true,
     "**/.git/subtree-cache/**": true,
     "**/node_modules/**": true,
     "**/.hg/store/**": true,
     "**/dist/**": true,
-    "**/.next/**": true,
     "**/build/**": true,
-    "**/.turbo/**": true
-  }
+    "**/.next/**": true,
+    "**/.turbo/**": true,
+    "**/tmp/**": true,
+    "**/_artifacts/**": true,
+    "**/coverage/**": true,
+    "**/e2e-test-results/**": true,
+    "**/playwright-report/**": true,
+    "**/test-results/**": true,
+    "**/jscpd-report/**": true,
+    "**/out/**": true
+  },
+
+  // Search Exclusions - Improve performance by excluding generated/cache directories
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/bower_components": true,
+    "**/*.code-search": true,
+    "**/.next": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/tmp": true,
+    "**/_artifacts": true,
+    "**/coverage": true,
+    "**/e2e-test-results": true,
+    "**/playwright-report": true,
+    "**/test-results": true,
+    "**/jscpd-report": true
+  },
+
+  // Files to hide from explorer to reduce clutter and memory
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/tmp": true,
+    "**/_artifacts/coverage": true
+  },
+
+  // Limit open editors to prevent memory bloat
+  "workbench.editor.limit.enabled": true,
+  "workbench.editor.limit.value": 10,
+  "workbench.editor.limit.perEditorGroup": true
 }
