@@ -1,7 +1,7 @@
 {
   "stats": {
     "files": 379,
-    "usedKeys": 1555,
+    "usedKeys": 1556,
     "hasDynamic": true,
     "enCount": 1986,
     "arCount": 1986,
@@ -10,7 +10,17 @@
   "missing": {
     "inAr": [],
     "inEn": [],
-    "used": []
+    "used": [
+      {
+        "key": "admin.cms.loadError",
+        "bare": "admin.cms.loadError",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/admin/cms/page.tsx"
+        ]
+      }
+    ]
   },
   "fileMap": {
     "about.metaTitle": [
@@ -171,6 +181,9 @@
     ],
     "admin.footer.help.public": [
       "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
+    ],
+    "admin.cms.loadError": [
+      "/workspaces/Fixzit/app/admin/cms/page.tsx"
     ],
     "save.saving": [
       "/workspaces/Fixzit/app/admin/cms/page.tsx"
@@ -5018,5 +5031,5 @@
       "/workspaces/Fixzit/contexts/TranslationContext.test.tsx"
     ]
   },
-  "timestamp": "2025-11-10T20:07:47.067Z"
+  "timestamp": "2025-11-10T20:15:22.957Z"
 }

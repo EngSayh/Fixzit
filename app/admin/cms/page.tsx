@@ -26,15 +26,21 @@ export default function AdminCMS(){
 
   useEffect(()=>{
     (async()=>{
-      const r = await fetch(`/api/cms/pages/${slug}`);
-      if (r.ok){
-        const p = await r.json();
-        setTitle(p.title); setContent(p.content); setStatus(p.status);
-      } else {
+      try {
+        const r = await fetch(`/api/cms/pages/${slug}`);
+        if (r.ok){
+          const p = await r.json();
+          setTitle(p.title); setContent(p.content); setStatus(p.status);
+        } else {
+          setTitle(""); setContent(""); setStatus("DRAFT");
+        }
+      } catch (error) {
+        console.error('Failed to load CMS page:', error);
         setTitle(""); setContent(""); setStatus("DRAFT");
+        toast.error(t('admin.cms.loadError', 'Failed to load page'));
       }
     })();
-  },[slug]);
+  },[slug, t]);
 
   const save = async()=>{
     const toastId = toast.loading(t('save.saving', 'Saving...'));
@@ -50,9 +56,11 @@ export default function AdminCMS(){
       if (r.ok) {
         toast.success(t('save.success', 'Saved successfully'), { id: toastId });
       } else {
-        toast.error(`${t('save.failed', 'Save failed')}: ${await r.text()}`, { id: toastId });
+        const errorText = await r.text();
+        toast.error(`${t('save.failed', 'Save failed')}: ${errorText}`, { id: toastId });
       }
-    } catch {
+    } catch (error) {
+      console.error('Failed to save CMS page:', error);
       toast.error(t('save.networkError', 'Failed: network error'), { id: toastId });
     }
   };

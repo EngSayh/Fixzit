@@ -153,9 +153,9 @@ export default function ProfilePage() {
         throw new Error('Failed to update account');
       }
 
-  await response.json();
+      const result = await response.json();
 
-  // Update original user data after successful save
+      // Update original user data after successful save
       setOriginalUser(user);
       
       toast.success(t('profile.toast.accountSaved', 'Account settings saved successfully!'));

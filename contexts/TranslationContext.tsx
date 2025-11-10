@@ -768,6 +768,7 @@ const translations: Record<Language, Record<string, string>> = {
     'admin.cms.content': 'محتوى Markdown...',
     'admin.cms.draft': 'مسودة',
     'admin.cms.published': 'منشور',
+    'admin.cms.loadError': 'فشل تحميل الصفحة',
     
     // Admin - Footer CMS
     'admin.footer.title': 'إدارة محتوى التذييل',
@@ -2888,6 +2889,7 @@ const translations: Record<Language, Record<string, string>> = {
     'admin.cms.content': 'Markdown content...',
     'admin.cms.draft': 'DRAFT',
     'admin.cms.published': 'PUBLISHED',
+    'admin.cms.loadError': 'Failed to load page',
     
     // Admin - Footer CMS
     'admin.footer.title': 'Footer Content Management',
