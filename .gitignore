@@ -74,3 +74,4 @@ node_modules
 .next/
 .env.production.test
 playwright-report/
+/tmp/
