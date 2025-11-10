@@ -65,7 +65,12 @@ export default function RFQsPage() {
     }
     return fetch(url, { 
       headers: { 'x-tenant-id': orgId } 
-    }).then(r => r.json());
+    })
+      .then(r => r.json())
+      .catch(error => {
+        console.error('FM RFQs fetch error:', error);
+        throw error;
+      });
   };
 
   const { data, mutate, isLoading } = useSWR(

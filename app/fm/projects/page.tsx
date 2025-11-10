@@ -56,7 +56,12 @@ export default function ProjectsPage() {
     if (!orgId) return Promise.reject(new Error('No organization ID'));
     return fetch(url, { 
       headers: { 'x-tenant-id': orgId } 
-    }).then(r => r.json());
+    })
+      .then(r => r.json())
+      .catch(error => {
+        console.error('FM projects fetch error:', error);
+        throw error;
+      });
   };
 
   const { data, mutate, isLoading } = useSWR(

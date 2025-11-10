@@ -64,7 +64,12 @@ export default function PropertyDetailsPage() {
     }
     return fetch(url, { 
       headers: { 'x-tenant-id': orgId } 
-    }).then(r => r.json());
+    })
+      .then(r => r.json())
+      .catch(error => {
+        console.error('FM property detail fetch error:', error);
+        throw error;
+      });
   };
 
   const { data: property, error, isLoading } = useSWR(

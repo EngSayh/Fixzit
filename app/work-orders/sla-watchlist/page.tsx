@@ -6,7 +6,12 @@ import useSWR from 'swr';
 import SLATimer from '@/components/SLATimer';
 import Link from 'next/link';
 
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+const fetcher = (url: string) => fetch(url)
+  .then(r => r.json())
+  .catch(error => {
+    console.error('SLA watchlist fetch error:', error);
+    throw error;
+  });
 
 interface SLAWorkOrder {
   woNumber: string;

@@ -82,7 +82,12 @@ export default function InvoicesPage() {
     }
     return fetch(url, { 
       headers: { 'x-tenant-id': orgId } 
-    }).then(r => r.json());
+    })
+      .then(r => r.json())
+      .catch(error => {
+        console.error('FM invoices fetch error:', error);
+        throw error;
+      });
   };
 
   const { data, mutate, isLoading } = useSWR(
