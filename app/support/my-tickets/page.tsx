@@ -36,7 +36,12 @@ export default function MyTicketsPage() {
   const fetcher = (url: string) => {
     // Auth cookie is sent automatically by browser
     // Backend extracts user from session
-    return fetch(url).then(r => r.json());
+    return fetch(url)
+      .then(r => r.json())
+      .catch(error => {
+        console.error('Support tickets fetch error:', error);
+        throw error;
+      });
   };
 
   const { data, mutate, isLoading } = useSWR(

@@ -38,7 +38,12 @@ export default function FinancePage() {
     }
     // SECURITY FIX: orgId is validated server-side from session/JWT
     // Removed x-tenant-id header to prevent IDOR vulnerability
-    return fetch(url).then(r => r.json());
+    return fetch(url)
+      .then(r => r.json())
+      .catch(error => {
+        console.error('Finance invoice fetch error:', error);
+        throw error;
+      });
   };
 
   const { data, mutate, isLoading } = useSWR(

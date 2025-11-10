@@ -4,7 +4,12 @@ import React from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import useSWR from 'swr';
 
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+const fetcher = (url: string) => fetch(url)
+  .then(r => r.json())
+  .catch(error => {
+    console.error('PM work orders fetch error:', error);
+    throw error;
+  });
 
 interface PMPlan {
   id: string;

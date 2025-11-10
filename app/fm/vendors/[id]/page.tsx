@@ -88,7 +88,12 @@ export default function VendorDetailsPage() {
     }
     return fetch(url, { 
       headers: { 'x-tenant-id': orgId } 
-    }).then(r => r.json());
+    })
+      .then(r => r.json())
+      .catch(error => {
+        console.error('FM vendor detail fetch error:', error);
+        throw error;
+      });
   };
 
   const { data: vendor, error, isLoading } = useSWR<Vendor>(

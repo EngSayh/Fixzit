@@ -87,13 +87,18 @@ export default function EditVendorPage() {
     }
     return fetch(url, { 
       headers: { 'x-tenant-id': orgId } 
-    }).then(async (r) => {
-      if (!r.ok) {
-        const errorData = await r.json().catch(() => ({ message: 'Failed to fetch vendor' }));
-        throw new Error(errorData.message || `Error ${r.status}`);
-      }
-      return r.json();
-    });
+    })
+      .then(async (r) => {
+        if (!r.ok) {
+          const errorData = await r.json().catch(() => ({ message: 'Failed to fetch vendor' }));
+          throw new Error(errorData.message || `Error ${r.status}`);
+        }
+        return r.json();
+      })
+      .catch(error => {
+        console.error('FM vendor edit fetch error:', error);
+        throw error;
+      });
   };
 
   const { data: vendor, error, isLoading } = useSWR<Vendor>(

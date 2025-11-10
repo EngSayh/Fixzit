@@ -92,7 +92,12 @@ export default function DashboardPage() {
       headers: { 
         'x-tenant-id': orgId
       }
-    }).then(r => r.json());
+    })
+      .then(r => r.json())
+      .catch(error => {
+        console.error('FM dashboard fetch error:', error);
+        throw error;
+      });
   };
 
   // Fetch dashboard data
