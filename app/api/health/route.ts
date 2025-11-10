@@ -1,0 +1,61 @@
+/**
+ * Health Check Endpoint
+ * GET /api/health
+ * 
+ * Returns server health status for monitoring and E2E test readiness checks
+ */
+import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/mongo';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(_request: NextRequest) {
+  try {
+    // Check database connection
+    let dbStatus = 'disconnected';
+    let dbLatency = 0;
+    
+    const dbStart = Date.now();
+    try {
+      await db;
+      // Simple ping to verify connection
+      const admin = (await db).admin();
+      await admin.ping();
+      dbStatus = 'connected';
+      dbLatency = Date.now() - dbStart;
+    } catch (dbError) {
+      dbStatus = 'error';
+      console.error('[Health Check] Database error:', dbError);
+    }
+    
+    const health = {
+      status: dbStatus === 'connected' ? 'healthy' : 'unhealthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      database: {
+        status: dbStatus,
+        latency: dbLatency
+      },
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+        unit: 'MB'
+      },
+      environment: process.env.NODE_ENV || 'development'
+    };
+    
+    const statusCode = health.status === 'healthy' ? 200 : 503;
+    
+    return NextResponse.json(health, { status: statusCode });
+  } catch (error) {
+    console.error('[Health Check] Error:', error);
+    return NextResponse.json(
+      {
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 503 }
+    );
+  }
+}

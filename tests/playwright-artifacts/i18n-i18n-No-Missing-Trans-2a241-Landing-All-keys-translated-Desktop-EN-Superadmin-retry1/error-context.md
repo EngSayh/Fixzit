@@ -1,0 +1,140 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - generic [ref=e12]:
+    - banner [ref=e13]:
+      - generic [ref=e14]:
+        - generic [ref=e15]:
+          - button "العودة إلى الصفحة الرئيسية" [ref=e16] [cursor=pointer]:
+            - generic [ref=e17]: FI
+            - generic [ref=e18]: FIXZIT ENTERPRISE
+          - button "تبديل التطبيق" [ref=e20] [cursor=pointer]:
+            - img [ref=e21]
+            - generic [ref=e25]: إدارة المنشآت
+            - img [ref=e26]
+        - generic [ref=e30]:
+          - img [ref=e31]
+          - combobox "Global search" [ref=e34]
+          - generic [ref=e35]:
+            - img [ref=e36]
+            - generic [ref=e38]: K
+        - generic [ref=e39]:
+          - button "إجراءات سريعة" [ref=e41] [cursor=pointer]:
+            - img [ref=e42]
+            - generic [ref=e43]: إجراءات سريعة
+            - img [ref=e44]
+          - button "الإشعارات" [ref=e47] [cursor=pointer]:
+            - img [ref=e48]
+          - button "الملف الشخصي" [ref=e52] [cursor=pointer]:
+            - img [ref=e53]
+            - img [ref=e56]
+    - generic [ref=e58]:
+      - generic [ref=e60]:
+        - heading "منصة فيكزيت للمؤسسات" [level=1] [ref=e61]
+        - paragraph [ref=e62]: حل موحد لإدارة المنشآت + السوق التجاري للعمليات العقارية الحديثة
+        - generic [ref=e63]:
+          - button "الوصول إلى فيكزيت FM" [ref=e64] [cursor=pointer]
+          - button "فيكزيت سوق" [ref=e65] [cursor=pointer]
+          - button "عقار فيكزيت" [ref=e66] [cursor=pointer]
+      - generic [ref=e68]:
+        - heading "حل كامل لإدارة المنشآت" [level=2] [ref=e69]
+        - generic [ref=e70]:
+          - generic [ref=e71]:
+            - heading "إدارة الممتلكات" [level=3] [ref=e72]
+            - paragraph [ref=e73]: إدارة محفظة العقارات الخاصة بك، تتبع الإشغال، والتعامل مع العلاقات مع المستأجرين
+            - link "استكشف ←" [ref=e74] [cursor=pointer]:
+              - /url: /fm/properties
+          - generic [ref=e75]:
+            - heading "أوامر العمل" [level=3] [ref=e76]
+            - paragraph [ref=e77]: إنشاء وتعيين وتتبع طلبات الصيانة مع إدارة اتفاقية مستوى الخدمة
+            - link "استكشف ←" [ref=e78] [cursor=pointer]:
+              - /url: /fm/work-orders
+          - generic [ref=e79]:
+            - heading "الموردون وطلبات العروض" [level=3] [ref=e80]
+            - paragraph [ref=e81]: مصدر المواد، إدارة الموردين، وتبسيط المشتريات
+            - link "استكشف ←" [ref=e82] [cursor=pointer]:
+              - /url: /fm/vendors
+          - generic [ref=e83]:
+            - heading "المالية والفوترة" [level=3] [ref=e84]
+            - paragraph [ref=e85]: التعامل مع الفواتير والمدفوعات وإعداد التقارير المالية
+            - link "استكشف ←" [ref=e86] [cursor=pointer]:
+              - /url: /fm/finance
+          - generic [ref=e87]:
+            - heading "إدارة علاقات العملاء والمستأجرين" [level=3] [ref=e88]
+            - paragraph [ref=e89]: إدارة علاقات المستأجرين وخدمة العملاء
+            - link "استكشف ←" [ref=e90] [cursor=pointer]:
+              - /url: /fm/crm
+          - generic [ref=e91]:
+            - heading "التحليلات والتقارير" [level=3] [ref=e92]
+            - paragraph [ref=e93]: احصل على رؤى من خلال تقارير وتحليلات شاملة
+            - link "استكشف ←" [ref=e94] [cursor=pointer]:
+              - /url: /fm/analytics
+      - generic [ref=e96]:
+        - heading "هل أنت مستعد لتحويل إدارة منشآتك؟" [level=2] [ref=e97]
+        - paragraph [ref=e98]: انضم إلى آلاف العقارات التي تستخدم بالفعل فيكزيت لتبسيط العمليات
+        - generic [ref=e99]:
+          - button "تسجيل الدخول" [ref=e100] [cursor=pointer]
+          - button "طلب عرض توضيحي" [ref=e101] [cursor=pointer]
+    - contentinfo [ref=e102]:
+      - generic [ref=e103]:
+        - generic [ref=e104]:
+          - generic [ref=e105]: فيكزيت
+          - link "العودة إلى الصفحة الرئيسية" [ref=e106] [cursor=pointer]:
+            - /url: /
+            - img [ref=e107]
+            - generic [ref=e110]: العودة إلى الصفحة الرئيسية
+          - generic [ref=e111]:
+            - button "اختر اللغة" [ref=e113] [cursor=pointer]:
+              - img [ref=e114]
+              - generic [ref=e117]:
+                - generic [ref=e118]: 🇸🇦
+                - generic [ref=e119]: AR-SA
+            - button "اختر العملة SAR" [ref=e121] [cursor=pointer]:
+              - img [ref=e122]
+              - generic [ref=e125]:
+                - generic [ref=e126]: 🇸🇦
+                - generic [ref=e127]: SAR
+        - generic [ref=e128]:
+          - generic [ref=e129]:
+            - generic [ref=e130]: الشركة
+            - list [ref=e131]:
+              - listitem [ref=e132]:
+                - link "معلومات عنا" [ref=e133] [cursor=pointer]:
+                  - /url: /about
+              - listitem [ref=e134]:
+                - link "الوظائف" [ref=e135] [cursor=pointer]:
+                  - /url: /careers
+          - generic [ref=e136]:
+            - generic [ref=e137]: قانوني
+            - list [ref=e138]:
+              - listitem [ref=e139]:
+                - link "الخصوصية" [ref=e140] [cursor=pointer]:
+                  - /url: /privacy
+              - listitem [ref=e141]:
+                - link "الشروط" [ref=e142] [cursor=pointer]:
+                  - /url: /terms
+          - generic [ref=e143]:
+            - generic [ref=e144]: الدعم
+            - list [ref=e145]:
+              - listitem [ref=e146]:
+                - link "مركز المساعدة" [ref=e147] [cursor=pointer]:
+                  - /url: /help
+              - listitem [ref=e148]:
+                - button "فتح تذكرة" [ref=e149] [cursor=pointer]
+        - generic [ref=e150]:
+          - generic [ref=e151]: © 2025 فيكزيت. جميع الحقوق محفوظة.
+          - generic [ref=e152]:
+            - link "الخصوصية" [ref=e153] [cursor=pointer]:
+              - /url: /privacy
+            - link "الشروط" [ref=e154] [cursor=pointer]:
+              - /url: /terms
+            - link "الدعم" [ref=e155] [cursor=pointer]:
+              - /url: /support
+    - button "Ask Fixzit" [ref=e157] [cursor=pointer]:
+      - img [ref=e158]
+  - region "Notifications alt+T"
+```

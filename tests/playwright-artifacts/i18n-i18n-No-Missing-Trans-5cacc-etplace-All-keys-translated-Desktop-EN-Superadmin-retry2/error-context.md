@@ -1,0 +1,287 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - generic [ref=e12]:
+    - generic [ref=e13]:
+      - banner [ref=e15]:
+        - generic [ref=e16]:
+          - generic [ref=e17]:
+            - button "العودة إلى الصفحة الرئيسية" [ref=e18] [cursor=pointer]:
+              - generic [ref=e19]: FI
+              - generic [ref=e20]: FIXZIT ENTERPRISE
+            - button "تبديل التطبيق" [ref=e22] [cursor=pointer]:
+              - img [ref=e23]
+              - generic [ref=e28]: السوق
+              - img [ref=e29]
+          - generic [ref=e33]:
+            - img [ref=e34]
+            - combobox "Global search" [ref=e37]
+            - generic [ref=e38]:
+              - img [ref=e39]
+              - generic [ref=e41]: K
+          - generic [ref=e42]:
+            - button "إجراءات سريعة" [ref=e44] [cursor=pointer]:
+              - img [ref=e45]
+              - generic [ref=e46]: إجراءات سريعة
+              - img [ref=e47]
+            - button "الإشعارات" [ref=e50] [cursor=pointer]:
+              - img [ref=e51]
+            - button "الملف الشخصي" [ref=e55] [cursor=pointer]:
+              - img [ref=e56]
+              - img [ref=e59]
+      - generic [ref=e61]:
+        - complementary "التنقل الرئيسي" [ref=e63]:
+          - generic [ref=e64]:
+            - generic [ref=e65]: فيكزيت إنتربرايز
+            - region "معلومات الحساب" [ref=e66]:
+              - generic [ref=e67]: الدور
+              - generic [ref=e68]: SUPER ADMIN
+              - generic [ref=e69]: "الخطة: DEFAULT"
+            - navigation "الوحدات" [ref=e70]:
+              - region "الأساسيات" [ref=e71]:
+                - generic [ref=e72]: الأساسيات
+                - list [ref=e73]:
+                  - listitem [ref=e74]:
+                    - link "لوحة التحكم" [ref=e75] [cursor=pointer]:
+                      - /url: /fm/dashboard
+                      - img [ref=e76]
+                      - generic [ref=e81]: لوحة التحكم
+              - region "إدارة المرافق" [ref=e82]:
+                - generic [ref=e83]: إدارة المرافق
+                - list [ref=e84]:
+                  - listitem [ref=e85]:
+                    - link "أوامر العمل" [ref=e86] [cursor=pointer]:
+                      - /url: /fm/work-orders
+                      - img [ref=e87]
+                      - generic [ref=e90]: أوامر العمل
+                  - listitem [ref=e91]:
+                    - link "العقارات" [ref=e92] [cursor=pointer]:
+                      - /url: /fm/properties
+                      - img [ref=e93]
+                      - generic [ref=e97]: العقارات
+                  - listitem [ref=e98]:
+                    - link "الأصول" [ref=e99] [cursor=pointer]:
+                      - /url: /fm/assets
+                      - img [ref=e100]
+                      - generic [ref=e103]: الأصول
+                  - listitem [ref=e104]:
+                    - link "المستأجرين" [ref=e105] [cursor=pointer]:
+                      - /url: /fm/tenants
+                      - img [ref=e106]
+                      - generic [ref=e111]: المستأجرين
+                  - listitem [ref=e112]:
+                    - link "الصيانة" [ref=e113] [cursor=pointer]:
+                      - /url: /fm/maintenance
+                      - img [ref=e114]
+                      - generic [ref=e117]: الصيانة
+                  - listitem [ref=e118]:
+                    - link "المشاريع" [ref=e119] [cursor=pointer]:
+                      - /url: /fm/projects
+                      - img [ref=e120]
+                      - generic [ref=e123]: المشاريع
+              - region "المشتريات" [ref=e124]:
+                - generic [ref=e125]: المشتريات
+                - list [ref=e126]:
+                  - listitem [ref=e127]:
+                    - link "الموردين" [ref=e128] [cursor=pointer]:
+                      - /url: /fm/vendors
+                      - img [ref=e129]
+                      - generic [ref=e132]: الموردين
+                  - listitem [ref=e133]:
+                    - link "طلبات العروض" [ref=e134] [cursor=pointer]:
+                      - /url: /fm/rfqs
+                      - img [ref=e135]
+                      - generic [ref=e138]: طلبات العروض
+                  - listitem [ref=e139]:
+                    - link "الطلبات" [ref=e140] [cursor=pointer]:
+                      - /url: /fm/orders
+                      - img [ref=e141]
+                      - generic [ref=e144]: الطلبات
+              - region "المالية" [ref=e145]:
+                - generic [ref=e146]: المالية
+                - list [ref=e147]:
+                  - listitem [ref=e148]:
+                    - link "المالية" [ref=e149] [cursor=pointer]:
+                      - /url: /fm/finance
+                      - img [ref=e150]
+                      - generic [ref=e152]: المالية
+                  - listitem [ref=e153]:
+                    - link "الفواتير" [ref=e154] [cursor=pointer]:
+                      - /url: /fm/invoices
+                      - img [ref=e155]
+                      - generic [ref=e157]: الفواتير
+              - region "الموارد البشرية" [ref=e158]:
+                - generic [ref=e159]: الموارد البشرية
+                - list [ref=e160]:
+                  - listitem [ref=e161]:
+                    - link "الموارد البشرية" [ref=e162] [cursor=pointer]:
+                      - /url: /fm/hr
+                      - img [ref=e163]
+                      - generic [ref=e168]: الموارد البشرية
+              - region "العلاقات مع العملاء" [ref=e169]:
+                - generic [ref=e170]: العلاقات مع العملاء
+                - list [ref=e171]:
+                  - listitem [ref=e172]:
+                    - link "إدارة العلاقات" [ref=e173] [cursor=pointer]:
+                      - /url: /fm/crm
+                      - img [ref=e174]
+                      - generic [ref=e178]: إدارة العلاقات
+              - region "السوق" [ref=e179]:
+                - generic [ref=e180]: السوق
+                - list [ref=e181]:
+                  - listitem [ref=e182]:
+                    - link "السوق" [ref=e183] [cursor=pointer]:
+                      - /url: /fm/marketplace
+                      - img [ref=e184]
+                      - generic [ref=e187]: السوق
+              - region "الدعم" [ref=e188]:
+                - generic [ref=e189]: الدعم
+                - list [ref=e190]:
+                  - listitem [ref=e191]:
+                    - link "الدعم" [ref=e192] [cursor=pointer]:
+                      - /url: /fm/support
+                      - img [ref=e193]
+                      - generic [ref=e195]: الدعم
+              - region "الامتثال" [ref=e196]:
+                - generic [ref=e197]: الامتثال
+                - list [ref=e198]:
+                  - listitem [ref=e199]:
+                    - link "الامتثال" [ref=e200] [cursor=pointer]:
+                      - /url: /fm/compliance
+                      - img [ref=e201]
+                      - generic [ref=e203]: الامتثال
+              - region "التقارير" [ref=e204]:
+                - generic [ref=e205]: التقارير
+                - list [ref=e206]:
+                  - listitem [ref=e207]:
+                    - link "التقارير" [ref=e208] [cursor=pointer]:
+                      - /url: /fm/reports
+                      - img [ref=e209]
+                      - generic [ref=e211]: التقارير
+              - region "الإدارة" [ref=e212]:
+                - generic [ref=e213]: الإدارة
+                - list [ref=e214]:
+                  - listitem [ref=e215]:
+                    - link "الإدارة" [ref=e216] [cursor=pointer]:
+                      - /url: /fm/administration
+                      - img [ref=e217]
+                      - generic [ref=e219]: الإدارة
+                  - listitem [ref=e220]:
+                    - link "إدارة النظام" [ref=e221] [cursor=pointer]:
+                      - /url: /fm/system
+                      - img [ref=e222]
+                      - generic [ref=e233]: إدارة النظام
+            - generic [ref=e234]:
+              - generic [ref=e235]: الحساب
+              - list "الحساب" [ref=e236]:
+                - listitem [ref=e237]:
+                  - link "الملف الشخصي" [ref=e238] [cursor=pointer]:
+                    - /url: /profile
+                    - img [ref=e239]
+                    - generic [ref=e243]: الملف الشخصي
+                - listitem [ref=e244]:
+                  - link "الإعدادات" [ref=e245] [cursor=pointer]:
+                    - /url: /settings
+                    - img [ref=e246]
+                    - generic [ref=e249]: الإعدادات
+                - listitem [ref=e250]:
+                  - link "الإشعارات" [ref=e251] [cursor=pointer]:
+                    - /url: /notifications
+                    - img [ref=e252]
+                    - generic [ref=e255]: الإشعارات
+            - generic [ref=e256]:
+              - generic [ref=e257]: المساعدة
+              - link "مركز المساعدة" [ref=e258] [cursor=pointer]:
+                - /url: /help
+                - img [ref=e259]
+                - generic [ref=e261]: مركز المساعدة
+        - main [ref=e262]:
+          - main [ref=e266]:
+            - generic [ref=e267]:
+              - generic [ref=e268]:
+                - paragraph [ref=e269]: Fixzit Souq
+                - heading "Facilities, MRO & Construction Marketplace" [level=1] [ref=e270]
+                - paragraph [ref=e271]: Source ASTM and BS EN compliant materials with tenant-level approvals, finance posting, and vendor SLAs baked in.
+                - generic [ref=e272]:
+                  - generic [ref=e273]: Rapid RFQ
+                  - generic [ref=e274]: Work Order linked orders
+                  - generic [ref=e275]: Finance ready invoices
+              - generic [ref=e276]:
+                - heading "Live Operational KPIs" [level=2] [ref=e277]
+                - generic [ref=e278]:
+                  - generic [ref=e279]:
+                    - paragraph [ref=e280]: Open approvals
+                    - paragraph [ref=e281]: "3"
+                  - generic [ref=e282]:
+                    - paragraph [ref=e283]: Pending deliveries
+                    - paragraph [ref=e284]: "7"
+                  - generic [ref=e285]:
+                    - paragraph [ref=e286]: Finance ready
+                    - paragraph [ref=e287]: "5"
+            - generic [ref=e289]:
+              - heading "Featured for your organisation" [level=2] [ref=e290]
+              - link "View all" [ref=e291] [cursor=pointer]:
+                - /url: /marketplace/search
+      - contentinfo [ref=e293]:
+        - generic [ref=e294]:
+          - generic [ref=e295]:
+            - generic [ref=e296]: فيكزيت
+            - link "العودة إلى الصفحة الرئيسية" [ref=e297] [cursor=pointer]:
+              - /url: /
+              - img [ref=e298]
+              - generic [ref=e301]: العودة إلى الصفحة الرئيسية
+            - generic [ref=e302]:
+              - button "اختر اللغة" [ref=e304] [cursor=pointer]:
+                - img [ref=e305]
+                - generic [ref=e308]:
+                  - generic [ref=e309]: 🇸🇦
+                  - generic [ref=e310]: AR-SA
+              - button "اختر العملة SAR" [ref=e312] [cursor=pointer]:
+                - img [ref=e313]
+                - generic [ref=e316]:
+                  - generic [ref=e317]: 🇸🇦
+                  - generic [ref=e318]: SAR
+          - generic [ref=e319]:
+            - generic [ref=e320]:
+              - generic [ref=e321]: الشركة
+              - list [ref=e322]:
+                - listitem [ref=e323]:
+                  - link "معلومات عنا" [ref=e324] [cursor=pointer]:
+                    - /url: /about
+                - listitem [ref=e325]:
+                  - link "الوظائف" [ref=e326] [cursor=pointer]:
+                    - /url: /careers
+            - generic [ref=e327]:
+              - generic [ref=e328]: قانوني
+              - list [ref=e329]:
+                - listitem [ref=e330]:
+                  - link "الخصوصية" [ref=e331] [cursor=pointer]:
+                    - /url: /privacy
+                - listitem [ref=e332]:
+                  - link "الشروط" [ref=e333] [cursor=pointer]:
+                    - /url: /terms
+            - generic [ref=e334]:
+              - generic [ref=e335]: الدعم
+              - list [ref=e336]:
+                - listitem [ref=e337]:
+                  - link "مركز المساعدة" [ref=e338] [cursor=pointer]:
+                    - /url: /help
+                - listitem [ref=e339]:
+                  - button "فتح تذكرة" [ref=e340] [cursor=pointer]
+          - generic [ref=e341]:
+            - generic [ref=e342]: © 2025 فيكزيت. جميع الحقوق محفوظة.
+            - generic [ref=e343]:
+              - link "الخصوصية" [ref=e344] [cursor=pointer]:
+                - /url: /privacy
+              - link "الشروط" [ref=e345] [cursor=pointer]:
+                - /url: /terms
+              - link "الدعم" [ref=e346] [cursor=pointer]:
+                - /url: /support
+    - button "Ask Fixzit" [ref=e348] [cursor=pointer]:
+      - img [ref=e349]
+  - region "Notifications alt+T"
+```
