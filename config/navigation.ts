@@ -25,7 +25,7 @@ export type UserLink = {
 export const ROLE_PERMISSIONS: Record<UserRoleType | 'guest', readonly string[]> = {
   SUPER_ADMIN: [
     'dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors',
-    'projects', 'rfqs', 'invoices', 'finance', 'hr', 'admin', 'administration',
+    'projects', 'rfqs', 'invoices', 'finance', 'hr', 'administration',
     'crm', 'marketplace', 'support', 'compliance', 'reports', 'system', 'maintenance', 'orders'
   ],
   CORPORATE_ADMIN: [
@@ -77,8 +77,8 @@ export const ROLE_PERMISSIONS: Record<UserRoleType | 'guest', readonly string[]>
 export const SUBSCRIPTION_PLANS: Record<string, readonly string[]> = {
   BASIC: ['dashboard', 'properties', 'tenants', 'maintenance', 'support'],
   PROFESSIONAL: ['dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'support', 'reports', 'maintenance', 'orders'],
-  ENTERPRISE: ['dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors', 'projects', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'marketplace', 'support', 'compliance', 'reports', 'system', 'admin', 'administration', 'maintenance', 'orders'],
-  DEFAULT: [] // Fallback for unknown plans
+  ENTERPRISE: ['dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors', 'projects', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'marketplace', 'support', 'compliance', 'reports', 'system', 'administration', 'maintenance', 'orders'],
+  DEFAULT: ['dashboard', 'work-orders', 'properties', 'assets', 'tenants', 'vendors', 'projects', 'rfqs', 'invoices', 'finance', 'hr', 'crm', 'marketplace', 'support', 'compliance', 'reports', 'system', 'administration', 'maintenance', 'orders'] // Full access for accounts without explicit subscription (e.g., SUPER_ADMIN)
 } as const;
 
 // ---------- Modules ----------
