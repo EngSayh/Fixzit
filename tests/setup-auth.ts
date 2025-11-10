@@ -91,12 +91,12 @@ async function globalSetup(config: FullConfig) {
       // Navigate to login
       await page.goto(`${baseURL}/login`, { waitUntil: 'networkidle' });
 
-      // Fill login form
-      await page.fill('input[name="email"], input[type="email"]', role.email);
-      await page.fill('input[name="password"], input[type="password"]', role.password);
+      // Fill login form using data-testid attributes
+      await page.fill('[data-testid="login-email"]', role.email);
+      await page.fill('[data-testid="login-password"]', role.password);
 
       // Submit login
-      await page.click('button[type="submit"]');
+      await page.click('[data-testid="login-submit"]');
 
       // Wait for redirect after successful login
       await page.waitForURL(/\/(dashboard|app|home)/, { timeout: 15000 });
