@@ -1,6 +1,6 @@
 "use client";
 import useSWR from "swr";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,19 @@ export default function FinancePage() {
   const { data: session } = useSession();
   const orgId = session?.user?.orgId;
   const [q, setQ] = useState("");
+
+  // ✅ HYDRATION FIX: Set default dates after client hydration
+  const [issue, setIssue] = useState('');
+  const [due, setDue] = useState('');
+  
+  useEffect(() => {
+    if (!issue) {
+      setIssue(new Date().toISOString().slice(0, 10));
+    }
+    if (!due) {
+      setDue(new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10));
+    }
+  }, [issue, due]);
 
   const fetcher = (url: string) => {
     if (!orgId) {
@@ -187,9 +200,19 @@ function InvoiceLineItem({ line, onUpdate, t }: {
 function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }) {
   const { t } = useTranslation();
   const [open,setOpen]=useState(false);
-  const [issue, setIssue] = useState(new Date().toISOString().slice(0,10));
-  const [due, setDue] = useState(new Date(Date.now()+7*864e5).toISOString().slice(0,10));
+  const [issue, setIssue] = useState(''); // ✅ HYDRATION FIX: Initialize empty
+  const [due, setDue] = useState(''); // ✅ HYDRATION FIX: Initialize empty
   const [lines, setLines] = useState<InvoiceLine[]>([{ id: crypto.randomUUID(), description:"Maintenance Service", qty:"1", unitPrice:"100", vatRate:"15" }]);
+
+  // ✅ HYDRATION FIX: Set default dates after client hydration
+  useEffect(() => {
+    if (!issue) {
+      setIssue(new Date().toISOString().slice(0, 10));
+    }
+    if (!due) {
+      setDue(new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10));
+    }
+  }, [issue, due]);
 
   function updateLine(id:string, key:string, val: string) {
     setLines(prev => prev.map((l)=> l.id===id ? { ...l, [key]: val } : l));

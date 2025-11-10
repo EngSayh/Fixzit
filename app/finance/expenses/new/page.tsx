@@ -61,7 +61,7 @@ export default function NewExpensePage() {
 
   // Core form state
   const [expenseType, setExpenseType] = useState<string>('OPERATIONAL');
-  const [expenseDate, setExpenseDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [expenseDate, setExpenseDate] = useState<string>(''); // ✅ HYDRATION FIX: Initialize empty
   const [dueDate, setDueDate] = useState<string>('');
   const [vendorId, setVendorId] = useState<string>('');
   const [vendorName, setVendorName] = useState<string>('');
@@ -110,6 +110,13 @@ export default function NewExpensePage() {
   // ============================================================================
   // LIFECYCLE & DATA LOADING
   // ============================================================================
+
+  // ✅ HYDRATION FIX: Set default date after client hydration
+  useEffect(() => {
+    if (!expenseDate) {
+      setExpenseDate(new Date().toISOString().split('T')[0]);
+    }
+  }, [expenseDate]);
 
   // Register form
   useEffect(() => {

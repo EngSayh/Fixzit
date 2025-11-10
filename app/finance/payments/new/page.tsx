@@ -48,7 +48,7 @@ export default function NewPaymentPage() {
 
   // Core payment fields
   const [paymentType, setPaymentType] = useState<string>('RECEIVED');
-  const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [paymentDate, setPaymentDate] = useState<string>(''); // ✅ HYDRATION FIX: Initialize empty
   const [amount, setAmount] = useState<string>('');
   const [currency, setCurrency] = useState<string>('SAR');
   const [paymentMethod, setPaymentMethod] = useState<string>('CASH');
@@ -104,6 +104,13 @@ export default function NewPaymentPage() {
   // ============================================================================
   // LIFECYCLE & DATA LOADING
   // ============================================================================
+
+  // ✅ HYDRATION FIX: Set default date after client hydration
+  useEffect(() => {
+    if (!paymentDate) {
+      setPaymentDate(new Date().toISOString().split('T')[0]);
+    }
+  }, [paymentDate]);
 
   useEffect(() => {
     const formId = 'new-payment-form';

@@ -50,7 +50,7 @@ export default function NewInvoicePage() {
 
   // Core form state
   const [invoiceType, setInvoiceType] = useState<string>('SALES');
-  const [issueDate, setIssueDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [issueDate, setIssueDate] = useState<string>(''); // ✅ HYDRATION FIX: Initialize empty, set in useEffect
   const [dueDate, setDueDate] = useState<string>('');
   const [customerId, setCustomerId] = useState<string>('');
   const [customerName, setCustomerName] = useState<string>('');
@@ -117,6 +117,13 @@ export default function NewInvoicePage() {
   // ============================================================================
   // LIFECYCLE & DATA LOADING
   // ============================================================================
+
+  // ✅ HYDRATION FIX: Set default date after client hydration
+  useEffect(() => {
+    if (!issueDate) {
+      setIssueDate(new Date().toISOString().split('T')[0]);
+    }
+  }, [issueDate]);
 
   useEffect(() => {
     const formId = 'new-invoice-form';
