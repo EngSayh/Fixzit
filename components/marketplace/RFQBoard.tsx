@@ -42,30 +42,36 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
   const createRFQ = async () => {
     setSubmitting(true);
     setError(null);
-    const response = await fetch('/api/marketplace/rfq', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: form.title,
-        description: form.description,
-        categoryId: form.categoryId || undefined,
-        quantity: form.quantity ? Number(form.quantity) : undefined,
-        budget: form.budget ? Number(form.budget) : undefined,
-        deadline: form.deadline || undefined
-      })
-    });
-    setSubmitting(false);
+    try {
+      const response = await fetch('/api/marketplace/rfq', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: form.title,
+          description: form.description,
+          categoryId: form.categoryId || undefined,
+          quantity: form.quantity ? Number(form.quantity) : undefined,
+          budget: form.budget ? Number(form.budget) : undefined,
+          deadline: form.deadline || undefined
+        })
+      });
 
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      setError(payload.error ?? 'Failed to create RFQ');
-      return;
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        setError(payload.error ?? 'Failed to create RFQ');
+        return;
+      }
+
+      const payload = await response.json();
+      setRfqs([payload.data, ...rfqs]);
+      setForm({ title: '', description: '', categoryId: '', quantity: '', budget: '', deadline: '' });
+      setShowForm(false);
+    } catch (fetchError) {
+      console.error('Failed to create RFQ:', fetchError);
+      setError('Network error. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
-
-    const payload = await response.json();
-    setRfqs([payload.data, ...rfqs]);
-    setForm({ title: '', description: '', categoryId: '', quantity: '', budget: '', deadline: '' });
-    setShowForm(false);
   };
 
   return (

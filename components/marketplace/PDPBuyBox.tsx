@@ -46,14 +46,18 @@ export default function PDPBuyBox({ product, onAddToCart, onRequestRFQ }: PDPBuy
       await addProductToCart(product.id, effectiveQuantity);
       onAddToCart?.(effectiveQuantity);
     } catch (error) {
-      import('../../lib/logger').then(({ logError }) => {
-        logError('Failed to add product to cart', error as Error, {
-          component: 'PDPBuyBox',
-          action: 'handleAddToCart',
-          productId: product.id,
-          quantity,
+      import('../../lib/logger')
+        .then(({ logError }) => {
+          logError('Failed to add product to cart', error as Error, {
+            component: 'PDPBuyBox',
+            action: 'handleAddToCart',
+            productId: product.id,
+            quantity,
+          });
+        })
+        .catch((loggerError) => {
+          console.error('Failed to load logger:', loggerError);
         });
-      });
       if (typeof window !== 'undefined') {
         const message = error instanceof Error ? error.message : 'Unable to add to cart';
         window.alert?.(`Unable to add to cart: ${message}`);
