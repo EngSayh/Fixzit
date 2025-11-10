@@ -114,7 +114,7 @@ export default function CatalogPage() {
 
   const categories = ['all', ...Array.from(new Set(SAMPLE_PRODUCTS.map(p => p.category)))];
 
-  // eslint-disable-next-line no-unused-vars
+   
   const handleAddToCart = (_productId: string) => {
     // Redirect to login if not authenticated
     router.push('/login?redirect=/souq/catalog&action=add-to-cart');

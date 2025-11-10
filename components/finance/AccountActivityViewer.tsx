@@ -109,7 +109,7 @@ export default function AccountActivityViewer({
         try {
           const err = await response.json();
           errMsg = err.message || err.error || errMsg;
-        // eslint-disable-next-line no-unused-vars
+         
         } catch (_err) {
           // ignore
         }

@@ -24,10 +24,10 @@ interface SidebarProps {
   tenantId?: string; // Optional, kept for potential future use
 }
 
-// eslint-disable-next-line no-unused-vars
+ 
 export default function Sidebar({ tenantId: _tenantId }: SidebarProps) {
   const pathname = usePathname();
-  // eslint-disable-next-line no-unused-vars
+   
   const { responsiveClasses: _responsiveClasses, screenInfo } = useResponsiveLayout();
 
   // hooks must be top-level

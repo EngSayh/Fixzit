@@ -59,13 +59,13 @@ if (!skipSecretValidation) {
 }
 
 // Helper functions for OAuth provisioning (reserved for future use)
-// eslint-disable-next-line no-unused-vars
+ 
 function _sanitizeName(name?: string | null): string {
   if (!name) return 'Unknown User';
   return name.trim().substring(0, 100);
 }
 
-// eslint-disable-next-line no-unused-vars
+ 
 function _sanitizeImage(image?: string | null): string | undefined {
   if (!image) return undefined;
   try {
@@ -146,7 +146,7 @@ export const authConfig = {
         password: { label: 'Password', type: 'password' },
         rememberMe: { label: 'Remember Me', type: 'checkbox' },
       },
-      // eslint-disable-next-line no-unused-vars
+       
       async authorize(credentials, _request) {
         try {
           // 1. Validate credentials schema

@@ -34,7 +34,7 @@ export async function getServerI18n() {
     };
 
     return { t, isRTL } as { t: TFn; isRTL: boolean };
-  // eslint-disable-next-line no-unused-vars
+   
   } catch (_err) {
     return {
       t: (k: string, f: string = k) => f,

@@ -17,7 +17,7 @@ export interface ChatCompletionOptions {
   docs?: RetrievedDoc[];
 }
 
-// eslint-disable-next-line no-unused-vars
+ 
 function buildSystemPrompt(_session: CopilotSession): string {
   return [
     "You are Fixzit Copilot, an enterprise assistant.",

@@ -7,7 +7,7 @@
  * @module types/test-mocks
  */
 
-/* eslint-disable no-unused-vars */
+ 
 
 import type { Mock } from 'vitest';
 
