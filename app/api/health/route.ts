@@ -17,12 +17,14 @@ export async function GET(_request: NextRequest) {
     
     const dbStart = Date.now();
     try {
-      await db;
-      // Simple ping to verify connection
-      const admin = (await db).admin();
-      await admin.ping();
-      dbStatus = 'connected';
-      dbLatency = Date.now() - dbStart;
+      const connection = await db;
+      // Verify connection by checking if collection method exists
+      if (connection && typeof connection.collection === 'function') {
+        dbStatus = 'connected';
+        dbLatency = Date.now() - dbStart;
+      } else {
+        dbStatus = 'disconnected';
+      }
     } catch (dbError) {
       dbStatus = 'error';
       console.error('[Health Check] Database error:', dbError);

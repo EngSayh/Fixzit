@@ -5,6 +5,9 @@ import mongoose from 'mongoose';
 async function listIndexes() {
   try {
     await db;
+    if (!mongoose.connection.db) {
+      throw new Error('Database connection not established');
+    }
     const coll = mongoose.connection.db.collection('users');
     const indexes = await coll.listIndexes().toArray();
     
