@@ -120,15 +120,19 @@ export async function POST(request: NextRequest) {
       
       // Increment inquiries count with timestamp (async, non-blocking with retry logic)
       (async () => {
-        await incrementAnalyticsWithRetry({
-          model: AqarListing,
-          id: new mongoose.Types.ObjectId(listingId),
-          updateOp: {
-            $inc: { 'analytics.inquiries': 1 },
-            $set: { 'analytics.lastInquiryAt': new Date() }
-          },
-          entityType: 'listing'
-        });
+        try {
+          await incrementAnalyticsWithRetry({
+            model: AqarListing,
+            id: new mongoose.Types.ObjectId(listingId),
+            updateOp: {
+              $inc: { 'analytics.inquiries': 1 },
+              $set: { 'analytics.lastInquiryAt': new Date() }
+            },
+            entityType: 'listing'
+          });
+        } catch (error) {
+          logger.error('Failed to increment listing analytics:', { error, listingId });
+        }
       })();
     } else if (projectId) {
       const { AqarProject } = await import('@/models/aqar');
@@ -145,15 +149,19 @@ export async function POST(request: NextRequest) {
       
       // Increment inquiries count with timestamp (async, non-blocking with retry logic)
       (async () => {
-        await incrementAnalyticsWithRetry({
-          model: AqarProject,
-          id: new mongoose.Types.ObjectId(projectId),
-          updateOp: { 
-            $inc: { inquiries: 1 },
-            $set: { lastInquiryAt: new Date() }
-          },
-          entityType: 'project'
-        });
+        try {
+          await incrementAnalyticsWithRetry({
+            model: AqarProject,
+            id: new mongoose.Types.ObjectId(projectId),
+            updateOp: { 
+              $inc: { inquiries: 1 },
+              $set: { lastInquiryAt: new Date() }
+            },
+            entityType: 'project'
+          });
+        } catch (error) {
+          logger.error('Failed to increment project analytics:', { error, projectId });
+        }
       })();
     }
     

@@ -81,18 +81,19 @@ export async function POST(req: NextRequest) {
     const emailsCollection = db.collection('email_logs');
 
     const updates = events.map(async (event) => {
-      const emailId = event.emailId; // Custom arg we sent
-      const eventDate = new Date(event.timestamp * 1000);
+      try {
+        const emailId = event.emailId; // Custom arg we sent
+        const eventDate = new Date(event.timestamp * 1000);
 
-      // Build update based on event type
-      const update: Record<string, unknown> = {
-        lastEvent: event.event,
-        lastEventAt: eventDate,
-        [`events.${event.event}`]: eventDate
-      };
+        // Build update based on event type
+        const update: Record<string, unknown> = {
+          lastEvent: event.event,
+          lastEventAt: eventDate,
+          [`events.${event.event}`]: eventDate
+        };
 
-      // Handle specific event types
-      switch (event.event) {
+        // Handle specific event types
+        switch (event.event) {
         case 'delivered':
           update.status = 'delivered';
           update.deliveredAt = eventDate;
@@ -166,6 +167,11 @@ export async function POST(req: NextRequest) {
       }
 
       logger.info(`✅ Processed ${event.event} for ${event.email} (${emailId || event.sg_message_id})`);
+      } catch (eventError) {
+        logger.error(`❌ Failed to process event ${event.event} for ${event.email}:`, { eventError });
+        // Don't throw - continue processing other events
+        return null;
+      }
     });
 
     await Promise.all(updates);
