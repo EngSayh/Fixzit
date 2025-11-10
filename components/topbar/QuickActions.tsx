@@ -53,15 +53,19 @@ export default function QuickActions() {
           if (quickActions[activeIndex]) {
             const action = quickActions[activeIndex];
             // AUDIT: Log user navigation action
-            import('../../lib/logger').then(({ logInfo }) => {
-              logInfo('[QuickActions] User navigation', {
-                component: 'QuickActions',
-                action: action.id,
-                href: action.href,
-                method: event.key === 'Enter' ? 'keyboard-enter' : 'keyboard-space',
-                timestamp: new Date().toISOString(),
+            import('../../lib/logger')
+              .then(({ logInfo }) => {
+                logInfo('[QuickActions] User navigation', {
+                  component: 'QuickActions',
+                  action: action.id,
+                  href: action.href,
+                  method: event.key === 'Enter' ? 'keyboard-enter' : 'keyboard-space',
+                  timestamp: new Date().toISOString(),
+                });
+              })
+              .catch((err) => {
+                console.error('Failed to import logger:', err);
               });
-            });
             router.push(action.href);
             setOpen(false);
           }
@@ -123,15 +127,19 @@ export default function QuickActions() {
                 tabIndex={idx === activeIndex ? 0 : -1}
                 onClick={() => {
                   // AUDIT: Log user navigation action
-                  import('../../lib/logger').then(({ logInfo }) => {
-                    logInfo('[QuickActions] User navigation', {
-                      component: 'QuickActions',
-                      action: action.id,
-                      href: action.href,
-                      method: 'click',
-                      timestamp: new Date().toISOString(),
+                  import('../../lib/logger')
+                    .then(({ logInfo }) => {
+                      logInfo('[QuickActions] User navigation', {
+                        component: 'QuickActions',
+                        action: action.id,
+                        href: action.href,
+                        method: 'click',
+                        timestamp: new Date().toISOString(),
+                      });
+                    })
+                    .catch((err) => {
+                      console.error('Failed to import logger:', err);
                     });
-                  });
                   router.push(action.href);
                   setOpen(false);
                 }}
