@@ -103,6 +103,12 @@ const translations: Record<Language, Record<string, string>> = {
     'common.backToHome': 'العودة إلى الصفحة الرئيسية',
     'common.characters': 'حرف',
     
+    // Time formatting
+    'time.justNow': 'الآن',
+    'time.mAgo': 'د',
+    'time.hAgo': 'س',
+    'time.dAgo': 'ي',
+    
     // AI Chat
     'chat.welcome': 'مرحباً! أنا مساعد فيكزيت الذكي. كيف يمكنني مساعدتك اليوم؟',
     'chat.error.general': 'عذراً، حدث خطأ. يرجى المحاولة مرة أخرى.',
@@ -2216,6 +2222,12 @@ const translations: Record<Language, Record<string, string>> = {
     'common.viewAll': 'View all notifications',
     'common.backToHome': 'Back to Home',
     'common.characters': 'characters',
+    
+    // Time formatting
+    'time.justNow': 'Just now',
+    'time.mAgo': 'm ago',
+    'time.hAgo': 'h ago',
+    'time.dAgo': 'd ago',
     
     // AI Chat
     'chat.welcome': 'Hello! I\'m your Fixzit AI assistant. How can I help you today?',

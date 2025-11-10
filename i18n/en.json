@@ -535,7 +535,14 @@
     "help": "Help",
     "logout": "Logout",
     "notifications": "Notifications",
-    "profile": "Profile"
+    "profile": "Profile",
+    "header": "Navigation"
+  },
+  "time": {
+    "justNow": "Just now",
+    "mAgo": "m ago",
+    "hAgo": "h ago",
+    "dAgo": "d ago"
   },
   "sidebar": {
     "mainNav": "Main navigation",

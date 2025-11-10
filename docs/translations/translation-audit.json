@@ -1,10 +1,10 @@
 {
   "stats": {
     "files": 379,
-    "usedKeys": 1551,
+    "usedKeys": 1555,
     "hasDynamic": true,
-    "enCount": 1982,
-    "arCount": 1982,
+    "enCount": 1986,
+    "arCount": 1986,
     "parityGap": 0
   },
   "missing": {
@@ -4012,6 +4012,18 @@
     "system.help": [
       "/workspaces/Fixzit/components/SystemVerifier.tsx"
     ],
+    "time.justNow": [
+      "/workspaces/Fixzit/components/TopBar.tsx"
+    ],
+    "time.mAgo": [
+      "/workspaces/Fixzit/components/TopBar.tsx"
+    ],
+    "time.hAgo": [
+      "/workspaces/Fixzit/components/TopBar.tsx"
+    ],
+    "time.dAgo": [
+      "/workspaces/Fixzit/components/TopBar.tsx"
+    ],
     "common.signIn": [
       "/workspaces/Fixzit/components/TopBar.tsx"
     ],
@@ -5006,5 +5018,5 @@
       "/workspaces/Fixzit/contexts/TranslationContext.test.tsx"
     ]
   },
-  "timestamp": "2025-11-10T16:01:01.467Z"
+  "timestamp": "2025-11-10T16:44:18.150Z"
 }

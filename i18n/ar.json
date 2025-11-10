@@ -589,7 +589,14 @@
     "help": "المساعدة",
     "logout": "تسجيل الخروج",
     "notifications": "الإشعارات",
-    "profile": "الملف الشخصي"
+    "profile": "الملف الشخصي",
+    "header": "التنقل"
+  },
+  "time": {
+    "justNow": "الآن",
+    "mAgo": "د",
+    "hAgo": "س",
+    "dAgo": "ي"
   },
   "sidebar": {
     "mainNav": "القائمة الرئيسية",
