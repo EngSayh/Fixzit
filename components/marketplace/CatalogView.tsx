@@ -59,21 +59,31 @@ type CategoryResponse = {
 };
 
 const productFetcher = async (url: string): Promise<CatalogResponse> => {
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) {
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) {
+      throw new Error('Failed to load marketplace catalog');
+    }
+    const json = await res.json();
+    return json.data;
+  } catch (error) {
+    console.error('Product fetcher error:', error);
     throw new Error('Failed to load marketplace catalog');
   }
-  const json = await res.json();
-  return json.data;
 };
 
 const categoryFetcher = async (url: string): Promise<CategoryResponse> => {
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) {
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) {
+      throw new Error('Failed to load marketplace categories');
+    }
+    const json = await res.json();
+    return json.data;
+  } catch (error) {
+    console.error('Category fetcher error:', error);
     throw new Error('Failed to load marketplace categories');
   }
-  const json = await res.json();
-  return json.data;
 };
 
 const formatCurrency = (value: number, currency: string) => {
@@ -165,13 +175,17 @@ export default function CatalogView({
       setFeedbackMessage(`${product.title} added to cart.`);
       await mutate();
     } catch (err) {
-      import('../../lib/logger').then(({ logError }) => {
-        logError('Failed to add product to cart', err as Error, {
-          component: 'CatalogView',
-          action: 'addToCart',
-          productId: product.id,
+      import('../../lib/logger')
+        .then(({ logError }) => {
+          logError('Failed to add product to cart', err as Error, {
+            component: 'CatalogView',
+            action: 'addToCart',
+            productId: product.id,
+          });
+        })
+        .catch((loggerError) => {
+          console.error('Failed to load logger:', loggerError);
         });
-      });
       setFeedbackMessage('We could not add this item to your cart. Please try again.');
     }
   };

@@ -30,28 +30,34 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
   const addProduct = async () => {
     setLoading(true);
     setError(null);
-    const response = await fetch('/api/marketplace/vendor/products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: { en: form.title },
-        sku: form.sku,
-        slug: form.sku.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        categoryId: form.categoryId,
-        buy: { price: Number(form.price), currency: 'SAR', uom: form.uom }
-      })
-    });
-    setLoading(false);
+    try {
+      const response = await fetch('/api/marketplace/vendor/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: { en: form.title },
+          sku: form.sku,
+          slug: form.sku.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          categoryId: form.categoryId,
+          buy: { price: Number(form.price), currency: 'SAR', uom: form.uom }
+        })
+      });
 
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      setError(payload.error ?? 'Unable to add product');
-      return;
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        setError(payload.error ?? 'Unable to add product');
+        return;
+      }
+
+      const payload = await response.json();
+      setProducts([payload.data, ...products]);
+      setForm({ title: '', sku: '', categoryId: '', price: '', uom: 'ea' });
+    } catch (fetchError) {
+      console.error('Failed to add product:', fetchError);
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    const payload = await response.json();
-    setProducts([payload.data, ...products]);
-    setForm({ title: '', sku: '', categoryId: '', price: '', uom: 'ea' });
   };
 
   return (

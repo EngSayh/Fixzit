@@ -23,28 +23,33 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
     setLoading(true);
     setError(null);
 
-    const response = await fetch('/api/marketplace/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        shipTo: {
-          address,
-          contact,
-          phone
-        }
-      })
-    });
+    try {
+      const response = await fetch('/api/marketplace/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shipTo: {
+            address,
+            contact,
+            phone
+          }
+        })
+      });
 
-    setLoading(false);
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        setError(payload.error ?? 'Checkout failed');
+        return;
+      }
 
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      setError(payload.error ?? 'Checkout failed');
-      return;
+      setSuccess(true);
+      router.push('/marketplace/orders');
+    } catch (fetchError) {
+      console.error('Checkout failed:', fetchError);
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    setSuccess(true);
-    router.push('/marketplace/orders');
   };
 
   return (
