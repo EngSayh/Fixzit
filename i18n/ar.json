@@ -167,7 +167,7 @@
       "title": "إدارة المستخدمين",
       "description": "إدارة المستخدمين والأدوار والصلاحيات",
       "totalUsers": "إجمالي المستخدمين",
-      "active": "المستخدمون النشطون",
+      "activeUsers": "المستخدمون النشطون",
       "online": "متصل الآن",
       "creating": "جاري إنشاء المستخدم...",
       "createFailed": "فشل إنشاء المستخدم",
@@ -187,7 +187,7 @@
       "role": "الدور",
       "rolePlaceholder": "اختر دور",
       "status": "الحالة",
-      "active": "نشط",
+      "statusActive": "نشط",
       "inactive": "غير نشط",
       "actions": "الإجراءات",
       "editUser": "تعديل المستخدم",
@@ -204,7 +204,7 @@
       "deleteRole": "حذف الدور",
       "deleteConfirm": "هل أنت متأكد من حذف هذا الدور؟",
       "name": "اسم الدور",
-      "description": "الوصف",
+      "roleDescription": "الوصف",
       "permissions": "الصلاحيات",
       "assignedUsers": "المستخدمون المعينون"
     },
@@ -237,7 +237,7 @@
     "features": {
       "title": "علامات الميزات",
       "description": "تمكين/تعطيل الميزات ديناميكيًا",
-      "active": "الميزات النشطة",
+      "activeFeatures": "الميزات النشطة",
       "enabled": "مفعّل",
       "disabled": "معطّل",
       "toggle": "تبديل الميزة"
@@ -281,60 +281,6 @@
       "status": "النظام",
       "operational": "قيد التشغيل",
       "monitor": "مراقب النظام"
-    }
-  },
-      "deleting": "جاري حذف المستخدم...",
-      "deleteFailed": "فشل حذف المستخدم",
-      "deleteSuccess": "تم حذف المستخدم بنجاح",
-      "exportCsv": "تصدير إلى CSV",
-      "createUser": "إنشاء مستخدم",
-      "createNewUser": "إنشاء مستخدم جديد",
-      "email": "البريد الإلكتروني",
-      "username": "اسم المستخدم",
-      "firstName": "الاسم الأول",
-      "lastName": "اسم العائلة",
-      "phone": "الهاتف",
-      "role": "الدور",
-      "rolePlaceholder": "اختر الدور",
-      "status": "الحالة",
-      "active": "نشط",
-      "inactive": "غير نشط",
-      "actions": "الإجراءات",
-      "editUser": "تعديل المستخدم",
-      "deleteUser": "حذف المستخدم",
-      "resetPassword": "إعادة تعيين كلمة المرور",
-      "viewDetails": "عرض التفاصيل"
-    },
-    "roles": {
-      "title": "الأدوار والصلاحيات",
-      "createRole": "إنشاء دور",
-      "editRole": "تعديل الدور",
-      "deleteRole": "حذف الدور",
-      "deleteConfirm": "هل أنت متأكد من حذف هذا الدور؟",
-      "name": "اسم الدور",
-      "description": "الوصف",
-      "permissions": "الصلاحيات",
-      "assignedUsers": "المستخدمون المعينون"
-    },
-    "audit": {
-      "title": "سجلات المراجعة",
-      "action": "الإجراء",
-      "user": "المستخدم",
-      "timestamp": "الوقت",
-      "details": "التفاصيل",
-      "ipAddress": "عنوان IP",
-      "filter": {
-        "dateRange": "نطاق التاريخ",
-        "user": "تصفية حسب المستخدم",
-        "action": "تصفية حسب الإجراء"
-      }
-    },
-    "features": {
-      "title": "علامات الميزات",
-      "enabled": "مفعّل",
-      "disabled": "معطّل",
-      "toggle": "تبديل الميزة",
-      "description": "الوصف"
     }
   },
   "dashboard": {

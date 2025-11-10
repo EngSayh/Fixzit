@@ -167,7 +167,7 @@
       "title": "User Management",
       "description": "Manage users, roles, and permissions",
       "totalUsers": "Total Users",
-      "active": "Active Users",
+      "activeUsers": "Active Users",
       "online": "Online Now",
       "creating": "Creating user...",
       "createFailed": "Failed to create user",
@@ -187,7 +187,7 @@
       "role": "Role",
       "rolePlaceholder": "Select role",
       "status": "Status",
-      "active": "Active",
+      "statusActive": "Active",
       "inactive": "Inactive",
       "actions": "Actions",
       "editUser": "Edit User",
@@ -204,7 +204,7 @@
       "deleteRole": "Delete Role",
       "deleteConfirm": "Are you sure you want to delete this role?",
       "name": "Role Name",
-      "description": "Description",
+      "roleDescription": "Description",
       "permissions": "Permissions",
       "assignedUsers": "Assigned Users"
     },
@@ -237,7 +237,7 @@
     "features": {
       "title": "Feature Flags",
       "description": "Enable/disable features dynamically",
-      "active": "Active Features",
+      "activeFeatures": "Active Features",
       "enabled": "Enabled",
       "disabled": "Disabled",
       "toggle": "Toggle Feature"
