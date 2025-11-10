@@ -5,8 +5,10 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-
 import { logger } from '@/lib/logger';
+import { InvoiceMath, Money, decimal } from '@/lib/finance/decimal';
+import type Decimal from 'decimal.js';
+
 // ============================================================================
 // INTERFACES
 // ============================================================================
@@ -93,26 +95,64 @@ export default function NewInvoicePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loadingAccounts, setLoadingAccounts] = useState(false);
 
-  // Calculate totals
-  const subtotal = lineItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice - item.discount), 0);
-  const totalDiscount = lineItems.reduce((sum, item) => sum + item.discount, 0);
-  const totalTax = lineItems.reduce((sum, item) => sum + item.taxAmount, 0);
-  const totalAmount = subtotal + totalTax;
-  const totalPaid = paymentAllocations.reduce((sum, p) => sum + p.amount, 0);
-  const amountDue = totalAmount - totalPaid;
+  // Calculate totals using Decimal math (prevents floating-point errors)
+  const subtotal: Decimal = React.useMemo(() => {
+    const lineAmounts = lineItems.map(item => 
+      Money.subtract(
+        Money.multiply(item.quantity, item.unitPrice),
+        item.discount
+      )
+    );
+    return Money.sum(lineAmounts.map(d => Money.toNumber(d)));
+  }, [lineItems]);
 
-  // VAT breakdown by rate
-  const vatBreakdown = lineItems.reduce((acc, item) => {
-    if (item.taxType === 'VAT' && item.taxAmount > 0) {
-      const key = `${item.taxRate * 100}%`;
-      if (!acc[key]) {
-        acc[key] = { rate: item.taxRate, amount: 0, base: 0 };
+  const totalDiscount: Decimal = React.useMemo(() => 
+    Money.sum(lineItems.map(item => item.discount)),
+    [lineItems]
+  );
+
+  const totalTax: Decimal = React.useMemo(() => 
+    Money.sum(lineItems.map(item => item.taxAmount)),
+    [lineItems]
+  );
+
+  const totalAmount: Decimal = React.useMemo(() => 
+    subtotal.plus(totalTax),
+    [subtotal, totalTax]
+  );
+
+  const totalPaid: Decimal = React.useMemo(() => 
+    Money.sum(paymentAllocations.map(p => p.amount)),
+    [paymentAllocations]
+  );
+
+  const amountDue: Decimal = React.useMemo(() => 
+    totalAmount.minus(totalPaid),
+    [totalAmount, totalPaid]
+  );
+
+  // VAT breakdown by rate (using Decimal for precise calculations)
+  const vatBreakdown = React.useMemo(() => {
+    return lineItems.reduce((acc, item) => {
+      if (item.taxType === 'VAT' && item.taxAmount > 0) {
+        const key = `${item.taxRate * 100}%`;
+        if (!acc[key]) {
+          acc[key] = { 
+            rate: item.taxRate, 
+            amount: decimal(0), 
+            base: decimal(0) 
+          };
+        }
+        acc[key].amount = acc[key].amount.plus(item.taxAmount);
+        const baseAmount = Money.subtract(
+          Money.multiply(item.quantity, item.unitPrice),
+          item.discount
+        );
+        acc[key].base = acc[key].base.plus(baseAmount);
       }
-      acc[key].amount += item.taxAmount;
-      acc[key].base += (item.quantity * item.unitPrice - item.discount);
-    }
-    return acc;
-  }, {} as Record<string, { rate: number; amount: number; base: number }>);
+      return acc;
+    }, {} as Record<string, { rate: number; amount: Decimal; base: Decimal }>);
+  }, [lineItems]);
 
   // ============================================================================
   // LIFECYCLE & DATA LOADING
@@ -251,7 +291,7 @@ export default function NewInvoicePage() {
       }
     });
 
-    if (totalAmount <= 0) {
+    if (!totalAmount.isPositive()) {
       newErrors.totalAmount = t('finance.invoice.totalInvalid', 'Total amount must be greater than zero');
     }
 
@@ -300,12 +340,12 @@ export default function NewInvoicePage() {
           },
           total: item.total
         })),
-        subtotal,
-        discounts: totalDiscount > 0 ? [{ type: 'LINE_ITEM', amount: totalDiscount, description: 'Line item discounts' }] : [],
+        subtotal: Money.toNumber(subtotal),
+        discounts: totalDiscount.isPositive() ? [{ type: 'LINE_ITEM', amount: Money.toNumber(totalDiscount), description: 'Line item discounts' }] : [],
         taxes: Object.entries(vatBreakdown).map(([key, val]) => ({
           type: 'VAT',
           rate: val.rate,
-          amount: val.amount,
+          amount: Money.toNumber(val.amount),
           category: key
         })),
         total: totalAmount
@@ -372,15 +412,15 @@ export default function NewInvoicePage() {
           },
           total: item.total
         })),
-        subtotal,
-        discounts: totalDiscount > 0 ? [{ type: 'LINE_ITEM', amount: totalDiscount, description: 'Line item discounts' }] : [],
+        subtotal: Money.toNumber(subtotal),
+        discounts: totalDiscount.isPositive() ? [{ type: 'LINE_ITEM', amount: Money.toNumber(totalDiscount), description: 'Line item discounts' }] : [],
         taxes: Object.entries(vatBreakdown).map(([key, val]) => ({
           type: 'VAT',
           rate: val.rate,
-          amount: val.amount,
+          amount: Money.toNumber(val.amount),
           category: key
         })),
-        total: totalAmount,
+        totalAmount: Money.toNumber(totalAmount),
         autoPostJournal
       };
 
@@ -687,14 +727,14 @@ export default function NewInvoicePage() {
                   <div key={rate} className="flex justify-between items-center py-2 border-b">
                     <div>
                       <span className="font-medium">{t('finance.vat', 'VAT')} {rate}</span>
-                      <span className="text-sm text-muted-foreground ml-2">({t('finance.invoice.on', 'on')} {currency} {data.base.toFixed(2)})</span>
+                      <span className="text-sm text-muted-foreground ml-2">({t('finance.invoice.on', 'on')} {currency} {Money.toString(data.base)})</span>
                     </div>
-                    <span className="font-medium">{currency} {data.amount.toFixed(2)}</span>
+                    <span className="font-medium">{currency} {Money.toString(data.amount)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between items-center pt-2 font-semibold">
                   <span>{t('finance.invoice.totalVAT', 'Total VAT')}</span>
-                  <span>{currency} {totalTax.toFixed(2)}</span>
+                  <span>{currency} {Money.toString(totalTax)}</span>
                 </div>
               </div>
             </div>
@@ -775,21 +815,21 @@ export default function NewInvoicePage() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t('finance.subtotal', 'Subtotal')}</span>
-                <span className="font-medium">{currency} {subtotal.toFixed(2)}</span>
+                <span className="font-medium">{currency} {Money.toString(subtotal)}</span>
               </div>
-              {totalDiscount > 0 && (
+              {totalDiscount.isPositive() && (
                 <div className="flex justify-between text-destructive">
                   <span>{t('finance.discount', 'Discount')}</span>
-                  <span>-{currency} {totalDiscount.toFixed(2)}</span>
+                  <span>-{currency} {Money.toString(totalDiscount)}</span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t('finance.vat', 'VAT')}</span>
-                <span className="font-medium">{currency} {totalTax.toFixed(2)}</span>
+                <span className="font-medium">{currency} {Money.toString(totalTax)}</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-border">
                 <span className="text-foreground font-semibold">{t('finance.total', 'Total')}</span>
-                <span className="font-bold text-lg">{currency} {totalAmount.toFixed(2)}</span>
+                <span className="font-bold text-lg">{currency} {Money.toString(totalAmount)}</span>
               </div>
               <div className="text-xs text-muted-foreground">
                 {lineItems.length} {t('finance.invoice.items', 'item(s)')}
@@ -814,11 +854,11 @@ export default function NewInvoicePage() {
                 <div className="pt-2 border-t border-border">
                   <div className="flex justify-between mb-1">
                     <span className="text-sm font-medium">{t('finance.invoice.totalPaid', 'Total Paid')}</span>
-                    <span className="text-sm font-medium text-success">{currency} {totalPaid.toFixed(2)}</span>
+                    <span className="text-sm font-medium text-success">{currency} {Money.toString(totalPaid)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm font-semibold">{t('finance.invoice.amountDue', 'Amount Due')}</span>
-                    <span className="text-sm font-bold">{currency} {amountDue.toFixed(2)}</span>
+                    <span className="text-sm font-bold">{currency} {Money.toString(amountDue)}</span>
                   </div>
                 </div>
               </div>
