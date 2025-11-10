@@ -3,24 +3,14 @@
     "files": 379,
     "usedKeys": 1556,
     "hasDynamic": true,
-    "enCount": 1986,
-    "arCount": 1986,
+    "enCount": 1987,
+    "arCount": 1987,
     "parityGap": 0
   },
   "missing": {
     "inAr": [],
     "inEn": [],
-    "used": [
-      {
-        "key": "admin.cms.loadError",
-        "bare": "admin.cms.loadError",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "/workspaces/Fixzit/app/admin/cms/page.tsx"
-        ]
-      }
-    ]
+    "used": []
   },
   "fileMap": {
     "about.metaTitle": [
@@ -5031,5 +5021,5 @@
       "/workspaces/Fixzit/contexts/TranslationContext.test.tsx"
     ]
   },
-  "timestamp": "2025-11-10T20:15:22.957Z"
+  "timestamp": "2025-11-10T20:17:54.366Z"
 }
