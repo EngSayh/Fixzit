@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { db } from '../lib/mongo';
-import { User } from '../server/models/User';
+import { db } from '../../lib/mongo';
+import { User } from '../../server/models/User';
 
 async function checkPasswords() {
   try {
