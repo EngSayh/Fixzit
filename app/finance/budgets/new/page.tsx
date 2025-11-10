@@ -6,13 +6,9 @@ import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
-
-interface BudgetCategory {
-  id: string;
-  category: string;
-  amount: number;
-  percentage: number;
-}
+import { BudgetMath, Money } from '@/lib/finance/decimal';
+import type { BudgetCategory } from '@/lib/finance/schemas';
+import type Decimal from 'decimal.js';
 
 export default function NewBudgetPage() {
   const { t } = useTranslation();
@@ -35,10 +31,21 @@ export default function NewBudgetPage() {
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Calculate total budget and summary
-  const totalBudget = categories.reduce((sum, cat) => sum + (cat.amount || 0), 0);
-  const allocatedBudget = categories.filter(c => c.category).reduce((sum, cat) => sum + (cat.amount || 0), 0);
-  const remainingBudget = totalBudget - allocatedBudget;
+  // Calculate budget summary using Decimal math (prevents floating-point errors)
+  const totalBudget: Decimal = React.useMemo(() => 
+    BudgetMath.calculateTotal(categories), 
+    [categories]
+  );
+  
+  const allocatedBudget: Decimal = React.useMemo(() => 
+    BudgetMath.calculateAllocated(categories), 
+    [categories]
+  );
+  
+  const remainingBudget: Decimal = React.useMemo(() => 
+    BudgetMath.calculateRemaining(totalBudget, allocatedBudget), 
+    [totalBudget, allocatedBudget]
+  );
 
   // Register form for tracking (no initial fields needed - will track via updateField calls)
   React.useEffect(() => {
@@ -66,12 +73,14 @@ export default function NewBudgetPage() {
       if (cat.id === id) {
         const updated = { ...cat, [field]: value };
         // Auto-calculate percentage when amount changes
-        if (field === 'amount' && totalBudget > 0) {
-          updated.percentage = Math.round(((updated.amount as number) / totalBudget) * 100);
+        if (field === 'amount' && !totalBudget.isZero()) {
+          const percentageDec = BudgetMath.percentageFromAmount(updated.amount as number, totalBudget);
+          updated.percentage = Math.round(Money.toNumber(percentageDec));
         }
         // Auto-calculate amount when percentage changes
-        if (field === 'percentage' && totalBudget > 0) {
-          updated.amount = Math.round((totalBudget * (updated.percentage as number)) / 100);
+        if (field === 'percentage' && !totalBudget.isZero()) {
+          const amountDec = BudgetMath.amountFromPercentage(totalBudget, updated.percentage as number);
+          updated.amount = Math.round(Money.toNumber(amountDec));
         }
         return updated;
       }
@@ -435,20 +444,20 @@ export default function NewBudgetPage() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t('finance.budget.totalBudget', 'Total Budget')}</span>
-                <span className="font-medium">SAR {totalBudget.toFixed(2)}</span>
+                <span className="font-medium">SAR {Money.toString(totalBudget)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t('finance.budget.allocated', 'Allocated')}</span>
-                <span className="font-medium">SAR {allocatedBudget.toFixed(2)}</span>
+                <span className="font-medium">SAR {Money.toString(allocatedBudget)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{t('finance.budget.remaining', 'Remaining')}</span>
-                <span className="font-medium">SAR {remainingBudget.toFixed(2)}</span>
+                <span className="font-medium">SAR {Money.toString(remainingBudget)}</span>
               </div>
               <hr className="my-2" />
               <div className="flex justify-between text-lg font-semibold">
                 <span>{t('finance.budget.available', 'Available')}</span>
-                <span>SAR {remainingBudget.toFixed(2)}</span>
+                <span>SAR {Money.toString(remainingBudget)}</span>
               </div>
             </div>
           </div>
