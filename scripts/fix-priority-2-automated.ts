@@ -107,7 +107,8 @@ async function fixUnhandledPromises() {
 
             // Add .catch() after the chain
             const indent = lines[issue.line - 1].match(/^\s*/)?.[0] || '';
-            lines[endLine] = lines[endLine].replace(/\);?\s*$/, '')`
+            lines[endLine] = lines[endLine].replace(/\);?\s*$/, '') +
+`
       .catch((error) => {
 ${indent}  console.error('Error:', error);
 ${indent}});`;
