@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
+import { Money, decimal } from '@/lib/finance/decimal';
+import type { Decimal } from 'decimal.js';
 
 import { logger } from '@/lib/logger';
 // ============================================================================
@@ -96,10 +98,21 @@ export default function NewPaymentPage() {
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
 
-  // Calculate totals
-  const totalAllocated = allocations.reduce((sum, a) => sum + a.amountAllocated, 0);
-  const unallocatedAmount = parseFloat(amount || '0') - totalAllocated;
-  const paymentAmountNum = parseFloat(amount || '0');
+  // Calculate totals using Decimal math
+  const totalAllocated = React.useMemo(() => 
+    Money.sum(allocations.map(a => decimal(a.amountAllocated))),
+    [allocations]
+  );
+  
+  const paymentAmountNum = React.useMemo(() => 
+    decimal(amount || '0'),
+    [amount]
+  );
+  
+  const unallocatedAmount = React.useMemo(() => 
+    paymentAmountNum.minus(totalAllocated),
+    [paymentAmountNum, totalAllocated]
+  );
 
   // ============================================================================
   // LIFECYCLE & DATA LOADING
@@ -204,7 +217,10 @@ export default function NewPaymentPage() {
   const toggleInvoiceSelection = (id: string) => {
     setAllocations(allocations.map(a => {
       if (a.id === id) {
-        return { ...a, selected: !a.selected, amountAllocated: !a.selected ? Math.min(a.amountDue, unallocatedAmount + a.amountAllocated) : 0 };
+        const newAllocated = !a.selected 
+          ? Math.min(a.amountDue, Money.toNumber(unallocatedAmount) + a.amountAllocated) 
+          : 0;
+        return { ...a, selected: !a.selected, amountAllocated: newAllocated };
       }
       return a;
     }));
@@ -226,7 +242,7 @@ export default function NewPaymentPage() {
     const selectedAllocations = allocations.filter(a => a.selected);
     if (selectedAllocations.length === 0) return;
 
-    const perInvoice = paymentAmountNum / selectedAllocations.length;
+    const perInvoice = Money.toNumber(paymentAmountNum) / selectedAllocations.length;
     setAllocations(allocations.map(a => {
       if (a.selected) {
         const allocated = Math.min(perInvoice, a.amountDue);
@@ -247,10 +263,10 @@ export default function NewPaymentPage() {
     const allocatedMap = new Map<string, number>();
     
     for (const invoice of selectedInvoices) {
-      const toAllocate = Math.min(remaining, invoice.amountDue);
+      const toAllocate = Math.min(Money.toNumber(remaining), invoice.amountDue);
       allocatedMap.set(invoice.invoiceId, toAllocate);
-      remaining -= toAllocate;
-      if (remaining <= 0) break;
+      remaining = remaining.minus(decimal(toAllocate));
+      if (!remaining.isPositive()) break;
     }
 
     // Update all allocations with priority-based amounts
@@ -276,7 +292,7 @@ export default function NewPaymentPage() {
 
     // Required fields
     if (!paymentDate) newErrors.paymentDate = 'Payment date is required';
-    if (!amount || parseFloat(amount) <= 0) newErrors.amount = 'Amount must be greater than 0';
+    if (!amount || !paymentAmountNum.isPositive()) newErrors.amount = 'Amount must be greater than 0';
     if (!partyName) newErrors.partyName = 'Party name is required';
     if (!cashAccountId) newErrors.cashAccountId = 'Cash/Bank account is required';
 
@@ -357,7 +373,7 @@ export default function NewPaymentPage() {
 
         const payload = {
           paymentType,
-          amount: parseFloat(amount),
+          amount: Money.toNumber(paymentAmountNum),
           currency,
           paymentMethod,
           paymentDate: new Date(paymentDate),
@@ -940,19 +956,19 @@ export default function NewPaymentPage() {
                         <div className="bg-muted p-3 rounded">
                           <p className="text-muted-foreground">{t('Payment Amount')}</p>
                           <p className="text-lg font-bold text-foreground">
-                            {paymentAmountNum.toFixed(2)} {currency}
+                            {Money.toString(paymentAmountNum)} {currency}
                           </p>
                         </div>
                         <div className="bg-primary/10 p-3 rounded">
                           <p className="text-muted-foreground">{t('Allocated')}</p>
                           <p className="text-lg font-bold text-primary">
-                            {totalAllocated.toFixed(2)} {currency}
+                            {Money.toString(totalAllocated)} {currency}
                           </p>
                         </div>
-                        <div className={`p-3 rounded ${unallocatedAmount < 0 ? 'bg-destructive/10' : 'bg-success/10'}`}>
+                        <div className={`p-3 rounded ${unallocatedAmount.isNegative() ? 'bg-destructive/10' : 'bg-success/10'}`}>
                           <p className="text-muted-foreground">{t('Unallocated')}</p>
-                          <p className={`text-lg font-bold ${unallocatedAmount < 0 ? 'text-destructive' : 'text-success'}`}>
-                            {unallocatedAmount.toFixed(2)} {currency}
+                          <p className={`text-lg font-bold ${unallocatedAmount.isNegative() ? 'text-destructive' : 'text-success'}`}>
+                            {Money.toString(unallocatedAmount)} {currency}
                           </p>
                         </div>
                       </div>
