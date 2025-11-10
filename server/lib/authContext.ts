@@ -32,7 +32,7 @@ const requestStorage = new AsyncLocalStorage<RequestContext>();
  * Kept for backward compatibility but prefer runWithContext
  * @deprecated Use runWithContext instead for proper async context isolation
  */
-// eslint-disable-next-line no-unused-vars
+ 
 export function setRequestContext(_context: RequestContext): void {
   // This is a no-op now - context must be set via runWithContext
   console.warn('setRequestContext is deprecated. Use runWithContext instead.');

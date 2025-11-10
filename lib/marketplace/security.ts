@@ -130,7 +130,7 @@ const DEFAULT_SECURITY_CONFIG: Required<SecurityHeadersConfig> = {
    * Middleware-style function to wrap API route handlers with security headers
    */
   export function withSecurityHeaders<T extends unknown[]>(
-    // eslint-disable-next-line no-unused-vars
+     
     handler: (..._args: T) => Promise<NextResponse> | NextResponse,
     config?: SecurityHeadersConfig
   ) {

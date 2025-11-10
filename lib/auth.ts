@@ -5,7 +5,7 @@ import { db } from '@/lib/mongo';
 import { getJWTSecret as getJWTSecretService } from '@/lib/secrets';
 
 // Type definition for User document - used as documentation reference
-// eslint-disable-next-line no-unused-vars
+ 
 interface _UserDocument {
   _id: { toString(): string };  // MongoDB native _id field
   email: string;
