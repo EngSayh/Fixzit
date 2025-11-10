@@ -1,6 +1,6 @@
 import { NextRequest} from 'next/server';
 import { dbConnect } from '@/db/mongoose';
-import { createSubscriptionCheckout } from '@/services/checkout';
+import { createSubscriptionCheckout } from '@/lib/finance/checkout';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';

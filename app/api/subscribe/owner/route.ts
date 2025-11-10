@@ -1,6 +1,6 @@
 import { NextRequest} from 'next/server';
 import { dbConnect } from '@/db/mongoose';
-import { createSubscriptionCheckout } from '@/services/checkout';
+import { createSubscriptionCheckout } from '@/lib/finance/checkout';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { rateLimit } from '@/server/security/rateLimit';
 import { forbiddenError, validationError, unauthorizedError, rateLimitError, handleApiError } from '@/server/utils/errorResponses';
