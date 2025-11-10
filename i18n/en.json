@@ -451,16 +451,54 @@
     "home": "Home",
     "dashboard": "Dashboard",
     "properties": "Properties",
+    "work-orders": "Work Orders",
     "workOrders": "Work Orders",
-    "finance": "Finance",
+    "assets": "Assets",
+    "tenants": "Tenants",
     "vendors": "Vendors",
+    "projects": "Projects",
+    "rfqs": "RFQs",
+    "invoices": "Invoices",
+    "finance": "Finance",
+    "hr": "Human Resources",
     "crm": "CRM",
+    "marketplace": "Marketplace",
+    "support": "Support",
+    "compliance": "Compliance",
     "reports": "Reports",
+    "system": "System",
+    "administration": "Administration",
+    "maintenance": "Maintenance",
+    "orders": "Orders",
     "settings": "Settings",
     "help": "Help",
     "logout": "Logout",
     "notifications": "Notifications",
     "profile": "Profile"
+  },
+  "sidebar": {
+    "mainNav": "Main navigation",
+    "accountInfo": "Account info",
+    "role": "Role",
+    "planLabel": "Plan",
+    "modules": "Modules",
+    "noModules": "No modules available for your role/plan",
+    "account": "Account",
+    "help": "Help",
+    "helpCenter": "Help Center",
+    "category": {
+      "core": "Core",
+      "fm": "Facility Management",
+      "procurement": "Procurement",
+      "finance": "Finance",
+      "hr": "Human Resources",
+      "crm": "Customer Relations",
+      "marketplace": "Marketplace",
+      "support": "Support",
+      "compliance": "Compliance",
+      "reporting": "Reporting",
+      "admin": "Administration"
+    }
   },
   "navigation": {
     "home": "Home",
@@ -527,5 +565,23 @@
     "saveFailed": "Failed to save",
     "required": "Required fields",
     "optional": "Optional fields"
+  },
+  "test": {
+    "a": "Test value A",
+    "bool": "Boolean test",
+    "hello": "Hello",
+    "missing": {
+      "key": "Missing key test"
+    },
+    "msg": "Message",
+    "nested": {
+      "deep": {
+        "value": "Deep nested value"
+      }
+    },
+    "num": "Number test",
+    "obj": "Object test",
+    "watch-all": "Watch all",
+    "welcome": "Welcome"
   }
 }
