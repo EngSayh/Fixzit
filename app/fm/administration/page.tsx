@@ -18,7 +18,6 @@ export default function AdministrationPage() {
     if (status === 'unauthenticated') {
       router.push('/login?callbackUrl=/fm/administration');
     }
-    // @ts-expect-error: NextAuth session.user may have custom properties
     if (status === 'authenticated' && session?.user?.role !== 'SUPER_ADMIN') {
       router.push('/fm/dashboard');
     }
@@ -35,7 +34,6 @@ export default function AdministrationPage() {
     );
   }
 
-  // @ts-expect-error: NextAuth session.user may have custom properties
   if (session?.user?.role !== 'SUPER_ADMIN') {
     return null;
   }
