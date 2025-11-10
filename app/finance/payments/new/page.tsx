@@ -5,7 +5,6 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
 import { Money, decimal } from '@/lib/finance/decimal';
-import type { Decimal } from 'decimal.js';
 
 import { logger } from '@/lib/logger';
 // ============================================================================

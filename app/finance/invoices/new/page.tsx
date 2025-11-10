@@ -6,7 +6,7 @@ import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
-import { InvoiceMath, Money, decimal } from '@/lib/finance/decimal';
+import { Money, decimal } from '@/lib/finance/decimal';
 import type Decimal from 'decimal.js';
 
 // ============================================================================
