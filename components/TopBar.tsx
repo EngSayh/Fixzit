@@ -117,16 +117,21 @@ export default function TopBar() {
           setOrgSettings(data);
         }
       } catch (error) {
-        import('../lib/logger').then(({ logError }) => {
+        try {
+          const { logError } = await import('../lib/logger');
           logError('Failed to fetch organization settings', error as Error, {
             component: 'TopBar',
             action: 'fetchOrgSettings',
             authenticated: isAuthenticated,
           });
-        });
+        } catch (logErr) {
+          console.error('Failed to log error:', logErr);
+        }
       }
     };
-    fetchOrgSettings();
+    fetchOrgSettings().catch(err => {
+      console.error('Unhandled error in fetchOrgSettings:', err);
+    });
   }, [isAuthenticated]);
 
   // Place dropdown panel under anchor, clamped inside viewport
@@ -185,13 +190,16 @@ export default function TopBar() {
         setNotifications([]);
       }
     } catch (error) {
-      import('../lib/logger').then(({ logError }) => {
+      try {
+        const { logError } = await import('../lib/logger');
         logError('Failed to fetch notifications', error as Error, {
           component: 'TopBar',
           action: 'fetchNotifications',
           authenticated: isAuthenticated,
         });
-      });
+      } catch (logErr) {
+        console.error('Failed to log error:', logErr);
+      }
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -287,13 +295,16 @@ export default function TopBar() {
 
       await signOut({ callbackUrl: '/login', redirect: true });
     } catch (error) {
-      import('../lib/logger').then(({ logError }) => {
+      try {
+        const { logError } = await import('../lib/logger');
         logError('Logout error', error as Error, {
           component: 'TopBar',
           action: 'handleLogout',
           authenticated: isAuthenticated,
         });
-      });
+      } catch (logErr) {
+        console.error('Failed to log error:', logErr);
+      }
       // NextAuth signOut handles redirect, no manual redirect needed
     }
   };

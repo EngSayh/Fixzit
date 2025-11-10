@@ -68,7 +68,10 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
             setAuthUser({ id: data.user.id, role: data.user.role });
           }
         })
-        .catch(() => {/* silently ignore - user is guest */});
+        .catch((err) => {
+          // Silently ignore - user is guest
+          console.debug('Auth check failed (expected for guests):', err);
+        });
     }
     return () => { abort = true; };
   }, [status]);

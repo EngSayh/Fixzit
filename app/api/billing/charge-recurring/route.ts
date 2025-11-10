@@ -49,19 +49,39 @@ export async function POST(req: NextRequest) {
       dueDate: today, status:'pending'
     });
 
-    // recurring charge (server-to-server)
-    const resp = await fetch(`${process.env.PAYTABS_RECURRING_BASE || 'https://secure.paytabs.com'}/payment/request`, {
-      method:'POST',
-      headers: { 'Content-Type':'application/json', 'authorization': process.env.PAYTABS_SERVER_KEY! },
-      body: JSON.stringify({
-        profile_id: process.env.PAYTABS_PROFILE_ID, tran_type:'sale', tran_class:'recurring',
-        cart_id: `INV-${inv._id}`, cart_description: `Fixzit Monthly ${s.planType}`, cart_amount: inv.amount, cart_currency: inv.currency,
-        token: pm.token
-      })
-    }).then(r=>r.json());
+    // recurring charge (server-to-server) with error handling
+    try {
+      const response = await fetch(`${process.env.PAYTABS_RECURRING_BASE || 'https://secure.paytabs.com'}/payment/request`, {
+        method:'POST',
+        headers: { 'Content-Type':'application/json', 'authorization': process.env.PAYTABS_SERVER_KEY! },
+        body: JSON.stringify({
+          profile_id: process.env.PAYTABS_PROFILE_ID, tran_type:'sale', tran_class:'recurring',
+          cart_id: `INV-${inv._id}`, cart_description: `Fixzit Monthly ${s.planType}`, cart_amount: inv.amount, cart_currency: inv.currency,
+          token: pm.token
+        })
+      });
 
-    if (resp?.tran_ref) { inv.status='paid'; inv.paytabsTranRef = resp.tran_ref; await inv.save(); }
-    else { inv.status='failed'; inv.errorMessage = resp?.message || 'UNKNOWN'; await inv.save(); }
+      if (!response.ok) {
+        throw new Error(`PayTabs HTTP ${response.status}: ${await response.text().catch(() => 'Unknown error')}`);
+      }
+
+      const resp = await response.json();
+
+      if (resp?.tran_ref) { 
+        inv.status='paid'; 
+        inv.paytabsTranRef = resp.tran_ref; 
+        await inv.save(); 
+      } else { 
+        inv.status='failed'; 
+        inv.errorMessage = resp?.message || 'UNKNOWN'; 
+        await inv.save(); 
+      }
+    } catch (error) {
+      console.error(`Recurring charge failed for subscription ${s._id}:`, error instanceof Error ? error.message : 'Unknown error');
+      inv.status='failed';
+      inv.errorMessage = error instanceof Error ? error.message : 'Payment gateway error';
+      await inv.save();
+    }
     s.nextInvoiceAt = new Date(new Date().setMonth(today.getMonth()+1)); await s.save();
   }
 

@@ -200,65 +200,104 @@
                 - img [ref=e258]
                 - generic [ref=e260]: مركز المساعدة
         - main [ref=e261]:
-          - generic [ref=e263]:
-            - heading "Properties" [level=1] [ref=e264]
-            - paragraph [ref=e265]: Browse and manage properties. Use Aqar module for public discovery.
-      - contentinfo [ref=e267]:
-        - generic [ref=e268]:
-          - generic [ref=e269]:
-            - generic [ref=e270]: فيكزيت
-            - link "العودة إلى الصفحة الرئيسية" [ref=e271] [cursor=pointer]:
+          - generic [ref=e264]:
+            - generic [ref=e265]:
+              - generic [ref=e266]:
+                - heading "Work Orders" [level=1] [ref=e267]
+                - paragraph [ref=e268]: Manage and track work orders across all properties
+              - button "New Work Order" [ref=e269] [cursor=pointer]:
+                - img [ref=e270]
+                - text: New Work Order
+            - generic [ref=e273]:
+              - generic [ref=e274]:
+                - img [ref=e275]
+                - textbox "Search by title or description" [ref=e278]
+              - generic [ref=e279]:
+                - combobox [ref=e280]:
+                  - option "All Statuses" [selected]
+                  - option "Submitted"
+                  - option "Dispatched"
+                  - option "In Progress"
+                  - option "On Hold"
+                  - option "Completed"
+                  - option "Verified"
+                  - option "Closed"
+                  - option "Cancelled"
+                - img
+              - generic [ref=e281]:
+                - combobox [ref=e282]:
+                  - option "All Priorities" [selected]
+                  - option "Low"
+                  - option "Medium"
+                  - option "High"
+                  - option "Critical"
+                - img
+              - button "Refresh" [ref=e283] [cursor=pointer]:
+                - img [ref=e284]
+                - text: Refresh
+            - paragraph [ref=e291]: Failed to load work orders (401)
+            - generic [ref=e292]:
+              - generic [ref=e293]: Showing 0 of 0 work orders
+              - generic [ref=e294]:
+                - button "Previous" [disabled]
+                - generic [ref=e295]: Page 1 of 1
+                - button "Next" [disabled]
+      - contentinfo [ref=e297]:
+        - generic [ref=e298]:
+          - generic [ref=e299]:
+            - generic [ref=e300]: فيكزيت
+            - link "العودة إلى الصفحة الرئيسية" [ref=e301] [cursor=pointer]:
               - /url: /
-              - img [ref=e272]
-              - generic [ref=e275]: العودة إلى الصفحة الرئيسية
-            - generic [ref=e276]:
-              - button "اختر اللغة" [ref=e278] [cursor=pointer]:
-                - img [ref=e279]
-                - generic [ref=e282]:
-                  - generic [ref=e283]: 🇸🇦
-                  - generic [ref=e284]: AR-SA
-              - button "اختر العملة SAR" [ref=e286] [cursor=pointer]:
-                - img [ref=e287]
-                - generic [ref=e290]:
-                  - generic [ref=e291]: 🇸🇦
-                  - generic [ref=e292]: SAR
-          - generic [ref=e293]:
-            - generic [ref=e294]:
-              - generic [ref=e295]: الشركة
-              - list [ref=e296]:
-                - listitem [ref=e297]:
-                  - link "معلومات عنا" [ref=e298] [cursor=pointer]:
+              - img [ref=e302]
+              - generic [ref=e305]: العودة إلى الصفحة الرئيسية
+            - generic [ref=e306]:
+              - button "اختر اللغة" [ref=e308] [cursor=pointer]:
+                - img [ref=e309]
+                - generic [ref=e312]:
+                  - generic [ref=e313]: 🇸🇦
+                  - generic [ref=e314]: AR-SA
+              - button "اختر العملة SAR" [ref=e316] [cursor=pointer]:
+                - img [ref=e317]
+                - generic [ref=e320]:
+                  - generic [ref=e321]: 🇸🇦
+                  - generic [ref=e322]: SAR
+          - generic [ref=e323]:
+            - generic [ref=e324]:
+              - generic [ref=e325]: الشركة
+              - list [ref=e326]:
+                - listitem [ref=e327]:
+                  - link "معلومات عنا" [ref=e328] [cursor=pointer]:
                     - /url: /about
-                - listitem [ref=e299]:
-                  - link "الوظائف" [ref=e300] [cursor=pointer]:
+                - listitem [ref=e329]:
+                  - link "الوظائف" [ref=e330] [cursor=pointer]:
                     - /url: /careers
-            - generic [ref=e301]:
-              - generic [ref=e302]: قانوني
-              - list [ref=e303]:
-                - listitem [ref=e304]:
-                  - link "الخصوصية" [ref=e305] [cursor=pointer]:
+            - generic [ref=e331]:
+              - generic [ref=e332]: قانوني
+              - list [ref=e333]:
+                - listitem [ref=e334]:
+                  - link "الخصوصية" [ref=e335] [cursor=pointer]:
                     - /url: /privacy
-                - listitem [ref=e306]:
-                  - link "الشروط" [ref=e307] [cursor=pointer]:
+                - listitem [ref=e336]:
+                  - link "الشروط" [ref=e337] [cursor=pointer]:
                     - /url: /terms
-            - generic [ref=e308]:
-              - generic [ref=e309]: الدعم
-              - list [ref=e310]:
-                - listitem [ref=e311]:
-                  - link "مركز المساعدة" [ref=e312] [cursor=pointer]:
+            - generic [ref=e338]:
+              - generic [ref=e339]: الدعم
+              - list [ref=e340]:
+                - listitem [ref=e341]:
+                  - link "مركز المساعدة" [ref=e342] [cursor=pointer]:
                     - /url: /help
-                - listitem [ref=e313]:
-                  - button "فتح تذكرة" [ref=e314] [cursor=pointer]
-          - generic [ref=e315]:
-            - generic [ref=e316]: © 2025 فيكزيت. جميع الحقوق محفوظة.
-            - generic [ref=e317]:
-              - link "الخصوصية" [ref=e318] [cursor=pointer]:
+                - listitem [ref=e343]:
+                  - button "فتح تذكرة" [ref=e344] [cursor=pointer]
+          - generic [ref=e345]:
+            - generic [ref=e346]: © 2025 فيكزيت. جميع الحقوق محفوظة.
+            - generic [ref=e347]:
+              - link "الخصوصية" [ref=e348] [cursor=pointer]:
                 - /url: /privacy
-              - link "الشروط" [ref=e319] [cursor=pointer]:
+              - link "الشروط" [ref=e349] [cursor=pointer]:
                 - /url: /terms
-              - link "الدعم" [ref=e320] [cursor=pointer]:
+              - link "الدعم" [ref=e350] [cursor=pointer]:
                 - /url: /support
-    - button "Ask Fixzit" [ref=e322] [cursor=pointer]:
-      - img [ref=e323]
+    - button "Ask Fixzit" [ref=e352] [cursor=pointer]:
+      - img [ref=e353]
   - region "Notifications alt+T"
 ```
