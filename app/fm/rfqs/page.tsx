@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
@@ -373,9 +373,9 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
     projectId: '',
     specifications: [] as string[],
     timeline: {
-      bidDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      startDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      completionDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      bidDeadline: '', // ✅ HYDRATION FIX: Initialize empty
+      startDate: '', // ✅ HYDRATION FIX: Initialize empty
+      completionDate: '' // ✅ HYDRATION FIX: Initialize empty
     },
     budget: {
       estimated: 0,
@@ -406,6 +406,21 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
     },
     tags: [] as string[]
   });
+
+  // ✅ HYDRATION FIX: Set default dates after client hydration
+  useEffect(() => {
+    if (!formData.timeline.bidDeadline) {
+      setFormData(prev => ({
+        ...prev,
+        timeline: {
+          ...prev.timeline,
+          bidDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          startDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          completionDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        }
+      }));
+    }
+  }, [formData.timeline.bidDeadline]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
