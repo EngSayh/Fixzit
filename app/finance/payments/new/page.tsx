@@ -217,7 +217,10 @@ export default function NewPaymentPage() {
     setAllocations(allocations.map(a => {
       if (a.id === id) {
         const newAllocated = !a.selected 
-          ? Math.min(a.amountDue, Money.toNumber(unallocatedAmount) + a.amountAllocated) 
+          ? Money.toNumber(Money.min(
+              decimal(a.amountDue),
+              Money.add(unallocatedAmount, a.amountAllocated)
+            ))
           : 0;
         return { ...a, selected: !a.selected, amountAllocated: newAllocated };
       }
@@ -229,8 +232,8 @@ export default function NewPaymentPage() {
     const numValue = parseFloat(value) || 0;
     setAllocations(allocations.map(a => {
       if (a.id === id) {
-        // Cap at invoice amount due
-        const cappedValue = Math.min(numValue, a.amountDue);
+        // Cap at invoice amount due using Decimal for precision
+        const cappedValue = Money.toNumber(Money.min(decimal(numValue), decimal(a.amountDue)));
         return { ...a, amountAllocated: cappedValue, selected: cappedValue > 0 };
       }
       return a;
@@ -241,10 +244,10 @@ export default function NewPaymentPage() {
     const selectedAllocations = allocations.filter(a => a.selected);
     if (selectedAllocations.length === 0) return;
 
-    const perInvoice = Money.toNumber(paymentAmountNum) / selectedAllocations.length;
+    const perInvoice = Money.divide(paymentAmountNum, selectedAllocations.length);
     setAllocations(allocations.map(a => {
       if (a.selected) {
-        const allocated = Math.min(perInvoice, a.amountDue);
+        const allocated = Money.toNumber(Money.min(perInvoice, decimal(a.amountDue)));
         return { ...a, amountAllocated: allocated };
       }
       return a;
@@ -262,7 +265,7 @@ export default function NewPaymentPage() {
     const allocatedMap = new Map<string, number>();
     
     for (const invoice of selectedInvoices) {
-      const toAllocate = Math.min(Money.toNumber(remaining), invoice.amountDue);
+      const toAllocate = Money.toNumber(Money.min(remaining, decimal(invoice.amountDue)));
       allocatedMap.set(invoice.invoiceId, toAllocate);
       remaining = remaining.minus(decimal(toAllocate));
       if (!remaining.isPositive()) break;
