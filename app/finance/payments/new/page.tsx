@@ -314,8 +314,8 @@ export default function NewPaymentPage() {
       }
     }
 
-    // Allocation validation
-    if (totalAllocated > paymentAmountNum) {
+    // Allocation validation - use Decimal comparison methods
+    if (totalAllocated.greaterThan(paymentAmountNum)) {
       newErrors.allocations = 'Total allocated amount cannot exceed payment amount';
     }
 

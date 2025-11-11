@@ -8,25 +8,51 @@ echo "🔍 Memory Monitoring - VS Code Crash Prevention"
 echo "==============================================="
 echo ""
 
+# Detect OS
+OS="$(uname -s)"
+
 # Total system memory
 echo "📊 System Memory:"
-free -h | grep -E "Mem:|Swap:"
+if [ "$OS" = "Darwin" ]; then
+  # macOS
+  vm_stat | perl -ne '/page size of (\d+)/ and $size=$1; /Pages\s+([^:]+)[^\d]+(\d+)/ and printf("%-20s % 16.2f MB\n", "$1:", $2 * $size / 1048576);'
+else
+  # Linux
+  free -h | grep -E "Mem:|Swap:"
+fi
 echo ""
 
 # Top memory consuming processes
 echo "🔥 Top 10 Memory-Consuming Processes:"
-ps aux --sort=-%mem | head -11 | awk 'BEGIN {printf "%-8s %-7s %-7s %s\n", "PID", "MEM%", "RSS(MB)", "COMMAND"} NR>1 {printf "%-8s %-7s %-7.1f %s\n", $2, $4, $6/1024, $11}'
+if [ "$OS" = "Darwin" ]; then
+  # macOS
+  ps aux | sort -k4 -r | head -11 | awk 'BEGIN {printf "%-8s %-7s %-7s %s\n", "PID", "MEM%", "RSS(MB)", "COMMAND"} NR>1 {printf "%-8s %-7s %-7.1f %s\n", $2, $4, $6/1024, $11}'
+else
+  # Linux
+  ps aux --sort=-%mem | head -11 | awk 'BEGIN {printf "%-8s %-7s %-7s %s\n", "PID", "MEM%", "RSS(MB)", "COMMAND"} NR>1 {printf "%-8s %-7s %-7.1f %s\n", $2, $4, $6/1024, $11}'
+fi
 echo ""
 
 # Node processes specifically
 echo "⚙️  Node.js Processes:"
-ps aux | grep -E "[n]ode|[t]sserver" | awk '{printf "PID: %-8s MEM: %-6s%%  RSS: %-8.1fMB  CMD: %s\n", $2, $4, $6/1024, $11}'
+ps aux | grep -E "[n]ode|[t]sserver" | awk '{printf "PID: %-8s MEM: %-6s%%  RSS: %-8.1fMB  CMD: %s\n", $2, $4, $6/1024, $11}' || echo "  No Node.js processes found"
 echo ""
 
 # Check if memory is critically low
-AVAILABLE_MEM=$(free | grep Mem | awk '{print $7}')
-TOTAL_MEM=$(free | grep Mem | awk '{print $2}')
-PERCENT_AVAILABLE=$(awk "BEGIN {printf \"%.0f\", ($AVAILABLE_MEM/$TOTAL_MEM)*100}")
+if [ "$OS" = "Darwin" ]; then
+  # macOS - use vm_stat
+  FREE_PAGES=$(vm_stat | grep "Pages free" | awk '{print $3}' | tr -d '.')
+  INACTIVE_PAGES=$(vm_stat | grep "Pages inactive" | awk '{print $3}' | tr -d '.')
+  SPECULATIVE_PAGES=$(vm_stat | grep "Pages speculative" | awk '{print $3}' | tr -d '.')
+  AVAILABLE_MB=$(( ($FREE_PAGES + $INACTIVE_PAGES + $SPECULATIVE_PAGES) * 4096 / 1048576 ))
+  TOTAL_MEM_MB=$(sysctl -n hw.memsize | awk '{print $1/1048576}')
+  PERCENT_AVAILABLE=$(awk "BEGIN {printf \"%.0f\", ($AVAILABLE_MB/$TOTAL_MEM_MB)*100}")
+else
+  # Linux
+  AVAILABLE_MEM=$(free | grep Mem | awk '{print $7}')
+  TOTAL_MEM=$(free | grep Mem | awk '{print $2}')
+  PERCENT_AVAILABLE=$(awk "BEGIN {printf \"%.0f\", ($AVAILABLE_MEM/$TOTAL_MEM)*100}")
+fi
 
 echo "💾 Available Memory: $PERCENT_AVAILABLE%"
 

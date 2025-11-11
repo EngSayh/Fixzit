@@ -18,19 +18,30 @@ echo ""
 echo "🧹 Step 2: Kill Zombie Processes"
 KILLED=0
 
-# Kill duplicate dev servers
-if pgrep -f 'next-server' > /dev/null; then
-  echo "  - Killing duplicate Next.js dev servers..."
-  pkill -f 'next-server' && KILLED=$((KILLED + 1)) || true
+# Kill duplicate dev servers (only if more than 1 exists AND not actively serving)
+DEV_SERVER_COUNT=$(pgrep -f 'next-server' | wc -l || echo "0")
+if [ "$DEV_SERVER_COUNT" -gt 1 ]; then
+  echo "  - Found $DEV_SERVER_COUNT Next.js dev servers (expected 1)"
+  echo "    Killing duplicates..."
+  # Kill all but the newest process
+  pgrep -f 'next-server' | head -n $((DEV_SERVER_COUNT - 1)) | xargs kill 2>/dev/null && KILLED=$((KILLED + 1)) || true
+elif [ "$DEV_SERVER_COUNT" -eq 0 ]; then
+  echo "  - No dev servers running"
+else
+  echo "  - Single dev server running (healthy)"
 fi
 
 # Kill orphaned TypeScript servers (more than 2 running)
-TS_COUNT=$(pgrep -f 'tsserver' | wc -l)
+TS_COUNT=$(pgrep -f 'tsserver' 2>/dev/null | wc -l || echo "0")
 if [ "$TS_COUNT" -gt 2 ]; then
   echo "  - Found $TS_COUNT TypeScript servers (expected max 2)"
   echo "    Killing oldest ones..."
   pgrep -f 'tsserver' | head -n $((TS_COUNT - 2)) | xargs kill -9 2>/dev/null || true
   KILLED=$((KILLED + 1))
+elif [ "$TS_COUNT" -eq 0 ]; then
+  echo "  - No tsserver processes (may start on demand)"
+else
+  echo "  - $TS_COUNT TypeScript server(s) running (healthy)"
 fi
 
 # Kill orphaned eslint processes

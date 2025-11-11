@@ -158,11 +158,31 @@ export type CreatePayment = z.infer<typeof createPaymentSchema>;
 
 /**
  * Helper function to safely parse numbers that might be strings
+ * @throws {Error} if input is invalid and cannot be parsed to a valid number
  */
 export function parseDecimalInput(value: string | number): number {
-  if (typeof value === 'number') return value;
-  const parsed = parseFloat(value.replace(/[^0-9.-]/g, ''));
-  return isNaN(parsed) ? 0 : parsed;
+  if (typeof value === 'number') {
+    if (isNaN(value)) {
+      throw new Error('Invalid number: NaN provided');
+    }
+    return value;
+  }
+  
+  // Remove non-numeric characters except . and -
+  const cleaned = value.replace(/[^0-9.-]/g, '');
+  
+  // Check if result is empty or invalid pattern
+  if (!cleaned || cleaned === '-' || cleaned === '.') {
+    throw new Error(`Invalid monetary input: "${value}"`);
+  }
+  
+  const parsed = parseFloat(cleaned);
+  
+  if (isNaN(parsed)) {
+    throw new Error(`Invalid monetary input: "${value}" could not be parsed to a number`);
+  }
+  
+  return parsed;
 }
 
 /**

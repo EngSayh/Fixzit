@@ -258,13 +258,15 @@ export const PaymentMath = {
 
       const invoiceAmount = decimal(invoice.amount);
       const allocated = Decimal.min(remaining, invoiceAmount);
+      const roundedAllocated = Money.round(allocated);
       
       allocations.push({
         id: invoice.id,
-        allocated: Money.round(allocated),
+        allocated: roundedAllocated,
       });
 
-      remaining = remaining.minus(allocated);
+      // Subtract the rounded value to prevent rounding drift
+      remaining = remaining.minus(roundedAllocated);
     }
 
     return allocations;

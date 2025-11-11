@@ -103,7 +103,8 @@ export default function NewInvoicePage() {
         item.discount
       )
     );
-    return Money.sum(lineAmounts.map(d => Money.toNumber(d)));
+    // Keep in Decimal space - don't convert to number before summing
+    return Money.sum(lineAmounts);
   }, [lineItems]);
 
   const totalDiscount: Decimal = React.useMemo(() => 
@@ -348,7 +349,7 @@ export default function NewInvoicePage() {
           amount: Money.toNumber(val.amount),
           category: key
         })),
-        total: totalAmount
+        total: Money.toNumber(totalAmount)
       };
 
       const response = await fetch('/api/finance/invoices', {
