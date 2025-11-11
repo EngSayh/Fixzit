@@ -4,9 +4,10 @@ import { logger } from '@/lib/logger';
 /**
  * Type for developer credential payload from dev-only module
  * Ensures type safety when calling findLoginPayloadByRole
+ * Note: email is required in practice but typed as optional in DemoCredential
  */
 type DevCredentialPayload = {
-  email: string;
+  email?: string;  // Made optional to match DemoCredential type
   password: string;
   loginType?: 'personal' | 'corporate';
   employeeNumber?: string;
@@ -64,6 +65,12 @@ export async function POST(req: NextRequest) {
   const payload = findLoginPayloadByRole(role);
   if (!payload) {
     return withNoStore(NextResponse.json({ error: 'Unknown role' }, { status: 404 }));
+  }
+
+  // Validate email is present (required for login)
+  if (!payload.email) {
+    logger.error('[Dev Demo Login] Payload missing required email field', { role });
+    return withNoStore(NextResponse.json({ error: 'Invalid demo account configuration' }, { status: 500 }));
   }
 
   // Prepare login data (password never leaves the server)
