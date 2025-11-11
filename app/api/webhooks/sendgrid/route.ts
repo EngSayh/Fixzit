@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
       logger.info(`✅ Processed ${event.event} for ${event.email} (${emailId || event.sg_message_id})`);
       return { status: 'success', event: event.event, email: event.email };
     } catch (eventError) {
-      logger.error(`❌ Failed to process event ${event.event} for ${event.email}:`, eventError);
+      logger.error(`❌ Failed to process event ${event.event} for ${event.email}:`, eventError instanceof Error ? eventError : new Error(String(eventError)));
       // Don't throw - continue processing other events
       return { status: 'failed', event: event.event, email: event.email, error: eventError };
     }

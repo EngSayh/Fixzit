@@ -102,6 +102,26 @@ const translations: Record<Language, Record<string, string>> = {
     'common.viewAll': 'عرض جميع الإشعارات',
     'common.backToHome': 'العودة إلى الصفحة الرئيسية',
     'common.characters': 'حرف',
+    'common.popularPages': 'الصفحات الشائعة',
+    
+    // Common - Pages
+    'common.pages.dashboard': 'لوحة التحكم',
+    'common.pages.properties': 'العقارات',
+    'common.pages.workOrders': 'أوامر العمل',
+    'common.pages.marketplace': 'السوق',
+    'common.pages.finance': 'المالية',
+    'common.pages.hr': 'الموارد البشرية',
+    'common.pages.login': 'تسجيل الدخول',
+    
+    // Common - Actions
+    'common.actions.goToHomepage': 'الذهاب إلى الصفحة الرئيسية',
+    'common.actions.goBack': 'العودة',
+    
+    // Errors
+    'errors.404.code': '404',
+    'errors.404.title': 'الصفحة غير موجودة',
+    'errors.404.message': 'الصفحة التي تبحث عنها غير موجودة أو تم نقلها.',
+    'errors.404.helpText': 'إذا كنت تعتقد أن هذا خطأ، يرجى الاتصال',
     
     // Time formatting
     'time.justNow': 'الآن',
@@ -2224,6 +2244,26 @@ const translations: Record<Language, Record<string, string>> = {
     'common.viewAll': 'View all notifications',
     'common.backToHome': 'Back to Home',
     'common.characters': 'characters',
+    'common.popularPages': 'Popular Pages',
+    
+    // Common - Pages
+    'common.pages.dashboard': 'Dashboard',
+    'common.pages.properties': 'Properties',
+    'common.pages.workOrders': 'Work Orders',
+    'common.pages.marketplace': 'Marketplace',
+    'common.pages.finance': 'Finance',
+    'common.pages.hr': 'HR',
+    'common.pages.login': 'Login',
+    
+    // Common - Actions
+    'common.actions.goToHomepage': 'Go to Homepage',
+    'common.actions.goBack': 'Go Back',
+    
+    // Errors
+    'errors.404.code': '404',
+    'errors.404.title': 'Page Not Found',
+    'errors.404.message': 'The page you\'re looking for doesn\'t exist or has been moved.',
+    'errors.404.helpText': 'If you believe this is an error, please contact',
     
     // Time formatting
     'time.justNow': 'Just now',

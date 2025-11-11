@@ -1,10 +1,10 @@
 {
   "stats": {
     "files": 379,
-    "usedKeys": 1556,
+    "usedKeys": 1570,
     "hasDynamic": true,
-    "enCount": 1988,
-    "arCount": 1988,
+    "enCount": 2002,
+    "arCount": 2002,
     "parityGap": 0
   },
   "missing": {
@@ -2520,6 +2520,48 @@
     "marketplace.vendor.bulkUpload": [
       "/workspaces/Fixzit/app/marketplace/vendor/portal/page.tsx"
     ],
+    "common.pages.dashboard": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.pages.properties": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.pages.workOrders": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.pages.marketplace": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.pages.finance": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.pages.hr": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.pages.login": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "errors.404.code": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "errors.404.title": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "errors.404.message": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.actions.goToHomepage": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.actions.goBack": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.popularPages": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "errors.404.helpText": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
     "landing.title": [
       "/workspaces/Fixzit/app/page.tsx"
     ],
@@ -5022,5 +5064,5 @@
       "/workspaces/Fixzit/contexts/TranslationContext.test.tsx"
     ]
   },
-  "timestamp": "2025-11-11T13:32:48.125Z"
+  "timestamp": "2025-11-11T16:59:22.595Z"
 }

@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
             entityType: 'listing'
           });
         } catch (error) {
-          logger.error('Failed to increment listing analytics:', error, { listingId });
+          logger.error('Failed to increment listing analytics:', error instanceof Error ? error : new Error(String(error)), { listingId });
         }
       })();
     } else if (projectId) {
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
             entityType: 'project'
           });
         } catch (error) {
-          logger.error('Failed to increment project analytics:', error, { projectId });
+          logger.error('Failed to increment project analytics:', error instanceof Error ? error : new Error(String(error)), { projectId });
         }
       })();
     }
