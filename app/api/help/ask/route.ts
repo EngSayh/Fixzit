@@ -39,13 +39,13 @@ function redactPII(s: string) {
     .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[redacted email]')
     // Phone patterns: optional country code, optional area code, standard 7-10 digits with separators
     .replace(/\b(?:\+?(\d{1,3})?[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b/g, '[redacted phone]')
-    // Credit card patterns (13-19 digits with optional spaces/dashes)
-    .replace(/\b(?:\d{4}[-\s]?){3}\d{1,7}\b/g, '[redacted card]')
+    // Credit card patterns (13-16 digits with optional spaces/dashes)
+    .replace(/\b(?:\d{4}[-\s]?){3}\d{1,4}\b/g, '[redacted card]')
     // SSN patterns (XXX-XX-XXXX)
     .replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[redacted SSN]')
     // IP addresses (IPv4)
     .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '[redacted IP]')
-    // Omani Civil IDs (8 digits)
+    // 8-digit numeric IDs (may include Omani Civil IDs, invoice numbers, dates YYYYMMDD, etc.; trades precision for safety)
     .replace(/\b\d{8}\b/g, '[redacted ID]');
 }
 

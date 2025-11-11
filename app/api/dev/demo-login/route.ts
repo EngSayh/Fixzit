@@ -23,15 +23,9 @@ export async function POST(req: NextRequest) {
   // Gate early — dev only
   // Dynamically import dev-only module (won't be bundled in production)
   let ENABLED = false;
-  type DemoCredentialFn = (_role: string) => {
-    email: string;
-    password: string;
-    loginType?: 'personal' | 'corporate';
-    employeeNumber?: string;
-    orgId?: string;
-    preferredPath?: string;
-  } | null;
-  let findLoginPayloadByRole: DemoCredentialFn = () => null;
+  type DevCredentialsModule = typeof import('@/dev/credentials.server');
+  type DemoCredentialFn = DevCredentialsModule['findLoginPayloadByRole'];
+  let findLoginPayloadByRole: DemoCredentialFn = (_role) => null;
 
   try {
     // We use a dynamic import to ensure this file is never bundled in production

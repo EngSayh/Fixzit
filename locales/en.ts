@@ -15,8 +15,6 @@ import { ok, badRequest, serverError } from '@/lib/api/http';
 
 
 import { logger } from '@/lib/logger';
-import { getServerTranslation } from '@/lib/i18n/server';
-
 export const runtime = 'nodejs';
 
 // GET /api/aqar/packages
@@ -43,8 +41,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ packages });
   } catch (error) {
     logger.error('Error fetching packages:', error);
-    const t = await getServerTranslation(request);
-    return NextResponse.json({ error: t('aqar.packages.errors.fetchFailed') }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch packages' }, { status: 500 });
   }
 }
 
@@ -127,7 +124,22 @@ export async function POST(request: NextRequest) {
     } catch (e: unknown) {
       const error = e instanceof Error ? e : new Error(String(e));
       logger.error('PACKAGES_POST_ERROR', error, { correlationId });
-      const t = await getServerTranslation(request);
-      return serverError(t('common.errors.unexpected'), { correlationId });
+      return serverError('Unexpected error', { correlationId });
     }
 }
+
+// en.ts localization file
+export const messages = {
+  aqar: {
+    packages: {
+      errors: {
+        fetchFailed: 'Failed to fetch packages',
+      },
+    },
+  },
+  common: {
+    errors: {
+      unexpected: 'Unexpected error',
+    },
+  },
+};

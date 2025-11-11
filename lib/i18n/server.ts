@@ -1,5 +1,8 @@
 import { cookies } from 'next/headers';
 import { findLanguageByCode } from '@/data/language-options';
+import { NextRequest } from 'next/server';
+import { messages as enMessages } from '@/locales/en';
+import { messages as arMessages } from '@/locales/ar';
 
 // eslint-disable-next-line no-unused-vars
 type TFn = (key: string, fallback?: string) => string;
@@ -41,4 +44,30 @@ export async function getServerI18n() {
       isRTL: false,
     };
   }
+}
+
+type Messages = typeof enMessages;
+
+export async function getServerTranslation(request: NextRequest) {
+  // Get locale from cookie or Accept-Language header
+  const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value;
+  const headerLocale = request.headers.get('accept-language')?.split(',')[0]?.split('-')[0];
+  const locale = cookieLocale || headerLocale || 'en';
+  
+  const messages = locale === 'ar' ? arMessages : enMessages;
+  
+  return function t(key: string): string {
+    const keys = key.split('.');
+    let value: unknown = messages;
+    
+    for (const k of keys) {
+      if (value && typeof value === 'object' && k in value) {
+        value = (value as Record<string, unknown>)[k];
+      } else {
+        return key; // Return key if translation not found
+      }
+    }
+    
+    return typeof value === 'string' ? value : key;
+  };
 }

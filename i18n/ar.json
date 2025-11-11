@@ -514,7 +514,12 @@
       "placeholder": "ابحث عن العقارات والمشاريع والوكلاء..."
     },
     "postProperty": "نشر عقار",
-    "newValuation": "تقييم جديد"
+    "newValuation": "تقييم جديد",
+    "packages": {
+      "errors": {
+        "fetchFailed": "فشل في جلب الباقات"
+      }
+    }
   },
   "common": {
     "brand": "فكس إت",
@@ -580,7 +585,10 @@
     "draft": "مسودة",
     "published": "منشور",
     "archived": "مؤرشف",
-    "deleted": "محذوف"
+    "deleted": "محذوف",
+    "errors": {
+      "unexpected": "حدث خطأ غير متوقع"
+    }
   },
   "app": {
     "fm": "إدارة المرافق",

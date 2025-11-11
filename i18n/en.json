@@ -514,7 +514,12 @@
       "placeholder": "Search properties, projects, agents..."
     },
     "postProperty": "Post Property",
-    "newValuation": "New Valuation"
+    "newValuation": "New Valuation",
+    "packages": {
+      "errors": {
+        "fetchFailed": "Failed to fetch packages"
+      }
+    }
   },
   "common": {
     "brand": "FIXZIT",
@@ -580,7 +585,10 @@
     "draft": "Draft",
     "published": "Published",
     "archived": "Archived",
-    "deleted": "Deleted"
+    "deleted": "Deleted",
+    "errors": {
+      "unexpected": "An unexpected error occurred"
+    }
   },
   "app": {
     "fm": "Facility Management",
