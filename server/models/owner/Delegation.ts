@@ -215,7 +215,7 @@ DelegationSchema.pre('save', async function(next) {
     this.statistics.totalAmountApproved = this.activities
       .filter((a: unknown) => {
         const activity = a as { action?: string, amount?: number };
-        return activity?.action?.includes('APPROVED') && activity?.amount;
+        return activity?.action?.includes('APPROVED') && typeof activity?.amount === 'number';
       })
       .reduce((sum: number, a: unknown) => {
         const activity = a as { amount?: number };

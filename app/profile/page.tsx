@@ -153,7 +153,7 @@ export default function ProfilePage() {
         throw new Error('Failed to update account');
       }
 
-      await response.json(); // Acknowledge server response
+      const _result = await response.json(); // Acknowledge server response
 
       // Update original user data after successful save
       setOriginalUser(user);
