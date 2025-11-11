@@ -321,9 +321,9 @@ export default function LoginPage() {
                 </label>
                 <div className="relative">
                   {loginMethod === 'personal' ? (
-                    <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
+                    <Mail className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
                   ) : (
-                    <User className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
+                    <User className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
                   )}
                   <Input
                     id={loginMethod === 'personal' ? 'email' : 'employeeNumber'}
@@ -345,7 +345,7 @@ export default function LoginPage() {
                       clearError('identifier');
                       clearError('general');
                     }}
-                    className={`${isRTL ? 'pr-10 text-right' : 'pl-10'} h-12 ${errors.identifier ? 'border-destructive focus:ring-destructive' : ''}`}
+                    className={`${isRTL ? 'pe-10 text-right' : 'ps-10'} h-12 ${errors.identifier ? 'border-destructive focus:ring-destructive' : ''}`}
                     aria-invalid={!!errors.identifier}
                     disabled={loading}
                     autoFocus
@@ -376,7 +376,7 @@ export default function LoginPage() {
                   </Link>
                 </div>
                 <div className="relative">
-                  <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
+                  <Lock className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground`} />
                   <Input
                     id="password"
                     data-testid="login-password"
@@ -391,7 +391,7 @@ export default function LoginPage() {
                       clearError('password');
                       clearError('general');
                     }}
-                    className={`${isRTL ? 'pr-10 pl-10' : 'pl-10 pr-10'} h-12 ${errors.password ? 'border-destructive focus:ring-destructive' : ''}`}
+                    className={`${isRTL ? 'pe-10 ps-10' : 'ps-10 pe-10'} h-12 ${errors.password ? 'border-destructive focus:ring-destructive' : ''}`}
                     style={{ direction: 'ltr', textAlign: isRTL ? 'right' : 'left' }}
                     aria-invalid={!!errors.password}
                     disabled={loading}
@@ -400,7 +400,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(s => !s)}
-                    className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground`}
+                    className={`absolute ${isRTL ? 'start-3' : 'end-3'} top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground`}
                     aria-label={showPassword ? t('login.hidePassword', 'Hide password') : t('login.showPassword', 'Show password')}
                   >
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}

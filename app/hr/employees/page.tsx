@@ -103,7 +103,7 @@ export default function EmployeesPage() {
           </p>
         </div>
         <Button className="bg-primary hover:bg-primary text-white">
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="h-4 w-4 me-2" />
           {t('hr.employees.addNew', 'Add Employee')}
         </Button>
       </div>
@@ -113,13 +113,13 @@ export default function EmployeesPage() {
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
                 placeholder={t('hr.employees.search', 'Search by name, code, or department...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="ps-10"
               />
             </div>
             <select
@@ -174,27 +174,27 @@ export default function EmployeesPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                       <div>
                         <span className="text-muted-foreground">{t('hr.employees.code', 'Code')}:</span>
-                        <span className="ml-2 font-medium">{employee.employeeCode}</span>
+                        <span className="ms-2 font-medium">{employee.employeeCode}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t('hr.employees.department', 'Department')}:</span>
-                        <span className="ml-2 font-medium">{employee.employment.department}</span>
+                        <span className="ms-2 font-medium">{employee.employment.department}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t('hr.employees.position', 'Position')}:</span>
-                        <span className="ml-2 font-medium">{employee.employment.position}</span>
+                        <span className="ms-2 font-medium">{employee.employment.position}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t('hr.employees.joinDate', 'Join Date')}:</span>
-                        <span className="ml-2 font-medium">
+                        <span className="ms-2 font-medium">
                           {new Date(employee.employment.joinDate).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2 ml-4">
+                  <div className="flex gap-2 ms-4">
                     <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-2" />
+                      <Eye className="h-4 w-4 me-2" />
                       {t('common.view', 'View')}
                     </Button>
                   </div>

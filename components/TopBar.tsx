@@ -537,7 +537,7 @@ function NotificationPopup({
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full animate-pulse"></span>
+          <span className="absolute -top-1 -end-1 w-3 h-3 bg-destructive rounded-full animate-pulse"></span>
         )}
       </Button>
       
@@ -615,7 +615,7 @@ function NotificationPopup({
                         </div>
                       </div>
                       {!notification.read && (
-                        <div className="w-2 h-2 bg-primary rounded-full ml-2 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-primary rounded-full ms-2 flex-shrink-0"></div>
                       )}
                     </div>
                   </button>

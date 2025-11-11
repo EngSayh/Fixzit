@@ -87,7 +87,7 @@ export default function ProductPage(props: { params: Promise<{ slug: string }> }
         <h1 className="text-2xl font-semibold">
           {typeof p?.title === 'object' && p.title?.en ? p.title.en : (typeof p?.title === 'string' ? p.title : '')}
         </h1>
-        <ul className="list-disc pl-5 text-sm text-foreground">
+        <ul className="list-disc ps-5 text-sm text-foreground">
           {[
             { key: t('product.brand', 'Brand'), value: p?.brand },
             { key: t('product.standards', 'Standards'), value: Array.isArray(p?.standards) ? p?.standards.join(', ') : undefined },

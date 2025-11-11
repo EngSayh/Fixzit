@@ -40,7 +40,7 @@ export default function NotFound() {
             onClick={() => window.history.back()}
             className="block w-full px-6 py-3 border border-border text-foreground rounded-2xl hover:bg-muted transition-colors"
           >
-            <ArrowLeft size={20} className="inline mr-2" />
+            <ArrowLeft size={20} className="inline me-2" />
             Go Back
           </button>
         </div>

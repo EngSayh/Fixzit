@@ -25,7 +25,7 @@ interface ResponsiveLayoutProps {
  * ARCHITECTURE IMPROVEMENTS:
  * 1. ✅ Use standard Button for toggle (no hardcoded button)
  * 2. ✅ Semantic color tokens (bg-primary instead of bg-brand-500)
- * 3. ✅ No magic numbers (SIDEBAR_WIDTH_CLASS constant instead of ml-64)
+ * 3. ✅ No magic numbers (SIDEBAR_WIDTH_CLASS constant instead of ms-64)
  * 4. ✅ Deleted duplicate ResponsiveCard and ResponsiveButton (use Card/Button from ui/)
  * 5. ✅ Fixed all hardcoded colors
  */
@@ -63,7 +63,7 @@ export default function ResponsiveLayout({
         <Button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           size="icon"
-          className="fixed top-16 left-4 z-50 md:hidden shadow-lg"
+          className="fixed top-16 start-4 z-50 md:hidden shadow-lg"
           aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
         >
           {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -75,7 +75,7 @@ export default function ResponsiveLayout({
         {sidebar && (
           <div className={`
             ${showSidebar ? 'translate-x-0' : '-translate-x-full'}
-            ${screenInfo.isMobile || screenInfo.isTablet ? 'fixed inset-y-0 left-0 z-40' : 'relative'}
+            ${screenInfo.isMobile || screenInfo.isTablet ? 'fixed inset-y-0 start-0 z-40' : 'relative'}
             ${SIDEBAR_WIDTH_CLASS}
             transition-transform duration-300 ease-in-out
           `}>
@@ -94,7 +94,7 @@ export default function ResponsiveLayout({
         {/* Main content - ✅ FIXED: Use SIDEBAR_WIDTH_CLASS constant */}
         <main className={`
           flex-1 flex flex-col transition-all duration-300
-          ${sidebar && (screenInfo.isDesktop || screenInfo.isLarge) ? `md:ml-64` : 'ml-0'}
+          ${sidebar && (screenInfo.isDesktop || screenInfo.isLarge) ? `md:ms-64` : 'ms-0'}
         `}>
           <div className={`${responsiveClasses.container} py-6`}>
             {children}

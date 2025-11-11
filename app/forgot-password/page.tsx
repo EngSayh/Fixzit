@@ -65,7 +65,7 @@ export default function ForgotPassword() {
             </Button>
             <Link href="/login">
               <Button variant="ghost" className="w-full">
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeft className="w-4 h-4 me-2" />
                 Back to Login
               </Button>
             </Link>
@@ -94,14 +94,14 @@ export default function ForgotPassword() {
               Email Address
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Mail className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 id="email"
                 type="email"
                 placeholder="Enter your email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 h-12"
+                className="ps-10 h-12"
                 required
               />
             </div>

@@ -184,12 +184,12 @@ const ErrorFallbackUI = ({ errorId, onRefresh }: { errorId: string, onRefresh: (
           {/* ✅ FIX: Use standard Button components */}
           <div className="flex gap-3 justify-center">
             <Button variant="outline" onClick={onRefresh}>
-              <RefreshCw className="w-4 h-4 mr-2" />
+              <RefreshCw className="w-4 h-4 me-2" />
               {t('error.boundary.refresh', 'Refresh Page')}
             </Button>
             <Button asChild>
               <Link href="/">
-                <Home className="w-4 h-4 mr-2" />
+                <Home className="w-4 h-4 me-2" />
                 {t('common.backToHome', 'Back to Home')}
               </Link>
             </Button>

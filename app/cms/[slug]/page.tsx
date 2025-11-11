@@ -75,9 +75,9 @@ async function renderMarkdown(md: string){
   html = html.replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mt-8 mb-4">$1</h1>');
   
   // Lists
-  html = html.replace(/^\* (.+)$/gim, '<li class="ml-4">$1</li>');
-  html = html.replace(/^- (.+)$/gim, '<li class="ml-4">$1</li>');
-  html = html.replace(/(<li.*>.*<\/li>)/g, '<ul class="list-disc pl-6 mb-4">$1</ul>');
+  html = html.replace(/^\* (.+)$/gim, '<li class="ms-4">$1</li>');
+  html = html.replace(/^- (.+)$/gim, '<li class="ms-4">$1</li>');
+  html = html.replace(/(<li.*>.*<\/li>)/g, '<ul class="list-disc ps-6 mb-4">$1</ul>');
   
   // Bold and italic
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');

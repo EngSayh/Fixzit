@@ -485,7 +485,7 @@ export default function AuditLogViewer() {
                   <h3 className="text-sm font-medium text-muted-foreground">User</h3>
                   <p className="mt-1 text-foreground">
                     {selectedLog.userName} ({selectedLog.userEmail})
-                    <span className="ml-2 text-xs text-muted-foreground">
+                    <span className="ms-2 text-xs text-muted-foreground">
                       Role: {selectedLog.userRole}
                     </span>
                   </p>
@@ -497,7 +497,7 @@ export default function AuditLogViewer() {
                     {selectedLog.entityType}
                     {selectedLog.entityName && ` - ${selectedLog.entityName}`}
                     {selectedLog.entityId && (
-                      <span className="ml-2 text-xs text-muted-foreground">
+                      <span className="ms-2 text-xs text-muted-foreground">
                         ID: {selectedLog.entityId}
                       </span>
                     )}
