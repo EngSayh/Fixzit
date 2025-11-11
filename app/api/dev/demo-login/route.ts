@@ -37,10 +37,10 @@ export async function POST(req: NextRequest) {
     // We use a dynamic import to ensure this file is never bundled in production
     const module = await import(/* webpackIgnore: true */ '@/dev/credentials.server');
     ENABLED = module.ENABLED ?? false;
-    findLoginPayloadByRole = module.findLoginPayloadByRole;
-  } catch (e) {
-    // Module not available (e.g., production build) - fail gracefully
-    logger.error('[Dev Demo Login] Failed to load credentials module:', { e });
+    findLoginPayloadByRole = module.findLoginPayloadByRole as DemoCredentialFn;
+  } catch (_e) {
+    // Module not available (e.g., production build or missing credentials file) - fail gracefully
+    logger.info('[Dev Demo Login] Credentials module not available (expected in CI/production)');
     return withNoStore(NextResponse.json({ error: 'Demo not enabled' }, { status: 403 }));
   }
 
