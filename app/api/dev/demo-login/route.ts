@@ -1,18 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { logger } from '@/lib/logger';
-/**
- * Type for developer credential payload from dev-only module
- * Ensures type safety when calling findLoginPayloadByRole
- */
-type DevCredentialPayload = {
-  email: string;
-  password: string;
-  loginType?: 'personal' | 'corporate';
-  employeeNumber?: string;
-  orgId?: string;
-  preferredPath?: string;
-};
 
 /**
  * Server-side demo login endpoint
@@ -35,8 +23,15 @@ export async function POST(req: NextRequest) {
   // Gate early — dev only
   // Dynamically import dev-only module (won't be bundled in production)
   let ENABLED = false;
-  // eslint-disable-next-line no-unused-vars
-  let findLoginPayloadByRole: (role: string) => DevCredentialPayload | null = () => null;
+  type DemoCredentialFn = (_role: string) => {
+    email: string;
+    password: string;
+    loginType?: 'personal' | 'corporate';
+    employeeNumber?: string;
+    orgId?: string;
+    preferredPath?: string;
+  } | null;
+  let findLoginPayloadByRole: DemoCredentialFn = () => null;
 
   try {
     // We use a dynamic import to ensure this file is never bundled in production
