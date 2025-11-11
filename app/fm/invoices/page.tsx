@@ -192,7 +192,7 @@ export default function InvoicesPage() {
                 <p className="text-2xl font-bold text-success">
                   {invoices.filter((inv: Invoice) => 
                     inv.status === 'PAID' && 
-                    new Date(inv.payments?.[0]?.date ?? '').getMonth() === new Date().getMonth()
+                    new Date(inv.payments?.[0]?.date || Date.now()).getMonth() === new Date().getMonth()
                   ).length}
                 </p>
               </div>
