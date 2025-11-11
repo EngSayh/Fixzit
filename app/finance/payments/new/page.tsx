@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
+import Decimal from 'decimal.js';
 
 import { logger } from '@/lib/logger';
 // ============================================================================
@@ -96,10 +97,16 @@ export default function NewPaymentPage() {
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
 
-  // Calculate totals
-  const totalAllocated = allocations.reduce((sum, a) => sum + a.amountAllocated, 0);
-  const unallocatedAmount = parseFloat(amount || '0') - totalAllocated;
-  const paymentAmountNum = parseFloat(amount || '0');
+  // Calculate totals using Decimal for precision
+  const totalAllocated = allocations.reduce(
+    (sum, a) => sum.plus(a.amountAllocated),
+    new Decimal(0)
+  );
+  const paymentAmountDec = new Decimal(amount || '0');
+  const unallocatedAmount = paymentAmountDec.minus(totalAllocated);
+  
+  // Legacy numeric value for UI (convert from Decimal)
+  const paymentAmountNum = parseFloat(paymentAmountDec.toFixed(2));
 
   // ============================================================================
   // LIFECYCLE & DATA LOADING
@@ -204,7 +211,9 @@ export default function NewPaymentPage() {
   const toggleInvoiceSelection = (id: string) => {
     setAllocations(allocations.map(a => {
       if (a.id === id) {
-        return { ...a, selected: !a.selected, amountAllocated: !a.selected ? Math.min(a.amountDue, unallocatedAmount + a.amountAllocated) : 0 };
+        const unallocPlusCurrentStr = unallocatedAmount.plus(a.amountAllocated).toFixed(2);
+        const unallocPlusCurrent = parseFloat(unallocPlusCurrentStr);
+        return { ...a, selected: !a.selected, amountAllocated: !a.selected ? Math.min(a.amountDue, unallocPlusCurrent) : 0 };
       }
       return a;
     }));
@@ -300,7 +309,7 @@ export default function NewPaymentPage() {
     }
 
     // Allocation validation
-    if (totalAllocated > paymentAmountNum) {
+    if (totalAllocated.greaterThan(paymentAmountDec)) {
       newErrors.allocations = 'Total allocated amount cannot exceed payment amount';
     }
 
@@ -371,7 +380,7 @@ export default function NewPaymentPage() {
           chequeDetails,
           cardDetails,
           allocations: invoiceAllocations,
-          unallocatedAmount,
+          unallocatedAmount: parseFloat(unallocatedAmount.toFixed(2)),
           status: 'POSTED' // Auto-post payment
         };
 
@@ -949,9 +958,9 @@ export default function NewPaymentPage() {
                             {totalAllocated.toFixed(2)} {currency}
                           </p>
                         </div>
-                        <div className={`p-3 rounded ${unallocatedAmount < 0 ? 'bg-destructive/10' : 'bg-success/10'}`}>
+                        <div className={`p-3 rounded ${unallocatedAmount.lessThan(0) ? 'bg-destructive/10' : 'bg-success/10'}`}>
                           <p className="text-muted-foreground">{t('Unallocated')}</p>
-                          <p className={`text-lg font-bold ${unallocatedAmount < 0 ? 'text-destructive' : 'text-success'}`}>
+                          <p className={`text-lg font-bold ${unallocatedAmount.lessThan(0) ? 'text-destructive' : 'text-success'}`}>
                             {unallocatedAmount.toFixed(2)} {currency}
                           </p>
                         </div>

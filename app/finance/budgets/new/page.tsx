@@ -6,6 +6,7 @@ import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
+import Decimal from 'decimal.js';
 
 interface BudgetCategory {
   id: string;
@@ -63,7 +64,7 @@ export default function NewBudgetPage() {
     // Update category field
   const handleCategoryChange = (id: string, field: keyof BudgetCategory, value: string | number) => {
     setCategories((prevCategories) => {
-      // First, compute the updated categories array
+      // First, update the changed field
       const nextCategories = prevCategories.map((cat) =>
         cat.id === id ? { ...cat, [field]: value } : cat
       );
@@ -73,11 +74,14 @@ export default function NewBudgetPage() {
         return nextCategories;
       }
 
-      // Recompute the total from the updated categories
-      const nextTotal = nextCategories.reduce((sum, cat) => sum + (cat.amount || 0), 0);
+      // Recompute the total from the updated categories using Decimal for precision
+      const nextTotal = nextCategories.reduce(
+        (sum, cat) => sum.plus(cat.amount || 0),
+        new Decimal(0)
+      );
 
       // If total is zero, skip calculations
-      if (nextTotal === 0) {
+      if (nextTotal.isZero()) {
         return nextCategories;
       }
 
@@ -89,14 +93,16 @@ export default function NewBudgetPage() {
 
         // Auto-calculate percentage when amount changes
         if (field === 'amount') {
-          const amt = updated.amount as number;
-          updated.percentage = Math.round((amt / nextTotal) * 100 * 100) / 100; // Round to 2 decimals
+          const amt = new Decimal(updated.amount);
+          const percentageDec = amt.dividedBy(nextTotal).times(100);
+          updated.percentage = parseFloat(percentageDec.toFixed(2)); // Round to 2 decimals
         }
 
         // Auto-calculate amount when percentage changes
         if (field === 'percentage') {
-          const pct = updated.percentage as number;
-          updated.amount = Math.round(nextTotal * (pct / 100) * 100) / 100; // Round to 2 decimals
+          const pct = new Decimal(updated.percentage);
+          const amountDec = nextTotal.times(pct).dividedBy(100);
+          updated.amount = parseFloat(amountDec.toFixed(2)); // Preserve cents
         }
 
         return updated;
