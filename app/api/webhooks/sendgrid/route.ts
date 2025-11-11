@@ -176,20 +176,24 @@ export async function POST(req: NextRequest) {
     });
 
     const results = await Promise.allSettled(updates);
-    const successful = results.filter(r => r.status === 'fulfilled' && r.value.status === 'success').length;
-    const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.status === 'failed')).length;
+    
+    // Count successful and failed operations in a single pass
+    const { successful, failed } = results.reduce((acc, r) => ({
+      successful: acc.successful + (r.status === 'fulfilled' && r.value.status === 'success' ? 1 : 0),
+      failed: acc.failed + (r.status === 'rejected' || (r.status === 'fulfilled' && r.value.status === 'failed') ? 1 : 0)
+    }), { successful: 0, failed: 0 });
 
     if (failed > 0) {
       logger.warn(`⚠️  Webhook processing partial success: ${successful} succeeded, ${failed} failed`);
     }
 
     return createSecureResponse({
-      success: true,
+      success: failed === 0,  // Only true if all succeeded
       processed: events.length,
       successful,
       failed,
       message: failed > 0 ? `Processed ${events.length} events: ${successful} successful, ${failed} failed` : 'Events processed successfully'
-    }, 200, req);
+    }, failed > 0 ? 500 : 200, req);  // Return 500 if any failed to trigger SendGrid retry
 
   } catch (error) {
     logger.error('❌ Webhook processing error:', error);

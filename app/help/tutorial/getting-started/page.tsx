@@ -5,6 +5,14 @@ import Link from 'next/link';
 import { ArrowLeft, CheckCircle, Circle, Play, BookOpen, Clock } from 'lucide-react';
 import { renderMarkdownSanitized } from '@/lib/markdown';
 
+// HTML escape utility for fallback rendering
+const escapeHtml = (str: string) => str
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
 export default function GettingStartedTutorial() {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
@@ -452,12 +460,6 @@ Continue to learn about tenant relations!
       }).catch(err => {
         console.error('Failed to render markdown:', err);
         // Safe fallback: escape HTML and preserve whitespace
-        const escapeHtml = (str: string) => str
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#39;');
         setRenderedContent(`<div class="whitespace-pre-wrap">${escapeHtml(currentStepData.content)}</div>`);
       });
     }

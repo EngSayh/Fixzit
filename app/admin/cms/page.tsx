@@ -40,7 +40,7 @@ export default function AdminCMS(){
         toast.error(t('admin.cms.loadError', 'Failed to load page'));
       }
     })();
-  },[slug, t]);
+  },[slug]);
 
   const save = async()=>{
     const toastId = toast.loading(t('save.saving', 'Saving...'));

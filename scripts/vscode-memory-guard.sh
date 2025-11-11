@@ -174,14 +174,14 @@ show_memory_status() {
     # Top memory consumers
     echo "Top Memory Consumers:"
     echo "----------------------------------------"
-    printf "%-10s %-8s %-8s %s\n" "PID" "MEM%" "MEM(MB)" "COMMAND"
+    printf "%-10s %-8s %-8s %s\\n" "PID" "MEM%" "MEM(MB)" "COMMAND"
     echo "----------------------------------------"
     
-    ps aux --sort=-%mem | head -11 | tail -10 | while read -r user pid cpu mem vsz rss tty stat start time cmd; do
+    ps aux --sort=-%mem | head -11 | tail -10 | while read -r _user pid _cpu pmem _vsz rss _tty _stat _start _time cmd; do
         local mem_mb=$((rss / 1024))
         local short_cmd
         short_cmd=$(echo "$cmd" | cut -c 1-50)
-        printf "%-10s %-8s %-8s %s\n" "$pid" "$mem%" "${mem_mb}" "$short_cmd"
+        printf "%-10s %-8s %-8s %s\\n" "$pid" "${pmem}%" "${mem_mb}" "$short_cmd"
     done
     
     echo ""
