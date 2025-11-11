@@ -139,7 +139,11 @@ export default function TopBar() {
     const r = anchor.getBoundingClientRect();
     const vw = window.innerWidth;
     const top = r.bottom + 8;
+    // ✅ FIXED RTL alignment:
+    // RTL: align dropdown to LEFT edge of button (r.left) - natural flow in RTL
+    // LTR: align dropdown to RIGHT edge of button (r.right - panelWidth) - natural flow in LTR
     let left = isRTL ? r.left : r.right - panelWidth;
+    // Ensure dropdown stays within viewport
     left = clamp(left, 8, vw - panelWidth - 8);
     return { top, left, width: panelWidth };
   }, [isRTL]);
