@@ -60,23 +60,48 @@ export default function NewBudgetPage() {
     }
   };
 
-  // Update category field
+    // Update category field
   const handleCategoryChange = (id: string, field: keyof BudgetCategory, value: string | number) => {
-    setCategories(categories.map(cat => {
-      if (cat.id === id) {
-        const updated = { ...cat, [field]: value };
-        // Auto-calculate percentage when amount changes
-        if (field === 'amount' && totalBudget > 0) {
-          updated.percentage = Math.round(((updated.amount as number) / totalBudget) * 100);
-        }
-        // Auto-calculate amount when percentage changes
-        if (field === 'percentage' && totalBudget > 0) {
-          updated.amount = Math.round((totalBudget * (updated.percentage as number)) / 100);
-        }
-        return updated;
+    setCategories((prevCategories) => {
+      // First, compute the updated categories array
+      const nextCategories = prevCategories.map((cat) =>
+        cat.id === id ? { ...cat, [field]: value } : cat
+      );
+
+      // Only recompute if amount or percentage changed
+      if (field !== 'amount' && field !== 'percentage') {
+        return nextCategories;
       }
-      return cat;
-    }));
+
+      // Recompute the total from the updated categories
+      const nextTotal = nextCategories.reduce((sum, cat) => sum + (cat.amount || 0), 0);
+
+      // If total is zero, skip calculations
+      if (nextTotal === 0) {
+        return nextCategories;
+      }
+
+      // Now update the dependent field with fresh total
+      return nextCategories.map((cat) => {
+        if (cat.id !== id) return cat;
+
+        const updated = { ...cat };
+
+        // Auto-calculate percentage when amount changes
+        if (field === 'amount') {
+          const amt = updated.amount as number;
+          updated.percentage = Math.round((amt / nextTotal) * 100 * 100) / 100; // Round to 2 decimals
+        }
+
+        // Auto-calculate amount when percentage changes
+        if (field === 'percentage') {
+          const pct = updated.percentage as number;
+          updated.amount = Math.round(nextTotal * (pct / 100) * 100) / 100; // Round to 2 decimals
+        }
+
+        return updated;
+      });
+    });
   };
 
   // Save as draft
