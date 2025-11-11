@@ -40,6 +40,9 @@ export async function POST(req:NextRequest): Promise<NextResponse> {
   if (user instanceof NextResponse) return user;
   await connectToDatabase();
   
+  // Extract correlation ID once for the entire request
+  const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
+  
   // Parse and validate JSON request body
   let body: unknown;
   try {
@@ -83,7 +86,6 @@ export async function POST(req:NextRequest): Promise<NextResponse> {
       });
       created++;
     } catch (error) {
-      const correlationId = req.headers.get('x-correlation-id') || crypto.randomUUID();
       logger.error(`[${correlationId}] Work order import error for row ${i + 1}:`, error instanceof Error ? error : new Error(String(error)), { row: i + 1 });
       errors.push({ row: i + 1, error: 'Failed to import row' });
     }
