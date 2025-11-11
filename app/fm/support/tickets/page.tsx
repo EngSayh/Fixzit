@@ -132,13 +132,13 @@ export default function SupportTicketsPage() {
             <table className="w-full">
               <thead className="bg-muted border-b border-border">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Code</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Subject</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Module</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Priority</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Created</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Code</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Subject</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Module</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Priority</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Status</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Created</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">

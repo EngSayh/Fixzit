@@ -144,7 +144,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
         />
         
         {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-2">
+        <div className="absolute top-3 start-3 flex flex-col gap-2">
           {property.featured && (
             <span className="bg-gradient-to-r from-warning to-warning-dark text-white px-3 py-1 rounded-full text-xs font-semibold">
               {t('aqar.propertyCard.featured', 'Featured')}
@@ -173,7 +173,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
         {/* Favorite Button */}
         <button
           onClick={toggleFavorite}
-          className="absolute top-3 right-3 p-2 bg-white/90 hover:bg-card rounded-full transition-colors"
+          className="absolute top-3 end-3 p-2 bg-white/90 hover:bg-card rounded-full transition-colors"
           aria-label="Add to favorites"
         >
           <Heart
@@ -183,7 +183,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
 
         {/* Views Counter */}
         {property.views && property.views > 0 && (
-          <div className="absolute bottom-3 right-3 bg-black/60 text-white px-2 py-1 rounded-2xl text-xs flex items-center gap-1">
+          <div className="absolute bottom-3 end-3 bg-black/60 text-white px-2 py-1 rounded-2xl text-xs flex items-center gap-1">
             <Eye className="w-3 h-3" />
             {property.views}
           </div>

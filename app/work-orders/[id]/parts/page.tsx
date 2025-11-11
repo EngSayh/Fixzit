@@ -116,13 +116,13 @@ export default function WorkOrderPartsPage() {
             <div className="bg-card rounded-2xl shadow p-6">
               <div className="flex gap-2 mb-6">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <input
                     type="text"
                     placeholder="Search parts from marketplace..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-fixzit-blue/30"
+                    className="w-full ps-10 pe-4 py-2 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-fixzit-blue/30"
                   />
                 </div>
               </div>

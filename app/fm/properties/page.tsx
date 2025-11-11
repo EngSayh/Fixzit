@@ -90,7 +90,7 @@ export default function PropertiesPage() {
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-success hover:bg-success/90">
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4 me-2" />
               {t('fm.properties.newProperty', 'New Property')}
             </Button>
           </DialogTrigger>
@@ -109,12 +109,12 @@ export default function PropertiesPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-64">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder={t('fm.properties.searchProperties', 'Search properties...')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10"
+                  className="ps-10"
                 />
               </div>
             </div>
@@ -158,7 +158,7 @@ export default function PropertiesPage() {
                 <h3 className="text-lg font-semibold text-foreground mb-2">{t('fm.properties.noProperties', 'No Properties Found')}</h3>
                 <p className="text-muted-foreground mb-4">{t('fm.properties.noPropertiesText', 'Get started by adding your first property to the portfolio.')}</p>
                 <Button onClick={() => setCreateOpen(true)} className="bg-success hover:bg-success/90">
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-4 h-4 me-2" />
                   {t('fm.properties.addProperty', 'Add Property')}
                 </Button>
               </CardContent>
@@ -261,7 +261,7 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center text-sm text-muted-foreground">
-          <MapPin className="w-4 h-4 mr-1" />
+          <MapPin className="w-4 h-4 me-1" />
           <span>{property.address?.city}, {property.address?.region}</span>
         </div>
 

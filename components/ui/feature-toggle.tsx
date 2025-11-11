@@ -116,7 +116,7 @@ export const FeatureToggle: React.FC<FeatureToggleProps> = ({
       data-feature-id={id}
     >
       {/* Left Side: Label & Description */}
-      <div className="flex-1 min-w-0 mr-4">
+      <div className="flex-1 min-w-0 me-4">
         <div className="flex items-center gap-2">
           <label 
             htmlFor={id}

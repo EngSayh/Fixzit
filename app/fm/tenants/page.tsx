@@ -93,7 +93,7 @@ export default function TenantsPage() {
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-secondary hover:bg-secondary/90">
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4 me-2" />
               {t('fm.tenants.newTenant', 'New Tenant')}
             </Button>
           </DialogTrigger>
@@ -112,12 +112,12 @@ export default function TenantsPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-64">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder={t('fm.tenants.searchTenants', 'Search tenants...')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10"
+                  className="ps-10"
                 />
               </div>
             </div>
@@ -155,7 +155,7 @@ export default function TenantsPage() {
                 <h3 className="text-lg font-semibold text-foreground mb-2">{t('fm.tenants.noTenants', 'No Tenants Found')}</h3>
                 <p className="text-muted-foreground mb-4">{t('fm.tenants.noTenantsText', 'Get started by adding your first tenant.')}</p>
                 <Button onClick={() => setCreateOpen(true)} className="bg-secondary hover:bg-secondary/90">
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-4 h-4 me-2" />
                   {t('fm.tenants.addTenant', 'Add Tenant')}
                 </Button>
               </CardContent>
@@ -230,19 +230,19 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center text-sm text-muted-foreground">
-          <Mail className="w-4 h-4 mr-1" />
+          <Mail className="w-4 h-4 me-1" />
           <span>{tenant.contact?.primary?.email}</span>
         </div>
 
         {tenant.contact?.primary?.phone && (
           <div className="flex items-center text-sm text-muted-foreground">
-            <Phone className="w-4 h-4 mr-1" />
+            <Phone className="w-4 h-4 me-1" />
             <span>{tenant.contact.primary.phone}</span>
           </div>
         )}
 
         <div className="flex items-center text-sm text-muted-foreground">
-          <MapPin className="w-4 h-4 mr-1" />
+          <MapPin className="w-4 h-4 me-1" />
           <span>{tenant.address?.current?.city}, {tenant.address?.current?.region}</span>
         </div>
 

@@ -211,7 +211,7 @@ interface FeatureListItemProps {
 function FeatureListItem({ text }: FeatureListItemProps) {
   return (
     <li className="flex items-start text-sm text-muted-foreground">
-      <CheckCircle className="w-5 h-5 text-success mr-2 flex-shrink-0 mt-0.5" />
+      <CheckCircle className="w-5 h-5 text-success me-2 flex-shrink-0 mt-0.5" />
       {text}
     </li>
   );

@@ -238,12 +238,12 @@ export default function FMPage() {
       <div className="mb-6 flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder={t('common.search', 'Search...')}
                   value={searchTerm}
                   onChange={(e) => handleSearchChange(e.target.value)}
-                  className="pl-10"
+                  className="ps-10"
                 />
           </div>
         </div>
@@ -270,7 +270,7 @@ export default function FMPage() {
             {t('common.save', 'Save')}
           </Button>
           <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
+            <Download className="h-4 w-4 me-2" />
             {t('common.export', 'Export')}
           </Button>
         </div>
@@ -376,15 +376,15 @@ export default function FMPage() {
                         </div>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4 mr-2" />
+                            <Eye className="h-4 w-4 me-2" />
                             {t('common.view', 'View')}
                           </Button>
                           <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4 mr-2" />
+                            <Edit className="h-4 w-4 me-2" />
                             {t('common.edit', 'Edit')}
                           </Button>
                           <Button variant="outline" size="sm" className="text-destructive hover:text-destructive/90">
-                            <Trash2 className="h-4 w-4 mr-2" />
+                            <Trash2 className="h-4 w-4 me-2" />
                             {t('common.delete', 'Delete')}
                           </Button>
                         </div>
@@ -436,15 +436,15 @@ export default function FMPage() {
                         </div>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4 mr-2" />
+                            <Eye className="h-4 w-4 me-2" />
                             {t('common.view', 'View')}
                           </Button>
                           <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4 mr-2" />
+                            <Edit className="h-4 w-4 me-2" />
                             {t('common.edit', 'Edit')}
                           </Button>
                           <Button variant="outline" size="sm" className="text-destructive hover:text-destructive/90">
-                            <Trash2 className="h-4 w-4 mr-2" />
+                            <Trash2 className="h-4 w-4 me-2" />
                             {t('common.delete', 'Delete')}
                           </Button>
                         </div>
@@ -505,15 +505,15 @@ export default function FMPage() {
                         </div>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4 mr-2" />
+                            <Eye className="h-4 w-4 me-2" />
                             {t('common.view', 'View')}
                           </Button>
                           <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4 mr-2" />
+                            <Edit className="h-4 w-4 me-2" />
                             {t('common.edit', 'Edit')}
                           </Button>
                           <Button variant="outline" size="sm" className="text-destructive hover:text-destructive/90">
-                            <Trash2 className="h-4 w-4 mr-2" />
+                            <Trash2 className="h-4 w-4 me-2" />
                             {t('common.delete', 'Delete')}
                           </Button>
                         </div>

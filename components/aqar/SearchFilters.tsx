@@ -175,13 +175,13 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
     <div className="bg-card rounded-2xl shadow-md p-4">
       {/* Search Bar */}
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
         <input
           type="text"
           placeholder={t('aqar.filters.search', 'Search by location, property name, or keyword...')}
           value={filters.search || ''}
           onChange={(e) => updateFilters({ search: e.target.value })}
-          className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
+          className="w-full ps-10 pe-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-warning focus:border-transparent"
         />
       </div>
 

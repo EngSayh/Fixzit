@@ -283,12 +283,12 @@ export default function VendorProductUploadPage() {
                   <button
                     type="button"
                     onClick={() => removeImage(index)}
-                    className="absolute top-2 right-2 rounded-full bg-destructive/80 p-1 text-white hover:bg-destructive"
+                    className="absolute top-2 end-2 rounded-full bg-destructive/80 p-1 text-white hover:bg-destructive"
                   >
                     <X size={16} />
                   </button>
                   {index === 0 && (
-                    <span className="absolute bottom-2 left-2 rounded bg-primary px-2 py-1 text-xs font-medium text-white">
+                    <span className="absolute bottom-2 start-2 rounded bg-primary px-2 py-1 text-xs font-medium text-white">
                       Main
                     </span>
                   )}

@@ -64,12 +64,12 @@ export default function AqarPropertiesPage() {
       <div className="mb-6 flex flex-col md:flex-row gap-4 md:items-center">
         <h1 className="text-2xl font-bold text-foreground">Property Listings</h1>
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by city, district, or title"
-            className="w-full pl-10 pr-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-warning focus:border-transparent"
+            className="w-full ps-10 pe-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-warning focus:border-transparent"
           />
         </div>
         <div className="text-sm text-muted-foreground">{filtered.length} properties</div>
@@ -97,7 +97,7 @@ export default function AqarPropertiesPage() {
               <article key={p.id} className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
                 <div className="relative w-full h-48">
                   <Image src={photo} alt={p.name} fill className="object-cover" />
-                  <span className="absolute top-2 left-2 bg-card/90 text-foreground text-xs px-2 py-1 rounded">{badge}</span>
+                  <span className="absolute top-2 start-2 bg-card/90 text-foreground text-xs px-2 py-1 rounded">{badge}</span>
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-foreground mb-2 line-clamp-2">{p.name}</h3>

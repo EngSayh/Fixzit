@@ -39,7 +39,7 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
                 type="button"
                 onClick={() => onChange({ category: category.slug })}
                 className={clsx(
-                  'w-full rounded-2xl px-3 py-2 text-left transition',
+                  'w-full rounded-2xl px-3 py-2 text-start transition',
                   selected.category === category.slug ? 'bg-primary text-white' : 'hover:bg-muted'
                 )}
               >
@@ -59,7 +59,7 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
                 type="button"
                 onClick={() => onChange({ brand })}
                 className={clsx(
-                  'w-full rounded-2xl px-3 py-2 text-left transition',
+                  'w-full rounded-2xl px-3 py-2 text-start transition',
                   selected.brand === brand ? 'bg-primary text-white' : 'hover:bg-muted'
                 )}
               >
@@ -79,7 +79,7 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
                 type="button"
                 onClick={() => onChange({ standard })}
                 className={clsx(
-                  'w-full rounded-2xl px-3 py-2 text-left transition',
+                  'w-full rounded-2xl px-3 py-2 text-start transition',
                   selected.standard === standard ? 'bg-primary text-white' : 'hover:bg-muted'
                 )}
               >

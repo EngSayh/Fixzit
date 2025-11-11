@@ -490,7 +490,7 @@ Continue to learn about tenant relations!
                 </div>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-end">
               <div className="text-sm text-muted-foreground">Progress</div>
               <div className="w-32 bg-muted rounded-full h-2 mt-1">
                 <div
@@ -515,7 +515,7 @@ Continue to learn about tenant relations!
                   <button
                     key={step.id}
                     onClick={() => setCurrentStep(index)}
-                    className={`w-full text-left p-3 rounded-2xl border transition-colors ${
+                    className={`w-full text-start p-3 rounded-2xl border transition-colors ${
                       currentStep === index
                         ? 'border-primary bg-primary/10 text-primary'
                         : completedSteps.has(index)

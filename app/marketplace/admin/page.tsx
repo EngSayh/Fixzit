@@ -98,7 +98,7 @@ export default async function MarketplaceAdminPage() {
 
         <section className="rounded-2xl bg-card p-6 shadow">
           <h2 className="text-lg font-semibold text-foreground">Approval queue</h2>
-          <table className="mt-4 w-full table-fixed text-left text-sm text-foreground">
+          <table className="mt-4 w-full table-fixed text-start text-sm text-foreground">
             <thead>
               <tr className="text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="py-2">Order</th>

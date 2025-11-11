@@ -172,7 +172,7 @@ export default function MaintenancePage() {
                       </Badge>
                       <Badge className={getStatusColor(task.status)}>
                         {getStatusIcon(task.status)}
-                        <span className="ml-1">{task.status}</span>
+                        <span className="ms-1">{task.status}</span>
                       </Badge>
                     </div>
 
@@ -196,15 +196,15 @@ export default function MaintenancePage() {
 
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-2" />
+                      <Eye className="h-4 w-4 me-2" />
                       {t('common.view', 'View')}
                     </Button>
                     <Button variant="outline" size="sm">
-                      <Edit className="h-4 w-4 mr-2" />
+                      <Edit className="h-4 w-4 me-2" />
                       {t('common.edit', 'Edit')}
                     </Button>
                     <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                      <Trash2 className="h-4 w-4 mr-2" />
+                      <Trash2 className="h-4 w-4 me-2" />
                       {t('common.delete', 'Delete')}
                     </Button>
                   </div>
