@@ -237,7 +237,7 @@ export async function POST(req: NextRequest) {
       }, { status: 429 });
     }
     const correlationId = (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
-    logger.error('help/ask error', { correlationId, error: _err });
+    logger.error('help/ask error', _err instanceof Error ? _err : new Error(String(_err)), { correlationId });
     return NextResponse.json({
       name: 'HelpAskError',
       code: 'HELP_ASK_FAILED',
