@@ -20,6 +20,7 @@ import { Types } from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { requireSubscription } from '@/server/middleware/subscriptionCheck';
 import { setTenantContext } from '@/server/plugins/tenantIsolation';
+import { logger } from '@/lib/logger';
 
 interface StatementLine {
   date: Date;
@@ -30,6 +31,51 @@ interface StatementLine {
   reference: string;
   propertyName?: string;
   unitNumber?: string;
+}
+
+// Type definitions for Mongoose query results
+interface PaymentResponse {
+  propertyId?: { toString(): string };
+  paymentDate: Date;
+  tenantName?: string;
+  amount: number;
+  reference?: string;
+  _id?: { toString(): string };
+  unitNumber?: string;
+}
+
+interface WorkOrderResponse {
+  property?: {
+    propertyId?: { toString(): string };
+    unitNumber?: string;
+  };
+  completedDate?: Date;
+  title?: string;
+  cost?: { total: number };
+  workOrderNumber?: string;
+}
+
+interface UtilityBillResponse {
+  propertyId?: { toString(): string };
+  payment?: {
+    paidDate?: Date;
+    amount?: number;
+  };
+  period?: {
+    endDate?: Date;
+  };
+  utilityType?: string;
+  reference?: string;
+}
+
+interface AgentContractResponse {
+  commissionPayments?: {
+    paymentDate?: Date;
+    amount?: number;
+    reference?: string;
+  };
+  agentName?: string;
+  contractNumber?: string;
 }
 
 export async function GET(req: NextRequest) {
@@ -123,7 +169,7 @@ export async function GET(req: NextRequest) {
     }).lean();
     
     payments.forEach((payment: unknown) => {
-      const p = payment as { propertyId?: { toString(): string }, paymentDate: Date, tenantName?: string, amount: number, reference?: string, _id?: { toString(): string }, unitNumber?: string };
+      const p = payment as PaymentResponse;
       const property = propertyMap.get(p.propertyId?.toString() || '');
       statementLines.push({
         date: p.paymentDate,
@@ -146,10 +192,15 @@ export async function GET(req: NextRequest) {
     }).lean();
     
     workOrders.forEach((wo: unknown) => {
-      const w = wo as { property?: { propertyId?: { toString(): string }, unitNumber?: string }, completedDate?: Date, title?: string, cost?: { total: number }, workOrderNumber?: string };
+      const w = wo as WorkOrderResponse;
+      // Skip work orders without valid completion dates
+      if (!w.completedDate) {
+        logger.warn('Work order missing completedDate, skipping from statement:', w.workOrderNumber);
+        return;
+      }
       const property = propertyMap.get(w.property?.propertyId?.toString() || '');
       statementLines.push({
-        date: w.completedDate || new Date(),
+        date: w.completedDate,
         description: `Maintenance - ${w.title || 'Work Order'}`,
         type: 'EXPENSE',
         category: 'MAINTENANCE',
@@ -169,10 +220,16 @@ export async function GET(req: NextRequest) {
     }).lean();
     
     utilityBills.forEach((bill: unknown) => {
-      const b = bill as { propertyId?: { toString(): string }, payment?: { paidDate?: Date, amount?: number }, period?: { endDate?: Date }, utilityType?: string, reference?: string };
+      const b = bill as UtilityBillResponse;
+      // Require at least one valid date
+      const billDate = b.payment?.paidDate || b.period?.endDate;
+      if (!billDate) {
+        logger.warn('Utility bill missing both paidDate and period.endDate, skipping from statement:', b.reference);
+        return;
+      }
       const property = propertyMap.get(b.propertyId?.toString() || '');
       statementLines.push({
-        date: b.payment?.paidDate || b.period?.endDate || new Date(),
+        date: billDate,
         description: `Utility - ${b.utilityType || 'Utility Bill'}`,
         type: 'EXPENSE',
         category: 'UTILITIES',
@@ -208,9 +265,14 @@ export async function GET(req: NextRequest) {
     ]);
     
     agentPayments.forEach((contract: unknown) => {
-      const c = contract as { commissionPayments?: { paymentDate?: Date, amount?: number, reference?: string }, agentName?: string, contractNumber?: string };
+      const c = contract as AgentContractResponse;
+      // Skip entries without valid commission payment dates
+      if (!c.commissionPayments?.paymentDate) {
+        logger.warn('Agent commission missing paymentDate, skipping from statement:', c.contractNumber);
+        return;
+      }
       statementLines.push({
-        date: c.commissionPayments?.paymentDate || new Date(),
+        date: c.commissionPayments.paymentDate,
         description: `Agent Commission - ${c.agentName || 'Agent'}`,
         type: 'EXPENSE',
         category: 'AGENT_COMMISSION',
