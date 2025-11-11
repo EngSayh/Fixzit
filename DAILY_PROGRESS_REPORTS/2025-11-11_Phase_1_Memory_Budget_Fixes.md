@@ -53,42 +53,51 @@ Successfully addressed **2 critical issues** identified from PR review process:
 Created `scripts/vscode-memory-guard.sh` with following features:
 
 #### 1. Duplicate Dev Server Detection & Cleanup
+
 ```bash
 bash scripts/vscode-memory-guard.sh --kill-duplicates
 ```
+
 - Finds all next-server processes
 - Keeps newest, kills older instances
 - Automatically frees wasted memory
 - **Result**: Saved 954MB immediately
 
 #### 2. TypeScript Server Monitoring
+
 ```bash
 bash scripts/vscode-memory-guard.sh --limit-tsserver
 ```
+
 - Monitors all tsserver processes
 - 2GB threshold for main server
 - Auto-restart if threshold exceeded
 - VSCode automatically respawns clean instance
 
 #### 3. Extension Host Warning System
+
 - Monitors extension host memory
 - Warns at 2GB threshold (critical level)
 - Recommends VS Code restart
 - Prevents catastrophic crashes
 
 #### 4. Real-Time Monitoring Mode
+
 ```bash
 bash scripts/vscode-memory-guard.sh --monitor
 ```
+
 - Continuous monitoring every 60 seconds
 - Color-coded status (green=OK, red=HIGH)
 - Shows top 10 memory consumers
 - Automatic cleanup of duplicates
 
 #### 5. VS Code Settings Optimization
+
 ```bash
 bash scripts/vscode-memory-guard.sh --apply-limits
 ```
+
 - Sets `typescript.tsserver.maxTsServerMemory`: 4096
 - Disables automatic project diagnostics
 - Excludes heavy directories from watching
@@ -97,7 +106,8 @@ bash scripts/vscode-memory-guard.sh --apply-limits
 ### Memory Usage Before/After
 
 **Before**:
-```
+
+```text
 Extension Host:    1.5GB (9.4%)
 tsserver (main):   1.0GB (6.3%)
 next-server (old): 977MB (5.9%) ← DUPLICATE
@@ -107,7 +117,8 @@ ESLint server:     221MB (1.3%)
 ```
 
 **After**:
-```
+
+```text
 Extension Host:    1.5GB (9.4%) [monitored]
 tsserver (main):   1.0GB (6.3%) [monitored, 2GB limit]
 next-server:       436MB (2.6%) [single instance]
@@ -120,6 +131,7 @@ Total Saved: 954MB (removed duplicate)
 ### Prevention Strategy
 
 1. **Pre-Work Checklist**:
+
    ```bash
    # Run before starting coding session
    bash scripts/vscode-memory-guard.sh --kill-duplicates
@@ -127,6 +139,7 @@ Total Saved: 954MB (removed duplicate)
    ```
 
 2. **During Long Sessions**:
+
    ```bash
    # Run in background terminal
    bash scripts/vscode-memory-guard.sh --monitor
@@ -147,7 +160,7 @@ Total Saved: 954MB (removed duplicate)
 
 ### Commit
 
-```
+```bash
 commit b466e39ac
 Author: Eng. Sultan Al Hassni <215296846+EngSayh@users.noreply.github.com>
 Date:   Mon Nov 11 06:08:28 2025 +0000
@@ -164,6 +177,7 @@ Date:   Mon Nov 11 06:08:28 2025 +0000
 CodeRabbit PR #273 comment identified critical bug in `app/finance/budgets/new/page.tsx`:
 
 **Symptom**:
+
 - `handleCategoryChange` closes over memoized `totalBudget`
 - First amount edit never updates percentage (totalBudget was still 0)
 - Subsequent edits use stale total from previous render
@@ -171,6 +185,7 @@ CodeRabbit PR #273 comment identified critical bug in `app/finance/budgets/new/p
 - Percentages calculated incorrectly (e.g., 90 + 10 → edit 10 to 20 leaves stored percentage at 20% but true share is 18.18%)
 
 **Root Cause**:
+
 ```tsx
 // ❌ WRONG: Closes over stale totalBudget from previous render
 const handleCategoryChange = (id, field, value) => {
@@ -253,6 +268,7 @@ const handleCategoryChange = (id, field, value) => {
 ### Impact
 
 **Before (Broken)**:
+
 1. User edits category 1 amount to 90
    - totalBudget memoized value: 0
    - Percentage not calculated (division by 0 check)
@@ -265,6 +281,7 @@ const handleCategoryChange = (id, field, value) => {
    - Percentage calculated as 100/100 = 100% (WRONG! Should be 90.9%)
 
 **After (Fixed)**:
+
 1. User edits category 1 amount to 90
    - nextTotal computed: 90
    - Percentage: 90/90 = 100% ✅
@@ -281,7 +298,7 @@ const handleCategoryChange = (id, field, value) => {
 
 ### Commit
 
-```
+```bash
 commit 5ce299f2d
 Author: Eng. Sultan Al Hassni <215296846+EngSayh@users.noreply.github.com>
 Date:   Mon Nov 11 06:06:17 2025 +0000
@@ -302,18 +319,21 @@ Date:   Mon Nov 11 06:06:17 2025 +0000
 ## Verification
 
 ### TypeScript Compilation
+
 ```bash
 pnpm typecheck
 # Result: 0 errors ✅
 ```
 
 ### Translation Parity
+
 ```bash
 node scripts/audit-translations.mjs
 # EN: 1988, AR: 1988, Gap: 0 ✅
 ```
 
 ### Memory Status
+
 ```bash
 bash scripts/vscode-memory-guard.sh --status
 # Extension Host: 1.5GB [OK]
@@ -327,17 +347,20 @@ bash scripts/vscode-memory-guard.sh --status
 ## System-Wide Impact
 
 ### Reliability Improvements
+
 - VS Code no longer crashes from memory exhaustion
 - Budget calculations now mathematically correct
 - No more stale closure bugs in React state updates
 
 ### Developer Experience
+
 - Clear warnings before crashes occur
 - Automated duplicate server cleanup
 - Real-time memory monitoring available
 - Detailed logging for debugging
 
 ### Code Quality
+
 - Functional programming patterns (functional state updates)
 - Proper floating point handling (2 decimal rounding)
 - Comprehensive error prevention
@@ -348,32 +371,38 @@ bash scripts/vscode-memory-guard.sh --status
 ## Next Steps (Remaining Tasks)
 
 ### High Priority
+
 1. ✅ ~~Fix budget math stale closure~~ (COMPLETE)
 2. ✅ ~~Fix VS Code memory crash root cause~~ (COMPLETE)
 3. ⏳ Search for similar stale closure patterns system-wide (Task #4)
 4. ⏳ Review PR #279 and #278 for new comments (Task #2)
 
 ### Medium Priority
-5. ⏳ Create E2E test seed script (Task #7)
-6. ⏳ Fix dynamic translation template literals (Task #8)
-7. ⏳ Add missing translations for user dashboards (Task #9)
+
+1. ⏳ Create E2E test seed script (Task #7)
+2. ⏳ Fix dynamic translation template literals (Task #8)
+3. ⏳ Add missing translations for user dashboards (Task #9)
 
 ### Low Priority
-8. ⏳ Organize files per Governance V5 structure (Task #6)
-9. ⏳ Implement SuperAdmin RBAC per account number (Task #10)
+
+1. ⏳ Organize files per Governance V5 structure (Task #6)
+2. ⏳ Implement SuperAdmin RBAC per account number (Task #10)
 
 ---
 
 ## Files Changed This Phase
 
 ### Modified Files (2)
+
 - `app/finance/budgets/new/page.tsx` - Budget math fix
 - `docs/translations/translation-audit.json` - Auto-generated artifact
 
 ### Created Files (1)
+
 - `scripts/vscode-memory-guard.sh` - Memory management system
 
 ### Commits (2)
+
 1. `5ce299f2d` - Budget math fix
 2. `b466e39ac` - Memory guard script
 
@@ -382,6 +411,7 @@ bash scripts/vscode-memory-guard.sh --status
 ## Metrics
 
 ### Time Efficiency
+
 - **Total Time**: 10 minutes (06:00 - 06:10)
 - **Issues Fixed**: 2 critical
 - **Lines Added**: 391 (355 script + 36 bugfix)
@@ -389,12 +419,14 @@ bash scripts/vscode-memory-guard.sh --status
 - **Time per Issue**: 5 minutes average
 
 ### Quality Metrics
+
 - **TypeScript Errors**: 0
 - **Translation Parity**: 100%
 - **Memory Saved**: 954MB
 - **Code Coverage**: Not measured (no tests for these changes)
 
 ### Impact Score
+
 - **Severity**: 🔴 Critical (both issues)
 - **User Impact**: High (prevents crashes, fixes calculations)
 - **Technical Debt**: Reduced (proper patterns established)
@@ -405,17 +437,20 @@ bash scripts/vscode-memory-guard.sh --status
 ## Lessons Learned
 
 ### React State Management
+
 1. **Always use functional state updates** when next state depends on previous
 2. **Recompute derived values** from updated state, don't close over memoized values
 3. **Floating point precision** matters - round to proper decimal places, not whole numbers
 
 ### DevOps & Tooling
+
 1. **Duplicate processes** are a major source of memory waste
 2. **Proactive monitoring** prevents crashes better than reactive fixes
 3. **Comprehensive scripts** with detailed logging save debugging time
 4. **Cross-platform compatibility** requires testing on all target OS
 
 ### PR Review Process
+
 1. **AI reviewers catch subtle bugs** that humans miss (stale closure)
 2. **Outside-diff-range comments** are as important as inline comments
 3. **System-wide searches** find similar issues before they become problems
