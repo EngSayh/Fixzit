@@ -449,6 +449,9 @@ Continue to learn about tenant relations!
     if (currentStepData?.content) {
       renderMarkdownSanitized(currentStepData.content).then(html => {
         setRenderedContent(html);
+      }).catch(err => {
+        console.error('Failed to render markdown:', err);
+        setRenderedContent(`<p>${currentStepData.content}</p>`);
       });
     }
   }, [currentStep, currentStepData]);
