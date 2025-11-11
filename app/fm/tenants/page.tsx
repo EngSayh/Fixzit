@@ -374,7 +374,7 @@ function CreateTenantForm({ onCreated, orgId }: { onCreated: () => void; orgId: 
         toast.error(`Failed to create tenant: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      logger.error('Error creating tenant:', { error });
+      logger.error('Error creating tenant:', error);
       toast.error('Error creating tenant. Please try again.', { id: toastId });
     }
   };

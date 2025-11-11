@@ -109,13 +109,13 @@ export default function NewBudgetPage() {
           router.push(`/finance/budgets/${data.id}`);
         }
       } catch (error) {
-        logger.error('Error saving budget draft', { error });
+        logger.error('Error saving budget draft', error);
         toast.error(t('common.error', 'An error occurred'));
       } finally {
         setIsSubmitting(false);
       }
     })().catch((err) => {
-      logger.error('Unhandled error in handleSaveDraft', { error: err });
+      logger.error('Unhandled error in handleSaveDraft', err);
       toast.error(t('common.error', 'An error occurred'));
       setIsSubmitting(false);
     });
@@ -171,13 +171,13 @@ export default function NewBudgetPage() {
           router.push(`/finance/budgets/${data.id}`);
         }
       } catch (error) {
-        logger.error('Error creating budget', { error });
+        logger.error('Error creating budget', error);
         toast.error(t('common.error', 'An error occurred'), { id: toastId });
       } finally {
         setIsSubmitting(false);
       }
     })().catch((err) => {
-      logger.error('Unhandled error in handleSubmit', { error: err });
+      logger.error('Unhandled error in handleSubmit', err);
       toast.error(t('common.error', 'An error occurred'), { id: toastId });
       setIsSubmitting(false);
     });

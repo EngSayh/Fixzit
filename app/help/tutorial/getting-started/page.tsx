@@ -451,7 +451,14 @@ Continue to learn about tenant relations!
         setRenderedContent(html);
       }).catch(err => {
         console.error('Failed to render markdown:', err);
-        setRenderedContent(`<p>${currentStepData.content}</p>`);
+        // Safe fallback: escape HTML and preserve whitespace
+        const escapeHtml = (str: string) => str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+        setRenderedContent(`<div class="whitespace-pre-wrap">${escapeHtml(currentStepData.content)}</div>`);
       });
     }
   }, [currentStep, currentStepData]);

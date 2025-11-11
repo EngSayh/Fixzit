@@ -87,7 +87,7 @@ export default function AIChatPage() {
       };
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
-      logger.error('AI Chat error:', { error });
+      logger.error('AI Chat error:', error);
       const errorMessage = {
         id: crypto.randomUUID(),
         type: 'bot' as const,

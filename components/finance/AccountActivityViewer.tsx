@@ -133,8 +133,8 @@ export default function AccountActivityViewer({
           action: 'loadTransactions',
           accountId,
         });
-      }).catch(logErr => console.error('Failed to load logger:', logErr));
-      setError(err instanceof Error ? err.message : 'Failed to load data');
+        }).catch(logErr => console.error('Failed to load logger:', logErr));
+      setError(err instanceof Error ? err.message : t('common.error.loadData', 'Failed to load data'));
     } finally {
       setLoading(false);
     }

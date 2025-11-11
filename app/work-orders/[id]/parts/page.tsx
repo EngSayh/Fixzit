@@ -41,7 +41,7 @@ export default function WorkOrderPartsPage() {
         setParts(data.data.products);
       }
     } catch (error) {
-      logger.error('Failed to search parts:', { error });
+      logger.error('Failed to search parts:', error);
     } finally {
       setLoading(false);
     }

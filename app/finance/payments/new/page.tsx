@@ -141,13 +141,13 @@ export default function NewPaymentPage() {
           }
         }
       } catch (error) {
-        logger.error('Error loading accounts:', { error });
+        logger.error('Error loading accounts:', error);
       } finally {
         setLoadingAccounts(false);
       }
     };
     loadAccounts().catch((err) => {
-      logger.error('Unhandled error in loadAccounts', { error: err });
+      logger.error('Unhandled error in loadAccounts', err);
       setLoadingAccounts(false);
     });
   }, []);
@@ -185,13 +185,13 @@ export default function NewPaymentPage() {
           setAllocations(newAllocations);
         }
       } catch (error) {
-        logger.error('Error loading invoices:', { error });
+        logger.error('Error loading invoices:', error);
         setErrors({ ...errors, invoices: 'Failed to load invoices' });
       } finally {
         setLoadingInvoices(false);
       }
     })().catch((err) => {
-      logger.error('Unhandled error in loadAvailableInvoices', { error: err });
+      logger.error('Unhandled error in loadAvailableInvoices', err);
       setErrors({ ...errors, invoices: 'Failed to load invoices' });
       setLoadingInvoices(false);
     });
@@ -392,13 +392,13 @@ export default function NewPaymentPage() {
           setErrors({ submit: errorData.error || 'Failed to create payment' });
         }
       } catch (error) {
-        logger.error('Error creating payment:', { error });
+        logger.error('Error creating payment:', error);
         setErrors({ submit: 'An unexpected error occurred' });
       } finally {
         setIsSubmitting(false);
       }
     })().catch((err) => {
-      logger.error('Unhandled error in handleSubmit', { error: err });
+      logger.error('Unhandled error in handleSubmit', err);
       setErrors({ submit: 'An unexpected error occurred' });
       setIsSubmitting(false);
     });

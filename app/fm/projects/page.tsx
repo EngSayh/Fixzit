@@ -394,7 +394,7 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
         toast.error(`Failed to create project: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      logger.error('Error creating project:', { error });
+      logger.error('Error creating project:', error);
       toast.error('Error creating project. Please try again.', { id: toastId });
     }
   };

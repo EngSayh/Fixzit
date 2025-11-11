@@ -122,7 +122,7 @@ export default function ReferralProgramPage() {
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
-      logger.error('Failed to fetch referral data:', { error });
+      logger.error('Failed to fetch referral data:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load referral data. Please try again.';
       setError(errorMessage);
       toast.error(errorMessage);
@@ -171,7 +171,7 @@ export default function ReferralProgramPage() {
       if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
-      logger.error('Failed to perform code action:', { error });
+      logger.error('Failed to perform code action:', error);
       const errorMessage = error instanceof Error ? error.message : 'Operation failed. Please try again.';
       setError(errorMessage);
       toast.error(errorMessage);

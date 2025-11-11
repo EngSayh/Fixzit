@@ -161,7 +161,7 @@ export default function VendorProductUploadPage() {
       }, 2000);
 
     } catch (error) {
-      logger.error('Upload error:', { error });
+      logger.error('Upload error:', error);
       toast.error(error instanceof Error ? error.message : 'Upload failed');
     } finally {
       setLoading(false);

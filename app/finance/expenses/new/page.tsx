@@ -136,7 +136,7 @@ export default function NewExpensePage() {
           setVendors(data.vendors || []);
         }
       } catch (error) {
-        logger.error('Error loading vendors:', { error });
+        logger.error('Error loading vendors:', error);
       } finally {
         setLoadingVendors(false);
       }
@@ -155,7 +155,7 @@ export default function NewExpensePage() {
           setChartAccounts(data.accounts || []);
         }
       } catch (error) {
-        logger.error('Error loading accounts:', { error });
+        logger.error('Error loading accounts:', error);
       } finally {
         setLoadingAccounts(false);
       }
@@ -197,7 +197,7 @@ export default function NewExpensePage() {
 
         setBudgetInfo(budgets);
       } catch (error) {
-        logger.error('Error loading budget info:', { error });
+        logger.error('Error loading budget info:', error);
       }
     };
 
@@ -388,7 +388,7 @@ export default function NewExpensePage() {
         router.push(`/finance/expenses/${data.expense.id}`);
       }
     } catch (error) {
-      logger.error('Error saving draft:', { error });
+      logger.error('Error saving draft:', error);
       toast.error(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);
@@ -454,7 +454,7 @@ export default function NewExpensePage() {
         router.push(`/finance/expenses/${data.expense.id}`);
       }
     } catch (error) {
-      logger.error('Error submitting expense:', { error });
+      logger.error('Error submitting expense:', error);
       toast.error(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);
@@ -474,7 +474,7 @@ export default function NewExpensePage() {
         });
       }
     } catch (error) {
-      logger.error('Error uploading receipts:', { error });
+      logger.error('Error uploading receipts:', error);
       // Don't throw - expense is already created
     }
   };

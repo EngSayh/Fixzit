@@ -89,7 +89,7 @@ export default function MyTicketsPage() {
         toast.error(`Failed to send reply: ${error.error || 'Please try again.'}`, { id: toastId });
       }
     } catch (error) {
-      logger.error('Error sending reply:', { error });
+      logger.error('Error sending reply:', error);
       toast.error('An error occurred. Please try again.', { id: toastId });
     }
   };

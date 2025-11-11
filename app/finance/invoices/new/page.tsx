@@ -142,7 +142,7 @@ export default function NewInvoicePage() {
           setChartAccounts(data.accounts || []);
         }
       } catch (error) {
-        logger.error('Error loading accounts:', { error });
+        logger.error('Error loading accounts:', error);
       } finally {
         setLoadingAccounts(false);
       }
@@ -328,7 +328,7 @@ export default function NewInvoicePage() {
         router.push(`/finance/invoices/${data.invoice.id}`);
       }
     } catch (error) {
-      logger.error('Error saving draft:', { error });
+      logger.error('Error saving draft:', error);
       toast.error(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);
@@ -406,7 +406,7 @@ export default function NewInvoicePage() {
         router.push(`/finance/invoices/${data.invoice.id}`);
       }
     } catch (error) {
-      logger.error('Error creating invoice:', { error });
+      logger.error('Error creating invoice:', error);
       toast.error(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);

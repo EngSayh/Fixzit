@@ -1177,6 +1177,7 @@ const translations: Record<Language, Record<string, string>> = {
     'common.collapseAll': 'طي الكل',
     'common.na': 'غير متاح',
     'common.error.unknown': 'خطأ غير معروف',
+    'common.error.loadData': 'فشل تحميل البيانات',
 
     // Finance Module
     'finance.account': 'الحساب',
@@ -3851,6 +3852,7 @@ const translations: Record<Language, Record<string, string>> = {
     'common.collapseAll': 'Collapse All',
     'common.na': 'N/A',
     'common.error.unknown': 'Unknown error',
+    'common.error.loadData': 'Failed to load data',
 
     // Careers
     'careers.title': 'Join Our Team',

@@ -262,7 +262,7 @@ function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }
       setOpen(false); 
       onCreated();
     } catch (error) {
-      logger.error('Error creating invoice:', { error });
+      logger.error('Error creating invoice:', error);
       toast.error('Error: Failed to create invoice', { id: toastId });
     }
   }

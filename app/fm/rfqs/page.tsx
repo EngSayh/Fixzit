@@ -455,7 +455,7 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
         toast.error(`Failed to create RFQ: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      logger.error('Error creating RFQ:', { error });
+      logger.error('Error creating RFQ:', error);
       toast.error('Error creating RFQ. Please try again.', { id: toastId });
     }
   };

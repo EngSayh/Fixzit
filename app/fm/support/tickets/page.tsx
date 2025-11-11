@@ -69,7 +69,7 @@ export default function SupportTicketsPage() {
         toast.error(`Failed to update ticket: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      logger.error('Error updating ticket:', { error });
+      logger.error('Error updating ticket:', error);
       toast.error('Error updating ticket. Please try again.', { id: toastId });
     }
   };

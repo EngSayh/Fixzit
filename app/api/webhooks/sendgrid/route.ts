@@ -167,23 +167,32 @@ export async function POST(req: NextRequest) {
       }
 
       logger.info(`✅ Processed ${event.event} for ${event.email} (${emailId || event.sg_message_id})`);
-      } catch (eventError) {
-        logger.error(`❌ Failed to process event ${event.event} for ${event.email}:`, { eventError });
-        // Don't throw - continue processing other events
-        return null;
-      }
+      return { status: 'success', event: event.event, email: event.email };
+    } catch (eventError) {
+      logger.error(`❌ Failed to process event ${event.event} for ${event.email}:`, eventError);
+      // Don't throw - continue processing other events
+      return { status: 'failed', event: event.event, email: event.email, error: eventError };
+    }
     });
 
-    await Promise.all(updates);
+    const results = await Promise.allSettled(updates);
+    const successful = results.filter(r => r.status === 'fulfilled' && r.value.status === 'success').length;
+    const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.status === 'failed')).length;
+
+    if (failed > 0) {
+      logger.warn(`⚠️  Webhook processing partial success: ${successful} succeeded, ${failed} failed`);
+    }
 
     return createSecureResponse({
       success: true,
       processed: events.length,
-      message: 'Events processed successfully'
+      successful,
+      failed,
+      message: failed > 0 ? `Processed ${events.length} events: ${successful} successful, ${failed} failed` : 'Events processed successfully'
     }, 200, req);
 
   } catch (error) {
-    logger.error('❌ Webhook processing error:', { error });
+    logger.error('❌ Webhook processing error:', error);
     return createSecureResponse({
       error: 'Failed to process webhook',
       message: error instanceof Error ? error.message : 'Unknown error'

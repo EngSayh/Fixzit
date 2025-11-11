@@ -115,7 +115,7 @@ export default function ProfilePage() {
           }));
         }
       } catch (error) {
-        logger.error('Error fetching profile:', { error });
+        logger.error('Error fetching profile:', error);
         toast.error(t('profile.toast.loadError', 'Failed to load profile data'));
         // Set default values on error
         const defaultUser: UserData = {
@@ -160,7 +160,7 @@ export default function ProfilePage() {
       
       toast.success(t('profile.toast.accountSaved', 'Account settings saved successfully!'));
     } catch (error) {
-      logger.error('Error saving account:', { error });
+      logger.error('Error saving account:', error);
       toast.error(t('profile.toast.accountError', 'Failed to save account settings'));
     }
   };
@@ -187,7 +187,7 @@ export default function ProfilePage() {
 
       toast.success(t('profile.toast.notificationsSaved', 'Notification preferences updated!'));
     } catch (error) {
-      logger.error('Error saving notifications:', { error });
+      logger.error('Error saving notifications:', error);
       toast.error(t('profile.toast.notificationsError', 'Failed to update notifications'));
     }
   };
@@ -231,7 +231,7 @@ export default function ProfilePage() {
         confirmPassword: ''
       });
     } catch (error) {
-      logger.error('Error saving security:', { error });
+      logger.error('Error saving security:', error);
       toast.error(
         error instanceof Error 
           ? error.message 

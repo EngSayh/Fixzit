@@ -47,7 +47,7 @@ export default function EmployeesPage() {
         setEmployees(data);
       }
     } catch (error) {
-      logger.error('Error fetching employees:', { error });
+      logger.error('Error fetching employees:', error);
     } finally {
       setLoading(false);
     }

@@ -327,7 +327,7 @@ export default function CareersPage() {
         throw new Error(result.error || 'Failed to submit application');
       }
     } catch (error) {
-      logger.error('Application submission error:', { error });
+      logger.error('Application submission error:', error);
 
       const errorMessage = error instanceof Error
         ? `Error: ${error.message}. Please check your internet connection and try again.`

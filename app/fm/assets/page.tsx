@@ -219,7 +219,7 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
         toast.error(`Failed to delete asset: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      logger.error('Delete error:', { error });
+      logger.error('Delete error:', error);
       toast.error('Error deleting asset. Please try again.', { id: toastId });
     }
   };
@@ -394,7 +394,7 @@ function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
         toast.error(`Failed to create asset: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      logger.error('Error creating asset:', { error });
+      logger.error('Error creating asset:', error);
       toast.error('Error creating asset. Please try again.', { id: toastId });
     }
   };

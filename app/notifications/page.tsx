@@ -165,7 +165,7 @@ export default function NotificationsPage() {
       });
       mutate();
     } catch (error) {
-      logger.error('Error marking notification as read:', { error });
+      logger.error('Error marking notification as read:', error);
       toast.error('Failed to mark notification as read');
     }
   };
@@ -196,7 +196,7 @@ export default function NotificationsPage() {
         toast.success(`Marked ${unreadIds.length} notifications as read`, { id: toastId });
         mutate();
       } catch (error) {
-        logger.error('Error marking notifications as read:', { error });
+        logger.error('Error marking notifications as read:', error);
         toast.error('Failed to mark notifications as read', { id: toastId });
       }
     }
@@ -230,7 +230,7 @@ export default function NotificationsPage() {
         setSelectedNotifications(new Set());
         setSelectAll(false);
       } catch (error) {
-        logger.error('Error marking notifications as read:', { error });
+        logger.error('Error marking notifications as read:', error);
         toast.error('Failed to mark notifications as read', { id: toastId });
       }
     }

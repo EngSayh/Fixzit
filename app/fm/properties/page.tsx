@@ -415,7 +415,7 @@ function CreatePropertyForm({ onCreated, orgId }: { onCreated: () => void; orgId
         toast.error(`Failed to create property: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      logger.error('Error creating property:', { error });
+      logger.error('Error creating property:', error);
       toast.error('Error creating property. Please try again.', { id: toastId });
     }
   };

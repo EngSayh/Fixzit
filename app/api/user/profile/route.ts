@@ -75,7 +75,7 @@ export async function GET() {
       user: normalizeUserProfile(user),
     });
   } catch (error) {
-    logger.error('Error fetching user profile:', { error });
+    logger.error('Error fetching user profile:', error);
     return NextResponse.json(
       { error: 'Failed to fetch profile data' },
       { status: 500 }
@@ -152,7 +152,7 @@ export async function PATCH(request: NextRequest) {
       user: normalizeUserProfile(user),
     });
   } catch (error) {
-    logger.error('Error updating user profile:', { error });
+    logger.error('Error updating user profile:', error);
     return NextResponse.json(
       { error: 'Failed to update profile' },
       { status: 500 }

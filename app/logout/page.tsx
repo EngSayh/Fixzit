@@ -18,7 +18,7 @@ export default function LogoutPage() {
           redirect: true 
         });
       } catch (error) {
-        logger.error('Logout error:', { error });
+        logger.error('Logout error:', error);
         // NextAuth signOut handles redirect, no manual redirect needed
       }
     };

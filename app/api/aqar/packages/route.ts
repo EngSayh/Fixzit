@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ packages });
   } catch (error) {
-    logger.error('Error fetching packages:', { error });
+    logger.error('Error fetching packages:', error);
     return NextResponse.json({ error: 'Failed to fetch packages' }, { status: 500 });
   }
 }

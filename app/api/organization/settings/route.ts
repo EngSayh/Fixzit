@@ -56,7 +56,7 @@ export async function GET() {
       secondaryColor: orgDoc?.branding?.secondaryColor || '#00A859'
     });
   } catch (error) {
-    logger.error('Error fetching organization settings:', { error });
+    logger.error('Error fetching organization settings:', error);
     // Return default settings on error
     return NextResponse.json({
       name: 'FIXZIT ENTERPRISE',
