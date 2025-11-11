@@ -334,9 +334,9 @@ export default function NewBudgetPage() {
                         value={cat.amount || ''}
                         onChange={(e) => handleCategoryChange(cat.id, 'amount', parseFloat(e.target.value) || 0)}
                         placeholder="0.00"
-                        className="w-full px-2 py-2 pr-12 border border-border rounded focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full px-2 py-2 pe-12 border border-border rounded focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">SAR</span>
+                      <span className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">SAR</span>
                     </div>
                   </div>
                   <div className="col-span-2">
@@ -378,7 +378,7 @@ export default function NewBudgetPage() {
                   id="alerts"
                   checked={enableAlerts}
                   onChange={(e) => setEnableAlerts(e.target.checked)}
-                  className="mr-3 h-4 w-4 text-primary focus:ring-primary border-border rounded"
+                  className="me-3 h-4 w-4 text-primary focus:ring-primary border-border rounded"
                 />
                 <label htmlFor="alerts" className="text-sm text-foreground">
                   {t('finance.budget.enableAlerts', 'Enable budget alerts when spending exceeds 80% of category budget')}
@@ -390,7 +390,7 @@ export default function NewBudgetPage() {
                   id="approvals"
                   checked={requireApprovals}
                   onChange={(e) => setRequireApprovals(e.target.checked)}
-                  className="mr-3 h-4 w-4 text-primary focus:ring-primary border-border rounded"
+                  className="me-3 h-4 w-4 text-primary focus:ring-primary border-border rounded"
                 />
                 <label htmlFor="approvals" className="text-sm text-foreground">
                   {t('finance.budget.requireApprovals', 'Require approval for expenses exceeding SAR 5,000')}
@@ -402,7 +402,7 @@ export default function NewBudgetPage() {
                   id="carryover"
                   checked={allowCarryover}
                   onChange={(e) => setAllowCarryover(e.target.checked)}
-                  className="mr-3 h-4 w-4 text-primary focus:ring-primary border-border rounded"
+                  className="me-3 h-4 w-4 text-primary focus:ring-primary border-border rounded"
                 />
                 <label htmlFor="carryover" className="text-sm text-foreground">
                   {t('finance.budget.allowCarryover', 'Allow unused budget to carry over to next period')}
@@ -456,13 +456,13 @@ export default function NewBudgetPage() {
                     <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('finance.budget.budgetTemplate', 'Budget Template')}</h3>
             <div className="space-y-2">
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 📋 {t('finance.budget.copyPrevious', 'Copy from Previous Budget')}
               </button>
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 📊 {t('finance.budget.useTemplate', 'Use Standard Template')}
               </button>
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 🔄 {t('finance.budget.importExcel', 'Import from Excel')}
               </button>
             </div>
@@ -498,13 +498,13 @@ export default function NewBudgetPage() {
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('workOrders.quickActions', 'Quick Actions')}</h3>
             <div className="space-y-2">
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 📊 {t('finance.budget.budgetVsActual', 'Budget vs Actual Report')}
               </button>
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 💰 {t('finance.expense.tracking', 'Expense Tracking')}
               </button>
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 📋 {t('finance.budget.templates', 'Budget Templates')}
               </button>
             </div>
@@ -516,12 +516,12 @@ export default function NewBudgetPage() {
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-success/20 rounded-full"></div>
                 <span className="text-muted-foreground">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
-                <span className="text-muted-foreground ml-auto">1m ago</span>
+                <span className="text-muted-foreground ms-auto">1m ago</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-primary/20 rounded-full"></div>
                 <span className="text-muted-foreground">{t('finance.budget.periodSet', 'Budget period set')}</span>
-                <span className="text-muted-foreground ml-auto">3m ago</span>
+                <span className="text-muted-foreground ms-auto">3m ago</span>
               </div>
             </div>
           </div>

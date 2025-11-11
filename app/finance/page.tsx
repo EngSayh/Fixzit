@@ -195,7 +195,7 @@ function InvoiceLineItem({ line, onUpdate, t }: {
           onChange={e => onUpdate(line.id, "vatRate", e.target.value)} 
         />
       </div>
-      <div className="col-span-1 text-right text-sm">
+      <div className="col-span-1 text-end text-sm">
         {lineTotal}
       </div>
     </div>

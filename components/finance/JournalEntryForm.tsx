@@ -490,19 +490,19 @@ export default function JournalEntryForm({
           <table className="min-w-full divide-y divide-border">
             <thead className="bg-muted">
               <tr>
-                <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-12">
+                <th className="px-2 py-2 text-start text-xs font-medium text-muted-foreground uppercase w-12">
                   #
                 </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                <th className="px-2 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
                   {t('finance.account', 'Account')}
                 </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                <th className="px-2 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
                   {t('common.description', 'Description')}
                 </th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-28">
+                <th className="px-2 py-2 text-end text-xs font-medium text-muted-foreground uppercase w-28">
                   {t('finance.debit', 'Debit')}
                 </th>
-                <th className="px-2 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-28">
+                <th className="px-2 py-2 text-end text-xs font-medium text-muted-foreground uppercase w-28">
                   {t('finance.credit', 'Credit')}
                 </th>
                 <th className="px-2 py-2 w-12"></th>
@@ -562,7 +562,7 @@ export default function JournalEntryForm({
                       min="0"
                       value={line.debit || ''}
                       onChange={(e) => updateLine(line.id, 'debit', Number(e.target.value) || 0)}
-                      className={`w-full px-2 py-1 text-sm text-right border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? 'border-destructive' : 'border-border'}`}
+                      className={`w-full px-2 py-1 text-sm text-end border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? 'border-destructive' : 'border-border'}`}
                       disabled={(Number(line.credit) || 0) > 0}
                     />
                   </td>
@@ -573,7 +573,7 @@ export default function JournalEntryForm({
                       min="0"
                       value={line.credit || ''}
                       onChange={(e) => updateLine(line.id, 'credit', Number(e.target.value) || 0)}
-                      className={`w-full px-2 py-1 text-sm text-right border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? 'border-destructive' : 'border-border'}`}
+                      className={`w-full px-2 py-1 text-sm text-end border rounded ${errors[`line_${index}_amount`] || errors[`line_${index}_both`] ? 'border-destructive' : 'border-border'}`}
                       disabled={(Number(line.debit) || 0) > 0}
                     />
                   </td>
@@ -594,13 +594,13 @@ export default function JournalEntryForm({
             </tbody>
             <tfoot className="bg-muted border-t-2 border-border">
               <tr>
-                <td colSpan={3} className="px-2 py-2 text-sm font-semibold text-right">
+                <td colSpan={3} className="px-2 py-2 text-sm font-semibold text-end">
                   {t('common.totals', 'Totals')}:
                 </td>
-                <td className="px-2 py-2 text-sm font-bold text-right">
+                <td className="px-2 py-2 text-sm font-bold text-end">
                   {totalDebit.toFixed(2)}
                 </td>
-                <td className="px-2 py-2 text-sm font-bold text-right">
+                <td className="px-2 py-2 text-sm font-bold text-end">
                   {totalCredit.toFixed(2)}
                 </td>
                 <td></td>
@@ -629,7 +629,7 @@ export default function JournalEntryForm({
                 </p>
               )}
             </div>
-            <div className="text-right">
+            <div className="text-end">
               <p className="text-sm text-muted-foreground">{t('finance.journal.totalLines', 'Total Lines')}: {lines.length}</p>
               <p className="text-sm text-muted-foreground">{t('finance.journal.difference', 'Difference')}: {Math.abs(balanceDifference).toFixed(2)}</p>
             </div>

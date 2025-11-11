@@ -230,13 +230,13 @@ export default function TrialBalanceReport({
             {account.accountName}
           </span>
         </td>
-        <td className="px-4 py-2 text-sm text-right text-success-dark">
+        <td className="px-4 py-2 text-sm text-end text-success-dark">
           {account.debit > 0 ? account.debit.toFixed(2) : '-'}
         </td>
-        <td className="px-4 py-2 text-sm text-right text-destructive-dark">
+        <td className="px-4 py-2 text-sm text-end text-destructive-dark">
           {account.credit > 0 ? account.credit.toFixed(2) : '-'}
         </td>
-        <td className="px-4 py-2 text-sm text-right font-medium text-foreground">
+        <td className="px-4 py-2 text-sm text-end font-medium text-foreground">
           {account.balance.toFixed(2)}
         </td>
       </tr>
@@ -262,15 +262,15 @@ export default function TrialBalanceReport({
           >
             <td colSpan={2} className="px-4 py-3 font-bold text-foreground">
               {isExpanded ? (
-                <ChevronDown className="inline-block mr-2 w-4 h-4" />
+                <ChevronDown className="inline-block me-2 w-4 h-4" />
               ) : (
-                <ChevronRight className="inline-block mr-2 w-4 h-4" />
+                <ChevronRight className="inline-block me-2 w-4 h-4" />
               )}
               {t(`finance.accountType.${type}`, type)}
             </td>
-            <td className="px-4 py-3 font-bold text-right text-foreground">{typeDebits.toFixed(2)}</td>
-            <td className="px-4 py-3 font-bold text-right text-foreground">{typeCredits.toFixed(2)}</td>
-            <td className="px-4 py-3 font-bold text-right text-foreground">{typeTotal.toFixed(2)}</td>
+            <td className="px-4 py-3 font-bold text-end text-foreground">{typeDebits.toFixed(2)}</td>
+            <td className="px-4 py-3 font-bold text-end text-foreground">{typeCredits.toFixed(2)}</td>
+            <td className="px-4 py-3 font-bold text-end text-foreground">{typeTotal.toFixed(2)}</td>
           </tr>
           
           {isExpanded && accounts.map(account => renderAccountRow(account))}
@@ -305,7 +305,7 @@ export default function TrialBalanceReport({
               onClick={() => handleExport('csv')}
               disabled={!data || loading}
             >
-              <Download className="w-4 h-4 mr-2" />
+              <Download className="w-4 h-4 me-2" />
               {t('common.exportCsv', 'Export CSV')}
             </Button>
             <Button
@@ -315,9 +315,9 @@ export default function TrialBalanceReport({
               disabled={loading}
             >
               {loading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 me-2 animate-spin" />
               ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
+                <RefreshCw className="w-4 h-4 me-2" />
               )}
               {loading ? t('common.loading', 'Loading...') : t('common.refresh', 'Refresh')}
             </Button>
@@ -437,19 +437,19 @@ export default function TrialBalanceReport({
             <table className="min-w-full divide-y divide-border">
               <thead className="bg-muted">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('tb.col.code', 'Account Code')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('tb.col.name', 'Account Name')}
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('tb.col.debit', 'Debit')}
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('tb.col.credit', 'Credit')}
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('tb.col.balance', 'Balance')}
                   </th>
                 </tr>
@@ -462,13 +462,13 @@ export default function TrialBalanceReport({
                   <td colSpan={2} className="px-4 py-3 text-sm font-bold text-foreground">
                     {t('common.total', 'TOTAL')}
                   </td>
-                  <td className="px-4 py-3 text-sm font-bold text-right text-foreground">
+                  <td className="px-4 py-3 text-sm font-bold text-end text-foreground">
                     {data.totalDebits.toFixed(2)}
                   </td>
-                  <td className="px-4 py-3 text-sm font-bold text-right text-foreground">
+                  <td className="px-4 py-3 text-sm font-bold text-end text-foreground">
                     {data.totalCredits.toFixed(2)}
                   </td>
-                  <td className="px-4 py-3 text-sm font-bold text-right text-foreground">
+                  <td className="px-4 py-3 text-sm font-bold text-end text-foreground">
                     {(data.totalDebits - data.totalCredits).toFixed(2)}
                   </td>
                 </tr>
@@ -497,7 +497,7 @@ export default function TrialBalanceReport({
                   </p>
                 )}
               </div>
-              <div className="text-right text-sm text-muted-foreground">
+              <div className="text-end text-sm text-muted-foreground">
                 <p>{t('finance.totalAccounts', 'Total Accounts')}: {data.accounts.length}</p>
                 <p>{t('finance.displayed', 'Displayed')}: {getFilteredAccounts().length}</p>
               </div>

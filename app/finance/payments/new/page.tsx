@@ -873,22 +873,22 @@ export default function NewPaymentPage() {
                       <table className="min-w-full divide-y divide-border">
                         <thead className="bg-muted">
                           <tr>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
                               {t('Select')}
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
                               {t('Invoice #')}
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
                               {t('Customer')}
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
                               {t('Due Date')}
                             </th>
-                            <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-end text-xs font-medium text-muted-foreground uppercase">
                               {t('Amount Due')}
                             </th>
-                            <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-end text-xs font-medium text-muted-foreground uppercase">
                               {t('Allocate')}
                             </th>
                           </tr>
@@ -913,7 +913,7 @@ export default function NewPaymentPage() {
                               <td className="px-3 py-2 text-sm text-foreground">
                                 {new Date(allocation.dueDate).toLocaleDateString()}
                               </td>
-                              <td className="px-3 py-2 text-sm text-right text-foreground">
+                              <td className="px-3 py-2 text-sm text-end text-foreground">
                                 {allocation.amountDue.toFixed(2)} {currency}
                               </td>
                               <td className="px-3 py-2">
@@ -924,7 +924,7 @@ export default function NewPaymentPage() {
                                   max={allocation.amountDue}
                                   value={allocation.amountAllocated}
                                   onChange={(e) => updateAllocationAmount(allocation.id, e.target.value)}
-                                  className="w-full px-2 py-1 text-sm text-right border border-border rounded"
+                                  className="w-full px-2 py-1 text-sm text-end border border-border rounded"
                                   disabled={!allocation.selected}
                                 />
                               </td>
