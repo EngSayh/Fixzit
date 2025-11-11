@@ -195,7 +195,7 @@ export async function GET(req: NextRequest) {
       const w = wo as WorkOrderResponse;
       // Skip work orders without valid completion dates
       if (!w.completedDate) {
-        logger.warn('Work order missing completedDate, skipping from statement:', w.workOrderNumber);
+        logger.warn('Work order missing completedDate, skipping from statement', { workOrderNumber: w.workOrderNumber });
         return;
       }
       const property = propertyMap.get(w.property?.propertyId?.toString() || '');
@@ -224,7 +224,7 @@ export async function GET(req: NextRequest) {
       // Require at least one valid date
       const billDate = b.payment?.paidDate || b.period?.endDate;
       if (!billDate) {
-        logger.warn('Utility bill missing both paidDate and period.endDate, skipping from statement:', b.reference);
+        logger.warn('Utility bill missing both paidDate and period.endDate, skipping from statement', { reference: b.reference });
         return;
       }
       const property = propertyMap.get(b.propertyId?.toString() || '');
@@ -268,7 +268,7 @@ export async function GET(req: NextRequest) {
       const c = contract as AgentContractResponse;
       // Skip entries without valid commission payment dates
       if (!c.commissionPayments?.paymentDate) {
-        logger.warn('Agent commission missing paymentDate, skipping from statement:', c.contractNumber);
+        logger.warn('Agent commission missing paymentDate, skipping from statement', { contractNumber: c.contractNumber });
         return;
       }
       statementLines.push({
