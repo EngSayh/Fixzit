@@ -107,7 +107,8 @@ export default function ReferralProgramPage() {
       try {
         data = await response.json();
       } catch (jsonError) {
-        logger.error('Failed to parse referral data JSON:', { jsonError });
+        const error = jsonError instanceof Error ? jsonError : new Error(String(jsonError));
+        logger.error('Failed to parse referral data JSON:', error);
         throw new Error('Invalid response format from server');
       }
 
@@ -154,7 +155,8 @@ export default function ReferralProgramPage() {
       try {
         data = await response.json();
       } catch (jsonError) {
-        logger.error('Failed to parse response JSON:', { jsonError });
+        const error = jsonError instanceof Error ? jsonError : new Error(String(jsonError));
+        logger.error('Failed to parse response JSON:', error);
         throw new Error('Invalid response format from server');
       }
 

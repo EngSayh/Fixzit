@@ -60,7 +60,8 @@ export async function POST(req: NextRequest) {
         throw new Error(`Invalid payload type: Expected array, got ${typeof events}`);
       }
     } catch (parseError) {
-      logger.error('❌ Invalid JSON payload:', { parseError });
+      const error = parseError instanceof Error ? parseError : new Error(String(parseError));
+      logger.error('❌ Invalid JSON payload:', error);
       return createSecureResponse({ error: 'Invalid JSON payload' }, 400, req);
     }
 
