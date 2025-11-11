@@ -161,14 +161,6 @@ async function getAuthSession(request: NextRequest): Promise<SessionUser | null>
   }
 }
 
-// Check if user has a specific permission
-function _hasPermission(user: SessionUser | null, permission: string): boolean {
-  if (!user) return false;
-  if (user.isSuperAdmin) return true;
-  if (user.permissions.includes('*')) return true;
-  return user.permissions.includes(permission);
-}
-
 // Check if user has any of the given permissions
 function hasAnyPermission(user: SessionUser | null, permissions: string[]): boolean {
   if (!user) return false;
