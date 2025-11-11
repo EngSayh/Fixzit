@@ -95,7 +95,10 @@ export default function VendorProductUploadPage() {
             body: imageFormData
           });
           
-          if (!res.ok) throw new Error('Image upload failed');
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ message: 'Image upload failed' }));
+            throw new Error(errorData.message || 'Image upload failed');
+          }
           const data = await res.json();
           return {
             url: data.url,
@@ -103,7 +106,10 @@ export default function VendorProductUploadPage() {
             alt: formData.titleEn
           };
         })
-      );
+      ).catch(error => {
+        console.error('Failed to upload one or more images:', error);
+        throw new Error(`Image upload failed: ${error.message}`);
+      });
 
       // Step 2: Create product
       const product = {

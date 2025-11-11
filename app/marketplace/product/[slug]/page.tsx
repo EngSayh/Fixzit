@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import PDPBuyBox from '@/components/marketplace/PDPBuyBox';
 import ProductCard from '@/components/marketplace/ProductCard';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
@@ -44,20 +45,21 @@ interface Product {
 }
 
 export default async function ProductDetail(props: ProductPageProps) {
-  const params = await props.params;
-  const [, productResponse] = await Promise.all([
-    serverFetchJsonWithTenant<{ data: Category[] }>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<{ data: { product: Product; category?: Category } }>(`/api/marketplace/products/${params.slug}`)
-  ]);
+  try {
+    const params = await props.params;
+    const [, productResponse] = await Promise.all([
+      serverFetchJsonWithTenant<{ data: Category[] }>('/api/marketplace/categories'),
+      serverFetchJsonWithTenant<{ data: { product: Product; category?: Category } }>(`/api/marketplace/products/${params.slug}`)
+    ]);
 
-  // departments unused - future feature
-  // const departments = (categories.data as Category[]).map(category => ({
-  //   slug: category.slug,
-  //   name: category.name?.en ?? category.slug
-  // }));
+    // departments unused - future feature
+    // const departments = (categories.data as Category[]).map(category => ({
+    //   slug: category.slug,
+    //   name: category.name?.en ?? category.slug
+    // }));
 
-  const product = productResponse.data.product;
-  const category = productResponse.data.category;
+    const product = productResponse.data.product;
+    const category = productResponse.data.category;
 
   const attachments = product.media?.filter((file: MediaFile) => file.role === 'MSDS' || file.role === 'COA') ?? [];
   const gallery = product.media?.filter((file: MediaFile) => file.role === 'GALLERY') ?? [];
@@ -166,4 +168,17 @@ export default async function ProductDetail(props: ProductPageProps) {
       </main>
     </div>
   );
+  } catch (error) {
+    console.error('Failed to load product detail:', error);
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive">Failed to load product details. Please try again later.</p>
+          <Link href="/marketplace" className="mt-4 inline-block text-primary hover:underline">
+            Return to Marketplace
+          </Link>
+        </div>
+      </div>
+    );
+  }
 }
