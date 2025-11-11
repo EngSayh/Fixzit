@@ -131,8 +131,8 @@ export async function GET(req: NextRequest) {
         type: 'INCOME',
         category: 'RENTAL_INCOME',
         amount: p.amount,
-        reference: p.reference || p._id?.toString(),
-        propertyName: property?.name,
+        reference: p.reference || p._id?.toString() || 'N/A',
+        propertyName: property?.name || 'Unknown',
         unitNumber: p.unitNumber
       });
     });
@@ -146,15 +146,15 @@ export async function GET(req: NextRequest) {
     }).lean();
     
     workOrders.forEach((wo: unknown) => {
-      const w = wo as { property?: { propertyId?: { toString(): string }, unitNumber?: string }, completedDate: Date, title?: string, cost?: { total: number }, workOrderNumber?: string };
+      const w = wo as { property?: { propertyId?: { toString(): string }, unitNumber?: string }, completedDate?: Date, title?: string, cost?: { total: number }, workOrderNumber?: string };
       const property = propertyMap.get(w.property?.propertyId?.toString() || '');
       statementLines.push({
-        date: w.completedDate,
-        description: `Maintenance - ${w.title}`,
+        date: w.completedDate || new Date(),
+        description: `Maintenance - ${w.title || 'Work Order'}`,
         type: 'EXPENSE',
         category: 'MAINTENANCE',
         amount: w.cost?.total || 0,
-        reference: w.workOrderNumber,
+        reference: w.workOrderNumber || 'N/A',
         propertyName: property?.name,
         unitNumber: w.property?.unitNumber
       });
@@ -169,15 +169,15 @@ export async function GET(req: NextRequest) {
     }).lean();
     
     utilityBills.forEach((bill: unknown) => {
-      const b = bill as { propertyId?: { toString(): string }, payment?: { paidDate?: Date, amount?: number }, period?: { endDate: Date }, utilityType?: string, reference?: string };
-      const property = propertyMap.get(b.propertyId?.toString());
+      const b = bill as { propertyId?: { toString(): string }, payment?: { paidDate?: Date, amount?: number }, period?: { endDate?: Date }, utilityType?: string, reference?: string };
+      const property = propertyMap.get(b.propertyId?.toString() || '');
       statementLines.push({
-        date: b.payment?.paidDate || b.period?.endDate,
-        description: `Utility - ${b.utilityType}`,
+        date: b.payment?.paidDate || b.period?.endDate || new Date(),
+        description: `Utility - ${b.utilityType || 'Utility Bill'}`,
         type: 'EXPENSE',
         category: 'UTILITIES',
         amount: b.payment?.amount || 0,
-        reference: b.reference,
+        reference: b.reference || 'N/A',
         propertyName: property?.name
       });
     });    // 4. EXPENSES - Agent Commissions (using Mongoose model aggregate)
@@ -211,11 +211,11 @@ export async function GET(req: NextRequest) {
       const c = contract as { commissionPayments?: { paymentDate?: Date, amount?: number, reference?: string }, agentName?: string, contractNumber?: string };
       statementLines.push({
         date: c.commissionPayments?.paymentDate || new Date(),
-        description: `Agent Commission - ${c.agentName}`,
+        description: `Agent Commission - ${c.agentName || 'Agent'}`,
         type: 'EXPENSE',
         category: 'AGENT_COMMISSION',
         amount: c.commissionPayments?.amount || 0,
-        reference: c.commissionPayments?.reference || c.contractNumber,
+        reference: c.commissionPayments?.reference || c.contractNumber || 'N/A',
         propertyName: undefined
       });
     });
