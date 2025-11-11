@@ -144,7 +144,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           action: 'handleLogin',
           // PII removed: identifier field may contain email/employee number
         });
-      });
+      }).catch(logErr => console.error('Failed to load logger:', logErr));
       setErrors({
         general: t('login.errors.networkError', 'Network error. Please check your connection and try again.')
       });

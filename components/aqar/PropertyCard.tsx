@@ -102,7 +102,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
           action: 'toggleFavorite',
           propertyId: property.id,
         });
-      });
+      }).catch(logErr => console.error('Failed to load logger:', logErr));
     }
   };
 

@@ -141,6 +141,8 @@ export default function JournalEntryForm({
           action: 'loadAccounts',
           linesCount: lines.length,
         });
+      }).catch(err => {
+        console.error('Failed to load logger:', err);
       });
       setErrors({ ...errors, accounts: 'Failed to load chart of accounts' });
     } finally {
@@ -362,6 +364,8 @@ export default function JournalEntryForm({
           action: 'handleSubmit',
           linesCount: lines.length,
         });
+      }).catch(err => {
+        console.error('Failed to load logger:', err);
       });
       setErrors({ submit: 'An unexpected error occurred' });
     } finally {

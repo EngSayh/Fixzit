@@ -98,8 +98,8 @@ export default function TrialBalanceReport({
           year,
           period,
         });
-      });
-      setError(err instanceof Error ? err.message : t('common.error.unknown', 'An error occurred'));
+      }).catch(logErr => console.error('Failed to load logger:', logErr));
+      setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
     }
