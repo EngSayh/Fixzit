@@ -204,14 +204,26 @@ DelegationSchema.pre('save', async function(next) {
   // Update statistics
   if (this.isModified('activities') && this.statistics && Array.isArray(this.activities)) {
     this.statistics.totalActions = this.activities.length;
-    this.statistics.approvals = this.activities.filter((a: any) => a?.action?.includes('APPROVED')).length;
-    this.statistics.rejections = this.activities.filter((a: any) => a?.action?.includes('REJECTED')).length;
+    this.statistics.approvals = this.activities.filter((a: unknown) => {
+      const activity = a as { action?: string };
+      return activity?.action?.includes('APPROVED');
+    }).length;
+    this.statistics.rejections = this.activities.filter((a: unknown) => {
+      const activity = a as { action?: string };
+      return activity?.action?.includes('REJECTED');
+    }).length;
     this.statistics.totalAmountApproved = this.activities
-      .filter((a: any) => a?.action?.includes('APPROVED') && a?.amount)
-      .reduce((sum: number, a: any) => sum + (a?.amount || 0), 0);
+      .filter((a: unknown) => {
+        const activity = a as { action?: string, amount?: number };
+        return activity?.action?.includes('APPROVED') && activity?.amount;
+      })
+      .reduce((sum: number, a: unknown) => {
+        const activity = a as { amount?: number };
+        return sum + (activity?.amount || 0);
+      }, 0);
     
     if (this.activities.length > 0) {
-      const lastActivity = this.activities[this.activities.length - 1] as any;
+      const lastActivity = this.activities[this.activities.length - 1] as { performedAt?: Date };
       if (lastActivity?.performedAt) {
         this.statistics.lastActivityDate = lastActivity.performedAt;
       }

@@ -1,10 +1,10 @@
 {
   "stats": {
     "files": 379,
-    "usedKeys": 1555,
+    "usedKeys": 1556,
     "hasDynamic": true,
-    "enCount": 1987,
-    "arCount": 1987,
+    "enCount": 1988,
+    "arCount": 1988,
     "parityGap": 0
   },
   "missing": {
@@ -4631,6 +4631,10 @@
     "careers.terms": [
       "/workspaces/Fixzit/components/careers/JobApplicationForm.tsx"
     ],
+    "common.error.loadData": [
+      "/workspaces/Fixzit/components/finance/AccountActivityViewer.tsx",
+      "/workspaces/Fixzit/components/finance/TrialBalanceReport.tsx"
+    ],
     "Account Activity": [
       "/workspaces/Fixzit/components/finance/AccountActivityViewer.tsx"
     ],
@@ -5018,5 +5022,5 @@
       "/workspaces/Fixzit/contexts/TranslationContext.test.tsx"
     ]
   },
-  "timestamp": "2025-11-11T04:39:15.959Z"
+  "timestamp": "2025-11-11T06:10:41.269Z"
 }

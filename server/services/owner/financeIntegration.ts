@@ -79,7 +79,10 @@ async function validateAfterPhotos(workOrderId: Types.ObjectId): Promise<boolean
   // Check issues for AFTER photos
   if (!hasAfterPhotos && inspection.issues && inspection.issues.length > 0) {
     for (const issue of inspection.issues) {
-      const afterPhotos = (issue.photos || []).filter((p: any) => p.timestamp === 'AFTER');
+      const afterPhotos = (issue.photos || []).filter((p: unknown) => {
+        const photo = p as { timestamp?: string };
+        return photo.timestamp === 'AFTER';
+      });
       if (afterPhotos.length > 0) {
         hasAfterPhotos = true;
         break;

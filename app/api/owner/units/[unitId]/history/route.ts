@@ -159,17 +159,18 @@ export async function GET(
         .limit(20)
         .lean();
       
-      historyData.inspections = inspections.map((insp: any) => {
+      historyData.inspections = inspections.map((insp: unknown) => {
+        const i = insp as { inspectionNumber?: string, type?: string, actualDate?: Date, overallCondition?: string, issues?: unknown[], signatures?: { owner?: { signed?: boolean }, tenant?: { signed?: boolean }, inspector?: { signed?: boolean } } };
         return {
-          inspectionNumber: insp.inspectionNumber,
-          type: insp.type,
-          date: insp.actualDate,
-          overallCondition: insp.overallCondition,
-          issuesFound: insp.issues?.length || 0,
+          inspectionNumber: i.inspectionNumber,
+          type: i.type,
+          date: i.actualDate,
+          overallCondition: i.overallCondition,
+          issuesFound: i.issues?.length || 0,
           signatures: {
-            owner: insp.signatures?.owner?.signed || false,
-            tenant: insp.signatures?.tenant?.signed || false,
-            inspector: insp.signatures?.inspector?.signed || false
+            owner: i.signatures?.owner?.signed || false,
+            tenant: i.signatures?.tenant?.signed || false,
+            inspector: i.signatures?.inspector?.signed || false
           }
         };
       });
@@ -222,23 +223,25 @@ export async function GET(
         .limit(24) // Last 2 years of monthly bills
         .lean();
       
-      const totalUtilityCost = utilityBills.reduce((sum: number, b: any) => {
-        return sum + (b.charges?.totalAmount || 0);
+      const totalUtilityCost = utilityBills.reduce((sum: number, b: unknown) => {
+        const bill = b as { charges?: { totalAmount?: number } };
+        return sum + (bill.charges?.totalAmount || 0);
       }, 0);
       
       historyData.utilities = {
         totalCost: totalUtilityCost,
-        bills: utilityBills.map((b: any) => {
+        bills: utilityBills.map((b: unknown) => {
+          const bill = b as { billNumber?: string, meterId?: string, period?: { startDate?: Date, endDate?: Date }, readings?: { consumption?: number }, charges?: { totalAmount?: number }, payment?: { status?: string } };
           return {
-            billNumber: b.billNumber,
-            utilityType: b.meterId, // Would need to lookup meter details
+            billNumber: bill.billNumber,
+            utilityType: bill.meterId, // Would need to lookup meter details
             period: {
-              start: b.period?.startDate,
-              end: b.period?.endDate
+              start: bill.period?.startDate,
+              end: bill.period?.endDate
             },
-            consumption: b.readings?.consumption,
-            amount: b.charges?.totalAmount,
-            status: b.payment?.status
+            consumption: bill.readings?.consumption,
+            amount: bill.charges?.totalAmount,
+            status: bill.payment?.status
           };
         })
       };
