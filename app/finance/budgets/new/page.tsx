@@ -69,23 +69,35 @@ export default function NewBudgetPage() {
 
   // Update category field
   const handleCategoryChange = (id: string, field: keyof BudgetCategory, value: string | number) => {
-    setCategories(categories.map(cat => {
-      if (cat.id === id) {
-        const updated = { ...cat, [field]: value };
-        // Auto-calculate percentage when amount changes
-        if (field === 'amount' && !totalBudget.isZero()) {
-          const percentageDec = BudgetMath.percentageFromAmount(updated.amount as number, totalBudget);
-          updated.percentage = Math.round(Money.toNumber(percentageDec));
-        }
-        // Auto-calculate amount when percentage changes
-        if (field === 'percentage' && !totalBudget.isZero()) {
-          const amountDec = BudgetMath.amountFromPercentage(totalBudget, updated.percentage as number);
-          updated.amount = Math.round(Money.toNumber(amountDec));
-        }
-        return updated;
+    setCategories((prevCategories) => {
+      const nextCategories = prevCategories.map((cat) =>
+        cat.id === id ? { ...cat, [field]: value } : cat
+      );
+
+      if (field !== 'amount' && field !== 'percentage') {
+        return nextCategories;
       }
-      return cat;
-    }));
+
+      const nextTotal = BudgetMath.calculateTotal(nextCategories);
+
+      if (nextTotal.isZero()) {
+        return nextCategories;
+      }
+
+      return nextCategories.map((cat) => {
+        if (cat.id !== id) {
+          return cat;
+        }
+
+        if (field === 'amount') {
+          const percentageDec = BudgetMath.percentageFromAmount(cat.amount, nextTotal);
+          return { ...cat, percentage: Math.round(Money.toNumber(percentageDec)) };
+        }
+
+        const amountDec = BudgetMath.amountFromPercentage(nextTotal, cat.percentage);
+        return { ...cat, amount: Money.toNumber(Money.round(amountDec)) };
+      });
+    });
   };
 
   // Save as draft

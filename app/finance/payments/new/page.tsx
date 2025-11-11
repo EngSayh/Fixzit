@@ -386,7 +386,7 @@ export default function NewPaymentPage() {
           chequeDetails,
           cardDetails,
           allocations: invoiceAllocations,
-          unallocatedAmount,
+          unallocatedAmount: Money.toNumber(unallocatedAmount),
           status: 'POSTED' // Auto-post payment
         };
 
