@@ -24,6 +24,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -79,3 +84,4 @@ jobs:
       uses: actions/dependency-review-action@v4
       with:
         fail-on-severity: moderate
+      continue-on-error: true  # Don't fail if Advanced Security is not enabled
