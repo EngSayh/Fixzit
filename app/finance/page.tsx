@@ -41,7 +41,7 @@ export default function FinancePage() {
     return fetch(url)
       .then(r => r.json())
       .catch(error => {
-        console.error('Finance invoice fetch error:', error);
+        logger.error('Finance invoice fetch error', { error });
         throw error;
       });
   };

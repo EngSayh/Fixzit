@@ -33,7 +33,7 @@ export default function SupportTicketsPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        console.error('FM tickets fetch error:', error);
+        logger.error('FM tickets fetch error', { error });
         throw error;
       });
   };
