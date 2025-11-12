@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 
 import { useState } from 'react';
 import useSWR from 'swr';
@@ -96,7 +97,7 @@ export default function EditVendorPage() {
         return r.json();
       })
       .catch(error => {
-        console.error('FM vendor edit fetch error:', error);
+        logger.error('FM vendor edit fetch error', { error });
         throw error;
       });
   };

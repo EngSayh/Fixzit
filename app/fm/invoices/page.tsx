@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 
 import { useState } from 'react';
 import useSWR from 'swr';
@@ -85,7 +86,7 @@ export default function InvoicesPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        console.error('FM invoices fetch error:', error);
+        logger.error('FM invoices fetch error', { error });
         throw error;
       });
   };
