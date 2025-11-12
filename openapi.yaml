@@ -287,3 +287,537 @@ components:
         targetType:
           type: string
           enum: [LISTING, PROJECT]
+
+  # ========== NEW ROUTES (PR #283 - Fix OpenAPI Drift) ==========
+  
+  /aqar/leads:
+    get:
+      summary: List leads with pagination
+      tags: [CRM]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+            maximum: 10000
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated leads
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Lead'
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /finance/journals:
+    get:
+      summary: List journal entries with pagination
+      tags: [Finance]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated journal entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JournalEntry'
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+
+  /finance/ledger:
+    get:
+      summary: Get general ledger with optional date range
+      tags: [Finance]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Ledger entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LedgerEntry'
+
+  /finance/ledger/account-activity/{accountId}:
+    get:
+      summary: Get account activity (transactions)
+      tags: [Finance]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Account transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: string
+                  transactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+
+  /finance/ledger/trial-balance:
+    get:
+      summary: Get trial balance report
+      tags: [Finance]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: asOf
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Trial balance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TrialBalanceAccount'
+                  totalDebits:
+                    type: number
+                  totalCredits:
+                    type: number
+
+  /hr/employees:
+    get:
+      summary: List employees with pagination
+      tags: [HR]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated employees
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Employee'
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+
+  /performance/metrics:
+    get:
+      summary: Get performance KPIs
+      tags: [Performance]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Performance metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerformanceMetrics'
+
+  /support/tickets/my:
+    get:
+      summary: Get current user's support tickets
+      tags: [Support]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: User's tickets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SupportTicket'
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+
+  /admin/audit-logs:
+    get:
+      summary: Retrieve audit logs with strict pagination limits
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Max 100, default 100
+          schema:
+            type: integer
+            default: 100
+            maximum: 100
+        - name: skip
+          in: query
+          description: Max 10000, default 0
+          schema:
+            type: integer
+            default: 0
+            maximum: 10000
+      responses:
+        '200':
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditLog'
+
+  /admin/users:
+    get:
+      summary: List users with pagination (admin only)
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: Paginated users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+
+  /ats/jobs/{id}/apply:
+    post:
+      summary: Submit job application
+      tags: [ATS]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobApplication'
+      responses:
+        '201':
+          description: Application submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  applicationId:
+                    type: string
+                  status:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    # ========== NEW SCHEMAS (PR #283) ==========
+    
+    Lead:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    
+    JournalEntry:
+      type: object
+      properties:
+        id:
+          type: string
+        date:
+          type: string
+          format: date
+        description:
+          type: string
+        lines:
+          type: array
+          items:
+            type: object
+            properties:
+              account:
+                type: string
+              debit:
+                type: number
+              credit:
+                type: number
+
+    LedgerEntry:
+      type: object
+      properties:
+        account:
+          type: string
+        date:
+          type: string
+          format: date
+        debit:
+          type: number
+        credit:
+          type: number
+        balance:
+          type: number
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        date:
+          type: string
+          format: date
+        description:
+          type: string
+        amount:
+          type: number
+        type:
+          type: string
+          enum: [debit, credit]
+
+    TrialBalanceAccount:
+      type: object
+      properties:
+        account:
+          type: string
+        debit:
+          type: number
+        credit:
+          type: number
+
+    Employee:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        department:
+          type: string
+        position:
+          type: string
+
+    PerformanceMetrics:
+      type: object
+      properties:
+        revenue:
+          type: number
+        expenses:
+          type: number
+        workOrdersCompleted:
+          type: integer
+        customerSatisfaction:
+          type: number
+
+    SupportTicket:
+      type: object
+      properties:
+        id:
+          type: string
+        subject:
+          type: string
+        status:
+          type: string
+          enum: [open, in-progress, resolved, closed]
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        createdAt:
+          type: string
+          format: date-time
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+        action:
+          type: string
+        userId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        details:
+          type: object
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        orgId:
+          type: string
+
+    JobApplication:
+      type: object
+      required: [resume, coverLetter]
+      properties:
+        resume:
+          type: string
+          description: Resume file URL or content
+        coverLetter:
+          type: string
+        linkedIn:
+          type: string
+        portfolio:
+          type: string
