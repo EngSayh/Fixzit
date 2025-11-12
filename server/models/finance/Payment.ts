@@ -376,7 +376,7 @@ PaymentSchema.pre('save', async function(next) {
     let nextNum = 1;
     if (lastPayment?.paymentNumber) {
       const match = lastPayment.paymentNumber.match(/-(\d+)$/);
-      if (match) nextNum = parseInt(match[1]) + 1;
+      if (match) nextNum = parseInt(match[1], 10) + 1;
     }
     
     this.paymentNumber = `PAY-${yearMonth}-${String(nextNum).padStart(4, '0')}`;

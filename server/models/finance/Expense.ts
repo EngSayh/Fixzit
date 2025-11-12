@@ -450,7 +450,7 @@ ExpenseSchema.pre('save', async function(next) {
     let nextNum = 1;
     if (lastExpense?.expenseNumber) {
       const match = lastExpense.expenseNumber.match(/-(\d+)$/);
-      if (match) nextNum = parseInt(match[1]) + 1;
+      if (match) nextNum = parseInt(match[1], 10) + 1;
     }
     
     this.expenseNumber = `EXP-${yearMonth}-${String(nextNum).padStart(4, '0')}`;
