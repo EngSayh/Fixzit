@@ -149,7 +149,7 @@ export function verifyWebhookSignature(
     // SECURITY: Production MUST have webhook verification enabled
     if (!verificationKey) {
       if (process.env.NODE_ENV === 'production') {
-        console.error('🚨 CRITICAL: SENDGRID_WEBHOOK_VERIFICATION_KEY not configured in production');
+        logger.error(console.error('🚨 CRITICAL: SENDGRID_WEBHOOK_VERIFICATION_KEY not configured in production'));
         console.error('🚨 Rejecting webhook request for security');
         return false; // Fail-safe in production
       }
@@ -186,7 +186,7 @@ export function verifyWebhookSignature(
     
     return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
   } catch (error) {
-    console.error('❌ Webhook verification failed:', error);
+    logger.error('❌ Webhook verification failed:', { error });
     return false;
   }
 }

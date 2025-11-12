@@ -1,4 +1,5 @@
 import QRCode from 'qrcode';
+import { logger } from '@/lib/logger';
 
 interface ZATCAData {
   sellerName: string;
@@ -40,7 +41,7 @@ export async function generateZATCAQR(data: ZATCAData): Promise<string> {
     });
     return qrDataURL;
   } catch (error) {
-    console.error('QR Code generation error:', error);
+    logger.error('QR Code generation error:', { error });
     throw new Error('Failed to generate QR code');
   }
 }

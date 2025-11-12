@@ -103,7 +103,7 @@ export function getRedisClient(): Redis | null {
     return redis;
   } catch (error) {
     isConnecting = false;
-    console.error('[Redis] Failed to create connection:', error);
+    logger.error('[Redis] Failed to create connection:', { error });
     return null;
   }
 }
@@ -119,7 +119,7 @@ export async function closeRedis(): Promise<void> {
       redis = null;
       logger.info('[Redis] Connection closed gracefully');
     } catch (error) {
-      console.error('[Redis] Error closing connection:', error);
+      logger.error('[Redis] Error closing connection:', { error });
       // Force disconnect if graceful close fails
       if (redis) {
         redis.disconnect();
@@ -170,7 +170,7 @@ export async function safeRedisOp<T>(
   try {
     return await operation(client);
   } catch (error) {
-    console.error('[Redis] Operation failed:', error);
+    logger.error('[Redis] Operation failed:', { error });
     return fallback;
   }
 }

@@ -1,4 +1,5 @@
 /**
+import { logger } from '@/lib/logger';
  * Secure Error Response Utility
  * Sanitizes error messages to prevent internal details leakage
  */

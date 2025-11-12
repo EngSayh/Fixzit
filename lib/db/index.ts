@@ -1,4 +1,5 @@
 /**
+import { logger } from '@/lib/logger';
  * Database index management for MongoDB
  */
 

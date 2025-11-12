@@ -1,4 +1,5 @@
 /**
+import { logger } from '@/lib/logger';
  * FM RBAC Middleware
  * Enforces role-based access control for Facility Management endpoints
  */
@@ -74,7 +75,7 @@ export async function getFMAuthContext(_req: NextRequest): Promise<FMAuthContext
       }
     };
   } catch (error) {
-    console.error('[FM Auth] Context extraction failed:', error);
+    logger.error('[FM Auth] Context extraction failed:', { error });
     return null;
   }
 }
@@ -183,7 +184,7 @@ export async function getPropertyOwnership(_propertyId: string): Promise<{
     };
   // eslint-disable-next-line no-unreachable
   } catch (error) {
-    console.error('[FM Auth] Property ownership query failed:', error);
+    logger.error('[FM Auth] Property ownership query failed:', { error });
     return null;
   }
 }
