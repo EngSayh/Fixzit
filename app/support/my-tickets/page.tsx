@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { TableSkeleton } from '@/components/skeletons';
+import ClientDate from '@/components/ClientDate';
 
 import { logger } from '@/lib/logger';
 interface TicketMessage {
@@ -149,7 +150,7 @@ export default function MyTicketsPage() {
                     </div>
                     <p className="text-sm font-medium text-foreground">{ticket.subject}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {new Date(ticket.createdAt).toLocaleDateString()}
+                      <ClientDate date={ticket.createdAt} format="short" />
                     </p>
                   </div>
                 ))
@@ -197,7 +198,7 @@ export default function MyTicketsPage() {
                           {msg.byRole === 'ADMIN' ? 'Support Team' : 'You'}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {msg.at ? new Date(msg.at).toLocaleString() : new Date(msg.timestamp).toLocaleString()}
+                          <ClientDate date={msg.at || msg.timestamp} format="datetime" />
                         </p>
                       </div>
                       <p className="text-sm text-foreground">{msg.text}</p>
