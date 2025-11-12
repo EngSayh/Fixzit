@@ -5,6 +5,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import Decimal from 'decimal.js';
 
 import { logger } from '@/lib/logger';
 // ============================================================================
@@ -105,7 +106,8 @@ export default function NewExpensePage() {
   // Calculate totals from line items
   const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
   const totalTax = lineItems.reduce((sum, item) => sum + item.taxAmount, 0);
-  const totalAmount = subtotal + totalTax;
+  // ✅ PRECISION FIX: Use Decimal.js for accurate financial calculations
+  const totalAmount = new Decimal(subtotal).plus(totalTax).toNumber();
 
   // ============================================================================
   // LIFECYCLE & DATA LOADING
@@ -240,11 +242,17 @@ export default function NewExpensePage() {
       // Recalculate amounts
       if (field === 'quantity' || field === 'unitPrice') {
         updated.amount = updated.quantity * updated.unitPrice;
-        updated.taxAmount = updated.taxable ? updated.amount * updated.taxRate : 0;
+        // ✅ PRECISION FIX: Use Decimal.js for tax calculation
+        updated.taxAmount = updated.taxable 
+          ? new Decimal(updated.amount).times(updated.taxRate).toNumber()
+          : 0;
       }
 
       if (field === 'taxable' || field === 'taxRate') {
-        updated.taxAmount = updated.taxable ? updated.amount * updated.taxRate : 0;
+        // ✅ PRECISION FIX: Use Decimal.js for tax calculation
+        updated.taxAmount = updated.taxable 
+          ? new Decimal(updated.amount).times(updated.taxRate).toNumber()
+          : 0;
       }
 
       // Update account code when account changes
@@ -749,7 +757,8 @@ export default function NewExpensePage() {
                         {item.taxable && <span className="text-xs text-muted-foreground ms-1">15%</span>}
                       </td>
                       <td className="px-2 py-2 text-end font-medium">
-                        {currency} {(item.amount + item.taxAmount).toFixed(2)}
+                        {/* ✅ PRECISION FIX: Use Decimal.js for total calculation */}
+                        {currency} {new Decimal(item.amount).plus(item.taxAmount).toFixed(2)}
                       </td>
                       <td className="px-2 py-2">
                         {lineItems.length > 1 && (
