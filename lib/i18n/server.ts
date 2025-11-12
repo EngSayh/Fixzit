@@ -46,7 +46,7 @@ export async function getServerI18n() {
   }
 }
 
-type Messages = typeof enMessages;
+type _Messages = typeof enMessages;
 
 export async function getServerTranslation(request: NextRequest) {
   // Get locale from cookie or Accept-Language header

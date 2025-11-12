@@ -4503,5 +4503,5 @@ export function useTranslation() {
       isRTL: true
     };
   }
-
+}
 
