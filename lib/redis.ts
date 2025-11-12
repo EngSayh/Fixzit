@@ -66,7 +66,7 @@ export function getRedisClient(): Redis | null {
     });
 
     redis.on('error', (err) => {
-      console.error('[Redis] Connection error:', {
+      logger.error('[Redis] Connection error:', {
         message: err.message,
         code: (err as { code?: string }).code,
         timestamp: new Date().toISOString()

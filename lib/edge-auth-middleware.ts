@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { logger } from './logger';
 import { jwtVerify } from "jose";
 import { getJWTSecret } from "./startup-checks";
 
@@ -68,7 +69,7 @@ export async function authenticateRequest(
 
     return user;
   } catch (error) {
-    console.error('Authentication error:', error);
+    logger.error('Authentication error:', { error });
     return {
       error: "Invalid or expired token",
       statusCode: 401

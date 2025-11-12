@@ -39,7 +39,7 @@ class AWSSecretsManager {
 
       return secretValue;
     } catch (error) {
-      console.error(`Failed to retrieve secret ${secretName}:`, error);
+      logger.error(`Failed to retrieve secret ${secretName}:`, { error });
       throw error;
     }
   }

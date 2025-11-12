@@ -127,7 +127,7 @@ export async function getSecret(
     return null;
   } catch (error) {
     if (required) {
-      console.error('[Secrets] Failed to retrieve required secret:', secretName, error);
+      logger.error('[Secrets] Failed to retrieve required secret', { secretName, error });
       throw error;
     }
     console.warn('[Secrets] Failed to retrieve optional secret:', secretName);

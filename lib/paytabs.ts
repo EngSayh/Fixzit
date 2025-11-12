@@ -116,7 +116,7 @@ export async function createPaymentPage(request: SimplePaymentRequest): Promise<
     }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Payment gateway error';
-    console.error('PayTabs error:', error);
+    logger.error('PayTabs error', { error });
     return {
       success: false,
       error: errorMessage
@@ -143,7 +143,7 @@ export async function verifyPayment(tranRef: string): Promise<unknown> {
 
     return await response.json();
   } catch (error) {
-    console.error('PayTabs verification error:', error);
+    logger.error('PayTabs verification error', { error });
     throw error;
   }
 }
