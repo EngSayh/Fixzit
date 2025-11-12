@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Performance Monitoring Middleware for Fixzit
  * 
@@ -43,7 +44,7 @@ function logMetrics(metrics: PerformanceMetrics) {
   const emoji = metrics.exceeded ? '⚠️' : '✅';
   const durationSec = (metrics.duration / 1000).toFixed(2);
   
-  console.log(
+  logger.info(
     `${emoji} [Performance] ${metrics.method} ${metrics.url} - ` +
     `${durationSec}s (${metrics.status}) ${metrics.exceeded ? '⚠️ EXCEEDED THRESHOLD' : ''}`
   );
@@ -214,7 +215,7 @@ export function reportWebVitals(metric: WebVitalsMetric) {
   const { name, value, id } = metric;
   
   // Log Web Vitals
-  console.log(`[Web Vitals] ${name}: ${value.toFixed(2)}ms (id: ${id})`);
+  logger.info(`[Web Vitals] ${name}: ${value.toFixed(2)}ms (id: ${id})`);
   
   // Check against thresholds
   const thresholds: Record<string, number> = {

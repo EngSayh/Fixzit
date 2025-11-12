@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * SendGrid Email Service Configuration
  * 
@@ -85,7 +86,7 @@ export function initializeSendGrid(): void {
   try {
     const config = getSendGridConfig();
     sgMail.setApiKey(config.apiKey);
-    console.log('✅ SendGrid initialized successfully');
+    logger.info('✅ SendGrid initialized successfully');
   } catch (error) {
     console.warn('⚠️ SendGrid not configured:', error instanceof Error ? error.message : 'Unknown error');
   }

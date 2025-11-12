@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Audit Logging System
  * 
@@ -36,7 +37,7 @@ export async function audit(event: AuditEvent): Promise<void> {
   };
 
   // Console logging (replace with structured logger in production)
-  console.log('[AUDIT]', JSON.stringify(entry));
+  logger.info('[AUDIT] ' + JSON.stringify(entry));
 
   // TODO: Write to database
   // await AuditLog.create(entry);

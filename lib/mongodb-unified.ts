@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import mongoose from 'mongoose';
 
 declare global {
@@ -78,7 +79,7 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
       global._mongooseConnection = connection;
     }
 
-    console.log('✅ MongoDB connected successfully');
+    logger.info('✅ MongoDB connected successfully');
     return connection;
   } catch (error) {
     console.error('❌ MongoDB connection error:', error);

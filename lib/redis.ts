@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Redis Singleton Connection Pool
  * 
@@ -75,11 +76,11 @@ export function getRedisClient(): Redis | null {
     });
 
     redis.on('connect', () => {
-      console.log('[Redis] Connected successfully');
+      logger.info('[Redis] Connected successfully');
     });
 
     redis.on('ready', () => {
-      console.log('[Redis] Ready to accept commands');
+      logger.info('[Redis] Ready to accept commands');
       isConnecting = false;
     });
 
@@ -90,11 +91,11 @@ export function getRedisClient(): Redis | null {
     });
 
     redis.on('reconnecting', () => {
-      console.log('[Redis] Reconnecting...');
+      logger.info('[Redis] Reconnecting...');
     });
 
     redis.on('end', () => {
-      console.log('[Redis] Connection ended');
+      logger.info('[Redis] Connection ended');
       // Reset isConnecting flag when connection ends
       isConnecting = false;
     });
@@ -116,7 +117,7 @@ export async function closeRedis(): Promise<void> {
     try {
       await redis.quit();
       redis = null;
-      console.log('[Redis] Connection closed gracefully');
+      logger.info('[Redis] Connection closed gracefully');
     } catch (error) {
       console.error('[Redis] Error closing connection:', error);
       // Force disconnect if graceful close fails

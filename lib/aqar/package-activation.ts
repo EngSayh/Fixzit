@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Aqar Package Activation Utility
  * 
@@ -67,10 +68,10 @@ export async function activatePackageAfterPayment(paymentId: string | mongoose.T
     // Activate if not already active
     if (!pkg.active) {
       await pkg.activate();
-      console.log('activatePackageAfterPayment: Package activated successfully', { 
+      logger.info('activatePackageAfterPayment: Package activated successfully', { 
         paymentId, 
-        packageId: pkg._id,
-        userId: pkg.userId,
+        packageId: (pkg as { _id: { toString(): string } })._id.toString(),
+        userId: pkg.userId.toString(),
         type: pkg.type
       });
     }

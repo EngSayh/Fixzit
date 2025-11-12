@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * IP utility functions for secure client IP extraction
  */
@@ -133,9 +134,9 @@ export function validateProxyConfiguration(): void {
   try {
     const trustedProxyCount = validateTrustedProxyCount();
     
-    console.log(`✅ Proxy configuration validated:`);
-    console.log(`   - TRUSTED_PROXY_COUNT: ${trustedProxyCount}`);
-    console.log(`   - TRUST_X_REAL_IP: ${process.env.TRUST_X_REAL_IP || 'false'}`);
+    logger.info(`✅ Proxy configuration validated:`);
+    logger.info(`   - TRUSTED_PROXY_COUNT: ${trustedProxyCount}`);
+    logger.info(`   - TRUST_X_REAL_IP: ${process.env.TRUST_X_REAL_IP || 'false'}`);
     
     if (trustedProxyCount === 0) {
       console.warn(`⚠️  TRUSTED_PROXY_COUNT=0 means direct client connections (no proxy)`);

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * AWS Secrets Manager Integration
  * Securely retrieves sensitive configuration from AWS Secrets Manager
@@ -47,7 +48,7 @@ function getSecretsClient(): SecretsManagerClient | null {
       : undefined // Use AWS SDK default credential provider chain
   });
   
-  console.log('[Secrets] AWS Secrets Manager initialized for region:', region);
+  logger.info('[Secrets] AWS Secrets Manager initialized', { region });
   return secretsClient;
 }
 
@@ -94,7 +95,7 @@ export async function getSecret(
           });
           
           if (process.env.NODE_ENV !== 'production') {
-            console.log('[Secrets] Retrieved from AWS Secrets Manager:', secretName);
+            logger.info('[Secrets] Retrieved from AWS Secrets Manager', { secretName });
           }
           return secretValue;
         }
@@ -110,7 +111,7 @@ export async function getSecret(
       const envValue = process.env[envFallback]?.trim();
       if (envValue) {
         if (process.env.NODE_ENV !== 'production') {
-          console.log('[Secrets] Using environment variable:', envFallback);
+          logger.info('[Secrets] Using environment variable', { envKey: envFallback });
         }
         return envValue;
       }
@@ -198,5 +199,5 @@ export async function getSendGridAPIKey(): Promise<string | null> {
  */
 export function clearSecretCache(): void {
   secretCache.clear();
-  console.log('[Secrets] Cache cleared');
+  logger.info('[Secrets] Cache cleared');
 }
