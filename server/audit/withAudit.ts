@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { AuditLogModel } from '@/server/models/AuditLog';
+import { logger } from '@/lib/logger';
 
 export interface AuditConfig {
   enabled: boolean;
@@ -169,7 +170,7 @@ export function withAudit<
         await (AuditLogModel as any).log(auditData);
       } catch (err) {
         // never break the API
-        console.error('Failed to log audit entry:', err);
+        logger.error('Failed to log audit entry', { error: err });
       }
     }
   }) as H;

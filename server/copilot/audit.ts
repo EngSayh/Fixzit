@@ -1,5 +1,6 @@
 import { CopilotAudit } from "@/server/models/CopilotAudit";
 import { CopilotSession } from "./session";
+import { logger } from '@/lib/logger';
 
 export interface AuditOptions {
   session: CopilotSession;
@@ -28,7 +29,7 @@ export async function recordAudit(options: AuditOptions) {
       metadata: options.metadata
     });
   } catch (error) {
-    console.error("Failed to record copilot audit", error);
+    logger.error("Failed to record copilot audit", { error });
   }
 }
 
