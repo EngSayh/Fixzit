@@ -33,17 +33,29 @@ import { requireSuperAdmin } from '@/lib/authz';
  *         description: Forbidden - Super admin only
  */
 export async function PATCH(req: NextRequest) {
-  await dbConnect();
-  await requireSuperAdmin(req);
-  const { percentage } = await req.json();
+  try {
+    await dbConnect();
+    await requireSuperAdmin(req);
+    const { percentage } = await req.json();
 
-  const doc = await DiscountRule.findOneAndUpdate(
-    { key: 'ANNUAL_PREPAY' },
-    { percentage },
-    { upsert: true, new: true }
-  );
+    const doc = await DiscountRule.findOneAndUpdate(
+      { key: 'ANNUAL_PREPAY' },
+      { percentage },
+      { upsert: true, new: true }
+    );
 
-  return NextResponse.json({ ok: true, discount: doc.percentage });
+    return NextResponse.json({ ok: true, discount: doc.percentage });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: 'Failed to update annual discount',
+        code: 'DISCOUNT_UPDATE_ERROR',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        correlationId: crypto.randomUUID()
+      },
+      { status: 500 }
+    );
+  }
 }
 
 

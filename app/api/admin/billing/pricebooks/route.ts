@@ -33,12 +33,25 @@ export async function POST(req: NextRequest) {
     return rateLimitError();
   }
 
-  await dbConnect();
-  await requireSuperAdmin(req);
-  const body = await req.json();
+  try {
+    await dbConnect();
+    await requireSuperAdmin(req);
+    const body = await req.json();
 
-  const doc = await PriceBook.create(body);
-  return createSecureResponse(doc, 200, req);
+    const doc = await PriceBook.create(body);
+    return createSecureResponse(doc, 200, req);
+  } catch (error) {
+    return createSecureResponse(
+      {
+        error: 'Failed to create pricebook',
+        code: 'PRICEBOOK_CREATE_ERROR',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        correlationId: crypto.randomUUID()
+      },
+      500,
+      req
+    );
+  }
 }
 
 
