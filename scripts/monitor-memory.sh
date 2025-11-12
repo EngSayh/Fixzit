@@ -1,63 +1,81 @@
 #!/bin/bash
-# Memory monitoring script to prevent VS Code crashes (error code 5)
-# Root Cause: TypeScript language servers + Next.js dev server + extension hosts
-# Usage: bash scripts/monitor-memory.sh [interval_seconds] [threshold_mb]
+# Monitor VS Code and Node memory usage to prevent crashes
+# Usage: bash scripts/monitor-memory.sh
 
-# Enable strict error checking for initialization only
-set -e
+set -euo pipefail
 
-INTERVAL=${1:-5}  # Check every 5 seconds by default
-THRESHOLD_MB=${2:-12000}  # Alert if any process exceeds 12GB (75% of 16GB)
-LOG_FILE="tmp/memory-monitor.log"
-
-mkdir -p tmp
-
-# Disable set -e for monitoring loop to handle transient errors gracefully
-set +e
-
-echo "🔍 Memory Monitor Started"
-echo "   Interval: ${INTERVAL}s"
-echo "   Threshold: ${THRESHOLD_MB} MB"
-echo "   Log: ${LOG_FILE}"
-echo "   Press Ctrl+C to stop"
+echo "🔍 Memory Monitoring - VS Code Crash Prevention"
+echo "==============================================="
 echo ""
 
-# Track minute for logging (log once per minute)
-LAST_MINUTE_LOGGED=-1
+# Detect OS
+OS="$(uname -s)"
 
-while true; do
-  TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
-  
-  # Get top memory-consuming processes (graceful failure)
-  TOP_PROCESSES=$(ps aux --sort=-%mem 2>/dev/null | head -20 | awk '{print $2, $3, $4, $6/1024, $11}' | column -t) || true
-  
-  # Check for high memory usage (graceful failure)
-  HIGH_MEM=$(ps aux 2>/dev/null | awk -v threshold="$THRESHOLD_MB" '$6/1024 > threshold {print $2, $6/1024, $11}') || true
-  
-  if [ -n "$HIGH_MEM" ]; then
-    echo "⚠️  [$TIMESTAMP] HIGH MEMORY ALERT!"
-    echo "$HIGH_MEM" | while read -r line; do
-      PID=$(echo "$line" | awk '{print $1}')
-      MEM_MB=$(echo "$line" | awk '{print $2}')
-      PROCESS=$(echo "$line" | awk '{print $3}')
-      
-      echo "   PID $PID: ${MEM_MB} MB - $PROCESS"
-      echo "[$TIMESTAMP] ALERT: PID $PID using ${MEM_MB} MB ($PROCESS)" >> "$LOG_FILE" 2>/dev/null || true
-    done
-    echo ""
-  fi
-  
-  # Log summary exactly once per minute
-  CURRENT_MINUTE=$(date '+%M')
-  if [ "$CURRENT_MINUTE" != "$LAST_MINUTE_LOGGED" ]; then
-    TOTAL_MEM=$(free -m 2>/dev/null | awk '/^Mem:/{print $3}') || echo "N/A"
-    AVAILABLE_MEM=$(free -m 2>/dev/null | awk '/^Mem:/{print $7}') || echo "N/A"
-    
-    echo "📊 [$TIMESTAMP] Memory: ${TOTAL_MEM} MB used, ${AVAILABLE_MEM} MB available"
-    echo "[$TIMESTAMP] Total: ${TOTAL_MEM} MB, Available: ${AVAILABLE_MEM} MB" >> "$LOG_FILE" 2>/dev/null || true
-    
-    LAST_MINUTE_LOGGED="$CURRENT_MINUTE"
-  fi
-  
-  sleep "$INTERVAL"
-done
+# Total system memory
+echo "📊 System Memory:"
+if [ "$OS" = "Darwin" ]; then
+  # macOS
+  vm_stat | perl -ne '/page size of (\d+)/ and $size=$1; /Pages\s+([^:]+)[^\d]+(\d+)/ and printf("%-20s % 16.2f MB\n", "$1:", $2 * $size / 1048576);'
+else
+  # Linux
+  free -h | grep -E "Mem:|Swap:"
+fi
+echo ""
+
+# Top memory consuming processes
+echo "🔥 Top 10 Memory-Consuming Processes:"
+if [ "$OS" = "Darwin" ]; then
+  # macOS
+  ps aux | sort -k4 -r | head -11 | awk 'BEGIN {printf "%-8s %-7s %-7s %s\n", "PID", "MEM%", "RSS(MB)", "COMMAND"} NR>1 {printf "%-8s %-7s %-7.1f %s\n", $2, $4, $6/1024, $11}'
+else
+  # Linux
+  ps aux --sort=-%mem | head -11 | awk 'BEGIN {printf "%-8s %-7s %-7s %s\n", "PID", "MEM%", "RSS(MB)", "COMMAND"} NR>1 {printf "%-8s %-7s %-7.1f %s\n", $2, $4, $6/1024, $11}'
+fi
+echo ""
+
+# Node processes specifically
+echo "⚙️  Node.js Processes:"
+ps aux | grep -E "[n]ode|[t]sserver" | awk '{printf "PID: %-8s MEM: %-6s%%  RSS: %-8.1fMB  CMD: %s\n", $2, $4, $6/1024, $11}' || echo "  No Node.js processes found"
+echo ""
+
+# Check if memory is critically low
+if [ "$OS" = "Darwin" ]; then
+  # macOS - use vm_stat
+  FREE_PAGES=$(vm_stat | grep "Pages free" | awk '{print $3}' | tr -d '.')
+  INACTIVE_PAGES=$(vm_stat | grep "Pages inactive" | awk '{print $3}' | tr -d '.')
+  SPECULATIVE_PAGES=$(vm_stat | grep "Pages speculative" | awk '{print $3}' | tr -d '.')
+  AVAILABLE_MB=$(( ($FREE_PAGES + $INACTIVE_PAGES + $SPECULATIVE_PAGES) * 4096 / 1048576 ))
+  TOTAL_MEM_MB=$(sysctl -n hw.memsize | awk '{print $1/1048576}')
+  PERCENT_AVAILABLE=$(awk "BEGIN {printf \"%.0f\", ($AVAILABLE_MB/$TOTAL_MEM_MB)*100}")
+else
+  # Linux
+  AVAILABLE_MEM=$(free | grep Mem | awk '{print $7}')
+  TOTAL_MEM=$(free | grep Mem | awk '{print $2}')
+  PERCENT_AVAILABLE=$(awk "BEGIN {printf \"%.0f\", ($AVAILABLE_MEM/$TOTAL_MEM)*100}")
+fi
+
+echo "💾 Available Memory: $PERCENT_AVAILABLE%"
+
+if [ "$PERCENT_AVAILABLE" -lt 20 ]; then
+  echo ""
+  echo "⚠️  WARNING: Low memory! ($PERCENT_AVAILABLE% available)"
+  echo "   Consider:"
+  echo "   1. Restart TypeScript server: Cmd+Shift+P → 'Restart TypeScript Server'"
+  echo "   2. Close unused editor tabs"
+  echo "   3. Kill zombie processes: pkill -f 'tsserver|eslint'"
+  echo "   4. Restart VS Code"
+elif [ "$PERCENT_AVAILABLE" -lt 40 ]; then
+  echo ""
+  echo "⚡ Moderate memory usage ($PERCENT_AVAILABLE% available)"
+  echo "   Watch for memory spikes during builds/linting"
+else
+  echo ""
+  echo "✅ Memory usage healthy ($PERCENT_AVAILABLE% available)"
+fi
+
+echo ""
+echo "🔧 Quick Fixes:"
+echo "   - Restart TS Server: pkill -f tsserver"
+echo "   - Clean cache: pnpm run cleanup:cache"
+echo "   - Kill dev server: pkill -f 'next-server'"
+echo ""

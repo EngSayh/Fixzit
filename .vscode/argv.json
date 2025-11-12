@@ -1,0 +1,5 @@
+{
+  "enable-crash-reporter": false,
+  "crash-reporter-id": "disabled",
+  "js-flags": "--max-old-space-size=8192"
+}
