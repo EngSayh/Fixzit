@@ -140,8 +140,17 @@ jobs:
           mkdir -p .artifacts
           status=0
           
-          # Check if test script exists first
-          if node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.test?0:1)" 2>/dev/null; then
+          # Run only unit/model tests (E2E tests require environment setup)
+          # Full E2E test suite should be run separately with proper test environment
+          if node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.['test:models']?0:1)" 2>/dev/null; then
+            case "${{ steps.pm.outputs.manager }}" in
+              pnpm) pnpm test:models || status=$? ;;
+              yarn) yarn test:models || status=$? ;;
+              *) npm run test:models || status=$? ;;
+            esac
+          elif node -e "const pkg=require('./package.json');process.exit(pkg?.scripts?.test?0:1)" 2>/dev/null; then
+            echo "::warning::No test:models script found. Falling back to test script."
+            echo "Note: E2E tests may fail without proper environment variables."
             case "${{ steps.pm.outputs.manager }}" in
               pnpm) pnpm test || status=$? ;;
               yarn) yarn test || status=$? ;;

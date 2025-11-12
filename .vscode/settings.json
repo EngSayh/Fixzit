@@ -146,8 +146,12 @@
   // Run "Extensions: Check for Extension Updates" regularly or schedule via reminders
   "extensions.autoUpdate": false,
   "extensions.ignoreRecommendations": true,
+  "extensions.experimental.useUtilityProcess": true,
   "extensions.experimental.affinity": {
-    "ms-vscode.powershell": 0
+    "ms-vscode.powershell": 0,
+    "github.copilot": 1,
+    "github.copilot-chat": 1,
+    "ms-vscode.vscode-typescript-next": 1
   },
 
   // Window & Startup - Configured for unattended E2E testing
