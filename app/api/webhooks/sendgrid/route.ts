@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     // CRITICAL SECURITY: Signature verification with timing-safe comparison
     const isValid = verifyWebhookSignature(publicKey, rawBody, signature, timestamp);
     if (!isValid) {
-      logger.error('❌ Invalid webhook signature from IP:', { clientIp });
+      logger.error('❌ Invalid webhook signature from IP', undefined, { clientIp });
       return createSecureResponse({ error: 'Invalid signature' }, 401, req);
     }
 
@@ -87,69 +87,76 @@ export async function POST(req: NextRequest) {
         const eventDate = new Date(event.timestamp * 1000);
 
         // Build update based on event type
-        const update: Record<string, unknown> = {
+        const set: Record<string, unknown> = {
           lastEvent: event.event,
           lastEventAt: eventDate,
           [`events.${event.event}`]: eventDate
         };
+        const inc: Record<string, number> = {};
+        const addToSet: Record<string, unknown> = {};
 
         // Handle specific event types
         switch (event.event) {
         case 'delivered':
-          update.status = 'delivered';
-          update.deliveredAt = eventDate;
+          set.status = 'delivered';
+          set.deliveredAt = eventDate;
           break;
 
         case 'open':
-          update.opened = true;
-          update.openedAt = eventDate;
-          update.openCount = { $inc: 1 };
+          set.opened = true;
+          set.openedAt = eventDate;
+          inc.openCount = 1;
           break;
 
         case 'click':
-          update.clicked = true;
-          update.clickedAt = eventDate;
-          update.clickCount = { $inc: 1 };
+          set.clicked = true;
+          set.clickedAt = eventDate;
+          inc.clickCount = 1;
           if (event.url) {
-            update.clickedUrls = { $addToSet: event.url };
+            addToSet.clickedUrls = event.url;
           }
           break;
 
         case 'bounce':
         case 'dropped':
-          update.status = 'failed';
-          update.failedAt = eventDate;
-          update.error = event.reason || `Email ${event.event}`;
-          update.bounceReason = event.reason;
-          update.bounceStatus = event.status;
+          set.status = 'failed';
+          set.failedAt = eventDate;
+          set.error = event.reason || `Email ${event.event}`;
+          set.bounceReason = event.reason;
+          set.bounceStatus = event.status;
           break;
 
         case 'spamreport':
-          update.status = 'spam';
-          update.spamReportedAt = eventDate;
+          set.status = 'spam';
+          set.spamReportedAt = eventDate;
           break;
 
         case 'unsubscribe':
         case 'group_unsubscribe':
-          update.unsubscribed = true;
-          update.unsubscribedAt = eventDate;
+          set.unsubscribed = true;
+          set.unsubscribedAt = eventDate;
           break;
 
         case 'group_resubscribe':
-          update.unsubscribed = false;
-          update.resubscribedAt = eventDate;
+          set.unsubscribed = false;
+          set.resubscribedAt = eventDate;
           break;
+        }
+
+      // Build update doc
+      const updateDoc: Record<string, unknown> = { $set: set };
+      if (Object.keys(inc).length) {
+        updateDoc.$inc = inc;
+      }
+      if (Object.keys(addToSet).length) {
+        updateDoc.$addToSet = addToSet;
       }
 
       // Update email log
       if (emailId) {
         await emailsCollection.updateOne(
           { emailId },
-          { 
-            $set: update,
-            $inc: update.openCount ? { openCount: 1 } : update.clickCount ? { clickCount: 1 } : {},
-            $addToSet: update.clickedUrls ? { clickedUrls: event.url } : {}
-          },
+          updateDoc,
           { upsert: false }
         );
       } else {
@@ -159,10 +166,7 @@ export async function POST(req: NextRequest) {
             recipient: event.email,
             'metadata.sg_message_id': event.sg_message_id 
           },
-          { 
-            $set: update,
-            $inc: update.openCount ? { openCount: 1 } : update.clickCount ? { clickCount: 1 } : {}
-          },
+          updateDoc,
           { upsert: false }
         );
       }

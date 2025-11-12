@@ -65,10 +65,11 @@ export async function POST(request: NextRequest) {
         (authError.message === 'Unauthorized' || authError.message.includes('No session found'));
       
       if (!isExpectedAuthFailure) {
-        logger.error('Unexpected auth error in leads POST:', {
-          message: authError instanceof Error ? authError.message : 'Unknown error',
-          stack: authError instanceof Error ? authError.stack : undefined,
-        });
+        logger.error(
+          'Unexpected auth error in leads POST',
+          authError instanceof Error ? authError : new Error(String(authError)),
+          { route: 'POST /api/aqar/leads' }
+        );
       }
       // Public inquiry - no auth required
     }
