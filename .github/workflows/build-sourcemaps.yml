@@ -31,20 +31,25 @@ jobs:
         with:
           fetch-depth: 0   # Required for Sentry commit association
 
+      - name: 🔧 Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          cache: 'pnpm'
 
       - name: 📥 Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: 🏗️ Build with source maps
         run: |
           set -e
           echo "Building Next.js app with source maps…"
-          npm run build
+          pnpm run build
 
       # Sentry release + sourcemaps (v3, with Debug ID injection)
       - name: 🚀 Create & upload Sentry release (non-blocking)
