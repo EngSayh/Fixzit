@@ -1,6 +1,7 @@
 import { ZodError } from 'zod';
 import { createSecureResponse } from '@/server/security/headers';
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export interface ErrorResponse {
   error: string;
@@ -98,7 +99,7 @@ export function internalServerError(
 ): NextResponse {
   // Log full error details server-side
   if (logDetails) {
-    console.error('Internal server error:', {
+    logger.error('Internal server error', {
       message,
       details: logDetails,
       timestamp: new Date().toISOString()
@@ -137,7 +138,7 @@ export function handleApiError(error: unknown): NextResponse {
   if (error instanceof Error) {
     // Log the full error but return generic message
     // SECURITY: Never expose stack traces or internal details to clients in production
-    console.error('Unhandled API error:', {
+    logger.error('Unhandled API error', {
       name: error.name,
       message: error.message,
       stack: process.env.NODE_ENV === 'production' ? '[REDACTED]' : error.stack,
@@ -147,9 +148,8 @@ export function handleApiError(error: unknown): NextResponse {
     return internalServerError();
   }
   
-  // Unknown error type
-  console.error('Unknown error type:', error);
-  return internalServerError();
+  logger.error('Unknown error type', { error });
+  return internalServerError('An unexpected error occurred');
 }
 
 /**

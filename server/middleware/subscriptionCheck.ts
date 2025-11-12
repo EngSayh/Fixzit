@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
 import { OwnerModel } from '@/server/models/Owner';
+import { logger } from '@/lib/logger';
 
 export interface SubscriptionCheckOptions {
   requireFeature?: string; // Specific feature required (e.g., 'roiAnalytics', 'utilitiesTracking')
@@ -227,7 +228,7 @@ export async function requireSubscription(
     };
     
   } catch (error) {
-    console.error('Subscription check error:', error);
+    logger.error('Subscription check error', { error });
     return {
       error: NextResponse.json(
         { error: 'Internal server error' },
