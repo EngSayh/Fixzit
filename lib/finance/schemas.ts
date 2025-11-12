@@ -158,6 +158,10 @@ export type CreatePayment = z.infer<typeof createPaymentSchema>;
 
 /**
  * Helper function to safely parse numbers that might be strings
+ * Note: This function strips non-numeric characters (except . and -) which may not handle
+ * all locale-specific number formats (e.g., comma as decimal separator).
+ * For production use with international locales, consider using Intl.NumberFormat
+ * or the Decimal.js constructor directly with proper locale handling.
  * @throws {Error} if input is invalid and cannot be parsed to a valid number
  */
 export function parseDecimalInput(value: string | number): number {
@@ -169,6 +173,8 @@ export function parseDecimalInput(value: string | number): number {
   }
   
   // Remove non-numeric characters except . and -
+  // WARNING: This assumes dot (.) as decimal separator (US/UK format)
+  // Comma-based locales (e.g., European "1.234,56") will be incorrectly parsed
   const cleaned = value.replace(/[^0-9.-]/g, '');
   
   // Check if result is empty or invalid pattern

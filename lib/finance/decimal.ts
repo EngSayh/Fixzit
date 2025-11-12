@@ -12,8 +12,11 @@ Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 /**
  * Create a Decimal instance from various input types
  */
-export function decimal(value: number | string | Decimal): Decimal {
-  return new Decimal(value || 0);
+export function decimal(value: number | string | Decimal | null | undefined): Decimal {
+  if (value === '' || value == null) {
+    return new Decimal(0);
+  }
+  return new Decimal(value);
 }
 
 /**
@@ -47,7 +50,7 @@ export const Money = {
   divide(a: number | string | Decimal, b: number | string | Decimal): Decimal {
     const divisor = decimal(b);
     if (divisor.isZero()) {
-      throw new Error('Division by zero');
+      throw new RangeError(`Division by zero attempted with dividend: ${a} and divisor: ${b}`);
     }
     return decimal(a).dividedBy(divisor);
   },

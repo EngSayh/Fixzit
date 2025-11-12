@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// WARNING: This test script connects to the actual database.
+// Ensure you are running this in a SAFE TEST ENVIRONMENT ONLY.
+// DO NOT run this against production database as it accesses user credentials.
+// TODO: Refactor to use test-specific database connection or mock DB for safety.
 import { db } from '../../lib/mongo';
 import { User } from '../../server/models/User';
 
