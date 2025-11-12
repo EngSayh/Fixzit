@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Error fetching employees:', { error });
+    logger.error('Error fetching employees:', error);
     return NextResponse.json(
       { error: 'Failed to fetch employees' },
       { status: 500 }
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(employee, { status: 201 });
   } catch (error: unknown) {
-    logger.error('Error creating employee:', { error });
+    logger.error('Error creating employee:', error);
     
     if ((error as { code?: number }).code === 11000) {
       return NextResponse.json(

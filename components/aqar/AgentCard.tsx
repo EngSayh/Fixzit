@@ -93,7 +93,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
             </div>
           )}
           {agent.verified && (
-            <div className="absolute -bottom-1 -right-1 bg-success rounded-full p-0.5">
+            <div className="absolute -bottom-1 -end-1 bg-success rounded-full p-0.5">
               <CheckCircle className="w-3 h-3 text-white" />
             </div>
           )}
@@ -156,7 +156,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
                 </div>
               )}
               {agent.verified && (
-                <div className="absolute -bottom-1 -right-1 bg-success rounded-full p-1">
+                <div className="absolute -bottom-1 -end-1 bg-success rounded-full p-1">
                   <CheckCircle className="w-4 h-4 text-white" />
                 </div>
               )}

@@ -108,7 +108,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    logger.error('Error generating WPS file:', { error });
+    logger.error('Error generating WPS file:', error);
     return NextResponse.json(
       { error: 'Failed to generate WPS file' },
       { status: 500 }

@@ -144,7 +144,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           action: 'handleLogin',
           // PII removed: identifier field may contain email/employee number
         });
-      });
+      }).catch(logErr => console.error('Failed to load logger:', logErr));
       setErrors({
         general: t('login.errors.networkError', 'Network error. Please check your connection and try again.')
       });
@@ -162,10 +162,10 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           className="block text-sm font-medium text-foreground mb-2"
         >
           {t('login.identifier', 'Email or Employee Number')}
-          <span className="text-destructive ml-1" aria-label="required">*</span>
+          <span className="text-destructive ms-1" aria-label="required">*</span>
         </label>
         <div className="relative">
-          <Mail className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground`} aria-hidden="true" />
+          <Mail className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground`} aria-hidden="true" />
           <Input
             id="identifier"
             name="identifier"
@@ -178,7 +178,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
               clearError('identifier');
               clearError('general');
             }}
-            className={`${isRTL ? 'pr-10 text-right' : 'pl-10'} h-12 ${
+            className={`${isRTL ? 'pe-10 text-right' : 'ps-10'} h-12 ${
               errors.identifier ? 'border-destructive focus:ring-destructive' : ''
             }`}
             aria-invalid={!!errors.identifier}
@@ -204,7 +204,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         <div className="flex items-center justify-between mb-2">
           <label htmlFor="password" className="block text-sm font-medium text-foreground">
             {t('common.password', 'Password')}
-            <span className="text-destructive ml-1" aria-label="required">*</span>
+            <span className="text-destructive ms-1" aria-label="required">*</span>
           </label>
           <Link 
             href="/forgot-password" 
@@ -214,7 +214,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           </Link>
         </div>
         <div className="relative">
-          <Lock className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground`} aria-hidden="true" />
+          <Lock className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground`} aria-hidden="true" />
           <Input
             id="password"
             name="password"
@@ -227,7 +227,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
               clearError('password');
               clearError('general');
             }}
-            className={`${isRTL ? 'pr-10 pl-10 text-right' : 'pl-10 pr-10'} h-12 ${
+            className={`${isRTL ? 'pe-10 ps-10 text-right' : 'ps-10 pe-10'} h-12 ${
               errors.password ? 'border-destructive focus:ring-destructive' : ''
             }`}
             aria-invalid={!!errors.password}
@@ -239,7 +239,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary rounded`}
+            className={`absolute ${isRTL ? 'start-3' : 'end-3'} top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary rounded`}
             aria-label={showPassword ? t('login.hidePassword', 'Hide password') : t('login.showPassword', 'Show password')}
             aria-pressed={showPassword}
           >

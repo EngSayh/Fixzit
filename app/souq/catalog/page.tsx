@@ -162,13 +162,14 @@ export default function CatalogPage() {
         <div className="mb-6">
           <div className="flex flex-col md:flex-row gap-4 mb-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+              <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" aria-hidden="true" />
               <input
                 type="text"
                 placeholder="Search products, categories, or vendors..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
+                className="w-full ps-10 pe-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
+                aria-label="Search products, categories, or vendors"
               />
             </div>
 
@@ -177,6 +178,7 @@ export default function CatalogPage() {
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
+                aria-label="Filter by category"
               >
                 {categories.map(category => (
                   <option key={category} value={category}>
@@ -189,6 +191,7 @@ export default function CatalogPage() {
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
+                aria-label="Sort products by"
               >
                 <option value="relevance">Relevance</option>
                 <option value="price-low">Price: Low to High</option>
@@ -221,7 +224,7 @@ export default function CatalogPage() {
                 />
 
                 {/* Badges */}
-                <div className="absolute top-2 left-2 flex flex-col gap-1">
+                <div className="absolute top-2 start-2 flex flex-col gap-1">
                   {product.isNew && (
                     <span className="bg-primary/20 text-white text-xs px-2 py-1 rounded">New</span>
                   )}
@@ -232,7 +235,7 @@ export default function CatalogPage() {
                   )}
                 </div>
 
-                <button className="absolute top-2 right-2 p-2 bg-card rounded-full shadow-md hover:bg-muted">
+                <button className="absolute top-2 end-2 p-2 bg-card rounded-full shadow-md hover:bg-muted">
                   <Heart className="w-4 h-4 text-muted-foreground hover:text-destructive" />
                 </button>
               </div>
@@ -281,7 +284,7 @@ export default function CatalogPage() {
                         : 'bg-muted text-muted-foreground cursor-not-allowed'
                     }`}
                   >
-                    <ShoppingCart className="w-4 h-4 inline mr-1" />
+                    <ShoppingCart className="w-4 h-4 inline me-1" />
                     Add to Cart
                   </button>
                 </div>

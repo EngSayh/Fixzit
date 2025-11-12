@@ -47,7 +47,7 @@ export default function VendorsPage() {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <span className="text-sm text-foreground">4.8</span>
-                    <span className="ml-1 text-accent">★</span>
+                    <span className="ms-1 text-accent">★</span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -71,7 +71,7 @@ export default function VendorsPage() {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <span className="text-sm text-foreground">4.5</span>
-                    <span className="ml-1 text-accent">★</span>
+                    <span className="ms-1 text-accent">★</span>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">

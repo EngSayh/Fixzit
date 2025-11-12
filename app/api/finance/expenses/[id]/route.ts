@@ -72,7 +72,7 @@ export async function GET(req: NextRequest, context: RouteContext<{ id: string }
       }
     );
   } catch (error) {
-    logger.error('Error fetching expense:', { error });
+    logger.error('Error fetching expense:', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });
@@ -160,7 +160,7 @@ export async function PUT(req: NextRequest, context: RouteContext<{ id: string }
       }
     );
   } catch (error) {
-    logger.error('Error updating expense:', { error });
+    logger.error('Error updating expense:', error);
 
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });
@@ -243,7 +243,7 @@ export async function DELETE(req: NextRequest, context: RouteContext<{ id: strin
       }
     );
   } catch (error) {
-    logger.error('Error cancelling expense:', { error });
+    logger.error('Error cancelling expense:', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });

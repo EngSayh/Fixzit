@@ -69,7 +69,11 @@ export default function PrivacyPage() {
         setContent(DEFAULT_PRIVACY_CONTENT);
       }
     } catch (err) {
-      logger.error('Error fetching privacy policy:', { err });
+      logger.error(
+        'Error fetching privacy policy',
+        err instanceof Error ? err : new Error(String(err)),
+        { route: '/privacy' }
+      );
       setTitle(t('privacy.title', 'Privacy Policy'));
       setContent(DEFAULT_PRIVACY_CONTENT);
     } finally {
@@ -89,7 +93,11 @@ export default function PrivacyPage() {
           setRenderedContent(html);
         })
         .catch(err => {
-          logger.error('Error rendering markdown:', { err });
+          logger.error(
+            'Error rendering markdown',
+            err instanceof Error ? err : new Error(String(err)),
+            { route: '/privacy', action: 'render-markdown' }
+          );
           // Fallback to plain text wrapped in paragraphs
           setRenderedContent(`<div class="prose max-w-none"><p>${content.replace(/\n/g, '</p><p>')}</p></div>`);
         });

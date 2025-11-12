@@ -124,7 +124,7 @@ export default function InvoicesPage() {
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-emerald-600 hover:bg-emerald-700">
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4 me-2" />
               {t('fm.invoices.newInvoice', 'New Invoice')}
             </Button>
           </DialogTrigger>
@@ -192,7 +192,7 @@ export default function InvoicesPage() {
                 <p className="text-2xl font-bold text-success">
                   {invoices.filter((inv: Invoice) => 
                     inv.status === 'PAID' && 
-                    new Date(inv.payments?.[0]?.date ?? '').getMonth() === new Date().getMonth()
+                    new Date(inv.payments?.[0]?.date || Date.now()).getMonth() === new Date().getMonth()
                   ).length}
                 </p>
               </div>
@@ -208,12 +208,12 @@ export default function InvoicesPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-64">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder={t('fm.invoices.searchInvoices', 'Search by invoice number or customer...')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10"
+                  className="ps-10"
                 />
               </div>
             </div>
@@ -268,7 +268,7 @@ export default function InvoicesPage() {
                 <h3 className="text-lg font-semibold text-foreground mb-2">{t('fm.invoices.noInvoices', 'No Invoices Found')}</h3>
                 <p className="text-muted-foreground mb-4">{t('fm.invoices.noInvoicesText', 'Get started by creating your first invoice.')}</p>
                 <Button onClick={() => setCreateOpen(true)} className="bg-emerald-600 hover:bg-emerald-700">
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-4 h-4 me-2" />
                   {t('fm.invoices.createInvoice', 'Create Invoice')}
                 </Button>
               </CardContent>
@@ -675,7 +675,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
                   onChange={(e) => handleItemChange(index, 'tax', {...item.tax, rate: Number(e.target.value)})}
                 />
               </div>
-              <div className="col-span-1 text-right font-medium">
+              <div className="col-span-1 text-end font-medium">
                 {item.total.toFixed(2)}
               </div>
               <div className="col-span-1">

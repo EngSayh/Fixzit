@@ -211,12 +211,12 @@ export default function CatalogView({
         <CardContent className="pt-6">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
                 value={search}
                 onChange={event => setSearch(event.target.value)}
                 placeholder="Search products, vendors, or SKUs"
-                className="pl-9"
+                className="ps-9"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:w-[540px]">
@@ -305,7 +305,7 @@ export default function CatalogView({
                   <div className="space-y-2 flex-1">
                     <div className="text-2xl font-semibold text-foreground">
                       {formatCurrency(product.price, product.currency)}
-                      <span className="text-sm text-muted-foreground ml-1">/ {product.unit}</span>
+                      <span className="text-sm text-muted-foreground ms-1">/ {product.unit}</span>
                     </div>
                     <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                       <Badge variant="outline" className="border-success text-success">
@@ -342,7 +342,7 @@ export default function CatalogView({
                     className="flex-1 bg-primary hover:bg-primary-dark"
                     onClick={() => handleAddToCart(product)}
                   >
-                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    <ShoppingCart className="w-4 h-4 me-2" />
                     Add to cart
                   </Button>
                   <Button

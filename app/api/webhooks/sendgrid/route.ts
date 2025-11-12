@@ -60,7 +60,8 @@ export async function POST(req: NextRequest) {
         throw new Error(`Invalid payload type: Expected array, got ${typeof events}`);
       }
     } catch (parseError) {
-      logger.error('❌ Invalid JSON payload:', { parseError });
+      const error = parseError instanceof Error ? parseError : new Error(String(parseError));
+      logger.error('❌ Invalid JSON payload:', error);
       return createSecureResponse({ error: 'Invalid JSON payload' }, 400, req);
     }
 
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
     // CRITICAL SECURITY: Signature verification with timing-safe comparison
     const isValid = verifyWebhookSignature(publicKey, rawBody, signature, timestamp);
     if (!isValid) {
-      logger.error('❌ Invalid webhook signature from IP:', { clientIp });
+      logger.error('❌ Invalid webhook signature from IP', undefined, { clientIp });
       return createSecureResponse({ error: 'Invalid signature' }, 401, req);
     }
 
@@ -81,73 +82,81 @@ export async function POST(req: NextRequest) {
     const emailsCollection = db.collection('email_logs');
 
     const updates = events.map(async (event) => {
-      const emailId = event.emailId; // Custom arg we sent
-      const eventDate = new Date(event.timestamp * 1000);
+      try {
+        const emailId = event.emailId; // Custom arg we sent
+        const eventDate = new Date(event.timestamp * 1000);
 
-      // Build update based on event type
-      const update: Record<string, unknown> = {
-        lastEvent: event.event,
-        lastEventAt: eventDate,
-        [`events.${event.event}`]: eventDate
-      };
+        // Build update based on event type
+        const set: Record<string, unknown> = {
+          lastEvent: event.event,
+          lastEventAt: eventDate,
+          [`events.${event.event}`]: eventDate
+        };
+        const inc: Record<string, number> = {};
+        const addToSet: Record<string, unknown> = {};
 
-      // Handle specific event types
-      switch (event.event) {
+        // Handle specific event types
+        switch (event.event) {
         case 'delivered':
-          update.status = 'delivered';
-          update.deliveredAt = eventDate;
+          set.status = 'delivered';
+          set.deliveredAt = eventDate;
           break;
 
         case 'open':
-          update.opened = true;
-          update.openedAt = eventDate;
-          update.openCount = { $inc: 1 };
+          set.opened = true;
+          set.openedAt = eventDate;
+          inc.openCount = 1;
           break;
 
         case 'click':
-          update.clicked = true;
-          update.clickedAt = eventDate;
-          update.clickCount = { $inc: 1 };
+          set.clicked = true;
+          set.clickedAt = eventDate;
+          inc.clickCount = 1;
           if (event.url) {
-            update.clickedUrls = { $addToSet: event.url };
+            addToSet.clickedUrls = event.url;
           }
           break;
 
         case 'bounce':
         case 'dropped':
-          update.status = 'failed';
-          update.failedAt = eventDate;
-          update.error = event.reason || `Email ${event.event}`;
-          update.bounceReason = event.reason;
-          update.bounceStatus = event.status;
+          set.status = 'failed';
+          set.failedAt = eventDate;
+          set.error = event.reason || `Email ${event.event}`;
+          set.bounceReason = event.reason;
+          set.bounceStatus = event.status;
           break;
 
         case 'spamreport':
-          update.status = 'spam';
-          update.spamReportedAt = eventDate;
+          set.status = 'spam';
+          set.spamReportedAt = eventDate;
           break;
 
         case 'unsubscribe':
         case 'group_unsubscribe':
-          update.unsubscribed = true;
-          update.unsubscribedAt = eventDate;
+          set.unsubscribed = true;
+          set.unsubscribedAt = eventDate;
           break;
 
         case 'group_resubscribe':
-          update.unsubscribed = false;
-          update.resubscribedAt = eventDate;
+          set.unsubscribed = false;
+          set.resubscribedAt = eventDate;
           break;
+        }
+
+      // Build update doc
+      const updateDoc: Record<string, unknown> = { $set: set };
+      if (Object.keys(inc).length) {
+        updateDoc.$inc = inc;
+      }
+      if (Object.keys(addToSet).length) {
+        updateDoc.$addToSet = addToSet;
       }
 
       // Update email log
       if (emailId) {
         await emailsCollection.updateOne(
           { emailId },
-          { 
-            $set: update,
-            $inc: update.openCount ? { openCount: 1 } : update.clickCount ? { clickCount: 1 } : {},
-            $addToSet: update.clickedUrls ? { clickedUrls: event.url } : {}
-          },
+          updateDoc,
           { upsert: false }
         );
       } else {
@@ -157,27 +166,42 @@ export async function POST(req: NextRequest) {
             recipient: event.email,
             'metadata.sg_message_id': event.sg_message_id 
           },
-          { 
-            $set: update,
-            $inc: update.openCount ? { openCount: 1 } : update.clickCount ? { clickCount: 1 } : {}
-          },
+          updateDoc,
           { upsert: false }
         );
       }
 
       logger.info(`✅ Processed ${event.event} for ${event.email} (${emailId || event.sg_message_id})`);
+      return { status: 'success', event: event.event, email: event.email };
+    } catch (eventError) {
+      logger.error(`❌ Failed to process event ${event.event} for ${event.email}:`, eventError instanceof Error ? eventError : new Error(String(eventError)));
+      // Don't throw - continue processing other events
+      return { status: 'failed', event: event.event, email: event.email, error: eventError };
+    }
     });
 
-    await Promise.all(updates);
+    const results = await Promise.allSettled(updates);
+    
+    // Count successful and failed operations in a single pass
+    const { successful, failed } = results.reduce((acc, r) => ({
+      successful: acc.successful + (r.status === 'fulfilled' && r.value.status === 'success' ? 1 : 0),
+      failed: acc.failed + (r.status === 'rejected' || (r.status === 'fulfilled' && r.value.status === 'failed') ? 1 : 0)
+    }), { successful: 0, failed: 0 });
+
+    if (failed > 0) {
+      logger.warn(`⚠️  Webhook processing partial success: ${successful} succeeded, ${failed} failed`);
+    }
 
     return createSecureResponse({
-      success: true,
+      success: failed === 0,  // Only true if all succeeded
       processed: events.length,
-      message: 'Events processed successfully'
-    }, 200, req);
+      successful,
+      failed,
+      message: failed > 0 ? `Processed ${events.length} events: ${successful} successful, ${failed} failed` : 'Events processed successfully'
+    }, failed > 0 ? 500 : 200, req);  // Return 500 if any failed to trigger SendGrid retry
 
   } catch (error) {
-    logger.error('❌ Webhook processing error:', { error });
+    logger.error('❌ Webhook processing error:', error);
     return createSecureResponse({
       error: 'Failed to process webhook',
       message: error instanceof Error ? error.message : 'Unknown error'

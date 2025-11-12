@@ -89,7 +89,7 @@ export default function AssetsPage() {
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-primary hover:bg-primary/90">
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4 me-2" />
               New Asset
             </Button>
           </DialogTrigger>
@@ -108,12 +108,12 @@ export default function AssetsPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-64">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search assets..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10"
+                  className="ps-10"
                 />
               </div>
             </div>
@@ -170,7 +170,7 @@ export default function AssetsPage() {
                 <h3 className="text-lg font-semibold text-foreground mb-2">No Assets Found</h3>
                 <p className="text-muted-foreground mb-4">Get started by adding your first asset to the registry.</p>
                 <Button onClick={() => setCreateOpen(true)} className="bg-primary hover:bg-primary/90">
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-4 h-4 me-2" />
                   Add Asset
                 </Button>
               </CardContent>
@@ -219,7 +219,7 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
         toast.error(`Failed to delete asset: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      logger.error('Delete error:', { error });
+      logger.error('Delete error:', error);
       toast.error('Error deleting asset. Please try again.', { id: toastId });
     }
   };
@@ -394,7 +394,7 @@ function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
         toast.error(`Failed to create asset: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      logger.error('Error creating asset:', { error });
+      logger.error('Error creating asset:', error);
       toast.error('Error creating asset. Please try again.', { id: toastId });
     }
   };

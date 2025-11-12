@@ -1,18 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { logger } from '@/lib/logger';
-/**
- * Type for developer credential payload from dev-only module
- * Ensures type safety when calling findLoginPayloadByRole
- */
-type DevCredentialPayload = {
-  email: string;
-  password: string;
-  loginType?: 'personal' | 'corporate';
-  employeeNumber?: string;
-  orgId?: string;
-  preferredPath?: string;
-};
 
 /**
  * Server-side demo login endpoint
@@ -35,17 +23,18 @@ export async function POST(req: NextRequest) {
   // Gate early — dev only
   // Dynamically import dev-only module (won't be bundled in production)
   let ENABLED = false;
-  // eslint-disable-next-line no-unused-vars
-  let findLoginPayloadByRole: (role: string) => DevCredentialPayload | null = () => null;
+  type DevCredentialsModule = typeof import('@/dev/credentials.server');
+  type DemoCredentialFn = DevCredentialsModule['findLoginPayloadByRole'];
+  let findLoginPayloadByRole: DemoCredentialFn = (_role) => null;
 
   try {
     // We use a dynamic import to ensure this file is never bundled in production
     const module = await import(/* webpackIgnore: true */ '@/dev/credentials.server');
     ENABLED = module.ENABLED ?? false;
-    findLoginPayloadByRole = module.findLoginPayloadByRole;
-  } catch (e) {
-    // Module not available (e.g., production build) - fail gracefully
-    logger.error('[Dev Demo Login] Failed to load credentials module:', { e });
+    findLoginPayloadByRole = module.findLoginPayloadByRole as DemoCredentialFn;
+  } catch (_e) {
+    // Module not available (e.g., production build or missing credentials file) - fail gracefully
+    logger.info('[Dev Demo Login] Credentials module not available (expected in CI/production)');
     return withNoStore(NextResponse.json({ error: 'Demo not enabled' }, { status: 403 }));
   }
 
@@ -105,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     return res;
   } catch (error) {
-    logger.error('[Dev Demo Login] Error:', { error });
+    logger.error('[Dev Demo Login] Error:', error);
     return withNoStore(
       NextResponse.json(
         {

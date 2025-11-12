@@ -56,7 +56,7 @@ export default function CompactLanguageSelector({ className = '' }: CompactLangu
         <select
           value={language}
           onChange={(e) => handleChange(e.target.value)}
-          className="bg-transparent border-none outline-none text-sm text-foreground font-medium cursor-pointer pr-1"
+          className="bg-transparent border-none outline-none text-sm text-foreground font-medium cursor-pointer pe-1"
           aria-label="Select language"
         >
           {AUTH_LANGUAGES.map((lang) => (

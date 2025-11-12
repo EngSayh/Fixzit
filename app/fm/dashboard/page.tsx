@@ -151,10 +151,10 @@ export default function DashboardPage() {
           <Button variant="outline" className="flex items-center gap-2">
             <Bell className="w-4 h-4" />
             Notifications
-            <Badge className="ml-2 bg-destructive/20 text-destructive">3</Badge>
+            <Badge className="ms-2 bg-destructive/20 text-destructive">3</Badge>
           </Button>
           <Button className="bg-primary hover:bg-primary/90">
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 me-2" />
             Quick Action
           </Button>
         </div>
@@ -312,25 +312,25 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link href="/fm/work-orders/new">
               <Button variant="outline" className="w-full justify-start">
-                <ClipboardList className="w-4 h-4 mr-2" />
+                <ClipboardList className="w-4 h-4 me-2" />
                 New Work Order
               </Button>
             </Link>
             <Link href="/fm/properties/new">
               <Button variant="outline" className="w-full justify-start">
-                <Building2 className="w-4 h-4 mr-2" />
+                <Building2 className="w-4 h-4 me-2" />
                 Add Property
               </Button>
             </Link>
             <Link href="/fm/tenants/new">
               <Button variant="outline" className="w-full justify-start">
-                <Users className="w-4 h-4 mr-2" />
+                <Users className="w-4 h-4 me-2" />
                 New Tenant
               </Button>
             </Link>
             <Link href="/fm/invoices/new">
               <Button variant="outline" className="w-full justify-start">
-                <DollarSign className="w-4 h-4 mr-2" />
+                <DollarSign className="w-4 h-4 me-2" />
                 Create Invoice
               </Button>
             </Link>

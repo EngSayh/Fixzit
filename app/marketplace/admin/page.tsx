@@ -39,16 +39,17 @@ interface Category {
 }
 
 export default async function MarketplaceAdminPage() {
-  const [, productsResponse, ordersResponse, rfqResponse] = await Promise.all([
-    serverFetchJsonWithTenant<{ data: Category[] }>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<{ data: { items: Product[] } }>('/api/marketplace/products?limit=50'),
-    serverFetchJsonWithTenant<{ data: Order[] }>('/api/marketplace/orders'),
-    serverFetchJsonWithTenant<{ data: RFQ[] }>('/api/marketplace/rfq')
-  ]);
+  try {
+    const [, productsResponse, ordersResponse, rfqResponse] = await Promise.all([
+      serverFetchJsonWithTenant<{ data: Category[] }>('/api/marketplace/categories'),
+      serverFetchJsonWithTenant<{ data: { items: Product[] } }>('/api/marketplace/products?limit=50'),
+      serverFetchJsonWithTenant<{ data: Order[] }>('/api/marketplace/orders'),
+      serverFetchJsonWithTenant<{ data: RFQ[] }>('/api/marketplace/rfq')
+    ]);
 
-  const products = productsResponse.data.items;
-  const orders = ordersResponse.data;
-  const rfqs = rfqResponse.data;
+    const products = productsResponse.data.items;
+    const orders = ordersResponse.data;
+    const rfqs = rfqResponse.data;
 
   // [CODE REVIEW]: FIX - Use Tailwind theme classes, fix React keys to use 'id'
   return (
@@ -97,7 +98,7 @@ export default async function MarketplaceAdminPage() {
 
         <section className="rounded-2xl bg-card p-6 shadow">
           <h2 className="text-lg font-semibold text-foreground">Approval queue</h2>
-          <table className="mt-4 w-full table-fixed text-left text-sm text-foreground">
+          <table className="mt-4 w-full table-fixed text-start text-sm text-foreground">
             <thead>
               <tr className="text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="py-2">Order</th>
@@ -125,4 +126,14 @@ export default async function MarketplaceAdminPage() {
       </main>
     </div>
   );
+  } catch (error) {
+    console.error('Failed to load marketplace admin data:', error);
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive">Failed to load marketplace admin data. Please try again later.</p>
+        </div>
+      </div>
+    );
+  }
 }

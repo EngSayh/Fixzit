@@ -88,7 +88,7 @@ export async function POST() {
     
     return NextResponse.json({ code: referralCode });
   } catch (error) {
-    logger.error('Failed to generate referral code:', { error });
+    logger.error('Failed to generate referral code:', error);
     return NextResponse.json(
       { error: 'Failed to generate referral code' },
       { status: 500 }

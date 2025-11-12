@@ -337,7 +337,22 @@
     "invoices": "الفواتير",
     "expenses": "المصروفات",
     "payments": "المدفوعات",
-    "reports": "التقارير المالية"
+    "reports": "التقارير المالية",
+    "category": {
+      "operational": "تشغيلي",
+      "maintenance": "صيانة",
+      "capital": "رأسمالي",
+      "utility": "مرافق",
+      "administrative": "إداري",
+      "other": "أخرى"
+    },
+    "accountType": {
+      "ASSET": "أصول",
+      "LIABILITY": "التزامات",
+      "EQUITY": "حقوق الملكية",
+      "REVENUE": "إيرادات",
+      "EXPENSE": "مصروفات"
+    }
   },
   "hr": {
     "title": "الموارد البشرية",
@@ -410,7 +425,74 @@
     "tickets": "تذاكر الدعم",
     "knowledge": "قاعدة المعرفة",
     "faq": "الأسئلة الشائعة",
-    "contact": "اتصل بالدعم"
+    "contact": "اتصل بالدعم",
+    "errorReport": "تقرير خطأ",
+    "category": "الفئة",
+    "subCategory": "الفئة الفرعية",
+    "type": "النوع",
+    "priority": "الأولوية",
+    "modules": {
+      "FM": "إدارة المرافق",
+      "Souq": "السوق",
+      "Aqar": "العقارات",
+      "Account": "الحساب",
+      "Billing": "الفوترة",
+      "Other": "أخرى"
+    },
+    "categories": {
+      "Technical": "تقنية",
+      "Feature Request": "طلب ميزة",
+      "Billing": "الفوترة",
+      "Account": "الحساب",
+      "General": "عامة",
+      "Bug Report": "تقرير خطأ"
+    },
+    "subCategories": {
+      "Bug Report": "تقرير خطأ",
+      "Performance Issue": "مشكلة أداء",
+      "UI Error": "خطأ واجهة المستخدم",
+      "API Error": "خطأ API",
+      "Database Error": "خطأ قاعدة البيانات",
+      "New Feature": "ميزة جديدة",
+      "Enhancement": "تحسين",
+      "Integration": "تكامل",
+      "Customization": "تخصيص",
+      "Mobile App": "تطبيق الجوال",
+      "Invoice Issue": "مشكلة فاتورة",
+      "Payment Error": "خطأ دفع",
+      "Subscription": "الاشتراك",
+      "Refund": "استرداد",
+      "Pricing": "التسعير",
+      "Login Issue": "مشكلة تسجيل الدخول",
+      "Password Reset": "إعادة تعيين كلمة المرور",
+      "Profile Update": "تحديث الملف الشخصي",
+      "Permissions": "الصلاحيات",
+      "Access Denied": "تم رفض الوصول",
+      "Documentation": "التوثيق",
+      "Training": "التدريب",
+      "Support": "الدعم",
+      "Feedback": "الملاحظات",
+      "Other": "أخرى",
+      "Critical Bug": "خطأ حرج",
+      "Minor Bug": "خطأ بسيط",
+      "Cosmetic Issue": "مشكلة تجميلية",
+      "Data Error": "خطأ بيانات",
+      "Security Issue": "مشكلة أمنية"
+    },
+    "types": {
+      "Bug": "خطأ",
+      "Feature": "ميزة",
+      "Complaint": "شكوى",
+      "Billing": "فوترة",
+      "Access": "وصول",
+      "Other": "أخرى"
+    },
+    "priorities": {
+      "Low": "منخفضة",
+      "Medium": "متوسطة",
+      "High": "عالية",
+      "Urgent": "عاجلة"
+    }
   },
   "help": {
     "title": "مركز المساعدة",
@@ -432,7 +514,12 @@
       "placeholder": "ابحث عن العقارات والمشاريع والوكلاء..."
     },
     "postProperty": "نشر عقار",
-    "newValuation": "تقييم جديد"
+    "newValuation": "تقييم جديد",
+    "packages": {
+      "errors": {
+        "fetchFailed": "فشل في جلب الباقات"
+      }
+    }
   },
   "common": {
     "brand": "فكس إت",
@@ -498,7 +585,10 @@
     "draft": "مسودة",
     "published": "منشور",
     "archived": "مؤرشف",
-    "deleted": "محذوف"
+    "deleted": "محذوف",
+    "errors": {
+      "unexpected": "حدث خطأ غير متوقع"
+    }
   },
   "app": {
     "fm": "إدارة المرافق",
@@ -566,6 +656,25 @@
       "compliance": "الامتثال",
       "reporting": "التقارير",
       "admin": "الإدارة"
+    }
+  },
+  "settings": {
+    "subtitle": "إدارة إعدادات حسابك وتفضيلاتك",
+    "notifications": {
+      "title": "تفضيلات الإشعارات",
+      "save": "حفظ التفضيلات",
+      "email": "إشعارات البريد الإلكتروني",
+      "sms": "إشعارات الرسائل النصية",
+      "push": "الإشعارات الفورية",
+      "workOrders": "تحديثات أوامر العمل",
+      "maintenance": "تنبيهات الصيانة",
+      "reports": "ملخصات التقارير"
+    },
+    "preferences": {
+      "title": "تفضيلات التطبيق",
+      "language": "اللغة",
+      "english": "الإنجليزية",
+      "arabic": "العربية"
     }
   },
   "navigation": {

@@ -65,7 +65,7 @@ export default function Sidebar({ tenantId: _tenantId }: SidebarProps) {
 
   const asideBase =
     screenInfo.isMobile || screenInfo.isTablet
-      ? `fixed inset-y-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${translationIsRTL ? 'right-0' : 'left-0'}`
+      ? `fixed inset-y-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${translationIsRTL ? 'end-0' : 'start-0'}`
       : 'sticky top-14 w-64 h-[calc(100vh-3.5rem)]';
 
   return (

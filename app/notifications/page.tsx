@@ -165,7 +165,7 @@ export default function NotificationsPage() {
       });
       mutate();
     } catch (error) {
-      logger.error('Error marking notification as read:', { error });
+      logger.error('Error marking notification as read:', error);
       toast.error('Failed to mark notification as read');
     }
   };
@@ -196,7 +196,7 @@ export default function NotificationsPage() {
         toast.success(`Marked ${unreadIds.length} notifications as read`, { id: toastId });
         mutate();
       } catch (error) {
-        logger.error('Error marking notifications as read:', { error });
+        logger.error('Error marking notifications as read:', error);
         toast.error('Failed to mark notifications as read', { id: toastId });
       }
     }
@@ -230,7 +230,7 @@ export default function NotificationsPage() {
         setSelectedNotifications(new Set());
         setSelectAll(false);
       } catch (error) {
-        logger.error('Error marking notifications as read:', { error });
+        logger.error('Error marking notifications as read:', error);
         toast.error('Failed to mark notifications as read', { id: toastId });
       }
     }
@@ -365,11 +365,11 @@ export default function NotificationsPage() {
             onClick={markAllAsRead}
             disabled={unreadCount === 0}
           >
-            <CheckCheck size={16} className="mr-2" />
+            <CheckCheck size={16} className="me-2" />
             Mark All Read ({unreadCount})
           </button>
           <button className="btn-primary">
-            <Filter size={16} className="mr-2" />
+            <Filter size={16} className="me-2" />
             Settings
           </button>
         </div>
@@ -424,13 +424,13 @@ export default function NotificationsPage() {
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search notifications..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full ps-10 pe-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
               />
             </div>
           </div>
@@ -483,7 +483,7 @@ export default function NotificationsPage() {
           >
             Urgent ({tabCounts.urgent})
             {tabCounts.urgent > 0 && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-destructive/20 rounded-full"></span>
+              <span className="absolute -top-1 -end-1 w-2 h-2 bg-destructive/20 rounded-full"></span>
             )}
           </button>
         </div>

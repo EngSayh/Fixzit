@@ -114,7 +114,7 @@ export default function QuickActions() {
 
       {open && (
         <div 
-          className={`absolute ${isRTL ? 'left-0' : 'right-0'} top-full mt-2 w-56 bg-popover rounded-lg shadow-lg border border-border z-50`}
+          className={`absolute ${isRTL ? 'start-0' : 'end-0'} top-full mt-2 w-56 bg-popover rounded-lg shadow-lg border border-border z-50`}
           role="menu"
           aria-label={t('topbar.quickActions', 'Quick actions')}
         >
@@ -146,7 +146,7 @@ export default function QuickActions() {
                 onMouseEnter={() => setActiveIndex(idx)}
                 className={`flex items-center gap-3 p-3 rounded-md hover:bg-accent transition-colors text-foreground cursor-pointer ${
                   idx === activeIndex ? 'ring-2 ring-primary ring-inset' : ''
-                } ${isRTL ? 'flex-row-reverse text-right' : ''}`}
+                } ${isRTL ? 'flex-row-reverse text-end' : ''}`}
               >
                 <Plus className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm">{t(action.labelKey, action.labelKey)}</span>

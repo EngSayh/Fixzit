@@ -127,12 +127,12 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
 
       {open && (
         <div
-          className={`absolute z-[100] mt-2 rounded-2xl border border-border bg-card p-3 shadow-2xl ${dropdownWidth} max-w-[calc(100vw-2rem)] ${isRTL ? 'left-0' : 'right-0'} animate-in slide-in-from-top-2 duration-200`}
+          className={`absolute z-[100] mt-2 rounded-2xl border border-border bg-card p-3 shadow-2xl ${dropdownWidth} max-w-[calc(100vw-2rem)] ${isRTL ? 'start-0' : 'end-0'} animate-in slide-in-from-top-2 duration-200`}
         >
           {/* Arrow pointer */}
-          <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-card border-l border-t border-border transform rotate-45 ${isRTL ? 'left-8' : 'right-8'}`}></div>
+          <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-card border-l border-t border-border transform rotate-45 ${isRTL ? 'start-8' : 'end-8'}`}></div>
           <div className="relative mb-2">
-            <Search className={`pointer-events-none absolute top-2 h-4 w-4 text-muted-foreground ${isRTL ? 'right-2' : 'left-2'}`} aria-hidden="true" focusable="false" />
+            <Search className={`pointer-events-none absolute top-2 h-4 w-4 text-muted-foreground ${isRTL ? 'end-2' : 'start-2'}`} aria-hidden="true" focusable="false" />
             <input
               type="text"
               value={query}
@@ -163,7 +163,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
                   }
                 }
               }}
-              className={`w-full rounded border border-border bg-card ${isRTL ? 'pr-7 pl-2' : 'pl-7 pr-2'} py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30`}
+              className={`w-full rounded border border-border bg-card ${isRTL ? 'pe-7 ps-2' : 'ps-7 pe-2'} py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30`}
               placeholder={t('i18n.filterCurrencies', 'Type to filter currencies')}
               aria-label={t('i18n.filterCurrencies', 'Type to filter currencies')}
               autoComplete="off"

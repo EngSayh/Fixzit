@@ -115,7 +115,11 @@ export default function AuditLogViewer() {
       setTotalLogs(data.total || 0);
       setTotalPages(Math.ceil((data.total || 0) / LOGS_PER_PAGE));
     } catch (err) {
-      logger.error('Failed to fetch audit logs:', { err });
+      logger.error(
+        'Failed to fetch audit logs',
+        err instanceof Error ? err : new Error(String(err)),
+        { route: '/admin/audit-logs', page, filters }
+      );
       
       // Handle different error types with user-friendly messages
       let errorMessage = 'An unexpected error occurred. Please try again.';
@@ -485,7 +489,7 @@ export default function AuditLogViewer() {
                   <h3 className="text-sm font-medium text-muted-foreground">User</h3>
                   <p className="mt-1 text-foreground">
                     {selectedLog.userName} ({selectedLog.userEmail})
-                    <span className="ml-2 text-xs text-muted-foreground">
+                    <span className="ms-2 text-xs text-muted-foreground">
                       Role: {selectedLog.userRole}
                     </span>
                   </p>
@@ -497,7 +501,7 @@ export default function AuditLogViewer() {
                     {selectedLog.entityType}
                     {selectedLog.entityName && ` - ${selectedLog.entityName}`}
                     {selectedLog.entityId && (
-                      <span className="ml-2 text-xs text-muted-foreground">
+                      <span className="ms-2 text-xs text-muted-foreground">
                         ID: {selectedLog.entityId}
                       </span>
                     )}

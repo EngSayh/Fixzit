@@ -70,7 +70,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    logger.error('Failed to fetch user preferences:', { error });
+    logger.error('Failed to fetch user preferences:', error);
     return NextResponse.json(
       { error: 'Failed to fetch preferences' },
       { status: 500 }
@@ -141,7 +141,7 @@ export async function PUT(request: NextRequest) {
       preferences: user.preferences,
     });
   } catch (error) {
-    logger.error('Failed to update user preferences:', { error });
+    logger.error('Failed to update user preferences:', error);
     return NextResponse.json(
       { error: 'Failed to update preferences' },
       { status: 500 }

@@ -119,7 +119,7 @@
 ### Pre-commit Hook (Required)
 ```bash
 # .husky/pre-commit or .git/hooks/pre-commit
-#!/bin/sh
+# Shell script to validate translations before commit
 node scripts/audit-translations.mjs
 if [ $? -ne 0 ]; then
   echo "❌ Translation audit failed. Please fix gaps before committing."
@@ -159,7 +159,7 @@ fi
 ### TypeScript
 - **Strict mode enabled** - No implicit any, proper types for all variables
 - **Interface over type** - Use `interface` for object shapes, `type` for unions/intersections
-- **Avoid `any`** - Use `unknown` or proper types instead
+- **Avoid `any`** - Use `unknown` or proper types
 - **Null safety** - Use optional chaining (`?.`) and nullish coalescing (`??`)
 
 ### React

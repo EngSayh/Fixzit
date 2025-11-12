@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ logs });
   } catch (error) {
-    logger.error('Failed to fetch audit logs:', { error });
+    logger.error('Failed to fetch audit logs:', error);
     return NextResponse.json(
       { error: 'Failed to fetch audit logs' },
       { status: 500 }

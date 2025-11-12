@@ -136,13 +136,13 @@ export default function NewWorkOrderPage() {
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('workOrders.quickActions', 'Quick Actions')}</h3>
             <div className="space-y-2">
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 📋 {t('workOrders.createFromTemplate', 'Create from Template')}
               </button>
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 📞 {t('workOrders.emergencyContact', 'Emergency Contact')}
               </button>
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 📊 {t('workOrders.costCalculator', 'Cost Calculator')}
               </button>
             </div>
@@ -154,12 +154,12 @@ export default function NewWorkOrderPage() {
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-[hsl(var(--success)) / 0.2] rounded-full"></div>
                 <span className="text-muted-foreground">{t('workOrders.formAutoSaved', 'Form auto-saved')}</span>
-                <span className="text-muted-foreground ml-auto">2m ago</span>
+                <span className="text-muted-foreground ms-auto">2m ago</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-primary/20 rounded-full"></div>
                 <span className="text-muted-foreground">{t('workOrders.propertySelected', 'Property selected')}</span>
-                <span className="text-muted-foreground ml-auto">5m ago</span>
+                <span className="text-muted-foreground ms-auto">5m ago</span>
               </div>
             </div>
           </div>

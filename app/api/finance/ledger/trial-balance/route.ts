@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
     );
     
   } catch (error) {
-    logger.error('GET /api/finance/ledger/trial-balance error:', { error });
+    logger.error('GET /api/finance/ledger/trial-balance error:', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });

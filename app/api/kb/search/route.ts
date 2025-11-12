@@ -131,7 +131,11 @@ export async function POST(req: NextRequest) {
 
     return createSecureResponse({ results }, 200, req);
   } catch (err) {
-    logger.error('kb/search error', { err });
+    logger.error(
+      'kb/search error',
+      err instanceof Error ? err : new Error(String(err)),
+      { route: 'POST /api/kb/search' }
+    );
     return createSecureResponse({ error: 'Search failed' }, 500, req);
   }
 }

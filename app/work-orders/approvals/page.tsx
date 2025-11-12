@@ -172,7 +172,7 @@ export default function WorkOrderApprovalsPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-2 ml-4">
+                <div className="flex gap-2 ms-4">
                   <button className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success/90 transition-colors">
                     {t('common.approve', 'Approve')}
                   </button>
@@ -200,14 +200,14 @@ export default function WorkOrderApprovalsPage() {
           <table className="w-full">
             <thead className="bg-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.woId', 'WO ID')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.title', 'Title')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.property', 'Property')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.approvals.approvedBy', 'Approved By')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.approvals.approvalDate', 'Approval Date')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.approvals.estimatedCost', 'Estimated Cost')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.approvals.actualCost', 'Actual Cost')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.status', 'Status')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.woId', 'WO ID')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.title', 'Title')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.property', 'Property')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.approvals.approvedBy', 'Approved By')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.approvals.approvalDate', 'Approval Date')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.approvals.estimatedCost', 'Estimated Cost')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.approvals.actualCost', 'Actual Cost')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.status', 'Status')}</th>
               </tr>
             </thead>
             <tbody className="bg-card divide-y divide-border">
