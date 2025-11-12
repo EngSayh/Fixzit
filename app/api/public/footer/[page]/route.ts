@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FooterContent } from '@/server/models/FooterContent';
 import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/public/footer/:page
@@ -51,7 +52,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error(`[GET /api/public/footer/${params.page}] Error:`, error);
+    logger.error(`[GET /api/public/footer/${params.page}] Error`, { error });
     return NextResponse.json(
       { error: 'Failed to fetch footer content' },
       { status: 500 }
