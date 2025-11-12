@@ -459,7 +459,7 @@ Continue to learn about tenant relations!
       renderMarkdownSanitized(currentStepData.content).then(html => {
         setRenderedContent(html);
       }).catch(err => {
-        console.error('Failed to render markdown:', err);
+        logger.error('Failed to render markdown:', { error: err });
         // Safe fallback: escape HTML and preserve whitespace
         setRenderedContent(`<div class="whitespace-pre-wrap">${escapeHtml(currentStepData.content)}</div>`);
       });

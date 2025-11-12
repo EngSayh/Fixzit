@@ -121,7 +121,7 @@ export default function ViewingScheduler({
 
       setStep('success');
     } catch (error) {
-      console.error('Failed to schedule viewing:', error);
+      logger.error('Failed to schedule viewing:', { error });
       const errorMessage = error instanceof Error ? error.message : 'Failed to schedule viewing. Please try again.';
       setError(errorMessage);
     } finally {

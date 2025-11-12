@@ -125,12 +125,12 @@ export default function TopBar() {
             authenticated: isAuthenticated,
           });
         } catch (logErr) {
-          console.error('Failed to log error:', logErr);
+          logger.error('Failed to log error:', { error: logErr });
         }
       }
     };
     fetchOrgSettings().catch(err => {
-      console.error('Unhandled error in fetchOrgSettings:', err);
+      logger.error('Unhandled error in fetchOrgSettings:', { error: err });
     });
   }, [isAuthenticated]);
 
@@ -210,7 +210,7 @@ export default function TopBar() {
           authenticated: isAuthenticated,
         });
       } catch (logErr) {
-        console.error('Failed to log error:', logErr);
+        logger.error('Failed to log error:', { error: logErr });
       }
       setNotifications([]);
     } finally {
@@ -315,7 +315,7 @@ export default function TopBar() {
           authenticated: isAuthenticated,
         });
       } catch (logErr) {
-        console.error('Failed to log error:', logErr);
+        logger.error('Failed to log error:', { error: logErr });
       }
       // NextAuth signOut handles redirect, no manual redirect needed
     }

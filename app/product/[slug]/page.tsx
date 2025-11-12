@@ -39,7 +39,7 @@ async function fetchPdp(slug: string) {
     } as RequestInit);
     return res.json();
   } catch (error) {
-    console.error('Product PDP fetch error:', error);
+    logger.error('Product PDP fetch error:', { error });
     throw error;
   }
 }
