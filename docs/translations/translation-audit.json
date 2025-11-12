@@ -3,33 +3,14 @@
     "files": 379,
     "usedKeys": 1572,
     "hasDynamic": true,
-    "enCount": 2002,
-    "arCount": 2002,
+    "enCount": 2004,
+    "arCount": 2004,
     "parityGap": 0
   },
   "missing": {
     "inAr": [],
     "inEn": [],
-    "used": [
-      {
-        "key": "aqar.packages.errors.fetchFailed",
-        "bare": "aqar.packages.errors.fetchFailed",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "/workspaces/Fixzit/app/api/aqar/packages/route.ts"
-        ]
-      },
-      {
-        "key": "common.errors.unexpected",
-        "bare": "common.errors.unexpected",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "/workspaces/Fixzit/app/api/aqar/packages/route.ts"
-        ]
-      }
-    ]
+    "used": []
   },
   "fileMap": {
     "about.metaTitle": [
@@ -5089,5 +5070,5 @@
       "/workspaces/Fixzit/contexts/TranslationContext.test.tsx"
     ]
   },
-  "timestamp": "2025-11-11T18:25:27.356Z"
+  "timestamp": "2025-11-12T00:38:53.520Z"
 }

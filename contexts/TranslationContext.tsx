@@ -2185,6 +2185,9 @@ const translations: Record<Language, Record<string, string>> = {
     'employees': 'الموظفين',
     'accounts': 'الحسابات',
     'Accounts': 'الحسابات',
+  
+    'aqar.packages.errors.fetchFailed': 'فشل في جلب الباقات',
+    'common.errors.unexpected': 'حدث خطأ غير متوقع',
   },
   en: {
       // Navigation
@@ -4344,6 +4347,10 @@ const translations: Record<Language, Record<string, string>> = {
     'workOrders.recentActivity': 'Recent Activity',
     'workOrders.formAutoSaved': 'Form auto-saved',
     'workOrders.propertySelected': 'Property selected',
+    
+    // API Errors
+    'aqar.packages.errors.fetchFailed': 'Failed to fetch packages',
+    'common.errors.unexpected': 'An unexpected error occurred',
   },
 };
 
@@ -4496,5 +4503,5 @@ export function useTranslation() {
       isRTL: true
     };
   }
-}
+
 
