@@ -24,6 +24,9 @@ errorLines.forEach(line => {
     if (!errorsByFile[file]) {
       errorsByFile[file] = [];
     }
+    // Parse line/column numbers with radix 10. The || -1 fallback handles edge cases
+    // where parseInt might return NaN (though the regex guarantees valid digits).
+    // -1 serves as a sentinel value indicating invalid position data.
     errorsByFile[file].push({ lineNum: parseInt(lineNum, 10) || -1, col: parseInt(col, 10) || -1, varName });
   }
 });
