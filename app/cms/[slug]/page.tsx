@@ -2,12 +2,30 @@ import { CmsPage } from "@/server/models/CmsPage";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import Link from "next/link";
 import { renderMarkdownSanitized } from '@/lib/markdown';
+import { cookies } from 'next/headers';
 
 export const revalidate = 60;
+
+// Helper to get translations based on cookie
+async function getTranslations() {
+  const cookieStore = await cookies();
+  const lang = cookieStore.get('fxz.lang')?.value || 'en';
+  const isArabic = lang === 'ar';
+  
+  return {
+    notFound: isArabic ? 'غير موجود' : 'Not found',
+    notAuthored: isArabic ? 'هذه الصفحة لم تتم كتابتها بعد.' : 'This page has not been authored yet.',
+    unavailable: isArabic ? 'غير متاح' : 'Unavailable',
+    draft: isArabic ? 'هذه الصفحة في المسودة.' : 'This page is in draft.',
+    previewHint: isArabic ? 'يمكن للمسؤولين المعاينة باستخدام' : 'Admins can preview with',
+    backToHome: isArabic ? 'العودة إلى الصفحة الرئيسية' : 'Back to home'
+  };
+}
 
 export default async function CmsPageScreen(props: { params: Promise<{slug:string}>, searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const searchParams = await props.searchParams;
   const params = await props.params;
+  const t = await getTranslations();
   await connectToDatabase();
   const { slug } = params;
   const preview = searchParams?.preview === "1";
@@ -15,17 +33,17 @@ export default async function CmsPageScreen(props: { params: Promise<{slug:strin
   if (!page) {
     return (
       <div className="mx-auto max-w-3xl p-6">
-        <h1 className="text-2xl font-semibold">Not found</h1>
-        <p className="opacity-70">This page has not been authored yet.</p>
+        <h1 className="text-2xl font-semibold">{t.notFound}</h1>
+        <p className="opacity-70">{t.notAuthored}</p>
       </div>
     );
   }
   if (page.status !== "PUBLISHED" && !preview) {
     return (
       <div className="mx-auto max-w-3xl p-6">
-        <h1 className="text-2xl font-semibold">Unavailable</h1>
-        <p className="opacity-70">This page is in draft.</p>
-        <p className="mt-2 text-sm">Admins can preview with <code>?preview=1</code>.</p>
+        <h1 className="text-2xl font-semibold">{t.unavailable}</h1>
+        <p className="opacity-70">{t.draft}</p>
+        <p className="mt-2 text-sm">{t.previewHint} <code>?preview=1</code>.</p>
       </div>
     );
   }
@@ -56,7 +74,7 @@ export default async function CmsPageScreen(props: { params: Promise<{slug:strin
                 href="/" 
                 className="text-primary hover:text-primary/80 font-medium"
               >
-                ← Back to home
+                ← {t.backToHome}
               </Link>
             </div>
           </div>

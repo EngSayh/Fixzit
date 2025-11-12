@@ -190,7 +190,13 @@ export async function POST(req: NextRequest) {
         content: c.text || '',
         updatedAt: c.updatedAt ? new Date(c.updatedAt) : undefined
       }));
-    } catch (e) { logger.error('Vector search failed, falling back to lexical search:', { e }); }
+    } catch (e) {
+      logger.error(
+        'Vector search failed, falling back to lexical search',
+        e instanceof Error ? e : new Error(String(e)),
+        { route: '/api/help/ask', context: 'vector-search' }
+      );
+    }
 
     if (!docs || docs.length === 0) {
       try {
@@ -268,19 +274,31 @@ if (process.env.REDIS_URL) {
     
     // Handle connection events for monitoring
     redis.on('error', (err) => {
-      logger.error('Redis connection error:', { err });
+      logger.error(
+        'Redis connection error',
+        err instanceof Error ? err : new Error(String(err)),
+        { route: '/api/help/ask', context: 'redis-connection' }
+      );
     });
     
     redis.on('close', () => {
-      logger.warn('Redis connection closed, falling back to in-memory rate limiting');
-      redis = null; // Reset to trigger in-memory fallback
+      logger.warn('Redis connection closed, will attempt to reconnect automatically');
+      // Don't set redis = null - let it reconnect automatically
     });
     
     redis.on('reconnecting', () => {
       logger.info('Redis reconnecting...');
     });
+    
+    redis.on('ready', () => {
+      logger.info('Redis connection restored');
+    });
   } catch (err) {
-    logger.error('Failed to initialize Redis client:', { err });
+    logger.error(
+      'Failed to initialize Redis client',
+      err instanceof Error ? err : new Error(String(err)),
+      { route: '/api/help/ask', context: 'redis-init' }
+    );
   }
 }
 
@@ -305,7 +323,11 @@ async function rateLimitAssert(req: NextRequest) {
       return;
     } catch (_err: Error | unknown) {
       if ((_err as Error).message === 'Rate limited') throw _err;
-      logger.error('Redis rate limit check failed, falling back to in-memory:', { _err });
+      logger.error(
+        'Redis rate limit check failed, falling back to in-memory',
+        _err instanceof Error ? _err : new Error(String(_err)),
+        { route: '/api/help/ask', context: 'rate-limit-redis' }
+      );
     }
   }
   
