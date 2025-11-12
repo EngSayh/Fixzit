@@ -167,7 +167,7 @@ async function testPageHttp(url, testName, userRole = 'anonymous', pageRequiresA
     
     const duration = Date.now() - startTime;
 
-    test.statusCode = parseInt(statusCode) || 0;
+    test.statusCode = parseInt(statusCode, 10) || 0;
     test.responseTime = responseTime ? parseFloat(responseTime) * 1000 : duration;
     test.duration = duration;
     
@@ -278,7 +278,7 @@ async function testLogin(userType, credentials) {
 
     const output = curl.stdout;
     const lines = output.trim().split('\n');
-    const statusCode = parseInt(lines[lines.length - 1]);
+    const statusCode = parseInt(lines[lines.length - 1], 10);
     const responseBody = lines.slice(0, -1).join('\n');
 
     test.statusCode = statusCode;

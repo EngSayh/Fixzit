@@ -70,7 +70,7 @@ class HijriCalendarMobile {
         const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
         
         if (this.currentLanguage === 'ar') {
-            return year.toString().split('').map(digit => arabicNumerals[parseInt(digit)]).join('');
+            return year.toString().split('').map(digit => arabicNumerals[parseInt(digit, 10)]).join('');
         }
         
         return year.toString();
@@ -112,8 +112,8 @@ class HijriCalendarMobile {
     formatGregorianDate(gregorian) {
         if (this.currentLanguage === 'ar') {
             const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-            const arabicDay = gregorian.day.toString().split('').map(d => arabicNumerals[parseInt(d)]).join('');
-            const arabicYear = gregorian.year.toString().split('').map(d => arabicNumerals[parseInt(d)]).join('');
+            const arabicDay = gregorian.day.toString().split('').map(d => arabicNumerals[parseInt(d, 10)]).join('');
+            const arabicYear = gregorian.year.toString().split('').map(d => arabicNumerals[parseInt(d, 10)]).join('');
             return `${arabicDay} ${gregorian.monthName} ${arabicYear} م`;
         } else {
             return `${gregorian.day} ${gregorian.monthName} ${gregorian.year}`;

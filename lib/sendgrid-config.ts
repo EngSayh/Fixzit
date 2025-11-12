@@ -64,7 +64,7 @@ export function getSendGridConfig(): SendGridConfig {
       name: replyToName
     } : undefined,
     unsubscribeGroupId: process.env.SENDGRID_UNSUBSCRIBE_GROUP_ID 
-      ? parseInt(process.env.SENDGRID_UNSUBSCRIBE_GROUP_ID) 
+      ? parseInt(process.env.SENDGRID_UNSUBSCRIBE_GROUP_ID, 10) 
       : undefined,
     ipPoolName: process.env.SENDGRID_IP_POOL_NAME,
     webhookVerificationKey: process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY,
