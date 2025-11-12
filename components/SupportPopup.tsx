@@ -95,6 +95,74 @@ const SUB_CATEGORIES: Record<string, string[]> = {
 export default function SupportPopup({ open, onClose, errorDetails }: ISupportPopupProps) {
   const { t } = useTranslation();
 
+  // ✅ i18n FIX: Use explicit key mappings instead of template literals
+  const moduleKeyMap: Record<string, string> = {
+    FM: 'support.modules.FM',
+    Souq: 'support.modules.Souq',
+    Aqar: 'support.modules.Aqar',
+    Account: 'support.modules.Account',
+    Billing: 'support.modules.Billing',
+    Other: 'support.modules.Other'
+  };
+
+  const categoryKeyMap: Record<string, string> = {
+    Technical: 'support.categories.Technical',
+    'Feature Request': 'support.categories.FeatureRequest',
+    Billing: 'support.categories.Billing',
+    Account: 'support.categories.Account',
+    General: 'support.categories.General',
+    'Bug Report': 'support.categories.BugReport'
+  };
+
+  const typeKeyMap: Record<string, string> = {
+    Bug: 'support.types.Bug',
+    Feature: 'support.types.Feature',
+    Complaint: 'support.types.Complaint',
+    Billing: 'support.types.Billing',
+    Access: 'support.types.Access',
+    Other: 'support.types.Other'
+  };
+
+  const priorityKeyMap: Record<string, string> = {
+    Low: 'support.priorities.Low',
+    Medium: 'support.priorities.Medium',
+    High: 'support.priorities.High',
+    Urgent: 'support.priorities.Urgent'
+  };
+
+  const subCategoryKeyMap: Record<string, string> = {
+    'Bug Report': 'support.subCategories.BugReport',
+    'Performance Issue': 'support.subCategories.PerformanceIssue',
+    'UI Error': 'support.subCategories.UIError',
+    'API Error': 'support.subCategories.APIError',
+    'Database Error': 'support.subCategories.DatabaseError',
+    'New Feature': 'support.subCategories.NewFeature',
+    Enhancement: 'support.subCategories.Enhancement',
+    Integration: 'support.subCategories.Integration',
+    Customization: 'support.subCategories.Customization',
+    'Mobile App': 'support.subCategories.MobileApp',
+    'Invoice Issue': 'support.subCategories.InvoiceIssue',
+    'Payment Error': 'support.subCategories.PaymentError',
+    Subscription: 'support.subCategories.Subscription',
+    Refund: 'support.subCategories.Refund',
+    Pricing: 'support.subCategories.Pricing',
+    'Login Issue': 'support.subCategories.LoginIssue',
+    'Password Reset': 'support.subCategories.PasswordReset',
+    'Profile Update': 'support.subCategories.ProfileUpdate',
+    Permissions: 'support.subCategories.Permissions',
+    'Access Denied': 'support.subCategories.AccessDenied',
+    Documentation: 'support.subCategories.Documentation',
+    Training: 'support.subCategories.Training',
+    Support: 'support.subCategories.Support',
+    Feedback: 'support.subCategories.Feedback',
+    Other: 'support.subCategories.Other',
+    'Critical Bug': 'support.subCategories.CriticalBug',
+    'Minor Bug': 'support.subCategories.MinorBug',
+    'Cosmetic Issue': 'support.subCategories.CosmeticIssue',
+    'Data Error': 'support.subCategories.DataError',
+    'Security Issue': 'support.subCategories.SecurityIssue'
+  };
+
   // Form state
   const [subject, setSubject] = useState(errorDetails ? `${t('support.errorReport', 'Error Report')}: ${errorDetails.type}` : '');
   const [moduleKey, setModule] = useState('Other');
@@ -268,7 +336,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
                 <SelectContent>
                   {MODULES.map((m) => (
                     <SelectItem key={m} value={m}>
-                      {t(`support.modules.${m}`, m)}
+                      {t(moduleKeyMap[m] || `support.modules.${m}`, m)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -287,7 +355,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
                 <SelectContent>
                   {CATEGORIES.map((c) => (
                     <SelectItem key={c} value={c}>
-                      {t(`support.categories.${c}`, c)}
+                      {t(categoryKeyMap[c] || `support.categories.${c}`, c)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -302,7 +370,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
                 <SelectContent>
                   {(SUB_CATEGORIES[category] || []).map((s) => (
                     <SelectItem key={s} value={s}>
-                      {t(`support.subCategories.${s}`, s)}
+                      {t(subCategoryKeyMap[s] || `support.subCategories.${s}`, s)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -321,7 +389,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
                 <SelectContent>
                   {TYPES.map((t_val) => (
                     <SelectItem key={t_val} value={t_val}>
-                      {t(`support.types.${t_val}`, t_val)}
+                      {t(typeKeyMap[t_val] || `support.types.${t_val}`, t_val)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -336,7 +404,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
                 <SelectContent>
                   {PRIORITIES.map((p) => (
                     <SelectItem key={p} value={p}>
-                      {t(`support.priorities.${p}`, p)}
+                      {t(priorityKeyMap[p] || `support.priorities.${p}`, p)}
                     </SelectItem>
                   ))}
                 </SelectContent>

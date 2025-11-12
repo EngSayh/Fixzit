@@ -888,10 +888,22 @@ export default function NewExpensePage() {
             <div className="card">
               <h3 className="text-lg font-semibold mb-4">{t('finance.expense.budgetStatus', 'Budget Status')}</h3>
               <div className="space-y-3">
-                {budgetInfo.map((budget) => (
+                {budgetInfo.map((budget) => {
+                  // ✅ i18n FIX: Use explicit key mapping instead of template literal
+                  const categoryKey = {
+                    'MAINTENANCE_REPAIR': 'finance.category.maintenance',
+                    'UTILITIES': 'finance.category.utilities',
+                    'OFFICE_SUPPLIES': 'finance.category.officeSupplies',
+                    'HVAC': 'finance.category.hvac',
+                    'PLUMBING': 'finance.category.plumbing',
+                    'ELECTRICAL': 'finance.category.electrical',
+                    'OTHER': 'finance.category.other'
+                  }[budget.category] || 'finance.category.other';
+                  
+                  return (
                   <div key={budget.budgetId}>
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm text-muted-foreground">{t(`finance.category.${budget.category.toLowerCase()}`, budget.category)}</span>
+                      <span className="text-sm text-muted-foreground">{t(categoryKey, budget.category)}</span>
                       <span className="text-xs text-muted-foreground">{budget.percentage.toFixed(0)}%</span>
                     </div>
                     <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
@@ -911,7 +923,8 @@ export default function NewExpensePage() {
                       <span>{currency} {budget.remainingAmount.toFixed(0)} {t('finance.remaining', 'remaining')}</span>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

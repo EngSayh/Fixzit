@@ -57,6 +57,15 @@ export default function TrialBalanceReport({
   
   const { t, locale } = useTranslation();
   
+  // ✅ i18n FIX: Use explicit key mapping instead of template literal
+  const accountTypeKeyMap: Record<string, string> = {
+    ASSET: 'finance.accountType.ASSET',
+    LIABILITY: 'finance.accountType.LIABILITY',
+    EQUITY: 'finance.accountType.EQUITY',
+    REVENUE: 'finance.accountType.REVENUE',
+    EXPENSE: 'finance.accountType.EXPENSE'
+  };
+  
   // Filter state
   const [year, setYear] = useState<number>(initialYear);
   const [period, setPeriod] = useState<number>(initialPeriod);
@@ -266,7 +275,7 @@ export default function TrialBalanceReport({
               ) : (
                 <ChevronRight className="inline-block me-2 w-4 h-4" />
               )}
-              {t(`finance.accountType.${type}`, type)}
+              {t(accountTypeKeyMap[type] || `finance.accountType.${type}`, type)}
             </td>
             <td className="px-4 py-3 font-bold text-end text-foreground">{typeDebits.toFixed(2)}</td>
             <td className="px-4 py-3 font-bold text-end text-foreground">{typeCredits.toFixed(2)}</td>

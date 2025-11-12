@@ -61,7 +61,26 @@ export default function Sidebar({ tenantId: _tenantId }: SidebarProps) {
     }, {} as Record<string, ModuleItem[]>);
   }, [allowedModules]);
 
-  const getCategoryName = (category: string) => t(`sidebar.category.${category}`, CATEGORY_FALLBACKS[category as keyof typeof CATEGORY_FALLBACKS] || category);
+  // ✅ i18n FIX: Use explicit key mapping instead of template literal
+  const categoryKeyMap: Record<string, string> = {
+    core: 'sidebar.category.core',
+    fm: 'sidebar.category.fm',
+    procurement: 'sidebar.category.procurement',
+    finance: 'sidebar.category.finance',
+    hr: 'sidebar.category.hr',
+    crm: 'sidebar.category.crm',
+    marketplace: 'sidebar.category.marketplace',
+    support: 'sidebar.category.support',
+    compliance: 'sidebar.category.compliance',
+    reporting: 'sidebar.category.reporting',
+    admin: 'sidebar.category.admin'
+  };
+
+  const getCategoryName = (category: string) => {
+    const key = categoryKeyMap[category] || 'sidebar.category.other';
+    const fallback = CATEGORY_FALLBACKS[category as keyof typeof CATEGORY_FALLBACKS] || category;
+    return t(key, fallback);
+  };
 
   const asideBase =
     screenInfo.isMobile || screenInfo.isTablet
