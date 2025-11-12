@@ -210,7 +210,7 @@ export default function NewExpensePage() {
 
   const addLineItem = () => {
     const newItem: IExpenseLineItem = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(), // ✅ SECURITY FIX: Use crypto-random UUID instead of predictable Date.now()
       description: '',
       category: 'MAINTENANCE_REPAIR',
       accountId: '',
@@ -266,7 +266,7 @@ export default function NewExpensePage() {
   const handleReceiptsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newReceipts: IReceipt[] = Array.from(e.target.files).map(file => ({
-        id: `${Date.now()}-${Math.random()}`,
+        id: crypto.randomUUID(), // ✅ SECURITY FIX: Use crypto-random UUID
         file,
         preview: URL.createObjectURL(file)
       }));

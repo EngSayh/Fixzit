@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
@@ -355,8 +355,8 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
       coordinates: { lat: 24.7136, lng: 46.6753 }
     },
     timeline: {
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      startDate: '', // ✅ HYDRATION FIX: Initialize empty
+      endDate: '', // ✅ HYDRATION FIX: Initialize empty
       duration: 90
     },
     budget: {
@@ -365,6 +365,20 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
     },
     tags: [] as string[]
   });
+
+  // ✅ HYDRATION FIX: Set default dates after client hydration
+  useEffect(() => {
+    if (!formData.timeline.startDate) {
+      setFormData(prev => ({
+        ...prev,
+        timeline: {
+          ...prev.timeline,
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        }
+      }));
+    }
+  }, [formData.timeline.startDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

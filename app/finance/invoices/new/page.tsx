@@ -197,7 +197,7 @@ export default function NewInvoicePage() {
 
   const addLineItem = () => {
     const newItem: IInvoiceLineItem = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(), // ✅ SECURITY FIX: Use crypto-random UUID instead of predictable Date.now()
       description: '',
       category: 'RENTAL',
       accountId: '',

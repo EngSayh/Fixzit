@@ -408,7 +408,7 @@ const AdminModule: React.FC = () => {
         
         const newUser: User = {
           ...userData as User,
-          id: Date.now().toString(),
+          id: crypto.randomUUID(), // ✅ SECURITY FIX: Use crypto-random UUID instead of predictable Date.now()
           createdAt: new Date().toISOString(),
           org_id: 'org_1'
         };
