@@ -191,7 +191,7 @@ export default function NewExpensePage() {
                 budgetedAmount: data.budget.amount,
                 spentAmount: data.budget.spent,
                 remainingAmount: data.budget.remaining,
-                percentage: (data.budget.spent / data.budget.amount) * 100
+                percentage: data.budget.amount > 0 ? (data.budget.spent / data.budget.amount) * 100 : 0
               });
             }
           }
@@ -381,7 +381,7 @@ export default function NewExpensePage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to save draft');
+        throw new TypeError(error.message || 'Failed to save draft');
       }
 
       const data = await response.json();
@@ -447,7 +447,7 @@ export default function NewExpensePage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to submit expense');
+        throw new TypeError(error.message || 'Failed to submit expense');
       }
 
       const data = await response.json();

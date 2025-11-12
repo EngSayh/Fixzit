@@ -363,7 +363,7 @@ export default function NewInvoicePage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to save draft');
+        throw new TypeError(error.message || 'Failed to save draft');
       }
 
       const data = await response.json();
@@ -436,7 +436,7 @@ export default function NewInvoicePage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to create invoice');
+        throw new TypeError(error.message || 'Failed to create invoice');
       }
 
       const data = await response.json();

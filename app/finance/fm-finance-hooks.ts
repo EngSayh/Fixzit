@@ -316,7 +316,7 @@ export async function recordPayment(
   // Find and update the invoice
   const invoice = await FMFinancialTransaction.findById(invoiceId);
   if (!invoice) {
-    throw new Error(`Invoice ${invoiceId} not found`);
+    throw new RangeError(`Invoice ${invoiceId} not found`);
   }
 
   // Mark invoice as paid

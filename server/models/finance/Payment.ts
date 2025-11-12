@@ -419,11 +419,11 @@ PaymentSchema.methods.allocateToInvoice = function(
   amount: number
 ) {
   if (amount <= 0) {
-    throw new Error('Allocation amount must be positive');
+    throw new RangeError('Allocation amount must be positive');
   }
   
   if (amount > this.unallocatedAmount) {
-    throw new Error(`Cannot allocate ${amount}. Only ${this.unallocatedAmount} unallocated.`);
+    throw new RangeError(`Cannot allocate ${amount}. Only ${this.unallocatedAmount} unallocated.`);
   }
   
   this.allocations.push({

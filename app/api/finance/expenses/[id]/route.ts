@@ -17,7 +17,7 @@ import { requirePermission } from '@/server/lib/rbac.config';
 async function getUserSession(req: NextRequest) {
   const user = await getSessionUser(req);
   if (!user || !user.id || !user.orgId) {
-    throw new Error('Unauthorized: Invalid session');
+    throw new TypeError('Unauthorized: Invalid session');
   }
   return {
     userId: user.id,

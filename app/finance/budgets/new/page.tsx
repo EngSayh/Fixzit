@@ -122,7 +122,10 @@ export default function NewBudgetPage() {
           })
         });
 
-        if (!response.ok) throw new Error('Failed to save draft');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new TypeError(`Failed to save draft: ${errorData.message || response.statusText}`);
+        }
         
         const data = await response.json();
         toast.success(t('finance.budget.draftSaved', 'Budget draft saved successfully'));
@@ -184,7 +187,10 @@ export default function NewBudgetPage() {
           })
         });
 
-        if (!response.ok) throw new Error('Failed to create budget');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new TypeError(`Failed to create budget: ${errorData.message || response.statusText}`);
+        }
         
         const data = await response.json();
         toast.success(t('finance.budget.created', 'Budget created successfully'), { id: toastId });

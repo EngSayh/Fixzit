@@ -224,11 +224,11 @@ JournalSchema.pre('save', function(next) {
 // Method: Post journal entry (mark as posted and ready for ledger processing)
 JournalSchema.methods.post = async function(): Promise<IJournal> {
   if (this.status !== 'DRAFT') {
-    throw new Error('Only draft journals can be posted');
+    throw new TypeError('Only draft journals can be posted');
   }
   
   if (!this.isBalanced) {
-    throw new Error('Cannot post unbalanced journal entry');
+    throw new RangeError('Cannot post unbalanced journal entry');
   }
   
   this.status = 'POSTED';
@@ -244,7 +244,7 @@ JournalSchema.methods.post = async function(): Promise<IJournal> {
 // Method: Void journal entry
 JournalSchema.methods.void = async function(userId: Types.ObjectId, reason: string): Promise<IJournal> {
   if (this.status !== 'POSTED') {
-    throw new Error('Only posted journals can be voided');
+    throw new TypeError('Only posted journals can be voided');
   }
   
   this.status = 'VOID';

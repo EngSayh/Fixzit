@@ -500,11 +500,11 @@ ExpenseSchema.pre('save', async function(next) {
  */
 ExpenseSchema.methods.submit = function() {
   if (this.status !== ExpenseStatus.DRAFT) {
-    throw new Error('Only draft expenses can be submitted');
+    throw new TypeError('Only draft expenses can be submitted');
   }
   
   if (this.lineItems.length === 0) {
-    throw new Error('Cannot submit expense with no line items');
+    throw new RangeError('Cannot submit expense with no line items');
   }
   
   this.status = ExpenseStatus.SUBMITTED;
@@ -523,11 +523,11 @@ ExpenseSchema.methods.approve = function(
   const currentApproval = this.approvals.find((a: IExpenseApproval) => a.level === this.currentApprovalLevel);
   
   if (!currentApproval) {
-    throw new Error('No approval pending at current level');
+    throw new RangeError('No approval pending at current level');
   }
   
   if (currentApproval.status !== 'PENDING') {
-    throw new Error('Approval already processed');
+    throw new TypeError('Approval already processed');
   }
   
   currentApproval.status = 'APPROVED';
@@ -560,7 +560,7 @@ ExpenseSchema.methods.reject = function(
   const currentApproval = this.approvals.find((a: IExpenseApproval) => a.level === this.currentApprovalLevel);
   
   if (!currentApproval) {
-    throw new Error('No approval pending at current level');
+    throw new RangeError('No approval pending at current level');
   }
   
   currentApproval.status = 'REJECTED';
@@ -580,7 +580,7 @@ ExpenseSchema.methods.markAsPaid = function(
   paymentReference?: string
 ) {
   if (this.status !== ExpenseStatus.APPROVED) {
-    throw new Error('Only approved expenses can be marked as paid');
+    throw new TypeError('Only approved expenses can be marked as paid');
   }
   
   this.status = ExpenseStatus.PAID;
