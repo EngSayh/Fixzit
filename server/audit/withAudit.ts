@@ -314,8 +314,7 @@ async function readResponseText(res: NextResponse, maxBytes: number): Promise<st
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function maskObject(obj: any, maskKeys: Set<string>): any {
+function maskObject(obj: unknown, maskKeys: Set<string>): unknown {
   if (obj == null || typeof obj !== 'object') return obj;
   if (Array.isArray(obj)) return obj.map(v => maskObject(v, maskKeys));
   const out: Record<string, unknown> = {};

@@ -133,8 +133,13 @@ LedgerEntrySchema.statics.getAccountBalance = async function(
   accountId: Types.ObjectId,
   asOfDate?: Date
 ): Promise<number> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const filter: any = { orgId, accountId };
+  interface FilterQuery {
+    orgId: Types.ObjectId;
+    accountId: Types.ObjectId;
+    postingDate?: { $lte: Date };
+  }
+  
+  const filter: FilterQuery = { orgId, accountId };
   if (asOfDate) {
     filter.postingDate = { $lte: asOfDate };
   }
