@@ -45,7 +45,7 @@ export default function CompactLanguageSelector({ className = '' }: CompactLangu
     try {
       localStorage.setItem('fixzit-language', newLanguage);
     } catch (err) {
-      console.error('Failed to save language preference:', err);
+      logger.error('Failed to save language preference:', { error: err });
     }
   };
 

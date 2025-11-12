@@ -308,7 +308,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
           });
         })
         .catch((logErr) => {
-          console.error('Failed to log error:', logErr);
+          logger.error('Failed to log error:', { error: logErr });
         });
       
       // Report critical errors to incident system
@@ -405,7 +405,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
           });
         })
         .catch((logErr) => {
-          console.error('Failed to log error:', logErr);
+          logger.error('Failed to log error:', { error: logErr });
         });
       
       // Report tool errors to incident system

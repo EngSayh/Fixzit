@@ -43,7 +43,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
               action: 'resize',
               autoResize,
             });
-          }).catch(logErr => console.error('Failed to load logger:', logErr));
+          }).catch(logErr => logger.error('Failed to load logger:', { error: logErr }));
           return;
         }
         el.style.height = 'auto'; // Reset height to calculate new scrollHeight
@@ -55,7 +55,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             action: 'resize',
             autoResize,
           });
-        }).catch(logErr => console.error('Failed to load logger:', logErr));
+        }).catch(logErr => logger.error('Failed to load logger:', { error: logErr }));
         // Graceful degradation: disable auto-resize on error
       }
     };

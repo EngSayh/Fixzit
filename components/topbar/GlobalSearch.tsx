@@ -88,7 +88,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
             });
           })
           .catch((logErr) => {
-            console.error('Failed to import logger:', logErr);
+            logger.error('Failed to import logger:', { error: logErr });
           });
         setError('Search failed. Please try again.');
         setResults([]);

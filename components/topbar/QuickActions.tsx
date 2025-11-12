@@ -64,7 +64,7 @@ export default function QuickActions() {
                 });
               })
               .catch((err) => {
-                console.error('Failed to import logger:', err);
+                logger.error('Failed to import logger:', { error: err });
               });
             router.push(action.href);
             setOpen(false);
@@ -138,7 +138,7 @@ export default function QuickActions() {
                       });
                     })
                     .catch((err) => {
-                      console.error('Failed to import logger:', err);
+                      logger.error('Failed to import logger:', { error: err });
                     });
                   router.push(action.href);
                   setOpen(false);

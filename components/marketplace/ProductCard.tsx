@@ -61,7 +61,7 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
           });
         })
         .catch((loggerError) => {
-          console.error('Failed to load logger:', loggerError);
+          logger.error('Failed to load logger:', { error: loggerError });
         });
       if (typeof window !== 'undefined') {
         const message = error instanceof Error ? error.message : 'Unable to add to cart';

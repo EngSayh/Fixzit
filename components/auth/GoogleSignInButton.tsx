@@ -40,7 +40,7 @@ export default function GoogleSignInButton() {
             component: 'GoogleSignInButton',
             error: result.error,
           });
-        }).catch(logErr => console.error('Failed to load logger:', logErr));
+        }).catch(logErr => logger.error('Failed to load logger:', { error: logErr }));
       } else if (result?.ok) {
         // Successfully signed in, navigate to dashboard
         router.push(result.url || '/dashboard');
@@ -53,7 +53,7 @@ export default function GoogleSignInButton() {
           component: 'GoogleSignInButton',
           action: 'handleGoogleSignIn',
         });
-      }).catch(logErr => console.error('Failed to load logger:', logErr));
+      }).catch(logErr => logger.error('Failed to load logger:', { error: logErr }));
     } finally {
       setIsLoading(false);
     }

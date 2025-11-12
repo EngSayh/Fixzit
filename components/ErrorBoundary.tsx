@@ -48,7 +48,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
           });
         })
         .catch((err) => {
-          console.error('Failed to import logger:', err);
+          logger.error('Failed to import logger:', { error: err });
         });
     }
 
@@ -100,7 +100,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
             });
           })
           .catch((err) => {
-            console.error('Failed to import logger:', err);
+            logger.error('Failed to import logger:', { error: err });
           });
       }
     }
@@ -151,7 +151,7 @@ const ErrorFallbackUI = ({ errorId, onRefresh }: { errorId: string, onRefresh: (
           });
         })
         .catch((err) => {
-          console.error('Failed to import logger:', err);
+          logger.error('Failed to import logger:', { error: err });
         });
     }
   }

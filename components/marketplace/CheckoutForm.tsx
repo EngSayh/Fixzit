@@ -45,7 +45,7 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
       setSuccess(true);
       router.push('/marketplace/orders');
     } catch (fetchError) {
-      console.error('Checkout failed:', fetchError);
+      logger.error('Checkout failed:', { error: fetchError });
       setError('Network error. Please try again.');
     } finally {
       setLoading(false);

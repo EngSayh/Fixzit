@@ -209,7 +209,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
       toast.success(successMessage, { duration: 8000 });
       onClose();
     } catch (e: unknown) {
-      console.error('Ticket creation error:', e);
+      logger.error('Ticket creation error:', { error: e });
       const errorMessage = e instanceof Error ? e.message : t('support.tryAgain', 'Please try again or contact support directly.');
       
       // ✅ FIX: Use react-hot-toast instead of alert()

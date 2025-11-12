@@ -185,7 +185,7 @@ export default function CatalogView({
           });
         })
         .catch((loggerError) => {
-          console.error('Failed to load logger:', loggerError);
+          logger.error('Failed to load logger:', { error: loggerError });
         });
       setFeedbackMessage('We could not add this item to your cart. Please try again.');
     }
