@@ -3,35 +3,14 @@
     "files": 379,
     "usedKeys": 1574,
     "hasDynamic": true,
-    "enCount": 2004,
-    "arCount": 2004,
+    "enCount": 2006,
+    "arCount": 2006,
     "parityGap": 0
   },
   "missing": {
     "inAr": [],
     "inEn": [],
-    "used": [
-      {
-        "key": "a11y.hidePassword",
-        "bare": "a11y.hidePassword",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "/workspaces/Fixzit/app/signup/page.tsx",
-          "/workspaces/Fixzit/app/signup/page.tsx"
-        ]
-      },
-      {
-        "key": "a11y.showPassword",
-        "bare": "a11y.showPassword",
-        "inEN": false,
-        "inAR": false,
-        "files": [
-          "/workspaces/Fixzit/app/signup/page.tsx",
-          "/workspaces/Fixzit/app/signup/page.tsx"
-        ]
-      }
-    ]
+    "used": []
   },
   "fileMap": {
     "about.metaTitle": [
@@ -5099,5 +5078,5 @@
       "/workspaces/Fixzit/contexts/TranslationContext.test.tsx"
     ]
   },
-  "timestamp": "2025-11-12T03:15:09.788Z"
+  "timestamp": "2025-11-12T03:24:03.574Z"
 }
