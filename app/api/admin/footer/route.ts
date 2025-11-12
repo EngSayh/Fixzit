@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
 
     // Ensure all three pages exist (return defaults if missing)
     const pages = ['about', 'privacy', 'terms'];
-    const result = pages.map(p => {
+    const result = pages.map((p: string) => {
       const existing = allContent.find(c => c.page === p);
       return existing || {
         page: p,
