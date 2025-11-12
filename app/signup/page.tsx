@@ -359,6 +359,7 @@ export default function SignupPage() {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute end-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={showPassword ? t('a11y.hidePassword', 'Hide password') : t('a11y.showPassword', 'Show password')}
                     >
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
@@ -370,7 +371,7 @@ export default function SignupPage() {
                     {t('signup.fields.confirmPassword', 'Confirm Password')} *
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Lock className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" aria-hidden="true" />
                     <Input
                       id="confirmPassword"
                       type={showConfirmPassword ? 'text' : 'password'}
@@ -385,6 +386,7 @@ export default function SignupPage() {
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       className="absolute end-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={showConfirmPassword ? t('a11y.hidePassword', 'Hide password') : t('a11y.showPassword', 'Show password')}
                     >
                       {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>

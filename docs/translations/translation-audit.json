@@ -1,7 +1,7 @@
 {
   "stats": {
     "files": 379,
-    "usedKeys": 1572,
+    "usedKeys": 1574,
     "hasDynamic": true,
     "enCount": 2004,
     "arCount": 2004,
@@ -10,7 +10,28 @@
   "missing": {
     "inAr": [],
     "inEn": [],
-    "used": []
+    "used": [
+      {
+        "key": "a11y.hidePassword",
+        "bare": "a11y.hidePassword",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/signup/page.tsx",
+          "/workspaces/Fixzit/app/signup/page.tsx"
+        ]
+      },
+      {
+        "key": "a11y.showPassword",
+        "bare": "a11y.showPassword",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/workspaces/Fixzit/app/signup/page.tsx",
+          "/workspaces/Fixzit/app/signup/page.tsx"
+        ]
+      }
+    ]
   },
   "fileMap": {
     "about.metaTitle": [
@@ -3245,6 +3266,14 @@
     "signup.placeholders.password": [
       "/workspaces/Fixzit/app/signup/page.tsx"
     ],
+    "a11y.hidePassword": [
+      "/workspaces/Fixzit/app/signup/page.tsx",
+      "/workspaces/Fixzit/app/signup/page.tsx"
+    ],
+    "a11y.showPassword": [
+      "/workspaces/Fixzit/app/signup/page.tsx",
+      "/workspaces/Fixzit/app/signup/page.tsx"
+    ],
     "signup.fields.confirmPassword": [
       "/workspaces/Fixzit/app/signup/page.tsx"
     ],
@@ -5070,5 +5099,5 @@
       "/workspaces/Fixzit/contexts/TranslationContext.test.tsx"
     ]
   },
-  "timestamp": "2025-11-12T02:56:33.376Z"
+  "timestamp": "2025-11-12T03:15:09.788Z"
 }

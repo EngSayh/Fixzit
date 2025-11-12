@@ -2188,6 +2188,9 @@ const translations: Record<Language, Record<string, string>> = {
   
     'aqar.packages.errors.fetchFailed': 'فشل في جلب الباقات',
     'common.errors.unexpected': 'حدث خطأ غير متوقع',
+  
+    'a11y.hidePassword': 'إخفاء كلمة المرور',
+    'a11y.showPassword': 'إظهار كلمة المرور',
   },
   en: {
       // Navigation
@@ -4106,6 +4109,8 @@ const translations: Record<Language, Record<string, string>> = {
     'app.currentApp': 'Current App',
     'save.saving': 'Saving...',
     'a11y.languageSelectorHelp': 'Select your preferred language for the interface',
+    'a11y.hidePassword': 'Hide password',
+    'a11y.showPassword': 'Show password',
 
     // Finance - Payment Form (unnamespaced keys from /app/finance/payments/new/page.tsx)
     'Bank Transfer Details': 'Bank Transfer Details',
@@ -4503,5 +4508,3 @@ export function useTranslation() {
       isRTL: true
     };
   }
-}
-
