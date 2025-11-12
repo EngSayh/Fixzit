@@ -124,7 +124,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     
     // Parse experience
     const yearsOfExperience = experience ? 
-      parseInt(experience) : 
+      parseInt(experience, 10) : 
       calculateExperienceFromText(resumeText + ' ' + coverLetter);
     
     // Get ATS settings

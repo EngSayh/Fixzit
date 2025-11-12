@@ -211,8 +211,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     
     // Parse and validate pagination parameters
-    const rawPage = searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1;
-    const rawLimit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20;
+    const rawPage = searchParams.get('page') ? parseInt(searchParams.get('page')!, 10) : 1;
+    const rawLimit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!, 10) : 20;
     
     // Clamp pagination values to prevent DoS attacks
     const page = Math.max(1, Math.min(rawPage, 10000)); // Max page 10000
