@@ -68,7 +68,7 @@ jobs:
         continue-on-error: false
         env:
           NODE_ENV: test
-          MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/fixzit-ci-test' }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
 
       - name: Check Code Coverage
         run: |
@@ -90,9 +90,9 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=8192
           NODE_ENV: production
-          MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/fixzit-ci-test' }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'ci-test-secret-key-min-32-chars-long-for-testing' }}
-          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
           NEXT_PUBLIC_APP_URL: http://localhost:3000
           
       - name: Upload Build Artifacts
