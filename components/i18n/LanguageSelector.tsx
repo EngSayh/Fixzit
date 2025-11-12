@@ -193,7 +193,7 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
                   }
                 }
               }}
-              className={`w-full rounded border border-border bg-card ${isRTL ? 'pe-7 ps-2 text-right' : 'ps-7 pe-2'} py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30`}
+              className={`w-full rounded border border-border bg-card ${isRTL ? 'pe-7 ps-2 text-end' : 'ps-7 pe-2'} py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30`}
               placeholder={t('i18n.filterLanguages', 'Type to filter languages')}
               aria-label={t('i18n.filterLanguages', 'Type to filter languages')}
               autoComplete="off"

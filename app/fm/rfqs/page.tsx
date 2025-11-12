@@ -270,10 +270,10 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
         <p className="text-sm text-muted-foreground line-clamp-2">{rfq.description}</p>
 
         <div className="flex items-center text-sm text-muted-foreground">
-          <MapPin className="w-4 h-4 me-1" />
+          <MapPin className="w-4 h-4 me-1 rtl:ml-1 rtl:mr-0" />
           <span>{rfq.location?.city}</span>
           {rfq.location?.radius && (
-            <span className="ms-2">• {rfq.location.radius}km radius</span>
+            <span className="ms-2 rtl:mr-2 rtl:ml-0">• {rfq.location.radius}km radius</span>
           )}
         </div>
 

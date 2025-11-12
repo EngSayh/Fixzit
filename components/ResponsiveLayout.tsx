@@ -74,7 +74,7 @@ export default function ResponsiveLayout({
         {/* Sidebar */}
         {sidebar && (
           <div className={`
-            ${showSidebar ? 'translate-x-0' : '-translate-x-full'}
+            ${showSidebar ? 'translate-x-0 rtl:translate-x-0' : '-translate-x-full rtl:translate-x-full'}
             ${screenInfo.isMobile || screenInfo.isTablet ? 'fixed inset-y-0 start-0 z-40' : 'relative'}
             ${SIDEBAR_WIDTH_CLASS}
             transition-transform duration-300 ease-in-out
