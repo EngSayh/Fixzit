@@ -382,6 +382,21 @@ PaymentSchema.pre('save', async function(next) {
     this.paymentNumber = `PAY-${yearMonth}-${String(nextNum).padStart(4, '0')}`;
   }
   
+  /**
+   * @warning PRECISION RISK: Payment allocation calculation using native addition.
+   * Splitting payments across multiple invoices compounds rounding errors.
+   * Example: $100.00 split 3 ways = $33.33 + $33.33 + $33.33 = $99.99 (missing $0.01)
+   * 
+   * TODO: Use Decimal.js for precise allocation:
+   * - Store amounts as Decimal128 or String
+   * - Use Decimal.sum() for allocation totals
+   * - Round with .toDP(2, Decimal.ROUND_HALF_UP)
+   * - Allocate remaining cents to first invoice (standard accounting practice)
+   * 
+   * Impact: Payment allocations may not sum to exact payment amount
+   * Priority: P0 (Critical) - Can cause invoice balance discrepancies
+   * Related: PENDING_TASKS_5_DAYS.md Category 3 (Finance Precision)
+   */
   // Calculate unallocated amount
   const totalAllocated = this.allocations.reduce((sum, a) => sum + a.amount, 0);
   this.unallocatedAmount = this.amount - totalAllocated;
@@ -416,6 +431,17 @@ PaymentSchema.methods.allocateToInvoice = function(
     appliedAt: new Date()
   });
   
+  /**
+   * @warning PRECISION RISK: Recalculating unallocated amount after each allocation.
+   * Multiple allocations compound floating-point errors.
+   * 
+   * TODO: Use Decimal.js:
+   * - const allocated = Decimal.sum(this.allocations.map(a => a.amount))
+   * - this.unallocatedAmount = new Decimal(this.amount).minus(allocated).toNumber()
+   * 
+   * Impact: Unallocated amount may drift from actual value after many allocations
+   * Priority: P0 (Critical)
+   */
   const totalAllocated = this.allocations.reduce((sum: number, a: IPaymentAllocation) => sum + a.amount, 0);
   this.unallocatedAmount = this.amount - totalAllocated;
 };

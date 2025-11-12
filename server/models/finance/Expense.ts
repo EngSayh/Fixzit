@@ -467,6 +467,22 @@ ExpenseSchema.pre('save', async function(next) {
   });
   
   // Calculate totals
+  /**
+   * @warning PRECISION RISK: Using native JavaScript addition for money calculations.
+   * JavaScript numbers use IEEE 754 floating-point, which can cause rounding errors.
+   * Example: 0.1 + 0.2 !== 0.3 (0.30000000000000004)
+   * 
+   * TODO: Migrate to Decimal.js for precise money calculations:
+   * - Replace reduce with Decimal.sum()
+   * - Store amounts as Decimal128 or String in schema
+   * - Use .toDP(2, Decimal.ROUND_HALF_UP) for rounding
+   * 
+   * Related: PENDING_TASKS_5_DAYS.md Category 3 (Finance Precision)
+   * Priority: P1 (High) - Risk of financial discrepancies
+   * 
+   * @see https://github.com/MikeMcl/decimal.js
+   * @see https://0.30000000000000004.com/
+   */
   this.subtotal = this.lineItems.reduce((sum, item) => sum + item.amount, 0);
   this.totalTax = this.lineItems.reduce((sum, item) => sum + item.taxAmount, 0);
   this.totalAmount = this.subtotal + this.totalTax;
@@ -653,6 +669,19 @@ ExpenseSchema.statics.getSummary = async function(
     status: { $in: [ExpenseStatus.APPROVED, ExpenseStatus.PAID] }
   });
   
+  /**
+   * @warning PRECISION RISK: Aggregating money amounts with native JavaScript addition.
+   * Summing many small amounts compounds floating-point errors.
+   * Example: 0.01 + 0.01 + ... (100 times) may not equal 1.00 exactly
+   * 
+   * TODO: Use Decimal.js for precise aggregation:
+   * - import Decimal from 'decimal.js'
+   * - Use Decimal.sum(expenses.map(e => e.totalAmount))
+   * - Round final result: .toDP(2, Decimal.ROUND_HALF_UP)
+   * 
+   * Impact: Financial reports (P&L, expense summaries) may show incorrect totals
+   * Priority: P1 (High) - Critical for accounting accuracy
+   */
   return {
     totalExpenses: expenses.reduce((sum: number, e: IExpense) => sum + e.totalAmount, 0),
     totalTax: expenses.reduce((sum: number, e: IExpense) => sum + e.totalTax, 0),

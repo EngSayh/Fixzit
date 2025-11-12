@@ -143,6 +143,27 @@ JournalSchema.index({ orgId: 1, status: 1, isBalanced: 1 });
 
 // Pre-save: Calculate totals and validate balance
 JournalSchema.pre('save', function(next) {
+  /**
+   * @warning PRECISION RISK: Double-entry bookkeeping with floating-point arithmetic.
+   * Journal entries MUST balance exactly (debits = credits).
+   * Current tolerance of 0.01 is a workaround for floating-point errors.
+   * 
+   * Example of precision error:
+   * Debit:  $100.33 + $200.67 + $300.00 = 601.0000000000001
+   * Credit: $601.00
+   * Difference: 0.0000000000001 (false unbalanced)
+   * 
+   * TODO: Use Decimal.js for exact arithmetic:
+   * - const totalDebit = Decimal.sum(this.lines.map(l => l.debit))
+   * - const totalCredit = Decimal.sum(this.lines.map(l => l.credit))
+   * - this.isBalanced = totalDebit.equals(totalCredit) // Exact comparison
+   * 
+   * Impact: Accounting system integrity. Unbalanced journals corrupt financial reports.
+   * Priority: P0 (CRITICAL) - Violates fundamental accounting principle
+   * Related: PENDING_TASKS_5_DAYS.md Category 3 (Finance Precision)
+   * 
+   * @see https://en.wikipedia.org/wiki/Double-entry_bookkeeping
+   */
   // Calculate totals
   this.totalDebit = this.lines.reduce((sum, line) => sum + line.debit, 0);
   this.totalCredit = this.lines.reduce((sum, line) => sum + line.credit, 0);
