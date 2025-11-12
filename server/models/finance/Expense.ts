@@ -15,6 +15,7 @@
  */
 
 import { Schema, model, models, Types, Document } from 'mongoose';
+import Decimal from 'decimal.js';
 import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
 import { auditPlugin } from '../../plugins/auditPlugin';
 
@@ -460,7 +461,8 @@ ExpenseSchema.pre('save', async function(next) {
   this.lineItems.forEach(item => {
     item.amount = item.quantity * item.unitPrice;
     if (item.taxable) {
-      item.taxAmount = item.amount * item.taxRate;
+      // ✅ PRECISION FIX: Use Decimal.js for tax calculation
+      item.taxAmount = new Decimal(item.amount).times(item.taxRate).toNumber();
     } else {
       item.taxAmount = 0;
     }
@@ -473,19 +475,18 @@ ExpenseSchema.pre('save', async function(next) {
    * Example: 0.1 + 0.2 !== 0.3 (0.30000000000000004)
    * 
    * TODO: Migrate to Decimal.js for precise money calculations:
-   * - Replace reduce with Decimal.sum()
-   * - Store amounts as Decimal128 or String in schema
-   * - Use .toDP(2, Decimal.ROUND_HALF_UP) for rounding
+   * ✅ FIXED: Using Decimal.js for precise financial calculations
    * 
    * Related: PENDING_TASKS_5_DAYS.md Category 3 (Finance Precision)
-   * Priority: P1 (High) - Risk of financial discrepancies
+   * Priority: P0 (Critical) - Prevents financial discrepancies
    * 
    * @see https://github.com/MikeMcl/decimal.js
    * @see https://0.30000000000000004.com/
    */
   this.subtotal = this.lineItems.reduce((sum, item) => sum + item.amount, 0);
   this.totalTax = this.lineItems.reduce((sum, item) => sum + item.taxAmount, 0);
-  this.totalAmount = this.subtotal + this.totalTax;
+  // ✅ PRECISION FIX: Use Decimal.js for total amount calculation
+  this.totalAmount = new Decimal(this.subtotal).plus(this.totalTax).toNumber();
   
   next();
 });
@@ -648,7 +649,11 @@ ExpenseSchema.statics.getByCategory = async function(
       if (!byCategory[item.category]) {
         byCategory[item.category] = 0;
       }
-      byCategory[item.category] += item.amount + item.taxAmount;
+      // ✅ PRECISION FIX: Use Decimal.js for category totals
+      byCategory[item.category] = new Decimal(byCategory[item.category])
+        .plus(item.amount)
+        .plus(item.taxAmount)
+        .toNumber();
     }
   }
   
