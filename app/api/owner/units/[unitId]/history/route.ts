@@ -24,6 +24,7 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { requireSubscription } from '@/server/middleware/subscriptionCheck';
 import { Property } from '@/server/models/Property';
 import { setTenantContext } from '@/server/plugins/tenantIsolation';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   req: NextRequest,
@@ -254,7 +255,7 @@ export async function GET(
     });
     
   } catch (error) {
-    console.error('Error fetching unit history:', error);
+    logger.error('Error fetching unit history', { error });
     return NextResponse.json(
       { 
         success: false,

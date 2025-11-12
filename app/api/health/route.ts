@@ -6,6 +6,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/mongo';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,7 @@ export async function GET(_request: NextRequest) {
       }
     } catch (dbError) {
       dbStatus = 'error';
-      console.error('[Health Check] Database error:', dbError);
+      logger.error('[Health Check] Database error', { error: dbError });
     }
     
     const health = {
@@ -50,7 +51,7 @@ export async function GET(_request: NextRequest) {
     
     return NextResponse.json(health, { status: statusCode });
   } catch (error) {
-    console.error('[Health Check] Error:', error);
+    logger.error('[Health Check] Error', { error });
     return NextResponse.json(
       {
         status: 'unhealthy',
