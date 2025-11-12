@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { AuditLogModel } from '@/server/models/AuditLog';
+import { logger } from '@/lib/logger';
 
 // Helper to escape CSV fields
 function escapeCsvField(value: unknown): string {
@@ -166,7 +167,7 @@ export async function GET(request: NextRequest) {
           // Close stream
           controller.close();
         } catch (error) {
-          console.error('[AuditExport] Stream error:', error);
+          logger.error('[AuditExport] Stream error', { error });
           controller.error(error);
         }
       },
@@ -183,7 +184,7 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('[AuditExport] Error:', error);
+    logger.error('[AuditExport] Error', { error });
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

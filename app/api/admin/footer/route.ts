@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { FooterContent } from '@/server/models/FooterContent';
 import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/admin/footer
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error('[POST /api/admin/footer] Error:', error);
+    logger.error('[POST /api/admin/footer] Error', { error });
     return NextResponse.json(
       { error: 'Failed to update footer content' },
       { status: 500 }
@@ -161,7 +162,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.error('[GET /api/admin/footer] Error:', error);
+    logger.error('[GET /api/admin/footer] Error', { error });
     return NextResponse.json(
       { error: 'Failed to fetch footer content' },
       { status: 500 }

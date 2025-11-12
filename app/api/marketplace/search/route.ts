@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
       const categoryDocs = await Category.find({ _id: { $in: facets.categories }, orgId: context.orgId }).lean();
       facetCategories = categoryDocs.map(doc => serializeCategory(doc));
     } catch (error) {
-      console.error('Error fetching marketplace categories:', error instanceof Error ? error.message : 'Unknown error');
+      logger.error('Error fetching marketplace categories', { error });
       // Continue with empty categories rather than failing entire request
       facetCategories = [];
     }
