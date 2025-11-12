@@ -245,7 +245,12 @@ export function FormStateProvider({ children }: ProviderProps) {
       // 1. No formId in event (global save), OR
       // 2. Event formId matches this registration's formId
       if (!targetFormId || targetFormId === formId) {
-        const promise = Promise.resolve().then(() => callback());
+        const promise = Promise.resolve()
+          .then(() => callback())
+          .catch((error) => {
+            console.error(`Form save handler error for formId ${formId}:`, error);
+            throw error; // Re-throw to propagate to Promise.all
+          });
         
         // If event has promises array, push our promise for coordination
         if (customEvent.detail?.promises && Array.isArray(customEvent.detail.promises)) {
@@ -280,7 +285,12 @@ export function FormStateProvider({ children }: ProviderProps) {
     if (typeof window !== 'undefined') {
       window.dispatchEvent(event);
     }
-    await Promise.all(promises);
+    try {
+      await Promise.all(promises);
+    } catch (error) {
+      console.error('Failed to save one or more forms in requestSave:', error);
+      throw error;
+    }
   }, []);
 
   const value: FormStateContextValue = {

@@ -23,10 +23,15 @@ import { STORAGE_KEYS } from '@/config/constants';
 // ============================================================================
 
 const api = async (url: string, opts?: RequestInit) => {
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  const res = await fetch(url, { ...opts, headers: { ...headers, ...opts?.headers } });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  try {
+    const headers: Record<string, string> = { 'content-type': 'application/json' };
+    const res = await fetch(url, { ...opts, headers: { ...headers, ...opts?.headers } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  } catch (error) {
+    console.error(`SupportPopup API error for ${url}:`, error);
+    throw error;
+  }
 };
 
 // ============================================================================

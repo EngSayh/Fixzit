@@ -143,9 +143,11 @@ export class AutoFixManager {
           return navigator.onLine;
         },
         fix: async () => {
-          return new Promise((resolve) => {
+          return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Network check timeout after 30s')), 30000);
             const checkOnline = () => {
               if (navigator.onLine) {
+                clearTimeout(timeout);
                 resolve(true);
               } else {
                 setTimeout(checkOnline, 1000);

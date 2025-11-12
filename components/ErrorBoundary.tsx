@@ -48,7 +48,9 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
           });
         })
         .catch((err) => {
+          // Fallback to console if logger import fails
           console.error('Failed to import logger:', err);
+          console.error(`ErrorBoundary caught error ${errorId}:`, error, errorInfo);
         });
     }
 
