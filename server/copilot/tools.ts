@@ -6,6 +6,7 @@ import { WorkOrder } from "@/server/models/WorkOrder";
 import { OwnerStatement } from "@/server/models/OwnerStatement";
 import { CopilotSession } from "./session";
 import { getPermittedTools } from "./policy";
+import { logger } from "@/lib/logger";
 
 export interface ToolExecutionResult {
   success: boolean;
@@ -113,7 +114,10 @@ async function listMyWorkOrders(session: CopilotSession): Promise<ToolExecutionR
         priority: item.priority,
         updatedAt: item.updatedAt
       }))
-  );
+  ).catch(error => {
+    logger.error('Failed to fetch work orders', error instanceof Error ? error : new Error(String(error)));
+    return []; // Return empty array on error
+  });
 
   return {
     success: true,
