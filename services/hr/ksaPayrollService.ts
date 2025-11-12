@@ -12,6 +12,8 @@
  * - GOSI Contributions: https://www.gosi.gov.sa
  */
 
+import Decimal from 'decimal.js';
+
 // GOSI Rates (as of 2025) - These should be configurable in admin settings
 export const GOSI_RATES = {
   // Annuities (Pension)
@@ -79,7 +81,7 @@ export function calculateGOSI(
   isNewEntrant: boolean = false // Post-2024 hires
 ): GOSICalculation {
   // GOSI base: Basic + Housing (as per GOSI regulations)
-  const gosiBase = baseSalary + housingAllowance;
+  const gosiBase = new Decimal(baseSalary).plus(housingAllowance).toNumber();
   
   if (!isSaudiNational) {
     // Non-Saudi: Only Occupational Hazards (employer pays)
@@ -180,7 +182,7 @@ export function calculateESB(
   }
   
   const finalMonths = baseMonths * adjustmentFactor;
-  const amount = Math.round(lastMonthlySalary * finalMonths * 100) / 100;
+  const amount = new Decimal(lastMonthlySalary).times(finalMonths).toDecimalPlaces(2).toNumber();
   
   return {
     totalMonths: Math.round(finalMonths * 100) / 100,
@@ -217,8 +219,13 @@ export function calculateNetPay(
 ): NetPayCalculation {
   // Earnings
   const overtimePay = calculateOvertimePay(baseSalary, overtimeHours);
-  const totalOtherAllowances = otherAllowances.reduce((sum, a) => sum + a.amount, 0);
-  const grossPay = baseSalary + housingAllowance + transportAllowance + totalOtherAllowances + overtimePay;
+  const totalOtherAllowances = otherAllowances.reduce((sum, a) => new Decimal(sum).plus(a.amount).toNumber(), 0);
+  const grossPay = new Decimal(baseSalary)
+    .plus(housingAllowance)
+    .plus(transportAllowance)
+    .plus(totalOtherAllowances)
+    .plus(overtimePay)
+    .toNumber();
   
   const earnings = [
     { code: 'BASIC', name: 'Basic Salary', amount: baseSalary },
@@ -240,12 +247,12 @@ export function calculateNetPay(
   }
   
   const totalDeductions = gosi.employeeDeduction;
-  const netPay = grossPay - totalDeductions;
+  const netPay = new Decimal(grossPay).minus(totalDeductions).toNumber();
   
   return {
-    grossPay: Math.round(grossPay * 100) / 100,
-    totalDeductions: Math.round(totalDeductions * 100) / 100,
-    netPay: Math.round(netPay * 100) / 100,
+    grossPay: new Decimal(grossPay).toDecimalPlaces(2).toNumber(),
+    totalDeductions: new Decimal(totalDeductions).toDecimalPlaces(2).toNumber(),
+    netPay: new Decimal(netPay).toDecimalPlaces(2).toNumber(),
     earnings,
     deductions,
     gosi,
