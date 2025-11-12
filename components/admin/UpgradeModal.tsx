@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 
 import { useState } from 'react';
 
@@ -85,7 +86,7 @@ export function UpgradeModal({ isOpen, onClose, featureName }: UpgradeModalProps
         handleClose();
       }, 3000);
     } catch (error) {
-      console.error('Failed to submit contact request:', error);
+      logger.error('Failed to submit contact request', { error });
       setError(t('upgrade.error.submitFailed', 'Failed to submit request. Please email sales@fixzit.sa directly.'));
     } finally {
       setSubmitting(false);

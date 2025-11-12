@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 /// <reference types="google.maps" />
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -189,7 +190,7 @@ export default function GoogleMap({
         onReady?.(map);
       } catch (e) {
          
-        console.error('[GoogleMap] init error', e);
+        logger.error('[GoogleMap] init error', { error: e });
         setError('Failed to load Google Maps. Check API key, referrer restrictions, and billing status.');
         setLoading(false);
       }

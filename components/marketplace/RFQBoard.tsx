@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 
 import { useState } from 'react';
 import { Calendar, DollarSign, Package } from 'lucide-react';
@@ -67,7 +68,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
       setForm({ title: '', description: '', categoryId: '', quantity: '', budget: '', deadline: '' });
       setShowForm(false);
     } catch (fetchError) {
-      console.error('Failed to create RFQ:', fetchError);
+      logger.error('Failed to create RFQ:', { error: fetchError });
       setError('Network error. Please try again.');
     } finally {
       setSubmitting(false);

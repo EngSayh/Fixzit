@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 
 import { useState } from 'react';
 
@@ -53,7 +54,7 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
       setProducts([payload.data, ...products]);
       setForm({ title: '', sku: '', categoryId: '', price: '', uom: 'ea' });
     } catch (fetchError) {
-      console.error('Failed to add product:', fetchError);
+      logger.error('Failed to add product:', { error: fetchError });
       setError('Network error. Please try again.');
     } finally {
       setLoading(false);

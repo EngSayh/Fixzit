@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
