@@ -99,7 +99,7 @@ export default function RFQsPage() {
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-teal-600 hover:bg-teal-700">
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4 me-2" />
               New RFQ
             </Button>
           </DialogTrigger>
@@ -118,12 +118,12 @@ export default function RFQsPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-64">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search RFQs..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10"
+                  className="ps-10"
                 />
               </div>
             </div>
@@ -177,7 +177,7 @@ export default function RFQsPage() {
                 <h3 className="text-lg font-semibold text-foreground mb-2">No RFQs Found</h3>
                 <p className="text-muted-foreground mb-4">Get started by creating your first request for quotation.</p>
                 <Button onClick={() => setCreateOpen(true)} className="bg-teal-600 hover:bg-teal-700">
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-4 h-4 me-2" />
                   Create RFQ
                 </Button>
               </CardContent>
@@ -270,10 +270,10 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
         <p className="text-sm text-muted-foreground line-clamp-2">{rfq.description}</p>
 
         <div className="flex items-center text-sm text-muted-foreground">
-          <MapPin className="w-4 h-4 mr-1" />
+          <MapPin className="w-4 h-4 me-1 rtl:ml-1 rtl:mr-0" />
           <span>{rfq.location?.city}</span>
           {rfq.location?.radius && (
-            <span className="ml-2">• {rfq.location.radius}km radius</span>
+            <span className="ms-2 rtl:mr-2 rtl:ml-0">• {rfq.location.radius}km radius</span>
           )}
         </div>
 
@@ -300,7 +300,7 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
             <div className="flex items-center text-muted-foreground">
-              <Clock className="w-4 h-4 mr-1" />
+              <Clock className="w-4 h-4 me-1" />
               Deadline
             </div>
             <p className="font-medium mt-1">
@@ -313,7 +313,7 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
           </div>
           <div>
             <div className="flex items-center text-muted-foreground">
-              <DollarSign className="w-4 h-4 mr-1" />
+              <DollarSign className="w-4 h-4 me-1" />
               Budget
             </div>
             <p className="font-medium mt-1">
@@ -326,13 +326,13 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
           <div className="flex items-center space-x-3 text-sm">
             {rfq.bidding?.anonymous && (
               <div className="flex items-center text-muted-foreground">
-                <Shield className="w-4 h-4 mr-1" />
+                <Shield className="w-4 h-4 me-1" />
                 <span>Anonymous</span>
               </div>
             )}
             {rfq.compliance?.cityBounded && (
               <div className="flex items-center text-muted-foreground">
-                <MapPin className="w-4 h-4 mr-1" />
+                <MapPin className="w-4 h-4 me-1" />
                 <span>City Only</span>
               </div>
             )}
@@ -455,7 +455,7 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
         toast.error(`Failed to create RFQ: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      logger.error('Error creating RFQ:', { error });
+      logger.error('Error creating RFQ:', error);
       toast.error('Error creating RFQ. Please try again.', { id: toastId });
     }
   };
@@ -573,7 +573,7 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
               type="checkbox"
               checked={formData.compliance.cityBounded}
               onChange={(e) => setFormData({...formData, compliance: {...formData.compliance, cityBounded: e.target.checked}})}
-              className="mr-2"
+              className="me-2"
             />
             City Bounded
           </label>
@@ -582,7 +582,7 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
               type="checkbox"
               checked={formData.compliance.insuranceRequired}
               onChange={(e) => setFormData({...formData, compliance: {...formData.compliance, insuranceRequired: e.target.checked}})}
-              className="mr-2"
+              className="me-2"
             />
             Insurance Required
           </label>
@@ -591,7 +591,7 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
               type="checkbox"
               checked={formData.bidding.anonymous}
               onChange={(e) => setFormData({...formData, bidding: {...formData.bidding, anonymous: e.target.checked}})}
-              className="mr-2"
+              className="me-2"
             />
             Anonymous Bidding
           </label>

@@ -22,31 +22,32 @@ interface CartData {
 }
 
 export default async function CheckoutPage() {
-  const [, cartResponse] = await Promise.all([
-    serverFetchJsonWithTenant<{ data: unknown }>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<{ data: CartData }>('/api/marketplace/cart')
-  ]);
+  try {
+    const [, cartResponse] = await Promise.all([
+      serverFetchJsonWithTenant<{ data: unknown }>('/api/marketplace/categories'),
+      serverFetchJsonWithTenant<{ data: CartData }>('/api/marketplace/cart')
+    ]);
 
-  const cart = cartResponse.data;
+    const cart = cartResponse.data;
 
-  // [CODE REVIEW]: FIX - Replace hardcoded colors with theme classes, fix cart.id reference
-  return (
-    <div className="min-h-screen bg-muted flex flex-col">
-      
-      <main className="mx-auto max-w-7xl px-4 py-8 flex-1">
-        <nav className="text-sm text-primary">
-          <Link href="/marketplace/cart" className="hover:underline">
-            Cart
-          </Link>
-          <span className="mx-2 text-muted-foreground">/</span>
-          <span className="text-muted-foreground">Checkout</span>
-        </nav>
-        <h1 className="mt-4 text-3xl font-semibold text-foreground">Checkout & Approvals</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Submit the order for approval. Upon delivery confirmation, the order will automatically create the finance posting per your tenant policy.
-        </p>
-        <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <CheckoutForm cartId={cart.id} totals={cart.totals} currency={cart.currency} />
+    // [CODE REVIEW]: FIX - Replace hardcoded colors with theme classes, fix cart.id reference
+    return (
+      <div className="min-h-screen bg-muted flex flex-col">
+        
+        <main className="mx-auto max-w-7xl px-4 py-8 flex-1">
+          <nav className="text-sm text-primary">
+            <Link href="/marketplace/cart" className="hover:underline">
+              Cart
+            </Link>
+            <span className="mx-2 text-muted-foreground">/</span>
+            <span className="text-muted-foreground">Checkout</span>
+          </nav>
+          <h1 className="mt-4 text-3xl font-semibold text-foreground">Checkout & Approvals</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Submit the order for approval. Upon delivery confirmation, the order will automatically create the finance posting per your tenant policy.
+          </p>
+          <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <CheckoutForm cartId={cart.id} totals={cart.totals} currency={cart.currency} />
           <aside className="space-y-4">
             <div className="rounded-2xl bg-card p-6 shadow">
               <h2 className="text-lg font-semibold text-foreground">Order contents</h2>
@@ -74,5 +75,17 @@ export default async function CheckoutPage() {
       </main>
     </div>
   );
+  } catch (error) {
+    console.error('Failed to load checkout page data:', error);
+    return (
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive">Failed to load cart data. Please try again later.</p>
+          <Link href="/marketplace/cart" className="mt-4 inline-block text-primary hover:underline">
+            Return to Cart
+          </Link>
+        </div>
+      </div>
+    );
+  }
 }
-

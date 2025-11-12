@@ -86,7 +86,7 @@ export default function AppSwitcher() {
   };
 
   return (
-    <div className={`app-switcher-container relative ${isRTL ? 'text-right' : 'text-left'}`}>
+    <div className={`app-switcher-container relative ${isRTL ? 'text-end' : 'text-start'}`}>
       <button
         onClick={() => setOpen(!open)}
         className={`flex items-center gap-2 px-3 py-2 rounded-md hover:bg-white/10 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
@@ -105,11 +105,11 @@ export default function AppSwitcher() {
           id="app-switcher-menu"
           role="menu"
           aria-label={t('app.switchApplication', 'Switch Application')}
-          className={`absolute ${isRTL ? 'right-0' : 'left-0'} top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-popover rounded-lg shadow-2xl border border-border z-[100] animate-in slide-in-from-top-2 duration-200`}
+          className={`absolute ${isRTL ? 'end-0' : 'start-0'} top-full mt-2 w-80 max-w-[calc(100vw-2rem)] bg-popover rounded-lg shadow-2xl border border-border z-[100] animate-in slide-in-from-top-2 duration-200`}
           style={{ maxWidth: 'calc(100vw - 2rem)' }}
         >
           {/* Arrow pointer */}
-          <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-popover border-l border-t border-border transform rotate-45 ${isRTL ? 'right-8' : 'left-8'}`}></div>
+          <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-popover border-l border-t border-border transform rotate-45 ${isRTL ? 'end-8' : 'start-8'}`}></div>
           
           <div className="p-3 border-b border-border">
             <h3 className="text-sm font-semibold text-foreground">{t('app.switchApplication', 'Switch Application')}</h3>
@@ -137,7 +137,7 @@ export default function AppSwitcher() {
                   } ${isFocused ? 'ring-2 ring-primary ring-inset' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
                 >
                   <AppIcon className="w-5 h-5" aria-hidden="true" />
-                  <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <div className={`flex-1 ${isRTL ? 'text-end' : 'text-start'}`}>
                     <div className="font-medium text-sm">{getAppName(appConfig.id)}</div>
                     <div className="text-xs text-muted-foreground" aria-label={`${Array.isArray(appConfig.searchEntities) ? appConfig.searchEntities.length : 0} ${t('app.searchableEntities', 'searchable entities')}`}>
                       {Array.isArray(appConfig.searchEntities) ? appConfig.searchEntities.length : 0} {t('app.searchableEntities', 'modules')}

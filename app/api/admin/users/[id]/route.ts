@@ -50,7 +50,7 @@ export async function DELETE(
     
     return NextResponse.json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
-    logger.error('Failed to delete user:', { error });
+    logger.error('Failed to delete user:', error);
     return NextResponse.json(
       { error: 'Failed to delete user' },
       { status: 500 }
@@ -142,7 +142,7 @@ export async function PATCH(
     
     return NextResponse.json({ user: updatedUser });
   } catch (error) {
-    logger.error('Failed to update user:', { error });
+    logger.error('Failed to update user:', error);
     return NextResponse.json(
       { error: 'Failed to update user' },
       { status: 500 }

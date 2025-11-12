@@ -102,6 +102,26 @@ const translations: Record<Language, Record<string, string>> = {
     'common.viewAll': 'عرض جميع الإشعارات',
     'common.backToHome': 'العودة إلى الصفحة الرئيسية',
     'common.characters': 'حرف',
+    'common.popularPages': 'الصفحات الشائعة',
+    
+    // Common - Pages
+    'common.pages.dashboard': 'لوحة التحكم',
+    'common.pages.properties': 'العقارات',
+    'common.pages.workOrders': 'أوامر العمل',
+    'common.pages.marketplace': 'السوق',
+    'common.pages.finance': 'المالية',
+    'common.pages.hr': 'الموارد البشرية',
+    'common.pages.login': 'تسجيل الدخول',
+    
+    // Common - Actions
+    'common.actions.goToHomepage': 'الذهاب إلى الصفحة الرئيسية',
+    'common.actions.goBack': 'العودة',
+    
+    // Errors
+    'errors.404.code': '404',
+    'errors.404.title': 'الصفحة غير موجودة',
+    'errors.404.message': 'الصفحة التي تبحث عنها غير موجودة أو تم نقلها.',
+    'errors.404.helpText': 'إذا كنت تعتقد أن هذا خطأ، يرجى الاتصال',
     
     // Time formatting
     'time.justNow': 'الآن',
@@ -768,6 +788,7 @@ const translations: Record<Language, Record<string, string>> = {
     'admin.cms.content': 'محتوى Markdown...',
     'admin.cms.draft': 'مسودة',
     'admin.cms.published': 'منشور',
+    'admin.cms.loadError': 'فشل تحميل الصفحة',
     
     // Admin - Footer CMS
     'admin.footer.title': 'إدارة محتوى التذييل',
@@ -1176,6 +1197,7 @@ const translations: Record<Language, Record<string, string>> = {
     'common.collapseAll': 'طي الكل',
     'common.na': 'غير متاح',
     'common.error.unknown': 'خطأ غير معروف',
+    'common.error.loadData': 'فشل تحميل البيانات',
 
     // Finance Module
     'finance.account': 'الحساب',
@@ -2163,6 +2185,12 @@ const translations: Record<Language, Record<string, string>> = {
     'employees': 'الموظفين',
     'accounts': 'الحسابات',
     'Accounts': 'الحسابات',
+  
+    'aqar.packages.errors.fetchFailed': 'فشل في جلب الباقات',
+    'common.errors.unexpected': 'حدث خطأ غير متوقع',
+  
+    'a11y.hidePassword': 'إخفاء كلمة المرور',
+    'a11y.showPassword': 'إظهار كلمة المرور',
   },
   en: {
       // Navigation
@@ -2222,6 +2250,26 @@ const translations: Record<Language, Record<string, string>> = {
     'common.viewAll': 'View all notifications',
     'common.backToHome': 'Back to Home',
     'common.characters': 'characters',
+    'common.popularPages': 'Popular Pages',
+    
+    // Common - Pages
+    'common.pages.dashboard': 'Dashboard',
+    'common.pages.properties': 'Properties',
+    'common.pages.workOrders': 'Work Orders',
+    'common.pages.marketplace': 'Marketplace',
+    'common.pages.finance': 'Finance',
+    'common.pages.hr': 'HR',
+    'common.pages.login': 'Login',
+    
+    // Common - Actions
+    'common.actions.goToHomepage': 'Go to Homepage',
+    'common.actions.goBack': 'Go Back',
+    
+    // Errors
+    'errors.404.code': '404',
+    'errors.404.title': 'Page Not Found',
+    'errors.404.message': 'The page you\'re looking for doesn\'t exist or has been moved.',
+    'errors.404.helpText': 'If you believe this is an error, please contact',
     
     // Time formatting
     'time.justNow': 'Just now',
@@ -2888,6 +2936,7 @@ const translations: Record<Language, Record<string, string>> = {
     'admin.cms.content': 'Markdown content...',
     'admin.cms.draft': 'DRAFT',
     'admin.cms.published': 'PUBLISHED',
+    'admin.cms.loadError': 'Failed to load page',
     
     // Admin - Footer CMS
     'admin.footer.title': 'Footer Content Management',
@@ -3849,6 +3898,7 @@ const translations: Record<Language, Record<string, string>> = {
     'common.collapseAll': 'Collapse All',
     'common.na': 'N/A',
     'common.error.unknown': 'Unknown error',
+    'common.error.loadData': 'Failed to load data',
 
     // Careers
     'careers.title': 'Join Our Team',
@@ -4059,6 +4109,8 @@ const translations: Record<Language, Record<string, string>> = {
     'app.currentApp': 'Current App',
     'save.saving': 'Saving...',
     'a11y.languageSelectorHelp': 'Select your preferred language for the interface',
+    'a11y.hidePassword': 'Hide password',
+    'a11y.showPassword': 'Show password',
 
     // Finance - Payment Form (unnamespaced keys from /app/finance/payments/new/page.tsx)
     'Bank Transfer Details': 'Bank Transfer Details',
@@ -4300,6 +4352,10 @@ const translations: Record<Language, Record<string, string>> = {
     'workOrders.recentActivity': 'Recent Activity',
     'workOrders.formAutoSaved': 'Form auto-saved',
     'workOrders.propertySelected': 'Property selected',
+    
+    // API Errors
+    'aqar.packages.errors.fetchFailed': 'Failed to fetch packages',
+    'common.errors.unexpected': 'An unexpected error occurred',
   },
 };
 
@@ -4453,4 +4509,3 @@ export function useTranslation() {
     };
   }
 }
-

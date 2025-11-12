@@ -337,7 +337,22 @@
     "invoices": "Invoices",
     "expenses": "Expenses",
     "payments": "Payments",
-    "reports": "Financial Reports"
+    "reports": "Financial Reports",
+    "category": {
+      "operational": "Operational",
+      "maintenance": "Maintenance",
+      "capital": "Capital",
+      "utility": "Utility",
+      "administrative": "Administrative",
+      "other": "Other"
+    },
+    "accountType": {
+      "ASSET": "Asset",
+      "LIABILITY": "Liability",
+      "EQUITY": "Equity",
+      "REVENUE": "Revenue",
+      "EXPENSE": "Expense"
+    }
   },
   "hr": {
     "title": "Human Resources",
@@ -410,7 +425,74 @@
     "tickets": "Support Tickets",
     "knowledge": "Knowledge Base",
     "faq": "FAQ",
-    "contact": "Contact Support"
+    "contact": "Contact Support",
+    "errorReport": "Error Report",
+    "category": "Category",
+    "subCategory": "Sub-Category",
+    "type": "Type",
+    "priority": "Priority",
+    "modules": {
+      "FM": "Facility Management",
+      "Souq": "Marketplace",
+      "Aqar": "Property",
+      "Account": "Account",
+      "Billing": "Billing",
+      "Other": "Other"
+    },
+    "categories": {
+      "Technical": "Technical",
+      "Feature Request": "Feature Request",
+      "Billing": "Billing",
+      "Account": "Account",
+      "General": "General",
+      "Bug Report": "Bug Report"
+    },
+    "subCategories": {
+      "Bug Report": "Bug Report",
+      "Performance Issue": "Performance Issue",
+      "UI Error": "UI Error",
+      "API Error": "API Error",
+      "Database Error": "Database Error",
+      "New Feature": "New Feature",
+      "Enhancement": "Enhancement",
+      "Integration": "Integration",
+      "Customization": "Customization",
+      "Mobile App": "Mobile App",
+      "Invoice Issue": "Invoice Issue",
+      "Payment Error": "Payment Error",
+      "Subscription": "Subscription",
+      "Refund": "Refund",
+      "Pricing": "Pricing",
+      "Login Issue": "Login Issue",
+      "Password Reset": "Password Reset",
+      "Profile Update": "Profile Update",
+      "Permissions": "Permissions",
+      "Access Denied": "Access Denied",
+      "Documentation": "Documentation",
+      "Training": "Training",
+      "Support": "Support",
+      "Feedback": "Feedback",
+      "Other": "Other",
+      "Critical Bug": "Critical Bug",
+      "Minor Bug": "Minor Bug",
+      "Cosmetic Issue": "Cosmetic Issue",
+      "Data Error": "Data Error",
+      "Security Issue": "Security Issue"
+    },
+    "types": {
+      "Bug": "Bug",
+      "Feature": "Feature",
+      "Complaint": "Complaint",
+      "Billing": "Billing",
+      "Access": "Access",
+      "Other": "Other"
+    },
+    "priorities": {
+      "Low": "Low",
+      "Medium": "Medium",
+      "High": "High",
+      "Urgent": "Urgent"
+    }
   },
   "help": {
     "title": "Help Center",
@@ -432,7 +514,12 @@
       "placeholder": "Search properties, projects, agents..."
     },
     "postProperty": "Post Property",
-    "newValuation": "New Valuation"
+    "newValuation": "New Valuation",
+    "packages": {
+      "errors": {
+        "fetchFailed": "Failed to fetch packages"
+      }
+    }
   },
   "common": {
     "brand": "FIXZIT",
@@ -498,7 +585,10 @@
     "draft": "Draft",
     "published": "Published",
     "archived": "Archived",
-    "deleted": "Deleted"
+    "deleted": "Deleted",
+    "errors": {
+      "unexpected": "An unexpected error occurred"
+    }
   },
   "app": {
     "fm": "Facility Management",
@@ -566,6 +656,25 @@
       "compliance": "Compliance",
       "reporting": "Reporting",
       "admin": "Administration"
+    }
+  },
+  "settings": {
+    "subtitle": "Manage your account settings and preferences",
+    "notifications": {
+      "title": "Notification Preferences",
+      "save": "Save Preferences",
+      "email": "Email Notifications",
+      "sms": "SMS Notifications",
+      "push": "Push Notifications",
+      "workOrders": "Work Order Updates",
+      "maintenance": "Maintenance Alerts",
+      "reports": "Report Summaries"
+    },
+    "preferences": {
+      "title": "App Preferences",
+      "language": "Language",
+      "english": "English",
+      "arabic": "Arabic"
     }
   },
   "navigation": {

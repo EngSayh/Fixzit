@@ -172,7 +172,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
   return (
     <div ref={searchRef} className="relative flex-1 max-w-lg">
       <div className="relative">
-        <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground`} />
+        <Search className={`absolute ${isRTL ? 'end-3' : 'start-3'} top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground`} />
         <input
           ref={inputRef}
           type="text"
@@ -188,9 +188,9 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
           aria-activedescendant={open && results[activeIndex] ? `${listboxId}-${activeIndex}` : undefined}
           aria-autocomplete="list"
           aria-haspopup="listbox"
-          className={`w-full ${isRTL ? 'pr-10 pl-20' : 'pl-10 pr-20'} py-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground`}
+          className={`w-full ${isRTL ? 'pe-10 ps-20' : 'ps-10 pe-20'} py-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground`}
         />
-        <div className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 transform -translate-y-1/2 flex items-center gap-1 text-xs text-muted-foreground`}>
+        <div className={`absolute ${isRTL ? 'start-3' : 'end-3'} top-1/2 transform -translate-y-1/2 flex items-center gap-1 text-xs text-muted-foreground`}>
           <Command className="w-3 h-3" />
           <span>K</span>
         </div>
@@ -201,7 +201,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
           id={listboxId}
           role="listbox"
           aria-label={t('search.results', 'Search results')}
-          className={`absolute top-full ${isRTL ? 'right-0' : 'left-0'} mt-1 bg-popover border border-border rounded-md shadow-lg z-50 max-h-96 overflow-y-auto min-w-full`}
+          className={`absolute top-full ${isRTL ? 'end-0' : 'start-0'} mt-1 bg-popover border border-border rounded-md shadow-lg z-50 max-h-96 overflow-y-auto min-w-full`}
         >
           {loading ? (
             <div className="p-4 text-center text-muted-foreground">
@@ -230,7 +230,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
                     index === activeIndex ? 'bg-accent' : ''
                   }`}
                 >
-                  <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                  <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse text-end' : ''}`}>
                     <div className="flex-1">
                       <div className="font-medium text-sm text-foreground">{result.title}</div>
                       {result.subtitle && (

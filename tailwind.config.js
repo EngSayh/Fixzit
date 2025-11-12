@@ -327,7 +327,8 @@ const config = {
       addComponents(rtlComponents);
       addComponents(glassComponents);
     },
-      require("tailwindcss-animate")
+    require('tailwindcss-logical'),
+    require("tailwindcss-animate")
 ],
 }
 

@@ -5,8 +5,6 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import Redis from 'ioredis';
 import { Filter, Document } from 'mongodb';
 
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
 
@@ -37,9 +35,18 @@ interface SearchChunk {
 
 function redactPII(s: string) {
   return s
-    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2}\b/gi, '[redacted email]')
+    // Email addresses
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[redacted email]')
     // Phone patterns: optional country code, optional area code, standard 7-10 digits with separators
-    .replace(/\b(?:\+?(\d{1,3})?[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b/g, '[redacted phone]');
+    .replace(/\b(?:\+?(\d{1,3})?[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}\b/g, '[redacted phone]')
+    // Credit card patterns (13-16 digits with optional spaces/dashes)
+    .replace(/\b(?:\d{4}[-\s]?){3}\d{1,4}\b/g, '[redacted card]')
+    // SSN patterns (XXX-XX-XXXX)
+    .replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[redacted SSN]')
+    // IP addresses (IPv4)
+    .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '[redacted IP]')
+    // 8-digit numeric IDs (may include Omani Civil IDs, invoice numbers, dates YYYYMMDD, etc.; trades precision for safety)
+    .replace(/\b\d{8}\b/g, '[redacted ID]');
 }
 
 /**
@@ -139,13 +146,6 @@ async function maybeSummarizeWithOpenAI(question: string, contexts: string[]): P
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     const user = await getSessionUser(req).catch(() => null);
     // Distributed rate limit per IP (uses Redis if available, falls back to in-memory)
@@ -190,7 +190,13 @@ export async function POST(req: NextRequest) {
         content: c.text || '',
         updatedAt: c.updatedAt ? new Date(c.updatedAt) : undefined
       }));
-    } catch (e) { logger.error('Vector search failed, falling back to lexical search:', { e }); }
+    } catch (e) {
+      logger.error(
+        'Vector search failed, falling back to lexical search',
+        e instanceof Error ? e : new Error(String(e)),
+        { route: '/api/help/ask', context: 'vector-search' }
+      );
+    }
 
     if (!docs || docs.length === 0) {
       try {
@@ -237,7 +243,7 @@ export async function POST(req: NextRequest) {
       }, { status: 429 });
     }
     const correlationId = (typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
-    logger.error('help/ask error', { correlationId, error: _err });
+    logger.error('help/ask error', _err instanceof Error ? _err : new Error(String(_err)), { correlationId });
     return NextResponse.json({
       name: 'HelpAskError',
       code: 'HELP_ASK_FAILED',
@@ -263,9 +269,36 @@ if (process.env.REDIS_URL) {
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => Math.min(times * 50, 2000),
       connectTimeout: 5000,
-      commandTimeout: 5000});
+      commandTimeout: 5000
+    });
+    
+    // Handle connection events for monitoring
+    redis.on('error', (err) => {
+      logger.error(
+        'Redis connection error',
+        err instanceof Error ? err : new Error(String(err)),
+        { route: '/api/help/ask', context: 'redis-connection' }
+      );
+    });
+    
+    redis.on('close', () => {
+      logger.warn('Redis connection closed, will attempt to reconnect automatically');
+      // Don't set redis = null - let it reconnect automatically
+    });
+    
+    redis.on('reconnecting', () => {
+      logger.info('Redis reconnecting...');
+    });
+    
+    redis.on('ready', () => {
+      logger.info('Redis connection restored');
+    });
   } catch (err) {
-    logger.error('Failed to initialize Redis client:', { err });
+    logger.error(
+      'Failed to initialize Redis client',
+      err instanceof Error ? err : new Error(String(err)),
+      { route: '/api/help/ask', context: 'redis-init' }
+    );
   }
 }
 
@@ -290,7 +323,11 @@ async function rateLimitAssert(req: NextRequest) {
       return;
     } catch (_err: Error | unknown) {
       if ((_err as Error).message === 'Rate limited') throw _err;
-      logger.error('Redis rate limit check failed, falling back to in-memory:', { _err });
+      logger.error(
+        'Redis rate limit check failed, falling back to in-memory',
+        _err instanceof Error ? _err : new Error(String(_err)),
+        { route: '/api/help/ask', context: 'rate-limit-redis' }
+      );
     }
   }
   

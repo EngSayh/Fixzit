@@ -213,7 +213,7 @@ export default function PropertiesDocumentsPage() {
                 <tr key={doc.id} className="hover:bg-muted">
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="text-muted-foreground mr-3">📄</div>
+                      <div className="text-muted-foreground me-3">📄</div>
                       <div>
                         <div className="text-sm font-medium text-foreground">{doc.name}</div>
                         <div className="text-sm text-muted-foreground">{doc.id}</div>

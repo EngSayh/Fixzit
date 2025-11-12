@@ -106,7 +106,11 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         await fs.writeFile(filePath, buffer);
         resumeUrl = `/uploads/resumes/${fileName}`;
       } catch (err) {
-        logger.error('Resume save failed:', { err });
+        logger.error(
+          'Resume save failed',
+          err instanceof Error ? err : new Error(String(err)),
+          { route: 'POST /api/ats/jobs/[id]/apply' }
+        );
       }
       
       // Basic text surrogate for scoring/search

@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
       facets: facets[0] || {},
     });
   } catch (error) {
-    logger.error('Error searching listings:', { error });
+    logger.error('Error searching listings:', error);
     return NextResponse.json(
       { error: 'Failed to search listings' },
       { status: 500 }

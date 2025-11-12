@@ -284,14 +284,14 @@ export default function SignupPage() {
                   {t('signup.fields.email', 'Email Address')} *
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Mail className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
                     placeholder={t('signup.placeholders.email', 'Enter your email address')}
                     value={formData.email}
                     onChange={(e) => handleChange('email', e.target.value)}
-                    className="pl-10 h-12"
+                    className="ps-10 h-12"
                     required
                   />
                 </div>
@@ -303,14 +303,14 @@ export default function SignupPage() {
                   {t('signup.fields.phone', 'Phone Number')} *
                 </Label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Phone className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
                     id="phone"
                     type="tel"
                     placeholder={t('signup.placeholders.phone', '+966 XX XXX XXXX')}
                     value={formData.phone}
                     onChange={(e) => handleChange('phone', e.target.value)}
-                    className="pl-10 h-12"
+                    className="ps-10 h-12"
                     required
                   />
                 </div>
@@ -323,14 +323,14 @@ export default function SignupPage() {
                     {t('signup.fields.companyName', 'Company Name')} *
                   </Label>
                   <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Building2 className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
                       id="companyName"
                       type="text"
                       placeholder={t('signup.placeholders.companyName', 'Enter your company name')}
                       value={formData.companyName}
                       onChange={(e) => handleChange('companyName', e.target.value)}
-                      className="pl-10 h-12"
+                      className="ps-10 h-12"
                       required
                     />
                   </div>
@@ -344,21 +344,22 @@ export default function SignupPage() {
                     {t('signup.fields.password', 'Password')} *
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Lock className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder={t('signup.placeholders.password', 'Create a strong password')}
                       value={formData.password}
                       onChange={(e) => handleChange('password', e.target.value)}
-                      className="pl-10 pr-10 h-12"
+                      className="ps-10 pe-10 h-12"
                       required
                       minLength={8}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute end-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={showPassword ? t('a11y.hidePassword', 'Hide password') : t('a11y.showPassword', 'Show password')}
                     >
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
@@ -370,21 +371,22 @@ export default function SignupPage() {
                     {t('signup.fields.confirmPassword', 'Confirm Password')} *
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Lock className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" aria-hidden="true" />
                     <Input
                       id="confirmPassword"
                       type={showConfirmPassword ? 'text' : 'password'}
                       placeholder={t('signup.placeholders.confirmPassword', 'Confirm your password')}
                       value={formData.confirmPassword}
                       onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                      className="pl-10 pr-10 h-12"
+                      className="ps-10 pe-10 h-12"
                       required
                       minLength={8}
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute end-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      aria-label={showConfirmPassword ? t('a11y.hidePassword', 'Hide password') : t('a11y.showPassword', 'Show password')}
                     >
                       {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>

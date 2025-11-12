@@ -110,7 +110,11 @@ export default function TermsPage() {
         setContent(DEFAULT_TERMS_CONTENT);
       }
     } catch (err) {
-      logger.error('Error fetching terms content:', { err });
+      logger.error(
+        'Error fetching terms content',
+        err instanceof Error ? err : new Error(String(err)),
+        { route: '/terms' }
+      );
       setTitle(t('terms.title', 'Terms of Service'));
       setContent(DEFAULT_TERMS_CONTENT);
     } finally {
@@ -130,7 +134,11 @@ export default function TermsPage() {
           setRenderedContent(html);
         })
         .catch(err => {
-          logger.error('Error rendering markdown:', { err });
+          logger.error(
+            'Error rendering markdown',
+            err instanceof Error ? err : new Error(String(err)),
+            { route: '/terms', action: 'render-markdown' }
+          );
           // Fallback to plain text wrapped in paragraphs
           setRenderedContent(`<div class="prose max-w-none"><p>${content.replace(/\n/g, '</p><p>')}</p></div>`);
         });

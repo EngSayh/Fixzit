@@ -165,12 +165,12 @@ export default function OrdersPage() {
       <div className="mb-6 flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={t('common.search', 'Search orders...')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="ps-10"
             />
           </div>
         </div>
@@ -208,7 +208,7 @@ export default function OrdersPage() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Purchase Orders</h2>
             <Button variant="outline" size="sm" onClick={() => exportOrdersCsv(purchaseOrders, 'purchase')}>
-              <Download className="h-4 w-4 mr-2" />
+              <Download className="h-4 w-4 me-2" />
               {t('common.export', 'Export')}
             </Button>
           </div>
@@ -282,7 +282,7 @@ export default function OrdersPage() {
                               size="sm"
                               onClick={() => router.push(`/marketplace/orders/${order.id}`)}
                             >
-                              <Eye className="h-4 w-4 mr-2" />
+                              <Eye className="h-4 w-4 me-2" />
                               {t('common.view', 'View')}
                             </Button>
                             <Button
@@ -290,7 +290,7 @@ export default function OrdersPage() {
                               size="sm"
                               onClick={() => router.push(`/marketplace/orders/${order.id}/edit`)}
                             >
-                              <Edit className="h-4 w-4 mr-2" />
+                              <Edit className="h-4 w-4 me-2" />
                               {t('common.edit', 'Edit')}
                             </Button>
                             <Button
@@ -299,7 +299,7 @@ export default function OrdersPage() {
                               className="text-destructive hover:text-destructive"
                               onClick={() => handleDelete(order.id, order.orderNumber || order.id)}
                             >
-                              <Trash2 className="h-4 w-4 mr-2" />
+                              <Trash2 className="h-4 w-4 me-2" />
                               {t('common.delete', 'Delete')}
                             </Button>
                           </div>
@@ -318,7 +318,7 @@ export default function OrdersPage() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Service Orders</h2>
             <Button variant="outline" size="sm" onClick={() => exportOrdersCsv(serviceOrders, 'service')}>
-              <Download className="h-4 w-4 mr-2" />
+              <Download className="h-4 w-4 me-2" />
               {t('common.export', 'Export')}
             </Button>
           </div>
@@ -377,7 +377,7 @@ export default function OrdersPage() {
                             size="sm"
                             onClick={() => router.push(`/marketplace/orders/${order.id}`)}
                           >
-                            <Eye className="h-4 w-4 mr-2" />
+                            <Eye className="h-4 w-4 me-2" />
                             {t('common.view', 'View')}
                           </Button>
                           <Button
@@ -385,7 +385,7 @@ export default function OrdersPage() {
                             size="sm"
                             onClick={() => router.push(`/marketplace/orders/${order.id}/edit`)}
                           >
-                            <Edit className="h-4 w-4 mr-2" />
+                            <Edit className="h-4 w-4 me-2" />
                             {t('common.edit', 'Edit')}
                           </Button>
                           <Button
@@ -394,7 +394,7 @@ export default function OrdersPage() {
                             className="text-destructive hover:text-destructive"
                             onClick={() => handleDelete(order.id, order.orderNumber || order.id)}
                           >
-                            <Trash2 className="h-4 w-4 mr-2" />
+                            <Trash2 className="h-4 w-4 me-2" />
                             {t('common.delete', 'Delete')}
                           </Button>
                         </div>

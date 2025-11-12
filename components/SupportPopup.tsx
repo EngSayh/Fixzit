@@ -399,7 +399,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
               onClick={copyDetails}
               disabled={!subject.trim() && !text.trim()}
             >
-              <Copy className="w-4 h-4 mr-2" />
+              <Copy className="w-4 h-4 me-2" />
               {t('support.copyDetails', 'Copy details')}
             </Button>
             <Button
@@ -410,7 +410,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
             >
               {submitting ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 me-2 animate-spin" />
                   {t('support.creating', 'Creating Ticket...')}
                 </>
               ) : (

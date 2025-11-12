@@ -54,7 +54,11 @@ export async function POST(req: NextRequest) {
     });
     return createSecureResponse({ ok: true }, 200, req);
   } catch (err) {
-    logger.error('kb/ingest error', { err });
+    logger.error(
+      'kb/ingest error',
+      err instanceof Error ? err : new Error(String(err)),
+      { route: 'POST /api/kb/ingest' }
+    );
     return createSecureResponse({ error: 'Ingest failed' }, 500, req);
   }
 }

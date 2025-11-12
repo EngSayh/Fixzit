@@ -126,7 +126,7 @@ export async function GET(
     );
     
   } catch (error) {
-    logger.error('GET /api/finance/accounts/[id] error:', { error });
+    logger.error('GET /api/finance/accounts/[id] error:', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ error: error.message }, { status: 403 });
@@ -201,7 +201,7 @@ export async function PUT(
     );
     
   } catch (error) {
-    logger.error('PUT /api/finance/accounts/[id] error:', { error });
+    logger.error('PUT /api/finance/accounts/[id] error:', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ error: error.message }, { status: 403 });
@@ -299,7 +299,7 @@ export async function DELETE(
     );
     
   } catch (error) {
-    logger.error('DELETE /api/finance/accounts/[id] error:', { error });
+    logger.error('DELETE /api/finance/accounts/[id] error:', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ error: error.message }, { status: 403 });

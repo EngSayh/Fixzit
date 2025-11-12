@@ -87,7 +87,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     if (_err && typeof _err === 'object' && 'code' in _err && _err.code === 11000) {
       return createSecureResponse({ error: 'Duplicate key (e.g., slug) exists' }, 409, req);
     }
-    logger.error('PATCH /api/help/articles/[id] failed', { _err });
+    logger.error(
+      'PATCH /api/help/articles/[id] failed',
+      _err instanceof Error ? _err : new Error(String(_err)),
+      { route: 'PATCH /api/help/articles/[id]' }
+    );
     return createSecureResponse({ error: 'Internal Server Error' }, 500, req);
   }
 }

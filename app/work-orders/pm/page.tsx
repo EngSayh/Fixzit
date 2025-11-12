@@ -139,15 +139,15 @@ export default function PreventiveMaintenancePage() {
           <table className="w-full">
             <thead className="bg-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Title</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Property</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.pm.frequency', 'Frequency')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.pm.lastCompleted', 'Last Done')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.pm.nextDue', 'Next Due')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Assigned</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">ID</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Title</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Property</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.pm.frequency', 'Frequency')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.pm.lastCompleted', 'Last Done')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.pm.nextDue', 'Next Due')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Assigned</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-card divide-y divide-border">

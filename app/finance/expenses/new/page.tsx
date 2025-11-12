@@ -136,7 +136,7 @@ export default function NewExpensePage() {
           setVendors(data.vendors || []);
         }
       } catch (error) {
-        logger.error('Error loading vendors:', { error });
+        logger.error('Error loading vendors:', error);
       } finally {
         setLoadingVendors(false);
       }
@@ -155,7 +155,7 @@ export default function NewExpensePage() {
           setChartAccounts(data.accounts || []);
         }
       } catch (error) {
-        logger.error('Error loading accounts:', { error });
+        logger.error('Error loading accounts:', error);
       } finally {
         setLoadingAccounts(false);
       }
@@ -197,7 +197,7 @@ export default function NewExpensePage() {
 
         setBudgetInfo(budgets);
       } catch (error) {
-        logger.error('Error loading budget info:', { error });
+        logger.error('Error loading budget info:', error);
       }
     };
 
@@ -388,7 +388,7 @@ export default function NewExpensePage() {
         router.push(`/finance/expenses/${data.expense.id}`);
       }
     } catch (error) {
-      logger.error('Error saving draft:', { error });
+      logger.error('Error saving draft:', error);
       toast.error(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);
@@ -454,7 +454,7 @@ export default function NewExpensePage() {
         router.push(`/finance/expenses/${data.expense.id}`);
       }
     } catch (error) {
-      logger.error('Error submitting expense:', { error });
+      logger.error('Error submitting expense:', error);
       toast.error(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);
@@ -474,7 +474,7 @@ export default function NewExpensePage() {
         });
       }
     } catch (error) {
-      logger.error('Error uploading receipts:', { error });
+      logger.error('Error uploading receipts:', error);
       // Don't throw - expense is already created
     }
   };
@@ -665,13 +665,13 @@ export default function NewExpensePage() {
               <table className="w-full text-sm">
                 <thead className="bg-muted">
                   <tr>
-                    <th className="px-2 py-2 text-left">{t('finance.expense.description', 'Description')}</th>
-                    <th className="px-2 py-2 text-left">{t('finance.expense.category', 'Category')}</th>
-                    <th className="px-2 py-2 text-left">{t('finance.expense.account', 'GL Account')}</th>
-                    <th className="px-2 py-2 text-right">{t('finance.expense.qty', 'Qty')}</th>
-                    <th className="px-2 py-2 text-right">{t('finance.expense.unitPrice', 'Unit Price')}</th>
+                    <th className="px-2 py-2 text-start">{t('finance.expense.description', 'Description')}</th>
+                    <th className="px-2 py-2 text-start">{t('finance.expense.category', 'Category')}</th>
+                    <th className="px-2 py-2 text-start">{t('finance.expense.account', 'GL Account')}</th>
+                    <th className="px-2 py-2 text-end">{t('finance.expense.qty', 'Qty')}</th>
+                    <th className="px-2 py-2 text-end">{t('finance.expense.unitPrice', 'Unit Price')}</th>
                     <th className="px-2 py-2 text-center">{t('finance.expense.taxable', 'Tax')}</th>
-                    <th className="px-2 py-2 text-right">{t('finance.expense.amount', 'Amount')}</th>
+                    <th className="px-2 py-2 text-end">{t('finance.expense.amount', 'Amount')}</th>
                     <th className="px-2 py-2"></th>
                   </tr>
                 </thead>
@@ -726,7 +726,7 @@ export default function NewExpensePage() {
                           onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 1)}
                           min="1"
                           step="1"
-                          className={`w-20 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.quantity`] ? 'border-destructive' : 'border-border'}`}
+                          className={`w-20 px-2 py-1 text-sm text-end border rounded ${errors[`lineItem.${index}.quantity`] ? 'border-destructive' : 'border-border'}`}
                         />
                       </td>
                       <td className="px-2 py-2">
@@ -736,7 +736,7 @@ export default function NewExpensePage() {
                           onChange={(e) => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
                           min="0"
                           step="0.01"
-                          className={`w-24 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.unitPrice`] ? 'border-destructive' : 'border-border'}`}
+                          className={`w-24 px-2 py-1 text-sm text-end border rounded ${errors[`lineItem.${index}.unitPrice`] ? 'border-destructive' : 'border-border'}`}
                         />
                       </td>
                       <td className="px-2 py-2 text-center">
@@ -746,9 +746,9 @@ export default function NewExpensePage() {
                           onChange={(e) => updateLineItem(item.id, 'taxable', e.target.checked)}
                           className="rounded"
                         />
-                        {item.taxable && <span className="text-xs text-muted-foreground ml-1">15%</span>}
+                        {item.taxable && <span className="text-xs text-muted-foreground ms-1">15%</span>}
                       </td>
-                      <td className="px-2 py-2 text-right font-medium">
+                      <td className="px-2 py-2 text-end font-medium">
                         {currency} {(item.amount + item.taxAmount).toFixed(2)}
                       </td>
                       <td className="px-2 py-2">
@@ -809,7 +809,7 @@ export default function NewExpensePage() {
                     <p className="text-xs text-muted-foreground mt-2 truncate">{receipt.file.name}</p>
                     <button
                       onClick={() => removeReceipt(receipt.id)}
-                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-destructive/90"
+                      className="absolute top-1 end-1 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-destructive/90"
                     >
                       ✕
                     </button>
@@ -970,13 +970,13 @@ export default function NewExpensePage() {
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('workOrders.quickActions', 'Quick Actions')}</h3>
             <div className="space-y-2">
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 📊 {t('finance.expense.viewBudget', 'View Budget')}
               </button>
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 📋 {t('finance.expense.bulkEntry', 'Bulk Expense Entry')}
               </button>
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 📄 {t('finance.expense.templates', 'Expense Templates')}
               </button>
             </div>
@@ -988,12 +988,12 @@ export default function NewExpensePage() {
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-success/20 rounded-full"></div>
                 <span className="text-muted-foreground">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
-                <span className="text-muted-foreground ml-auto">2m ago</span>
+                <span className="text-muted-foreground ms-auto">2m ago</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-primary/20 rounded-full"></div>
                 <span className="text-muted-foreground">{t('finance.expense.category', 'Category')} {t('common.selected', 'selected')}</span>
-                <span className="text-muted-foreground ml-auto">4m ago</span>
+                <span className="text-muted-foreground ms-auto">4m ago</span>
               </div>
             </div>
           </div>

@@ -327,7 +327,7 @@ export default function CareersPage() {
         throw new Error(result.error || 'Failed to submit application');
       }
     } catch (error) {
-      logger.error('Application submission error:', { error });
+      logger.error('Application submission error:', error);
 
       const errorMessage = error instanceof Error
         ? `Error: ${error.message}. Please check your internet connection and try again.`
@@ -497,7 +497,7 @@ export default function CareersPage() {
                           disabled={job.status === 'Closed'}
                           className="bg-primary hover:bg-primary/90"
                         >
-                          <FileText className="w-4 h-4 mr-2" />
+                          <FileText className="w-4 h-4 me-2" />
                           View Details
                         </Button>
                       </DialogTrigger>
@@ -611,7 +611,7 @@ export default function CareersPage() {
                                 disabled={job.status === 'Closed'}
                                 className="bg-primary hover:bg-primary/90 text-white px-6 py-2"
                               >
-                                <Send className="w-4 h-4 mr-2" />
+                                <Send className="w-4 h-4 me-2" />
                                 Apply Now
                               </Button>
                             </div>
@@ -714,7 +714,7 @@ export default function CareersPage() {
                           className="sr-only"
                         />
                       </label>
-                      <p className="pl-1">or drag and drop</p>
+                      <p className="ps-1">or drag and drop</p>
                     </div>
                     <p className="text-xs text-muted-foreground">PDF, DOC, DOCX up to 10MB</p>
                   </div>
@@ -737,12 +737,12 @@ export default function CareersPage() {
                 >
                   {isSubmitting ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin me-2" />
                       Submitting...
                     </>
                   ) : (
                     <>
-                      <Send className="w-4 h-4 mr-2" />
+                      <Send className="w-4 h-4 me-2" />
                       Submit Application
                     </>
                   )}

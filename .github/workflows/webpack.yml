@@ -32,10 +32,28 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 9
+          version: 9.0.0
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Translation Audit
+        run: node scripts/audit-translations.mjs
+        continue-on-error: false
 
       - name: TypeScript Typecheck
         run: pnpm run typecheck
@@ -45,14 +63,37 @@ jobs:
         run: pnpm run lint
         continue-on-error: false
 
+      - name: Run Tests
+        run: pnpm test:models
+        continue-on-error: false
+        env:
+          NODE_ENV: test
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+
+      - name: Check Code Coverage
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            COVERAGE=$(node -e "const cov = require('./coverage/coverage-summary.json'); const total = cov.total; const pct = total.lines.pct; console.log(pct);")
+            echo "Code coverage: ${COVERAGE}%"
+            if [ $(echo "$COVERAGE < 80" | bc -l) -eq 1 ]; then
+              echo "❌ Code coverage ${COVERAGE}% is below 80% threshold"
+              exit 1
+            fi
+            echo "✅ Code coverage ${COVERAGE}% meets 80% threshold"
+          else
+            echo "⚠️ Coverage report not found, skipping coverage check"
+          fi
+        continue-on-error: false
+
       - name: Build Next.js
         run: pnpm run build
         env:
           NODE_OPTIONS: --max-old-space-size=8192
           NODE_ENV: production
-          MONGODB_URI: mongodb://localhost:27017/fixzit-ci-test
-          NEXTAUTH_SECRET: ci-test-secret-key-min-32-chars-long
-          NEXTAUTH_URL: http://localhost:3000
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
           
       - name: Upload Build Artifacts
         if: success()
@@ -63,3 +104,11 @@ jobs:
             .next
             !.next/cache
           retention-days: 1
+
+      - name: Upload Coverage Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ matrix.node-version }}
+          path: coverage
+          retention-days: 7

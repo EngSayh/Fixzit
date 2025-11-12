@@ -113,7 +113,7 @@ export default function VendorDetailsPage() {
         <div className="flex items-center space-x-4">
           <Link href="/fm/vendors">
             <Button variant="ghost" size="sm">
-              <ChevronLeft className="w-4 h-4 mr-1" />
+              <ChevronLeft className="w-4 h-4 me-1" />
               Back
             </Button>
           </Link>
@@ -132,7 +132,7 @@ export default function VendorDetailsPage() {
             variant="outline"
             onClick={() => router.push(`/fm/vendors/${params.id}/edit`)}
           >
-            <Edit className="w-4 h-4 mr-2" />
+            <Edit className="w-4 h-4 me-2" />
             Edit
           </Button>
           <Button 
@@ -140,7 +140,7 @@ export default function VendorDetailsPage() {
             className="text-destructive hover:text-destructive"
             onClick={handleDelete}
           >
-            <Trash2 className="w-4 h-4 mr-2" />
+            <Trash2 className="w-4 h-4 me-2" />
             Delete
           </Button>
         </div>
@@ -153,7 +153,7 @@ export default function VendorDetailsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Building2 className="w-5 h-5 mr-2" />
+                <Building2 className="w-5 h-5 me-2" />
                 Vendor Overview
               </CardTitle>
             </CardHeader>
@@ -173,7 +173,7 @@ export default function VendorDetailsPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Rating</p>
                     <div className="flex items-center">
-                      <Star className="w-4 h-4 text-warning mr-1" />
+                      <Star className="w-4 h-4 text-warning me-1" />
                       <p className="font-medium">{vendor.rating.toFixed(1)} / 5.0</p>
                     </div>
                   </div>
@@ -182,7 +182,7 @@ export default function VendorDetailsPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Response Time</p>
                     <div className="flex items-center">
-                      <Clock className="w-4 h-4 text-primary mr-1" />
+                      <Clock className="w-4 h-4 text-primary me-1" />
                       <p className="font-medium">{vendor.responseTime}</p>
                     </div>
                   </div>
@@ -206,7 +206,7 @@ export default function VendorDetailsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <FileText className="w-5 h-5 mr-2" />
+                  <FileText className="w-5 h-5 me-2" />
                   Business Information
                 </CardTitle>
               </CardHeader>
@@ -253,7 +253,7 @@ export default function VendorDetailsPage() {
                     <Separator />
                     <div>
                       <p className="text-sm text-muted-foreground mb-2 flex items-center">
-                        <Award className="w-4 h-4 mr-1" />
+                        <Award className="w-4 h-4 me-1" />
                         Specializations
                       </p>
                       <div className="flex flex-wrap gap-2">
@@ -275,7 +275,7 @@ export default function VendorDetailsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <User className="w-5 h-5 mr-2" />
+                  <User className="w-5 h-5 me-2" />
                   Contact Information
                 </CardTitle>
               </CardHeader>
@@ -283,7 +283,7 @@ export default function VendorDetailsPage() {
                 <div className="grid grid-cols-1 gap-4">
                   {vendor.contact.primary.name && (
                     <div className="flex items-center">
-                      <User className="w-4 h-4 text-muted-foreground mr-2" />
+                      <User className="w-4 h-4 text-muted-foreground me-2" />
                       <div>
                         <p className="text-sm text-muted-foreground">Contact Person</p>
                         <p className="font-medium">{vendor.contact.primary.name}</p>
@@ -292,7 +292,7 @@ export default function VendorDetailsPage() {
                   )}
                   {vendor.contact.primary.email && (
                     <div className="flex items-center">
-                      <Mail className="w-4 h-4 text-muted-foreground mr-2" />
+                      <Mail className="w-4 h-4 text-muted-foreground me-2" />
                       <div>
                         <p className="text-sm text-muted-foreground">Email</p>
                         <a 
@@ -306,7 +306,7 @@ export default function VendorDetailsPage() {
                   )}
                   {vendor.contact.primary.phone && (
                     <div className="flex items-center">
-                      <Phone className="w-4 h-4 text-muted-foreground mr-2" />
+                      <Phone className="w-4 h-4 text-muted-foreground me-2" />
                       <div>
                         <p className="text-sm text-muted-foreground">Phone</p>
                         <a 
@@ -320,7 +320,7 @@ export default function VendorDetailsPage() {
                   )}
                   {vendor.contact.primary.mobile && (
                     <div className="flex items-center">
-                      <Phone className="w-4 h-4 text-muted-foreground mr-2" />
+                      <Phone className="w-4 h-4 text-muted-foreground me-2" />
                       <div>
                         <p className="text-sm text-muted-foreground">Mobile</p>
                         <a 
@@ -338,7 +338,7 @@ export default function VendorDetailsPage() {
                   <>
                     <Separator />
                     <div className="flex items-start">
-                      <MapPin className="w-4 h-4 text-muted-foreground mr-2 mt-1" />
+                      <MapPin className="w-4 h-4 text-muted-foreground me-2 mt-1" />
                       <div>
                         <p className="text-sm text-muted-foreground">Address</p>
                         <p className="font-medium">
@@ -370,7 +370,7 @@ export default function VendorDetailsPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Rating</span>
                   <div className="flex items-center">
-                    <Star className="w-4 h-4 text-warning mr-1" />
+                    <Star className="w-4 h-4 text-warning me-1" />
                     <span className="font-medium">{vendor.rating.toFixed(1)}</span>
                   </div>
                 </div>
@@ -379,7 +379,7 @@ export default function VendorDetailsPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Avg. Response</span>
                   <div className="flex items-center">
-                    <Clock className="w-4 h-4 text-primary mr-1" />
+                    <Clock className="w-4 h-4 text-primary me-1" />
                     <span className="font-medium">{vendor.responseTime}</span>
                   </div>
                 </div>
@@ -398,7 +398,7 @@ export default function VendorDetailsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center">
-                <Shield className="w-4 h-4 mr-2" />
+                <Shield className="w-4 h-4 me-2" />
                 Verification Status
               </CardTitle>
             </CardHeader>

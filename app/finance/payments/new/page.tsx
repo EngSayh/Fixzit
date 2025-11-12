@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
+import Decimal from 'decimal.js';
 
 import { logger } from '@/lib/logger';
 // ============================================================================
@@ -96,10 +97,16 @@ export default function NewPaymentPage() {
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
 
-  // Calculate totals
-  const totalAllocated = allocations.reduce((sum, a) => sum + a.amountAllocated, 0);
-  const unallocatedAmount = parseFloat(amount || '0') - totalAllocated;
-  const paymentAmountNum = parseFloat(amount || '0');
+  // Calculate totals using Decimal for precision
+  const totalAllocated = allocations.reduce(
+    (sum, a) => sum.plus(a.amountAllocated),
+    new Decimal(0)
+  );
+  const paymentAmountDec = new Decimal(amount || '0');
+  const unallocatedAmount = paymentAmountDec.minus(totalAllocated);
+  
+  // Legacy numeric value for UI (convert from Decimal)
+  const paymentAmountNum = parseFloat(paymentAmountDec.toFixed(2));
 
   // ============================================================================
   // LIFECYCLE & DATA LOADING
@@ -141,13 +148,13 @@ export default function NewPaymentPage() {
           }
         }
       } catch (error) {
-        logger.error('Error loading accounts:', { error });
+        logger.error('Error loading accounts:', error);
       } finally {
         setLoadingAccounts(false);
       }
     };
     loadAccounts().catch((err) => {
-      logger.error('Unhandled error in loadAccounts', { error: err });
+      logger.error('Unhandled error in loadAccounts', err);
       setLoadingAccounts(false);
     });
   }, []);
@@ -185,13 +192,13 @@ export default function NewPaymentPage() {
           setAllocations(newAllocations);
         }
       } catch (error) {
-        logger.error('Error loading invoices:', { error });
+        logger.error('Error loading invoices:', error);
         setErrors({ ...errors, invoices: 'Failed to load invoices' });
       } finally {
         setLoadingInvoices(false);
       }
     })().catch((err) => {
-      logger.error('Unhandled error in loadAvailableInvoices', { error: err });
+      logger.error('Unhandled error in loadAvailableInvoices', err);
       setErrors({ ...errors, invoices: 'Failed to load invoices' });
       setLoadingInvoices(false);
     });
@@ -204,7 +211,9 @@ export default function NewPaymentPage() {
   const toggleInvoiceSelection = (id: string) => {
     setAllocations(allocations.map(a => {
       if (a.id === id) {
-        return { ...a, selected: !a.selected, amountAllocated: !a.selected ? Math.min(a.amountDue, unallocatedAmount + a.amountAllocated) : 0 };
+        const unallocPlusCurrentStr = unallocatedAmount.plus(a.amountAllocated).toFixed(2);
+        const unallocPlusCurrent = parseFloat(unallocPlusCurrentStr);
+        return { ...a, selected: !a.selected, amountAllocated: !a.selected ? Math.min(a.amountDue, unallocPlusCurrent) : 0 };
       }
       return a;
     }));
@@ -300,7 +309,7 @@ export default function NewPaymentPage() {
     }
 
     // Allocation validation
-    if (totalAllocated > paymentAmountNum) {
+    if (totalAllocated.greaterThan(paymentAmountDec)) {
       newErrors.allocations = 'Total allocated amount cannot exceed payment amount';
     }
 
@@ -371,7 +380,7 @@ export default function NewPaymentPage() {
           chequeDetails,
           cardDetails,
           allocations: invoiceAllocations,
-          unallocatedAmount,
+          unallocatedAmount: parseFloat(unallocatedAmount.toFixed(2)),
           status: 'POSTED' // Auto-post payment
         };
 
@@ -392,13 +401,13 @@ export default function NewPaymentPage() {
           setErrors({ submit: errorData.error || 'Failed to create payment' });
         }
       } catch (error) {
-        logger.error('Error creating payment:', { error });
+        logger.error('Error creating payment:', error);
         setErrors({ submit: 'An unexpected error occurred' });
       } finally {
         setIsSubmitting(false);
       }
     })().catch((err) => {
-      logger.error('Unhandled error in handleSubmit', { error: err });
+      logger.error('Unhandled error in handleSubmit', err);
       setErrors({ submit: 'An unexpected error occurred' });
       setIsSubmitting(false);
     });
@@ -873,22 +882,22 @@ export default function NewPaymentPage() {
                       <table className="min-w-full divide-y divide-border">
                         <thead className="bg-muted">
                           <tr>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
                               {t('Select')}
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
                               {t('Invoice #')}
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
                               {t('Customer')}
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
                               {t('Due Date')}
                             </th>
-                            <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-end text-xs font-medium text-muted-foreground uppercase">
                               {t('Amount Due')}
                             </th>
-                            <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-end text-xs font-medium text-muted-foreground uppercase">
                               {t('Allocate')}
                             </th>
                           </tr>
@@ -913,7 +922,7 @@ export default function NewPaymentPage() {
                               <td className="px-3 py-2 text-sm text-foreground">
                                 {new Date(allocation.dueDate).toLocaleDateString()}
                               </td>
-                              <td className="px-3 py-2 text-sm text-right text-foreground">
+                              <td className="px-3 py-2 text-sm text-end text-foreground">
                                 {allocation.amountDue.toFixed(2)} {currency}
                               </td>
                               <td className="px-3 py-2">
@@ -924,7 +933,7 @@ export default function NewPaymentPage() {
                                   max={allocation.amountDue}
                                   value={allocation.amountAllocated}
                                   onChange={(e) => updateAllocationAmount(allocation.id, e.target.value)}
-                                  className="w-full px-2 py-1 text-sm text-right border border-border rounded"
+                                  className="w-full px-2 py-1 text-sm text-end border border-border rounded"
                                   disabled={!allocation.selected}
                                 />
                               </td>
@@ -949,9 +958,9 @@ export default function NewPaymentPage() {
                             {totalAllocated.toFixed(2)} {currency}
                           </p>
                         </div>
-                        <div className={`p-3 rounded ${unallocatedAmount < 0 ? 'bg-destructive/10' : 'bg-success/10'}`}>
+                        <div className={`p-3 rounded ${unallocatedAmount.lessThan(0) ? 'bg-destructive/10' : 'bg-success/10'}`}>
                           <p className="text-muted-foreground">{t('Unallocated')}</p>
-                          <p className={`text-lg font-bold ${unallocatedAmount < 0 ? 'text-destructive' : 'text-success'}`}>
+                          <p className={`text-lg font-bold ${unallocatedAmount.lessThan(0) ? 'text-destructive' : 'text-success'}`}>
                             {unallocatedAmount.toFixed(2)} {currency}
                           </p>
                         </div>

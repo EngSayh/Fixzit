@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
       }
     );
   } catch (error) {
-    logger.error('Error creating payment:', { error });
+    logger.error('Error creating payment:', error);
 
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });
@@ -234,7 +234,7 @@ export async function GET(req: NextRequest) {
       }
     );
   } catch (error) {
-    logger.error('Error fetching payments:', { error });
+    logger.error('Error fetching payments:', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });

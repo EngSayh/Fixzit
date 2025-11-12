@@ -155,16 +155,16 @@ export default function ServiceHistoryPage() {
           <table className="w-full">
             <thead className="bg-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">WO ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Title</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Property</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Technician</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Completion Date</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Duration</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Cost</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Rating</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">WO ID</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Title</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Property</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Technician</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Completion Date</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Duration</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Cost</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Rating</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-card divide-y divide-border">
@@ -180,7 +180,7 @@ export default function ServiceHistoryPage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     <div className="flex items-center">
                       <span className="text-accent">⭐</span>
-                      <span className="ml-1">{item.rating}/5</span>
+                      <span className="ms-1">{item.rating}/5</span>
                     </div>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">

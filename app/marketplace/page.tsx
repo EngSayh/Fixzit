@@ -25,25 +25,31 @@ interface Product {
 }
 
 async function loadHomepageData() {
-  const [categoriesResponse, featuredResponse] = await Promise.all([
-    serverFetchJsonWithTenant<{ data: Category[] }>('/api/marketplace/categories'),
-    serverFetchJsonWithTenant<{ data: { items: Product[] } }>('/api/marketplace/products?limit=8')
-  ]);
+  try {
+    const [categoriesResponse, featuredResponse] = await Promise.all([
+      serverFetchJsonWithTenant<{ data: Category[] }>('/api/marketplace/categories'),
+      serverFetchJsonWithTenant<{ data: { items: Product[] } }>('/api/marketplace/products?limit=8')
+    ]);
 
-  const categories = categoriesResponse.data;
-  const featured = featuredResponse.data.items;
+    const categories = categoriesResponse.data;
+    const featured = featuredResponse.data.items;
 
-  const carousels = await Promise.all(
-    categories.slice(0, 4).map(async category => {
-      const response = await serverFetchJsonWithTenant<{ data: { items: Product[] } }>(`/api/marketplace/search?cat=${category.slug}&limit=6`);
-      return {
-        category,
-        items: response.data.items
-      };
-    })
-  );
+    const carousels = await Promise.all(
+      categories.slice(0, 4).map(async category => {
+        const response = await serverFetchJsonWithTenant<{ data: { items: Product[] } }>(`/api/marketplace/search?cat=${category.slug}&limit=6`);
+        return {
+          category,
+          items: response.data.items
+        };
+      })
+    );
 
-  return { categories, featured, carousels };
+    return { categories, featured, carousels };
+  } catch (error) {
+    console.error('Failed to load marketplace homepage data:', error);
+    // Return empty data to allow graceful degradation
+    return { categories: [], featured: [], carousels: [] };
+  }
 }
 
 export default async function MarketplaceHome() {
