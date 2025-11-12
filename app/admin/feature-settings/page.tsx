@@ -82,7 +82,11 @@ export default function FeatureSettingsPage() {
         setFeatures(data.features || data);
         setError(null); // Clear any previous errors
       } catch (err) {
-        logger.error('Failed to fetch feature flags:', { err });
+        logger.error(
+          'Failed to fetch feature flags',
+          err instanceof Error ? err : new Error(String(err)),
+          { route: '/admin/feature-settings' }
+        );
         // Proper Error instance check with fallback
         const errorMessage = err instanceof Error 
           ? err.message 
@@ -144,7 +148,11 @@ export default function FeatureSettingsPage() {
       // The optimistic update is kept unless there's an error
       
     } catch (err) {
-      logger.error('Failed to update feature:', { err });
+      logger.error(
+        'Failed to update feature',
+        err instanceof Error ? err : new Error(String(err)),
+        { route: '/admin/feature-settings', featureKey, enabled }
+      );
       const errorMessage = err instanceof Error 
         ? err.message 
         : 'An unknown error occurred while updating feature';

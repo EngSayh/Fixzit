@@ -115,7 +115,11 @@ export default function AuditLogViewer() {
       setTotalLogs(data.total || 0);
       setTotalPages(Math.ceil((data.total || 0) / LOGS_PER_PAGE));
     } catch (err) {
-      logger.error('Failed to fetch audit logs:', { err });
+      logger.error(
+        'Failed to fetch audit logs',
+        err instanceof Error ? err : new Error(String(err)),
+        { route: '/admin/audit-logs', page, filters }
+      );
       
       // Handle different error types with user-friendly messages
       let errorMessage = 'An unexpected error occurred. Please try again.';

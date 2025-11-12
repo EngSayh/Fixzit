@@ -220,7 +220,11 @@ export default function LoginPage() {
         }, 500);
       }
     } catch (err) {
-      logger.error('Login error:', { err });
+      logger.error(
+        'Login error',
+        err instanceof Error ? err : new Error(String(err)),
+        { route: '/login' }
+      );
       setErrors({ general: t('login.errors.networkError', 'Network error. Please check your connection.') });
       setLoading(false);
     }

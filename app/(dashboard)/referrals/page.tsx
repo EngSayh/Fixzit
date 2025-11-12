@@ -216,7 +216,11 @@ export default function ReferralProgramPage() {
         copyTimeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
         return;
       } catch (err) {
-        logger.error('Clipboard API write failed:', { err });
+        logger.error(
+          'Clipboard API write failed',
+          err instanceof Error ? err : new Error(String(err)),
+          { route: '/dashboard/referrals', action: 'clipboard-copy' }
+        );
         // fall through to DOM fallback
       }
     }
@@ -245,7 +249,11 @@ export default function ReferralProgramPage() {
         toast.error(errorMsg);
       }
     } catch (err) {
-      logger.error('Fallback copy failed:', { err });
+      logger.error(
+        'Fallback copy failed',
+        err instanceof Error ? err : new Error(String(err)),
+        { route: '/dashboard/referrals', action: 'fallback-copy' }
+      );
       const errorMsg = 'Failed to copy to clipboard. Please copy manually.';
       setError(errorMsg);
       toast.error(errorMsg);
