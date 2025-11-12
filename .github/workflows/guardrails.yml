@@ -9,14 +9,16 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=8192
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 9.0.0
       - run: pnpm install --frozen-lockfile
       - run: pnpm run ui:freeze:check
       - run: pnpm run sidebar:snapshot
