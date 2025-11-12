@@ -128,11 +128,11 @@ export default function VendorProductUploadPage() {
           price: parseFloat(formData.price),
           currency: formData.currency,
           uom: formData.uom,
-          minQty: parseInt(formData.minQty),
-          leadDays: parseInt(formData.leadDays)
+          minQty: parseInt(formData.minQty, 10),
+          leadDays: parseInt(formData.leadDays, 10)
         },
         stock: {
-          onHand: parseInt(formData.stock),
+          onHand: parseInt(formData.stock, 10),
           reserved: 0
         },
         standards: formData.standards ? formData.standards.split(',').map(s => s.trim()) : [],
