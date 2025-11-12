@@ -24,7 +24,7 @@ errorLines.forEach(line => {
     if (!errorsByFile[file]) {
       errorsByFile[file] = [];
     }
-    errorsByFile[file].push({ lineNum: parseInt(lineNum, 10), col: parseInt(col, 10), varName });
+    errorsByFile[file].push({ lineNum: parseInt(lineNum, 10) || -1, col: parseInt(col, 10) || -1, varName });
   }
 });
 
