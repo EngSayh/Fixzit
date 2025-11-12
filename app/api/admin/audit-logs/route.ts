@@ -32,6 +32,13 @@ export async function GET(request: NextRequest) {
     const startDateStr = searchParams.get('startDate');
     const endDateStr = searchParams.get('endDate');
     
+    /**
+     * @security Pagination limits prevent DoS attacks on audit logs
+     * - Default limit: 100 (audit logs can be large)
+     * - Max limit: 100 (reduced from 1000 for consistency)
+     * - Max skip: 10,000 (prevents deep pagination attacks)
+     * Note: For bulk exports, use /api/admin/audit/export streaming endpoint
+     */
     // Parse and validate pagination with safe defaults and caps
     let limit = parseInt(searchParams.get('limit') || '100', 10);
     let skip = parseInt(searchParams.get('skip') || '0', 10);
@@ -43,9 +50,9 @@ export async function GET(request: NextRequest) {
     if (!Number.isInteger(skip) || skip < 0) {
       skip = 0;
     }
-    // Cap limit at 1000 and skip at 100000 for safety
-    limit = Math.min(limit, 1000);
-    skip = Math.min(skip, 100000);
+    // Cap limit at 100 and skip at 10000 for safety
+    limit = Math.min(limit, 100); // Reduced from 1000
+    skip = Math.min(skip, 10000); // Reduced from 100,000
     
     // Validate and parse date parameters
     let startDate: Date | undefined;

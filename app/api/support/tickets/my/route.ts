@@ -49,8 +49,35 @@ export async function GET(req: NextRequest){
       return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     }
     
-    const items = await SupportTicket.find({ createdByUserId: user.id }).sort({ createdAt:-1 }).limit(200);
-    return createSecureResponse({ items }, 200, req);
+    /**
+     * @security Pagination limits prevent DoS attacks
+     * - Default limit: 20 (reasonable for UI)
+     * - Max limit: 100 (prevents memory exhaustion)
+     * - User can paginate through all tickets in chunks
+     */
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const rawLimit = parseInt(searchParams.get('limit') || '20', 10);
+    const limit = Math.max(1, Math.min(rawLimit, 100)); // Clamp between 1-100
+    const skip = (page - 1) * limit;
+    
+    const [items, total] = await Promise.all([
+      SupportTicket.find({ createdByUserId: user.id })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      SupportTicket.countDocuments({ createdByUserId: user.id })
+    ]);
+    
+    return createSecureResponse({
+      items,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    }, 200, req);
   } catch (error) {
     logger.error('My tickets query failed:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: 'Failed to fetch your tickets' }, 500, req);

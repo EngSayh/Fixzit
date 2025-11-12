@@ -30,6 +30,12 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const role = searchParams.get('role');
     
+    /**
+     * @security Pagination limits prevent DoS attacks
+     * - Default limit: 50 (reasonable for admin UI)
+     * - Max limit: 100 (reduced from 1000 to prevent memory exhaustion)
+     * - Max skip: 10,000 (prevents deep pagination attacks)
+     */
     // Parse and validate pagination
     let limit = parseInt(searchParams.get('limit') || '50', 10);
     let skip = parseInt(searchParams.get('skip') || '0', 10);
@@ -40,8 +46,8 @@ export async function GET(request: NextRequest) {
     if (!Number.isInteger(skip) || skip < 0) {
       skip = 0;
     }
-    limit = Math.min(limit, 1000);
-    skip = Math.min(skip, 100000);
+    limit = Math.min(limit, 100); // Reduced from 1000
+    skip = Math.min(skip, 10000); // Reduced from 100,000
     
     // Simple User schema (reuse existing or define minimal inline)
     const UserSchema = new Schema({
