@@ -32,26 +32,39 @@ export async function POST(req: NextRequest) {
     return rateLimitError();
   }
 
-  await dbConnect();
+  try {
+    await dbConnect();
 
-  const body = await req.json();
-  const { seats, modules, billingCycle, currency } = body;
+    const body = await req.json();
+    const { seats, modules, billingCycle, currency } = body;
 
-  const seatCount = Number(seats);
-  if (!Number.isFinite(seatCount) || seatCount <= 0) {
-    return createSecureResponse({ error: 'INVALID_SEAT_COUNT' }, 400, req);
+    const seatCount = Number(seats);
+    if (!Number.isFinite(seatCount) || seatCount <= 0) {
+      return createSecureResponse({ error: 'INVALID_SEAT_COUNT' }, 400, req);
+    }
+
+    if (!Array.isArray(modules) || modules.length === 0) {
+      return createSecureResponse({ error: 'MODULES_REQUIRED' }, 400, req);
+    }
+
+    const quote = await quotePrice({
+      priceBookCurrency: currency ?? 'USD',
+      seats: seatCount,
+      modules,
+      billingCycle: billingCycle === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY'});
+
+    return createSecureResponse(quote, 200, req);
+  } catch (error) {
+    return createSecureResponse(
+      {
+        error: 'Quote calculation failed',
+        code: 'QUOTE_ERROR',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        correlationId: crypto.randomUUID()
+      },
+      500,
+      req
+    );
   }
-
-  if (!Array.isArray(modules) || modules.length === 0) {
-    return createSecureResponse({ error: 'MODULES_REQUIRED' }, 400, req);
-  }
-
-  const quote = await quotePrice({
-    priceBookCurrency: currency ?? 'USD',
-    seats: seatCount,
-    modules,
-    billingCycle: billingCycle === 'ANNUAL' ? 'ANNUAL' : 'MONTHLY'});
-
-  return createSecureResponse(quote, 200, req);
 }
 

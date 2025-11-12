@@ -36,45 +36,58 @@ export async function POST(req: NextRequest) {
     return rateLimitError();
   }
 
-  await dbConnect();
-  const body = await req.json();
+  try {
+    await dbConnect();
+    const body = await req.json();
 
-  /**
-   * PayTabs Payment Gateway Callback Flow
-   * When PayTabs sends a callback with payment confirmation,
-   * we normalize and finalize the transaction
-   */
-  if (body.payload) {
-    const normalized = normalizePayTabsPayload(body.payload);
-    const result = await finalizePayTabsTransaction(normalized);
-    return createSecureResponse(result, 200, req);
+    /**
+     * PayTabs Payment Gateway Callback Flow
+     * When PayTabs sends a callback with payment confirmation,
+     * we normalize and finalize the transaction
+     */
+    if (body.payload) {
+      const normalized = normalizePayTabsPayload(body.payload);
+      const result = await finalizePayTabsTransaction(normalized);
+      return createSecureResponse(result, 200, req);
+    }
+
+    /**
+     * Subscription Retrieval
+     * Try to find subscription by either:
+     * 1. Direct subscription ID (preferred)
+     * 2. PayTabs cart ID (fallback for payment callbacks)
+     */
+    const subscriptionId = body.subscriptionId;
+    const cartId = body.cartId;
+
+    const subscription = subscriptionId
+      ? await Subscription.findById(subscriptionId)
+      : await Subscription.findOne({ 'paytabs.cart_id': cartId });
+
+    if (!subscription) {
+      return createSecureResponse({ error: 'SUBSCRIPTION_NOT_FOUND' }, 404, req);
+    }
+
+    /**
+     * Return subscription status
+     * Frontend uses this to determine if checkout was successful
+     */
+    return createSecureResponse({
+      ok: subscription.status === 'ACTIVE',
+      subscription
+    }, 200, req);
+  } catch (error) {
+    return createSecureResponse(
+      {
+        error: 'Checkout completion failed',
+        code: 'CHECKOUT_ERROR',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        correlationId: crypto.randomUUID()
+      },
+      500,
+      req
+    );
   }
-
-  /**
-   * Subscription Retrieval
-   * Try to find subscription by either:
-   * 1. Direct subscription ID (preferred)
-   * 2. PayTabs cart ID (fallback for payment callbacks)
-   */
-  const subscriptionId = body.subscriptionId;
-  const cartId = body.cartId;
-
-  const subscription = subscriptionId
-    ? await Subscription.findById(subscriptionId)
-    : await Subscription.findOne({ 'paytabs.cart_id': cartId });
-
-  if (!subscription) {
-    return createSecureResponse({ error: 'SUBSCRIPTION_NOT_FOUND' }, 404, req);
-  }
-
-  /**
-   * Return subscription status
-   * Frontend uses this to determine if checkout was successful
-   */
-  return createSecureResponse({
-    ok: subscription.status === 'ACTIVE',
-    subscription
-  }, 200, req);
 }
 
 
