@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from '@/contexts/TranslationContext';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 /**
  * Admin UI for viewing and editing CMS pages.
@@ -35,7 +36,7 @@ export default function AdminCMS(){
           setTitle(""); setContent(""); setStatus("DRAFT");
         }
       } catch (error) {
-        console.error('Failed to load CMS page:', error);
+        logger.error('Failed to load CMS page', { error, slug });
         setTitle(""); setContent(""); setStatus("DRAFT");
         toast.error(t('admin.cms.loadError', 'Failed to load page'));
       }
@@ -60,7 +61,7 @@ export default function AdminCMS(){
         toast.error(`${t('save.failed', 'Save failed')}: ${errorText}`, { id: toastId });
       }
     } catch (error) {
-      console.error('Failed to save CMS page:', error);
+      logger.error('Failed to save CMS page', { error, slug });
       toast.error(t('save.networkError', 'Failed: network error'), { id: toastId });
     }
   };

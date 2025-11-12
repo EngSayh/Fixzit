@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, use } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logger } from '@/lib/logger';
 
 interface Product {
   title?: string | { en?: string };
@@ -56,7 +57,7 @@ export default function ProductPage(props: { params: Promise<{ slug: string }> }
         setLoading(false);
       })
       .catch(error => {
-        console.error('Failed to load product:', error);
+        logger.error('Failed to load product', { error, slug: params.slug });
         setLoading(false);
       });
   }, [params.slug]);

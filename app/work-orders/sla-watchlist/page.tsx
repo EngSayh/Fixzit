@@ -5,11 +5,12 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import useSWR from 'swr';
 import SLATimer from '@/components/SLATimer';
 import Link from 'next/link';
+import { logger } from '@/lib/logger';
 
 const fetcher = (url: string) => fetch(url)
   .then(r => r.json())
   .catch(error => {
-    console.error('SLA watchlist fetch error:', error);
+    logger.error('SLA watchlist fetch error', { error });
     throw error;
   });
 
