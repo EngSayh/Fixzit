@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Failed to fetch referral code:', { error });
+    logger.error('Failed to fetch referral code:', error);
     return NextResponse.json(
       { error: 'Failed to fetch referral code' },
       { status: 500 }

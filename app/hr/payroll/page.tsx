@@ -38,7 +38,7 @@ export default function PayrollPage() {
         setPayrollRuns(data);
       }
     } catch (error) {
-      logger.error('Error fetching payroll runs:', { error });
+      logger.error('Error fetching payroll runs:', error);
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export default function PayrollPage() {
         await fetchPayrollRuns(); // Refresh the list
       }
     } catch (error) {
-      logger.error('Error calculating payroll:', { error });
+      logger.error('Error calculating payroll:', error);
     }
   };
 
@@ -72,7 +72,7 @@ export default function PayrollPage() {
         document.body.removeChild(a);
       }
     } catch (error) {
-      logger.error('Error exporting WPS file:', { error });
+      logger.error('Error exporting WPS file:', error);
     }
   };
 
@@ -130,7 +130,7 @@ export default function PayrollPage() {
           </p>
         </div>
         <Button className="bg-primary hover:bg-primary text-white">
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="h-4 w-4 me-2" />
           {t('hr.payroll.createNew', 'Create New Run')}
         </Button>
       </div>
@@ -216,7 +216,7 @@ export default function PayrollPage() {
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm">
-                    <Eye className="h-4 w-4 mr-2" />
+                    <Eye className="h-4 w-4 me-2" />
                     {t('hr.payroll.viewDetails', 'View Details')}
                   </Button>
 
@@ -226,7 +226,7 @@ export default function PayrollPage() {
                       className="bg-primary hover:bg-primary text-white"
                       onClick={() => handleCalculate(run.id)}
                     >
-                      <Calculator className="h-4 w-4 mr-2" />
+                      <Calculator className="h-4 w-4 me-2" />
                       {t('hr.payroll.calculate', 'Calculate Payroll')}
                     </Button>
                   )}
@@ -237,7 +237,7 @@ export default function PayrollPage() {
                       className="bg-success hover:bg-success text-white"
                       onClick={() => handleExportWPS(run.id)}
                     >
-                      <Download className="h-4 w-4 mr-2" />
+                      <Download className="h-4 w-4 me-2" />
                       {t('hr.payroll.exportWPS', 'Export WPS File')}
                     </Button>
                   )}

@@ -9,7 +9,7 @@ export function FeatureToggleSkeleton() {
         <div className="h-4 bg-muted rounded-2xl w-1/3 mb-2"></div>
         <div className="h-3 bg-muted rounded-2xl w-2/3"></div>
       </div>
-      <div className="ml-4">
+      <div className="ms-4">
         <div className="w-11 h-6 bg-muted rounded-full"></div>
       </div>
     </div>

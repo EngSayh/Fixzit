@@ -33,7 +33,7 @@ export async function POST() {
     };
     
     for (const wo of workOrders) {
-      const deadline = new Date(wo.sla?.deadline as Date);
+      const deadline = new Date(wo.sla?.deadline || Date.now());
       const diff = deadline.getTime() - now.getTime();
       
       if (diff <= 0) {
@@ -100,7 +100,7 @@ export async function GET() {
       critical: 0,
       breached: 0,
       workOrders: allWorkOrders.map(wo => {
-        const deadline = new Date(wo.sla?.deadline as Date);
+        const deadline = new Date(wo.sla?.deadline || Date.now());
         const diff = deadline.getTime() - now.getTime();
         const hours = Math.floor(Math.abs(diff) / (1000 * 60 * 60));
         

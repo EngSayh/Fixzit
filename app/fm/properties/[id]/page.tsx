@@ -89,7 +89,7 @@ export default function PropertyDetailsPage() {
         <div className="flex items-center space-x-4">
           <Link href="/fm/properties">
             <Button variant="ghost" size="sm">
-              <ChevronLeft className="w-4 h-4 mr-1" />
+              <ChevronLeft className="w-4 h-4 me-1" />
               Back
             </Button>
           </Link>
@@ -103,7 +103,7 @@ export default function PropertyDetailsPage() {
             variant="outline"
             onClick={() => router.push(`/fm/properties/${params.id}/edit`)}
           >
-            <Edit className="w-4 h-4 mr-2" />
+            <Edit className="w-4 h-4 me-2" />
             Edit
           </Button>
           <Button 
@@ -111,7 +111,7 @@ export default function PropertyDetailsPage() {
             className="text-destructive hover:text-destructive"
             onClick={handleDelete}
           >
-            <Trash2 className="w-4 h-4 mr-2" />
+            <Trash2 className="w-4 h-4 me-2" />
             Delete
           </Button>
         </div>
@@ -124,7 +124,7 @@ export default function PropertyDetailsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Building2 className="w-5 h-5 mr-2" />
+                <Building2 className="w-5 h-5 me-2" />
                 Property Overview
               </CardTitle>
             </CardHeader>
@@ -172,7 +172,7 @@ export default function PropertyDetailsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <MapPin className="w-5 h-5 mr-2" />
+                <MapPin className="w-5 h-5 me-2" />
                 Location
               </CardTitle>
             </CardHeader>
@@ -216,7 +216,7 @@ export default function PropertyDetailsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Home className="w-5 h-5 mr-2" />
+                  <Home className="w-5 h-5 me-2" />
                   Units ({property.units.length})
                 </CardTitle>
               </CardHeader>
@@ -230,7 +230,7 @@ export default function PropertyDetailsPage() {
                           {unit.type} • {unit.area} sqm • {unit.bedrooms}BR/{unit.bathrooms}BA
                         </p>
                       </div>
-                      <div className="text-right">
+                      <div className="text-end">
                         <Badge className={
                           unit.status === 'OCCUPIED' ? 'bg-success/10 text-success-foreground' :
                           unit.status === 'VACANT' ? 'bg-warning/10 text-warning-foreground' :
@@ -256,7 +256,7 @@ export default function PropertyDetailsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <DollarSign className="w-5 h-5 mr-2" />
+                <DollarSign className="w-5 h-5 me-2" />
                 Financial Summary
               </CardTitle>
             </CardHeader>
@@ -292,7 +292,7 @@ export default function PropertyDetailsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Users className="w-5 h-5 mr-2" />
+                <Users className="w-5 h-5 me-2" />
                 Ownership
               </CardTitle>
             </CardHeader>
@@ -317,7 +317,7 @@ export default function PropertyDetailsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Shield className="w-5 h-5 mr-2" />
+                <Shield className="w-5 h-5 me-2" />
                 Compliance
               </CardTitle>
             </CardHeader>
@@ -347,7 +347,7 @@ export default function PropertyDetailsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Wrench className="w-5 h-5 mr-2" />
+                <Wrench className="w-5 h-5 me-2" />
                 Maintenance Status
               </CardTitle>
             </CardHeader>

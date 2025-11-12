@@ -103,7 +103,7 @@ export async function POST(
     );
     
   } catch (error) {
-    logger.error('POST /api/finance/journals/[id]/post error:', { error });
+    logger.error('POST /api/finance/journals/[id]/post error:', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });

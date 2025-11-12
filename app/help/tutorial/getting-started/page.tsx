@@ -5,6 +5,14 @@ import Link from 'next/link';
 import { ArrowLeft, CheckCircle, Circle, Play, BookOpen, Clock } from 'lucide-react';
 import { renderMarkdownSanitized } from '@/lib/markdown';
 
+// HTML escape utility for fallback rendering
+const escapeHtml = (str: string) => str
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
 export default function GettingStartedTutorial() {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
@@ -449,6 +457,10 @@ Continue to learn about tenant relations!
     if (currentStepData?.content) {
       renderMarkdownSanitized(currentStepData.content).then(html => {
         setRenderedContent(html);
+      }).catch(err => {
+        console.error('Failed to render markdown:', err);
+        // Safe fallback: escape HTML and preserve whitespace
+        setRenderedContent(`<div class="whitespace-pre-wrap">${escapeHtml(currentStepData.content)}</div>`);
       });
     }
   }, [currentStep, currentStepData]);
@@ -487,7 +499,7 @@ Continue to learn about tenant relations!
                 </div>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-end">
               <div className="text-sm text-muted-foreground">Progress</div>
               <div className="w-32 bg-muted rounded-full h-2 mt-1">
                 <div
@@ -512,7 +524,7 @@ Continue to learn about tenant relations!
                   <button
                     key={step.id}
                     onClick={() => setCurrentStep(index)}
-                    className={`w-full text-left p-3 rounded-2xl border transition-colors ${
+                    className={`w-full text-start p-3 rounded-2xl border transition-colors ${
                       currentStep === index
                         ? 'border-primary bg-primary/10 text-primary'
                         : completedSteps.has(index)

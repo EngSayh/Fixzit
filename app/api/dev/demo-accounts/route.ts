@@ -27,7 +27,7 @@ export async function GET() {
       headers: { 'Cache-Control': 'no-store' } 
     });
   } catch (error) {
-    logger.error('[Dev Demo Accounts] Failed to load credentials:', { error });
+    logger.error('[Dev Demo Accounts] Failed to load credentials:', error);
     return NextResponse.json({
       demo: [],
       corporate: [],

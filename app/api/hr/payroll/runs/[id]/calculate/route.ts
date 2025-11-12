@@ -142,7 +142,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    logger.error('Error calculating payroll:', { error });
+    logger.error('Error calculating payroll:', error);
     return NextResponse.json(
       { error: 'Failed to calculate payroll' },
       { status: 500 }

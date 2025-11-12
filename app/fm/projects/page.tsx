@@ -95,7 +95,7 @@ export default function ProjectsPage() {
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-primary hover:bg-primary">
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4 me-2" />
               New Project
             </Button>
           </DialogTrigger>
@@ -114,12 +114,12 @@ export default function ProjectsPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-64">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
                   placeholder="Search projects..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10"
+                  className="ps-10"
                 />
               </div>
             </div>
@@ -174,7 +174,7 @@ export default function ProjectsPage() {
                 <h3 className="text-lg font-semibold text-foreground mb-2">No Projects Found</h3>
                 <p className="text-muted-foreground mb-4">Get started by creating your first project.</p>
                 <Button onClick={() => setCreateOpen(true)} className="bg-primary hover:bg-primary">
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-4 h-4 me-2" />
                   Create Project
                 </Button>
               </CardContent>
@@ -284,7 +284,7 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
             <div className="flex items-center text-muted-foreground">
-              <Calendar className="w-4 h-4 mr-1" />
+              <Calendar className="w-4 h-4 me-1" />
               Timeline
             </div>
             <p className="font-medium mt-1">
@@ -297,7 +297,7 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
           </div>
           <div>
             <div className="flex items-center text-muted-foreground">
-              <DollarSign className="w-4 h-4 mr-1" />
+              <DollarSign className="w-4 h-4 me-1" />
               Budget
             </div>
             <p className="font-medium mt-1">
@@ -394,7 +394,7 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
         toast.error(`Failed to create project: ${error.error || 'Unknown error'}`, { id: toastId });
       }
     } catch (error) {
-      logger.error('Error creating project:', { error });
+      logger.error('Error creating project:', error);
       toast.error('Error creating project. Please try again.', { id: toastId });
     }
   };

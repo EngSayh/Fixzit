@@ -65,10 +65,11 @@ export async function POST(request: NextRequest) {
         (authError.message === 'Unauthorized' || authError.message.includes('No session found'));
       
       if (!isExpectedAuthFailure) {
-        logger.error('Unexpected auth error in leads POST:', {
-          message: authError instanceof Error ? authError.message : 'Unknown error',
-          stack: authError instanceof Error ? authError.stack : undefined,
-        });
+        logger.error(
+          'Unexpected auth error in leads POST',
+          authError instanceof Error ? authError : new Error(String(authError)),
+          { route: 'POST /api/aqar/leads' }
+        );
       }
       // Public inquiry - no auth required
     }
@@ -120,15 +121,19 @@ export async function POST(request: NextRequest) {
       
       // Increment inquiries count with timestamp (async, non-blocking with retry logic)
       (async () => {
-        await incrementAnalyticsWithRetry({
-          model: AqarListing,
-          id: new mongoose.Types.ObjectId(listingId),
-          updateOp: {
-            $inc: { 'analytics.inquiries': 1 },
-            $set: { 'analytics.lastInquiryAt': new Date() }
-          },
-          entityType: 'listing'
-        });
+        try {
+          await incrementAnalyticsWithRetry({
+            model: AqarListing,
+            id: new mongoose.Types.ObjectId(listingId),
+            updateOp: {
+              $inc: { 'analytics.inquiries': 1 },
+              $set: { 'analytics.lastInquiryAt': new Date() }
+            },
+            entityType: 'listing'
+          });
+        } catch (error) {
+          logger.error('Failed to increment listing analytics:', error instanceof Error ? error : new Error(String(error)), { listingId });
+        }
       })();
     } else if (projectId) {
       const { AqarProject } = await import('@/models/aqar');
@@ -145,15 +150,19 @@ export async function POST(request: NextRequest) {
       
       // Increment inquiries count with timestamp (async, non-blocking with retry logic)
       (async () => {
-        await incrementAnalyticsWithRetry({
-          model: AqarProject,
-          id: new mongoose.Types.ObjectId(projectId),
-          updateOp: { 
-            $inc: { inquiries: 1 },
-            $set: { lastInquiryAt: new Date() }
-          },
-          entityType: 'project'
-        });
+        try {
+          await incrementAnalyticsWithRetry({
+            model: AqarProject,
+            id: new mongoose.Types.ObjectId(projectId),
+            updateOp: { 
+              $inc: { inquiries: 1 },
+              $set: { lastInquiryAt: new Date() }
+            },
+            entityType: 'project'
+          });
+        } catch (error) {
+          logger.error('Failed to increment project analytics:', error instanceof Error ? error : new Error(String(error)), { projectId });
+        }
       })();
     }
     

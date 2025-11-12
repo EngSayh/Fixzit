@@ -134,14 +134,26 @@ export default function TopBar() {
     });
   }, [isAuthenticated]);
 
-  // Place dropdown panel under anchor, clamped inside viewport
-  const placeDropdown = useCallback((anchor: HTMLElement, panelWidth: number) => {
+  // Place dropdown panel under anchor, clamped inside viewport - RTL-aware
+  const placeDropdown = useCallback((anchor: HTMLElement, panelWidth: number): Pos => {
     const r = anchor.getBoundingClientRect();
     const vw = window.innerWidth;
     const top = r.bottom + 8;
-    let left = isRTL ? r.left : r.right - panelWidth;
-    left = clamp(left, 8, vw - panelWidth - 8);
-    return { top, left, width: panelWidth };
+
+    // LTR: align panel's RIGHT edge to button's RIGHT (classic)
+    // RTL: align panel's LEFT edge to button's LEFT (mirrored)
+    let left = isRTL ? r.left : (r.right - panelWidth);
+
+    // Keep within viewport with 8px gutters
+    left = clamp(left, 8, Math.max(8, vw - panelWidth - 8));
+
+    // If screen is narrow, shrink the panel to fit and re-clamp
+    const width = Math.min(panelWidth, vw - 16);
+    if (width !== panelWidth) {
+      left = clamp(isRTL ? r.left : (r.right - width), 8, vw - width - 8);
+    }
+
+    return { top, left, width };
   }, [isRTL]);
 
   // Handle logo click with unsaved changes check
@@ -374,11 +386,13 @@ export default function TopBar() {
           {/* Notifications (authenticated only) */}
           {isAuthenticated && (
             <NotificationPopup
+              isRTL={isRTL}
               notifOpen={notifOpen}
               setNotifOpen={setNotifOpen}
               setUserOpen={setUserOpen}
               notifBtnRef={notifBtnRef}
               notifPos={notifPos}
+              setNotifPos={setNotifPos}
               placeDropdown={placeDropdown}
               unreadCount={unreadCount}
               loading={loading}
@@ -393,11 +407,13 @@ export default function TopBar() {
           {/* User menu or Sign In button */}
           {isAuthenticated ? (
             <UserMenuPopup
+              isRTL={isRTL}
               userOpen={userOpen}
               setUserOpen={setUserOpen}
               setNotifOpen={setNotifOpen}
               userBtnRef={userBtnRef}
               userPos={userPos}
+              setUserPos={setUserPos}
               placeDropdown={placeDropdown}
               handleLogout={handleLogout}
               t={t}
@@ -487,11 +503,13 @@ export default function TopBar() {
  */
 /* eslint-disable no-unused-vars */
 interface NotificationPopupProps {
+  isRTL: boolean;
   notifOpen: boolean;
   setNotifOpen: (open: boolean) => void;
   setUserOpen: (open: boolean) => void;
   notifBtnRef: React.RefObject<HTMLButtonElement>;
   notifPos: { top: number; left: number; width: number };
+  setNotifPos: (pos: { top: number; left: number; width: number }) => void;
   placeDropdown: (anchor: HTMLElement, width: number) => { top: number; left: number; width: number };
   unreadCount: number;
   loading: boolean;
@@ -504,11 +522,13 @@ interface NotificationPopupProps {
 /* eslint-enable no-unused-vars */
 
 function NotificationPopup({
+  isRTL,
   notifOpen,
   setNotifOpen,
   setUserOpen,
   notifBtnRef,
   notifPos,
+  setNotifPos,
   placeDropdown,
   unreadCount,
   loading,
@@ -528,7 +548,8 @@ function NotificationPopup({
           setUserOpen(false);
           const next = !notifOpen;
           if (next && notifBtnRef.current) {
-            placeDropdown(notifBtnRef.current, 384);
+            // compute AND SET the position (previous code threw this away)
+            setNotifPos(placeDropdown(notifBtnRef.current, 384));
           }
           setNotifOpen(next);
         }}
@@ -537,7 +558,7 @@ function NotificationPopup({
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full animate-pulse"></span>
+          <span className="absolute -top-1 -end-1 w-3 h-3 bg-destructive rounded-full animate-pulse"></span>
         )}
       </Button>
       
@@ -546,6 +567,7 @@ function NotificationPopup({
           role="dialog"
           aria-modal="true"
           aria-label={t('nav.notifications')}
+          dir={isRTL ? 'rtl' : 'ltr'}
           className="fixed bg-popover text-popover-foreground rounded-2xl shadow-2xl border border-border z-[100] animate-in slide-in-from-top-2 duration-200"
           style={{ 
             top: notifPos.top,
@@ -615,7 +637,7 @@ function NotificationPopup({
                         </div>
                       </div>
                       {!notification.read && (
-                        <div className="w-2 h-2 bg-primary rounded-full ml-2 flex-shrink-0"></div>
+                        <div className="w-2 h-2 bg-primary rounded-full ms-2 flex-shrink-0"></div>
                       )}
                     </div>
                   </button>
@@ -655,11 +677,13 @@ function NotificationPopup({
  */
 /* eslint-disable no-unused-vars */
 interface UserMenuPopupProps {
+  isRTL: boolean;
   userOpen: boolean;
   setUserOpen: (open: boolean) => void;
   setNotifOpen: (open: boolean) => void;
   userBtnRef: React.RefObject<HTMLButtonElement>;
   userPos: { top: number; left: number; width: number };
+  setUserPos: (pos: { top: number; left: number; width: number }) => void;
   placeDropdown: (anchor: HTMLElement, width: number) => { top: number; left: number; width: number };
   handleLogout: () => void;
   t: (key: string, fallback?: string) => string;
@@ -667,11 +691,13 @@ interface UserMenuPopupProps {
 /* eslint-enable no-unused-vars */
 
 function UserMenuPopup({
+  isRTL,
   userOpen,
   setUserOpen,
   setNotifOpen,
   userBtnRef,
   userPos,
+  setUserPos,
   placeDropdown,
   handleLogout,
   t
@@ -686,7 +712,7 @@ function UserMenuPopup({
           setNotifOpen(false);
           const next = !userOpen;
           if (next && userBtnRef.current) {
-            placeDropdown(userBtnRef.current, 224);
+            setUserPos(placeDropdown(userBtnRef.current, 224));
           }
           setUserOpen(next);
         }}
@@ -701,6 +727,7 @@ function UserMenuPopup({
         <div 
           role="menu"
           aria-label={t('nav.profile')}
+          dir={isRTL ? 'rtl' : 'ltr'}
           className="fixed bg-popover text-popover-foreground rounded-2xl shadow-2xl border border-border py-1 z-[100] animate-in slide-in-from-top-2 duration-200"
           style={{
             top: userPos.top,

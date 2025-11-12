@@ -174,7 +174,7 @@ export default function FooterCMS() {
           <div className="space-y-2">
             <label className="block text-sm font-medium text-foreground">
               {t('admin.footer.contentEn', 'English Content')}
-              <span className="text-destructive ml-1">*</span>
+              <span className="text-destructive ms-1">*</span>
             </label>
             <textarea
               value={contentEn}
@@ -192,7 +192,7 @@ export default function FooterCMS() {
           <div className="space-y-2">
             <label className="block text-sm font-medium text-foreground">
               {t('admin.footer.contentAr', 'Arabic Content')}
-              <span className="text-destructive ml-1">*</span>
+              <span className="text-destructive ms-1">*</span>
             </label>
             <textarea
               value={contentAr}

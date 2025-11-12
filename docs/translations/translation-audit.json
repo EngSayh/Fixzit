@@ -1,10 +1,10 @@
 {
   "stats": {
     "files": 379,
-    "usedKeys": 1555,
+    "usedKeys": 1574,
     "hasDynamic": true,
-    "enCount": 1986,
-    "arCount": 1986,
+    "enCount": 2006,
+    "arCount": 2006,
     "parityGap": 0
   },
   "missing": {
@@ -172,6 +172,9 @@
     "admin.footer.help.public": [
       "/workspaces/Fixzit/app/admin/cms/footer/page.tsx"
     ],
+    "admin.cms.loadError": [
+      "/workspaces/Fixzit/app/admin/cms/page.tsx"
+    ],
     "save.saving": [
       "/workspaces/Fixzit/app/admin/cms/page.tsx"
     ],
@@ -284,6 +287,12 @@
     ],
     "admin.logo.guideline.clickable": [
       "/workspaces/Fixzit/app/admin/logo/page.tsx"
+    ],
+    "aqar.packages.errors.fetchFailed": [
+      "/workspaces/Fixzit/app/api/aqar/packages/route.ts"
+    ],
+    "common.errors.unexpected": [
+      "/workspaces/Fixzit/app/api/aqar/packages/route.ts"
     ],
     "aqar.filters.title": [
       "/workspaces/Fixzit/app/aqar/filters/page.tsx"
@@ -2517,6 +2526,48 @@
     "marketplace.vendor.bulkUpload": [
       "/workspaces/Fixzit/app/marketplace/vendor/portal/page.tsx"
     ],
+    "common.pages.dashboard": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.pages.properties": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.pages.workOrders": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.pages.marketplace": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.pages.finance": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.pages.hr": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.pages.login": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "errors.404.code": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "errors.404.title": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "errors.404.message": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.actions.goToHomepage": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.actions.goBack": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "common.popularPages": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
+    "errors.404.helpText": [
+      "/workspaces/Fixzit/app/not-found.tsx"
+    ],
     "landing.title": [
       "/workspaces/Fixzit/app/page.tsx"
     ],
@@ -3192,6 +3243,14 @@
       "/workspaces/Fixzit/app/signup/page.tsx"
     ],
     "signup.placeholders.password": [
+      "/workspaces/Fixzit/app/signup/page.tsx"
+    ],
+    "a11y.hidePassword": [
+      "/workspaces/Fixzit/app/signup/page.tsx",
+      "/workspaces/Fixzit/app/signup/page.tsx"
+    ],
+    "a11y.showPassword": [
+      "/workspaces/Fixzit/app/signup/page.tsx",
       "/workspaces/Fixzit/app/signup/page.tsx"
     ],
     "signup.fields.confirmPassword": [
@@ -4628,6 +4687,10 @@
     "careers.terms": [
       "/workspaces/Fixzit/components/careers/JobApplicationForm.tsx"
     ],
+    "common.error.loadData": [
+      "/workspaces/Fixzit/components/finance/AccountActivityViewer.tsx",
+      "/workspaces/Fixzit/components/finance/TrialBalanceReport.tsx"
+    ],
     "Account Activity": [
       "/workspaces/Fixzit/components/finance/AccountActivityViewer.tsx"
     ],
@@ -4862,9 +4925,6 @@
     "finance.trialBalance.error.load": [
       "/workspaces/Fixzit/components/finance/TrialBalanceReport.tsx"
     ],
-    "common.error.unknown": [
-      "/workspaces/Fixzit/components/finance/TrialBalanceReport.tsx"
-    ],
     "tb.col.code": [
       "/workspaces/Fixzit/components/finance/TrialBalanceReport.tsx",
       "/workspaces/Fixzit/components/finance/TrialBalanceReport.tsx"
@@ -5018,5 +5078,5 @@
       "/workspaces/Fixzit/contexts/TranslationContext.test.tsx"
     ]
   },
-  "timestamp": "2025-11-12T04:22:01.003Z"
+  "timestamp": "2025-11-12T03:24:03.574Z"
 }

@@ -177,7 +177,7 @@ export default function AccessibleModal({
               size="icon"
               onClick={onClose}
               aria-label="Close dialog"
-              className="ml-4"
+              className="ms-4"
             >
               <X className="h-5 w-5" />
             </Button>

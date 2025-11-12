@@ -141,7 +141,7 @@ export default function ViewingScheduler({
         <p className="text-muted-foreground mb-6">
           {t('aqar.viewing.confirmationSent', `Your viewing request has been sent to ${agentName}. You will receive a confirmation shortly.`)}
         </p>
-        <div className="bg-muted rounded-lg p-4 mb-6 text-left">
+        <div className="bg-muted rounded-lg p-4 mb-6 text-start">
           <h3 className="font-semibold text-foreground mb-3">{t('aqar.viewing.details', 'Viewing Details')}</h3>
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
@@ -207,7 +207,7 @@ export default function ViewingScheduler({
               } text-white text-sm font-semibold`}>
                 {isCompleted ? '✓' : idx + 1}
               </div>
-              <span className={`${isRTL ? 'mr-2' : 'ml-2'} text-sm ${isActive ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+              <span className={`${isRTL ? 'me-2' : 'ms-2'} text-sm ${isActive ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
                 {label}
               </span>
               {idx < 3 && <div className={`flex-1 h-1 mx-2 ${isCompleted ? 'bg-success' : 'bg-muted'}`} />}
@@ -223,7 +223,7 @@ export default function ViewingScheduler({
           
           <button
             onClick={() => setViewingType('IN_PERSON')}
-            className={`w-full p-4 rounded-lg border-2 transition-colors ${isRTL ? 'text-right' : 'text-left'} ${
+            className={`w-full p-4 rounded-lg border-2 transition-colors ${isRTL ? 'text-end' : 'text-start'} ${
               viewingType === 'IN_PERSON' ? 'border-accent bg-accent/10' : 'border-border hover:border-border'
             }`}
           >
@@ -238,7 +238,7 @@ export default function ViewingScheduler({
 
           <button
             onClick={() => setViewingType('VIDEO_CALL')}
-            className={`w-full p-4 rounded-lg border-2 transition-colors ${isRTL ? 'text-right' : 'text-left'} ${
+            className={`w-full p-4 rounded-lg border-2 transition-colors ${isRTL ? 'text-end' : 'text-start'} ${
               viewingType === 'VIDEO_CALL' ? 'border-accent bg-accent/10' : 'border-border hover:border-border'
             }`}
           >
@@ -253,7 +253,7 @@ export default function ViewingScheduler({
 
           <button
             onClick={() => setViewingType('VIRTUAL')}
-            className={`w-full p-4 rounded-lg border-2 transition-colors ${isRTL ? 'text-right' : 'text-left'} ${
+            className={`w-full p-4 rounded-lg border-2 transition-colors ${isRTL ? 'text-end' : 'text-start'} ${
               viewingType === 'VIRTUAL' ? 'border-accent bg-accent/10' : 'border-border hover:border-border'
             }`}
           >

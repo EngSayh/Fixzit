@@ -195,7 +195,7 @@ function InvoiceLineItem({ line, onUpdate, t }: {
           onChange={e => onUpdate(line.id, "vatRate", e.target.value)} 
         />
       </div>
-      <div className="col-span-1 text-right text-sm">
+      <div className="col-span-1 text-end text-sm">
         {lineTotal}
       </div>
     </div>
@@ -262,7 +262,7 @@ function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }
       setOpen(false); 
       onCreated();
     } catch (error) {
-      logger.error('Error creating invoice:', { error });
+      logger.error('Error creating invoice:', error);
       toast.error('Error: Failed to create invoice', { id: toastId });
     }
   }

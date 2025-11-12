@@ -131,7 +131,7 @@ export async function GET(req: NextRequest) {
     );
     
   } catch (error) {
-    logger.error('GET /api/finance/accounts error:', { error });
+    logger.error('GET /api/finance/accounts error:', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ error: error.message }, { status: 403 });
@@ -297,7 +297,7 @@ export async function POST(req: NextRequest) {
     );
     
   } catch (error) {
-    logger.error('POST /api/finance/accounts error:', { error });
+    logger.error('POST /api/finance/accounts error:', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ error: error.message }, { status: 403 });

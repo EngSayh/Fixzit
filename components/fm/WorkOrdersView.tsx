@@ -166,12 +166,12 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
         <CardContent className="pt-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search by title or description"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
-                className="pl-9"
+                className="ps-9"
               />
             </div>
             <Select
@@ -214,11 +214,11 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
             </Select>
             <Button
               variant="outline"
-              className="lg:ml-auto"
+              className="lg:ms-auto"
               onClick={() => mutate()}
               disabled={isValidating}
             >
-              <RefreshCcw className={`mr-2 h-4 w-4 ${isValidating ? 'animate-spin' : ''}`} />
+              <RefreshCcw className={`me-2 h-4 w-4 ${isValidating ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
           </div>
@@ -260,7 +260,7 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
                   </div>
                   <p className="text-sm text-muted-foreground">Code: {workOrder.code}</p>
                 </div>
-                <div className="text-right text-sm text-muted-foreground">
+                <div className="text-end text-sm text-muted-foreground">
                   <p>SLA window: {workOrder.slaMinutes ? `${Math.round(workOrder.slaMinutes / 60)}h` : 'N/A'}</p>
                   <p className={dueMeta.overdue ? 'text-destructive font-semibold' : ''}>Due {dueMeta.label}</p>
                 </div>
@@ -396,7 +396,7 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!submitting) setOpen(nextOpen); }}>
       <DialogTrigger asChild>
         <Button className="bg-[var(--fixzit-success)] hover:bg-[var(--fixzit-success-dark)]">
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="me-2 h-4 w-4" />
           New Work Order
         </Button>
       </DialogTrigger>
@@ -465,7 +465,7 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
               Cancel
             </Button>
             <Button type="submit" disabled={submitting}>
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {submitting && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
               Create
             </Button>
           </div>

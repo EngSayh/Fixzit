@@ -20,6 +20,7 @@ import { Types } from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { requireSubscription } from '@/server/middleware/subscriptionCheck';
 import { setTenantContext } from '@/server/plugins/tenantIsolation';
+import { logger } from '@/lib/logger';
 
 interface StatementLine {
   date: Date;
@@ -30,6 +31,51 @@ interface StatementLine {
   reference: string;
   propertyName?: string;
   unitNumber?: string;
+}
+
+// Type definitions for Mongoose query results
+interface PaymentResponse {
+  propertyId?: { toString(): string };
+  paymentDate: Date;
+  tenantName?: string;
+  amount: number;
+  reference?: string;
+  _id?: { toString(): string };
+  unitNumber?: string;
+}
+
+interface WorkOrderResponse {
+  property?: {
+    propertyId?: { toString(): string };
+    unitNumber?: string;
+  };
+  completedDate?: Date;
+  title?: string;
+  cost?: { total: number };
+  workOrderNumber?: string;
+}
+
+interface UtilityBillResponse {
+  propertyId?: { toString(): string };
+  payment?: {
+    paidDate?: Date;
+    amount?: number;
+  };
+  period?: {
+    endDate?: Date;
+  };
+  utilityType?: string;
+  reference?: string;
+}
+
+interface AgentContractResponse {
+  commissionPayments?: {
+    paymentDate?: Date;
+    amount?: number;
+    reference?: string;
+  };
+  agentName?: string;
+  contractNumber?: string;
 }
 
 export async function GET(req: NextRequest) {
@@ -122,17 +168,18 @@ export async function GET(req: NextRequest) {
       status: 'PAID'
     }).lean();
     
-    payments.forEach((payment: any) => {
-      const property = propertyMap.get(payment.propertyId?.toString() || '');
+    payments.forEach((payment: unknown) => {
+      const p = payment as PaymentResponse;
+      const property = propertyMap.get(p.propertyId?.toString() || '');
       statementLines.push({
-        date: payment.paymentDate,
-        description: `Rent Payment - ${payment.tenantName || 'Unknown'}`,
+        date: p.paymentDate,
+        description: `Rent Payment - ${p.tenantName || 'Unknown'}`,
         type: 'INCOME',
         category: 'RENTAL_INCOME',
-        amount: payment.amount,
-        reference: payment.reference || payment._id?.toString(),
-        propertyName: property?.name,
-        unitNumber: payment.unitNumber
+        amount: p.amount,
+        reference: p.reference || p._id?.toString() || 'N/A',
+        propertyName: property?.name || 'Unknown',
+        unitNumber: p.unitNumber
       });
     });
     
@@ -144,17 +191,23 @@ export async function GET(req: NextRequest) {
       'cost.total': { $gt: 0 }
     }).lean();
     
-    workOrders.forEach((wo: any) => {
-      const property = propertyMap.get(wo.property?.propertyId?.toString() || '');
+    workOrders.forEach((wo: unknown) => {
+      const w = wo as WorkOrderResponse;
+      // Skip work orders without valid completion dates
+      if (!w.completedDate) {
+        logger.warn('Work order missing completedDate, skipping from statement', { workOrderNumber: w.workOrderNumber });
+        return;
+      }
+      const property = propertyMap.get(w.property?.propertyId?.toString() || '');
       statementLines.push({
-        date: wo.completedDate,
-        description: `Maintenance - ${wo.title}`,
+        date: w.completedDate,
+        description: `Maintenance - ${w.title || 'Work Order'}`,
         type: 'EXPENSE',
         category: 'MAINTENANCE',
-        amount: wo.cost?.total || 0,
-        reference: wo.workOrderNumber,
+        amount: w.cost?.total || 0,
+        reference: w.workOrderNumber || 'N/A',
         propertyName: property?.name,
-        unitNumber: wo.property?.unitNumber
+        unitNumber: w.property?.unitNumber
       });
     });
     
@@ -166,21 +219,25 @@ export async function GET(req: NextRequest) {
       'payment.status': 'PAID'
     }).lean();
     
-    utilityBills.forEach((bill: any) => {
-      const property = propertyMap.get(bill.propertyId?.toString());
+    utilityBills.forEach((bill: unknown) => {
+      const b = bill as UtilityBillResponse;
+      // Require at least one valid date
+      const billDate = b.payment?.paidDate || b.period?.endDate;
+      if (!billDate) {
+        logger.warn('Utility bill missing both paidDate and period.endDate, skipping from statement', { reference: b.reference });
+        return;
+      }
+      const property = propertyMap.get(b.propertyId?.toString() || '');
       statementLines.push({
-        date: bill.payment?.paidDate || bill.period?.endDate,
-        description: `Utility - ${bill.utilityType}`,
+        date: billDate,
+        description: `Utility - ${b.utilityType || 'Utility Bill'}`,
         type: 'EXPENSE',
         category: 'UTILITIES',
-        amount: bill.totalAmount || 0,
-        reference: bill.billNumber,
-        propertyName: property?.name,
-        unitNumber: bill.unitNumber
+        amount: b.payment?.amount || 0,
+        reference: b.reference || 'N/A',
+        propertyName: property?.name
       });
-    });
-    
-    // 4. EXPENSES - Agent Commissions (using Mongoose model aggregate)
+    });    // 4. EXPENSES - Agent Commissions (using Mongoose model aggregate)
     const agentPayments = await AgentContract.aggregate([
       {
         $match: {
@@ -207,14 +264,20 @@ export async function GET(req: NextRequest) {
       }
     ]);
     
-    agentPayments.forEach((contract: any) => {
+    agentPayments.forEach((contract: unknown) => {
+      const c = contract as AgentContractResponse;
+      // Skip entries without valid commission payment dates
+      if (!c.commissionPayments?.paymentDate) {
+        logger.warn('Agent commission missing paymentDate, skipping from statement', { contractNumber: c.contractNumber });
+        return;
+      }
       statementLines.push({
-        date: contract.commissionPayments?.paymentDate || new Date(),
-        description: `Agent Commission - ${contract.agentName}`,
+        date: c.commissionPayments.paymentDate,
+        description: `Agent Commission - ${c.agentName || 'Agent'}`,
         type: 'EXPENSE',
         category: 'AGENT_COMMISSION',
-        amount: contract.commissionPayments?.amount || 0,
-        reference: contract.commissionPayments?.reference || contract.contractNumber,
+        amount: c.commissionPayments?.amount || 0,
+        reference: c.commissionPayments?.reference || c.contractNumber || 'N/A',
         propertyName: undefined
       });
     });

@@ -61,17 +61,22 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     let abort = false;
     // Only fetch if NextAuth isn't authenticated yet
     if (status !== 'authenticated' && status !== 'loading') {
-      fetch('/api/auth/me', { credentials: 'include' })
-        .then(r => r.ok ? r.json() : null)
-        .then(data => { 
+      const checkAuth = async () => {
+        try {
+          const r = await fetch('/api/auth/me', { credentials: 'include' });
+          if (!r.ok) return;
+          const data = await r.json();
           if (!abort && data?.user?.id) {
             setAuthUser({ id: data.user.id, role: data.user.role });
           }
-        })
-        .catch((err) => {
+        } catch (err) {
           // Silently ignore - user is guest
           console.debug('Auth check failed (expected for guests):', err);
-        });
+        }
+      };
+      checkAuth().catch(err => {
+        console.debug('Unhandled auth check error:', err);
+      });
     }
     return () => { abort = true; };
   }, [status]);

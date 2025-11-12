@@ -133,8 +133,8 @@ export default function AccountActivityViewer({
           action: 'loadTransactions',
           accountId,
         });
-      });
-      setError(err instanceof Error ? err.message : 'An error occurred');
+        }).catch(logErr => console.error('Failed to load logger:', logErr));
+      setError(err instanceof Error ? err.message : t('common.error.loadData', 'Failed to load data'));
     } finally {
       setLoading(false);
     }
@@ -419,25 +419,25 @@ export default function AccountActivityViewer({
             <table className="min-w-full divide-y divide-border">
               <thead className="bg-muted">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Date')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Journal #')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Source')}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Description')}
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Debit')}
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Credit')}
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {t('Balance')}
                   </th>
                 </tr>
@@ -448,9 +448,9 @@ export default function AccountActivityViewer({
                   <td className="px-4 py-2 text-sm" colSpan={4}>
                     <strong>{t('Opening Balance')}</strong>
                   </td>
-                  <td className="px-4 py-2 text-sm text-right"></td>
-                  <td className="px-4 py-2 text-sm text-right"></td>
-                  <td className="px-4 py-2 text-sm text-right font-semibold">
+                  <td className="px-4 py-2 text-sm text-end"></td>
+                  <td className="px-4 py-2 text-sm text-end"></td>
+                  <td className="px-4 py-2 text-sm text-end font-semibold">
                     {data.openingBalance.toFixed(2)}
                   </td>
                 </tr>
@@ -473,7 +473,7 @@ export default function AccountActivityViewer({
                         {t(txn.sourceType)}
                       </span>
                       {txn.sourceNumber && (
-                        <span className="ml-1 text-xs text-muted-foreground">
+                        <span className="ms-1 text-xs text-muted-foreground">
                           ({txn.sourceNumber})
                         </span>
                       )}
@@ -481,13 +481,13 @@ export default function AccountActivityViewer({
                     <td className="px-4 py-2 text-sm text-foreground">
                       {txn.description}
                     </td>
-                    <td className="px-4 py-2 text-sm text-right text-success font-medium">
+                    <td className="px-4 py-2 text-sm text-end text-success font-medium">
                       {txn.debit > 0 ? txn.debit.toFixed(2) : '-'}
                     </td>
-                    <td className="px-4 py-2 text-sm text-right text-destructive font-medium">
+                    <td className="px-4 py-2 text-sm text-end text-destructive font-medium">
                       {txn.credit > 0 ? txn.credit.toFixed(2) : '-'}
                     </td>
-                    <td className="px-4 py-2 text-sm text-right font-semibold">
+                    <td className="px-4 py-2 text-sm text-end font-semibold">
                       {txn.balance.toFixed(2)}
                     </td>
                   </tr>
@@ -507,13 +507,13 @@ export default function AccountActivityViewer({
                   <td className="px-4 py-2 text-sm font-bold" colSpan={4}>
                     {t('Closing Balance')}
                   </td>
-                  <td className="px-4 py-2 text-sm text-right font-bold text-success">
+                  <td className="px-4 py-2 text-sm text-end font-bold text-success">
                     {data.totalDebits.toFixed(2)}
                   </td>
-                  <td className="px-4 py-2 text-sm text-right font-bold text-destructive">
+                  <td className="px-4 py-2 text-sm text-end font-bold text-destructive">
                     {data.totalCredits.toFixed(2)}
                   </td>
-                  <td className="px-4 py-2 text-sm text-right font-bold">
+                  <td className="px-4 py-2 text-sm text-end font-bold">
                     {data.closingBalance.toFixed(2)}
                   </td>
                 </tr>

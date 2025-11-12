@@ -15,6 +15,8 @@
  * 4. Unique constraints enforcement
  */
 
+import { logger } from '@/lib/logger';
+
 import { Types, ClientSession } from 'mongoose';
 import mongoose from 'mongoose';
 import { WorkOrder } from '@/server/models/WorkOrder';
@@ -79,7 +81,10 @@ async function validateAfterPhotos(workOrderId: Types.ObjectId): Promise<boolean
   // Check issues for AFTER photos
   if (!hasAfterPhotos && inspection.issues && inspection.issues.length > 0) {
     for (const issue of inspection.issues) {
-      const afterPhotos = (issue.photos || []).filter((p: any) => p.timestamp === 'AFTER');
+      const afterPhotos = (issue.photos || []).filter((p: unknown) => {
+        const photo = p as { timestamp?: string };
+        return photo.timestamp === 'AFTER';
+      });
       if (afterPhotos.length > 0) {
         hasAfterPhotos = true;
         break;
@@ -126,7 +131,10 @@ export async function postFinanceOnClose(
 
     // Check if finance already posted for this work order
     if (workOrder.financePosted) {
-      console.log(`Finance already posted for work order ${input.workOrderNumber}`);
+      logger.info('Finance already posted for work order', {
+        workOrderNumber: input.workOrderNumber,
+        workOrderId: input.workOrderId.toString()
+      });
       return {
         success: true,
         alreadyPosted: true,
@@ -246,7 +254,10 @@ export async function postFinanceOnClose(
       await localSession.abortTransaction();
     }
 
-    console.error('Error posting finance on work order close:', error);
+    logger.error('Error posting finance on work order close', error instanceof Error ? error : new Error(String(error)), {
+      workOrderId: input.workOrderId.toString(),
+      workOrderNumber: input.workOrderNumber
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
@@ -373,7 +384,10 @@ export async function postUtilityBillPayment(
       await localSession.abortTransaction();
     }
 
-    console.error('Error posting utility bill payment:', error);
+    logger.error('Error posting utility bill payment', error instanceof Error ? error : new Error(String(error)), {
+      billId: billId.toString(),
+      orgId: orgId.toString()
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'

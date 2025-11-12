@@ -193,7 +193,7 @@ export async function GET(
     );
     
   } catch (error) {
-    logger.error('GET /api/finance/ledger/account-activity/[accountId] error:', { error });
+    logger.error('GET /api/finance/ledger/account-activity/[accountId] error:', error);
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ error: error.message }, { status: 403 });

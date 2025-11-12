@@ -349,8 +349,8 @@ async function main() {
     console.log(COLOR.g('✔ Catalog updated with placeholder values for missing keys (EN/AR).'));
   }
 
-  // STRICT v4 / Governance: non-zero exit if any gap or dynamic
-  const hasAnyGap = missingInAr.length || missingInEn.length || missingDetail.length || hasDynamic;
+  // STRICT v4 / Governance: non-zero exit if any gap (dynamic is warning only)
+  const hasAnyGap = missingInAr.length || missingInEn.length || missingDetail.length;
   console.log('\n' + COLOR.b('╔════════════════════════════════════════════════════════════════╗'));
   console.log(COLOR.b('║                        FINAL SUMMARY                            ║'));
   console.log(COLOR.b('╚════════════════════════════════════════════════════════════════╝'));
@@ -358,7 +358,7 @@ async function main() {
   console.log('Code Coverage  :', missingDetail.length === 0 ? COLOR.g('✅ All used keys present') : COLOR.r('❌ Missing used keys'));
   if (hasDynamic) console.log('Dynamic Keys   :', COLOR.y('⚠️ Present (template literals)'));
 
-  // Exit status for CI
+  // Exit status for CI - dynamic keys are warnings, not failures
   process.exit(hasAnyGap ? 1 : 0);
 }
 

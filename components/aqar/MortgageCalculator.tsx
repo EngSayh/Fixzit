@@ -257,21 +257,21 @@ export default function MortgageCalculator({ propertyPrice = 0, currency = 'SAR'
             <table className="w-full text-sm" role="table">
               <thead>
                 <tr className="bg-muted">
-                  <th scope="col" className="px-3 py-2 text-left">Month</th>
-                  <th scope="col" className="px-3 py-2 text-right">Payment</th>
-                  <th scope="col" className="px-3 py-2 text-right">Principal</th>
-                  <th scope="col" className="px-3 py-2 text-right">Interest</th>
-                  <th scope="col" className="px-3 py-2 text-right">Balance</th>
+                  <th scope="col" className="px-3 py-2 text-start">Month</th>
+                  <th scope="col" className="px-3 py-2 text-end">Payment</th>
+                  <th scope="col" className="px-3 py-2 text-end">Principal</th>
+                  <th scope="col" className="px-3 py-2 text-end">Interest</th>
+                  <th scope="col" className="px-3 py-2 text-end">Balance</th>
                 </tr>
               </thead>
               <tbody>
                 {generateAmortizationSchedule(12).map((row) => (
                   <tr key={row.month} className="border-b border-border">
                     <td className="px-3 py-2">{row.month}</td>
-                    <td className="px-3 py-2 text-right">{formatCurrency(row.payment)}</td>
-                    <td className="px-3 py-2 text-right text-success">{formatCurrency(row.principal)}</td>
-                    <td className="px-3 py-2 text-right text-destructive">{formatCurrency(row.interest)}</td>
-                    <td className="px-3 py-2 text-right font-semibold">{formatCurrency(row.balance)}</td>
+                    <td className="px-3 py-2 text-end">{formatCurrency(row.payment)}</td>
+                    <td className="px-3 py-2 text-end text-success">{formatCurrency(row.principal)}</td>
+                    <td className="px-3 py-2 text-end text-destructive">{formatCurrency(row.interest)}</td>
+                    <td className="px-3 py-2 text-end font-semibold">{formatCurrency(row.balance)}</td>
                   </tr>
                 ))}
               </tbody>

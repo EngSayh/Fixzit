@@ -100,7 +100,7 @@ export default function LoginPrompt({
               className="w-full"
               size="lg"
             >
-              <LogIn className="w-5 h-5 mr-2" />
+              <LogIn className="w-5 h-5 me-2" />
               {t('loginPrompt.signInButton', 'Sign In with Email')}
             </Button>
 
@@ -110,7 +110,7 @@ export default function LoginPrompt({
               className="w-full border-success text-success hover:bg-success hover:text-white"
               size="lg"
             >
-              <UserPlus className="w-5 h-5 mr-2" />
+              <UserPlus className="w-5 h-5 me-2" />
               {t('loginPrompt.signUpButton', 'Create New Account')}
             </Button>
           </div>
