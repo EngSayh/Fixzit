@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { logger } from '@/lib/logger';
 import Link from 'next/link';
 import PDPBuyBox from '@/components/marketplace/PDPBuyBox';
 import ProductCard from '@/components/marketplace/ProductCard';
@@ -169,7 +170,7 @@ export default async function ProductDetail(props: ProductPageProps) {
     </div>
   );
   } catch (error) {
-    console.error('Failed to load product detail:', error);
+    logger.error('Failed to load product detail', { error });
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center">

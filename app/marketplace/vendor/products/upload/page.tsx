@@ -107,7 +107,7 @@ export default function VendorProductUploadPage() {
           };
         })
       ).catch(error => {
-        console.error('Failed to upload one or more images:', error);
+        logger.error('Failed to upload one or more images', { error });
         throw new Error(`Image upload failed: ${error.message}`);
       });
 

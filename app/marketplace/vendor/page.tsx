@@ -1,4 +1,5 @@
 
+import { logger } from '@/lib/logger';
 import VendorCatalogueManager from '@/components/marketplace/VendorCatalogueManager';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
@@ -39,7 +40,7 @@ export default async function VendorPortalPage() {
       </div>
     );
   } catch (error) {
-    console.error('Failed to load vendor portal data:', error);
+    logger.error('Failed to load vendor portal data', { error });
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center">

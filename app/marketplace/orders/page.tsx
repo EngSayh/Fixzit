@@ -1,4 +1,5 @@
 
+import { logger } from '@/lib/logger';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 interface OrderLine {
@@ -90,7 +91,7 @@ export default async function OrdersPage() {
     </div>
   );
   } catch (error) {
-    console.error('Failed to load orders page data:', error);
+    logger.error('Failed to load orders page data', { error });
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center">

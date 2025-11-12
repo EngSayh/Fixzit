@@ -26,7 +26,7 @@ export default function NotificationsPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        console.error('Notifications fetch error:', error);
+        logger.error('Notifications fetch error', { error });
         throw error;
       });
   };

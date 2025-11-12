@@ -1,4 +1,5 @@
 
+import { logger } from '@/lib/logger';
 import CheckoutForm from '@/components/marketplace/CheckoutForm';
 import Link from 'next/link';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
@@ -76,7 +77,7 @@ export default async function CheckoutPage() {
     </div>
   );
   } catch (error) {
-    console.error('Failed to load checkout page data:', error);
+    logger.error('Failed to load checkout page data', { error });
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center">
