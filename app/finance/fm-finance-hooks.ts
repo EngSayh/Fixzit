@@ -3,7 +3,7 @@
  * Automatically creates financial transactions when work orders are closed
  */
 
-import { FMFinancialTransaction } from '@/server/models/FMFinancialTransaction';
+import { FMFinancialTransaction, type FMFinancialTransactionDoc } from '@/server/models/FMFinancialTransaction';
 import { logger } from '@/lib/logger';
 
 export interface WorkOrderFinancialData {
@@ -233,13 +233,13 @@ export async function generateOwnerStatement(
   }).sort({ transactionDate: 1 });
 
   // Convert to interface format
-  const transactions: FinancialTransaction[] = dbTransactions.map(t => ({
-    id: t._id.toString(),
+  const transactions: FinancialTransaction[] = dbTransactions.map((t) => ({
+    id: (t as any)._id.toString(),
     type: t.type as 'EXPENSE' | 'INVOICE' | 'PAYMENT',
     workOrderId: t.workOrderId?.toString() || '',
     propertyId: t.propertyId,
     ownerId: t.ownerId,
-    tenantId: t.tenantId,
+    tenantId: t.tenantId || undefined,
     amount: t.amount,
     currency: t.currency,
     category: t.category,
@@ -285,13 +285,13 @@ export async function getTenantPendingInvoices(
   }).sort({ dueDate: 1 });
 
   // Convert to interface format
-  return dbInvoices.map(t => ({
-    id: t._id.toString(),
+  return dbInvoices.map((t) => ({
+    id: (t as any)._id.toString(),
     type: 'INVOICE',
     workOrderId: t.workOrderId?.toString() || '',
     propertyId: t.propertyId,
     ownerId: t.ownerId,
-    tenantId: t.tenantId,
+    tenantId: t.tenantId || undefined,
     amount: t.amount,
     currency: t.currency,
     category: t.category,

@@ -56,7 +56,7 @@ export default function NewBudgetPage() {
 
   // Add new category row
   const handleAddCategory = () => {
-    const newId = (Math.max(...categories.map(c => parseInt(c.id))) + 1).toString();
+    const newId = (Math.max(...categories.map((c: { id: string }) => parseInt(c.id, 10))) + 1).toString();
     setCategories([...categories, { id: newId, category: '', amount: 0, percentage: 0 }]);
   };
 

@@ -123,7 +123,7 @@ export default function NewInvoicePage() {
   );
 
   const totalPaid: Decimal = React.useMemo(() => 
-    Money.sum(paymentAllocations.map(p => p.amount)),
+    Money.sum(paymentAllocations.map((p: { amount: number }) => p.amount)),
     [paymentAllocations]
   );
 
