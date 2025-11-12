@@ -151,8 +151,8 @@ interface InvoiceLine {
 
 function InvoiceLineItem({ line, onUpdate, t }: { 
   line: InvoiceLine; 
-  onUpdate: (id: string, key: string, val: string) => void; // eslint-disable-line no-unused-vars
-  t: (key: string, fallback: string) => string; // eslint-disable-line no-unused-vars
+  onUpdate: (_id: string, _key: string, _val: string) => void;
+  t: (_key: string, _fallback: string) => string;
 }) {
   const lineTotal = useMemo(() => {
     const qty = new Decimal(line.qty || '0');

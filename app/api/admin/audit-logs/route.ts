@@ -81,7 +81,8 @@ export async function GET(request: NextRequest) {
     }
     
     // Search logs
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // Using any here because AuditLogModel.search() is a dynamically added plugin method
+    // with complex typing that TypeScript cannot infer correctly
     const logs = await (AuditLogModel as any).search({
       orgId: session.user.orgId || 'default',
       userId: userId || undefined,
