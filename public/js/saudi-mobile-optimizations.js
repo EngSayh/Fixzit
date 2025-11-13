@@ -254,7 +254,7 @@ class SaudiMobileOptimizer {
     formatArabicNumber(number) {
         const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
         return number.toString().split('').map(digit => 
-            /\d/.test(digit) ? arabicNumerals[parseInt(digit)] : digit
+            /\d/.test(digit) ? arabicNumerals[parseInt(digit, 10)] : digit
         ).join('');
     }
 

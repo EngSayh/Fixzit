@@ -28,10 +28,10 @@ const User = require('../models/User');
 
 // Configuration
 const config = {
-  properties: parseInt(process.argv.find(arg => arg.startsWith('--properties='))?.split('=')[1] || '100'),
-  agents: parseInt(process.argv.find(arg => arg.startsWith('--agents='))?.split('=')[1] || '20'),
-  viewings: parseInt(process.argv.find(arg => arg.startsWith('--viewings='))?.split('=')[1] || '50'),
-  transactions: parseInt(process.argv.find(arg => arg.startsWith('--transactions='))?.split('=')[1] || '30'),
+  properties: parseInt(process.argv.find(arg => arg.startsWith('--properties='))?.split('=')[1] || '100', 10),
+  agents: parseInt(process.argv.find(arg => arg.startsWith('--agents='))?.split('=')[1] || '20', 10),
+  viewings: parseInt(process.argv.find(arg => arg.startsWith('--viewings='))?.split('=')[1] || '50', 10),
+  transactions: parseInt(process.argv.find(arg => arg.startsWith('--transactions='))?.split('=')[1] || '30', 10),
   clearExisting: process.argv.includes('--clear'),
 };
 

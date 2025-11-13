@@ -341,7 +341,7 @@ class ProjectAnalyzer {
           files,
           count: files.length,
           potentialSavings: this.formatBytes(
-            (files.length - 1) * parseInt(key.split('-')[0])
+            (files.length - 1) * parseInt(key.split('-')[0], 10)
           )
         })),
       orphanPackages,
