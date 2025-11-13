@@ -5,6 +5,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { logger } from '@/lib/logger';
 
 /**
  * Logo Upload Admin Page
@@ -58,7 +59,7 @@ export default function LogoUpload() {
           setCurrentLogoUrl(data.logoUrl);
         }
       } catch (error) {
-        console.error('Failed to load current logo:', error);
+        logger.error('Failed to load current logo', { error });
       } finally {
         setLoading(false);
       }
@@ -157,7 +158,7 @@ export default function LogoUpload() {
         toast.error(`${t('admin.logo.uploadFailed', 'Upload failed')}: ${error}`, { id: toastId });
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Logo upload error', { error, fileName: selectedFile?.name });
       toast.error(t('admin.logo.uploadNetworkError', 'Network error while uploading'), { id: toastId });
     } finally {
       setUploading(false);

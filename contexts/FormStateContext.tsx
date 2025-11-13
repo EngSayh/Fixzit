@@ -245,7 +245,12 @@ export function FormStateProvider({ children }: ProviderProps) {
       // 1. No formId in event (global save), OR
       // 2. Event formId matches this registration's formId
       if (!targetFormId || targetFormId === formId) {
-        const promise = Promise.resolve().then(() => callback());
+        const promise = Promise.resolve()
+          .then(() => callback())
+          .catch((error) => {
+            console.error(`Form save error (${formId}):`, error);
+            throw error; // Re-throw so Promise.all() in requestSave() can handle it
+          });
         
         // If event has promises array, push our promise for coordination
         if (customEvent.detail?.promises && Array.isArray(customEvent.detail.promises)) {

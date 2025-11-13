@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -66,7 +67,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      console.warn('Could not hydrate currency preference:', error);
+      logger.warn('Could not hydrate currency preference', { error });
     } finally {
       hydratedRef.current = true;
     }
@@ -106,7 +107,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         })
       );
     } catch (error) {
-      console.warn('Could not persist currency preference:', error);
+      logger.warn('Could not persist currency preference', { error });
     }
   }, [currency]);
 
@@ -141,13 +142,13 @@ export function useCurrency() {
   const context = useContext(CurrencyContext);
   if (!context) {
     if (process.env.NODE_ENV === 'development') {
-      console.warn('useCurrency called outside CurrencyProvider. Using fallback values.');
+      logger.warn('useCurrency called outside CurrencyProvider. Using fallback values.');
     }
     return {
       currency: DEFAULT_CURRENCY,
       setCurrency: () => {
         if (process.env.NODE_ENV === 'development') {
-          console.warn('setCurrency called outside CurrencyProvider. No-op.');
+          logger.warn('setCurrency called outside CurrencyProvider. No-op.');
         }
       },
       options: CURRENCY_OPTIONS

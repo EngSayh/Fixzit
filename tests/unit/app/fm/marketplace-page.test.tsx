@@ -33,6 +33,9 @@ vi.mock('next/dynamic', () => {
           .then(() => loader())
           .then((mod: any) => {
             setComp(() => ((mod && (mod.default || mod)) as React.ComponentType<any>));
+          })
+          .catch((error) => {
+            console.error('Dynamic import error:', error);
           });
       }, []);
       if (!Comp) { return null; }

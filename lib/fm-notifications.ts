@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * FM Notification Template Engine
  * Generates notifications with deep links for various FM events
@@ -134,11 +135,13 @@ export function buildNotification(
 export async function sendNotification(
   notification: NotificationPayload
 ): Promise<void> {
-  console.log('[Notifications] Sending notification:', notification.id);
-  console.log('[Notifications] Event:', notification.event);
-  console.log('[Notifications] Recipients:', notification.recipients.length);
-  console.log('[Notifications] Title:', notification.title);
-  console.log('[Notifications] Deep link:', notification.deepLink);
+  logger.info('[Notifications] Sending notification', { 
+    id: notification.id,
+    event: notification.event,
+    recipientCount: notification.recipients.length,
+    title: notification.title,
+    deepLink: notification.deepLink
+  });
 
   // Group recipients by preferred channels
   const channelGroups: Record<NotificationChannel, NotificationRecipient[]> = {
@@ -186,7 +189,7 @@ async function sendPushNotifications(
   recipients: NotificationRecipient[]
 ): Promise<void> {
   // TODO: Integrate with FCM or Web Push
-  console.log('[Notifications] Sending push to', recipients.length, 'users');
+  logger.info('[Notifications] Sending push', { recipientCount: recipients.length });
 }
 
 /**
@@ -197,7 +200,7 @@ async function sendEmailNotifications(
   recipients: NotificationRecipient[]
 ): Promise<void> {
   // TODO: Integrate with email service (SendGrid, AWS SES, etc.)
-  console.log('[Notifications] Sending email to', recipients.length, 'users');
+  logger.info('[Notifications] Sending email', { recipientCount: recipients.length });
 }
 
 /**
@@ -208,7 +211,7 @@ async function sendSMSNotifications(
   recipients: NotificationRecipient[]
 ): Promise<void> {
   // TODO: Integrate with SMS gateway (Twilio, AWS SNS, etc.)
-  console.log('[Notifications] Sending SMS to', recipients.length, 'users');
+  logger.info('[Notifications] Sending SMS', { recipientCount: recipients.length });
 }
 
 /**
@@ -219,7 +222,7 @@ async function sendWhatsAppNotifications(
   recipients: NotificationRecipient[]
 ): Promise<void> {
   // TODO: Integrate with WhatsApp Business API
-  console.log('[Notifications] Sending WhatsApp to', recipients.length, 'users');
+  logger.info('[Notifications] Sending WhatsApp', { recipientCount: recipients.length });
 }
 
 /**

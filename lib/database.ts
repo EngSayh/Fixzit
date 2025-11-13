@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 // MongoDB Only Configuration
 import { connectToDatabase, getDatabase, checkDatabaseHealth as mongoHealthCheck } from '@/lib/mongodb-unified';
 
@@ -33,13 +34,13 @@ const cleanup = async () => {
 };
 
 process.on('SIGTERM', async () => {
-  console.log('Received SIGTERM, shutting down gracefully...');
+  logger.info('Received SIGTERM, shutting down gracefully...');
   await cleanup();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-  console.log('Received SIGINT, shutting down gracefully...');
+  logger.info('Received SIGINT, shutting down gracefully...');
   await cleanup();
   process.exit(0);
 });

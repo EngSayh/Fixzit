@@ -1,4 +1,5 @@
 
+import { logger } from '@/lib/logger';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
 // [CODE REVIEW]: FIX - Use 'id', not '_id' (Prisma/PostgreSQL convention)
@@ -127,7 +128,7 @@ export default async function MarketplaceAdminPage() {
     </div>
   );
   } catch (error) {
-    console.error('Failed to load marketplace admin data:', error);
+    logger.error('Failed to load marketplace admin data', { error });
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center">

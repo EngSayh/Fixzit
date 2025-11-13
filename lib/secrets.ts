@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * AWS Secrets Manager Integration
  * Securely retrieves sensitive configuration from AWS Secrets Manager
@@ -47,7 +48,7 @@ function getSecretsClient(): SecretsManagerClient | null {
       : undefined // Use AWS SDK default credential provider chain
   });
   
-  console.log('[Secrets] AWS Secrets Manager initialized for region:', region);
+  logger.info('[Secrets] AWS Secrets Manager initialized', { region });
   return secretsClient;
 }
 
@@ -94,13 +95,13 @@ export async function getSecret(
           });
           
           if (process.env.NODE_ENV !== 'production') {
-            console.log('[Secrets] Retrieved from AWS Secrets Manager:', secretName);
+            logger.info('[Secrets] Retrieved from AWS Secrets Manager', { secretName });
           }
           return secretValue;
         }
       } catch (awsError) {
         const errorMessage = awsError instanceof Error ? awsError.message : String(awsError);
-        console.warn('[Secrets] Failed to retrieve from AWS:', secretName, errorMessage);
+        logger.warn('[Secrets] Failed to retrieve from AWS', { secretName, errorMessage });
         // Fall through to environment variable fallback
       }
     }
@@ -110,7 +111,7 @@ export async function getSecret(
       const envValue = process.env[envFallback]?.trim();
       if (envValue) {
         if (process.env.NODE_ENV !== 'production') {
-          console.log('[Secrets] Using environment variable:', envFallback);
+          logger.info('[Secrets] Using environment variable', { envKey: envFallback });
         }
         return envValue;
       }
@@ -126,10 +127,10 @@ export async function getSecret(
     return null;
   } catch (error) {
     if (required) {
-      console.error('[Secrets] Failed to retrieve required secret:', secretName, error);
+      logger.error('[Secrets] Failed to retrieve required secret', { secretName, error });
       throw error;
     }
-    console.warn('[Secrets] Failed to retrieve optional secret:', secretName);
+    logger.warn('[Secrets] Failed to retrieve optional secret', { secretName });
     return null;
   }
 }
@@ -159,8 +160,8 @@ export async function getJWTSecret(): Promise<string> {
   }
 
   // Development fallback - generate ephemeral secret
-  console.warn('[Secrets] No JWT_SECRET configured. Using ephemeral secret for development.');
-  console.warn('[Secrets] Set JWT_SECRET environment variable for session persistence.');
+  logger.warn('[Secrets] No JWT_SECRET configured. Using ephemeral secret for development.');
+  logger.warn('[Secrets] Set JWT_SECRET environment variable for session persistence.');
   
   return randomBytes(32).toString('hex');
 }
@@ -198,5 +199,5 @@ export async function getSendGridAPIKey(): Promise<string | null> {
  */
 export function clearSecretCache(): void {
   secretCache.clear();
-  console.log('[Secrets] Cache cleared');
+  logger.info('[Secrets] Cache cleared');
 }

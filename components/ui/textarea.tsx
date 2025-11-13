@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useLayoutEffect, forwardRef } from 'react';
+import { logger } from '@/lib/logger';
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   /** Enables vertical auto-resizing as user types. */
@@ -43,7 +44,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
               action: 'resize',
               autoResize,
             });
-          }).catch(logErr => console.error('Failed to load logger:', logErr));
+          }).catch(logErr => logger.error('Failed to load logger:', { error: logErr }));
           return;
         }
         el.style.height = 'auto'; // Reset height to calculate new scrollHeight
@@ -55,7 +56,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             action: 'resize',
             autoResize,
           });
-        }).catch(logErr => console.error('Failed to load logger:', logErr));
+        }).catch(logErr => logger.error('Failed to load logger:', { error: logErr }));
         // Graceful degradation: disable auto-resize on error
       }
     };

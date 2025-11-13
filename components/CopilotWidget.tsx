@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, Bot, Calendar, CheckCircle2, ClipboardList, FileText, Loader2, Send, ShieldCheck, Upload, WifiOff, X } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logger } from '@/lib/logger';
 
 // Declare global for deduplication tracking
 declare global {
@@ -308,7 +309,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
           });
         })
         .catch((logErr) => {
-          console.error('Failed to log error:', logErr);
+          logger.error('Failed to log error:', { error: logErr });
         });
       
       // Report critical errors to incident system
@@ -405,7 +406,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
           });
         })
         .catch((logErr) => {
-          console.error('Failed to log error:', logErr);
+          logger.error('Failed to log error:', { error: logErr });
         });
       
       // Report tool errors to incident system

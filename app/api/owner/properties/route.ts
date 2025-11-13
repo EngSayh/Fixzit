@@ -16,6 +16,7 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { Property } from '@/server/models/Property';
 import { requireSubscription } from '@/server/middleware/subscriptionCheck';
 import { setTenantContext } from '@/server/plugins/tenantIsolation';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
@@ -103,7 +104,7 @@ export async function GET(req: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Error fetching owner properties:', error);
+    logger.error('Error fetching owner properties', { error });
     return NextResponse.json(
       { 
         success: false,

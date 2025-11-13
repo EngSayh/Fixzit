@@ -3,6 +3,7 @@
  * Sanitizes error messages to prevent internal details leakage
  */
 
+import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/lib/marketplace/security';
 
 export interface SecureErrorOptions {
@@ -84,7 +85,7 @@ export function createSecureErrorResponse(options: SecureErrorOptions): Response
 
   // Log error in development for debugging
   if (logError && error instanceof Error) {
-    console.error('[Secure Error Handler]', {
+    logger.error('[Secure Error Handler]', {
       message: error.message,
       stack: error.stack,
       name: error.name,

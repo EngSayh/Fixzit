@@ -65,8 +65,8 @@ export async function GET(req: NextRequest) {
         const propertyId = searchParams.get('propertyId');
         const unitId = searchParams.get('unitId');
         const workOrderId = searchParams.get('workOrderId');
-        const page = parseInt(searchParams.get('page') || '1');
-        const limit = parseInt(searchParams.get('limit') || '100');
+        const page = parseInt(searchParams.get('page') || '1', 10);
+        const limit = parseInt(searchParams.get('limit') || '100', 10);
         const skip = (page - 1) * limit;
         
         // Build query

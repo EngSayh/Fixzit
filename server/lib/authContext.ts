@@ -3,6 +3,7 @@
  * Provides thread-safe user/tenant context for service layer using AsyncLocalStorage
  */
 
+import { logger } from '@/lib/logger';
 import { AsyncLocalStorage } from 'async_hooks';
 
 export interface RequestContext {
@@ -35,7 +36,7 @@ const requestStorage = new AsyncLocalStorage<RequestContext>();
  
 export function setRequestContext(_context: RequestContext): void {
   // This is a no-op now - context must be set via runWithContext
-  console.warn('setRequestContext is deprecated. Use runWithContext instead.');
+  logger.warn('setRequestContext is deprecated. Use runWithContext instead.');
 }
 
 /**

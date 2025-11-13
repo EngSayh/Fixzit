@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Aqar Package Activation Utility
  * 
@@ -30,7 +31,7 @@ export async function activatePackageAfterPayment(paymentId: string | mongoose.T
     
     // Verify it's a package payment
     if (payment.type !== 'PACKAGE' || payment.relatedModel !== 'AqarPackage') {
-      console.warn('activatePackageAfterPayment: Not a package payment', { 
+      logger.warn('activatePackageAfterPayment: Not a package payment', { 
         paymentId, 
         type: payment.type, 
         relatedModel: payment.relatedModel 
@@ -40,7 +41,7 @@ export async function activatePackageAfterPayment(paymentId: string | mongoose.T
     
     // Verify payment is successful
     if (payment.status !== PaymentStatus.COMPLETED) {
-      console.warn('activatePackageAfterPayment: Payment not marked as COMPLETED', { 
+      logger.warn('activatePackageAfterPayment: Payment not marked as COMPLETED', { 
         paymentId, 
         status: payment.status 
       });
@@ -67,10 +68,10 @@ export async function activatePackageAfterPayment(paymentId: string | mongoose.T
     // Activate if not already active
     if (!pkg.active) {
       await pkg.activate();
-      console.log('activatePackageAfterPayment: Package activated successfully', { 
+      logger.info('activatePackageAfterPayment: Package activated successfully', { 
         paymentId, 
-        packageId: pkg._id,
-        userId: pkg.userId,
+        packageId: (pkg as { _id: { toString(): string } })._id.toString(),
+        userId: pkg.userId.toString(),
         type: pkg.type
       });
     }

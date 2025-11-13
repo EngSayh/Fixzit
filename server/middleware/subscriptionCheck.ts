@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
 import { OwnerModel } from '@/server/models/Owner';
+import { logger } from '@/lib/logger';
 
 export interface SubscriptionCheckOptions {
   requireFeature?: string; // Specific feature required (e.g., 'roiAnalytics', 'utilitiesTracking')
@@ -217,7 +218,7 @@ export async function requireSubscription(
     
     // Warn if subscription expiring soon (within 7 days)
     if (status.daysUntilExpiry && status.daysUntilExpiry > 0 && status.daysUntilExpiry <= 7) {
-      console.warn(`Subscription expiring soon for owner ${ownerId}: ${status.daysUntilExpiry} days remaining`);
+      logger.warn(`Subscription expiring soon for owner ${ownerId}: ${status.daysUntilExpiry} days remaining`);
     }
     
     return {
@@ -227,7 +228,7 @@ export async function requireSubscription(
     };
     
   } catch (error) {
-    console.error('Subscription check error:', error);
+    logger.error('Subscription check error', { error });
     return {
       error: NextResponse.json(
         { error: 'Internal server error' },

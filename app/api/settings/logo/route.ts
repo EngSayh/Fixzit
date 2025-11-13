@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PlatformSettings } from '@/server/models/PlatformSettings';
 import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/settings/logo
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[GET /api/settings/logo] Error:', error);
+    logger.error('[GET /api/settings/logo] Error', { error });
     // Return defaults on error (don't break the UI)
     return NextResponse.json({
       logoUrl: null,

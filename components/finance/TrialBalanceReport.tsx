@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { AlertTriangle, Loader2, RefreshCw, Download, CheckCircle, XCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // INTERFACES
@@ -98,7 +99,7 @@ export default function TrialBalanceReport({
           year,
           period,
         });
-        }).catch(logErr => console.error('Failed to load logger:', logErr));
+        }).catch(logErr => logger.error('Failed to load logger:', { error: logErr }));
       setError(err instanceof Error ? err.message : t('common.error.loadData', 'Failed to load data'));
     } finally {
       setLoading(false);
@@ -328,7 +329,7 @@ export default function TrialBalanceReport({
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 border-t pt-4">
             <div className="space-y-2">
               <Label htmlFor="fiscal-year">{t('finance.fiscalYear', 'Fiscal Year')}</Label>
-              <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v))} disabled={loading}>
+              <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))} disabled={loading}>
                 <SelectTrigger id="fiscal-year">
                   <SelectValue />
                 </SelectTrigger>
@@ -343,7 +344,7 @@ export default function TrialBalanceReport({
 
             <div className="space-y-2">
               <Label htmlFor="period">{t('finance.period', 'Period')}</Label>
-              <Select value={String(period)} onValueChange={(v) => setPeriod(parseInt(v))} disabled={loading}>
+              <Select value={String(period)} onValueChange={(v) => setPeriod(parseInt(v, 10))} disabled={loading}>
                 <SelectTrigger id="period">
                   <SelectValue />
                 </SelectTrigger>

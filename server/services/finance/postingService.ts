@@ -27,6 +27,7 @@
  *   await postingService.postJournal(journal._id);
  */
 
+import { logger } from '@/lib/logger';
 import { Types, Document, ClientSession } from 'mongoose';
 import Decimal from 'decimal.js';
 import JournalModel, { IJournal, IJournalLine } from '../../models/finance/Journal';
@@ -185,7 +186,7 @@ class PostingService {
       }
     } catch {
       // Tests with mocks may not support sessions - continue without
-      console.warn('[PostingService] Transaction not available, continuing without (test mode)');
+      logger.warn('[PostingService] Transaction not available, continuing without (test mode)');
     }
 
     try {

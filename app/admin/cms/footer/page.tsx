@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useTranslation } from '@/contexts/TranslationContext';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { logger } from '@/lib/logger';
 
 /**
  * Footer CMS Admin Page
@@ -59,7 +60,7 @@ export default function FooterCMS() {
           toast.error(t('admin.footer.loadFailed', 'Failed to load content') + `: ${error}`);
         }
       } catch (error) {
-        console.error('Load error:', error);
+        logger.error('Footer CMS load error', { error, page });
         toast.error(t('admin.footer.networkError', 'Network error while loading content'));
       } finally {
         setLoading(false);
@@ -99,7 +100,7 @@ export default function FooterCMS() {
         toast.error(`${t('admin.footer.saveFailed', 'Save failed')}: ${error}`, { id: toastId });
       }
     } catch (error) {
-      console.error('Save error:', error);
+      logger.error('Footer CMS save error', { error, page });
       toast.error(t('admin.footer.saveNetworkError', 'Network error while saving'), { id: toastId });
     } finally {
       setSaving(false);

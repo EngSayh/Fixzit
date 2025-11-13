@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Check, CheckCheck, Filter, Search, MoreVertical } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -16,6 +16,12 @@ export default function NotificationsPage() {
   const [filter, setFilter] = useState('all');
   const [selectedNotifications, setSelectedNotifications] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
+  const [todayDateString, setTodayDateString] = useState('');
+
+  // Client-side hydration for today's date
+  useEffect(() => {
+    setTodayDateString(new Date().toDateString());
+  }, []);
 
   const fetcher = (url: string) => {
     if (!orgId) {
@@ -26,7 +32,7 @@ export default function NotificationsPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        console.error('Notifications fetch error:', error);
+        logger.error('Notifications fetch error', { error });
         throw error;
       });
   };
@@ -411,7 +417,7 @@ export default function NotificationsPage() {
             <div>
               <p className="text-sm font-medium text-muted-foreground">Today</p>
               <p className="text-2xl font-bold text-success">
-                {notifications.filter((n: NotificationDoc) => new Date(n.timestamp).toDateString() === new Date().toDateString()).length}
+                {todayDateString ? notifications.filter((n: NotificationDoc) => new Date(n.timestamp).toDateString() === todayDateString).length : 0}
               </p>
             </div>
             <div className="text-success">📅</div>

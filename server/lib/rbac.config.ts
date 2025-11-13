@@ -4,6 +4,8 @@
  * Defines which roles can access which finance endpoints
  */
 
+import { logger } from '@/lib/logger';
+
 export const UserRole = {
   ADMIN: 'ADMIN',
   FINANCE_OFFICER: 'FINANCE_OFFICER',
@@ -64,7 +66,7 @@ export const FinancePermissions = {
 export function hasPermission(userRole: string, permission: keyof typeof FinancePermissions): boolean {
   const allowedRoles = FinancePermissions[permission];
   if (!allowedRoles) {
-    console.warn(`Unknown permission: ${permission}`);
+    logger.warn(`Unknown permission: ${permission}`);
     return false;
   }
   return allowedRoles.includes(userRole as never);

@@ -3,11 +3,12 @@
 import React from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import useSWR from 'swr';
+import { logger } from '@/lib/logger';
 
 const fetcher = (url: string) => fetch(url)
   .then(r => r.json())
   .catch(error => {
-    console.error('PM work orders fetch error:', error);
+    logger.error('PM work orders fetch error', { error });
     throw error;
   });
 

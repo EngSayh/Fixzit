@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Home } from "lucide-react";
 import SupportPopup from "@/components/SupportPopup";
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -28,9 +28,15 @@ import CurrencySelector from '@/components/i18n/CurrencySelector';
  */
 export default function Footer() {
   const [open, setOpen] = useState(false);
+  const [currentYear, setCurrentYear] = useState('');
 
   // Use the translation context directly - it has its own fallback
   const { t, isRTL: translationIsRTL } = useTranslation();
+
+  // Client-side hydration for current year to avoid SSR mismatch
+  useEffect(() => {
+    setCurrentYear(new Date().getFullYear().toString());
+  }, []);
 
   return (
     <footer className="border-t bg-card/70 backdrop-blur">
@@ -81,7 +87,7 @@ export default function Footer() {
       Note: Privacy/Terms/Support links duplicated here for user convenience 
       (mobile users may prefer bottom bar, desktop users may use main grid) */}
   <div className="flex flex-col gap-2 border-t border-border pt-4 text-xs opacity-60 md:flex-row md:items-center md:justify-between">
-          <div>© {new Date().getFullYear()} {t('footer.copyright', 'Fixzit. All rights reserved.')}</div>
+          <div>© {currentYear || '...'} {t('footer.copyright', 'Fixzit. All rights reserved.')}</div>
           <div className="flex gap-4">
             <Link href="/privacy" className="hover:underline">{t('footer.privacy', 'Privacy')}</Link>
             <Link href="/terms" className="hover:underline">{t('footer.terms', 'Terms')}</Link>

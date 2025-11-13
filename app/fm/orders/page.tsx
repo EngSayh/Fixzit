@@ -17,6 +17,7 @@ import {
   Search, Download, Eye, Edit, Trash2,
   ShoppingCart, DollarSign, Calendar, Package
 } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 // [CODE REVIEW]: FIX - Use 'id', not '_id' (Prisma/PostgreSQL convention)
 interface Order {
@@ -51,7 +52,7 @@ const fetcher = async (url: string, orgId?: string) => {
     const json = await res.json();
     return json.data || json.orders || json.items || [];
   } catch (error) {
-    console.error('FM orders fetch error:', error);
+    logger.error('FM orders fetch error', { error });
     throw error;
   }
 };

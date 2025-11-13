@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -95,7 +96,7 @@ export default function DashboardPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        console.error('FM dashboard fetch error:', error);
+        logger.error('FM dashboard fetch error', { error });
         throw error;
       });
   };

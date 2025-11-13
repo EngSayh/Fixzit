@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
@@ -67,7 +68,7 @@ const productFetcher = async (url: string): Promise<CatalogResponse> => {
     const json = await res.json();
     return json.data;
   } catch (error) {
-    console.error('Product fetcher error:', error);
+    logger.error('Product fetcher error', { error });
     throw new Error('Failed to load marketplace catalog');
   }
 };
@@ -81,7 +82,7 @@ const categoryFetcher = async (url: string): Promise<CategoryResponse> => {
     const json = await res.json();
     return json.data;
   } catch (error) {
-    console.error('Category fetcher error:', error);
+    logger.error('Category fetcher error', { error });
     throw new Error('Failed to load marketplace categories');
   }
 };
@@ -184,7 +185,7 @@ export default function CatalogView({
           });
         })
         .catch((loggerError) => {
-          console.error('Failed to load logger:', loggerError);
+          logger.error('Failed to load logger:', { error: loggerError });
         });
       setFeedbackMessage('We could not add this item to your cart. Please try again.');
     }

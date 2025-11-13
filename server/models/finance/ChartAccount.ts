@@ -116,29 +116,41 @@ ChartAccountSchema.methods.getAccountPath = async function(): Promise<string> {
 ChartAccountSchema.statics.getHierarchy = async function(orgId: Types.ObjectId) {
   const accounts = await this.find({ orgId, isActive: true }).sort({ accountCode: 1 });
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tree: any[] = [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const map: Map<string, any> = new Map();
+  interface AccountTreeNode {
+    _id: Types.ObjectId;
+    accountCode: string;
+    accountName: string;
+    accountType: string;
+    parentId?: Types.ObjectId;
+    children: AccountTreeNode[];
+    [key: string]: unknown;
+  }
+  
+  const tree: AccountTreeNode[] = [];
+  const map: Map<string, AccountTreeNode> = new Map();
+  
+  interface ChartAccountDoc extends IChartAccount {
+    _id: Types.ObjectId;
+    toObject: () => Record<string, unknown>;
+  }
   
   // First pass: Create map
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  accounts.forEach((acc: any) => {
-    map.set(acc._id.toString(), { ...acc.toObject(), children: [] });
+  accounts.forEach((acc: ChartAccountDoc) => {
+    const node = { ...acc.toObject(), children: [] } as unknown as AccountTreeNode;
+    map.set(acc._id.toString(), node);
   });
   
   // Second pass: Build tree
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  accounts.forEach((acc: any) => {
+  accounts.forEach((acc: ChartAccountDoc) => {
     const node = map.get(acc._id.toString());
     if (acc.parentId) {
       const parent = map.get(acc.parentId.toString());
-      if (parent) {
+      if (parent && node) {
         parent.children.push(node);
-      } else {
+      } else if (node) {
         tree.push(node); // Orphan account (parent deleted)
       }
-    } else {
+    } else if (node) {
       tree.push(node); // Root account
     }
   });

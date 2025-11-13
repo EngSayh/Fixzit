@@ -2,6 +2,7 @@
 
 import { Globe } from 'lucide-react';
 import { useTranslation, type Language } from '@/contexts/TranslationContext';
+import { logger } from '@/lib/logger';
 
 // Simplified language options for auth pages
 const AUTH_LANGUAGES = [
@@ -45,7 +46,7 @@ export default function CompactLanguageSelector({ className = '' }: CompactLangu
     try {
       localStorage.setItem('fixzit-language', newLanguage);
     } catch (err) {
-      console.error('Failed to save language preference:', err);
+      logger.error('Failed to save language preference:', { error: err });
     }
   };
 

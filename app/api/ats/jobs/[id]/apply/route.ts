@@ -119,12 +119,12 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     
     // Parse skills
     const candidateSkills = skills ? 
-      skills.split(',').map(s => s.trim()).filter(Boolean) : 
+      skills.split(',').map((s: string) => s.trim()).filter(Boolean) : 
       extractSkillsFromText(resumeText + ' ' + coverLetter);
     
     // Parse experience
     const yearsOfExperience = experience ? 
-      parseInt(experience) : 
+      parseInt(experience, 10) : 
       calculateExperienceFromText(resumeText + ' ' + coverLetter);
     
     // Get ATS settings

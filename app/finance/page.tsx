@@ -41,7 +41,7 @@ export default function FinancePage() {
     return fetch(url)
       .then(r => r.json())
       .catch(error => {
-        console.error('Finance invoice fetch error:', error);
+        logger.error('Finance invoice fetch error', { error });
         throw error;
       });
   };
@@ -233,7 +233,7 @@ function CreateInvoice({ onCreated, orgId }:{ onCreated:()=>void; orgId:string }
 
     try {
       // Convert string values to numbers for API, using Decimal for precision
-      const apiLines = lines.map(l => ({
+      const apiLines = lines.map((l: { description: string; qty: string | number; unitPrice: string | number; vatRate: string | number }) => ({
         description: l.description,
         qty: new Decimal(l.qty || '0').toDecimalPlaces(0).toNumber(),
         unitPrice: new Decimal(l.unitPrice || '0').toDecimalPlaces(2).toNumber(),

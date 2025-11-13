@@ -18,6 +18,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Types } from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { requireSubscription } from '@/server/middleware/subscriptionCheck';
+import { logger } from '@/lib/logger';
 import { 
   calculatePortfolioAnalytics,
   getStandardPeriods,
@@ -107,7 +108,7 @@ export async function GET(req: NextRequest) {
     });
     
   } catch (error) {
-    console.error('Error calculating ROI report:', error);
+    logger.error('Error calculating ROI report', { error });
     return NextResponse.json(
       { 
         success: false,

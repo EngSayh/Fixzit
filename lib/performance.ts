@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Performance Monitoring Middleware for Fixzit
  * 
@@ -43,14 +44,14 @@ function logMetrics(metrics: PerformanceMetrics) {
   const emoji = metrics.exceeded ? '⚠️' : '✅';
   const durationSec = (metrics.duration / 1000).toFixed(2);
   
-  console.log(
+  logger.info(
     `${emoji} [Performance] ${metrics.method} ${metrics.url} - ` +
     `${durationSec}s (${metrics.status}) ${metrics.exceeded ? '⚠️ EXCEEDED THRESHOLD' : ''}`
   );
 
   // Alert if threshold exceeded
   if (metrics.exceeded) {
-    console.warn(
+    logger.warn(
       `⚠️ PERFORMANCE WARNING: Request exceeded ${PERFORMANCE_THRESHOLD_MS / 1000}s threshold\n` +
       `   URL: ${metrics.url}\n` +
       `   Duration: ${durationSec}s\n` +
@@ -214,7 +215,7 @@ export function reportWebVitals(metric: WebVitalsMetric) {
   const { name, value, id } = metric;
   
   // Log Web Vitals
-  console.log(`[Web Vitals] ${name}: ${value.toFixed(2)}ms (id: ${id})`);
+  logger.info(`[Web Vitals] ${name}: ${value.toFixed(2)}ms (id: ${id})`);
   
   // Check against thresholds
   const thresholds: Record<string, number> = {
@@ -227,7 +228,7 @@ export function reportWebVitals(metric: WebVitalsMetric) {
   
   const threshold = thresholds[name];
   if (threshold && value > threshold) {
-    console.warn(
+    logger.warn(
       `⚠️ [Web Vitals] ${name} exceeded threshold: ${value.toFixed(2)} > ${threshold}`
     );
   }

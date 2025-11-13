@@ -100,9 +100,14 @@ async function testConnection() {
 
 // Run the test if this script is executed directly
 if (require.main === module) {
-  testConnection().then((results) => {
-    process.exit(results.success ? 0 : 1);
-  });
+  testConnection()
+    .then((results) => {
+      process.exit(results.success ? 0 : 1);
+    })
+    .catch((error) => {
+      console.error('❌ Fatal error during MongoDB connection test:', error);
+      process.exit(1);
+    });
 }
 
 export { testConnection };

@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 // ✅ FIX: Import from centralized config
@@ -4383,7 +4384,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
 
       setCurrentOption(nextOption);
     } catch (error) {
-      console.warn('Could not access localStorage for language preference:', error);
+      logger.warn('Could not access localStorage for language preference', { error });
       setCurrentOption(DEFAULT_LANGUAGE_OPTION);
     }
   }, []);
@@ -4415,7 +4416,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
         })
       );
     } catch (error) {
-      console.warn('Could not update language settings:', error);
+      logger.warn('Could not update language settings', { error });
     }
   }, [currentOption, isClient]);
 
@@ -4445,7 +4446,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
       const result = langData?.[key] ?? enData?.[key] ?? fallback;
       return result;
     } catch (error) {
-      console.warn(`Translation error for key '${key}':`, error);
+      logger.warn(`Translation error for key '${key}'`, { error });
       return fallback;
     }
   };
@@ -4474,17 +4475,17 @@ export function useTranslation() {
               window.location.reload();
             }
           } catch (error) {
-            console.warn('Could not save language preference:', error);
+            logger.warn('Could not save language preference', { error });
           }
         },
         setLocale: (locale: string) => {
           try {
             if (typeof window !== 'undefined') {
               localStorage.setItem(STORAGE_KEYS.locale, locale);
-              console.warn('Locale preference saved. Please refresh the page for changes to take effect.');
+              logger.warn('Locale preference saved. Please refresh the page for changes to take effect.');
             }
           } catch (error) {
-            console.warn('Could not save locale preference:', error);
+            logger.warn('Could not save locale preference', { error });
           }
         },
         t: (key: string, fallback: string = key): string => {
@@ -4498,7 +4499,7 @@ export function useTranslation() {
     return context;
   } catch (error) {
     // Ultimate fallback in case of any error
-    console.warn('useTranslation error:', error);
+    logger.warn('useTranslation error', { error });
     return {
       language: APP_DEFAULTS.language as Language,
       locale: APP_DEFAULTS.locale,

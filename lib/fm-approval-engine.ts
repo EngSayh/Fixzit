@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * FM Approval Routing Engine
  * Routes quotations to appropriate approvers based on APPROVAL_POLICIES
@@ -288,9 +289,9 @@ export async function saveApprovalWorkflow(
       throw new Error('Failed to save approval workflow - no document returned');
     }
     
-    console.log('[Approval] Workflow saved to database:', workflow.requestId, 'DB ID:', savedApproval._id);
+    logger.info('[Approval] Workflow saved to database', { requestId: workflow.requestId, dbId: savedApproval._id.toString() });
   } catch (error) {
-    console.error('[Approval] Failed to save workflow:', error);
+    logger.error('[Approval] Failed to save workflow:', { error });
     // Re-throw with more context for debugging
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to persist approval workflow ${workflow.requestId}: ${reason}`);
@@ -332,7 +333,7 @@ export async function getWorkflowById(workflowId: string, orgId: string): Promis
       updatedAt: approval.updatedAt
     };
   } catch (error) {
-    console.error('[Approval] Failed to get workflow:', error);
+    logger.error('[Approval] Failed to get workflow:', { error });
     return null;
   }
 }
@@ -378,9 +379,9 @@ export async function updateApprovalDecision(
     });
 
     await approval.save();
-    console.log('[Approval] Decision recorded:', workflowId, decision);
+    logger.info('[Approval] Decision recorded', { workflowId, decision });
   } catch (error) {
-    console.error('[Approval] Failed to update decision:', error);
+    logger.error('[Approval] Failed to update decision:', { error });
     throw error;
   }
 }
@@ -420,7 +421,7 @@ export async function getPendingApprovalsForUser(
       updatedAt: approval.updatedAt as Date
     }));
   } catch (error) {
-    console.error('[Approval] Failed to get pending approvals:', error);
+    logger.error('[Approval] Failed to get pending approvals:', { error });
     return [];
   }
 }
@@ -455,14 +456,14 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
       });
 
       await approval.save();
-      console.log('[Approval] Escalated:', approval.approvalNumber);
+      logger.info('[Approval] Escalated:', approval.approvalNumber);
       
       // TODO: Send escalation notifications
     }
 
-    console.log(`[Approval] Processed ${overdueApprovals.length} timeout escalations`);
+    logger.info(`[Approval] Processed ${overdueApprovals.length} timeout escalations`);
   } catch (error) {
-    console.error('[Approval] Failed to check timeouts:', error);
+    logger.error('[Approval] Failed to check timeouts:', { error });
   }
 }
 
@@ -475,5 +476,5 @@ export async function notifyApprovers(
 ): Promise<void> {
   // TODO: Implement notification sending
   // Use NOTIFY config from fm.behavior.ts
-  console.log('[Approval] Notifying approvers for stage', stage.stage, 'of workflow', workflow.requestId);
+  logger.info('[Approval] Notifying approvers', { stage: stage.stage, requestId: workflow.requestId });
 }

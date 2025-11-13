@@ -59,7 +59,12 @@ vi.mock("fs", () => ({
 
 // db (ensure awaiting a promise)
 const dbThen = vi.fn();
-const dbPromise = Promise.resolve().then(dbThen);
+const dbPromise = Promise.resolve()
+  .then(dbThen)
+  .catch((error) => {
+    console.error('DB promise error:', error);
+    throw error;
+  });
 vi.mock("@/lib/mongo", () => ({
   db: dbPromise,
 }));

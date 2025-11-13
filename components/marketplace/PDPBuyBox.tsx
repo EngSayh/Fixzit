@@ -5,6 +5,7 @@ import { CheckCircle2, Loader2, ShieldCheck, Timer, Truck } from 'lucide-react';
 import clsx from 'clsx';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { addProductToCart } from '@/lib/marketplace/cartClient';
+import { logger } from '@/lib/logger';
 
 // [CODE REVIEW]: FIX - Use 'id', not '_id' (Prisma/PostgreSQL convention)
 interface PDPBuyBoxProps {
@@ -56,7 +57,7 @@ export default function PDPBuyBox({ product, onAddToCart, onRequestRFQ }: PDPBuy
           });
         })
         .catch((loggerError) => {
-          console.error('Failed to load logger:', loggerError);
+          logger.error('Failed to load logger:', { error: loggerError });
         });
       if (typeof window !== 'undefined') {
         const message = error instanceof Error ? error.message : 'Unable to add to cart';

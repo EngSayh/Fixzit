@@ -1,4 +1,5 @@
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+import { logger } from '@/lib/logger';
 
 interface SecretValue {
   [key: string]: string;
@@ -38,7 +39,7 @@ class AWSSecretsManager {
 
       return secretValue;
     } catch (error) {
-      console.error(`Failed to retrieve secret ${secretName}:`, error);
+      logger.error(`Failed to retrieve secret ${secretName}:`, { error });
       throw error;
     }
   }

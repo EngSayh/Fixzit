@@ -1,4 +1,5 @@
  
+import { logger } from './logger';
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { AuthToken } from './auth';
@@ -25,7 +26,7 @@ vi.mock('bcryptjs', () => ({
 }));
 
 // FIX: Create factory function inside the mock to avoid hoisting issues
-const mockSign = vi.fn((payload: object, _secret: string, _opts?: any) => {
+const mockSign = vi.fn((payload: object, _secret: string, _opts?: unknown) => {
   return `token:${Buffer.from(JSON.stringify(payload)).toString('base64')}`;
 });
 const mockVerify = vi.fn((token: string, _secret: string) => {
@@ -171,7 +172,7 @@ describe('auth lib - JWT generation and verification', () => {
     // Mock getJWTSecret to return ephemeral secret and log warning
     const ephemeralSecret = 'ephemeral-dev-secret-12345678901234567890123456789012';
     mockGetJWTSecret.mockImplementation(async () => {
-      console.warn('[Secrets] No JWT_SECRET configured. Using ephemeral secret for development.');
+      logger.warn('[Secrets] No JWT_SECRET configured. Using ephemeral secret for development.');
       return ephemeralSecret;
     });
 

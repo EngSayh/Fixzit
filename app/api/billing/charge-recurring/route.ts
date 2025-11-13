@@ -7,6 +7,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
+import { logger } from '@/lib/logger';
 
 // POST with secret header from cron – for each sub due this day: charge recurring via token
 /**
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
         await inv.save(); 
       }
     } catch (error) {
-      console.error(`Recurring charge failed for subscription ${s._id}:`, error instanceof Error ? error.message : 'Unknown error');
+      logger.error(`Recurring charge failed for subscription ${s._id}`, { error });
       inv.status='failed';
       inv.errorMessage = error instanceof Error ? error.message : 'Payment gateway error';
       await inv.save();

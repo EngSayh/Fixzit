@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { withIdempotency, createIdempotencyKey } from "@/server/security/idempotency";
 // Import the main WorkOrder model instead of defining a duplicate schema
@@ -53,7 +54,7 @@ export async function create(data: WorkOrderInput, actorId: string, ip?: string)
   });
   
   // Log audit event (simplified without external audit module)
-  console.log(`Work order created: ${wo.code} by ${actorId} from ${ip || 'unknown'}`);
+  logger.info(`Work order created: ${wo.code} by ${actorId} from ${ip || 'unknown'}`);
   return wo;
 }
 
@@ -95,7 +96,7 @@ export async function update(id: string, patch: Partial<WorkOrderInput>, tenantI
   const updated = await WorkOrder.findByIdAndUpdate(id, validated, { new: true });
   
   // Log audit event (simplified)
-  console.log(`Work order updated: ${updated?.code} by ${actorId} from ${ip || 'unknown'}`);
+  logger.info(`Work order updated: ${updated?.code} by ${actorId} from ${ip || 'unknown'}`);
   return updated;
 }
 
