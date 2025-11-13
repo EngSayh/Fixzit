@@ -41,7 +41,7 @@ function scanFile(filePath) {
     }
     
     return issues;
-  } catch (error) {
+  } catch (_error) {
     return [];
   }
 }
@@ -65,7 +65,7 @@ function scanDirectory(dir, results = []) {
         }
       }
     }
-  } catch (error) {
+  } catch (_error) {
     // Skip inaccessible directories
   }
   
