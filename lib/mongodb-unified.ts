@@ -71,7 +71,7 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
       socketTimeoutMS: 45000,
       // Production-critical options for MongoDB Atlas
       retryWrites: true,        // Automatic retry for write operations (network failures)
-      tls: true,                // Force TLS/SSL for secure connections (required for Atlas)
+      tls: mongoUri.includes('mongodb+srv://') || mongoUri.includes('ssl=true'),  // TLS only for Atlas or explicit SSL
       w: 'majority',            // Write concern for data durability (prevents data loss)
     });
 
