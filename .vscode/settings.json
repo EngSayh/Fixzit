@@ -92,16 +92,11 @@
   // Enable checkpoints for rollback capability
   "chat.checkpoints.enabled": true,
   
-  // Auto-accept edits after N seconds (3 seconds per ChatGPT guidance)
-  "chat.editing.autoAccept": 3,
+  // Auto-accept edits after N seconds (CORRECT KEY: autoAcceptDelay, not autoAccept)
+  "chat.editing.autoAcceptDelay": 3,
 
-  // MCP Discovery - object format, disable all sources to reduce prompts
-  "chat.mcp.discovery.enabled": {
-    "claude-desktop": false,
-    "windsurf": false,
-    "cursor-global": false,
-    "cursor-workspace": false
-  },
+  // MCP Discovery - MUST be boolean false, not object (object is ignored)
+  "chat.mcp.discovery.enabled": false,
 
   // SECURITY: File edits - Auto-approve ALL files with safe guardrails
   // Per ChatGPT: "Auto-approve edits everywhere by default, except a small protected set"
@@ -115,9 +110,9 @@
   },
 
   // SECURITY: Terminal commands - Auto-approve safe commands with allow/deny patterns
-  // Per ChatGPT: Allow routine commands, block destructive operations
+  // CRITICAL: NO 'git push' in allowlist - broad regex causes conflicts, use PR scripts instead
   "chat.tools.terminal.autoApprove": {
-    "/^git (status|branch|checkout\\b.*|add\\b.*|commit\\b.*|push\\b.*|show\\b.*|diff\\b.*|fetch\\b.*|stash\\b.*|restore\\b.*|switch\\b.*)$/": true,
+    "/^git (status|branch|checkout\\b.*|add\\b.*|commit\\b.*|show\\b.*|diff\\b.*|fetch\\b.*|stash\\b.*|restore\\b.*|switch\\b.*|pull\\b.*)$/": true,
     "/^(npm|pnpm|yarn|bun) (ci|install|run build|run dev|run test|run lint|test\\b.*|build\\b.*)$/": true,
     "bash": true,
     "sh": true,
@@ -131,14 +126,14 @@
     "mkdir": true,
     "cp": true,
     
-    // Block dangerous commands
+    // Hard blocks - including ALL git push variants
     "del": false,
     "/dangerous/": false,
     "rm": false,
     "rmdir": false,
     "chmod": false,
     "chown": false,
-    "/^git push\\s+origin\\s+(main|master)$/": false,
+    "/^git push\\b/": false,
     "/^git push\\s+--force/": false
   },
 

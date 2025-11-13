@@ -20,24 +20,22 @@
         "esbenp.prettier-vscode"
       ],
       "settings": {
-        // Agent mode - Maximum autonomy in container (safe environment)
+        // Agent: FULL AUTO in container
         "chat.agent.enabled": true,
         "chat.agent.maxRequests": 999,
         "chat.tools.global.autoApprove": true,
-        "chat.tools.terminal.autoReplyToPrompts": true,
-        "github.copilot.chat.agent.runTasks": true,
-        "chat.notifyWindowOnConfirmation": false,
-        "chat.checkpoints.enabled": true,
-        "chat.editing.autoAccept": 3,
-        "github.copilot.chat.virtualTools.threshold": 0,
         
-        // MCP Discovery - disable in container
-        "chat.mcp.discovery.enabled": {
-          "claude-desktop": false,
-          "windsurf": false,
-          "cursor-global": false,
-          "cursor-workspace": false
-        },
+        // Stop interactive CLI pauses (y/n etc.)
+        "chat.tools.terminal.autoReplyToPrompts": true,
+        
+        // Auto-accept edits (correct key)
+        "chat.editing.autoAcceptDelay": 3,
+        
+        // Checkpoints for rollback
+        "chat.checkpoints.enabled": true,
+        
+        // Disable MCP discovery entirely (boolean, not object)
+        "chat.mcp.discovery.enabled": false,
         
         // File edits - auto-approve pattern (container-safe)
         "chat.tools.edits.autoApprove": {
@@ -48,20 +46,15 @@
           "**/pnpm-lock.yaml": false
         },
         
-        // Terminal commands - comprehensive allow/deny
+        // Terminal auto-approve: safe commands only — NO 'git push' here
         "chat.tools.terminal.autoApprove": {
-          "/^git (status|branch|checkout\\b.*|add\\b.*|commit\\b.*|push\\b.*|show\\b.*|diff\\b.*|fetch\\b.*|stash\\b.*|restore\\b.*|switch\\b.*)$/": true,
+          "/^git (status|branch|checkout\\b.*|add\\b.*|commit\\b.*|show\\b.*|diff\\b.*|fetch\\b.*|stash\\b.*|restore\\b.*|switch\\b.*|pull\\b.*)$/": true,
           "/^(npm|pnpm|yarn|bun) (ci|install|run build|run dev|run test|run lint|test\\b.*|build\\b.*)$/": true,
           "bash": true,
           "sh": true,
           "node": true,
           "npx": true,
-          "git": true,
           "gh": true,
-          "python": true,
-          "pytest": true,
-          "docker": true,
-          "make": true,
           "echo": true,
           "cat": true,
           "ls": true,
@@ -69,13 +62,13 @@
           "mkdir": true,
           "cp": true,
           
-          // Block dangerous operations
+          // Hard blocks
           "del": false,
           "rm": false,
           "rmdir": false,
           "chmod": false,
           "chown": false,
-          "/^git push\\s+origin\\s+(main|master)$/": false,
+          "/^git push\\b/": false,
           "/^git push\\s+--force/": false
         },
         
