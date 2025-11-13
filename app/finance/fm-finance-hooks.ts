@@ -233,23 +233,26 @@ export async function generateOwnerStatement(
   }).sort({ transactionDate: 1 });
 
   // Convert to interface format
-  const transactions: FinancialTransaction[] = dbTransactions.map(t => ({
-    id: t._id.toString(),
-    type: t.type as 'EXPENSE' | 'INVOICE' | 'PAYMENT',
-    workOrderId: t.workOrderId?.toString() || '',
-    propertyId: t.propertyId,
-    ownerId: t.ownerId,
-    tenantId: t.tenantId,
-    amount: t.amount,
-    currency: t.currency,
-    category: t.category,
-    description: t.description,
-    date: t.transactionDate,
-    dueDate: t.dueDate,
-    status: t.status as 'PENDING' | 'POSTED' | 'PAID' | 'CANCELLED',
-    createdAt: t.createdAt,
-    updatedAt: t.updatedAt
-  }));
+  const transactions: FinancialTransaction[] = dbTransactions.map((t) => {
+    const doc = t as unknown as { _id: { toString(): string } };
+    return {
+      id: doc._id.toString(),
+      type: t.type as 'EXPENSE' | 'INVOICE' | 'PAYMENT',
+      workOrderId: t.workOrderId?.toString() || '',
+      propertyId: t.propertyId,
+      ownerId: t.ownerId,
+      tenantId: t.tenantId || undefined,
+      amount: t.amount,
+      currency: t.currency,
+      category: t.category,
+      description: t.description,
+      date: t.transactionDate,
+      dueDate: t.dueDate,
+      status: t.status as 'PENDING' | 'POSTED' | 'PAID' | 'CANCELLED',
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt
+    };
+  });
 
   const totalExpenses = transactions
     .filter(t => t.type === 'EXPENSE')
@@ -285,23 +288,26 @@ export async function getTenantPendingInvoices(
   }).sort({ dueDate: 1 });
 
   // Convert to interface format
-  return dbInvoices.map(t => ({
-    id: t._id.toString(),
-    type: 'INVOICE',
-    workOrderId: t.workOrderId?.toString() || '',
-    propertyId: t.propertyId,
-    ownerId: t.ownerId,
-    tenantId: t.tenantId,
-    amount: t.amount,
-    currency: t.currency,
-    category: t.category,
-    description: t.description,
-    date: t.transactionDate,
-    dueDate: t.dueDate,
-    status: 'PENDING',
-    createdAt: t.createdAt,
-    updatedAt: t.updatedAt
-  }));
+  return dbInvoices.map((t) => {
+    const doc = t as unknown as { _id: { toString(): string } };
+    return {
+      id: doc._id.toString(),
+      type: 'INVOICE' as const,
+      workOrderId: t.workOrderId?.toString() || '',
+      propertyId: t.propertyId,
+      ownerId: t.ownerId,
+      tenantId: t.tenantId || undefined,
+      amount: t.amount,
+      currency: t.currency,
+      category: t.category,
+      description: t.description,
+      date: t.transactionDate,
+      dueDate: t.dueDate,
+      status: 'PENDING' as const,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt
+    };
+  });
 }
 
 /**

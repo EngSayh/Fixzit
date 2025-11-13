@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { can, Role } from "../rbac/workOrdersPolicy";
 import { verifyToken } from "@/lib/auth";
+import { logger } from '@/lib/logger';
 
 export type SessionUser = {
   id: string;
@@ -28,7 +29,7 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
         tenantId: tenantValue,
       };
     } catch (e) {
-      console.error('Failed to parse x-user header:', e);
+      logger.error('Failed to parse x-user header', { error: e });
       throw new Error("Invalid x-user header");
     }
   }

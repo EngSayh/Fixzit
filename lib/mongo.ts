@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { logger } from '@/lib/logger';
 
 /**
  * MongoDB Database Abstraction Layer
@@ -94,7 +95,7 @@ if (!conn) {
       // Return the native MongoDB database object
       return m.connection.db as unknown as DatabaseHandle;
     }).catch((err) => {
-      console.error('ERROR: mongoose.connect() failed:', err?.message || err);
+      logger.error('ERROR: mongoose.connect() failed', { error: err?.message || err });
       throw new Error(`MongoDB connection failed: ${err?.message || err}. Please ensure MongoDB is running.`);
     });
   } else {
@@ -127,7 +128,7 @@ export async function getDatabase(): Promise<DatabaseHandle> {
     err.code = 'DB_CONNECTION_FAILED';
     err.userMessage = 'Database connection is currently unavailable. Please try again later.';
     err.correlationId = correlationId;
-    console.error('Database connection error:', {
+    logger.error('Database connection error:', {
       name: err.name,
       code: err.code,
       devMessage,

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { auth } from '@/auth';
 import { AuditLogModel } from '@/server/models/AuditLog';
 
@@ -150,7 +151,7 @@ export async function auditLogMiddleware(
     session = await auth();
   } catch (authError) {
     // If auth check fails, log the error but continue as anonymous
-    console.warn('Auth session check failed during audit log, proceeding as anonymous.', authError);
+    logger.warn('Auth session check failed during audit log, proceeding as anonymous', { error: authError });
   }
   
   // Extract request context
@@ -267,7 +268,7 @@ export async function logAudit(auditData: Parameters<typeof AuditLogModel.log>[0
     // Asynchronously log without awaiting to not block response
     // Use catch to handle any DB errors
     AuditLogModel.log(auditData).catch((dbError) => {
-      console.error('Failed to write audit log to database:', {
+      logger.error('Failed to write audit log to database', {
         error: dbError,
         action: auditData.action,
         endpoint: auditData.context?.endpoint,
@@ -275,7 +276,7 @@ export async function logAudit(auditData: Parameters<typeof AuditLogModel.log>[0
     });
   } catch (error) {
     // Silent fail for local errors - don't break the main request
-    console.error('Failed to prepare audit log for saving:', {
+    logger.error('Failed to prepare audit log for saving', {
       error,
       action: auditData.action,
     });
@@ -289,7 +290,7 @@ export async function createAuditLog(data: Parameters<typeof AuditLogModel.log>[
   try {
     await AuditLogModel.log(data);
   } catch (error) {
-    console.error('Failed to create audit log:', error);
+    logger.error('Failed to create audit log', { error });
   }
 }
 

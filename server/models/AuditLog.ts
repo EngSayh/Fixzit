@@ -1,4 +1,5 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
+import { logger } from '@/lib/logger';
 
 const ActionType = [
   "CREATE", "READ", "UPDATE", "DELETE",
@@ -137,7 +138,7 @@ AuditLogSchema.statics.log = async function(data: {
     return log;
   } catch (error) {
     // Silent fail - don't break the main operation if logging fails
-    console.error('Failed to create audit log:', error);
+    logger.error('Failed to create audit log', { error });
     return null;
   }
 };

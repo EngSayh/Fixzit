@@ -344,7 +344,7 @@ export async function GET(req: NextRequest) {
     }
     
   } catch (error) {
-    console.error('Error generating owner statement:', error);
+    logger.error('Error generating owner statement', { error });
     return NextResponse.json(
       { 
         success: false,

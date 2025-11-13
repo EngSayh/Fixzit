@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 
 import useSWR from 'swr';
 import { useParams, useRouter } from 'next/navigation';
@@ -67,7 +68,7 @@ export default function PropertyDetailsPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        console.error('FM property detail fetch error:', error);
+        logger.error('FM property detail fetch error', { error });
         throw error;
       });
   };

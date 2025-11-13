@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 
 import { useMemo, useState } from 'react';
 import GoogleMap from '@/components/GoogleMap';
@@ -32,7 +33,7 @@ export default function MapPage() {
         }))
       );
     } catch (error) {
-      console.error('Aqar map cluster load error:', error);
+      logger.error('Aqar map cluster load error', { error });
       setMarkers([]);
     }
   }

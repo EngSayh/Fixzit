@@ -10,6 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/
 
 // ✅ FIXED: Add i18n support
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logger } from '@/lib/logger';
 
 interface SystemStatus {
   overall: 'healthy' | 'degraded' | 'critical';
@@ -44,7 +45,7 @@ export default function SystemVerifier() {
         lastCheck: new Date().toISOString()
       });
     } catch (error) {
-      console.error('Verification failed:', error);
+      logger.error('Verification failed:', { error });
       setStatus({
         overall: 'critical',
         issues: [t('system.verification.failed', 'Verification process failed')],

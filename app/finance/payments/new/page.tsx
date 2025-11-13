@@ -99,7 +99,7 @@ export default function NewPaymentPage() {
 
   // Calculate totals using Decimal math
   const totalAllocated = React.useMemo(() => 
-    Money.sum(allocations.map(a => decimal(a.amountAllocated))),
+    Money.sum(allocations.map((a: IInvoiceAllocation) => decimal(a.amountAllocated))),
     [allocations]
   );
   
@@ -214,7 +214,7 @@ export default function NewPaymentPage() {
   // ============================================================================
 
   const toggleInvoiceSelection = (id: string) => {
-    setAllocations(allocations.map(a => {
+    setAllocations(allocations.map((a: IInvoiceAllocation) => {
       if (a.id === id) {
         const newAllocated = !a.selected 
           ? Money.toNumber(Money.min(
@@ -230,7 +230,7 @@ export default function NewPaymentPage() {
 
   const updateAllocationAmount = (id: string, value: string) => {
     const numValue = parseFloat(value) || 0;
-    setAllocations(allocations.map(a => {
+    setAllocations(allocations.map((a: IInvoiceAllocation) => {
       if (a.id === id) {
         // Cap at invoice amount due using Decimal for precision
         const cappedValue = Money.toNumber(Money.min(decimal(numValue), decimal(a.amountDue)));
@@ -241,11 +241,11 @@ export default function NewPaymentPage() {
   };
 
   const allocateEqually = () => {
-    const selectedAllocations = allocations.filter(a => a.selected);
+    const selectedAllocations = allocations.filter((a: IInvoiceAllocation) => a.selected);
     if (selectedAllocations.length === 0) return;
 
     const perInvoice = Money.divide(paymentAmountNum, selectedAllocations.length);
-    setAllocations(allocations.map(a => {
+    setAllocations(allocations.map((a: IInvoiceAllocation) => {
       if (a.selected) {
         const allocated = Money.toNumber(Money.min(perInvoice, decimal(a.amountDue)));
         return { ...a, amountAllocated: allocated };
@@ -272,7 +272,7 @@ export default function NewPaymentPage() {
     }
 
     // Update all allocations with priority-based amounts
-    const updated = allocations.map(a => {
+    const updated = allocations.map((a: IInvoiceAllocation) => {
       if (a.selected && allocatedMap.has(a.invoiceId)) {
         return { ...a, amountAllocated: allocatedMap.get(a.invoiceId) || 0 };
       }
@@ -282,7 +282,7 @@ export default function NewPaymentPage() {
   };
 
   const clearAllocations = () => {
-    setAllocations(allocations.map(a => ({ ...a, selected: false, amountAllocated: 0 })));
+    setAllocations(allocations.map((a: IInvoiceAllocation) => ({ ...a, selected: false, amountAllocated: 0 })));
   };
 
   // ============================================================================
@@ -366,8 +366,8 @@ export default function NewPaymentPage() {
 
         // Build allocations array (only selected invoices with amounts)
         const invoiceAllocations = allocations
-          .filter(a => a.selected && a.amountAllocated > 0)
-          .map(a => ({
+          .filter((a: IInvoiceAllocation) => a.selected && a.amountAllocated > 0)
+          .map((a: IInvoiceAllocation) => ({
             invoiceId: a.invoiceId,
             invoiceNumber: a.invoiceNumber,
             amount: a.amountAllocated

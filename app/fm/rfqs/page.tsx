@@ -68,7 +68,7 @@ export default function RFQsPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        console.error('FM RFQs fetch error:', error);
+        logger.error('FM RFQs fetch error', { error });
         throw error;
       });
   };

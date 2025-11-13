@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Calendar, Clock, Phone, Video, MapPin, CheckCircle } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logger } from '@/lib/logger';
 
 export interface ViewingSchedulerProps {
   propertyId: string;
@@ -121,7 +122,7 @@ export default function ViewingScheduler({
 
       setStep('success');
     } catch (error) {
-      console.error('Failed to schedule viewing:', error);
+      logger.error('Failed to schedule viewing:', { error });
       const errorMessage = error instanceof Error ? error.message : 'Failed to schedule viewing. Please try again.';
       setError(errorMessage);
     } finally {

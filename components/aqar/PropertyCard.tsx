@@ -6,6 +6,7 @@ import { Bed, Bath, Maximize, MapPin, Heart, Eye } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { ContactActions } from './ContactActions';
+import { logger } from '@/lib/logger';
 
 export interface PropertyCardProps {
   id: string;
@@ -102,7 +103,7 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
           action: 'toggleFavorite',
           propertyId: property.id,
         });
-      }).catch(logErr => console.error('Failed to load logger:', logErr));
+      }).catch(logErr => logger.error('Failed to load logger:', { error: logErr }));
     }
   };
 

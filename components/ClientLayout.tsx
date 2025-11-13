@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 
 import { ReactNode, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -159,7 +160,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   // Protected routes: normal app layout
   const CopilotWidget = dynamic(
     () => import('./CopilotWidget').catch((err) => {
-      console.error('Failed to load CopilotWidget:', err);
+      logger.error('Failed to load CopilotWidget:', { error: err });
       return { default: () => null };
     }), 
     { 

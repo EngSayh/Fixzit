@@ -4,6 +4,7 @@
  * Now uses AsyncLocalStorage from authContext for thread safety
  */
 
+import { logger } from '@/lib/logger';
 import { Schema } from 'mongoose';
 import { getRequestContext } from '../../lib/authContext';
 
@@ -25,7 +26,7 @@ let isSystemContext: boolean = false;
  */
  
 export function setTenantContext(_context: { orgId: string }): void {
-  console.warn('setTenantContext is deprecated. Use authContext.runWithContext() instead.');
+  logger.warn('setTenantContext is deprecated. Use authContext.runWithContext() instead.');
 }
 
 /**
@@ -34,7 +35,7 @@ export function setTenantContext(_context: { orgId: string }): void {
  */
  
 export function setAuditContext(_context: { userId: string; userEmail?: string }): void {
-  console.warn('setAuditContext is deprecated. Use authContext.runWithContext() instead.');
+  logger.warn('setAuditContext is deprecated. Use authContext.runWithContext() instead.');
 }
 
 /**

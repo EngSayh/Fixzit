@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useFormState } from '@/contexts/FormStateContext';
+import { logger } from '@/lib/logger';
 
 export default function ExampleForm() {
   const { markFormDirty, markFormClean, onSaveRequest } = useFormState();
@@ -32,7 +33,7 @@ export default function ExampleForm() {
         // Success handled silently - form state cleared
         await response.json();
       } catch (error) {
-        console.error('Error saving form:', error);
+        logger.error('Error saving form:', { error });
         // Optionally show user-facing error state
         // You could add state like setErrorMessage(error.message);
         throw error; // Re-throw to let FormStateContext handle it if needed

@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 
 import { useState } from 'react';
 import useSWR from 'swr';
@@ -55,7 +56,7 @@ const fetcher = async (url: string, orgId?: string) => {
     if (!res.ok) throw new Error('Failed to fetch vendors');
     return res.json();
   } catch (error) {
-    console.error('FM vendors fetch error:', error);
+    logger.error('FM vendors fetch error', { error });
     throw error;
   }
 };

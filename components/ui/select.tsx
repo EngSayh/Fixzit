@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 // --- Main Select Component ---
 
@@ -213,7 +214,7 @@ export const SelectValue: React.FC<SelectValueProps> = () => {
           context: 'Use Select placeholder prop instead',
         }
       );
-    }).catch(logErr => console.error('Failed to load logger:', logErr));
+    }).catch(logErr => logger.error('Failed to load logger:', { error: logErr }));
   }
   // This component does nothing - the native select handles its own value display
   return null;

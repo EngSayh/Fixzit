@@ -17,6 +17,7 @@
  */
 
 import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
+import { logger } from '@/lib/logger';
 import { auth } from '@/auth';
 import { can, createRbacContext } from './rbac';
 import { audit } from './audit';
@@ -102,7 +103,7 @@ export function requirePermission(required: string, handler: NextApiHandler): Ne
       // Call original handler
       return handler(req, res);
     } catch (error) {
-      console.error('[apiGuard] Error:', error);
+      logger.error('[apiGuard] Error:', { error });
       
       await audit({
         actorId: 'system',
@@ -166,7 +167,7 @@ export function requireAnyPermission(requiredAny: string[], handler: NextApiHand
 
       return handler(req, res);
     } catch (error) {
-      console.error('[apiGuard] Error:', error);
+      logger.error('[apiGuard] Error:', { error });
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   };
@@ -216,7 +217,7 @@ export function requireAllPermissions(requiredAll: string[], handler: NextApiHan
 
       return handler(req, res);
     } catch (error) {
-      console.error('[apiGuard] Error:', error);
+      logger.error('[apiGuard] Error:', { error });
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   };
@@ -274,7 +275,7 @@ export function requireSuperAdmin(handler: NextApiHandler): NextApiHandler {
 
       return handler(req, res);
     } catch (error) {
-      console.error('[apiGuard] Error:', error);
+      logger.error('[apiGuard] Error:', { error });
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   };

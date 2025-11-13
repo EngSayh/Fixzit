@@ -42,6 +42,7 @@
 
 'use client';
 
+import { logger } from '@/lib/logger';
 import { useAuthRbac } from '@/hooks/useAuthRbac';
 import { ReactNode } from 'react';
 
@@ -147,7 +148,7 @@ export default function Guard({
   }
   // No checks specified, allow by default (guard is misconfigured)
   else {
-    console.warn('[Guard] No permission or role checks specified. Allowing by default.');
+    logger.warn('[Guard] No permission or role checks specified. Allowing by default.');
     allowed = true;
   }
   

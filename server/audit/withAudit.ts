@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { AuditLogModel } from '@/server/models/AuditLog';
+import { logger } from '@/lib/logger';
 
 export interface AuditConfig {
   enabled: boolean;
@@ -45,13 +46,12 @@ const defaultConfig: AuditConfig = {
 
 /** Core: audit wrapper around any Next Route Handler */
 export function withAudit<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-unused-vars
-  H extends (req: NextRequest, ...args: any[]) => Promise<NextResponse> | NextResponse,
+  // eslint-disable-next-line no-unused-vars
+  H extends (req: NextRequest, ...args: unknown[]) => Promise<NextResponse> | NextResponse,
 >(handler: H, cfg?: Partial<AuditConfig>) {
   const finalCfg = { ...defaultConfig, ...cfg };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (async function auditedHandler(req: NextRequest, ...args: any[]) {
+  return (async function auditedHandler(req: NextRequest, ...args: unknown[]) {
     // Early exits by config
     if (!finalCfg.enabled) return handler(req, ...args);
 
@@ -169,7 +169,7 @@ export function withAudit<
         await (AuditLogModel as any).log(auditData);
       } catch (err) {
         // never break the API
-        console.error('Failed to log audit entry:', err);
+        logger.error('Failed to log audit entry', { error: err });
       }
     }
   }) as H;
@@ -314,8 +314,7 @@ async function readResponseText(res: NextResponse, maxBytes: number): Promise<st
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function maskObject(obj: any, maskKeys: Set<string>): any {
+function maskObject(obj: unknown, maskKeys: Set<string>): unknown {
   if (obj == null || typeof obj !== 'object') return obj;
   if (Array.isArray(obj)) return obj.map(v => maskObject(v, maskKeys));
   const out: Record<string, unknown> = {};

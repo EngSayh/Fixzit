@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Redis Singleton Connection Pool
  * 
@@ -29,7 +30,7 @@ export function getRedisClient(): Redis | null {
   // Redis is optional - return null if no URL configured
   if (!process.env.REDIS_URL) {
     if (process.env.NODE_ENV === 'development') {
-      console.warn('[Redis] No REDIS_URL configured - Redis features disabled');
+      logger.warn('[Redis] No REDIS_URL configured - Redis features disabled');
     }
     return null;
   }
@@ -65,7 +66,7 @@ export function getRedisClient(): Redis | null {
     });
 
     redis.on('error', (err) => {
-      console.error('[Redis] Connection error:', {
+      logger.error('[Redis] Connection error:', {
         message: err.message,
         code: (err as { code?: string }).code,
         timestamp: new Date().toISOString()
@@ -75,26 +76,26 @@ export function getRedisClient(): Redis | null {
     });
 
     redis.on('connect', () => {
-      console.log('[Redis] Connected successfully');
+      logger.info('[Redis] Connected successfully');
     });
 
     redis.on('ready', () => {
-      console.log('[Redis] Ready to accept commands');
+      logger.info('[Redis] Ready to accept commands');
       isConnecting = false;
     });
 
     redis.on('close', () => {
-      console.warn('[Redis] Connection closed');
+      logger.warn('[Redis] Connection closed');
       // Reset isConnecting flag on close to allow reconnection
       isConnecting = false;
     });
 
     redis.on('reconnecting', () => {
-      console.log('[Redis] Reconnecting...');
+      logger.info('[Redis] Reconnecting...');
     });
 
     redis.on('end', () => {
-      console.log('[Redis] Connection ended');
+      logger.info('[Redis] Connection ended');
       // Reset isConnecting flag when connection ends
       isConnecting = false;
     });
@@ -102,7 +103,7 @@ export function getRedisClient(): Redis | null {
     return redis;
   } catch (error) {
     isConnecting = false;
-    console.error('[Redis] Failed to create connection:', error);
+    logger.error('[Redis] Failed to create connection:', { error });
     return null;
   }
 }
@@ -116,9 +117,9 @@ export async function closeRedis(): Promise<void> {
     try {
       await redis.quit();
       redis = null;
-      console.log('[Redis] Connection closed gracefully');
+      logger.info('[Redis] Connection closed gracefully');
     } catch (error) {
-      console.error('[Redis] Error closing connection:', error);
+      logger.error('[Redis] Error closing connection:', { error });
       // Force disconnect if graceful close fails
       if (redis) {
         redis.disconnect();
@@ -169,7 +170,7 @@ export async function safeRedisOp<T>(
   try {
     return await operation(client);
   } catch (error) {
-    console.error('[Redis] Operation failed:', error);
+    logger.error('[Redis] Operation failed:', { error });
     return fallback;
   }
 }

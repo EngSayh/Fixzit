@@ -18,6 +18,7 @@
  */
 
 import { Schema, model, models, Types } from 'mongoose';
+import Decimal from 'decimal.js';
 import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
 import { auditPlugin } from '../../plugins/auditPlugin';
 
@@ -143,13 +144,31 @@ JournalSchema.index({ orgId: 1, status: 1, isBalanced: 1 });
 
 // Pre-save: Calculate totals and validate balance
 JournalSchema.pre('save', function(next) {
-  // Calculate totals
-  this.totalDebit = this.lines.reduce((sum, line) => sum + line.debit, 0);
-  this.totalCredit = this.lines.reduce((sum, line) => sum + line.credit, 0);
+  /**
+   * PRECISION FIX: Use Decimal.js for exact double-entry bookkeeping
+   * 
+   * Problem: JavaScript floating-point arithmetic can cause rounding errors:
+   * Example: 100.33 + 200.67 + 300.00 = 601.0000000000001 (not 601.00)
+   * 
+   * Solution: Use Decimal.js for exact arithmetic, then convert to number for storage
+   * 
+   * Critical: Accounting integrity requires EXACT balance (debits = credits)
+   * The old tolerance check (diff < 0.01) was a workaround for precision bugs
+   * 
+   * @see https://github.com/MikeMcl/decimal.js
+   * @see PR #283 qodo-merge-pro review
+   */
   
-  // Check balance (allow 0.01 rounding difference)
-  const diff = Math.abs(this.totalDebit - this.totalCredit);
-  this.isBalanced = diff < 0.01;
+  // Calculate totals with Decimal.js (exact precision)
+  const totalDebit = Decimal.sum(...this.lines.map((l: { debit?: number; credit?: number }) => l.debit || 0));
+  const totalCredit = Decimal.sum(...this.lines.map((l: { debit?: number; credit?: number }) => l.credit || 0));
+  
+  // Convert to number for storage (rounded to 2 decimal places)
+  this.totalDebit = totalDebit.toDP(2).toNumber();
+  this.totalCredit = totalCredit.toDP(2).toNumber();
+  
+  // Check balance with EXACT comparison (no tolerance needed)
+  this.isBalanced = totalDebit.equals(totalCredit);
   
   // Each line must have either debit OR credit (not both)
   const invalidLines = this.lines.filter(line => 

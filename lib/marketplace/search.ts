@@ -1,4 +1,5 @@
 import fs from 'fs';
+import { logger } from '@/lib/logger';
 import path from 'path';
 import { MarketplaceProduct } from '@/server/models/marketplace/Product';
 import { Types } from 'mongoose';
@@ -45,7 +46,7 @@ function loadSynonyms(): SynonymMap {
     cachedSynonyms = JSON.parse(content);
     return cachedSynonyms!;
   } catch (error) {
-    console.warn('Marketplace search synonyms unavailable, using defaults', error);
+    logger.warn('Marketplace search synonyms unavailable, using defaults', { error });
     cachedSynonyms = { brand: {}, product: {} };
     return cachedSynonyms!;
   }

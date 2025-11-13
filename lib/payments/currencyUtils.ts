@@ -1,4 +1,5 @@
 // Unified currency formatting utilities for consistent USD/AED handling
+import { logger } from '@/lib/logger';
 // Consolidates payment parsing logic across the application
 
 import { parseCartAmount, parseCartAmountOrThrow } from './parseCartAmount';
@@ -190,7 +191,7 @@ export function convertCurrency(
     }
     
     // No conversion available, return original amount
-    console.warn(`No exchange rate available for ${fromCurrency} to ${toCurrency}`);
+    logger.warn(`No exchange rate available for ${fromCurrency} to ${toCurrency}`);
     return parsedAmount;
   }
 

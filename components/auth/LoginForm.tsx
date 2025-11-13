@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { signIn } from 'next-auth/react';
+import { logger } from '@/lib/logger';
 
 interface FormErrors {
   identifier?: string;
@@ -144,7 +145,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           action: 'handleLogin',
           // PII removed: identifier field may contain email/employee number
         });
-      }).catch(logErr => console.error('Failed to load logger:', logErr));
+      }).catch(logErr => logger.error('Failed to load logger:', { error: logErr }));
       setErrors({
         general: t('login.errors.networkError', 'Network error. Please check your connection and try again.')
       });

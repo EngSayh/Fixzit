@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import mongoose from 'mongoose';
 
 declare global {
@@ -78,10 +79,10 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
       global._mongooseConnection = connection;
     }
 
-    console.log('✅ MongoDB connected successfully');
+    logger.info('✅ MongoDB connected successfully');
     return connection;
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
+    logger.error('❌ MongoDB connection error:', { error });
     throw error;
   }
 }
@@ -107,7 +108,7 @@ export async function checkDatabaseHealth(): Promise<boolean> {
     await mongoose.connection.db.admin().ping();
     return true;
   } catch (error) {
-    console.error('Database health check failed:', error);
+    logger.error('Database health check failed:', { error });
     return false;
   }
 }

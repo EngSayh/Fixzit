@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * IP utility functions for secure client IP extraction
  */
@@ -117,7 +118,7 @@ export function validateTrustedProxyCount(): number {
   }
   
   if (count > 10) {
-    console.warn(
+    logger.warn(
       `⚠️  High TRUSTED_PROXY_COUNT (${count}). Verify your proxy chain configuration.`
     );
   }
@@ -133,23 +134,23 @@ export function validateProxyConfiguration(): void {
   try {
     const trustedProxyCount = validateTrustedProxyCount();
     
-    console.log(`✅ Proxy configuration validated:`);
-    console.log(`   - TRUSTED_PROXY_COUNT: ${trustedProxyCount}`);
-    console.log(`   - TRUST_X_REAL_IP: ${process.env.TRUST_X_REAL_IP || 'false'}`);
+    logger.info(`✅ Proxy configuration validated:`);
+    logger.info(`   - TRUSTED_PROXY_COUNT: ${trustedProxyCount}`);
+    logger.info(`   - TRUST_X_REAL_IP: ${process.env.TRUST_X_REAL_IP || 'false'}`);
     
     if (trustedProxyCount === 0) {
-      console.warn(`⚠️  TRUSTED_PROXY_COUNT=0 means direct client connections (no proxy)`);
+      logger.warn(`⚠️  TRUSTED_PROXY_COUNT=0 means direct client connections (no proxy)`);
     }
     
     if (process.env.TRUST_X_REAL_IP === 'true' && trustedProxyCount > 0) {
-      console.warn(`⚠️  Both TRUST_X_REAL_IP and TRUSTED_PROXY_COUNT set. X-Real-IP takes lower priority.`);
+      logger.warn(`⚠️  Both TRUST_X_REAL_IP and TRUSTED_PROXY_COUNT set. X-Real-IP takes lower priority.`);
     }
     
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`🔴 Proxy configuration error: ${errorMessage}`);
-    console.error(`   Set TRUSTED_PROXY_COUNT to the number of trusted proxy hops in your infrastructure.`);
-    console.error(`   Examples: 0 (direct), 1 (edge proxy), 2 (load balancer + edge proxy)`);
+    logger.error(`🔴 Proxy configuration error: ${errorMessage}`);
+    logger.error(`   Set TRUSTED_PROXY_COUNT to the number of trusted proxy hops in your infrastructure.`);
+    logger.error(`   Examples: 0 (direct), 1 (edge proxy), 2 (load balancer + edge proxy)`);
     throw error; // Fail-fast on invalid configuration
   }
 }

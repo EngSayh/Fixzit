@@ -82,8 +82,8 @@ export async function GET(
         const startDate = searchParams.get('startDate');
         const endDate = searchParams.get('endDate');
         const sourceType = searchParams.get('sourceType');
-        const page = parseInt(searchParams.get('page') || '1');
-        const limit = parseInt(searchParams.get('limit') || '50');
+        const page = parseInt(searchParams.get('page') || '1', 10);
+        const limit = parseInt(searchParams.get('limit') || '50', 10);
         
         // Build query filter based on LedgerEntry schema fields
         const queryFilter: {

@@ -1,4 +1,5 @@
 import { cookies, headers } from 'next/headers';
+import { logger } from '@/lib/logger';
 import { randomUUID } from 'node:crypto';
 
 function getEnvBaseUrl() {
@@ -86,7 +87,7 @@ export async function serverFetchWithTenant(path: string, init?: RequestInit) {
       correlationId,
     };
      
-    console.error('[MarketplaceFetch] request failed', errorPayload);
+    logger.error('[MarketplaceFetch] request failed', errorPayload);
     throw new Error(JSON.stringify(errorPayload));
   }
 

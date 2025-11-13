@@ -57,8 +57,8 @@ export async function GET(req: NextRequest) {
       async () => {
         // Parse query parameters
         const { searchParams } = new URL(req.url);
-        const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
-        const period = parseInt(searchParams.get('period') || '12'); // 1-12
+        const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString(), 10);
+        const period = parseInt(searchParams.get('period') || '12', 10); // 1-12
         const asOfDateParam = searchParams.get('asOfDate');
         
         // Determine as-of date

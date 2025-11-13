@@ -1,4 +1,5 @@
 'use client';
+import { logger } from '@/lib/logger';
 
 import useSWR from 'swr';
 import { useParams, useRouter } from 'next/navigation';
@@ -91,7 +92,7 @@ export default function VendorDetailsPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        console.error('FM vendor detail fetch error:', error);
+        logger.error('FM vendor detail fetch error', { error });
         throw error;
       });
   };

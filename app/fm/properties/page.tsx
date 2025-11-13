@@ -59,7 +59,7 @@ export default function PropertiesPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        console.error('FM properties fetch error:', error);
+        logger.error('FM properties fetch error', { error });
         throw error;
       });
   };

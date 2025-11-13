@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * SendGrid Email Service Configuration
  * 
@@ -64,7 +65,7 @@ export function getSendGridConfig(): SendGridConfig {
       name: replyToName
     } : undefined,
     unsubscribeGroupId: process.env.SENDGRID_UNSUBSCRIBE_GROUP_ID 
-      ? parseInt(process.env.SENDGRID_UNSUBSCRIBE_GROUP_ID) 
+      ? parseInt(process.env.SENDGRID_UNSUBSCRIBE_GROUP_ID, 10) 
       : undefined,
     ipPoolName: process.env.SENDGRID_IP_POOL_NAME,
     webhookVerificationKey: process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY,
@@ -85,9 +86,11 @@ export function initializeSendGrid(): void {
   try {
     const config = getSendGridConfig();
     sgMail.setApiKey(config.apiKey);
-    console.log('✅ SendGrid initialized successfully');
+    logger.info('✅ SendGrid initialized successfully');
   } catch (error) {
-    console.warn('⚠️ SendGrid not configured:', error instanceof Error ? error.message : 'Unknown error');
+    logger.warn('SendGrid not configured', {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 }
 
@@ -148,11 +151,11 @@ export function verifyWebhookSignature(
     // SECURITY: Production MUST have webhook verification enabled
     if (!verificationKey) {
       if (process.env.NODE_ENV === 'production') {
-        console.error('🚨 CRITICAL: SENDGRID_WEBHOOK_VERIFICATION_KEY not configured in production');
-        console.error('🚨 Rejecting webhook request for security');
+        logger.error('🚨 CRITICAL: SENDGRID_WEBHOOK_VERIFICATION_KEY not configured in production');
+        logger.error('🚨 Rejecting webhook request for security');
         return false; // Fail-safe in production
       }
-      console.warn('⚠️ SENDGRID_WEBHOOK_VERIFICATION_KEY not configured - allowing in development');
+      logger.warn('⚠️ SENDGRID_WEBHOOK_VERIFICATION_KEY not configured - allowing in development');
       return true; // Allow in development only
     }
 
@@ -161,7 +164,7 @@ export function verifyWebhookSignature(
     const now = Math.floor(Date.now() / 1000);
     
     if (isNaN(requestTimestamp) || Math.abs(now - requestTimestamp) > WEBHOOK_TIMESTAMP_MAX_AGE_SECONDS) {
-      console.warn('⚠️ Webhook timestamp expired or invalid:', timestamp);
+      logger.warn('Webhook timestamp expired or invalid', { timestamp });
       return false;
     }
 
@@ -185,7 +188,7 @@ export function verifyWebhookSignature(
     
     return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
   } catch (error) {
-    console.error('❌ Webhook verification failed:', error);
+    logger.error('❌ Webhook verification failed:', { error });
     return false;
   }
 }

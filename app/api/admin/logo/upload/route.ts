@@ -5,6 +5,7 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/admin/logo/upload
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error('[POST /api/admin/logo/upload] Error:', error);
+    logger.error('[POST /api/admin/logo/upload] Error', error);
     return NextResponse.json(
       { error: 'Failed to upload logo' },
       { status: 500 }
@@ -177,7 +178,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.error('[GET /api/admin/logo] Error:', error);
+    logger.error('[GET /api/admin/logo] Error', error);
     return NextResponse.json(
       { error: 'Failed to fetch logo settings' },
       { status: 500 }

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, use } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logger } from '@/lib/logger';
 
 interface Product {
   title?: string | { en?: string };
@@ -38,7 +39,7 @@ async function fetchPdp(slug: string) {
     } as RequestInit);
     return res.json();
   } catch (error) {
-    console.error('Product PDP fetch error:', error);
+    logger.error('Product PDP fetch error:', { error });
     throw error;
   }
 }
@@ -56,7 +57,7 @@ export default function ProductPage(props: { params: Promise<{ slug: string }> }
         setLoading(false);
       })
       .catch(error => {
-        console.error('Failed to load product:', error);
+        logger.error('Failed to load product', { error, slug: params.slug });
         setLoading(false);
       });
   }, [params.slug]);

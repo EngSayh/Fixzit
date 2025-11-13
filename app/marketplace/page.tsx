@@ -1,4 +1,5 @@
 import React from 'react';
+import { logger } from '@/lib/logger';
 import ProductCard from '@/components/marketplace/ProductCard';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 
@@ -46,7 +47,7 @@ async function loadHomepageData() {
 
     return { categories, featured, carousels };
   } catch (error) {
-    console.error('Failed to load marketplace homepage data:', error);
+    logger.error('Failed to load marketplace homepage data', { error });
     // Return empty data to allow graceful degradation
     return { categories: [], featured: [], carousels: [] };
   }

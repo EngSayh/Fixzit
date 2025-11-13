@@ -53,7 +53,7 @@ export default function AssetsPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        console.error('FM assets fetch error:', error);
+        logger.error('FM assets fetch error', { error });
         throw error;
       });
   };

@@ -6,6 +6,7 @@ import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { STORAGE_KEYS } from '@/config/constants';
+import { logger } from '@/lib/logger';
 
 type ErrorState = {
   hasError: boolean;
@@ -48,7 +49,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
           });
         })
         .catch((err) => {
-          console.error('Failed to import logger:', err);
+          logger.error('Failed to import logger:', { error: err });
         });
     }
 
@@ -100,7 +101,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
             });
           })
           .catch((err) => {
-            console.error('Failed to import logger:', err);
+            logger.error('Failed to import logger:', { error: err });
           });
       }
     }
@@ -151,7 +152,7 @@ const ErrorFallbackUI = ({ errorId, onRefresh }: { errorId: string, onRefresh: (
           });
         })
         .catch((err) => {
-          console.error('Failed to import logger:', err);
+          logger.error('Failed to import logger:', { error: err });
         });
     }
   }
