@@ -39,4 +39,8 @@ echo ""
 echo "📊 Summary"
 echo "  Fixed: $FIXED files"
 echo "  Errors: $ERRORS files"
-echo "  Remaining: $(wc -l < /tmp/date-hydration-files.txt) total files"
+if [ -f "/tmp/date-hydration-files.txt" ]; then
+  echo "  Remaining: $(wc -l < /tmp/date-hydration-files.txt) total files"
+else
+  echo "  Remaining: 0 total files (list not generated)"
+fi
