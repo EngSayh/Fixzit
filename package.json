@@ -16,6 +16,7 @@
     "lint:next": "next lint",
     "style:scan": "node scripts/scan-hex.js",
     "typecheck": "tsc -p .",
+    "type-check:last": "node scripts/typecheck-tail.mjs",
     "agent:inventory": "bash scripts/inventory.sh",
     "agent:cleanup": "bash scripts/cleanup-space.sh",
     "agent:run": "bash tools/agent-runner.sh",

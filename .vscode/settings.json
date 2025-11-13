@@ -84,10 +84,6 @@
   "chat.tools.terminal.autoApprove": true,
   "chat.tools.edits.autoApprove": true,
   
-  // CRITICAL: Disable all file write confirmations (even for system paths)
-  "chat.tools.edits.alwaysAllowWrites": true,
-  "chat.tools.edits.confirmWrites": false,
-  
   // Auto-reply and auto-accept
   "chat.tools.terminal.autoReplyToPrompts": true,
   "chat.editing.autoAcceptDelay": 3,
