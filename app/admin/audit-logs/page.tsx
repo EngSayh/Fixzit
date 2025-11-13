@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
-
+import ClientDate from '@/components/ClientDate';
 import { logger } from '@/lib/logger';
 // Constants at module scope
 const LOGS_PER_PAGE = 20;
 const API_ENDPOINT = '/api/admin/audit-logs';
-const DEFAULT_TIMEZONE = 'Asia/Riyadh'; // Fixzit primary timezone
 
 interface AuditLog {
   id: string;
@@ -57,9 +56,6 @@ export default function AuditLogViewer() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalLogs, setTotalLogs] = useState(0);
-  
-    // Extract locale for internationalization support
-  const { locale: userLocale } = useTranslation();
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -152,19 +148,6 @@ export default function AuditLogViewer() {
       case 'LOGOUT': return 'text-muted-foreground bg-muted';
       default: return 'text-muted-foreground bg-muted';
     }
-  };
-
-  // Format date with locale awareness and timezone support
-  const formatDate = (date: Date, locale: string = userLocale || 'en-US') => {
-    return new Date(date).toLocaleString(locale, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      timeZone: DEFAULT_TIMEZONE,
-    });
   };
 
   return (
@@ -341,7 +324,10 @@ export default function AuditLogViewer() {
                 {logs.map((log) => (
                   <tr key={log.id} className="hover:bg-muted">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                      {formatDate(log.timestamp)}
+                      <ClientDate 
+                        date={log.timestamp} 
+                        format="medium"
+                      />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getActionColor(log.action)}`}>
@@ -473,7 +459,12 @@ export default function AuditLogViewer() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground">Timestamp</h3>
-                  <p className="mt-1 text-foreground">{formatDate(selectedLog.timestamp)}</p>
+                  <p className="mt-1 text-foreground">
+                    <ClientDate 
+                      date={selectedLog.timestamp} 
+                      format="full"
+                    />
+                  </p>
                 </div>
 
                 <div>
