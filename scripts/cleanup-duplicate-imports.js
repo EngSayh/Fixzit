@@ -26,10 +26,10 @@ files.forEach(file => {
     console.log(`🔴 ${file} - Has duplicate imports!`);
     
     // Remove the enhancedAuth import line entirely
-    content = content.replace(/.*require(['"]\.\.\/middleware\/enhancedAuth['"\].*\n/g, '');
+    content = content.replace(/.*require\(['"]\.\.\/middleware\/enhancedAuth['"]\).*\n/g, '');
     
     // Remove any references to ensureTenantIsolation since we're removing that import
-    content = content.replace(/router\.use(ensureTenantIsolation);\n?/g, '');
+    content = content.replace(/router\.use\(ensureTenantIsolation\);\n?/g, '');
     content = content.replace(/ensureTenantIsolation,?\s*/g, '');
     
     // Clean up any extra newlines
@@ -45,12 +45,12 @@ files.forEach(file => {
     
     // Convert enhancedAuth import to regular auth import
     content = content.replace(
-      /const\s*{\s*authenticate[^}]*}\s*=\s*require(['"]\.\.\/middleware\/enhancedAuth['"\]);?/g,
+      /const\s*\{\s*authenticate[^}]*\}\s*=\s*require\(['"]\.\.\/middleware\/enhancedAuth['"]\);?/g,
       "const authenticate = require('../middleware/auth');"
     );
     
     // Remove ensureTenantIsolation usage
-    content = content.replace(/router\.use(ensureTenantIsolation);\n?/g, '');
+    content = content.replace(/router\.use\(ensureTenantIsolation\);\n?/g, '');
     content = content.replace(/ensureTenantIsolation,?\s*/g, '');
     
     if (content !== originalContent) {
