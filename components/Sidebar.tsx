@@ -116,7 +116,7 @@ export default function Sidebar({ tenantId: _tenantId }: SidebarProps) {
                         <span className="text-sm font-medium">{t(m.name, m.name.replace('nav.', ''))}</span>
                         {isActive && (
                           <span
-                            className={`${translationIsRTL ? 'mr-auto' : 'ml-auto'} inline-block w-2 h-2 bg-card rounded-full`}
+                            className={`${translationIsRTL ? 'me-auto' : 'ms-auto'} inline-block w-2 h-2 bg-card rounded-full`}
                             aria-hidden
                           />
                         )}
@@ -159,7 +159,7 @@ export default function Sidebar({ tenantId: _tenantId }: SidebarProps) {
                     <Icon className="w-5 h-5 flex-shrink-0" aria-hidden />
                     <span className="text-sm font-medium">{t(link.name, link.name.replace('nav.', ''))}</span>
                     {isActive && (
-                      <span className={`${translationIsRTL ? 'mr-auto' : 'ml-auto'} inline-block w-2 h-2 bg-card rounded-full`} aria-hidden />
+                      <span className={`${translationIsRTL ? 'me-auto' : 'ms-auto'} inline-block w-2 h-2 bg-card rounded-full`} aria-hidden />
                     )}
                   </Link>
                 </li>
