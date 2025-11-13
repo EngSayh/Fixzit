@@ -245,7 +245,7 @@ export default function OrdersPage() {
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
-                            {t('order.date', 'Order Date')}: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
+                            {t('order.date', 'Order Date')}: {order.createdAt ? <ClientDate date={order.createdAt} format="date-only" /> : 'N/A'}
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <DollarSign className="h-4 w-4" />
@@ -355,7 +355,7 @@ export default function OrdersPage() {
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
-                            {t('order.date', 'Order Date')}: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
+                            {t('order.date', 'Order Date')}: {order.createdAt ? <ClientDate date={order.createdAt} format="date-only" /> : 'N/A'}
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <DollarSign className="h-4 w-4" />
