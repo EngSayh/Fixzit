@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useDebounce } from '@/hooks/useDebounce';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // INTERFACES

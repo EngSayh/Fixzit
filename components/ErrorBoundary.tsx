@@ -6,6 +6,7 @@ import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { STORAGE_KEYS } from '@/config/constants';
+import { logger } from '@/lib/logger';
 
 type ErrorState = {
   hasError: boolean;

@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    logger.error('[POST /api/admin/logo/upload] Error', { error });
+    logger.error('[POST /api/admin/logo/upload] Error', error);
     return NextResponse.json(
       { error: 'Failed to upload logo' },
       { status: 500 }
@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    logger.error('[GET /api/admin/logo] Error', { error });
+    logger.error('[GET /api/admin/logo] Error', error);
     return NextResponse.json(
       { error: 'Failed to fetch logo settings' },
       { status: 500 }

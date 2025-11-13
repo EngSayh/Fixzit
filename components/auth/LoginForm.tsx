@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { signIn } from 'next-auth/react';
+import { logger } from '@/lib/logger';
 
 interface FormErrors {
   identifier?: string;

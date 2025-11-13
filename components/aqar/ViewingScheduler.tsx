@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Calendar, Clock, Phone, Video, MapPin, CheckCircle } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logger } from '@/lib/logger';
 
 export interface ViewingSchedulerProps {
   propertyId: string;

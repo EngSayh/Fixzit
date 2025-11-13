@@ -4,6 +4,7 @@ import { signIn } from 'next-auth/react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { logger } from '@/lib/logger';
 
 // ✅ FIX: Add a dedicated GoogleIcon component for brand consistency
 const GoogleIcon = () => (

@@ -6,6 +6,7 @@ import { Loader2, ShoppingCart, Star } from 'lucide-react';
 import { useState } from 'react';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { addProductToCart } from '@/lib/marketplace/cartClient';
+import { logger } from '@/lib/logger';
 
 // [CODE REVIEW]: FIX - Use 'id', not '_id' (Prisma/PostgreSQL convention)
 export interface MarketplaceProductCard {

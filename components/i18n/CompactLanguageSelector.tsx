@@ -2,6 +2,7 @@
 
 import { Globe } from 'lucide-react';
 import { useTranslation, type Language } from '@/contexts/TranslationContext';
+import { logger } from '@/lib/logger';
 
 // Simplified language options for auth pages
 const AUTH_LANGUAGES = [

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // INTERFACES

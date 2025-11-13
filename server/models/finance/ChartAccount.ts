@@ -19,7 +19,7 @@
  * - Audit trail
  */
 
-import { Schema, model, models, Types, Document } from 'mongoose';
+import { Schema, model, models, Types } from 'mongoose';
 import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
 import { auditPlugin } from '../../plugins/auditPlugin';
 
