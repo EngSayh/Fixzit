@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import Link from "next/link";
 import { renderMarkdownSanitized } from '@/lib/markdown';
 import { cookies } from 'next/headers';
+import ClientDate from '@/components/ClientDate';
 
 export const revalidate = 60;
 
@@ -67,7 +68,7 @@ export default async function CmsPageScreen(props: { params: Promise<{slug:strin
           <div className="mt-8 pt-6 border-t border-border">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <div>
-                Last updated {new Date(page.updatedAt).toLocaleDateString()} 
+                Last updated <ClientDate date={page.updatedAt} format="date-only" />
                 {page.updatedBy && ` by ${page.updatedBy}`}
               </div>
               <Link 
