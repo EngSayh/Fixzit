@@ -26,6 +26,7 @@ import AppSwitcher from './topbar/AppSwitcher';
 import GlobalSearch from './topbar/GlobalSearch';
 import QuickActions from './topbar/QuickActions';
 import Portal from './Portal';
+import { logger } from '@/lib/logger';
 
 // Type definitions
 interface OrgSettings {

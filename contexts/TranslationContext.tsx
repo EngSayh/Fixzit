@@ -4384,7 +4384,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
 
       setCurrentOption(nextOption);
     } catch (error) {
-      logger.warn('Could not access localStorage for language preference:', error);
+      logger.warn('Could not access localStorage for language preference', { error });
       setCurrentOption(DEFAULT_LANGUAGE_OPTION);
     }
   }, []);
@@ -4416,7 +4416,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
         })
       );
     } catch (error) {
-      logger.warn('Could not update language settings:', error);
+      logger.warn('Could not update language settings', { error });
     }
   }, [currentOption, isClient]);
 
@@ -4475,7 +4475,7 @@ export function useTranslation() {
               window.location.reload();
             }
           } catch (error) {
-            logger.warn('Could not save language preference:', error);
+            logger.warn('Could not save language preference', { error });
           }
         },
         setLocale: (locale: string) => {
@@ -4485,7 +4485,7 @@ export function useTranslation() {
               logger.warn('Locale preference saved. Please refresh the page for changes to take effect.');
             }
           } catch (error) {
-            logger.warn('Could not save locale preference:', error);
+            logger.warn('Could not save locale preference', { error });
           }
         },
         t: (key: string, fallback: string = key): string => {
@@ -4499,7 +4499,7 @@ export function useTranslation() {
     return context;
   } catch (error) {
     // Ultimate fallback in case of any error
-    logger.warn('useTranslation error:', error);
+    logger.warn('useTranslation error', { error });
     return {
       language: APP_DEFAULTS.language as Language,
       locale: APP_DEFAULTS.locale,

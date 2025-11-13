@@ -5,6 +5,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { useState, useEffect, useRef } from 'react';
 import { Plus, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { logger } from '@/lib/logger';
 
 export default function QuickActions() {
   const { quickActions } = useTopBar();

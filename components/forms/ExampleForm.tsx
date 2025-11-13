@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useFormState } from '@/contexts/FormStateContext';
+import { logger } from '@/lib/logger';
 
 export default function ExampleForm() {
   const { markFormDirty, markFormClean, onSaveRequest } = useFormState();

@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Copy, Loader2 } from 'lucide-react';
 import { STORAGE_KEYS } from '@/config/constants';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // API HELPER

@@ -216,13 +216,11 @@ FeatureFlagSchema.statics.isEnabled = async function(
       const percentage = feature.rollout?.percentage;
       if (typeof percentage !== 'number' || percentage < 0 || percentage > 100) {
         // Structured logging for invalid percentage
-        if (typeof console !== 'undefined' && console.warn) {
-          logger.warn('[FeatureFlag] Invalid or missing percentage', {
-            feature: key,
-            percentage,
-            timestamp: new Date().toISOString(),
-          });
-        }
+        logger.warn('[FeatureFlag] Invalid or missing percentage', {
+          feature: key,
+          percentage,
+          timestamp: new Date().toISOString(),
+        });
         return false;
       }
       
@@ -234,12 +232,10 @@ FeatureFlagSchema.statics.isEnabled = async function(
         hash = hashCode(context.orgId);
       } else {
         // No deterministic identifier available, default to disabled
-        if (typeof console !== 'undefined' && console.warn) {
-          logger.warn('[FeatureFlag] No userId or orgId provided for PERCENTAGE rollout', {
-            feature: key,
-            timestamp: new Date().toISOString(),
-          });
-        }
+        logger.warn('[FeatureFlag] No userId or orgId provided for PERCENTAGE rollout', {
+          feature: key,
+          timestamp: new Date().toISOString(),
+        });
         return false;
       }
       return (Math.abs(hash) % 100) < percentage;

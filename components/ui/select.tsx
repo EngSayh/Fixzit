@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 // --- Main Select Component ---
 

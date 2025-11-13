@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useLayoutEffect, forwardRef } from 'react';
+import { logger } from '@/lib/logger';
 
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   /** Enables vertical auto-resizing as user types. */

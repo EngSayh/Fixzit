@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { logger } from './logger';
+import { logger } from '@/lib/logger';
 import path from 'path';
 import { MarketplaceProduct } from '@/server/models/marketplace/Product';
 import { Types } from 'mongoose';

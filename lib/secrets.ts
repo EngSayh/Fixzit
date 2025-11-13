@@ -101,7 +101,7 @@ export async function getSecret(
         }
       } catch (awsError) {
         const errorMessage = awsError instanceof Error ? awsError.message : String(awsError);
-        logger.warn('[Secrets] Failed to retrieve from AWS:', secretName, errorMessage);
+        logger.warn('[Secrets] Failed to retrieve from AWS', { secretName, errorMessage });
         // Fall through to environment variable fallback
       }
     }
@@ -130,7 +130,7 @@ export async function getSecret(
       logger.error('[Secrets] Failed to retrieve required secret', { secretName, error });
       throw error;
     }
-    logger.warn('[Secrets] Failed to retrieve optional secret:', secretName);
+    logger.warn('[Secrets] Failed to retrieve optional secret', { secretName });
     return null;
   }
 }

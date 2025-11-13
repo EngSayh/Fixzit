@@ -1,5 +1,5 @@
 // Unified currency formatting utilities for consistent USD/AED handling
-import { logger } from './logger';
+import { logger } from '@/lib/logger';
 // Consolidates payment parsing logic across the application
 
 import { parseCartAmount, parseCartAmountOrThrow } from './parseCartAmount';

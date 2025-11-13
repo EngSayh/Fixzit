@@ -10,6 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/
 
 // ✅ FIXED: Add i18n support
 import { useTranslation } from '@/contexts/TranslationContext';
+import { logger } from '@/lib/logger';
 
 interface SystemStatus {
   overall: 'healthy' | 'degraded' | 'critical';

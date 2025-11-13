@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTopBar } from '@/contexts/TopBarContext';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { Search, Command } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface SearchResult {
   id: string;

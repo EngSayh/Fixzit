@@ -6,6 +6,7 @@ import { Bed, Bath, Maximize, MapPin, Heart, Eye } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { ContactActions } from './ContactActions';
+import { logger } from '@/lib/logger';
 
 export interface PropertyCardProps {
   id: string;

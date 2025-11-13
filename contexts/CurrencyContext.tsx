@@ -67,7 +67,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      logger.warn('Could not hydrate currency preference:', error);
+      logger.warn('Could not hydrate currency preference', { error });
     } finally {
       hydratedRef.current = true;
     }
@@ -107,7 +107,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         })
       );
     } catch (error) {
-      logger.warn('Could not persist currency preference:', error);
+      logger.warn('Could not persist currency preference', { error });
     }
   }, [currency]);
 
