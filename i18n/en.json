@@ -341,9 +341,15 @@
     "category": {
       "operational": "Operational",
       "maintenance": "Maintenance",
+      "maintenance_repair": "Maintenance & Repairs",
       "capital": "Capital",
       "utility": "Utility",
+      "utilities": "Utilities",
       "administrative": "Administrative",
+      "office_supplies": "Office Supplies",
+      "electrical": "Electrical",
+      "hvac": "HVAC",
+      "plumbing": "Plumbing",
       "other": "Other"
     },
     "accountType": {
