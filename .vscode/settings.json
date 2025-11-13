@@ -76,30 +76,15 @@
   },
 
   // Chat Agent Settings - Maximum autonomy (all scopes)
-  // Configured per ChatGPT comprehensive auto-approve instructions (final consolidated version)
   "chat.agent.enabled": true,
   "chat.agent.maxRequests": 999,
-  
-  // CRITICAL: Global auto-approve - eliminates ALL permission prompts
   "chat.tools.global.autoApprove": true,
-  
-  // Auto-reply to terminal prompts (prevents hanging on y/n questions)
   "chat.tools.terminal.autoReplyToPrompts": true,
-  
-  // Disable notification balloons when input would be needed
-  "chat.notifyWindowOnConfirmation": false,
-  
-  // Enable checkpoints for rollback capability
-  "chat.checkpoints.enabled": true,
-  
-  // Auto-accept edits after N seconds (CORRECT KEY: autoAcceptDelay, not autoAccept)
   "chat.editing.autoAcceptDelay": 3,
-
-  // MCP Discovery - MUST be boolean false, not object (object is ignored)
+  "chat.checkpoints.enabled": true,
   "chat.mcp.discovery.enabled": false,
 
   // SECURITY: File edits - Auto-approve ALL files with safe guardrails
-  // Per ChatGPT: "Auto-approve edits everywhere by default, except a small protected set"
   "chat.tools.edits.autoApprove": {
     "**/*": true,
     "**/.env*": false,
@@ -109,8 +94,7 @@
     "**/yarn.lock": false
   },
 
-  // SECURITY: Terminal commands - Auto-approve safe commands with allow/deny patterns
-  // CRITICAL: NO 'git push' in allowlist - broad regex causes conflicts, use PR scripts instead
+  // SECURITY: Terminal commands - NO 'git push' in allowlist
   "chat.tools.terminal.autoApprove": {
     "/^git (status|branch|checkout\\b.*|add\\b.*|commit\\b.*|show\\b.*|diff\\b.*|fetch\\b.*|stash\\b.*|restore\\b.*|switch\\b.*|pull\\b.*)$/": true,
     "/^(npm|pnpm|yarn|bun) (ci|install|run build|run dev|run test|run lint|test\\b.*|build\\b.*)$/": true,
@@ -125,16 +109,13 @@
     "pwd": true,
     "mkdir": true,
     "cp": true,
-    
-    // Hard blocks - including ALL git push variants
+    "/^git push\\b/": false,
+    "/^git push\\s+--force/": false,
     "del": false,
-    "/dangerous/": false,
     "rm": false,
     "rmdir": false,
     "chmod": false,
-    "chown": false,
-    "/^git push\\b/": false,
-    "/^git push\\s+--force/": false
+    "chown": false
   },
 
   // SECURITY: Workspace trust disabled for full agent autonomy
