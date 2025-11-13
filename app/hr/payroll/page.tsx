@@ -209,7 +209,7 @@ export default function PayrollPage() {
                 {/* Timestamp Info */}
                 {run.calculatedAt && (
                   <div className="text-xs text-muted-foreground mb-4">
-                    {t('hr.payroll.calculatedAt', 'Calculated at')}: {new Date(run.calculatedAt).toLocaleString()}
+                    {t('hr.payroll.calculatedAt', 'Calculated at')}: <ClientDate date={run.calculatedAt} format="datetime" />
                   </div>
                 )}
 
