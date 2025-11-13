@@ -1,9 +1,9 @@
 /**
-import { logger } from '@/lib/logger';
  * Request context utilities for Finance Pack
  * Provides thread-safe user/tenant context for service layer using AsyncLocalStorage
  */
 
+import { logger } from '@/lib/logger';
 import { AsyncLocalStorage } from 'async_hooks';
 
 export interface RequestContext {

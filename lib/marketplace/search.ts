@@ -46,7 +46,7 @@ function loadSynonyms(): SynonymMap {
     cachedSynonyms = JSON.parse(content);
     return cachedSynonyms!;
   } catch (error) {
-    logger.warn('Marketplace search synonyms unavailable, using defaults', error);
+    logger.warn('Marketplace search synonyms unavailable, using defaults', { error });
     cachedSynonyms = { brand: {}, product: {} };
     return cachedSynonyms!;
   }

@@ -1,5 +1,4 @@
 /**
-import { logger } from '@/lib/logger';
  * Posting Service
  * 
  * Core double-entry bookkeeping engine for Fixzit Finance Pack.
@@ -28,6 +27,7 @@ import { logger } from '@/lib/logger';
  *   await postingService.postJournal(journal._id);
  */
 
+import { logger } from '@/lib/logger';
 import { Types, Document, ClientSession } from 'mongoose';
 import Decimal from 'decimal.js';
 import JournalModel, { IJournal, IJournalLine } from '../../models/finance/Journal';

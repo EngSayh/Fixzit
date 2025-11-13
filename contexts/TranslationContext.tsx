@@ -4446,7 +4446,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
       const result = langData?.[key] ?? enData?.[key] ?? fallback;
       return result;
     } catch (error) {
-      logger.warn(`Translation error for key '${key}':`, error);
+      logger.warn(`Translation error for key '${key}'`, { error });
       return fallback;
     }
   };

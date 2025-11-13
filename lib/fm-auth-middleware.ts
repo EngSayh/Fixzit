@@ -1,9 +1,9 @@
 /**
-import { logger } from '@/lib/logger';
  * FM RBAC Middleware
  * Enforces role-based access control for Facility Management endpoints
  */
 
+import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { can, Role, SubmoduleKey, Action, Plan } from '@/domain/fm/fm.behavior';

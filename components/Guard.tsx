@@ -1,5 +1,4 @@
 /**
-import { logger } from '@/lib/logger';
  * RBAC Guard Component
  * 
  * Conditionally renders children based on permission checks.
@@ -43,6 +42,7 @@ import { logger } from '@/lib/logger';
 
 'use client';
 
+import { logger } from '@/lib/logger';
 import { useAuthRbac } from '@/hooks/useAuthRbac';
 import { ReactNode } from 'react';
 

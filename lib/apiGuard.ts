@@ -1,5 +1,4 @@
 /**
-import { logger } from '@/lib/logger';
  * API Guard Middleware
  * 
  * Provides server-side permission checking for API routes.
@@ -18,6 +17,7 @@ import { logger } from '@/lib/logger';
  */
 
 import { NextApiHandler, NextApiRequest, NextApiResponse } from 'next';
+import { logger } from '@/lib/logger';
 import { auth } from '@/auth';
 import { can, createRbacContext } from './rbac';
 import { audit } from './audit';

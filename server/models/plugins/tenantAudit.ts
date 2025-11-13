@@ -1,10 +1,10 @@
 /**
-import { logger } from '@/lib/logger';
  * Combined tenant isolation + audit trail plugin
  * Consolidates tenantIsolation and auditPlugin functionality
  * Now uses AsyncLocalStorage from authContext for thread safety
  */
 
+import { logger } from '@/lib/logger';
 import { Schema } from 'mongoose';
 import { getRequestContext } from '../../lib/authContext';
 

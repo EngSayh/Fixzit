@@ -1,9 +1,9 @@
 /**
-import { logger } from '@/lib/logger';
  * Secure Error Response Utility
  * Sanitizes error messages to prevent internal details leakage
  */
 
+import { logger } from '@/lib/logger';
 import { createSecureResponse } from '@/lib/marketplace/security';
 
 export interface SecureErrorOptions {

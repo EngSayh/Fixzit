@@ -1,9 +1,10 @@
 /**
-import { logger } from '@/lib/logger';
  * Role-Based Access Control (RBAC) Configuration for Finance Pack
  * 
  * Defines which roles can access which finance endpoints
  */
+
+import { logger } from '@/lib/logger';
 
 export const UserRole = {
   ADMIN: 'ADMIN',
