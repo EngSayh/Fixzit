@@ -123,11 +123,8 @@ export default function ProjectsPage() {
                 />
               </div>
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Project Type" />
-              </SelectTrigger>
-              <SelectContent>
+              <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Project Type" className="w-48">
+                <SelectContent>
                 <SelectItem value="">All Types</SelectItem>
                 <SelectItem value="NEW_CONSTRUCTION">New Construction</SelectItem>
                 <SelectItem value="RENOVATION">Renovation</SelectItem>
@@ -136,11 +133,8 @@ export default function ProjectsPage() {
                 <SelectItem value="DEMOLITION">Demolition</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
+              <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-48">
+                <SelectContent>
                 <SelectItem value="">All Status</SelectItem>
                 <SelectItem value="PLANNING">Planning</SelectItem>
                 <SelectItem value="APPROVED">Approved</SelectItem>

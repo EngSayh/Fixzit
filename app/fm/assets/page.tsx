@@ -118,11 +118,8 @@ export default function AssetsPage() {
                 />
               </div>
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Asset Type" />
-              </SelectTrigger>
-              <SelectContent>
+              <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Asset Type" className="w-48">
+                <SelectContent>
                 <SelectItem value="">All Types</SelectItem>
                 <SelectItem value="HVAC">HVAC</SelectItem>
                 <SelectItem value="ELECTRICAL">Electrical</SelectItem>
@@ -136,11 +133,8 @@ export default function AssetsPage() {
                 <SelectItem value="OTHER">Other</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
+              <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-48">
+                <SelectContent>
                 <SelectItem value="">All Status</SelectItem>
                 <SelectItem value="ACTIVE">Active</SelectItem>
                 <SelectItem value="MAINTENANCE">Maintenance</SelectItem>

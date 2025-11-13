@@ -219,11 +219,8 @@ export default function InvoicesPage() {
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder={t('fm.properties.status', 'Status')} />
-              </SelectTrigger>
-              <SelectContent>
+              <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t('fm.properties.status', 'Status')} className="w-48">
+                <SelectContent>
                 <SelectItem value="">{t('common.all', 'All Status')}</SelectItem>
                 <SelectItem value="DRAFT">{t('fm.invoices.draft', 'Draft')}</SelectItem>
                 <SelectItem value="SENT">{t('fm.invoices.sent', 'Sent')}</SelectItem>
@@ -234,11 +231,8 @@ export default function InvoicesPage() {
                 <SelectItem value="CANCELLED">{t('fm.invoices.cancelled', 'Cancelled')}</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder={t('fm.properties.type', 'Type')} />
-              </SelectTrigger>
-              <SelectContent>
+              <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t('fm.properties.type', 'Type')} className="w-48">
+                <SelectContent>
                 <SelectItem value="">{t('fm.properties.allTypes', 'All Types')}</SelectItem>
                 <SelectItem value="SALES">{t('fm.invoices.sales', 'Sales')}</SelectItem>
                 <SelectItem value="PURCHASE">{t('fm.invoices.purchase', 'Purchase')}</SelectItem>

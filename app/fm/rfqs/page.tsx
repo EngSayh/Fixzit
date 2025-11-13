@@ -127,11 +127,8 @@ export default function RFQsPage() {
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
+              <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-48">
+                <SelectContent>
                 <SelectItem value="">All Status</SelectItem>
                 <SelectItem value="DRAFT">Draft</SelectItem>
                 <SelectItem value="PUBLISHED">Published</SelectItem>
@@ -141,11 +138,8 @@ export default function RFQsPage() {
                 <SelectItem value="CANCELLED">Cancelled</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-48">
+                <SelectContent>
                 <SelectItem value="">All Categories</SelectItem>
                 <SelectItem value="Construction">Construction</SelectItem>
                 <SelectItem value="Maintenance">Maintenance</SelectItem>

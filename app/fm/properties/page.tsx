@@ -118,10 +118,7 @@ export default function PropertiesPage() {
                 />
               </div>
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder={t('fm.properties.propertyType', 'Property Type')} />
-              </SelectTrigger>
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t('fm.properties.propertyType', 'Property Type')} className="w-48">
               <SelectContent>
                 <SelectItem value="">{t('fm.properties.allTypes', 'All Types')}</SelectItem>
                 <SelectItem value="RESIDENTIAL">{t('fm.properties.residential', 'Residential')}</SelectItem>
@@ -433,10 +430,7 @@ function CreatePropertyForm({ onCreated, orgId }: { onCreated: () => void; orgId
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">{t('fm.properties.type', 'Type')} *</label>
-          <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('fm.properties.selectType', 'Select type')} />
-            </SelectTrigger>
+          <Select value={formData.type} onValueChange={(val) => setFormData({ ...formData, type: val })} placeholder={t('fm.properties.selectType', 'Select type')}>
             <SelectContent>
               <SelectItem value="RESIDENTIAL">{t('fm.properties.residential', 'Residential')}</SelectItem>
               <SelectItem value="COMMERCIAL">{t('fm.properties.commercial', 'Commercial')}</SelectItem>

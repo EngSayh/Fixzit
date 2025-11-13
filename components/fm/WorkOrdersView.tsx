@@ -182,10 +182,9 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
                 setStatusFilter(value);
                 setPage(1);
               }}
+              placeholder="Status"
+              className="lg:w-48"
             >
-              <SelectTrigger className="lg:w-48">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">All Statuses</SelectItem>
                 {STATUS_OPTIONS.map((status) => (
@@ -201,10 +200,9 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
                 setPriorityFilter(value);
                 setPage(1);
               }}
+              placeholder="Priority"
+              className="lg:w-40"
             >
-              <SelectTrigger className="lg:w-40">
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">All Priorities</SelectItem>
                 {PRIORITY_OPTIONS.map((priority) => (

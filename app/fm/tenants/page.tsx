@@ -121,11 +121,8 @@ export default function TenantsPage() {
                 />
               </div>
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder={t('fm.tenants.tenantType', 'Tenant Type')} />
-              </SelectTrigger>
-              <SelectContent>
+              <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t('fm.tenants.tenantType', 'Tenant Type')} className="w-48">
+                <SelectContent>
                 <SelectItem value="">{t('fm.properties.allTypes', 'All Types')}</SelectItem>
                 <SelectItem value="INDIVIDUAL">{t('fm.tenants.individual', 'Individual')}</SelectItem>
                 <SelectItem value="COMPANY">{t('fm.tenants.company', 'Company')}</SelectItem>
