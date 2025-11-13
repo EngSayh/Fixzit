@@ -419,8 +419,8 @@ export default function CareersPage() {
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-1 mb-3">
-                        {job.skills.slice(0, 3).map((skill, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
+                        {job.skills.slice(0, 3).map((skill) => (
+                          <Badge key={skill} variant="secondary" className="text-xs">
                             {skill}
                           </Badge>
                         ))}
@@ -455,8 +455,8 @@ export default function CareersPage() {
                     <div>
                       <h4 className="font-semibold text-sm mb-2">Requirements:</h4>
                       <ul className="text-sm text-muted-foreground space-y-1">
-                        {job.requirements.slice(0, 2).map((req, index) => (
-                          <li key={index} className="flex items-start gap-2">
+                        {job.requirements.slice(0, 2).map((req) => (
+                          <li key={req} className="flex items-start gap-2">
                             <span className="w-1.5 h-1.5 bg-primary rounded-full mt-2 flex-shrink-0"></span>
                             {req}
                           </li>
@@ -471,8 +471,8 @@ export default function CareersPage() {
                     <div>
                       <h4 className="font-semibold text-sm mb-2">Benefits:</h4>
                       <ul className="text-sm text-muted-foreground space-y-1">
-                        {job.benefits.slice(0, 2).map((benefit, index) => (
-                          <li key={index} className="flex items-start gap-2">
+                        {job.benefits.slice(0, 2).map((benefit) => (
+                          <li key={benefit} className="flex items-start gap-2">
                             <span className="w-1.5 h-1.5 bg-success rounded-full mt-2 flex-shrink-0"></span>
                             {benefit}
                           </li>
@@ -546,8 +546,8 @@ export default function CareersPage() {
                             <div>
                               <Label className="text-lg font-semibold mb-3 block">Requirements</Label>
                               <ul className="space-y-2">
-                                {job.requirements.map((req, index) => (
-                                  <li key={index} className="flex items-start gap-3">
+                                {job.requirements.map((req) => (
+                                  <li key={req} className="flex items-start gap-3">
                                     <span className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></span>
                                     <span className="text-foreground">{req}</span>
                                   </li>
@@ -557,8 +557,8 @@ export default function CareersPage() {
                             <div>
                               <Label className="text-lg font-semibold mb-3 block">Benefits & Perks</Label>
                               <ul className="space-y-2">
-                                {job.benefits.map((benefit, index) => (
-                                  <li key={index} className="flex items-start gap-3">
+                                {job.benefits.map((benefit) => (
+                                  <li key={benefit} className="flex items-start gap-3">
                                     <span className="w-2 h-2 bg-success rounded-full mt-2 flex-shrink-0"></span>
                                     <span className="text-foreground">{benefit}</span>
                                   </li>
