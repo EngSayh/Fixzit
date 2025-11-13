@@ -642,7 +642,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
         <h3 className="font-medium mb-2">{t('fm.invoices.lineItems', 'Line Items')}</h3>
         <div className="space-y-2">
           {formData.items.map((item, index) => (
-            <div key={index} className="grid grid-cols-12 gap-2 items-center">
+            <div key={`item-${index}`} className="grid grid-cols-12 gap-2 items-center">
               <div className="col-span-4">
                 <Input
                   placeholder={t('fm.invoices.description', 'Description')}

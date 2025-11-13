@@ -38,7 +38,7 @@ export default async function JobDetailPage({ params }: { params: { slug: string
             <div>
               <h3 className="font-semibold">Requirements</h3>
               <ul className="list-disc ms-6 text-foreground">
-                {job.requirements.map((r: string, i: number) => <li key={i}>{r}</li>)}
+                {job.requirements.map((r: string) => <li key={r}>{r}</li>)}
               </ul>
             </div>
           )}
@@ -46,7 +46,7 @@ export default async function JobDetailPage({ params }: { params: { slug: string
             <div>
               <h3 className="font-semibold">Benefits</h3>
               <ul className="list-disc ms-6 text-foreground">
-                {job.benefits.map((b: string, i: number) => <li key={i}>{b}</li>)}
+                {job.benefits.map((b: string) => <li key={b}>{b}</li>)}
               </ul>
             </div>
           )}

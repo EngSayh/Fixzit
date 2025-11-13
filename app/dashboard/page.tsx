@@ -73,7 +73,7 @@ export default function DashboardPage() {
             <div className="p-6">
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between">
+                  <div key={`payment-${i}`} className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">INV-{2000 + i} - {t('dashboard.monthlyRent', 'Monthly Rent')}</p>
                       <p className="text-sm text-muted-foreground">{t('dashboard.tenant', 'Tenant')}: Acme Corp</p>

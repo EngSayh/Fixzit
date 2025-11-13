@@ -42,8 +42,8 @@ export default function HRDashboard() {
     <div className="space-y-6">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index}>
+        {stats.map((stat) => (
+          <Card key={stat.title}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>

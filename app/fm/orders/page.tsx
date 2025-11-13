@@ -258,7 +258,7 @@ export default function OrdersPage() {
                             <h4 className="font-medium text-foreground mb-2">{t('order.items', 'Items')}:</h4>
                             <div className="flex flex-wrap gap-2">
                               {order.items.slice(0, 5).map((item, idx) => (
-                                <Badge key={idx} variant="outline">
+                                <Badge key={`item-${idx}`} variant="outline">
                                   {item.name || `Item ${idx + 1}`} {item.quantity ? `x${item.quantity}` : ''}
                                 </Badge>
                               ))}

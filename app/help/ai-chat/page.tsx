@@ -159,7 +159,7 @@ export default function AIChatPage() {
                       <p className="text-sm font-medium mb-2">📚 Related Help Articles:</p>
                       <ul className="space-y-1">
                         {message.citations.map((citation, i) => (
-                          <li key={i}>
+                          <li key={citation.slug}>
                             <a
                               href={`/help/${citation.slug}`}
                               className="text-sm text-primary hover:underline block"

@@ -243,8 +243,8 @@ export default function PropertiesLeasesPage() {
             { unit: 'A-101', tenant: 'Ahmed Al-Mansouri', date: '2024-02-15', days: 12 },
             { unit: 'B-305', tenant: 'Sarah Johnson', date: '2024-02-22', days: 19 },
             { unit: 'C-202', tenant: 'Mohammed Ali', date: '2024-03-01', days: 26 },
-          ].map((renewal, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-accent/10 rounded-2xl border border-warning/20">
+          ].map((renewal) => (
+            <div key={renewal.unit} className="flex items-center justify-between p-3 bg-accent/10 rounded-2xl border border-warning/20">
               <div>
                 <p className="font-medium">{renewal.unit} - {renewal.tenant}</p>
                 <p className="text-sm text-muted-foreground">{t('properties.leases.expires', 'Expires')}: {renewal.date} ({renewal.days} {t('common.days', 'days')})</p>
