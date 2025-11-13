@@ -278,7 +278,7 @@ export default function VendorProductUploadPage() {
             
             <div className="grid gap-4 grid-cols-2 md:grid-cols-4 mb-4">
               {images.map((img, index) => (
-                <div key={index} className="relative aspect-square rounded-2xl border border-border overflow-hidden">
+                <div key={`img-${index}`} className="relative aspect-square rounded-2xl border border-border overflow-hidden">
                   <Image src={img.preview} alt="Product" fill className="object-cover" />
                   <button
                     type="button"

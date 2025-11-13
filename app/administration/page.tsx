@@ -694,8 +694,8 @@ const AdminModule: React.FC = () => {
             </div>
             <p className="text-gray-600 text-sm mb-4">{role.description}</p>
             <div className="flex flex-wrap gap-2">
-              {role.permissions.slice(0, 3).map((perm, idx) => (
-                <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+              {role.permissions.slice(0, 3).map((perm) => (
+                <span key={perm} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
                   {perm}
                 </span>
               ))}

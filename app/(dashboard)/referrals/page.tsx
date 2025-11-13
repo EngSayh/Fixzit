@@ -564,7 +564,7 @@ export default function ReferralProgramPage() {
                   </thead>
                   <tbody className="divide-y divide-border dark:divide-gray-700">
                     {referrals.map((referral, index) => (
-                      <tr key={index} data-testid={`referral-row-${index}`}>
+                      <tr key={referral.referredEmail} data-testid={`referral-row-${index}`}>
                         <td className="px-6 py-4 text-sm text-foreground dark:text-white">
                           {maskEmail(referral.referredEmail)}
                         </td>

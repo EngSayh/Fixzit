@@ -259,8 +259,8 @@ export default function VendorDetailsPage() {
                         Specializations
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {vendor.business.specializations.map((spec, index) => (
-                          <Badge key={index} variant="outline">
+                        {vendor.business.specializations.map((spec) => (
+                          <Badge key={spec} variant="outline">
                             {spec}
                           </Badge>
                         ))}

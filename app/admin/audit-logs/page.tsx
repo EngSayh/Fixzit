@@ -552,8 +552,8 @@ export default function AuditLogViewer() {
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">Changes</h3>
                     <div className="mt-1 space-y-2">
-                      {selectedLog.changes.map((change, index) => (
-                        <div key={index} className="p-2 rounded-2xl bg-muted">
+                      {selectedLog.changes.map((change) => (
+                        <div key={change.field} className="p-2 rounded-2xl bg-muted">
                           <div className="flex gap-2">
                             <span className="font-medium">{change.field}:</span>
                             <span className="text-foreground">
