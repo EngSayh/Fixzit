@@ -80,7 +80,7 @@
   // Chat Agent Settings
   "chat.agent.enabled": true,
   "chat.agent.maxRequests": 999,
-  "chat.tools.global.autoApprove": false,
+  "chat.tools.global.autoApprove": true, // Enable auto-approve for local development
   "chat.tools.terminal.autoReplyToPrompts": true,
   "chat.notifyWindowOnConfirmation": false,
   "chat.checkpoints.enabled": true,
