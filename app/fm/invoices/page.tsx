@@ -19,6 +19,7 @@ import {
   QrCode, Send, Eye, Download, Mail, CheckCircle,
   AlertCircle, Clock} from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import ClientDate from '@/components/ClientDate';
 
 interface InvoiceItem {
   description: string;
@@ -392,13 +393,13 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
           <div>
             <p className="text-muted-foreground">{t('fm.invoices.issueDate', 'Issue Date')}</p>
             <p className="font-medium">
-              {new Date(invoice.issueDate).toLocaleDateString()}
+              <ClientDate date={invoice.issueDate} format="date-only" />
             </p>
           </div>
           <div>
             <p className="text-muted-foreground">{t('fm.invoices.dueDate', 'Due Date')}</p>
             <p className={`font-medium ${daysOverdue > 0 ? 'text-destructive' : ''}`}>
-              {new Date(invoice.dueDate).toLocaleDateString()}
+              <ClientDate date={invoice.dueDate} format="date-only" />
               {daysOverdue > 0 && ` (${daysOverdue}${t('fm.invoices.overdueDays', 'd overdue')})`}
             </p>
           </div>
