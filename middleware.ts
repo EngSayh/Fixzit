@@ -142,17 +142,9 @@ async function getAuthSession(request: NextRequest): Promise<SessionUser | null>
     
     const handler = wrappedAuth(async (req: WrappedReq) => {
       const sess = req.auth;
-      console.log('[DEBUG middleware getAuthSession] Session:', {
-        hasSession: !!sess,
-        hasUser: !!sess?.user,
-        userId: sess?.user?.id,
-        userRole: sess?.user?.role,
-        userOrgId: sess?.user?.orgId
-      });
-      
       if (!sess?.user) return null;
       
-      const result: SessionUser = { 
+      return { 
         id: sess.user.id || (sess as { sub?: string }).sub || '',
         email: sess.user.email || null,
         role: sess.user.role || 'USER',
@@ -160,15 +152,7 @@ async function getAuthSession(request: NextRequest): Promise<SessionUser | null>
         isSuperAdmin: sess.user.isSuperAdmin || false,
         permissions: sess.user.permissions || [],
         roles: sess.user.roles || [],
-      };
-      
-      console.log('[DEBUG middleware getAuthSession] Returning user:', {
-        id: result.id,
-        role: result.role,
-        orgId: result.orgId
-      });
-      
-      return result;
+      } as SessionUser;
     });
     
     const result = await handler(request);
@@ -188,12 +172,8 @@ function hasAnyPermission(user: SessionUser | null, permissions: string[]): bool
 }
 
 function attachUserHeaders(req: NextRequest, user: SessionUser): NextResponse {
-  console.log('[DEBUG attachUserHeaders] user.id:', user.id);
-  console.log('[DEBUG attachUserHeaders] user.role:', user.role);
-  console.log('[DEBUG attachUserHeaders] user.orgId:', user.orgId);
-  
   const headers = new Headers(req.headers);
-  const userObj = { 
+  headers.set('x-user', JSON.stringify({ 
     id: user.id, 
     email: user.email, 
     role: user.role, 
@@ -201,18 +181,7 @@ function attachUserHeaders(req: NextRequest, user: SessionUser): NextResponse {
     isSuperAdmin: user.isSuperAdmin,
     permissions: user.permissions,
     roles: user.roles,
-  };
-  
-  console.log('[DEBUG attachUserHeaders] userObj created:', {
-    hasId: !!userObj.id,
-    hasRole: !!userObj.role,
-    hasOrgId: !!userObj.orgId
-  });
-  
-  const xUserString = JSON.stringify(userObj);
-  console.log('[DEBUG attachUserHeaders] xUserString length:', xUserString.length, 'preview:', xUserString.substring(0, 100));
-  
-  headers.set('x-user', xUserString);
+  }));
   if (user.orgId) headers.set('x-org-id', user.orgId);
   return NextResponse.next({ request: { headers } });
 }
@@ -250,19 +219,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    console.log('[DEBUG middleware] Checking auth for:', pathname);
     const user = await getAuthSession(request);
-    console.log('[DEBUG middleware] user RIGHT AFTER getAuthSession:', {
-      isNull: user === null,
-      isUndefined: user === undefined,
-      type: typeof user,
-      hasId: user ? 'id' in user : false,
-      idValue: user ? user.id : 'NO USER'
-    });
-    console.log('[DEBUG middleware] getAuthSession result:', JSON.stringify({ hasUser: !!user, userId: user?.id, userRole: user?.role, orgId: user?.orgId }));
-    
     if (!user) {
-      console.log('[DEBUG middleware] No user, returning 401');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
