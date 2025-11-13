@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from '@/contexts/TranslationContext';
 import ClientDate from '@/components/ClientDate';
 import { logger } from '@/lib/logger';
 // Constants at module scope
