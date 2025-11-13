@@ -341,9 +341,15 @@
     "category": {
       "operational": "تشغيلي",
       "maintenance": "صيانة",
+      "maintenance_repair": "الصيانة والإصلاحات",
       "capital": "رأسمالي",
-      "utility": "مرافق",
+      "utility": "خدمات",
+      "utilities": "المرافق",
       "administrative": "إداري",
+      "office_supplies": "مستلزمات المكتب",
+      "electrical": "كهربائي",
+      "hvac": "التكييف والتهوية",
+      "plumbing": "السباكة",
       "other": "أخرى"
     },
     "accountType": {
