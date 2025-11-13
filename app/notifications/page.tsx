@@ -546,7 +546,7 @@ export default function NotificationsPage() {
                         {notif.message}
                       </p>
                       <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                        <span><ClientDate date={notif.timestamp} format="datetime" /></span>
+                        <span><ClientDate date={notif.timestamp} format="medium" /></span>
                         <span>•</span>
                         <span>{notif.read ? 'Read' : 'Unread'}</span>
                       </div>

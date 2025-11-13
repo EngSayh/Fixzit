@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calculator, Download, Eye, Plus } from 'lucide-react';
+import ClientDate from '@/components/ClientDate';
 
 import { logger } from '@/lib/logger';
 interface PayrollRun {
@@ -209,7 +210,7 @@ export default function PayrollPage() {
                 {/* Timestamp Info */}
                 {run.calculatedAt && (
                   <div className="text-xs text-muted-foreground mb-4">
-                    {t('hr.payroll.calculatedAt', 'Calculated at')}: <ClientDate date={run.calculatedAt} format="datetime" />
+                    {t('hr.payroll.calculatedAt', 'Calculated at')}: <ClientDate date={run.calculatedAt} format="medium" />
                   </div>
                 )}
 

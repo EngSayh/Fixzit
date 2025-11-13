@@ -286,7 +286,7 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
                   </div>
                   <div>
                     <span className="font-medium text-foreground">Created:</span>{' '}
-                    {workOrder.createdAt ? <ClientDate date={workOrder.createdAt} format="datetime" /> : 'Unknown'}
+                    {workOrder.createdAt ? <ClientDate date={workOrder.createdAt} format="medium" /> : 'Unknown'}
                   </div>
                 </div>
               </CardContent>
