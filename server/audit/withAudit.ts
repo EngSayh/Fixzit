@@ -46,13 +46,12 @@ const defaultConfig: AuditConfig = {
 
 /** Core: audit wrapper around any Next Route Handler */
 export function withAudit<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-unused-vars
-  H extends (req: NextRequest, ...args: any[]) => Promise<NextResponse> | NextResponse,
+  // eslint-disable-next-line no-unused-vars
+  H extends (req: NextRequest, ...args: unknown[]) => Promise<NextResponse> | NextResponse,
 >(handler: H, cfg?: Partial<AuditConfig>) {
   const finalCfg = { ...defaultConfig, ...cfg };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (async function auditedHandler(req: NextRequest, ...args: any[]) {
+  return (async function auditedHandler(req: NextRequest, ...args: unknown[]) {
     // Early exits by config
     if (!finalCfg.enabled) return handler(req, ...args);
 

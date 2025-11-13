@@ -26,7 +26,7 @@ vi.mock('bcryptjs', () => ({
 }));
 
 // FIX: Create factory function inside the mock to avoid hoisting issues
-const mockSign = vi.fn((payload: object, _secret: string, _opts?: any) => {
+const mockSign = vi.fn((payload: object, _secret: string, _opts?: unknown) => {
   return `token:${Buffer.from(JSON.stringify(payload)).toString('base64')}`;
 });
 const mockVerify = vi.fn((token: string, _secret: string) => {

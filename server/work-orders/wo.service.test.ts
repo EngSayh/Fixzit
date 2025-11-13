@@ -82,7 +82,7 @@ describe("wo.service", () => {
 
       mocked.WoCreateParse.mockReturnValue(parsed);
       mocked.createIdempotencyKey.mockReturnValue(key);
-      mocked.withIdempotency.mockImplementation(async (_key: string, cb: any) => cb());
+      mocked.withIdempotency.mockImplementation(async (_key: string, cb: () => Promise<unknown>) => cb());
       mocked.woCreate.mockResolvedValue(wo);
       mocked.audit.mockResolvedValue(undefined);
 
