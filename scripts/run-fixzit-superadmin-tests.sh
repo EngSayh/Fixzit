@@ -86,7 +86,7 @@ export default defineConfig({
     }
   ],
   outputDir: 'test-artifacts',
-  timeout: parseInt(process.env.TEST_TIMEOUT || '90000')
+  timeout: parseInt(process.env.TEST_TIMEOUT || '90000', 10)
 });
 TS
 

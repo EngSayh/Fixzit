@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import Decimal from 'decimal.js';
 import { auth } from '@/auth';
 import { connectDb } from '@/lib/mongo';
 import { PayrollRun, Payslip } from '@/models/hr/Payroll';
@@ -115,19 +116,19 @@ export async function POST(
       await payslip.save();
       payslips.push(payslip);
 
-      // Accumulate totals
-      totalGross += calculation.grossPay;
-      totalNet += calculation.netPay;
-      totalGOSI += calculation.gosi.employeeDeduction + calculation.gosi.employerContribution;
-      totalSANED += calculation.gosi.breakdown.sanedEmployee + calculation.gosi.breakdown.sanedEmployer;
+      // Accumulate totals using Decimal.js for precision
+      totalGross = new Decimal(totalGross).plus(calculation.grossPay).toNumber();
+      totalNet = new Decimal(totalNet).plus(calculation.netPay).toNumber();
+      totalGOSI = new Decimal(totalGOSI).plus(calculation.gosi.employeeDeduction).plus(calculation.gosi.employerContribution).toNumber();
+      totalSANED = new Decimal(totalSANED).plus(calculation.gosi.breakdown.sanedEmployee).plus(calculation.gosi.breakdown.sanedEmployer).toNumber();
     }
 
-    // Update the payroll run
+    // Update the payroll run with precise totals
     run.status = 'CALCULATED';
-    run.totalGross = Math.round(totalGross * 100) / 100;
-    run.totalNet = Math.round(totalNet * 100) / 100;
-    run.totalGOSI = Math.round(totalGOSI * 100) / 100;
-    run.totalSANED = Math.round(totalSANED * 100) / 100;
+    run.totalGross = new Decimal(totalGross).toDecimalPlaces(2).toNumber();
+    run.totalNet = new Decimal(totalNet).toDecimalPlaces(2).toNumber();
+    run.totalGOSI = new Decimal(totalGOSI).toDecimalPlaces(2).toNumber();
+    run.totalSANED = new Decimal(totalSANED).toDecimalPlaces(2).toNumber();
     run.employeeCount = employees.length;
     await run.save();
 

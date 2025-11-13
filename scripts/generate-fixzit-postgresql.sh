@@ -248,7 +248,7 @@ app.get('/api/work-orders', authMiddleware, async (req, res) => {
     }
     
     query += ` ORDER BY wo.created_at DESC LIMIT $${paramCount + 1}`;
-    queryParams.push(parseInt(limit));
+    queryParams.push(parseInt(limit, 10));
     
     const result = await pool.query(query, queryParams);
     res.json(result.rows);

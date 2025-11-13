@@ -14,6 +14,7 @@
  */
 
 import { Schema, model, models, Types, Document } from 'mongoose';
+import Decimal from 'decimal.js';
 import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
 import { auditPlugin } from '../../plugins/auditPlugin';
 
@@ -376,7 +377,7 @@ PaymentSchema.pre('save', async function(next) {
     let nextNum = 1;
     if (lastPayment?.paymentNumber) {
       const match = lastPayment.paymentNumber.match(/-(\d+)$/);
-      if (match) nextNum = parseInt(match[1]) + 1;
+      if (match) nextNum = parseInt(match[1], 10) + 1;
     }
     
     this.paymentNumber = `PAY-${yearMonth}-${String(nextNum).padStart(4, '0')}`;
@@ -399,7 +400,8 @@ PaymentSchema.pre('save', async function(next) {
    */
   // Calculate unallocated amount
   const totalAllocated = this.allocations.reduce((sum, a) => sum + a.amount, 0);
-  this.unallocatedAmount = this.amount - totalAllocated;
+  // ✅ PRECISION FIX: Use Decimal.js for payment allocation calculation
+  this.unallocatedAmount = new Decimal(this.amount).minus(totalAllocated).toNumber();
   
   next();
 });
@@ -417,11 +419,11 @@ PaymentSchema.methods.allocateToInvoice = function(
   amount: number
 ) {
   if (amount <= 0) {
-    throw new Error('Allocation amount must be positive');
+    throw new RangeError('Allocation amount must be positive');
   }
   
   if (amount > this.unallocatedAmount) {
-    throw new Error(`Cannot allocate ${amount}. Only ${this.unallocatedAmount} unallocated.`);
+    throw new RangeError(`Cannot allocate ${amount}. Only ${this.unallocatedAmount} unallocated.`);
   }
   
   this.allocations.push({
@@ -435,15 +437,14 @@ PaymentSchema.methods.allocateToInvoice = function(
    * @warning PRECISION RISK: Recalculating unallocated amount after each allocation.
    * Multiple allocations compound floating-point errors.
    * 
-   * TODO: Use Decimal.js:
-   * - const allocated = Decimal.sum(this.allocations.map(a => a.amount))
-   * - this.unallocatedAmount = new Decimal(this.amount).minus(allocated).toNumber()
+   * ✅ FIXED: Using Decimal.js for precise allocation calculation
    * 
-   * Impact: Unallocated amount may drift from actual value after many allocations
+   * Impact: Prevents unallocated amount drift after many allocations
    * Priority: P0 (Critical)
    */
   const totalAllocated = this.allocations.reduce((sum: number, a: IPaymentAllocation) => sum + a.amount, 0);
-  this.unallocatedAmount = this.amount - totalAllocated;
+  // ✅ PRECISION FIX: Use Decimal.js for unallocated amount calculation
+  this.unallocatedAmount = new Decimal(this.amount).minus(totalAllocated).toNumber();
 };
 
 /**

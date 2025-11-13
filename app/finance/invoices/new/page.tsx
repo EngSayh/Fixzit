@@ -197,7 +197,7 @@ export default function NewInvoicePage() {
 
   const addLineItem = () => {
     const newItem: IInvoiceLineItem = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(), // ✅ SECURITY FIX: Use crypto-random UUID instead of predictable Date.now()
       description: '',
       category: 'RENTAL',
       accountId: '',
@@ -227,18 +227,21 @@ export default function NewInvoicePage() {
 
       // Recalculate amounts
       const itemSubtotal = updated.quantity * updated.unitPrice;
-      const discountedAmount = itemSubtotal - updated.discount;
+      // ✅ PRECISION FIX: Use Decimal.js for discount calculation
+      const discountedAmount = decimal(itemSubtotal).minus(updated.discount).toNumber();
       
       if (field === 'quantity' || field === 'unitPrice' || field === 'discount' || field === 'taxRate' || field === 'taxType') {
         if (updated.taxType === 'VAT') {
-          updated.taxAmount = discountedAmount * updated.taxRate;
+          // ✅ PRECISION FIX: Use Decimal.js for tax calculation
+          updated.taxAmount = decimal(discountedAmount).times(updated.taxRate).toNumber();
         } else if (updated.taxType === 'EXEMPT') {
           updated.taxAmount = 0;
           updated.taxRate = 0;
         } else {
           updated.taxAmount = 0;
         }
-        updated.total = discountedAmount + updated.taxAmount;
+        // ✅ PRECISION FIX: Use Decimal.js for total calculation
+        updated.total = decimal(discountedAmount).plus(updated.taxAmount).toNumber();
       }
 
       // Update account code when account changes
@@ -360,7 +363,7 @@ export default function NewInvoicePage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to save draft');
+        throw new TypeError(error.message || 'Failed to save draft');
       }
 
       const data = await response.json();
@@ -433,7 +436,7 @@ export default function NewInvoicePage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to create invoice');
+        throw new TypeError(error.message || 'Failed to create invoice');
       }
 
       const data = await response.json();

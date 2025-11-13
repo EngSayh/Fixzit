@@ -22,6 +22,16 @@ export default function SettingsPage() {
     reports: false
   });
 
+  // ✅ i18n FIX: Use explicit key mapping instead of template literal
+  const notificationKeyMap: Record<string, string> = {
+    email: 'settings.notifications.email',
+    sms: 'settings.notifications.sms',
+    push: 'settings.notifications.push',
+    workOrders: 'settings.notifications.workOrders',
+    maintenance: 'settings.notifications.maintenance',
+    reports: 'settings.notifications.reports'
+  };
+
   return (
     <div className="min-h-screen bg-muted dark:bg-neutral-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -126,7 +136,7 @@ export default function SettingsPage() {
                 {Object.entries(notifications).map(([key, value]) => (
                   <div key={key} className="flex items-center justify-between">
                     <Label htmlFor={key} className="capitalize">
-                      {t(`settings.notifications.${key}`, key.replace(/([A-Z])/g, ' $1').trim())}
+                      {t(notificationKeyMap[key] || `settings.notifications.${key}`, key.replace(/([A-Z])/g, ' $1').trim())}
                     </Label>
                     <Switch
                       id={key}

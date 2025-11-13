@@ -93,7 +93,7 @@ errorLines.forEach(line => {
   if (match) {
     const [, file, lineNum, col, varName] = match;
     if (!fileErrors[file]) fileErrors[file] = [];
-    fileErrors[file].push({ lineNum: parseInt(lineNum), varName });
+    fileErrors[file].push({ lineNum: parseInt(lineNum, 10), varName });
   }
 });
 

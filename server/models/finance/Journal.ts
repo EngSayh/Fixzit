@@ -18,6 +18,7 @@
  */
 
 import { Schema, model, models, Types } from 'mongoose';
+import Decimal from 'decimal.js';
 import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
 import { auditPlugin } from '../../plugins/auditPlugin';
 
@@ -165,11 +166,12 @@ JournalSchema.pre('save', function(next) {
    * @see https://en.wikipedia.org/wiki/Double-entry_bookkeeping
    */
   // Calculate totals
-  this.totalDebit = this.lines.reduce((sum, line) => sum + line.debit, 0);
-  this.totalCredit = this.lines.reduce((sum, line) => sum + line.credit, 0);
+  // Calculate totals using Decimal.js for precision
+  this.totalDebit = this.lines.reduce((sum, line) => new Decimal(sum).plus(line.debit).toNumber(), 0);
+  this.totalCredit = this.lines.reduce((sum, line) => new Decimal(sum).plus(line.credit).toNumber(), 0);
   
   // Check balance (allow 0.01 rounding difference)
-  const diff = Math.abs(this.totalDebit - this.totalCredit);
+  const diff = new Decimal(this.totalDebit).minus(this.totalCredit).abs().toNumber();
   this.isBalanced = diff < 0.01;
   
   // Each line must have either debit OR credit (not both)
@@ -224,11 +226,11 @@ JournalSchema.pre('save', function(next) {
 // Method: Post journal entry (mark as posted and ready for ledger processing)
 JournalSchema.methods.post = async function(): Promise<IJournal> {
   if (this.status !== 'DRAFT') {
-    throw new Error('Only draft journals can be posted');
+    throw new TypeError('Only draft journals can be posted');
   }
   
   if (!this.isBalanced) {
-    throw new Error('Cannot post unbalanced journal entry');
+    throw new RangeError('Cannot post unbalanced journal entry');
   }
   
   this.status = 'POSTED';
@@ -244,7 +246,7 @@ JournalSchema.methods.post = async function(): Promise<IJournal> {
 // Method: Void journal entry
 JournalSchema.methods.void = async function(userId: Types.ObjectId, reason: string): Promise<IJournal> {
   if (this.status !== 'POSTED') {
-    throw new Error('Only posted journals can be voided');
+    throw new TypeError('Only posted journals can be voided');
   }
   
   this.status = 'VOID';

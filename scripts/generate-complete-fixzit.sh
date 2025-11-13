@@ -224,7 +224,7 @@ app.get('/api/work-orders', auth, async (req, res) => {
       .populate('assignedTo', 'firstName lastName')
       .populate('createdBy', 'firstName lastName')
       .sort({ createdAt: -1 })
-      .limit(parseInt(limit));
+      .limit(parseInt(limit, 10));
     
     res.json(workOrders);
   } catch (error) {

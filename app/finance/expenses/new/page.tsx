@@ -5,6 +5,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import Decimal from 'decimal.js';
 
 import { logger } from '@/lib/logger';
 // ============================================================================
@@ -105,7 +106,8 @@ export default function NewExpensePage() {
   // Calculate totals from line items
   const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
   const totalTax = lineItems.reduce((sum, item) => sum + item.taxAmount, 0);
-  const totalAmount = subtotal + totalTax;
+  // ✅ PRECISION FIX: Use Decimal.js for accurate financial calculations
+  const totalAmount = new Decimal(subtotal).plus(totalTax).toNumber();
 
   // ============================================================================
   // LIFECYCLE & DATA LOADING
@@ -189,7 +191,7 @@ export default function NewExpensePage() {
                 budgetedAmount: data.budget.amount,
                 spentAmount: data.budget.spent,
                 remainingAmount: data.budget.remaining,
-                percentage: (data.budget.spent / data.budget.amount) * 100
+                percentage: data.budget.amount > 0 ? (data.budget.spent / data.budget.amount) * 100 : 0
               });
             }
           }
@@ -210,7 +212,7 @@ export default function NewExpensePage() {
 
   const addLineItem = () => {
     const newItem: IExpenseLineItem = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(), // ✅ SECURITY FIX: Use crypto-random UUID instead of predictable Date.now()
       description: '',
       category: 'MAINTENANCE_REPAIR',
       accountId: '',
@@ -240,11 +242,17 @@ export default function NewExpensePage() {
       // Recalculate amounts
       if (field === 'quantity' || field === 'unitPrice') {
         updated.amount = updated.quantity * updated.unitPrice;
-        updated.taxAmount = updated.taxable ? updated.amount * updated.taxRate : 0;
+        // ✅ PRECISION FIX: Use Decimal.js for tax calculation
+        updated.taxAmount = updated.taxable 
+          ? new Decimal(updated.amount).times(updated.taxRate).toNumber()
+          : 0;
       }
 
       if (field === 'taxable' || field === 'taxRate') {
-        updated.taxAmount = updated.taxable ? updated.amount * updated.taxRate : 0;
+        // ✅ PRECISION FIX: Use Decimal.js for tax calculation
+        updated.taxAmount = updated.taxable 
+          ? new Decimal(updated.amount).times(updated.taxRate).toNumber()
+          : 0;
       }
 
       // Update account code when account changes
@@ -266,7 +274,7 @@ export default function NewExpensePage() {
   const handleReceiptsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newReceipts: IReceipt[] = Array.from(e.target.files).map(file => ({
-        id: `${Date.now()}-${Math.random()}`,
+        id: crypto.randomUUID(), // ✅ SECURITY FIX: Use crypto-random UUID
         file,
         preview: URL.createObjectURL(file)
       }));
@@ -373,7 +381,7 @@ export default function NewExpensePage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to save draft');
+        throw new TypeError(error.message || 'Failed to save draft');
       }
 
       const data = await response.json();
@@ -439,7 +447,7 @@ export default function NewExpensePage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to submit expense');
+        throw new TypeError(error.message || 'Failed to submit expense');
       }
 
       const data = await response.json();
@@ -749,7 +757,8 @@ export default function NewExpensePage() {
                         {item.taxable && <span className="text-xs text-muted-foreground ms-1">15%</span>}
                       </td>
                       <td className="px-2 py-2 text-end font-medium">
-                        {currency} {(item.amount + item.taxAmount).toFixed(2)}
+                        {/* ✅ PRECISION FIX: Use Decimal.js for total calculation */}
+                        {currency} {new Decimal(item.amount).plus(item.taxAmount).toFixed(2)}
                       </td>
                       <td className="px-2 py-2">
                         {lineItems.length > 1 && (
@@ -888,10 +897,22 @@ export default function NewExpensePage() {
             <div className="card">
               <h3 className="text-lg font-semibold mb-4">{t('finance.expense.budgetStatus', 'Budget Status')}</h3>
               <div className="space-y-3">
-                {budgetInfo.map((budget) => (
+                {budgetInfo.map((budget) => {
+                  // ✅ i18n FIX: Use explicit key mapping instead of template literal
+                  const categoryKey = {
+                    'MAINTENANCE_REPAIR': 'finance.category.maintenance',
+                    'UTILITIES': 'finance.category.utilities',
+                    'OFFICE_SUPPLIES': 'finance.category.officeSupplies',
+                    'HVAC': 'finance.category.hvac',
+                    'PLUMBING': 'finance.category.plumbing',
+                    'ELECTRICAL': 'finance.category.electrical',
+                    'OTHER': 'finance.category.other'
+                  }[budget.category] || 'finance.category.other';
+                  
+                  return (
                   <div key={budget.budgetId}>
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm text-muted-foreground">{t(`finance.category.${budget.category.toLowerCase()}`, budget.category)}</span>
+                      <span className="text-sm text-muted-foreground">{t(categoryKey, budget.category)}</span>
                       <span className="text-xs text-muted-foreground">{budget.percentage.toFixed(0)}%</span>
                     </div>
                     <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
@@ -911,7 +932,8 @@ export default function NewExpensePage() {
                       <span>{currency} {budget.remainingAmount.toFixed(0)} {t('finance.remaining', 'remaining')}</span>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

@@ -33,10 +33,23 @@ export async function GET(req: NextRequest) {
     return rateLimitError();
   }
 
-  await connectToDatabase();
-  await requireSuperAdmin(req);
-  const docs = await Benchmark.find({}).lean();
-  return createSecureResponse(docs, 200, req);
+  try {
+    await connectToDatabase();
+    await requireSuperAdmin(req);
+    const docs = await Benchmark.find({}).lean();
+    return createSecureResponse(docs, 200, req);
+  } catch (error) {
+    return createSecureResponse(
+      {
+        error: 'Failed to fetch benchmarks',
+        code: 'BENCHMARK_FETCH_ERROR',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred',
+        correlationId: crypto.randomUUID()
+      },
+      500,
+      req
+    );
+  }
 }
 
 

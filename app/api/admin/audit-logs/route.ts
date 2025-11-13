@@ -81,8 +81,20 @@ export async function GET(request: NextRequest) {
     }
     
     // Search logs
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const logs = await (AuditLogModel as any).search({
+    // Type assertion needed because AuditLogModel.search() is a dynamically added plugin method
+    interface SearchableAuditLogModel {
+      search: (_params: {
+        orgId: string;
+        userId?: string;
+        entityType?: string;
+        action?: string;
+        startDate?: Date;
+        endDate?: Date;
+        limit: number;
+        skip: number;
+      }) => Promise<unknown[]>;
+    }
+    const logs = await (AuditLogModel as unknown as SearchableAuditLogModel).search({
       orgId: session.user.orgId || 'default',
       userId: userId || undefined,
       entityType: entityType || undefined,

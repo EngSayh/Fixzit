@@ -1,4 +1,5 @@
 import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import Decimal from "decimal.js";
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";
 
@@ -216,7 +217,7 @@ UtilityBillSchema.pre('save', function(next) {
 
   // Calculate remaining balance
   if ((this.isModified('charges') || this.isModified('payment')) && this.charges?.totalAmount !== undefined && this.payment?.paidAmount !== undefined) {
-    this.payment.remainingBalance = this.charges.totalAmount - this.payment.paidAmount;
+    this.payment.remainingBalance = new Decimal(this.charges.totalAmount).minus(this.payment.paidAmount).toNumber();
   }
 
   // Update payment status

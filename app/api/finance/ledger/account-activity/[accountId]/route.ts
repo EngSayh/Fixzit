@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import Decimal from 'decimal.js';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { runWithContext } from '@/server/lib/authContext';
 import { requirePermission } from '@/server/lib/rbac.config';
@@ -114,7 +115,7 @@ export async function GET(
           }).sort({ journalDate: 1, createdAt: 1 });
           
           openingBalance = entriesBeforeStart.reduce((balance, entry) => {
-            return balance + entry.debit - entry.credit;
+            return new Decimal(balance).plus(entry.debit).minus(entry.credit).toNumber();
           }, 0);
         }
         
@@ -140,12 +141,12 @@ export async function GET(
             .lean();
           
           runningBalance = previousEntries.reduce((balance, entry) => {
-            return balance + entry.debit - entry.credit;
+            return new Decimal(balance).plus(entry.debit).minus(entry.credit).toNumber();
           }, openingBalance);
         }
         
         const transactionsWithBalance = transactions.map((entry) => {
-          runningBalance += entry.debit - entry.credit;
+          runningBalance = new Decimal(runningBalance).plus(entry.debit).minus(entry.credit).toNumber();
           return {
             _id: entry._id.toString(),
             date: entry.journalDate.toISOString(),
@@ -171,9 +172,9 @@ export async function GET(
           .sort({ journalDate: 1, createdAt: 1 })
           .lean();
         
-        const totalDebits = allTransactions.reduce((sum, entry) => sum + (entry.debit || 0), 0);
-        const totalCredits = allTransactions.reduce((sum, entry) => sum + (entry.credit || 0), 0);
-        const closingBalance = openingBalance + totalDebits - totalCredits;
+        const totalDebits = allTransactions.reduce((sum, entry) => new Decimal(sum).plus(entry.debit || 0).toNumber(), 0);
+        const totalCredits = allTransactions.reduce((sum, entry) => new Decimal(sum).plus(entry.credit || 0).toNumber(), 0);
+        const closingBalance = new Decimal(openingBalance).plus(totalDebits).minus(totalCredits).toNumber();
         
         return NextResponse.json({
           accountId: account._id.toString(),

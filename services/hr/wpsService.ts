@@ -12,6 +12,7 @@
  * - Mudad Platform: https://mudad.hrsd.gov.sa
  */
 
+import Decimal from 'decimal.js';
 import { createHash } from 'crypto';
 import type { IPayslip } from '../../models/hr/Payroll';
 
@@ -109,17 +110,17 @@ export function generateWPSFile(
       employeeName: slip.employeeName,
       bankCode,
       iban: slip.iban,
-      basicSalary: Math.round(basicSalary * 100) / 100,
-      housingAllowance: Math.round(housingAllowance * 100) / 100,
-      otherAllowances: Math.round(otherAllowances * 100) / 100,
-      totalDeductions: Math.round(totalDeductions * 100) / 100,
-      netSalary: Math.round(slip.netPay * 100) / 100,
+      basicSalary: new Decimal(basicSalary).toDecimalPlaces(2).toNumber(),
+      housingAllowance: new Decimal(housingAllowance).toDecimalPlaces(2).toNumber(),
+      otherAllowances: new Decimal(otherAllowances).toDecimalPlaces(2).toNumber(),
+      totalDeductions: new Decimal(totalDeductions).toDecimalPlaces(2).toNumber(),
+      netSalary: new Decimal(slip.netPay).toDecimalPlaces(2).toNumber(),
       salaryMonth: periodMonth,
       workDays: 30, // TODO: Calculate actual work days from attendance
     };
     
     records.push(record);
-    totalNetSalary += record.netSalary;
+    totalNetSalary = new Decimal(totalNetSalary).plus(record.netSalary).toNumber();
   }
   
   // Generate CSV content
@@ -163,7 +164,7 @@ export function generateWPSFile(
     content: csvContent,
     checksum,
     recordCount: records.length,
-    totalNetSalary: Math.round(totalNetSalary * 100) / 100,
+    totalNetSalary: new Decimal(totalNetSalary).toDecimalPlaces(2).toNumber(),
     generatedAt: new Date(),
   };
   

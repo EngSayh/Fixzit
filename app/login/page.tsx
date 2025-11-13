@@ -30,10 +30,8 @@ const GoogleSignInButton = dynamic(() => import('@/components/auth/GoogleSignInB
 const DemoCredentialsSection = dynamic<{
   isRTL: boolean;
   loginMethod: 'personal' | 'corporate' | 'sso';
-  // eslint-disable-next-line no-unused-vars
-  quickLogin: (cred: DemoCredential) => void;
-  // eslint-disable-next-line no-unused-vars
-  t: (key: string, fallback: string) => string;
+  quickLogin: (_cred: DemoCredential) => void;
+  t: (_key: string, _fallback: string) => string;
 }>(() => import('@/components/auth/DemoCredentialsSection').catch(() => ({
   default: () => null // Fallback if component doesn't exist yet
 })), {

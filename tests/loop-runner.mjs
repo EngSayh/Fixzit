@@ -4,8 +4,8 @@ import { dirname } from 'node:path';
 
 // Configuration - can be overridden via environment variables
 const CONFIG = {
-  durationMs: parseInt(process.env.LOOP_DURATION_MS || (3 * 60 * 60 * 1000)), // 3 hours default
-  pauseBetweenCycles: parseInt(process.env.LOOP_PAUSE_MS || 30000), // 30 seconds
+  durationMs: parseInt(process.env.LOOP_DURATION_MS || (3 * 60 * 60 * 1000), 10), // 3 hours default
+  pauseBetweenCycles: parseInt(process.env.LOOP_PAUSE_MS || 30000, 10), // 30 seconds
   logFile: process.env.LOOP_LOG_FILE || 'tests/loop-runner.log',
   commands: [
     { cmd: 'pnpm', args: ['typecheck'], label: 'TypeScript Check', step: '1/4' },

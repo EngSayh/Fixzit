@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -462,8 +462,8 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
       email: '',
       customerId: ''
     },
-    issueDate: new Date().toISOString().split('T')[0],
-    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    issueDate: '', // ✅ HYDRATION FIX: Initialize empty
+    dueDate: '', // ✅ HYDRATION FIX: Initialize empty
     description: '',
     items: [{
       description: '',
@@ -490,6 +490,17 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
       }
     }
   });
+
+  // ✅ HYDRATION FIX: Set default dates after client hydration
+  useEffect(() => {
+    if (!formData.issueDate) {
+      setFormData(prev => ({
+        ...prev,
+        issueDate: new Date().toISOString().split('T')[0],
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      }));
+    }
+  }, [formData.issueDate]);
 
   const calculateItemTotal = (item: InvoiceItem): InvoiceItem => {
     const subtotal = item.quantity * item.unitPrice - item.discount;

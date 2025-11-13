@@ -36,8 +36,7 @@ export async function POST(req: NextRequest) {
   // Gate early — dev only
   // Dynamically import dev-only module (won't be bundled in production)
   let ENABLED = false;
-  // eslint-disable-next-line no-unused-vars
-  let findLoginPayloadByRole: (role: string) => DevCredentialPayload | null = () => null;
+  let findLoginPayloadByRole: (_role: string) => DevCredentialPayload | null;
 
   try {
     // We use a dynamic import to ensure this file is never bundled in production

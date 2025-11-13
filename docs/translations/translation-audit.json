@@ -1,8 +1,8 @@
 {
   "stats": {
-    "files": 379,
+    "files": 380,
     "usedKeys": 1574,
-    "hasDynamic": true,
+    "hasDynamic": false,
     "enCount": 2006,
     "arCount": 2006,
     "parityGap": 0
@@ -870,13 +870,6 @@
     ],
     "common.selected": [
       "/workspaces/Fixzit/app/finance/expenses/new/page.tsx"
-    ],
-    "UNSAFE_DYNAMIC": [
-      "/workspaces/Fixzit/app/finance/expenses/new/page.tsx",
-      "/workspaces/Fixzit/app/settings/page.tsx",
-      "/workspaces/Fixzit/components/Sidebar.tsx",
-      "/workspaces/Fixzit/components/SupportPopup.tsx",
-      "/workspaces/Fixzit/components/finance/TrialBalanceReport.tsx"
     ],
     "finance.invoice.issueDateRequired": [
       "/workspaces/Fixzit/app/finance/invoices/new/page.tsx"
@@ -5078,5 +5071,5 @@
       "/workspaces/Fixzit/contexts/TranslationContext.test.tsx"
     ]
   },
-  "timestamp": "2025-11-12T07:09:09.177Z"
+  "timestamp": "2025-11-12T12:37:33.553Z"
 }

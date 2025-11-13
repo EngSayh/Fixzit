@@ -6,9 +6,16 @@ on:
   push:
     branches: [fix/consolidation-guardrails]
 
+# Cancel in-progress runs for same workflow + ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read  # Read-only by default
     env:
       NODE_OPTIONS: --max-old-space-size=8192
     steps:
