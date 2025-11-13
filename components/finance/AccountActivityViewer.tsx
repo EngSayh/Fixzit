@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { logger } from '@/lib/logger';
+import ClientDate from '@/components/ClientDate';
 
 // ============================================================================
 // INTERFACES
@@ -464,7 +465,7 @@ export default function AccountActivityViewer({
                     onClick={() => onTransactionClick && onTransactionClick(txn)}
                   >
                     <td className="px-4 py-2 text-sm">
-                      {new Date(txn.date).toLocaleDateString()}
+                      <ClientDate date={txn.date} format="date-only" />
                     </td>
                     <td className="px-4 py-2 text-sm font-medium text-primary">
                       {txn.journalNumber}

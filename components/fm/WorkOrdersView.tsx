@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Plus, RefreshCcw, Search } from 'lucide-react';
 import { WorkOrderPriority } from '@/lib/sla';
+import ClientDate from '@/components/ClientDate';
 
 const fallbackUser = JSON.stringify({ id: 'demo-admin', role: 'SUPER_ADMIN', tenantId: 'demo-tenant' });
 
@@ -285,7 +286,7 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
                   </div>
                   <div>
                     <span className="font-medium text-foreground">Created:</span>{' '}
-                    {workOrder.createdAt ? new Date(workOrder.createdAt).toLocaleString() : 'Unknown'}
+                    {workOrder.createdAt ? <ClientDate date={workOrder.createdAt} format="datetime" /> : 'Unknown'}
                   </div>
                 </div>
               </CardContent>
