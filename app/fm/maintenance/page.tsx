@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {Eye, Edit, Trash2,
   Wrench, Calendar, Clock, AlertTriangle, CheckCircle} from 'lucide-react';
+import ClientDate from '@/components/ClientDate';
 
 interface MaintenanceTask {
   id: string;
@@ -183,7 +184,7 @@ export default function MaintenancePage() {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="h-4 w-4" />
-                        {t('maintenance.due', 'Due')}: {new Date(task.dueDate).toLocaleDateString()}
+                        {t('maintenance.due', 'Due')}: <ClientDate date={task.dueDate} format="date-only" />
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <span className="font-medium">{t('maintenance.assigned', 'Assigned to')}:</span>
