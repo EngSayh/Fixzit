@@ -7,6 +7,8 @@ import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { can, Role, SubmoduleKey, Action, Plan } from '@/domain/fm/fm.behavior';
+import { Organization } from '@/server/models/Organization';
+import { connectDb } from '@/lib/mongo';
 
 export interface FMAuthContext {
   userId: string;
@@ -116,14 +118,39 @@ export async function requireFMAuth(
     };
   }
 
+  // ✅ Get actual subscription plan from organization
+  let plan = Plan.STARTER;
+  let isOrgMember = false;
+  
+  try {
+    await connectDb();
+    const org = await Organization.findOne({ orgId: options?.orgId || ctx.orgId });
+    if (org) {
+      // Map organization plan to FM Plan enum
+      const planMap: Record<string, Plan> = {
+        'BASIC': Plan.STARTER,
+        'STANDARD': Plan.STANDARD,
+        'PREMIUM': Plan.PRO,
+        'ENTERPRISE': Plan.ENTERPRISE,
+      };
+      plan = planMap[org.subscription.plan] || Plan.STARTER;
+      
+      // Verify org membership: user's orgId matches the requested orgId
+      isOrgMember = ctx.orgId === org.orgId;
+    }
+  } catch (error) {
+    logger.error('[FM Auth] Subscription lookup failed:', { error });
+    // Fall back to STARTER plan and no org membership on error
+  }
+
   // Check RBAC permission
   const allowed = can(submodule, action, {
     role: ctx.role,
     orgId: options?.orgId || ctx.orgId,
     propertyId: options?.propertyId,
     userId: ctx.userId,
-    plan: Plan.PRO, // TODO: Get from user/org subscription
-    isOrgMember: true // TODO: Verify org membership
+    plan,
+    isOrgMember
   });
 
   if (!allowed) {
@@ -145,6 +172,7 @@ export async function requireFMAuth(
 
 /**
  * Check if user has permission (for UI conditional rendering)
+ * Note: This is synchronous for UI use. For API routes, use requireFMAuth which does async DB lookups.
  */
 export function userCan(
   ctx: FMAuthContext | null,
@@ -153,36 +181,53 @@ export function userCan(
   options?: {
     orgId?: string;
     propertyId?: string;
+    plan?: Plan;
+    isOrgMember?: boolean;
   }
 ): boolean {
   if (!ctx) return false;
   
+  // Use provided plan/membership or fall back to permissive defaults for UI rendering
+  // Caller should fetch these values from DB if needed for strict checks
   return can(submodule, action, {
     role: ctx.role,
     orgId: options?.orgId || ctx.orgId,
     propertyId: options?.propertyId,
     userId: ctx.userId,
-    plan: Plan.PRO, // TODO: Get from user/org subscription
-    isOrgMember: true // TODO: Verify org membership
+    plan: options?.plan || Plan.PRO,
+    isOrgMember: options?.isOrgMember ?? true
   });
 }
 
 /**
  * Extract property ownership context for ABAC checks
+ * 
+ * NOTE: FMProperty model not yet implemented. When created, it should have:
+ * - ownerId: string (User ID of property owner)
+ * - orgId: string (Organization ID managing the property)
+ * - propertyId: string (Unique property identifier)
+ * 
+ * Example implementation when model exists:
+ * ```typescript
+ * import { FMProperty } from '@/server/models/FMProperty';
+ * const property = await FMProperty.findOne({ propertyId });
+ * if (property) {
+ *   return { ownerId: property.ownerId, orgId: property.orgId };
+ * }
+ * ```
  */
- 
 export async function getPropertyOwnership(_propertyId: string): Promise<{
   ownerId: string;
   orgId: string;
 } | null> {
   try {
-    // TODO: Query FMProperty model for ownership
-    // For now, return placeholder
-    return {
-      ownerId: '',
-      orgId: ''
-    };
-  // eslint-disable-next-line no-unreachable
+    // TODO: Implement when FMProperty model is created
+    // await connect();
+    // const property = await FMProperty.findOne({ propertyId: _propertyId });
+    // if (property) return { ownerId: property.ownerId, orgId: property.orgId };
+    
+    logger.warn('[FM Auth] getPropertyOwnership called but FMProperty model not yet implemented');
+    return null;
   } catch (error) {
     logger.error('[FM Auth] Property ownership query failed:', { error });
     return null;
