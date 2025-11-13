@@ -570,8 +570,8 @@ export default function CareersPage() {
                           <div>
                             <Label className="text-lg font-semibold mb-3 block">Required Skills</Label>
                             <div className="flex flex-wrap gap-2">
-                              {job.skills.map((skill, index) => (
-                                <Badge key={index} variant="secondary" className="bg-muted text-foreground">
+                              {job.skills.map((skill) => (
+                                <Badge key={skill} variant="secondary" className="bg-muted text-foreground">
                                   {skill}
                                 </Badge>
                               ))}
