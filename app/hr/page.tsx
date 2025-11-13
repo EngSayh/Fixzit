@@ -9,6 +9,7 @@ export default function HRDashboard() {
 
   const stats = [
     {
+      key: 'totalEmployees',
       title: t('hr.stats.totalEmployees', 'Total Employees'),
       value: '142',
       icon: Users,
@@ -16,6 +17,7 @@ export default function HRDashboard() {
       bgColor: 'bg-primary/10'
     },
     {
+      key: 'monthlyPayroll',
       title: t('hr.stats.monthlyPayroll', 'Monthly Payroll'),
       value: 'SAR 1.2M',
       icon: DollarSign,
@@ -23,6 +25,7 @@ export default function HRDashboard() {
       bgColor: 'bg-success/10'
     },
     {
+      key: 'pendingLeave',
       title: t('hr.stats.pendingLeave', 'Pending Leave Requests'),
       value: '8',
       icon: Calendar,
@@ -30,6 +33,7 @@ export default function HRDashboard() {
       bgColor: 'bg-warning/10'
     },
     {
+      key: 'attendance',
       title: t('hr.stats.attendance', 'Today\'s Attendance'),
       value: '138/142',
       icon: Clock,
@@ -43,7 +47,7 @@ export default function HRDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => (
-          <Card key={stat.title}>
+          <Card key={stat.key}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>

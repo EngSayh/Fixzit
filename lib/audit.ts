@@ -45,11 +45,11 @@ export async function audit(event: AuditEvent): Promise<void> {
   // ✅ Write to database
   try {
     await AuditLogModel.log({
-      orgId: event.orgId || 'system',
-      action: event.action?.toUpperCase() || 'CUSTOM',
-      entityType: event.targetType?.toUpperCase() || 'OTHER',
-      entityId: event.target || undefined,
-      entityName: event.target || undefined,
+      orgId: event.orgId || undefined,
+      action: event.action ? event.action.toUpperCase() : 'CUSTOM',
+      entityType: event.targetType ? event.targetType.toUpperCase() : 'OTHER',
+      entityId: (event.meta?.targetId as string) || undefined,
+      entityName: (event.meta?.targetName as string) || (event.target ? String(event.target) : undefined),
       userId: event.actorId,
       context: {
         ipAddress: event.ipAddress,

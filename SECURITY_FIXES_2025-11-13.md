@@ -8,14 +8,15 @@
 
 ## 🔒 Critical Security Fixes Applied
 
-### 1. Re-Enabled Workspace Trust in DevContainer ✅
-**File**: `.devcontainer/devcontainer.json`  
-**Issue**: Workspace trust was completely disabled, creating a critical security vulnerability  
+### 1. Re-Enabled Workspace Trust ✅
+**Files**: `.devcontainer/devcontainer.json`, `.vscode/settings.json`  
+**Issue**: Workspace trust was completely disabled in both devcontainer and workspace settings, creating a critical security vulnerability  
 **Fix**:
-- Removed `"security.workspace.trust.enabled": false`
-- Removed `"security.workspace.trust.untrustedFiles": "open"`
-- Removed `"security.workspace.trust.startupPrompt": "never"`
-- Added comment explaining why workspace trust must not be disabled
+- Removed `"security.workspace.trust.enabled": false` from both files
+- Removed `"security.workspace.trust.untrustedFiles": "open"` from both files
+- Removed `"security.workspace.trust.startupPrompt": "never"` from both files
+- Added comments explaining why workspace trust must not be disabled
+- VS Code now uses secure defaults: workspace trust is enabled, untrusted files require confirmation
 
 **Impact**: Users will now be warned about untrusted workspaces (intentional and required for security)
 

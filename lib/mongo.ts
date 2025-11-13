@@ -94,7 +94,7 @@ if (!conn) {
       connectTimeoutMS: 8000,
       // Production-critical options for MongoDB Atlas
       retryWrites: true,        // Automatic retry for write operations (network failures)
-      tls: connectionUri.includes('mongodb+srv://') || connectionUri.includes('ssl=true'),  // TLS only for Atlas or explicit SSL
+      tls: isTlsEnabled(connectionUri),  // Safe TLS detection
       w: 'majority',            // Write concern for data durability (prevents data loss)
     }).then(m => {
       // Return the native MongoDB database object

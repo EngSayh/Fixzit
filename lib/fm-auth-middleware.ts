@@ -124,12 +124,13 @@ export async function requireFMAuth(
   
   try {
     await connectDb();
-    const targetOrgId = options?.orgId || ctx.orgId;
-    const org = await Organization.findOne({ orgId: targetOrgId });
+    // Always use ctx.orgId - don't allow callers to query other orgs
+    const org = await Organization.findOne({ orgId: ctx.orgId });
     
     if (org) {
       // Map organization plan to FM Plan enum (with fallback chain)
-      const orgPlan = org.subscription?.plan || org.plan || 'BASIC';
+      const subscriptionPlan = org.subscription?.plan;
+      const orgPlan = subscriptionPlan || (org as { plan?: string }).plan || 'BASIC';
       const planMap: Record<string, Plan> = {
         'BASIC': Plan.STARTER,
         'STARTER': Plan.STARTER,
@@ -140,22 +141,22 @@ export async function requireFMAuth(
       };
       plan = planMap[orgPlan.toUpperCase()] || Plan.STARTER;
       
-      // Verify org membership: user's orgId matches the requested orgId
-      isOrgMember = ctx.orgId === targetOrgId;
+      // Verify org membership: org exists for ctx.orgId and user is in member list
+      isOrgMember = true; // Org found for ctx.orgId
       
       // Additional check: verify user is in org's member list (if available)
-      if (isOrgMember && org.members && Array.isArray(org.members)) {
+      if (org.members && Array.isArray(org.members)) {
         isOrgMember = org.members.some((m: { userId: string }) => m.userId === ctx.userId);
       }
       
       logger.debug('[FM Auth] Org lookup successful', { 
-        orgId: targetOrgId, 
+        orgId: ctx.orgId, 
         plan, 
         isOrgMember,
         userId: ctx.userId 
       });
-    } else {
-      logger.warn('[FM Auth] Organization not found', { orgId: targetOrgId });
+      } else {
+      logger.warn('[FM Auth] Organization not found', { orgId: ctx.orgId });
     }
   } catch (error) {
     logger.error('[FM Auth] Subscription lookup failed:', { error });
@@ -206,15 +207,15 @@ export function userCan(
 ): boolean {
   if (!ctx) return false;
   
-  // Use provided plan/membership or fall back to permissive defaults for UI rendering
-  // Caller should fetch these values from DB if needed for strict checks
+  // Use restrictive defaults: STARTER plan and no org membership unless explicitly provided
+  // Callers MUST provide plan and isOrgMember from DB for accurate permission checks
   return can(submodule, action, {
     role: ctx.role,
     orgId: options?.orgId || ctx.orgId,
     propertyId: options?.propertyId,
     userId: ctx.userId,
-    plan: options?.plan || Plan.PRO,
-    isOrgMember: options?.isOrgMember ?? true
+    plan: options?.plan ?? Plan.STARTER,
+    isOrgMember: options?.isOrgMember ?? false
   });
 }
 

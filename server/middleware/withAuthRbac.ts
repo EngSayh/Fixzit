@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { can, Role } from "../rbac/workOrdersPolicy";
 import { auth } from "@/auth";
 import { logger } from '@/lib/logger';
+import { verifyToken } from '@/lib/auth';
 
 export type SessionUser = {
   id: string;
@@ -17,9 +18,19 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
     
     if (session?.user?.id) {
       const orgId = session.user.orgId || '';
+      
+      // Validate role before casting
+      const roleValue = session.user.role;
+      const validRoles = Object.values(Role) as string[];
+      
+      if (!roleValue || !validRoles.includes(roleValue)) {
+        logger.error('Invalid role in NextAuth session', { role: roleValue, userId: session.user.id });
+        throw new Error('Unauthenticated');
+      }
+      
       return {
         id: session.user.id,
-        role: session.user.role as Role,
+        role: roleValue as Role,
         orgId: orgId,
         tenantId: orgId,
       };
@@ -35,10 +46,18 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
     try {
       const parsed = JSON.parse(xUserHeader);
       const tenantValue = parsed.orgId || parsed.tenantId;
-      if (parsed.id && tenantValue) {
+      
+      // Validate role before casting
+      const roleValue = parsed.role;
+      const validRoles = Object.values(Role) as string[];
+      
+      if (!roleValue || !validRoles.includes(roleValue)) {
+        logger.warn('Invalid role in x-user header', { role: roleValue });
+        // Skip this header, continue to next auth method
+      } else if (parsed.id && tenantValue) {
         return {
           id: parsed.id,
-          role: parsed.role as Role,
+          role: roleValue as Role,
           orgId: tenantValue,
           tenantId: tenantValue,
         };
@@ -54,20 +73,33 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
   const token = cookieToken || headerToken;
   
   if (token) {
-    // Import verifyToken dynamically to avoid issues
-    const { verifyToken } = await import('@/lib/auth');
-    const payload = await verifyToken(token);
-    
-    if (payload?.id) {
-      const tenantValue = payload.orgId || payload.tenantId;
-      if (tenantValue) {
-        return {
-          id: payload.id,
-          role: payload.role as Role,
-          orgId: tenantValue,
-          tenantId: tenantValue,
-        };
+    try {
+      const payload = await verifyToken(token);
+      
+      if (payload?.id) {
+        const tenantValue = payload.orgId || payload.tenantId;
+        
+        // Validate role before casting
+        const roleValue = payload.role;
+        const validRoles = Object.values(Role) as string[];
+        
+        if (!roleValue || !validRoles.includes(roleValue)) {
+          logger.warn('Invalid role in legacy token', { role: roleValue, userId: payload.id });
+          throw new Error('Invalid role in token');
+        }
+        
+        if (tenantValue) {
+          return {
+            id: payload.id,
+            role: roleValue as Role,
+            orgId: tenantValue,
+            tenantId: tenantValue,
+          };
+        }
       }
+    } catch (error) {
+      logger.error('Legacy token verification failed', { error });
+      // Continue to unauthenticated response
     }
   }
   

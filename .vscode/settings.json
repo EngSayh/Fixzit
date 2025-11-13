@@ -44,13 +44,13 @@
   "git.branchProtectionPrompt": "alwaysPrompt",
 
   // ============================================================================
-  // FULL AUTO-APPROVAL FOR AGENT AUTONOMY (ALL SCOPES)
-  // - Unconditional auto-approve: User, Workspace, and Remote
-  // - Zero confirmation prompts for maximum agent autonomy
-  // - Aligned with Fixzit governance: "run fully automatic, no prompts"
+  // AGENT ACTIONS REQUIRE CONFIRMATION — No auto-approval
+  // - Auto-approve disabled for security: destructive operations need consent
+  // - Developers can opt-in via User Settings for their workflow preferences
+  // - Workspace enforces safe defaults to protect all team members
   // ============================================================================
 
-  // GitHub Copilot Settings - Full autonomy enabled
+  // GitHub Copilot Settings - Full tool access enabled, confirmations required
   "github.copilot.enable": { "*": true },
   "github.copilot.chat.enable": true,
   "github.copilot.chat.codeGeneration.useInstructionFiles": true,
@@ -94,11 +94,6 @@
   
   // Disable MCP discovery
   "chat.mcp.discovery.enabled": false,
-
-  // SECURITY: Workspace trust disabled for full agent autonomy
-  "security.workspace.trust.enabled": false,
-  "security.workspace.trust.untrustedFiles": "open",
-  "security.workspace.trust.startupPrompt": "never",
 
   // Limit CodeRabbit's automatic review scope to avoid token/context exhaustion
   // and reduce extension timeouts on large repositories. These safer defaults

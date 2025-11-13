@@ -83,7 +83,9 @@ function formatDate(
 
   const browserLocale = locale || (typeof navigator !== 'undefined' ? navigator.language : 'en-US');
   return formatDateUtil(date, format || 'medium', browserLocale, timeZone);
-}/**
+}
+
+/**
  * ClientDate Component Implementation
  */
 export default function ClientDate({
