@@ -215,7 +215,8 @@ export function formatServerDate(
   
   try {
     return formatDate(parsedDate, format, locale);
-  } catch {
+  } catch (error: unknown) {
+    logger.error('formatServerDate formatting error', { error, date, format, locale });
     return 'Invalid Date';
   }
 }
@@ -241,7 +242,8 @@ export function useClientDate(
     
     try {
       setFormatted(formatDate(parsedDate, format, locale));
-    } catch {
+    } catch (error: unknown) {
+      logger.error('useClientDate formatting error', { error, date, format, locale });
       setFormatted('Invalid Date');
     }
   }, [date, format, locale]);

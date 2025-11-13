@@ -375,8 +375,8 @@ export default function PropertyDetailsPage() {
                   <p className="text-sm text-muted-foreground mb-2">Open Issues</p>
                   {(property.maintenance.issues as MaintenanceIssue[])
                     .filter((issue) => !issue.resolved)
-                    .map((issue) => (
-                      <div key={issue.description} className="flex items-center space-x-2 text-sm">
+                    .map((issue, idx) => (
+                      <div key={`${property.id}-issue-${idx}-${issue.description.slice(0, 20)}`} className="flex items-center space-x-2 text-sm">
                         <AlertCircle className={`w-4 h-4 ${
                           issue.severity === 'HIGH' ? 'text-destructive' :
                           issue.severity === 'MEDIUM' ? 'text-warning' :
