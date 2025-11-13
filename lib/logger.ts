@@ -71,8 +71,7 @@ class Logger {
   }
 
   /**
-   * Send log to monitoring service
-   * TODO: Integrate with actual monitoring service (Sentry, DataDog, etc.)
+   * Send log to monitoring service (Sentry integration)
    */
   private async sendToMonitoring(
     level: LogLevel,
@@ -80,10 +79,52 @@ class Logger {
     context?: LogContext
   ): Promise<void> {
     try {
-      // TODO: Replace with actual monitoring service integration
-      // Example: await fetch('/api/logs', { method: 'POST', body: JSON.stringify({ level, message, context }) });
+      // Sentry integration for error tracking
+      if (level === 'error' && process.env.NEXT_PUBLIC_SENTRY_DSN) {
+        const Sentry = await import('@sentry/nextjs').catch(() => null);
+        
+        if (Sentry) {
+          Sentry.captureException(new Error(message), {
+            level: 'error',
+            extra: context,
+            tags: {
+              component: context?.component as string,
+              action: context?.action as string,
+              userId: context?.userId as string,
+            },
+          });
+        }
+      } else if (level === 'warn' && process.env.NEXT_PUBLIC_SENTRY_DSN) {
+        const Sentry = await import('@sentry/nextjs').catch(() => null);
+        
+        if (Sentry) {
+          Sentry.captureMessage(message, {
+            level: 'warning',
+            extra: context,
+          });
+        }
+      }
       
-      // For now, store in session for debugging
+      // DataDog integration (if configured)
+      if (process.env.DATADOG_API_KEY && process.env.DATADOG_APP_KEY) {
+        // Future: Send to DataDog Logs API
+        // await fetch('https://http-intake.logs.datadoghq.com/api/v2/logs', {
+        //   method: 'POST',
+        //   headers: {
+        //     'Content-Type': 'application/json',
+        //     'DD-API-KEY': process.env.DATADOG_API_KEY
+        //   },
+        //   body: JSON.stringify({
+        //     ddsource: 'fixzit',
+        //     service: 'web-app',
+        //     level,
+        //     message,
+        //     ...context
+        //   })
+        // });
+      }
+      
+      // Store in session for debugging (browser only)
       if (typeof window !== 'undefined' && window.sessionStorage) {
         const logs = JSON.parse(sessionStorage.getItem('app_logs') || '[]');
         logs.push({

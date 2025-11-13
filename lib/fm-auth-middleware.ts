@@ -118,25 +118,44 @@ export async function requireFMAuth(
     };
   }
 
-  // ✅ Get actual subscription plan from organization
+  // ✅ Get actual subscription plan from organization and verify membership
   let plan = Plan.STARTER;
   let isOrgMember = false;
   
   try {
     await connectDb();
-    const org = await Organization.findOne({ orgId: options?.orgId || ctx.orgId });
+    const targetOrgId = options?.orgId || ctx.orgId;
+    const org = await Organization.findOne({ orgId: targetOrgId });
+    
     if (org) {
-      // Map organization plan to FM Plan enum
+      // Map organization plan to FM Plan enum (with fallback chain)
+      const orgPlan = org.subscription?.plan || org.plan || 'BASIC';
       const planMap: Record<string, Plan> = {
         'BASIC': Plan.STARTER,
+        'STARTER': Plan.STARTER,
         'STANDARD': Plan.STANDARD,
         'PREMIUM': Plan.PRO,
+        'PRO': Plan.PRO,
         'ENTERPRISE': Plan.ENTERPRISE,
       };
-      plan = planMap[org.subscription.plan] || Plan.STARTER;
+      plan = planMap[orgPlan.toUpperCase()] || Plan.STARTER;
       
       // Verify org membership: user's orgId matches the requested orgId
-      isOrgMember = ctx.orgId === org.orgId;
+      isOrgMember = ctx.orgId === targetOrgId;
+      
+      // Additional check: verify user is in org's member list (if available)
+      if (isOrgMember && org.members && Array.isArray(org.members)) {
+        isOrgMember = org.members.some((m: { userId: string }) => m.userId === ctx.userId);
+      }
+      
+      logger.debug('[FM Auth] Org lookup successful', { 
+        orgId: targetOrgId, 
+        plan, 
+        isOrgMember,
+        userId: ctx.userId 
+      });
+    } else {
+      logger.warn('[FM Auth] Organization not found', { orgId: targetOrgId });
     }
   } catch (error) {
     logger.error('[FM Auth] Subscription lookup failed:', { error });
@@ -221,15 +240,47 @@ export async function getPropertyOwnership(_propertyId: string): Promise<{
   orgId: string;
 } | null> {
   try {
-    // TODO: Implement when FMProperty model is created
-    // await connect();
-    // const property = await FMProperty.findOne({ propertyId: _propertyId });
-    // if (property) return { ownerId: property.ownerId, orgId: property.orgId };
+    await connectDb();
     
-    logger.warn('[FM Auth] getPropertyOwnership called but FMProperty model not yet implemented');
+    // Try to import FMProperty model (may not exist yet)
+    const FMPropertyModule = await import('@/server/models/FMProperty').catch(() => null);
+    
+    if (FMPropertyModule && FMPropertyModule.FMProperty) {
+      const property = await FMPropertyModule.FMProperty.findOne({ 
+        propertyId: _propertyId 
+      }).select('ownerId orgId').lean();
+      
+      if (property) {
+        logger.debug('[FM Auth] Property ownership found', { 
+          propertyId: _propertyId, 
+          ownerId: property.ownerId, 
+          orgId: property.orgId 
+        });
+        return { 
+          ownerId: property.ownerId?.toString() || '', 
+          orgId: property.orgId?.toString() || '' 
+        };
+      }
+    } else {
+      // Fallback: Try WorkOrder model which may have propertyId reference
+      logger.debug('[FM Auth] FMProperty model not found, checking WorkOrders');
+      const { FMWorkOrder } = await import('@/server/models/FMWorkOrder');
+      const workOrder = await FMWorkOrder.findOne({ propertyId: _propertyId })
+        .select('propertyOwnerId orgId')
+        .lean();
+      
+      if (workOrder && workOrder.propertyOwnerId) {
+        return {
+          ownerId: workOrder.propertyOwnerId.toString(),
+          orgId: workOrder.orgId?.toString() || ''
+        };
+      }
+    }
+    
+    logger.warn('[FM Auth] Property ownership not found', { propertyId: _propertyId });
     return null;
   } catch (error) {
-    logger.error('[FM Auth] Property ownership query failed:', { error });
+    logger.error('[FM Auth] Property ownership query failed:', { error, propertyId: _propertyId });
     return null;
   }
 }

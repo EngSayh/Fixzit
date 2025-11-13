@@ -104,6 +104,52 @@ export function generateWPSFile(
     // Total deductions
     const totalDeductions = slip.deductions.reduce((sum, d) => sum + d.amount, 0);
     
+    // Calculate actual work days from attendance records
+    let workDays = 30; // Default fallback
+    
+    try {
+      // Try to get actual attendance records for the period
+      const { AttendanceModel } = await import('@/server/models/Attendance').catch(() => ({ AttendanceModel: null }));
+      
+      if (AttendanceModel) {
+        const startOfMonth = new Date(period.getFullYear(), period.getMonth(), 1);
+        const endOfMonth = new Date(period.getFullYear(), period.getMonth() + 1, 0);
+        
+        const attendanceRecords = await AttendanceModel.find({
+          employeeId: slip.employeeId,
+          date: {
+            $gte: startOfMonth,
+            $lte: endOfMonth
+          },
+          status: { $in: ['PRESENT', 'HALF_DAY', 'LATE'] }
+        }).countDocuments();
+        
+        if (attendanceRecords > 0) {
+          workDays = attendanceRecords;
+        } else {
+          // No attendance records - calculate business days in month
+          const daysInMonth = endOfMonth.getDate();
+          let businessDays = 0;
+          
+          for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(period.getFullYear(), period.getMonth(), day);
+            const dayOfWeek = date.getDay();
+            // Count weekdays only (Mon-Fri)
+            if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+              businessDays++;
+            }
+          }
+          
+          workDays = businessDays;
+        }
+      }
+    } catch (error) {
+      logger.warn('[WPS] Could not calculate actual work days, using default 30', { 
+        employeeId: slip.employeeId,
+        error 
+      });
+    }
+    
     const record: WPSRecord = {
       employeeId: slip.employeeCode,
       employeeName: slip.employeeName,
@@ -115,7 +161,7 @@ export function generateWPSFile(
       totalDeductions: Math.round(totalDeductions * 100) / 100,
       netSalary: Math.round(slip.netPay * 100) / 100,
       salaryMonth: periodMonth,
-      workDays: 30, // TODO: Calculate actual work days from attendance
+      workDays,
     };
     
     records.push(record);

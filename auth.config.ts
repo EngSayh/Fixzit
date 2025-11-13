@@ -308,16 +308,6 @@ export const authConfig = {
       // This ensures permissions are always up-to-date
       if (token?.id) {
         try {
-          // TEMPORARY FIX: Skip RBAC loading to unblock development
-          // TODO: Move RBAC loading to session callback or separate API middleware
-          console.log('[NextAuth] RBAC loading temporarily disabled for debugging');
-          
-          // Set default permissions for testing
-          token.isSuperAdmin = false;
-          token.roles = [];
-          token.permissions = [];
-          
-          /* COMMENTED OUT UNTIL MODULE LOADING IS FIXED
           // Dynamic imports to avoid Edge Runtime issues
           const { connectToDatabase } = await import('@/lib/mongodb-unified');
           const userModelModule = await import('@/server/models/User');
@@ -387,7 +377,6 @@ export const authConfig = {
             token.roles = [];
             token.permissions = [];
           }
-          */
         } catch (error) {
           console.error('[NextAuth] Failed to load RBAC data:', error);
           // On error, keep previous RBAC data or set defaults

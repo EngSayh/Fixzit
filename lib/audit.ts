@@ -70,13 +70,51 @@ export async function audit(event: AuditEvent): Promise<void> {
     logger.error('[AUDIT] Database write failed:', { dbError });
   }
 
-  // TODO: Send to external service (CloudWatch, DataDog, etc.)
-  // await sendToDatadog(entry);
+  // Send to external monitoring service (Sentry)
+  try {
+    if (typeof window === 'undefined' && process.env.SENTRY_DSN) {
+      // Server-side Sentry integration
+      const Sentry = await import('@sentry/nextjs').catch(() => null);
+      if (Sentry) {
+        Sentry.captureMessage(`[AUDIT] ${entry.action}`, {
+          level: 'info',
+          extra: entry,
+          tags: {
+            audit_action: entry.action,
+            actor_id: entry.actorId,
+            target_type: entry.targetType || 'unknown',
+          },
+        });
+      }
+    }
+  } catch (error) {
+    logger.error('[AUDIT] Failed to send to Sentry:', { error });
+  }
 
-  // TODO: Trigger alerts for critical actions (Slack, PagerDuty, etc.)
-  // if (entry.action.includes('grant') || entry.action.includes('impersonate')) {
-  //   await sendSlackAlert(entry);
-  // }
+  // Trigger alerts for critical actions (Super Admin, Impersonation)
+  if (entry.action.includes('grant') || entry.action.includes('impersonate') || entry.action.includes('revoke')) {
+    try {
+      // Log critical action with high priority
+      logger.warn(`[AUDIT CRITICAL] ${entry.action} by ${entry.actorEmail} on ${entry.target}`, {
+        ...entry,
+        severity: 'critical',
+      });
+      
+      // Future: Send Slack/PagerDuty alert
+      // if (process.env.SLACK_WEBHOOK_URL) {
+      //   await fetch(process.env.SLACK_WEBHOOK_URL, {
+      //     method: 'POST',
+      //     headers: { 'Content-Type': 'application/json' },
+      //     body: JSON.stringify({
+      //       text: `🚨 CRITICAL AUDIT: ${entry.action}`,
+      //       attachments: [{ text: JSON.stringify(entry, null, 2), color: 'danger' }]
+      //     })
+      //   });
+      // }
+    } catch (alertError) {
+      logger.error('[AUDIT] Failed to send critical alert:', { alertError });
+    }
+  }
 }
 
 /**

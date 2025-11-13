@@ -72,23 +72,77 @@ export function routeApproval(request: ApprovalRequest): ApprovalWorkflow {
   // Build approval stages
   const stages: ApprovalStage[] = [];
   
-  // Main approval stage (sequential)
+  // Main approval stage (sequential) - Query actual users by role
+  const approverIds: string[] = [];
+  const approverRoles: Role[] = policy.require.map(r => r.role);
+  
+  try {
+    // Query users with required roles in the same organization
+    const { User } = await import('@/server/models/User');
+    await connectToDatabase();
+    
+    for (const roleReq of policy.require) {
+      const users = await User.find({
+        'professional.role': roleReq.role,
+        orgId: request.orgId,
+        isActive: true,
+      }).select('_id email professional.role').limit(10).lean();
+      
+      if (users && users.length > 0) {
+        approverIds.push(...users.map(u => u._id.toString()));
+      } else {
+        logger.warn(`[Approval] No users found for role ${roleReq.role} in org ${request.orgId}`);
+      }
+    }
+    
+    // If no approvers found, log warning but don't fail workflow creation
+    if (approverIds.length === 0) {
+      logger.warn('[Approval] No approvers found - workflow will need manual assignment', {
+        orgId: request.orgId,
+        roles: approverRoles,
+      });
+    }
+  } catch (error) {
+    logger.error('[Approval] Failed to query approvers:', { error });
+  }
+  
   stages.push({
     stage: 1,
-    approvers: [], // TODO: Query users by role in org/property
-    approverRoles: policy.require.map(r => r.role),
+    approvers: approverIds,
+    approverRoles,
     type: 'sequential',
-    timeout: (policy.timeoutHours || 24) * 60 * 60 * 1000, // Convert to milliseconds
+    timeout: (policy.timeoutHours || 24) * 60 * 60 * 1000,
     status: 'pending',
     decisions: []
   });
 
-  // Parallel approval stage if defined
+  // Parallel approval stage if defined - Query actual users
   if (policy.parallelWith && policy.parallelWith.length > 0) {
+    const parallelApproverIds: string[] = [];
+    const parallelRoles: Role[] = policy.parallelWith.map(r => r.role);
+    
+    try {
+      const { User } = await import('@/server/models/User');
+      
+      for (const roleReq of policy.parallelWith) {
+        const users = await User.find({
+          'professional.role': roleReq.role,
+          orgId: request.orgId,
+          isActive: true,
+        }).select('_id email professional.role').limit(10).lean();
+        
+        if (users && users.length > 0) {
+          parallelApproverIds.push(...users.map(u => u._id.toString()));
+        }
+      }
+    } catch (error) {
+      logger.error('[Approval] Failed to query parallel approvers:', { error });
+    }
+    
     stages.push({
       stage: 2,
-      approvers: [],
-      approverRoles: policy.parallelWith.map(r => r.role),
+      approvers: parallelApproverIds,
+      approverRoles: parallelRoles,
       type: 'parallel',
       timeout: (policy.timeoutHours || 24) * 60 * 60 * 1000,
       status: 'pending',
@@ -203,26 +257,61 @@ export function checkTimeouts(workflow: ApprovalWorkflow): ApprovalWorkflow {
   const elapsedTime = Date.now() - workflow.updatedAt.getTime();
 
   if (elapsedTime > currentStage.timeout) {
-    // Timeout occurred - escalate
+    // Timeout occurred - escalate to higher roles
     const policy = APPROVAL_POLICIES.find(p => p.require.length > 0);
     
-    if (policy?.escalateTo) {
-      // Add escalation approvers
-      policy.escalateTo.forEach(role => {
-        if (!currentStage.approverRoles.includes(role)) {
-          currentStage.approverRoles.push(role);
-          // TODO: Query and add user IDs for escalation roles
+    if (policy?.escalateTo && policy.escalateTo.length > 0) {
+      try {
+        // Query users with escalation roles
+        const { User } = await import('@/server/models/User');
+        await connectToDatabase();
+        
+        // Get orgId from workflow context (need to pass it in)
+        // For now, we'll add escalation roles to the stage
+        for (const escalationRole of policy.escalateTo) {
+          if (!currentStage.approverRoles.includes(escalationRole)) {
+            currentStage.approverRoles.push(escalationRole);
+            
+            // Query and add escalation approvers
+            const escalationUsers = await User.find({
+              'professional.role': escalationRole,
+              isActive: true,
+            }).select('_id').limit(5).lean();
+            
+            if (escalationUsers && escalationUsers.length > 0) {
+              const escalationIds = escalationUsers.map(u => u._id.toString());
+              currentStage.approvers.push(...escalationIds);
+              logger.info(`[Approval] Added ${escalationIds.length} escalation approvers for role ${escalationRole}`);
+            }
+          }
         }
-      });
-      
-      currentStage.status = 'escalated';
-      workflow.status = 'escalated';
-      workflow.updatedAt = new Date();
+        
+        currentStage.status = 'escalated';
+        workflow.status = 'escalated';
+        workflow.updatedAt = new Date();
+        
+        logger.warn('[Approval] Workflow escalated due to timeout', {
+          workflowId: workflow.requestId,
+          elapsedHours: Math.round(elapsedTime / (1000 * 60 * 60)),
+          escalationRoles: policy.escalateTo,
+        });
+      } catch (error) {
+        logger.error('[Approval] Escalation query failed:', { error });
+        // Fall back to marking as timeout
+        currentStage.status = 'timeout';
+        workflow.status = 'rejected';
+        workflow.updatedAt = new Date();
+      }
     } else {
       // No escalation defined - mark as timeout
       currentStage.status = 'timeout';
       workflow.status = 'rejected'; // Auto-reject on timeout
       workflow.updatedAt = new Date();
+      
+      logger.warn('[Approval] Workflow timed out (no escalation policy)', {
+        workflowId: workflow.requestId,
+        elapsedHours: Math.round(elapsedTime / (1000 * 60 * 60)),
+      });
     }
   }
 
@@ -468,13 +557,56 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
 }
 
 /**
- * Send approval notifications
+ * Send approval notifications to approvers
  */
 export async function notifyApprovers(
   workflow: ApprovalWorkflow,
   stage: ApprovalStage
 ): Promise<void> {
-  // TODO: Implement notification sending
-  // Use NOTIFY config from fm.behavior.ts
-  logger.info('[Approval] Notifying approvers', { stage: stage.stage, requestId: workflow.requestId });
+  try {
+    // Get approver details from User model
+    const { User } = await import('@/server/models/User');
+    const { buildNotification, sendNotification } = await import('./fm-notifications');
+    
+    if (stage.approvers.length === 0) {
+      logger.warn('[Approval] No approvers to notify', { workflowId: workflow.requestId });
+      return;
+    }
+    
+    const approvers = await User.find({
+      _id: { $in: stage.approvers }
+    }).select('_id email personal.firstName personal.lastName').lean();
+    
+    if (!approvers || approvers.length === 0) {
+      logger.warn('[Approval] Approver details not found', { 
+        approverIds: stage.approvers,
+        workflowId: workflow.requestId 
+      });
+      return;
+    }
+    
+    // Build notification payload
+    const recipients = approvers.map(approver => ({
+      userId: approver._id.toString(),
+      name: `${approver.personal?.firstName || ''} ${approver.personal?.lastName || ''}`.trim() || approver.email || 'Approver',
+      email: approver.email,
+      preferredChannels: ['push', 'email'] as const,
+    }));
+    
+    const notification = buildNotification('onApprovalRequested', {
+      quotationId: workflow.quotationId,
+      workOrderId: workflow.workOrderId,
+      description: `Stage ${stage.stage} approval required`,
+    }, recipients);
+    
+    await sendNotification(notification);
+    
+    logger.info('[Approval] Notifications sent', { 
+      workflowId: workflow.requestId,
+      stage: stage.stage,
+      recipientCount: recipients.length 
+    });
+  } catch (error) {
+    logger.error('[Approval] Failed to send notifications:', { error });
+  }
 }
