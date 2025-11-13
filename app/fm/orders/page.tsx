@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CardGridSkeleton } from '@/components/skeletons';
+import ClientDate from '@/components/ClientDate';
 import {
   Search, Download, Eye, Edit, Trash2,
   ShoppingCart, DollarSign, Calendar, Package
@@ -273,7 +274,7 @@ export default function OrdersPage() {
                             {order.deliveryDate && (
                               <>
                                 <Calendar className="h-4 w-4" />
-                                {t('order.delivery', 'Delivery')}: {new Date(order.deliveryDate).toLocaleDateString()}
+                                {t('order.delivery', 'Delivery')}: <ClientDate date={order.deliveryDate} format="date-only" />
                               </>
                             )}
                           </div>
