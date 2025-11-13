@@ -250,9 +250,12 @@ export default function AuditLogViewer() {
               id="start-date"
               type="date"
               className="w-full rounded-2xl border-border bg-background text-foreground"
-              value={filters.startDate?.toISOString().split('T')[0] || ''}
-              max={filters.endDate?.toISOString().split('T')[0] || undefined}
-              onChange={(e) => setFilters({ ...filters, startDate: e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined })}
+              value={filters.startDate ? filters.startDate.toISOString().split('T')[0] : ''}
+              max={filters.endDate ? filters.endDate.toISOString().split('T')[0] : undefined}
+              onChange={(e) => {
+                const value = e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined;
+                setFilters({ ...filters, startDate: value });
+              }}
             />
           </div>
 
@@ -264,9 +267,12 @@ export default function AuditLogViewer() {
               id="end-date"
               type="date"
               className="w-full rounded-2xl border-border bg-background text-foreground"
-              value={filters.endDate?.toISOString().split('T')[0] || ''}
-              min={filters.startDate?.toISOString().split('T')[0] || undefined}
-              onChange={(e) => setFilters({ ...filters, endDate: e.target.value ? new Date(e.target.value + 'T23:59:59') : undefined })}
+              value={filters.endDate ? filters.endDate.toISOString().split('T')[0] : ''}
+              min={filters.startDate ? filters.startDate.toISOString().split('T')[0] : undefined}
+              onChange={(e) => {
+                const value = e.target.value ? new Date(e.target.value + 'T23:59:59') : undefined;
+                setFilters({ ...filters, endDate: value });
+              }}
             />
           </div>
         </div>
