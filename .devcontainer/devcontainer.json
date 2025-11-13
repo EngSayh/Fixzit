@@ -20,10 +20,14 @@
         "esbenp.prettier-vscode"
       ],
       "settings": {
-        // — Agent: FULL AUTO in container —
+        // — Agent: FULL UNCONDITIONAL AUTO in container —
         "chat.agent.enabled": true,
         "chat.agent.maxRequests": 999,
+        
+        // Full auto-approve (boolean true = unconditional)
         "chat.tools.global.autoApprove": true,
+        "chat.tools.terminal.autoApprove": true,
+        "chat.tools.edits.autoApprove": true,
 
         // Stop interactive CLI pauses (y/n, prompts)
         "chat.tools.terminal.autoReplyToPrompts": true,
@@ -33,45 +37,12 @@
 
         // Checkpoints for rollback
         "chat.checkpoints.enabled": true,
+        
+        // Disable notification balloons
+        "chat.notifyWindowOnConfirmation": false,
 
         // Disable MCP discovery (boolean, not object)
         "chat.mcp.discovery.enabled": false,
-
-        // File edits: auto-approve (with minimal guards)
-        "chat.tools.edits.autoApprove": {
-          "**/*": true,
-          "**/.env*": false,
-          "**/.vscode/**": false,
-          "**/package.json": false,
-          "**/pnpm-lock.yaml": false,
-          "**/yarn.lock": false
-        },
-
-        // Terminal auto-approve: allow safe, block pushes
-        "chat.tools.terminal.autoApprove": {
-          "/^git (status|branch|checkout\\b.*|add\\b.*|commit\\b.*|show\\b.*|diff\\b.*|fetch\\b.*|stash\\b.*|restore\\b.*|switch\\b.*|pull\\b.*)$/": true,
-          "/^(npm|pnpm|yarn|bun) (ci|install|run build|run dev|run test|run lint|test\\b.*|build\\b.*)$/": true,
-          "bash": true,
-          "sh": true,
-          "node": true,
-          "npx": true,
-          "gh": true,
-          "echo": true,
-          "cat": true,
-          "ls": true,
-          "pwd": true,
-          "mkdir": true,
-          "cp": true,
-
-          // Hard blocks — include ALL push variants
-          "/^git push\\b/": false,
-          "/^git push\\s+--force/": false,
-          "del": false,
-          "rm": false,
-          "rmdir": false,
-          "chmod": false,
-          "chown": false
-        },
 
         // Trust: zero prompts in container
         "security.workspace.trust.enabled": false,

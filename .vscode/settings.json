@@ -45,7 +45,7 @@
 
   // ============================================================================
   // FULL AUTO-APPROVAL FOR AGENT AUTONOMY (ALL SCOPES)
-  // - User, Workspace, and Remote settings aligned
+  // - Unconditional auto-approve: User, Workspace, and Remote
   // - Zero confirmation prompts for maximum agent autonomy
   // - Aligned with Fixzit governance: "run fully automatic, no prompts"
   // ============================================================================
@@ -75,48 +75,23 @@
     "testFailure": true
   },
 
-  // Chat Agent Settings - Maximum autonomy (all scopes)
+  // Chat Agent Settings - FULL UNCONDITIONAL AUTO-APPROVAL
   "chat.agent.enabled": true,
   "chat.agent.maxRequests": 999,
+  
+  // CRITICAL: Full auto-approve (boolean true = unconditional)
   "chat.tools.global.autoApprove": true,
+  "chat.tools.terminal.autoApprove": true,
+  "chat.tools.edits.autoApprove": true,
+  
+  // Auto-reply and auto-accept
   "chat.tools.terminal.autoReplyToPrompts": true,
   "chat.editing.autoAcceptDelay": 3,
   "chat.checkpoints.enabled": true,
+  "chat.notifyWindowOnConfirmation": false,
+  
+  // Disable MCP discovery
   "chat.mcp.discovery.enabled": false,
-
-  // SECURITY: File edits - Auto-approve ALL files with safe guardrails
-  "chat.tools.edits.autoApprove": {
-    "**/*": true,
-    "**/.env*": false,
-    "**/.vscode/**": false,
-    "**/package.json": false,
-    "**/pnpm-lock.yaml": false,
-    "**/yarn.lock": false
-  },
-
-  // SECURITY: Terminal commands - NO 'git push' in allowlist
-  "chat.tools.terminal.autoApprove": {
-    "/^git (status|branch|checkout\\b.*|add\\b.*|commit\\b.*|show\\b.*|diff\\b.*|fetch\\b.*|stash\\b.*|restore\\b.*|switch\\b.*|pull\\b.*)$/": true,
-    "/^(npm|pnpm|yarn|bun) (ci|install|run build|run dev|run test|run lint|test\\b.*|build\\b.*)$/": true,
-    "bash": true,
-    "sh": true,
-    "node": true,
-    "npx": true,
-    "gh": true,
-    "echo": true,
-    "cat": true,
-    "ls": true,
-    "pwd": true,
-    "mkdir": true,
-    "cp": true,
-    "/^git push\\b/": false,
-    "/^git push\\s+--force/": false,
-    "del": false,
-    "rm": false,
-    "rmdir": false,
-    "chmod": false,
-    "chown": false
-  },
 
   // SECURITY: Workspace trust disabled for full agent autonomy
   "security.workspace.trust.enabled": false,
