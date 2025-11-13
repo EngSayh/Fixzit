@@ -20,37 +20,75 @@
         "esbenp.prettier-vscode"
       ],
       "settings": {
+        // Agent mode - Maximum autonomy in container (safe environment)
         "chat.agent.enabled": true,
         "chat.agent.maxRequests": 999,
         "chat.tools.global.autoApprove": true,
         "chat.tools.terminal.autoReplyToPrompts": true,
         "github.copilot.chat.agent.runTasks": true,
-        "chat.notifyWindowOnConfirmation": true,
+        "chat.notifyWindowOnConfirmation": false,
         "chat.checkpoints.enabled": true,
-        "chat.editing.autoAccept": 2,
-        "github.copilot.chat.virtualTools.threshold": 1,
-        "chat.mcp.discovery.enabled": true,
-        "chat.tools.edits.autoApprove": {
-          "**/*": true
+        "chat.editing.autoAccept": 3,
+        "github.copilot.chat.virtualTools.threshold": 0,
+        
+        // MCP Discovery - disable in container
+        "chat.mcp.discovery.enabled": {
+          "claude-desktop": false,
+          "windsurf": false,
+          "cursor-global": false,
+          "cursor-workspace": false
         },
+        
+        // File edits - auto-approve pattern (container-safe)
+        "chat.tools.edits.autoApprove": {
+          "**/*": true,
+          "**/.env*": false,
+          "**/.vscode/**": false,
+          "**/package.json": false,
+          "**/pnpm-lock.yaml": false
+        },
+        
+        // Terminal commands - comprehensive allow/deny
         "chat.tools.terminal.autoApprove": {
-          "npm": true,
-          "pnpm": true,
-          "yarn": true,
-          "bun": true,
+          "/^git (status|branch|checkout\\b.*|add\\b.*|commit\\b.*|push\\b.*|show\\b.*|diff\\b.*|fetch\\b.*|stash\\b.*|restore\\b.*|switch\\b.*)$/": true,
+          "/^(npm|pnpm|yarn|bun) (ci|install|run build|run dev|run test|run lint|test\\b.*|build\\b.*)$/": true,
+          "bash": true,
+          "sh": true,
           "node": true,
           "npx": true,
           "git": true,
           "gh": true,
-          "bash": true,
-          "sh": true,
           "python": true,
           "pytest": true,
           "docker": true,
-          "make": true
+          "make": true,
+          "echo": true,
+          "cat": true,
+          "ls": true,
+          "pwd": true,
+          "mkdir": true,
+          "cp": true,
+          
+          // Block dangerous operations
+          "del": false,
+          "rm": false,
+          "rmdir": false,
+          "chmod": false,
+          "chown": false,
+          "/^git push\\s+origin\\s+(main|master)$/": false,
+          "/^git push\\s+--force/": false
         },
-        "security.workspace.trust.enabled": true,
+        
+        // Workspace trust - container is safe environment
+        "security.workspace.trust.enabled": false,
+        "security.workspace.trust.untrustedFiles": "open",
+        "security.workspace.trust.startupPrompt": "never",
+        
+        // Git branch protection
         "git.branchProtection": ["main", "master"],
+        "git.branchProtectionPrompt": "alwaysPrompt",
+        
+        // Copilot instructions
         "github.copilot.chat.codeGeneration.useInstructionFiles": true
       }
     }

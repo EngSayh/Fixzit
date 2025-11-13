@@ -76,15 +76,26 @@
   },
 
   // Chat Agent Settings - Maximum autonomy (all scopes)
+  // Configured per ChatGPT comprehensive auto-approve instructions (final consolidated version)
   "chat.agent.enabled": true,
   "chat.agent.maxRequests": 999,
+  
+  // CRITICAL: Global auto-approve - eliminates ALL permission prompts
   "chat.tools.global.autoApprove": true,
+  
+  // Auto-reply to terminal prompts (prevents hanging on y/n questions)
   "chat.tools.terminal.autoReplyToPrompts": true,
+  
+  // Disable notification balloons when input would be needed
   "chat.notifyWindowOnConfirmation": false,
+  
+  // Enable checkpoints for rollback capability
   "chat.checkpoints.enabled": true,
+  
+  // Auto-accept edits after N seconds (3 seconds per ChatGPT guidance)
   "chat.editing.autoAccept": 3,
 
-  // MCP Discovery
+  // MCP Discovery - object format, disable all sources to reduce prompts
   "chat.mcp.discovery.enabled": {
     "claude-desktop": false,
     "windsurf": false,
@@ -92,17 +103,49 @@
     "cursor-workspace": false
   },
 
-  // SECURITY: File edits - Full auto-approval for local development
-  // All file edits auto-approved for agent autonomy
-  "chat.tools.edits.autoApprove": true,
+  // SECURITY: File edits - Auto-approve ALL files with safe guardrails
+  // Per ChatGPT: "Auto-approve edits everywhere by default, except a small protected set"
+  "chat.tools.edits.autoApprove": {
+    "**/*": true,
+    "**/.env*": false,
+    "**/.vscode/**": false,
+    "**/package.json": false,
+    "**/pnpm-lock.yaml": false,
+    "**/yarn.lock": false
+  },
 
-  // SECURITY: Terminal commands - Full auto-approval for local development
-  // All commands auto-approved for agent autonomy
-  "chat.tools.terminal.autoApprove": true,
+  // SECURITY: Terminal commands - Auto-approve safe commands with allow/deny patterns
+  // Per ChatGPT: Allow routine commands, block destructive operations
+  "chat.tools.terminal.autoApprove": {
+    "/^git (status|branch|checkout\\b.*|add\\b.*|commit\\b.*|push\\b.*|show\\b.*|diff\\b.*|fetch\\b.*|stash\\b.*|restore\\b.*|switch\\b.*)$/": true,
+    "/^(npm|pnpm|yarn|bun) (ci|install|run build|run dev|run test|run lint|test\\b.*|build\\b.*)$/": true,
+    "bash": true,
+    "sh": true,
+    "node": true,
+    "npx": true,
+    "gh": true,
+    "echo": true,
+    "cat": true,
+    "ls": true,
+    "pwd": true,
+    "mkdir": true,
+    "cp": true,
+    
+    // Block dangerous commands
+    "del": false,
+    "/dangerous/": false,
+    "rm": false,
+    "rmdir": false,
+    "chmod": false,
+    "chown": false,
+    "/^git push\\s+origin\\s+(main|master)$/": false,
+    "/^git push\\s+--force/": false
+  },
 
   // SECURITY: Workspace trust disabled for full agent autonomy
   "security.workspace.trust.enabled": false,
   "security.workspace.trust.untrustedFiles": "open",
+  "security.workspace.trust.startupPrompt": "never",
 
   // Limit CodeRabbit's automatic review scope to avoid token/context exhaustion
   // and reduce extension timeouts on large repositories. These safer defaults
