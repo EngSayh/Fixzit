@@ -1,4 +1,6 @@
 import { logger } from '@/lib/logger';
+import { AuditLogModel } from '@/server/models/AuditLog';
+
 /**
  * Audit Logging System
  * 
@@ -18,15 +20,16 @@ export type AuditEvent = {
   success?: boolean;    // Whether action succeeded
   error?: string;       // Error message if failed
   timestamp?: string;   // ISO timestamp (auto-added)
+  orgId?: string;       // Organization ID for multi-tenancy
 };
 
 /**
  * Audit log to console and/or database
  * 
  * In production, this should:
- * - Write to a dedicated audit collection
- * - Send to external logging service (CloudWatch, DataDog, etc.)
- * - Trigger alerts for critical actions
+ * - Write to a dedicated audit collection ✅ DONE
+ * - Send to external logging service (CloudWatch, DataDog, etc.) TODO: Future enhancement
+ * - Trigger alerts for critical actions TODO: Future enhancement
  * 
  * @param event Audit event data
  */
@@ -36,16 +39,41 @@ export async function audit(event: AuditEvent): Promise<void> {
     timestamp: event.timestamp || new Date().toISOString(),
   };
 
-  // Console logging (replace with structured logger in production)
-  logger.info('[AUDIT] ' + JSON.stringify(entry));
+  // Structured logging
+  logger.info('[AUDIT]', entry);
 
-  // TODO: Write to database
-  // await AuditLog.create(entry);
+  // ✅ Write to database
+  try {
+    await AuditLogModel.log({
+      orgId: event.orgId || 'system',
+      action: event.action.split('.')[1]?.toUpperCase() || 'CUSTOM',
+      entityType: event.targetType?.toUpperCase() || 'OTHER',
+      entityId: event.target || undefined,
+      entityName: event.target || undefined,
+      userId: event.actorId,
+      context: {
+        ipAddress: event.ipAddress,
+        userAgent: event.userAgent,
+      },
+      metadata: {
+        ...event.meta,
+        actorEmail: event.actorEmail,
+        source: 'WEB',
+      },
+      result: {
+        success: event.success !== false,
+        errorMessage: event.error,
+      },
+    });
+  } catch (dbError) {
+    // Silent fail - don't break main operation if database write fails
+    logger.error('[AUDIT] Database write failed:', { dbError });
+  }
 
-  // TODO: Send to external service
+  // TODO: Send to external service (CloudWatch, DataDog, etc.)
   // await sendToDatadog(entry);
 
-  // TODO: Trigger alerts for critical actions
+  // TODO: Trigger alerts for critical actions (Slack, PagerDuty, etc.)
   // if (entry.action.includes('grant') || entry.action.includes('impersonate')) {
   //   await sendSlackAlert(entry);
   // }
