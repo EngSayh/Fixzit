@@ -16,12 +16,20 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
   const headerToken = req.headers.get('Authorization')?.replace('Bearer ', '');
   const xUserHeader = req.headers.get("x-user"); // Fallback for development
   
+  console.log('[DEBUG getSessionUser] Headers check:', {
+    hasXUser: !!xUserHeader,
+    hasCookieToken: !!cookieToken,
+    hasHeaderToken: !!headerToken,
+    xUserFull: xUserHeader
+  });
+  
   // Development fallback - prioritize for testing
   if (xUserHeader) {
     try {
       const parsed = JSON.parse(xUserHeader);
       // Ensure both orgId and tenantId are set (they should be the same)
       const tenantValue = parsed.orgId || parsed.tenantId;
+      console.log('[DEBUG getSessionUser] Parsed x-user:', { id: parsed.id, role: parsed.role, orgId: tenantValue });
       return {
         id: parsed.id,
         role: parsed.role as Role,

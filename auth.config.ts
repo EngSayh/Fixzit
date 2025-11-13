@@ -403,6 +403,15 @@ export const authConfig = {
     },
     // Session callback - add JWT data to session
     async session({ session, token }) {
+      console.log('[DEBUG session callback] Token data:', { 
+        id: token.id, 
+        role: token.role, 
+        orgId: token.orgId,
+        isSuperAdmin: token.isSuperAdmin,
+        hasPermissions: Array.isArray(token.permissions),
+        hasRoles: Array.isArray(token.roles)
+      });
+      
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = (token.role as string) || 'USER';
@@ -410,6 +419,12 @@ export const authConfig = {
         session.user.isSuperAdmin = token.isSuperAdmin as boolean || false;
         session.user.permissions = (token.permissions as string[]) || [];
         session.user.roles = (token.roles as string[]) || [];
+        
+        console.log('[DEBUG session callback] Session user set:', {
+          id: session.user.id,
+          role: session.user.role,
+          orgId: session.user.orgId
+        });
       }
       return session;
     },
