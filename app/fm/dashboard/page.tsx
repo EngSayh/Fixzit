@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { StatsCardSkeleton } from '@/components/skeletons';
-import ClientDate from '@/components/ClientDate';
 import { 
   Building2, Users, Wrench, DollarSign, 
   ClipboardList,

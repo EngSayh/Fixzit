@@ -119,7 +119,7 @@ export default async function MarketplaceAdminPage() {
                       {order.totals.grand.toFixed(2)} {order.currency}
                     </td>
                     <td className="py-2">{order.approvals?.status}</td>
-                    <td className="py-2"><ClientDate date={order.createdAt} format="datetime" /></td>
+                    <td className="py-2"><ClientDate date={order.createdAt} format="medium" /></td>
                   </tr>
                 ))}
             </tbody>
