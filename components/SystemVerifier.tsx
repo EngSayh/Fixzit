@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { autoFixManager } from '@/lib/AutoFixManager';
 import { CheckCircle, XCircle, AlertTriangle, RefreshCw, Activity, Database, Network, Shield, Zap } from 'lucide-react';
+import ClientDate from '@/components/ClientDate';
 
 // ✅ FIXED: Use standard components
 import { Button } from './ui/button';
@@ -195,7 +196,7 @@ export default function SystemVerifier() {
                     {t('system.lastCheck', 'Last Check')}
                   </h3>
                   <div className="text-sm text-muted-foreground">
-                    {new Date(status.lastCheck).toLocaleTimeString()}
+                    <ClientDate date={status.lastCheck} format="time-only" />
                   </div>
                 </div>
               </div>
