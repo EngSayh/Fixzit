@@ -34,7 +34,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
   if (!schema.paths.orgId) {
     schema.add({
       orgId: { 
-        type: Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: 'Organization',
         required: true
       }
