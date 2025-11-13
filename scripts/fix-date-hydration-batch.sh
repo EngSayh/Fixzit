@@ -36,10 +36,10 @@ FILES=(
 for file in "${FILES[@]}"; do
   if [ -f "$file" ]; then
     echo "  ✓ $file"
-    ((FIXED++))
+    ((FIXED+=1))
   else
     echo "  ✗ $file (not found)"
-    ((ERRORS++))
+    ((ERRORS+=1))
   fi
 done
 

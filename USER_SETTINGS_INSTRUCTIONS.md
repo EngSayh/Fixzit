@@ -12,8 +12,8 @@
 ### Instructions
 
 1. Open VS Code
-2. Press `Cmd+Shift+P` → Type **"Preferences: Open User Settings (JSON)"**
-3. **Merge** (don't replace) the following JSON into your User Settings:
+1. Press `Cmd+Shift+P` → Type **"Preferences: Open User Settings (JSON)"**
+1. **Merge** (don't replace) the following JSON into your User Settings:
 
 ```json
 {
@@ -38,7 +38,7 @@
 }
 ```
 
-4. Save the file
+1. Save the file
 
 ---
 
