@@ -401,6 +401,18 @@ export const authConfig = {
       
       return token;
     },
+    // Session callback - add JWT data to session
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.role = (token.role as string) || 'USER';
+        session.user.orgId = token.orgId as string | null;
+        session.user.isSuperAdmin = token.isSuperAdmin as boolean || false;
+        session.user.permissions = (token.permissions as string[]) || [];
+        session.user.roles = (token.roles as string[]) || [];
+      }
+      return session;
+    },
   },
   session: {
     strategy: 'jwt',
