@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, X, Loader2 } from 'lucide-react';
 import { useAIChatStore } from '@/stores/useAIChatStore';
+import ClientDate from '@/components/ClientDate';
 
 export default function AIChat({ onClose }: { onClose: () => void }) {
   const {
@@ -89,7 +90,7 @@ export default function AIChat({ onClose }: { onClose: () => void }) {
               }`}>
                 <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                 <p className="text-xs mt-1 opacity-70">
-                  {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <ClientDate date={message.timestamp} format="time-only" />
                 </p>
               </div>
             </div>
