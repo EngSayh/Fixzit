@@ -67,7 +67,7 @@ const ComplianceDocumentSchema = new Schema<IComplianceDocument>({
   type: { type: String, enum: ['IQAMA', 'PASSPORT', 'CONTRACT', 'VISA', 'OTHER'], required: true },
   number: String,
   issueDate: Date,
-  expiryDate: { type: Date, required: true, index: true }, // Index for expiry alerts
+  expiryDate: { type: Date, required: true }, // Index defined at schema level (line 138)
   fileUrl: String,
   notes: String,
 }, { _id: false });
