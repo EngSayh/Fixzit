@@ -84,6 +84,15 @@
   "chat.tools.terminal.autoApprove": true,
   "chat.tools.edits.autoApprove": true,
   
+  // Exclude system paths from file write approval prompts
+  "chat.tools.edits.fileWriteExcludePatterns": [
+    "/dev/null",
+    "/dev/**",
+    "/tmp/**",
+    "**/tmp/**",
+    "/var/**"
+  ],
+  
   // Auto-reply and auto-accept
   "chat.tools.terminal.autoReplyToPrompts": true,
   "chat.editing.autoAcceptDelay": 3,
