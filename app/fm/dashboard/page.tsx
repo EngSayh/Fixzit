@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { StatsCardSkeleton } from '@/components/skeletons';
+import ClientDate from '@/components/ClientDate';
 import { 
   Building2, Users, Wrench, DollarSign, 
   ClipboardList,
@@ -122,7 +123,12 @@ export default function DashboardPage() {
     workOrders: {
       total: workOrders?.total || 0,
       pending: workOrders?.items?.filter((wo: WorkOrder) => wo.status === WOStatus.NEW).length || 0,
-      overdue: workOrders?.items?.filter((wo: WorkOrderWithDue) => wo.dueAt && new Date(wo.dueAt) < new Date()).length || 0
+      overdue: workOrders?.items?.filter((wo: WorkOrderWithDue) => {
+        if (!wo.dueAt) return false;
+        const dueDate = new Date(wo.dueAt);
+        const now = new Date();
+        return dueDate < now;
+      }).length || 0
     },
     properties: {
       total: properties?.total || 0,
@@ -219,7 +225,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.finance.overdue}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.finance.amount.toLocaleString()} SAR pending
+              {new Intl.NumberFormat('en-SA').format(stats.finance.amount)} SAR pending
             </p>
             <Link href="/fm/finance" className="text-xs text-destructive hover:underline flex items-center mt-2">
               View invoices <ChevronRight className="w-3 h-3" />
