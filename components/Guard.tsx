@@ -1,4 +1,5 @@
 /**
+import { logger } from '@/lib/logger';
  * RBAC Guard Component
  * 
  * Conditionally renders children based on permission checks.
@@ -147,7 +148,7 @@ export default function Guard({
   }
   // No checks specified, allow by default (guard is misconfigured)
   else {
-    console.warn('[Guard] No permission or role checks specified. Allowing by default.');
+    logger.warn('[Guard] No permission or role checks specified. Allowing by default.');
     allowed = true;
   }
   

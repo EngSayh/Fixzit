@@ -1,4 +1,5 @@
 /**
+import { logger } from '@/lib/logger';
  * Request context utilities for Finance Pack
  * Provides thread-safe user/tenant context for service layer using AsyncLocalStorage
  */
@@ -35,7 +36,7 @@ const requestStorage = new AsyncLocalStorage<RequestContext>();
  
 export function setRequestContext(_context: RequestContext): void {
   // This is a no-op now - context must be set via runWithContext
-  console.warn('setRequestContext is deprecated. Use runWithContext instead.');
+  logger.warn('setRequestContext is deprecated. Use runWithContext instead.');
 }
 
 /**

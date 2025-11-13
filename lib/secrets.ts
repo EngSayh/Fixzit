@@ -101,7 +101,7 @@ export async function getSecret(
         }
       } catch (awsError) {
         const errorMessage = awsError instanceof Error ? awsError.message : String(awsError);
-        console.warn('[Secrets] Failed to retrieve from AWS:', secretName, errorMessage);
+        logger.warn('[Secrets] Failed to retrieve from AWS:', secretName, errorMessage);
         // Fall through to environment variable fallback
       }
     }
@@ -130,7 +130,7 @@ export async function getSecret(
       logger.error('[Secrets] Failed to retrieve required secret', { secretName, error });
       throw error;
     }
-    console.warn('[Secrets] Failed to retrieve optional secret:', secretName);
+    logger.warn('[Secrets] Failed to retrieve optional secret:', secretName);
     return null;
   }
 }
@@ -160,8 +160,8 @@ export async function getJWTSecret(): Promise<string> {
   }
 
   // Development fallback - generate ephemeral secret
-  console.warn('[Secrets] No JWT_SECRET configured. Using ephemeral secret for development.');
-  console.warn('[Secrets] Set JWT_SECRET environment variable for session persistence.');
+  logger.warn('[Secrets] No JWT_SECRET configured. Using ephemeral secret for development.');
+  logger.warn('[Secrets] Set JWT_SECRET environment variable for session persistence.');
   
   return randomBytes(32).toString('hex');
 }

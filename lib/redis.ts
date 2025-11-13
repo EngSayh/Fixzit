@@ -30,7 +30,7 @@ export function getRedisClient(): Redis | null {
   // Redis is optional - return null if no URL configured
   if (!process.env.REDIS_URL) {
     if (process.env.NODE_ENV === 'development') {
-      console.warn('[Redis] No REDIS_URL configured - Redis features disabled');
+      logger.warn('[Redis] No REDIS_URL configured - Redis features disabled');
     }
     return null;
   }
@@ -85,7 +85,7 @@ export function getRedisClient(): Redis | null {
     });
 
     redis.on('close', () => {
-      console.warn('[Redis] Connection closed');
+      logger.warn('[Redis] Connection closed');
       // Reset isConnecting flag on close to allow reconnection
       isConnecting = false;
     });

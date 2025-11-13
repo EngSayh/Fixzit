@@ -1,4 +1,5 @@
 /**
+import { logger } from '@/lib/logger';
  * Production-safe logging utility
  * Replaces console.* calls with proper logging that:
  * - Respects environment (dev vs production)
@@ -33,7 +34,7 @@ class Logger {
    */
   warn(message: string, context?: LogContext): void {
     if (this.isDevelopment || !this.isTest) {
-      console.warn('[WARN]', message, context || '');
+      logger.warn('[WARN]', message, context || '');
     }
     // In production, send to monitoring service
     if (!this.isDevelopment && !this.isTest) {

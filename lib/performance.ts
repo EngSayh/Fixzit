@@ -51,7 +51,7 @@ function logMetrics(metrics: PerformanceMetrics) {
 
   // Alert if threshold exceeded
   if (metrics.exceeded) {
-    console.warn(
+    logger.warn(
       `⚠️ PERFORMANCE WARNING: Request exceeded ${PERFORMANCE_THRESHOLD_MS / 1000}s threshold\n` +
       `   URL: ${metrics.url}\n` +
       `   Duration: ${durationSec}s\n` +
@@ -228,7 +228,7 @@ export function reportWebVitals(metric: WebVitalsMetric) {
   
   const threshold = thresholds[name];
   if (threshold && value > threshold) {
-    console.warn(
+    logger.warn(
       `⚠️ [Web Vitals] ${name} exceeded threshold: ${value.toFixed(2)} > ${threshold}`
     );
   }

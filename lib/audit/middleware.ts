@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from './logger';
 import { auth } from '@/auth';
 import { AuditLogModel } from '@/server/models/AuditLog';
 
@@ -150,7 +151,7 @@ export async function auditLogMiddleware(
     session = await auth();
   } catch (authError) {
     // If auth check fails, log the error but continue as anonymous
-    console.warn('Auth session check failed during audit log, proceeding as anonymous.', authError);
+    logger.warn('Auth session check failed during audit log, proceeding as anonymous.', authError);
   }
   
   // Extract request context

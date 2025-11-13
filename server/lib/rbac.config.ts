@@ -1,4 +1,5 @@
 /**
+import { logger } from '@/lib/logger';
  * Role-Based Access Control (RBAC) Configuration for Finance Pack
  * 
  * Defines which roles can access which finance endpoints
@@ -64,7 +65,7 @@ export const FinancePermissions = {
 export function hasPermission(userRole: string, permission: keyof typeof FinancePermissions): boolean {
   const allowedRoles = FinancePermissions[permission];
   if (!allowedRoles) {
-    console.warn(`Unknown permission: ${permission}`);
+    logger.warn(`Unknown permission: ${permission}`);
     return false;
   }
   return allowedRoles.includes(userRole as never);

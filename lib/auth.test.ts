@@ -1,4 +1,5 @@
  
+import { logger } from './logger';
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { AuthToken } from './auth';
@@ -171,7 +172,7 @@ describe('auth lib - JWT generation and verification', () => {
     // Mock getJWTSecret to return ephemeral secret and log warning
     const ephemeralSecret = 'ephemeral-dev-secret-12345678901234567890123456789012';
     mockGetJWTSecret.mockImplementation(async () => {
-      console.warn('[Secrets] No JWT_SECRET configured. Using ephemeral secret for development.');
+      logger.warn('[Secrets] No JWT_SECRET configured. Using ephemeral secret for development.');
       return ephemeralSecret;
     });
 

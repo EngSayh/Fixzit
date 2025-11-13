@@ -218,7 +218,7 @@ export async function requireSubscription(
     
     // Warn if subscription expiring soon (within 7 days)
     if (status.daysUntilExpiry && status.daysUntilExpiry > 0 && status.daysUntilExpiry <= 7) {
-      console.warn(`Subscription expiring soon for owner ${ownerId}: ${status.daysUntilExpiry} days remaining`);
+      logger.warn(`Subscription expiring soon for owner ${ownerId}: ${status.daysUntilExpiry} days remaining`);
     }
     
     return {

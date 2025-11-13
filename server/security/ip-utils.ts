@@ -118,7 +118,7 @@ export function validateTrustedProxyCount(): number {
   }
   
   if (count > 10) {
-    console.warn(
+    logger.warn(
       `⚠️  High TRUSTED_PROXY_COUNT (${count}). Verify your proxy chain configuration.`
     );
   }
@@ -139,11 +139,11 @@ export function validateProxyConfiguration(): void {
     logger.info(`   - TRUST_X_REAL_IP: ${process.env.TRUST_X_REAL_IP || 'false'}`);
     
     if (trustedProxyCount === 0) {
-      console.warn(`⚠️  TRUSTED_PROXY_COUNT=0 means direct client connections (no proxy)`);
+      logger.warn(`⚠️  TRUSTED_PROXY_COUNT=0 means direct client connections (no proxy)`);
     }
     
     if (process.env.TRUST_X_REAL_IP === 'true' && trustedProxyCount > 0) {
-      console.warn(`⚠️  Both TRUST_X_REAL_IP and TRUSTED_PROXY_COUNT set. X-Real-IP takes lower priority.`);
+      logger.warn(`⚠️  Both TRUST_X_REAL_IP and TRUSTED_PROXY_COUNT set. X-Real-IP takes lower priority.`);
     }
     
   } catch (error) {

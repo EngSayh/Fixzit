@@ -1,4 +1,5 @@
 import { Schema, model, models, InferSchemaType } from "mongoose";
+import { logger } from '@/lib/logger';
 import { tenantIsolationPlugin, withoutTenantFilter } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 
@@ -216,7 +217,7 @@ FeatureFlagSchema.statics.isEnabled = async function(
       if (typeof percentage !== 'number' || percentage < 0 || percentage > 100) {
         // Structured logging for invalid percentage
         if (typeof console !== 'undefined' && console.warn) {
-          console.warn('[FeatureFlag] Invalid or missing percentage', {
+          logger.warn('[FeatureFlag] Invalid or missing percentage', {
             feature: key,
             percentage,
             timestamp: new Date().toISOString(),
@@ -234,7 +235,7 @@ FeatureFlagSchema.statics.isEnabled = async function(
       } else {
         // No deterministic identifier available, default to disabled
         if (typeof console !== 'undefined' && console.warn) {
-          console.warn('[FeatureFlag] No userId or orgId provided for PERCENTAGE rollout', {
+          logger.warn('[FeatureFlag] No userId or orgId provided for PERCENTAGE rollout', {
             feature: key,
             timestamp: new Date().toISOString(),
           });

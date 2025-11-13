@@ -1,4 +1,5 @@
 /**
+import { logger } from '@/lib/logger';
  * Posting Service
  * 
  * Core double-entry bookkeeping engine for Fixzit Finance Pack.
@@ -185,7 +186,7 @@ class PostingService {
       }
     } catch {
       // Tests with mocks may not support sessions - continue without
-      console.warn('[PostingService] Transaction not available, continuing without (test mode)');
+      logger.warn('[PostingService] Transaction not available, continuing without (test mode)');
     }
 
     try {

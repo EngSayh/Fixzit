@@ -88,7 +88,7 @@ export function initializeSendGrid(): void {
     sgMail.setApiKey(config.apiKey);
     logger.info('✅ SendGrid initialized successfully');
   } catch (error) {
-    console.warn('⚠️ SendGrid not configured:', error instanceof Error ? error.message : 'Unknown error');
+    logger.warn('⚠️ SendGrid not configured:', error instanceof Error ? error.message : 'Unknown error');
   }
 }
 
@@ -153,7 +153,7 @@ export function verifyWebhookSignature(
         logger.error('🚨 Rejecting webhook request for security');
         return false; // Fail-safe in production
       }
-      console.warn('⚠️ SENDGRID_WEBHOOK_VERIFICATION_KEY not configured - allowing in development');
+      logger.warn('⚠️ SENDGRID_WEBHOOK_VERIFICATION_KEY not configured - allowing in development');
       return true; // Allow in development only
     }
 
@@ -162,7 +162,7 @@ export function verifyWebhookSignature(
     const now = Math.floor(Date.now() / 1000);
     
     if (isNaN(requestTimestamp) || Math.abs(now - requestTimestamp) > WEBHOOK_TIMESTAMP_MAX_AGE_SECONDS) {
-      console.warn('⚠️ Webhook timestamp expired or invalid:', timestamp);
+      logger.warn('⚠️ Webhook timestamp expired or invalid:', timestamp);
       return false;
     }
 
