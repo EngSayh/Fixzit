@@ -329,7 +329,7 @@ export default function TrialBalanceReport({
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 border-t pt-4">
             <div className="space-y-2">
               <Label htmlFor="fiscal-year">{t('finance.fiscalYear', 'Fiscal Year')}</Label>
-              <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v))} disabled={loading}>
+              <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))} disabled={loading}>
                 <SelectTrigger id="fiscal-year">
                   <SelectValue />
                 </SelectTrigger>
@@ -344,7 +344,7 @@ export default function TrialBalanceReport({
 
             <div className="space-y-2">
               <Label htmlFor="period">{t('finance.period', 'Period')}</Label>
-              <Select value={String(period)} onValueChange={(v) => setPeriod(parseInt(v))} disabled={loading}>
+              <Select value={String(period)} onValueChange={(v) => setPeriod(parseInt(v, 10))} disabled={loading}>
                 <SelectTrigger id="period">
                   <SelectValue />
                 </SelectTrigger>
