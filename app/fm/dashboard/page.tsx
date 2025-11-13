@@ -150,18 +150,18 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {user?.name || 'User'}</p>
+          <h1 className="text-3xl font-bold">{t('dashboard.title')}</h1>
+          <p className="text-muted-foreground">{t('dashboard.welcomeBack')}, {user?.name || t('common.user', 'User')}</p>
         </div>
         <div className="flex items-center space-x-4">
           <Button variant="outline" className="flex items-center gap-2">
             <Bell className="w-4 h-4" />
-            Notifications
+            {t('dashboard.notifications')}
             <Badge className="ms-2 bg-destructive/20 text-destructive">3</Badge>
           </Button>
           <Button className="bg-primary hover:bg-primary/90">
             <Plus className="w-4 h-4 me-2" />
-            Quick Action
+            {t('dashboard.quickAction')}
           </Button>
         </div>
       </div>
@@ -176,10 +176,10 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.workOrders.total}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.workOrders.pending} pending • {stats.workOrders.overdue} overdue
+              {stats.workOrders.pending} {t('dashboard.pending')} • {stats.workOrders.overdue} {t('dashboard.overdue')}
             </p>
             <Link href="/fm/work-orders" className="text-xs text-primary hover:underline flex items-center mt-2">
-              View all <ChevronRight className="w-3 h-3" />
+              {t('dashboard.viewAll')} <ChevronRight className="w-3 h-3" />
             </Link>
           </CardContent>
         </Card>
@@ -192,10 +192,10 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.properties.total}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.properties.occupied} occupied • {stats.properties.maintenance} need attention
+              {stats.properties.occupied} {t('dashboard.occupied')} • {stats.properties.maintenance} {t('dashboard.needAttention')}
             </p>
             <Link href="/fm/properties" className="text-xs text-success hover:underline flex items-center mt-2">
-              Manage <ChevronRight className="w-3 h-3" />
+              {t('dashboard.manage')} <ChevronRight className="w-3 h-3" />
             </Link>
           </CardContent>
         </Card>
@@ -208,10 +208,10 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.assets.maintenance}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.assets.critical} critical assets
+              {stats.assets.critical} {t('dashboard.criticalAssets')}
             </p>
             <Link href="/fm/assets" className="text-xs text-warning hover:underline flex items-center mt-2">
-              View assets <ChevronRight className="w-3 h-3" />
+              {t('dashboard.viewAssets')} <ChevronRight className="w-3 h-3" />
             </Link>
           </CardContent>
         </Card>
@@ -224,10 +224,10 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.finance.overdue}</div>
             <p className="text-xs text-muted-foreground">
-              {new Intl.NumberFormat('en-SA').format(stats.finance.amount)} SAR pending
+              {new Intl.NumberFormat('en-SA').format(stats.finance.amount)} {t('dashboard.sarPending')}
             </p>
             <Link href="/fm/finance" className="text-xs text-destructive hover:underline flex items-center mt-2">
-              View invoices <ChevronRight className="w-3 h-3" />
+              {t('dashboard.viewInvoices')} <ChevronRight className="w-3 h-3" />
             </Link>
           </CardContent>
         </Card>
@@ -241,7 +241,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">{t('dashboard.recentWorkOrders')}</CardTitle>
               <Link href="/fm/work-orders">
-                <Button variant="ghost" size="sm">View All</Button>
+                <Button variant="ghost" size="sm">{t('dashboard.viewAll')}</Button>
               </Link>
             </div>
           </CardHeader>
@@ -277,9 +277,9 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Property Alerts</CardTitle>
+              <CardTitle className="text-lg">{t('dashboard.propertyAlerts')}</CardTitle>
               <Link href="/fm/properties">
-                <Button variant="ghost" size="sm">View All</Button>
+                <Button variant="ghost" size="sm">{t('dashboard.viewAll')}</Button>
               </Link>
             </div>
           </CardHeader>
@@ -292,17 +292,17 @@ export default function DashboardPage() {
                     <div>
                       <p className="font-medium text-sm">{property.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {property.address?.city} • {property.units?.length || 0} units
+                        {property.address?.city} • {property.units?.length || 0} {t('dashboard.units')}
                       </p>
                     </div>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {property.details?.occupancyRate || 0}% occupied
+                    {property.details?.occupancyRate || 0}% {t('dashboard.occupied')}
                   </span>
                 </div>
               ))}
               {(!properties?.items || properties.items.length === 0) && (
-                <p className="text-sm text-muted-foreground text-center py-4">No properties found</p>
+                <p className="text-sm text-muted-foreground text-center py-4">{t('dashboard.noProperties')}</p>
               )}
             </div>
           </CardContent>
@@ -312,32 +312,32 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Quick Actions</CardTitle>
+          <CardTitle className="text-lg">{t('dashboard.quickActions')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link href="/fm/work-orders/new">
               <Button variant="outline" className="w-full justify-start">
                 <ClipboardList className="w-4 h-4 me-2" />
-                New Work Order
+                {t('dashboard.newWorkOrder')}
               </Button>
             </Link>
             <Link href="/fm/properties/new">
               <Button variant="outline" className="w-full justify-start">
                 <Building2 className="w-4 h-4 me-2" />
-                Add Property
+                {t('dashboard.addProperty')}
               </Button>
             </Link>
             <Link href="/fm/tenants/new">
               <Button variant="outline" className="w-full justify-start">
                 <Users className="w-4 h-4 me-2" />
-                New Tenant
+                {t('dashboard.newTenant')}
               </Button>
             </Link>
             <Link href="/fm/invoices/new">
               <Button variant="outline" className="w-full justify-start">
                 <DollarSign className="w-4 h-4 me-2" />
-                Create Invoice
+                {t('dashboard.createInvoice')}
               </Button>
             </Link>
           </div>
