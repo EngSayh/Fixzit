@@ -8,7 +8,7 @@ const MeterOwnership = ["OWNER", "UTILITY_COMPANY", "SHARED"] as const;
 
 const UtilityMeterSchema = new Schema({
   // Multi-tenancy - added by plugin
-  // orgId: { type: Types.ObjectId, ref: "Organization", required: true, index: true },
+  // orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
 
   // Meter Identification
   meterNumber: { type: String, required: true },
@@ -19,7 +19,7 @@ const UtilityMeterSchema = new Schema({
   subType: String, // E.g., "Single Phase", "Three Phase" for electricity
   
   // Location
-  propertyId: { type: Types.ObjectId, ref: "Property", required: true, index: true },
+  propertyId: { type: Schema.Types.ObjectId, ref: "Property", required: true, index: true },
   unitNumber: String, // Specific unit, or null if building-level meter
   location: {
     building: String,
@@ -101,7 +101,7 @@ const UtilityMeterSchema = new Schema({
   ownership: { type: String, enum: MeterOwnership, default: "OWNER" },
   responsibleParty: {
     type: { type: String, enum: ["OWNER", "TENANT", "AGENT", "PROPERTY_MANAGEMENT"] },
-    userId: { type: Types.ObjectId, ref: "User" },
+    userId: { type: Schema.Types.ObjectId, ref: "User" },
     name: String,
     startDate: Date,
     endDate: Date
@@ -124,7 +124,7 @@ const UtilityMeterSchema = new Schema({
     highConsumptionAlert: { type: Boolean, default: false },
     anomalyDetection: { type: Boolean, default: false },
     lastAlertDate: Date,
-    alertRecipients: [{ type: Types.ObjectId, ref: "User" }]
+    alertRecipients: [{ type: Schema.Types.ObjectId, ref: "User" }]
   },
 
   // Status
@@ -133,7 +133,7 @@ const UtilityMeterSchema = new Schema({
     status: { type: String, enum: MeterStatus },
     changedAt: { type: Date, default: Date.now },
     reason: String,
-    changedBy: { type: Types.ObjectId, ref: "User" }
+    changedBy: { type: Schema.Types.ObjectId, ref: "User" }
   }],
 
   // Documents

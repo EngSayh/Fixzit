@@ -4,8 +4,8 @@ import { auditPlugin } from '../plugins/auditPlugin';
 
 const OwnerStatementSchema = new Schema({
   // tenantId will be added by tenantIsolationPlugin
-  ownerId: { type: Types.ObjectId, ref: 'Owner', required: true },
-  propertyId: { type: Types.ObjectId, ref: 'Property' },
+  ownerId: { type: Schema.Types.ObjectId, ref: 'Owner', required: true },
+  propertyId: { type: Schema.Types.ObjectId, ref: 'Property' },
   period: { type: String, required: true },
   year: { type: Number, required: true },
   currency: { type: String, default: "SAR" },

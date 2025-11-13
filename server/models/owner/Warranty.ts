@@ -7,7 +7,7 @@ const ClaimStatus = ["PENDING", "APPROVED", "REJECTED", "IN_PROGRESS", "COMPLETE
 
 const WarrantySchema = new Schema({
   // Multi-tenancy - added by plugin
-  // orgId: { type: Types.ObjectId, ref: "Organization", required: true, index: true },
+  // orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
 
   // Warranty Number (auto-generated)
   warrantyNumber: { type: String, required: true },
@@ -23,18 +23,18 @@ const WarrantySchema = new Schema({
     purchaseDate: Date,
     purchasePrice: Number,
     invoiceNumber: String,
-    invoiceId: { type: Types.ObjectId, ref: "Invoice" }
+    invoiceId: { type: Schema.Types.ObjectId, ref: "Invoice" }
   },
 
   // Location
-  propertyId: { type: Types.ObjectId, ref: "Property", required: true, index: true },
+  propertyId: { type: Schema.Types.ObjectId, ref: "Property", required: true, index: true },
   unitNumber: String,
   specificLocation: String, // E.g., "Master Bedroom", "Kitchen"
   
   // Service Provider Details
   provider: {
     type: { type: String, enum: ["MANUFACTURER", "RETAILER", "INSTALLER", "EXTENDED_WARRANTY"], required: true },
-    vendorId: { type: Types.ObjectId, ref: "Vendor" },
+    vendorId: { type: Schema.Types.ObjectId, ref: "Vendor" },
     name: { type: String, required: true },
     contact: {
       phone: String,
@@ -80,7 +80,7 @@ const WarrantySchema = new Schema({
   },
 
   // Ownership
-  ownerId: { type: Types.ObjectId, ref: "Owner", required: true, index: true },
+  ownerId: { type: Schema.Types.ObjectId, ref: "Owner", required: true, index: true },
   ownerName: String,
 
   // Documents
@@ -89,7 +89,7 @@ const WarrantySchema = new Schema({
     name: String,
     url: { type: String, required: true },
     uploadedAt: { type: Date, default: Date.now },
-    uploadedBy: { type: Types.ObjectId, ref: "User" },
+    uploadedBy: { type: Schema.Types.ObjectId, ref: "User" },
     expiresAt: Date
   }],
 
@@ -109,7 +109,7 @@ const WarrantySchema = new Schema({
     claimNumber: String,
     claimDate: { type: Date, default: Date.now },
     issueDescription: String,
-    reportedBy: { type: Types.ObjectId, ref: "User" },
+    reportedBy: { type: Schema.Types.ObjectId, ref: "User" },
     
     // Service Request
     serviceDate: Date,
@@ -127,7 +127,7 @@ const WarrantySchema = new Schema({
     laborCost: Number,
     
     // Work Order Integration
-    workOrderId: { type: Types.ObjectId, ref: "WorkOrder" },
+    workOrderId: { type: Schema.Types.ObjectId, ref: "WorkOrder" },
     workOrderNumber: String,
     
     // Resolution
@@ -161,7 +161,7 @@ const WarrantySchema = new Schema({
   statusHistory: [{
     status: { type: String, enum: WarrantyStatus },
     changedAt: { type: Date, default: Date.now },
-    changedBy: { type: Types.ObjectId, ref: "User" },
+    changedBy: { type: Schema.Types.ObjectId, ref: "User" },
     reason: String
   }],
 
@@ -169,7 +169,7 @@ const WarrantySchema = new Schema({
   voidInfo: {
     voidDate: Date,
     voidReason: String,
-    voidedBy: { type: Types.ObjectId, ref: "User" }
+    voidedBy: { type: Schema.Types.ObjectId, ref: "User" }
   },
 
   // Transfer Information (if transferable)

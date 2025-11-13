@@ -7,20 +7,20 @@ const DelegationScope = ["ALL", "APPROVALS", "MAINTENANCE", "FINANCIAL", "CONTRA
 
 const DelegationSchema = new Schema({
   // Multi-tenancy - added by plugin
-  // orgId: { type: Types.ObjectId, ref: "Organization", required: true, index: true },
+  // orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
 
   // Delegation Number (auto-generated)
   delegationNumber: { type: String, required: true },
   
   // Parties
   delegator: {
-    ownerId: { type: Types.ObjectId, ref: "Owner", required: true, index: true },
+    ownerId: { type: Schema.Types.ObjectId, ref: "Owner", required: true, index: true },
     ownerName: String,
-    userId: { type: Types.ObjectId, ref: "User" }
+    userId: { type: Schema.Types.ObjectId, ref: "User" }
   },
   
   delegate: {
-    userId: { type: Types.ObjectId, ref: "User", required: true, index: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     name: { type: String, required: true },
     email: { type: String, required: true },
     phone: String,
@@ -54,7 +54,7 @@ const DelegationSchema = new Schema({
     
     // Property-specific scope
     properties: [{
-      propertyId: { type: Types.ObjectId, ref: "Property" },
+      propertyId: { type: Schema.Types.ObjectId, ref: "Property" },
       propertyName: String,
       includeAllUnits: { type: Boolean, default: true },
       specificUnits: [String]
@@ -89,7 +89,7 @@ const DelegationSchema = new Schema({
     action: { type: String, required: true }, // APPROVED_INVOICE, REJECTED_WO, etc.
     module: String,
     referenceType: String, // Invoice, WorkOrder, Contract, etc.
-    referenceId: { type: Types.ObjectId },
+    referenceId: { type: Schema.Types.ObjectId },
     referenceNumber: String,
     amount: Number,
     performedAt: { type: Date, default: Date.now },
@@ -103,14 +103,14 @@ const DelegationSchema = new Schema({
   statusHistory: [{
     status: { type: String, enum: DelegationStatus },
     changedAt: { type: Date, default: Date.now },
-    changedBy: { type: Types.ObjectId, ref: "User" },
+    changedBy: { type: Schema.Types.ObjectId, ref: "User" },
     reason: String
   }],
 
   // Revocation Details
   revocation: {
     revokedAt: Date,
-    revokedBy: { type: Types.ObjectId, ref: "User" },
+    revokedBy: { type: Schema.Types.ObjectId, ref: "User" },
     reason: String,
     effectiveImmediately: Boolean,
     notificationSent: Boolean
@@ -119,7 +119,7 @@ const DelegationSchema = new Schema({
   // Suspension Details
   suspension: {
     suspendedAt: Date,
-    suspendedBy: { type: Types.ObjectId, ref: "User" },
+    suspendedBy: { type: Schema.Types.ObjectId, ref: "User" },
     suspendedUntil: Date,
     reason: String,
     resumedAt: Date

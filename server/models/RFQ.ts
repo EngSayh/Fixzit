@@ -92,7 +92,7 @@ const RFQSchema = new Schema({
 
   // Bids - CRITICAL FIX: References instead of embedded documents
   bids: [{
-    type: Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'ProjectBid'
   }],
 

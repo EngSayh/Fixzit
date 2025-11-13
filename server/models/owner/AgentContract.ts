@@ -7,20 +7,20 @@ const PaymentFrequency = ["MONTHLY", "QUARTERLY", "ANNUALLY", "PER_TRANSACTION"]
 
 const AgentContractSchema = new Schema({
   // Multi-tenancy - added by plugin
-  // orgId: { type: Types.ObjectId, ref: "Organization", required: true, index: true },
+  // orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
 
   // Contract Number (auto-generated)
   contractNumber: { type: String, required: true },
   
   // Parties
-  ownerId: { type: Types.ObjectId, ref: "Owner", required: true, index: true },
-  agentId: { type: Types.ObjectId, ref: "User", required: true, index: true }, // Real estate agent user
+  ownerId: { type: Schema.Types.ObjectId, ref: "Owner", required: true, index: true },
+  agentId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true }, // Real estate agent user
   agentName: { type: String, required: true },
   agentLicenseNumber: String,
   
   // Properties covered by this contract
   properties: [{
-    propertyId: { type: Types.ObjectId, ref: "Property", required: true },
+    propertyId: { type: Schema.Types.ObjectId, ref: "Property", required: true },
     propertyName: String,
     propertyCode: String,
     includeAllUnits: { type: Boolean, default: true },
@@ -86,7 +86,7 @@ const AgentContractSchema = new Schema({
     name: String,
     url: String,
     uploadedAt: { type: Date, default: Date.now },
-    uploadedBy: { type: Types.ObjectId, ref: "User" },
+    uploadedBy: { type: Schema.Types.ObjectId, ref: "User" },
     expiresAt: Date,
     verified: { type: Boolean, default: false }
   }],
@@ -96,7 +96,7 @@ const AgentContractSchema = new Schema({
   statusHistory: [{
     status: { type: String, enum: ContractStatus },
     changedAt: { type: Date, default: Date.now },
-    changedBy: { type: Types.ObjectId, ref: "User" },
+    changedBy: { type: Schema.Types.ObjectId, ref: "User" },
     reason: String,
     notes: String
   }],
@@ -104,7 +104,7 @@ const AgentContractSchema = new Schema({
   // Termination Details
   termination: {
     terminatedAt: Date,
-    terminatedBy: { type: Types.ObjectId, ref: "User" },
+    terminatedBy: { type: Schema.Types.ObjectId, ref: "User" },
     reason: String,
     noticePeriodServed: Boolean,
     penaltyAmount: Number,
@@ -114,8 +114,8 @@ const AgentContractSchema = new Schema({
 
   // Renewal Details
   renewal: {
-    renewedFrom: { type: Types.ObjectId, ref: "AgentContract" }, // Previous contract
-    renewedTo: { type: Types.ObjectId, ref: "AgentContract" }, // New contract
+    renewedFrom: { type: Schema.Types.ObjectId, ref: "AgentContract" }, // Previous contract
+    renewedTo: { type: Schema.Types.ObjectId, ref: "AgentContract" }, // New contract
     renewalDate: Date,
     changesFromPrevious: [String]
   },

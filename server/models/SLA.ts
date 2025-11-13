@@ -36,14 +36,14 @@ const SLASchema = new Schema({
       level: Number,
       trigger: Number, // hours after start
       action: String, // EMAIL, SMS, PHONE, ASSIGN, ESCALATE
-      recipients: [{ type: Types.ObjectId, ref: 'User' }], // FIXED: Use ObjectId
+      recipients: [{ type: Schema.Types.ObjectId, ref: 'User' }], // FIXED: Use ObjectId
       message: String
     }],
     autoAssignment: {
       enabled: Boolean,
       rules: [{
         condition: String, // "workload < 5" or "skill matches"
-        assignTo: { type: Types.ObjectId, ref: 'User' }, // FIXED: Use ObjectId
+        assignTo: { type: Schema.Types.ObjectId, ref: 'User' }, // FIXED: Use ObjectId
         priority: Number
       }]
     }
@@ -144,9 +144,9 @@ const SLASchema = new Schema({
   },
   approval: {
     required: Boolean,
-    approvedBy: { type: Types.ObjectId, ref: 'User' }, // FIXED: Use ObjectId
+    approvedBy: { type: Schema.Types.ObjectId, ref: 'User' }, // FIXED: Use ObjectId
     approvedAt: Date,
-    reviewedBy: { type: Types.ObjectId, ref: 'User' }, // FIXED: Use ObjectId
+    reviewedBy: { type: Schema.Types.ObjectId, ref: 'User' }, // FIXED: Use ObjectId
     reviewedAt: Date,
     notes: String
   },

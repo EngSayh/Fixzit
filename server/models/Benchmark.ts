@@ -18,7 +18,7 @@ const BenchmarkSchema = new Schema(
     retrieved_at: { type: Date, default: () => new Date() },
     // Tenant isolation
     tenantId: { 
-      type: Types.ObjectId, 
+      type: Schema.Types.ObjectId, 
       ref: 'Organization',
       required: true,
     },

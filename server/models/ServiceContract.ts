@@ -9,7 +9,7 @@ const ServiceContractSchema = new Schema({
     default: 'OwnerGroup' 
   },
   scopeRef: { 
-    type: Types.ObjectId, // FIXED: Changed to ObjectId
+    type: Schema.Types.ObjectId, // FIXED: Changed to ObjectId
     refPath: 'scope'
   },
   contractorType: { 
@@ -17,7 +17,7 @@ const ServiceContractSchema = new Schema({
     enum: ['FM_COMPANY', 'REAL_ESTATE_AGENT'] 
   },
   contractorRef: { 
-    type: Types.ObjectId, // FIXED: Changed to ObjectId
+    type: Schema.Types.ObjectId, // FIXED: Changed to ObjectId
     ref: 'Vendor'
   },
   startDate: Date,

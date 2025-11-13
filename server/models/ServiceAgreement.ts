@@ -10,7 +10,7 @@ const ServiceAgreementSchema = new Schema(
       required: true 
     },
     subscriber_id: { 
-      type: Types.ObjectId, 
+      type: Schema.Types.ObjectId, 
       required: true,
       refPath: 'subscriber_type'
     },

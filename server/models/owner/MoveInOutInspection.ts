@@ -8,7 +8,7 @@ const ItemCondition = ["EXCELLENT", "GOOD", "FAIR", "POOR", "DAMAGED", "MISSING"
 
 const MoveInOutInspectionSchema = new Schema({
   // Multi-tenancy - added by plugin
-  // orgId: { type: Types.ObjectId, ref: "Organization", required: true, index: true },
+  // orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
 
   // Inspection Number (auto-generated)
   inspectionNumber: { type: String, required: true },
@@ -20,25 +20,25 @@ const MoveInOutInspectionSchema = new Schema({
   duration: Number, // Minutes
   
   // Location
-  propertyId: { type: Types.ObjectId, ref: "Property", required: true, index: true },
+  propertyId: { type: Schema.Types.ObjectId, ref: "Property", required: true, index: true },
   unitNumber: { type: String, required: true },
   
   // Parties Involved
   parties: {
-    ownerId: { type: Types.ObjectId, ref: "Owner", required: true, index: true },
-    tenantId: { type: Types.ObjectId, ref: "Tenant", index: true },
-    inspectorId: { type: Types.ObjectId, ref: "User", required: true },
+    ownerId: { type: Schema.Types.ObjectId, ref: "Owner", required: true, index: true },
+    tenantId: { type: Schema.Types.ObjectId, ref: "Tenant", index: true },
+    inspectorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     inspectorName: String,
     witnesses: [{
       name: String,
       role: String, // AGENT, MAINTENANCE_STAFF, etc.
-      userId: { type: Types.ObjectId, ref: "User" },
+      userId: { type: Schema.Types.ObjectId, ref: "User" },
       phone: String
     }]
   },
 
   // Related Contract/Lease
-  leaseId: { type: Types.ObjectId, ref: "ServiceContract" },
+  leaseId: { type: Schema.Types.ObjectId, ref: "ServiceContract" },
   contractNumber: String,
   moveInDate: Date,
   moveOutDate: Date,
@@ -227,7 +227,7 @@ const MoveInOutInspectionSchema = new Schema({
     estimatedCost: Number,
     responsibleParty: { type: String, enum: ["OWNER", "TENANT", "UNKNOWN"] },
     requiresWorkOrder: Boolean,
-    workOrderId: { type: Types.ObjectId, ref: "WorkOrder" },
+    workOrderId: { type: Schema.Types.ObjectId, ref: "WorkOrder" },
     resolved: Boolean,
     resolvedDate: Date,
     photos: [{ url: String, uploadedAt: Date, caption: String, timestamp: String }]
@@ -237,21 +237,21 @@ const MoveInOutInspectionSchema = new Schema({
   signatures: {
     inspector: {
       signed: Boolean,
-      signedBy: { type: Types.ObjectId, ref: "User" },
+      signedBy: { type: Schema.Types.ObjectId, ref: "User" },
       signedAt: Date,
       signature: String, // Base64 signature image or signature service URL
       ipAddress: String
     },
     owner: {
       signed: Boolean,
-      signedBy: { type: Types.ObjectId, ref: "User" },
+      signedBy: { type: Schema.Types.ObjectId, ref: "User" },
       signedAt: Date,
       signature: String,
       ipAddress: String
     },
     tenant: {
       signed: Boolean,
-      signedBy: { type: Types.ObjectId, ref: "User" },
+      signedBy: { type: Schema.Types.ObjectId, ref: "User" },
       signedAt: Date,
       signature: String,
       ipAddress: String
@@ -260,7 +260,7 @@ const MoveInOutInspectionSchema = new Schema({
 
   // Comparison with Previous Inspection (for move-out)
   comparison: {
-    previousInspectionId: { type: Types.ObjectId, ref: "MoveInOutInspection" },
+    previousInspectionId: { type: Schema.Types.ObjectId, ref: "MoveInOutInspection" },
     newDamages: [{
       item: String,
       location: String,
@@ -282,16 +282,16 @@ const MoveInOutInspectionSchema = new Schema({
   statusHistory: [{
     status: { type: String, enum: InspectionStatus },
     changedAt: { type: Date, default: Date.now },
-    changedBy: { type: Types.ObjectId, ref: "User" },
+    changedBy: { type: Schema.Types.ObjectId, ref: "User" },
     reason: String,
     notes: String
   }],
 
   // Approval/Rejection
   approval: {
-    approvedBy: { type: Types.ObjectId, ref: "User" },
+    approvedBy: { type: Schema.Types.ObjectId, ref: "User" },
     approvedAt: Date,
-    rejectedBy: { type: Types.ObjectId, ref: "User" },
+    rejectedBy: { type: Schema.Types.ObjectId, ref: "User" },
     rejectedAt: Date,
     rejectionReason: String,
     disputeReason: String,

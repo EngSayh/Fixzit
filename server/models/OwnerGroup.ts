@@ -5,15 +5,15 @@ import { auditPlugin } from "../plugins/auditPlugin";
 const OwnerGroupSchema = new Schema(
   {
     name: { type: String, required: true },
-    primary_contact_user_id: { type: Types.ObjectId, ref: 'User' },
+    primary_contact_user_id: { type: Schema.Types.ObjectId, ref: 'User' },
     member_user_ids: [{ 
-      type: Types.ObjectId, 
+      type: Schema.Types.ObjectId, 
       ref: 'User' 
     }],
-    fm_provider_org_id: { type: Types.ObjectId, ref: 'Organization' },
-    agent_org_id: { type: Types.ObjectId, ref: 'Organization' },
+    fm_provider_org_id: { type: Schema.Types.ObjectId, ref: 'Organization' },
+    agent_org_id: { type: Schema.Types.ObjectId, ref: 'Organization' },
     property_ids: [{ 
-      type: Types.ObjectId, 
+      type: Schema.Types.ObjectId, 
       ref: 'Property' 
     }],
     // orgId is automatically added by tenantIsolationPlugin

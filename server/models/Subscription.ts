@@ -32,8 +32,8 @@ const BillingHistorySchema = new Schema(
 
 const SubscriptionSchema = new Schema(
   {
-    tenant_id: { type: Types.ObjectId, ref: 'Organization', required: false },
-    owner_user_id: { type: Types.ObjectId, ref: 'User', required: false },
+    tenant_id: { type: Schema.Types.ObjectId, ref: 'Organization', required: false },
+    owner_user_id: { type: Schema.Types.ObjectId, ref: 'User', required: false },
     subscriber_type: { 
       type: String, 
       enum: ['CORPORATE', 'OWNER'], 
@@ -60,7 +60,7 @@ const SubscriptionSchema = new Schema(
       default: 'USD' 
     },
     price_book_id: { 
-      type: Types.ObjectId, 
+      type: Schema.Types.ObjectId, 
       ref: 'PriceBook', 
       required: true 
     },
