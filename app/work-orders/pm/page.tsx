@@ -3,6 +3,7 @@
 import React from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import useSWR from 'swr';
+import ClientDate from '@/components/ClientDate';
 import { logger } from '@/lib/logger';
 
 const fetcher = (url: string) => fetch(url)
@@ -46,11 +47,6 @@ export default function PreventiveMaintenancePage() {
     if (daysUntil < 0) return 'overdue';
     if (daysUntil <= 7) return 'due';
     return 'scheduled';
-  };
-  
-  const formatDate = (dateStr: string | undefined) => {
-    if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString();
   };
 
   const getStatusColor = (status: string) => {
@@ -167,8 +163,12 @@ export default function PreventiveMaintenancePage() {
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">{schedule.title}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{schedule.propertyId}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{schedule.recurrencePattern}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{formatDate(schedule.lastGeneratedDate)}</td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{formatDate(schedule.nextScheduledDate)}</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                        {schedule.lastGeneratedDate ? <ClientDate date={schedule.lastGeneratedDate} format="date-only" /> : 'N/A'}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                        {schedule.nextScheduledDate ? <ClientDate date={schedule.nextScheduledDate} format="date-only" /> : 'N/A'}
+                      </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(planStatus)}`}>
                           {planStatus}
