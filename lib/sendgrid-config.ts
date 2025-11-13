@@ -65,7 +65,7 @@ export function getSendGridConfig(): SendGridConfig {
       name: replyToName
     } : undefined,
     unsubscribeGroupId: process.env.SENDGRID_UNSUBSCRIBE_GROUP_ID 
-      ? parseInt(process.env.SENDGRID_UNSUBSCRIBE_GROUP_ID) 
+      ? parseInt(process.env.SENDGRID_UNSUBSCRIBE_GROUP_ID, 10) 
       : undefined,
     ipPoolName: process.env.SENDGRID_IP_POOL_NAME,
     webhookVerificationKey: process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY,
@@ -88,7 +88,9 @@ export function initializeSendGrid(): void {
     sgMail.setApiKey(config.apiKey);
     logger.info('✅ SendGrid initialized successfully');
   } catch (error) {
-    logger.warn('⚠️ SendGrid not configured:', error instanceof Error ? error.message : 'Unknown error');
+    logger.warn('SendGrid not configured', {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 }
 
@@ -162,7 +164,7 @@ export function verifyWebhookSignature(
     const now = Math.floor(Date.now() / 1000);
     
     if (isNaN(requestTimestamp) || Math.abs(now - requestTimestamp) > WEBHOOK_TIMESTAMP_MAX_AGE_SECONDS) {
-      logger.warn('⚠️ Webhook timestamp expired or invalid:', timestamp);
+      logger.warn('Webhook timestamp expired or invalid', { timestamp });
       return false;
     }
 
