@@ -43,9 +43,18 @@ const skipSecretValidation = isCI || process.env.SKIP_ENV_VALIDATION === 'true';
 
 if (!skipSecretValidation) {
   const missingSecrets: string[] = [];
-  if (!GOOGLE_CLIENT_ID) missingSecrets.push('GOOGLE_CLIENT_ID');
-  if (!GOOGLE_CLIENT_SECRET) missingSecrets.push('GOOGLE_CLIENT_SECRET');
+  
+  // NEXTAUTH_SECRET is always required (for session signing)
   if (!NEXTAUTH_SECRET) missingSecrets.push('NEXTAUTH_SECRET');
+  
+  // Google OAuth credentials are optional (can use credentials provider only)
+  if (!GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_SECRET) {
+    console.warn('⚠️  Google OAuth not configured. Only credentials authentication will be available.');
+  } else if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    // If one is set, both must be set
+    if (!GOOGLE_CLIENT_ID) missingSecrets.push('GOOGLE_CLIENT_ID');
+    if (!GOOGLE_CLIENT_SECRET) missingSecrets.push('GOOGLE_CLIENT_SECRET');
+  }
 
   if (missingSecrets.length > 0) {
     throw new Error(

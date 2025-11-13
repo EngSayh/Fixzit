@@ -49,8 +49,13 @@ const dbName = process.env.MONGODB_DB || 'fixzit';
 
 // Runtime validation function (called when connection is attempted, not at module load)
 function validateMongoUri(): void {
-  // Only enforce in production AND when not in CI build phase
-  if (process.env.NODE_ENV === 'production' && process.env.CI !== 'true') {
+  // Skip validation during CI builds or when SKIP_ENV_VALIDATION is set
+  if (process.env.CI === 'true' || process.env.SKIP_ENV_VALIDATION === 'true') {
+    return;
+  }
+  
+  // Only enforce in production
+  if (process.env.NODE_ENV === 'production') {
     if (!uri || uri.trim().length === 0) {
       throw new Error('FATAL: MONGODB_URI is required in production environment. Please configure MongoDB connection.');
     }
