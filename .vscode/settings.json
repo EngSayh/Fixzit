@@ -75,16 +75,18 @@
     "testFailure": true
   },
 
-  // Chat Agent Settings - FULL UNCONDITIONAL AUTO-APPROVAL
+  // Chat Agent Settings - REQUIRE CONFIRMATIONS FOR SAFETY
   "chat.agent.enabled": true,
   "chat.agent.maxRequests": 999,
   
-  // CRITICAL: Full auto-approve (boolean true = unconditional)
-  "chat.tools.global.autoApprove": true,
-  "chat.tools.terminal.autoApprove": true,
-  "chat.tools.edits.autoApprove": true,
+  // SECURITY: Auto-approve disabled - require explicit confirmation for destructive operations
+  // Developers who want auto-approve should enable it in their personal User Settings
+  "chat.tools.global.autoApprove": false,
+  "chat.tools.terminal.autoApprove": false,
+  "chat.tools.edits.autoApprove": false,
+  "chat.tools.edits.confirmWrites": true,
   
-  // Auto-reply and auto-accept
+  // Auto-reply and auto-accept (less risky)
   "chat.tools.terminal.autoReplyToPrompts": true,
   "chat.editing.autoAcceptDelay": 3,
   "chat.checkpoints.enabled": true,

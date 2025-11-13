@@ -20,14 +20,13 @@
         "esbenp.prettier-vscode"
       ],
       "settings": {
-        // — Agent: FULL UNCONDITIONAL AUTO in container —
+        // — Agent: Security-conscious configuration for shared devcontainer —
         "chat.agent.enabled": true,
         "chat.agent.maxRequests": 999,
         
-        // Full auto-approve (boolean true = unconditional)
-        "chat.tools.global.autoApprove": true,
-        "chat.tools.terminal.autoApprove": true,
-        "chat.tools.edits.autoApprove": true,
+        // SECURITY: Auto-approve disabled in shared environment.
+        // Developers who want auto-approve should configure it in their personal User Settings.
+        // Do not re-enable these in the shared devcontainer configuration.
 
         // Stop interactive CLI pauses (y/n, prompts)
         "chat.tools.terminal.autoReplyToPrompts": true,
@@ -44,10 +43,13 @@
         // Disable MCP discovery (boolean, not object)
         "chat.mcp.discovery.enabled": false,
 
-        // Trust: zero prompts in container
-        "security.workspace.trust.enabled": false,
-        "security.workspace.trust.untrustedFiles": "open",
-        "security.workspace.trust.startupPrompt": "never",
+        // SECURITY: Workspace trust ENABLED (critical security boundary).
+        // Do not disable workspace trust in shared devcontainer - users must be warned about untrusted code.
+        // The startup prompt is intentional and required for security.
+        // Lines below are commented out to use VS Code defaults (trust enabled):
+        // "security.workspace.trust.enabled": true,
+        // "security.workspace.trust.untrustedFiles": "prompt",
+        // "security.workspace.trust.startupPrompt": "default",
 
         // Agent can run tasks silently
         "github.copilot.chat.agent.runTasks": true,
