@@ -53,9 +53,14 @@ async function verifyCore() {
 }
 
 if (require.main === module) {
-  verifyCore().then(success => {
-    process.exit(success ? 0 : 1);
-  });
+  verifyCore()
+    .then(success => {
+      process.exit(success ? 0 : 1);
+    })
+    .catch(error => {
+      console.error('❌ Fatal error during core verification:', error);
+      process.exit(1);
+    });
 }
 
 export { verifyCore };
