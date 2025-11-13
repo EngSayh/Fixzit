@@ -511,7 +511,7 @@ export default function CareersPage() {
                                 <Badge variant="outline">{job.type}</Badge>
                                 <Badge variant="outline">{job.experience}</Badge>
                                 <span className="text-sm text-muted-foreground">
-                                  Posted: {new Date(job.postedDate).toLocaleDateString()}
+                                  Posted: <ClientDate date={job.postedDate} format="date-only" />
                                 </span>
                               </div>
                             </div>

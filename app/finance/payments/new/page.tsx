@@ -5,6 +5,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
 import { Money, decimal } from '@/lib/finance/decimal';
+import ClientDate from '@/components/ClientDate';
 
 import { logger } from '@/lib/logger';
 // ============================================================================
@@ -929,7 +930,7 @@ export default function NewPaymentPage() {
                                 {allocation.customerName}
                               </td>
                               <td className="px-3 py-2 text-sm text-foreground">
-                                {new Date(allocation.dueDate).toLocaleDateString()}
+                                <ClientDate date={allocation.dueDate} format="date-only" />
                               </td>
                               <td className="px-3 py-2 text-sm text-right text-foreground">
                                 {allocation.amountDue.toFixed(2)} {currency}

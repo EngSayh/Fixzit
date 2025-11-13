@@ -4,6 +4,7 @@ import Link from "next/link";
 import { renderMarkdownSanitized } from '@/lib/markdown';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
+import ClientDate from '@/components/ClientDate';
 
 export const revalidate = 60;
 
@@ -49,7 +50,7 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
             
             <div className="mt-8 pt-6 border-t border-border">
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <div>Last updated {a.updatedAt ? new Date(a.updatedAt).toLocaleDateString() : ''}</div>
+                <div>Last updated {a.updatedAt ? <ClientDate date={a.updatedAt} format="date-only" /> : ''}</div>
                 <Link 
                   href="/help" 
                   className="text-primary hover:text-primary/80 font-medium"
