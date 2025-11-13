@@ -728,7 +728,7 @@ export default function NewInvoicePage() {
                   <div key={rate} className="flex justify-between items-center py-2 border-b">
                     <div>
                       <span className="font-medium">{t('finance.vat', 'VAT')} {rate}</span>
-                      <span className="text-sm text-muted-foreground ml-2">({t('finance.invoice.on', 'on')} {currency} {Money.toString(data.base)})</span>
+                      <span className="text-sm text-muted-foreground ms-2">({t('finance.invoice.on', 'on')} {currency} {Money.toString(data.base)})</span>
                     </div>
                     <span className="font-medium">{currency} {Money.toString(data.amount)}</span>
                   </div>
@@ -889,12 +889,12 @@ export default function NewInvoicePage() {
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-success/20 rounded-full"></div>
                 <span className="text-muted-foreground">{t('finance.formAutoSaved', 'Form auto-saved')}</span>
-                <span className="text-muted-foreground ml-auto">2m ago</span>
+                <span className="text-muted-foreground ms-auto">2m ago</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-primary/20 rounded-full"></div>
                 <span className="text-muted-foreground">{t('finance.invoice.customerSelected', 'Customer selected')}</span>
-                <span className="text-muted-foreground ml-auto">5m ago</span>
+                <span className="text-muted-foreground ms-auto">5m ago</span>
               </div>
             </div>
           </div>
