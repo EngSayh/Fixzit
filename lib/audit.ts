@@ -46,7 +46,7 @@ export async function audit(event: AuditEvent): Promise<void> {
   try {
     await AuditLogModel.log({
       orgId: event.orgId || 'system',
-      action: event.action.split('.')[1]?.toUpperCase() || 'CUSTOM',
+      action: event.action?.toUpperCase() || 'CUSTOM',
       entityType: event.targetType?.toUpperCase() || 'OTHER',
       entityId: event.target || undefined,
       entityName: event.target || undefined,
@@ -61,7 +61,7 @@ export async function audit(event: AuditEvent): Promise<void> {
         source: 'WEB',
       },
       result: {
-        success: event.success !== false,
+        success: event.success === true,
         errorMessage: event.error,
       },
     });

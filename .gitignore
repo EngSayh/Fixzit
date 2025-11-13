@@ -83,4 +83,4 @@ docs/translations/translation-audit.csv
 # Package manager policy: This project uses pnpm exclusively
 # package-lock.json is intentionally excluded to prevent npm/pnpm conflicts
 # Dependency locking is handled by pnpm-lock.yaml
-# package-lock.json
+package-lock.json
