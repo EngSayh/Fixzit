@@ -2,7 +2,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import ClientDate from '@/components/ClientDate';
+import { formatServerDate } from '@/lib/formatServerDate';
 import { logger } from '@/lib/logger';
+
+// Fixzit primary timezone for audit logs (canonical timeline)
+const DEFAULT_TIMEZONE = 'Asia/Riyadh';
 // Constants at module scope
 const LOGS_PER_PAGE = 20;
 const API_ENDPOINT = '/api/admin/audit-logs';
@@ -329,10 +333,7 @@ export default function AuditLogViewer() {
                 {logs.map((log) => (
                   <tr key={log.id} className="hover:bg-muted">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                      <ClientDate 
-                        date={log.timestamp} 
-                        format="medium"
-                      />
+                      {formatServerDate(log.timestamp, 'medium', undefined, DEFAULT_TIMEZONE)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getActionColor(log.action)}`}>
