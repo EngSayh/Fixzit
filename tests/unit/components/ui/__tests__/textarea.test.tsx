@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect } from 'vitest';
 import { Textarea } from '@/components/ui/textarea';
 
 describe('Textarea', () => {
