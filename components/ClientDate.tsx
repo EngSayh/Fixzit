@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { logger } from '@/lib/logger';
 
 /**
  * ClientDate Component - SSR-Safe Date Rendering
@@ -184,7 +185,7 @@ export default function ClientDate({
       const formatted = formatDate(parsedDate, format, locale, formatter);
       setFormattedDate(formatted);
     } catch (error) {
-      console.error('ClientDate formatting error:', error);
+      logger.error('ClientDate formatting error', { error });
       setFormattedDate(fallback);
     }
   }, [date, format, locale, formatter, fallback]);
