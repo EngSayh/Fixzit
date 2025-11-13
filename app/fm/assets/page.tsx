@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { CardGridSkeleton } from '@/components/skeletons';
 import { Building2, Plus, Search, Settings, Eye, Edit, Trash2, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import ClientDate from '@/components/ClientDate';
 
 import { logger } from '@/lib/logger';
 interface MaintenanceRecord {
@@ -304,7 +305,7 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">
             Last Maintenance: {asset.maintenanceHistory && asset.maintenanceHistory.length > 0 && asset.maintenanceHistory[asset.maintenanceHistory.length - 1].date
-              ? new Date(asset.maintenanceHistory[asset.maintenanceHistory.length - 1].date as string).toLocaleDateString()
+              ? <ClientDate date={asset.maintenanceHistory[asset.maintenanceHistory.length - 1].date as string} format="date-only" />
               : 'Never'}
           </span>
           <div className="flex space-x-2">
