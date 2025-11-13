@@ -15,6 +15,7 @@ import {
   ChevronLeft, Edit, Trash2, Star, Clock, Shield, Award
 } from 'lucide-react';
 import Link from 'next/link';
+import ClientDate from '@/components/ClientDate';
 
 interface Vendor {
   id: string;
@@ -235,7 +236,7 @@ export default function VendorDetailsPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">License Expiry</p>
                       <p className="font-medium">
-                        {new Date(vendor.business.licenseExpiry).toLocaleDateString()}
+                        <ClientDate date={vendor.business.licenseExpiry} format="date-only" />
                       </p>
                     </div>
                   )}
@@ -243,7 +244,7 @@ export default function VendorDetailsPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">Insurance Expiry</p>
                       <p className="font-medium">
-                        {new Date(vendor.business.insuranceExpiry).toLocaleDateString()}
+                        <ClientDate date={vendor.business.insuranceExpiry} format="date-only" />
                       </p>
                     </div>
                   )}
@@ -435,7 +436,7 @@ export default function VendorDetailsPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Created</p>
                   <p className="text-sm font-medium">
-                    {new Date(vendor.createdAt).toLocaleDateString()}
+                    <ClientDate date={vendor.createdAt} format="date-only" />
                   </p>
                 </div>
               )}
@@ -443,7 +444,7 @@ export default function VendorDetailsPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Last Updated</p>
                   <p className="text-sm font-medium">
-                    {new Date(vendor.updatedAt).toLocaleDateString()}
+                    <ClientDate date={vendor.updatedAt} format="date-only" />
                   </p>
                 </div>
               )}
