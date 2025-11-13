@@ -469,6 +469,7 @@ export default function AuditLogViewer() {
                     <ClientDate 
                       date={selectedLog.timestamp} 
                       format="full"
+                      timeZone={DEFAULT_TIMEZONE}
                     />
                   </p>
                 </div>
