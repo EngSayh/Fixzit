@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { MapPin, Clock, DollarSign, Users, FileText, Send, Upload, Star, AlertTriangle } from 'lucide-react';
-
+import ClientDate from '@/components/ClientDate';
 import { logger } from '@/lib/logger';
 interface Job {
   id: string;
@@ -488,7 +488,7 @@ export default function CareersPage() {
 
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">
-                      Posted: {new Date(job.postedDate).toLocaleDateString()}
+                      Posted: <ClientDate date={job.postedDate} format="date-only" />
                     </span>
                     <Dialog>
                       <DialogTrigger asChild>
