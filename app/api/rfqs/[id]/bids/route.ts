@@ -80,6 +80,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
     const data = submitBidSchema.parse(await req.json());
 
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const rfq = (await RFQ.findOne({ _id: params.id, tenantId: user.tenantId })) as any;
     
     if (!rfq) {
@@ -144,6 +145,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     const user = await getSessionUser(req);
     await connectToDatabase();
 
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const rfq = (await RFQ.findOne({ _id: params.id, tenantId: user.tenantId })) as any;
     
     if (!rfq) {
