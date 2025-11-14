@@ -700,8 +700,8 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
       await approval.save();
       logger.info('[Approval] Escalated:', approval.approvalNumber);
 
-      // ✅ Use policy for escalation
-      const approvalPolicy = APPROVAL_POLICIES[0];
+      // ✅ Use policy for escalation (with defensive check)
+      const approvalPolicy = APPROVAL_POLICIES && APPROVAL_POLICIES.length > 0 ? APPROVAL_POLICIES[0] : null;
 
       const stageDoc =
         (approval.stages &&

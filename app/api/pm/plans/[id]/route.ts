@@ -46,9 +46,38 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
     
+    // Whitelist approach: only allow updating specific fields
+    const allowedFields = [
+      'title',
+      'description',
+      'category',
+      'recurrencePattern',
+      'startDate',
+      'status',
+      'assignedTo',
+      'estimatedDuration',
+      'instructions',
+      'nextScheduledDate'
+    ];
+    
+    const updateData: Record<string, unknown> = {};
+    for (const key of Object.keys(body)) {
+      if (allowedFields.includes(key)) {
+        updateData[key] = body[key];
+      }
+    }
+    
+    // Validate that at least one field is being updated
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No valid fields to update' },
+        { status: 400 }
+      );
+    }
+    
     const plan = (await FMPMPlan.findByIdAndUpdate(
       id,
-      { $set: body },
+      { $set: updateData },
       { new: true, runValidators: true }
     ));
     

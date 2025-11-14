@@ -262,7 +262,7 @@ export async function DELETE(
           return NextResponse.json({ error: 'Account not found' }, { status: 404 });
         }
         
-        // Update fields (only allow updating certain fields)
+        // Prevent deletion if ledger entries exist for this account
         const hasEntries = await LedgerEntry.exists({
           orgId: new Types.ObjectId(user.orgId),
           accountId: account._id

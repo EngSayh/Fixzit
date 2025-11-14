@@ -193,8 +193,13 @@ export async function getAttendanceSummary(orgId: string) {
     ])
     .toArray();
 
+  interface AttendanceSummaryResult {
+    _id: string;
+    count: number;
+  }
+
   const summary: Record<string, number> = {};
-  result.forEach((item: { _id: string; count: number }) => {
+  result.forEach((item: AttendanceSummaryResult) => {
     summary[item._id] = item.count;
   });
 

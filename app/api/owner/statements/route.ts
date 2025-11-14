@@ -33,6 +33,13 @@ interface StatementLine {
   unitNumber?: string;
 }
 
+// Lean query result interface
+interface PropertyLean {
+  _id: Types.ObjectId;
+  name: string;
+  code: string;
+}
+
 // Type definitions for Mongoose query results
 interface PaymentResponse {
   propertyId?: { toString(): string };
@@ -154,9 +161,9 @@ export async function GET(req: NextRequest) {
     }
     
     // Get properties using Mongoose model
-    const properties = (await Property.find(propertyFilter).select('_id name code').lean());
-    const propertyIds = properties.map((p: any) => p._id as Types.ObjectId);
-    const propertyMap = new Map(properties.map((p: any) => [(p._id as Types.ObjectId).toString(), p]));
+    const properties = (await Property.find(propertyFilter).select('_id name code').lean()) as PropertyLean[];
+    const propertyIds = properties.map(p => p._id);
+    const propertyMap = new Map(properties.map(p => [p._id.toString(), p]));
     
     // Collect all statement lines
     const statementLines: StatementLine[] = [];
