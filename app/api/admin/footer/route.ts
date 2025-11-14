@@ -43,21 +43,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Upsert footer content (create if not exists, update if exists)
-    const footerContent = await FooterContent.findOneAndUpdate(
-      { page } as const, // Filter: find by page
+    const footerContent = await (FooterContent as any).findOneAndUpdate(
+      { page },
       {
-        page,
-        contentEn,
-        contentAr,
-        updatedBy: user.id,
-        updatedAt: new Date()
+        $set: {
+          page,
+          contentEn,
+          contentAr,
+          updatedBy: user.id,
+          updatedAt: new Date()
+        }
       },
       {
-        upsert: true, // Create if doesn't exist
-        new: true,     // Return updated document
+        upsert: true,
+        new: true,
         runValidators: true
       }
-    ) as any;
+    );
 
     return NextResponse.json({
       success: true,
@@ -119,7 +121,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const footerContent = await FooterContent.findOne({ page }).lean();
+      const footerContent = await (FooterContent as any).findOne({ page }).lean();
 
       if (!footerContent) {
         // Return default empty content
@@ -136,7 +138,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all footer pages
-    const allContent = await FooterContent.find({}).lean();
+    const allContent = await (FooterContent as any).find({}).lean();
 
     // Ensure all three pages exist (return defaults if missing)
     const pages = ['about', 'privacy', 'terms'];
