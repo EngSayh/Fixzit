@@ -94,6 +94,9 @@ const en = {
       reporting: 'Reporting',
       admin: 'Administration',
     },
+    admin: {
+      redirecting: 'Redirecting to administration...',
+    },
   },
   topbar: {
     appSwitcher: {
@@ -366,7 +369,8 @@ const en = {
     documentTemplates: 'Document Templates',
   },
   compliance: {
-    title: 'Compliance',
+    title: 'Compliance & Legal',
+    description: 'Coming online – policies, inspections, contracts, audit logs.',
     subtitle: 'Compliance interface loads here.',
     issuesDetected: 'Issues Detected',
   },
@@ -380,6 +384,7 @@ const en = {
   vendors: {
     selectVendor: 'Select Vendor',
     title: 'Vendors',
+    description: 'Coming online – UI wired, API scaffolded.',
     addVendor: 'Add Vendor',
     vendorDetails: 'Vendor Details',
     vendorName: 'Vendor Name',
@@ -530,6 +535,7 @@ const en = {
   },
   crm: {
     title: 'CRM',
+    description: 'Coming online – UI wired, API scaffolded.',
     contacts: 'Contacts',
     leads: 'Leads',
     opportunities: 'Opportunities',

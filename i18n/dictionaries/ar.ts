@@ -104,6 +104,7 @@ const ar = {
       performance: 'الأداء',
     },
     admin: {
+      redirecting: 'جارِ إعادة التوجيه إلى الإدارة...',
       doa: 'تفويض الصلاحيات',
       policies: 'السياسات والإجراءات',
       assets: 'إدارة الأصول',
@@ -543,7 +544,8 @@ const ar = {
     documentTemplates: 'قوالب المستندات',
   },
   compliance: {
-    title: 'الامتثال',
+    title: 'الامتثال والقانونية',
+    description: 'قريباً – السياسات، التفتيش، العقود، سجلات التدقيق.',
     subtitle: 'واجهة الامتثال يتم تحميلها هنا.',
     issuesDetected: 'المشاكل المكتشفة',
   },
@@ -557,6 +559,7 @@ const ar = {
   vendors: {
     selectVendor: 'اختر المورد',
     title: 'الموردون',
+    description: 'قريباً – واجهة المستخدم جاهزة، API مُعدّة.',
     addVendor: 'إضافة مورد',
     vendorDetails: 'تفاصيل المورد',
     vendorName: 'اسم المورد',
@@ -707,6 +710,7 @@ const ar = {
   },
   crm: {
     title: 'إدارة علاقات العملاء',
+    description: 'قريباً – واجهة المستخدم جاهزة، API مُعدّة.',
     contacts: 'جهات الاتصال',
     leads: 'العملاء المحتملون',
     opportunities: 'الفرص',
