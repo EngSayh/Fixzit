@@ -280,6 +280,7 @@ async function sendEmailNotifications(
           const escapedTitle = escapeHtml(notification.title);
           const escapedBody = escapeHtml(notification.body);
           const safeLink = sanitizeUrl(notification.deepLink);
+          const escapedLink = escapeHtml(safeLink); // HTML-escape for use in attribute
           
           await sgMail.sendMultiple({
             to: emails,
@@ -290,7 +291,7 @@ async function sendEmailNotifications(
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #333;">${escapedTitle}</h2>
                 <p style="color: #666; line-height: 1.6;">${escapedBody}</p>
-                ${safeLink ? `<p><a href="${safeLink}" style="background: #0070f3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px;">View Details</a></p>` : ''}
+                ${safeLink ? `<p><a href="${escapedLink}" style="background: #0070f3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px;">View Details</a></p>` : ''}
                 <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
                 <p style="color: #999; font-size: 12px;">This is an automated notification from Fixzit. Please do not reply to this email.</p>
               </div>
@@ -364,14 +365,14 @@ async function sendWhatsAppNotifications(
   logger.info('[Notifications] Sending WhatsApp', { recipientCount: recipients.length });
   
   // WhatsApp Business API via Twilio (if configured)
-  if (process.env.TWILIO_WHATSAPP_NUMBER && process.env.TWILIO_ACCOUNT_SID) {
+  if (process.env.TWILIO_WHATSAPP_NUMBER && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
     try {
       const twilio = await import('twilio').then(m => m.default).catch(() => null);
       
       if (twilio) {
         const client = twilio(
           process.env.TWILIO_ACCOUNT_SID,
-          process.env.TWILIO_AUTH_TOKEN || ''
+          process.env.TWILIO_AUTH_TOKEN
         );
         
         const phones = recipients

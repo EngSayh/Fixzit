@@ -110,7 +110,10 @@ export async function chargeDueMonthlySubs() {
           subscriptionId: String(subscription._id),
           error: errorMsg
         });
-        console.error(`❌ Failed to charge subscription ${subscription._id}: ${errorMsg}`);
+        logger.error('[Billing] Failed to charge subscription', {
+          subscriptionId: subscription._id,
+          error: errorMsg
+        });
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -119,7 +122,10 @@ export async function chargeDueMonthlySubs() {
         subscriptionId: String(subscription._id),
         error: errorMessage
       });
-      console.error(`❌ Error charging subscription ${subscription._id}:`, error);
+      logger.error('[Billing] Error charging subscription', {
+        subscriptionId: subscription._id,
+        error
+      });
     }
   }
 

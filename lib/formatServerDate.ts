@@ -5,6 +5,8 @@
  * They do NOT use 'use client' directive.
  */
 
+import { logger } from '@/lib/logger';
+
 export type DateFormatType = 'full' | 'long' | 'medium' | 'short' | 'date-only' | 'time-only' | 'relative' | 'iso';
 
 /**

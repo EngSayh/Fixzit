@@ -93,7 +93,7 @@ If prompts **still** appear, check:
 
 After completing Steps 1-2, run this in chat:
 
-```
+```text
 Run these commands:
 1. echo "test1"
 2. pwd

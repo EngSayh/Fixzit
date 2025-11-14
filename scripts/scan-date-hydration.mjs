@@ -55,7 +55,11 @@ function scanDirectory(dir, results = []) {
       const stat = statSync(fullPath);
       
       if (stat.isDirectory()) {
-        if (!EXCLUDE_DIRS.some(ex => fullPath.includes(ex))) {
+        const normalizedPath = normalize(fullPath);
+        const pathSegments = normalizedPath.split(sep);
+        const isExcluded = EXCLUDE_DIRS.some(ex => pathSegments.includes(ex));
+        
+        if (!isExcluded) {
           scanDirectory(fullPath, results);
         }
       } else if (INCLUDE_EXTS.some(ext => entry.endsWith(ext))) {

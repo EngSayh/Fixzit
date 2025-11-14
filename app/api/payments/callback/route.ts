@@ -96,13 +96,33 @@ export async function POST(req: NextRequest) {
       
       // Activate AqarPackage if this payment is for a package purchase
       if (invoice.metadata?.aqarPaymentId) {
-        const { activatePackageAfterPayment } = await import('@/lib/aqar/package-activation');
-        await activatePackageAfterPayment(invoice.metadata.aqarPaymentId).catch(err => {
-          logger.error('Failed to activate package after payment', { 
-            paymentId: invoice.metadata?.aqarPaymentId, 
-            error: err 
+        // Track activation attempt on invoice
+        invoice.metadata.activationAttempted = true;
+        invoice.metadata.activationStatus = 'pending';
+        await invoice.save();
+        
+        try {
+          const { activatePackageAfterPayment } = await import('@/lib/aqar/package-activation');
+          await activatePackageAfterPayment(invoice.metadata.aqarPaymentId);
+          
+          invoice.metadata.activationStatus = 'completed';
+          await invoice.save();
+          logger.info('Package activated after payment', { paymentId: invoice.metadata.aqarPaymentId });
+        } catch (err) {
+          // Record failure and enqueue retry
+          invoice.metadata.activationStatus = 'failed';
+          invoice.metadata.lastActivationError = err instanceof Error ? err.message : String(err);
+          await invoice.save();
+          
+          logger.error('Failed to activate package after payment - will retry', { 
+            paymentId: invoice.metadata.aqarPaymentId, 
+            error: err,
+            invoiceId: invoice._id 
           });
-        });
+          
+          // Enqueue background retry job (TODO: implement retry queue)
+          // await enqueueActivationRetry(invoice.metadata.aqarPaymentId, invoice._id);
+        }
       }
     } else {
       // Payment failed

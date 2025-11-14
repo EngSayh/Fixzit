@@ -5,11 +5,9 @@ import { logger } from '@/lib/logger';
 import { verifyToken } from '@/lib/auth';
 import { UserRole, ALL_ROLES, type UserRoleType } from '@/types/user';
 
-type Role = UserRoleType;
-
 export type SessionUser = {
   id: string;
-  role: Role;
+  role: UserRoleType;
   orgId: string;
   tenantId: string;
 };
@@ -32,7 +30,7 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
       
       return {
         id: session.user.id,
-        role: roleValue as Role,
+        role: roleValue as UserRoleType,
         orgId: orgId,
         tenantId: orgId,
       };
@@ -51,15 +49,14 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
       
       // Validate role before casting
       const roleValue = parsed.role;
-      const validRoles = Object.values(Role) as string[];
       
-      if (!roleValue || !validRoles.includes(roleValue)) {
+      if (!roleValue || !ALL_ROLES.includes(roleValue as UserRoleType)) {
         logger.warn('Invalid role in x-user header', { role: roleValue });
         // Skip this header, continue to next auth method
       } else if (parsed.id && tenantValue) {
         return {
           id: parsed.id,
-          role: roleValue as Role,
+          role: roleValue as UserRoleType,
           orgId: tenantValue,
           tenantId: tenantValue,
         };
@@ -83,9 +80,8 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
         
         // Validate role before casting
         const roleValue = payload.role;
-        const validRoles = Object.values(Role) as string[];
         
-        if (!roleValue || !validRoles.includes(roleValue)) {
+        if (!roleValue || !ALL_ROLES.includes(String(roleValue) as UserRoleType)) {
           logger.warn('Invalid role in legacy token', { role: roleValue, userId: payload.id });
           throw new Error('Invalid role in token');
         }
@@ -93,7 +89,7 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
         if (tenantValue) {
           return {
             id: payload.id,
-            role: roleValue as Role,
+            role: roleValue as UserRoleType,
             orgId: tenantValue,
             tenantId: tenantValue,
           };

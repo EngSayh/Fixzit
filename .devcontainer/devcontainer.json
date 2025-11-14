@@ -31,8 +31,8 @@
         // Stop interactive CLI pauses (y/n, prompts)
         "chat.tools.terminal.autoReplyToPrompts": true,
 
-        // Auto-accept edits (correct key)
-        "chat.editing.autoAcceptDelay": 3,
+        // Auto-accept edits DISABLED for security (developers can enable in User Settings)
+        // "chat.editing.autoAcceptDelay": 3,
 
         // Checkpoints for rollback
         "chat.checkpoints.enabled": true,

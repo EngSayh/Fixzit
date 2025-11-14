@@ -7,7 +7,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 
 const I18N_DIR = path.join(__dirname, '..', 'i18n');
 const EN_FILE = path.join(I18N_DIR, 'en.json');
