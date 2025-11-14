@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
           preferredCurrency: body.preferredCurrency || 'SAR',
           authProvider: 'credentials',
         },
-      });
+      }));
     } catch (dbError: unknown) {
       // 🔒 TYPE SAFETY: Handle MongoDB duplicate key error with type guard
       if (dbError && typeof dbError === 'object' && 'code' in dbError && (dbError as { code: number }).code === 11000) { 

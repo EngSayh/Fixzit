@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
         details: "Invoice created"
       }],
       createdBy: user.id
-    });
+    }));
 
     return createSecureResponse(invoice, 201, req);
   } catch (error: unknown) {

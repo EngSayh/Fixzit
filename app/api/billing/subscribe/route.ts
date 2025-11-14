@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
       startedAt: new Date(),
       nextInvoiceAt: new Date(),
       createdBy: user.id
-    });
+    }));
 
     // 4) First invoice amount:
     const amount = body.billingCycle === 'annual' ? quote.annualTotal : quote.monthly;

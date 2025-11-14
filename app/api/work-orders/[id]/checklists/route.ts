@@ -8,6 +8,11 @@ import { createSecureResponse } from '@/server/security/headers';
 
 const schema = z.object({ title:z.string().min(2), items:z.array(z.object({label:z.string().min(1), done:z.boolean().optional()})).default([]) });
 
+interface WorkOrderDoc {
+  checklists: Array<{ title: string; items: Array<{ label: string; done?: boolean }> }>;
+  save: () => Promise<void>;
+}
+
 /**
  * @openapi
  * /api/work-orders/[id]/checklists:
@@ -34,10 +39,6 @@ export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}
   // Validate MongoDB ObjectId format
   if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
     return createSecureResponse({ error: "Invalid id" }, 400, req);
-  }
-  interface WorkOrderDoc {
-    checklists: Array<{ title: string; items: Array<{ label: string; done?: boolean }> }};
-    save: () => Promise<void>;
   }
   const wo = (await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId })) as WorkOrderDoc | null;
   if (!wo) return createSecureResponse({error:"Not found"}, 404, req);

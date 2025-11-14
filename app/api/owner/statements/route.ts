@@ -189,7 +189,7 @@ export async function GET(req: NextRequest) {
       status: 'COMPLETED',
       completedDate: { $gte: startDate, $lte: endDate },
       'cost.total': { $gt: 0 }
-    }).lean();
+    }).lean());
     
     workOrders.forEach((wo: unknown) => {
       const w = wo as WorkOrderResponse;

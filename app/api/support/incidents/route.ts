@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
         at: now
       }
         ]
-      });
+      }));
       break;
     } catch (_e: unknown) {
       if (_e && typeof _e === 'object' && 'code' in _e && _e.code === 11000) continue; // duplicate code -> retry

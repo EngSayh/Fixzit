@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
         last4: (paymentInfo.payment_description || '').slice(-4),
         expMonth: paymentInfo.expiryMonth, 
         expYear: paymentInfo.expYear
-      });
+      }));
       sub.paytabsTokenId = pm._id;
       await sub.save();
     }

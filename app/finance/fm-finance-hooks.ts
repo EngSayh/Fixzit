@@ -353,7 +353,7 @@ export async function recordPayment(
       receivedBy: 'System',
       receivedDate: new Date()
     }
-  });
+  }));
 
   // Convert to interface format
   const payment: FinancialTransaction = {

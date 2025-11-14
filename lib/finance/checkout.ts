@@ -88,7 +88,7 @@ export async function createSubscriptionCheckout(
       customer_email: input.customer.email,
     },
     metadata: input.metadata,
-  });
+  }));
 
   const cartId = `SUB-${subscription._id.toString()}`;
   const payload: Record<string, unknown> = {
