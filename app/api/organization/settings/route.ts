@@ -35,6 +35,7 @@ export async function GET() {
     await connectDb();
 
     // Get the first active organization (or you can get by orgId from session)
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const org = (await Organization.findOne({ /* isActive: true */ }).select('name logo branding').lean()) as any;
 
     if (!org) {
