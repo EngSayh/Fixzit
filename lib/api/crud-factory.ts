@@ -89,7 +89,18 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
    */
   async function GET(req: NextRequest) {
     // Authentication (MUST be outside try block to properly return 401)
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (error) {
+      const correlationId = crypto.randomUUID();
+      logger.warn('Unauthenticated request to GET endpoint', { path: req.url, correlationId });
+      return createSecureResponse(
+        { error: 'Unauthorized', message: 'Authentication required', correlationId },
+        401,
+        req
+      );
+    }
     
     // Tenant context check
     if (!user?.orgId) {
@@ -200,7 +211,18 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
    */
   async function POST(req: NextRequest) {
     // Authentication (MUST be outside try block to properly return 401)
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (error) {
+      const correlationId = crypto.randomUUID();
+      logger.warn('Unauthenticated request to POST endpoint', { path: req.url, correlationId });
+      return createSecureResponse(
+        { error: 'Unauthorized', message: 'Authentication required', correlationId },
+        401,
+        req
+      );
+    }
     
     // Tenant context check
     if (!user?.orgId) {
@@ -309,7 +331,18 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
    */
   async function GET(req: NextRequest, context: { params: { id: string } }) {
     // Authentication (MUST be outside try block to properly return 401)
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (error) {
+      const correlationId = crypto.randomUUID();
+      logger.warn('Unauthenticated request to GET by ID endpoint', { path: req.url, correlationId });
+      return createSecureResponse(
+        { error: 'Unauthorized', message: 'Authentication required', correlationId },
+        401,
+        req
+      );
+    }
     
     // Tenant context check
     if (!user?.orgId) {
@@ -376,7 +409,18 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
    */
   async function PUT(req: NextRequest, context: { params: { id: string } }) {
     // Authentication (MUST be outside try block to properly return 401)
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (error) {
+      const correlationId = crypto.randomUUID();
+      logger.warn('Unauthenticated request to PUT endpoint', { path: req.url, correlationId });
+      return createSecureResponse(
+        { error: 'Unauthorized', message: 'Authentication required', correlationId },
+        401,
+        req
+      );
+    }
     
     // Tenant context check
     if (!user?.orgId) {
@@ -466,7 +510,18 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
    */
   async function DELETE(req: NextRequest, context: { params: { id: string } }) {
     // Authentication (MUST be outside try block to properly return 401)
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (error) {
+      const correlationId = crypto.randomUUID();
+      logger.warn('Unauthenticated request to DELETE endpoint', { path: req.url, correlationId });
+      return createSecureResponse(
+        { error: 'Unauthorized', message: 'Authentication required', correlationId },
+        401,
+        req
+      );
+    }
     
     // Tenant context check
     if (!user?.orgId) {
