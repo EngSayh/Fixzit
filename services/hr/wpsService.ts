@@ -14,7 +14,6 @@
 
 import { createHash } from 'crypto';
 import type { IPayslip } from '../../models/hr/Payroll';
-import { logger } from '@/lib/logger';
 
 export interface WPSRecord {
   employeeId: string; // Employee code/ID
@@ -73,17 +72,14 @@ function extractBankCode(iban: string): string {
  * Generate WPS CSV file from payslips
  * Returns both the file and any errors encountered (for robust error handling)
  */
-export async function generateWPSFile(
+export function generateWPSFile(
   payslips: IPayslip[],
   organizationId: string,
   periodMonth: string // Format: YYYY-MM
-): Promise<{ file: WPSFile; errors: string[] }> {
+): { file: WPSFile; errors: string[] } {
   const records: WPSRecord[] = [];
   const errors: string[] = [];
   let totalNetSalary = 0;
-  
-  // Parse period for attendance lookups
-  const period = new Date(periodMonth + '-01');
   
   for (const slip of payslips) {
     // Validate IBAN before processing

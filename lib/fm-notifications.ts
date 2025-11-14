@@ -255,16 +255,42 @@ async function sendEmailNotifications(
           .filter((e): e is string => Boolean(e));
         
         if (emails.length > 0) {
+          // HTML-escape user content to prevent XSS
+          const escapeHtml = (str: string): string => {
+            return str
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#039;');
+          };
+          
+          // Validate and sanitize deep link URL
+          const sanitizeUrl = (url: string | undefined): string => {
+            if (!url) return '';
+            // Block javascript: and data: schemes
+            if (url.trim().toLowerCase().startsWith('javascript:') || 
+                url.trim().toLowerCase().startsWith('data:')) {
+              logger.warn('[Notifications] Blocked unsafe URL scheme', { url });
+              return '';
+            }
+            return url;
+          };
+          
+          const escapedTitle = escapeHtml(notification.title);
+          const escapedBody = escapeHtml(notification.body);
+          const safeLink = sanitizeUrl(notification.deepLink);
+          
           await sgMail.sendMultiple({
             to: emails,
             from: process.env.SENDGRID_FROM_EMAIL || 'notifications@fixzit.com',
-            subject: notification.title,
-            text: notification.body,
+            subject: escapedTitle,
+            text: notification.body, // Plain text doesn't need escaping
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #333;">${notification.title}</h2>
-                <p style="color: #666; line-height: 1.6;">${notification.body}</p>
-                ${notification.deepLink ? `<p><a href="${notification.deepLink}" style="background: #0070f3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px;">View Details</a></p>` : ''}
+                <h2 style="color: #333;">${escapedTitle}</h2>
+                <p style="color: #666; line-height: 1.6;">${escapedBody}</p>
+                ${safeLink ? `<p><a href="${safeLink}" style="background: #0070f3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px;">View Details</a></p>` : ''}
                 <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
                 <p style="color: #999; font-size: 12px;">This is an automated notification from Fixzit. Please do not reply to this email.</p>
               </div>

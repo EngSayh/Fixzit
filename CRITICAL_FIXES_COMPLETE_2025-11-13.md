@@ -186,15 +186,15 @@ All secrets were generated using OpenSSL with cryptographically secure random so
 ```bash
 # NEXTAUTH_SECRET
 $ openssl rand -base64 32
-lpn5+iCBYoBX12dM4KN21Toj1z2tSvDnaF4dmIRTsH0=
+<example output - generate your own>
 
 # JWT_SECRET
 $ openssl rand -base64 32
-m7VHBHgxigwSmsaj3lIIQXQU74rTFKz3e9MHLOlOSPU=
+<example output - generate your own>
 
 # LOG_HASH_SALT
 $ openssl rand -hex 32
-00bc59234f77aab02ae804f3791ce1580d7247e2b8a12685cca5fb504e73b3eb
+<example output - generate your own>
 ```
 
 ### Important Reminders

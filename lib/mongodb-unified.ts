@@ -92,7 +92,7 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
     logger.info('✅ MongoDB connected successfully');
     return connection;
   } catch (error: unknown) {
-    logger.error('[MongoDB] Disconnection failed:', { error });
+    logger.error('[MongoDB] Connection failed:', { error });
     throw error;
   }
 }

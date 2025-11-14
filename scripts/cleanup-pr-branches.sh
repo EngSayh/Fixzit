@@ -23,8 +23,8 @@ if [ -z "$REMOTE_BRANCHES" ] && [ -z "$LOCAL_BRANCHES" ]; then
 fi
 
 # Count branches
-REMOTE_COUNT=$(echo "$REMOTE_BRANCHES" | grep -c "copilot/sub-pr-" || echo "0")
-LOCAL_COUNT=$(echo "$LOCAL_BRANCHES" | wc -l | tr -d ' ' || echo "0")
+REMOTE_COUNT=$(echo "$REMOTE_BRANCHES" | grep -c '.' || echo "0")
+LOCAL_COUNT=$(echo "$LOCAL_BRANCHES" | grep -c '.' || echo "0")
 
 echo ""
 echo "📊 Found:"

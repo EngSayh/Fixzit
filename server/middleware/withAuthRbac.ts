@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { can, Role } from "../rbac/workOrdersPolicy";
+import { can } from "../rbac/workOrdersPolicy";
 import { auth } from "@/auth";
 import { logger } from '@/lib/logger';
 import { verifyToken } from '@/lib/auth';
+import { UserRole, ALL_ROLES, type UserRoleType } from '@/types/user';
+
+type Role = UserRoleType;
 
 export type SessionUser = {
   id: string;
@@ -21,9 +24,8 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
       
       // Validate role before casting
       const roleValue = session.user.role;
-      const validRoles = Object.values(Role) as string[];
       
-      if (!roleValue || !validRoles.includes(roleValue)) {
+      if (!roleValue || !ALL_ROLES.includes(roleValue as UserRoleType)) {
         logger.error('Invalid role in NextAuth session', { role: roleValue, userId: session.user.id });
         throw new Error('Unauthenticated');
       }

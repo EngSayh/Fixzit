@@ -124,9 +124,8 @@ export default function DashboardPage() {
       pending: workOrders?.items?.filter((wo: WorkOrder) => wo.status === WOStatus.NEW).length || 0,
       overdue: workOrders?.items?.filter((wo: WorkOrderWithDue) => {
         if (!wo.dueAt) return false;
-        const dueDate = new Date(wo.dueAt);
-        const now = new Date();
-        return dueDate < now;
+        // Use epoch milliseconds for consistent UTC comparison
+        return Date.parse(wo.dueAt) < Date.now();
       }).length || 0
     },
     properties: {

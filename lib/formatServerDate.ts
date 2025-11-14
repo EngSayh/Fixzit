@@ -5,7 +5,7 @@
  * They do NOT use 'use client' directive.
  */
 
-type DateFormatType = 'full' | 'long' | 'medium' | 'short' | 'date-only' | 'time-only' | 'relative' | 'iso';
+export type DateFormatType = 'full' | 'long' | 'medium' | 'short' | 'date-only' | 'time-only' | 'relative' | 'iso';
 
 /**
  * Converts input to Date object safely

@@ -87,6 +87,10 @@ function formatDate(
 
 /**
  * ClientDate Component Implementation
+ * 
+ * @note The `formatter` prop should be memoized with useCallback by the caller
+ * to prevent unnecessary re-renders. If passed as an inline function, it will
+ * cause the component to re-run the formatting effect on every parent render.
  */
 export default function ClientDate({
   date,
@@ -118,7 +122,7 @@ export default function ClientDate({
       logger.error('ClientDate formatting error', { error });
       setFormattedDate(fallback);
     }
-  }, [date, format, locale, timeZone, formatter, fallback]);
+  }, [date, format, locale, timeZone, fallback]); // Removed formatter - caller should memoize it
 
   // Server renders placeholder, client hydrates with actual date
   if (!mounted) {

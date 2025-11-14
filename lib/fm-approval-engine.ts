@@ -247,7 +247,7 @@ export function processDecision(
 /**
  * Check for timeouts and escalate if needed
  */
-export function checkTimeouts(workflow: ApprovalWorkflow): ApprovalWorkflow {
+export function checkTimeouts(workflow: ApprovalWorkflow, orgId: string): ApprovalWorkflow {
   const currentStage = workflow.stages[workflow.currentStage - 1];
 
   if (!currentStage || currentStage.status !== 'pending') {
@@ -266,15 +266,15 @@ export function checkTimeouts(workflow: ApprovalWorkflow): ApprovalWorkflow {
         const { User } = await import('@/server/models/User');
         await connectToDatabase();
         
-        // Get orgId from workflow context (need to pass it in)
-        // For now, we'll add escalation roles to the stage
+        // Add escalation roles to the stage
         for (const escalationRole of policy.escalateTo) {
           if (!currentStage.approverRoles.includes(escalationRole)) {
             currentStage.approverRoles.push(escalationRole);
             
-            // Query and add escalation approvers
+            // Query and add escalation approvers with orgId filter
             const escalationUsers = await User.find({
               'professional.role': escalationRole,
+              orgId: orgId,
               isActive: true,
             }).select('_id').limit(5).lean();
             
@@ -547,22 +547,35 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
       await approval.save();
       logger.info('[Approval] Escalated:', approval.approvalNumber);
       
-      // Send escalation notifications via fm-notifications system
-      await import('./fm-notifications').then(({ sendNotification }) => {
-        policy.escalateTo?.forEach(role => {
-          void sendNotification({
-            type: 'APPROVAL_ESCALATED',
-            userId: '',
-            role,
-            title: 'Approval Request Escalated',
-            message: `Approval request ${approval.approvalNumber} escalated due to timeout`,
-            data: { approvalId: approval._id.toString(), stage: currentStage.stage },
-            priority: 'HIGH'
+      // Resolve policy and current stage from approval for notifications
+      const approvalPolicy = approval.policyId ? 
+        APPROVAL_POLICIES.find(p => p.require.length > 0) : null;
+      const approvalStage = approval.stages?.[approval.currentStageIndex || 0];
+      
+      // Send escalation notifications via fm-notifications system if policy exists
+      if (approvalPolicy?.escalateTo && approvalStage) {
+        await import('./fm-notifications').then(({ sendNotification }) => {
+          approvalPolicy.escalateTo?.forEach(role => {
+            void sendNotification({
+              type: 'APPROVAL_ESCALATED',
+              userId: '',
+              role,
+              title: 'Approval Request Escalated',
+              message: `Approval request ${approval.approvalNumber} escalated due to timeout`,
+              data: { approvalId: approval._id.toString(), stage: approvalStage.stage || 1 },
+              priority: 'HIGH'
+            });
           });
+        }).catch(err => {
+          logger.error('[Approval] Failed to send escalation notifications:', { err });
         });
-      }).catch(err => {
-        logger.error('[Approval] Failed to send escalation notifications:', { err });
-      });
+      } else {
+        logger.warn('[Approval] No policy or stage found for escalation notifications', {
+          approvalId: approval._id.toString(),
+          hasPolicy: !!approvalPolicy,
+          hasStage: !!approvalStage
+        });
+      }
     }
 
     logger.info(`[Approval] Processed ${overdueApprovals.length} timeout escalations`);

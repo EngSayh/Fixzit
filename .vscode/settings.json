@@ -88,9 +88,9 @@
   
   // Auto-reply and auto-accept (less risky)
   "chat.tools.terminal.autoReplyToPrompts": true,
-  "chat.editing.autoAcceptDelay": 3,
+  "chat.editing.autoAcceptDelay": 20,
   "chat.checkpoints.enabled": true,
-  "chat.notifyWindowOnConfirmation": false,
+  "chat.notifyWindowOnConfirmation": true,
   
   // Disable MCP discovery
   "chat.mcp.discovery.enabled": false,

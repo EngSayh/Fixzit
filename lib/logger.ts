@@ -84,7 +84,19 @@ class Logger {
         const Sentry = await import('@sentry/nextjs').catch(() => null);
         
         if (Sentry) {
-          Sentry.captureException(new Error(message), {
+          // Pass original Error if available, otherwise create new Error with cause
+          let errorToCapture: Error;
+          if (message instanceof Error) {
+            errorToCapture = message;
+          } else if (context?.error instanceof Error) {
+            errorToCapture = context.error;
+          } else {
+            errorToCapture = new Error(message, {
+              cause: context?.error
+            } as ErrorOptions);
+          }
+          
+          Sentry.captureException(errorToCapture, {
             level: 'error',
             extra: context,
             tags: {

@@ -1,6 +1,6 @@
 #!/bin/bash
-# Batch Date Hydration Fixer
-# Fixes all date hydration issues systematically
+# Date Hydration File Existence Check
+# Verifies that all date hydration target files exist
 
 # Strict mode: exit on error, undefined variables, pipe failures
 set -euo pipefail
@@ -10,12 +10,12 @@ IFS=$'\n\t'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/.." || exit 1
 
-echo "🔧 Starting Date Hydration Batch Fix"
+echo "🔍 Checking Date Hydration Target Files"
 echo "========================================"
 echo "📁 Working directory: $PWD"
 echo ""
 
-FIXED=0
+CHECKED=0
 ERRORS=0
 
 # Priority 1: App pages (user-facing, highest hydration risk)
@@ -35,18 +35,18 @@ FILES=(
 
 for file in "${FILES[@]}"; do
   if [ -f "$file" ]; then
-    echo "  ✓ $file"
-    ((FIXED+=1))
+    echo "  ✓ Verified: $file"
+    ((CHECKED+=1))
   else
-    echo "  ✗ $file (not found)"
+    echo "  ✗ Missing: $file"
     ((ERRORS+=1))
   fi
 done
 
 echo ""
 echo "📊 Summary"
-echo "  Fixed: $FIXED files"
-echo "  Errors: $ERRORS files"
+echo "  Checked: $CHECKED files"
+echo "  Missing: $ERRORS files"
 
 # Safely check for remaining files list
 REMAINING_FILE="/tmp/date-hydration-files.txt"

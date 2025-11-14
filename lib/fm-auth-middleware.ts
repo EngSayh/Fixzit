@@ -141,12 +141,22 @@ export async function requireFMAuth(
       };
       plan = planMap[orgPlan.toUpperCase()] || Plan.STARTER;
       
-      // Verify org membership: org exists for ctx.orgId and user is in member list
-      isOrgMember = true; // Org found for ctx.orgId
+      // Verify org membership: initialize as false and check if user is in member list
+      isOrgMember = false;
       
-      // Additional check: verify user is in org's member list (if available)
+      // Check if user is in org's member list with proper validation
       if (org.members && Array.isArray(org.members)) {
-        isOrgMember = org.members.some((m: { userId: string }) => m.userId === ctx.userId);
+        for (const member of org.members) {
+          // Validate member structure before comparing
+          if (member && typeof member === 'object' && typeof member.userId === 'string') {
+            if (member.userId === ctx.userId) {
+              isOrgMember = true;
+              break;
+            }
+          } else {
+            logger.warn('[FM Auth] Invalid member entry in org.members', { orgId: ctx.orgId, member });
+          }
+        }
       }
       
       logger.debug('[FM Auth] Org lookup successful', { 
