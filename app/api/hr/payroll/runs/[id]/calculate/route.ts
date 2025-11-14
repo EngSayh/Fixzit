@@ -40,6 +40,7 @@ export async function POST(
     }
 
     // Fetch all ACTIVE employees
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const employees = await Employee.find({
       orgId: session.user.orgId,
       status: 'ACTIVE',

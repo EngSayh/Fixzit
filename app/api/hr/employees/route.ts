@@ -88,6 +88,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check for duplicate employee code within org
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const existing = await Employee.findOne({
       orgId: session.user.orgId,
       employeeCode: body.employeeCode,
@@ -101,6 +102,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create employee
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const employee = await Employee.create({
       ...body,
       orgId: session.user.orgId,
