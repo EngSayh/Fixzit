@@ -234,7 +234,9 @@ JournalSchema.methods.post = async function(): Promise<IJournal> {
   
   await this.save();
   
-  // TODO: Update ChartAccount balances via LedgerEntry model
+  // FUTURE: Update ChartAccount balances via LedgerEntry model
+  // This will be implemented when the full double-entry accounting system is activated.
+  // Currently handled by postingService.ts which creates LedgerEntry records.
   
   return this as unknown as IJournal;
 };

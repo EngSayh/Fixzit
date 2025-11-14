@@ -94,9 +94,16 @@ export async function POST(req: NextRequest) {
         details: `Payment completed via PayTabs. Transaction: ${tran_ref}`
       });
       
-      // TODO: If this is an AqarPackage payment, activate the package
-      // Import and call: activatePackageAfterPayment(relatedPaymentId)
-      // See: lib/aqar/package-activation.ts
+      // Activate AqarPackage if this payment is for a package purchase
+      if (invoice.metadata?.aqarPaymentId) {
+        const { activatePackageAfterPayment } = await import('@/lib/aqar/package-activation');
+        await activatePackageAfterPayment(invoice.metadata.aqarPaymentId).catch(err => {
+          logger.error('Failed to activate package after payment', { 
+            paymentId: invoice.metadata?.aqarPaymentId, 
+            error: err 
+          });
+        });
+      }
     } else {
       // Payment failed
       invoice.payments.push({

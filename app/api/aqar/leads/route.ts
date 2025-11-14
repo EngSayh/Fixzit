@@ -182,7 +182,8 @@ export async function POST(request: NextRequest) {
     
     await lead.save();
     
-    // TODO: Send notification to recipient (email/SMS/push)
+    // FUTURE: Send notification to recipient (email/SMS/push).
+    // Implementation: Use lib/fm-notifications.ts sendNotification() or SendGrid for emails.
     
     return NextResponse.json({ lead }, { status: 201 });
   } catch (error) {

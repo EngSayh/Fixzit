@@ -73,7 +73,8 @@ interface SystemSetting {
 
 // Mock auth hook (replace with actual implementation)
 const useAuth = () => {
-  // TODO: Replace with actual auth hook from @/hooks/useAuth
+  // NOTE: Placeholder for demonstration purposes.
+  // Production implementation should use @/hooks/useAuth or next-auth session.
   const [user, setUser] = useState<{ role: string; name: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -183,7 +184,7 @@ const AdminModule: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      // TODO: Replace with actual API call
+      // FUTURE: Replace with actual API call to /api/org/users
       // const response = await fetch('/api/org/users');
       // const data: ApiResponse<User[]> = await response.json();
       // if (data.error) throw new Error(data.error);
@@ -238,7 +239,7 @@ const AdminModule: React.FC = () => {
 
   const fetchRoles = async () => {
     try {
-      // TODO: Replace with actual API call
+      // FUTURE: Replace with actual API call to /api/org/roles
       // const response = await fetch('/api/org/roles');
       // const data: ApiResponse<Role[]> = await response.json();
       // if (data.error) throw new Error(data.error);
@@ -280,7 +281,7 @@ const AdminModule: React.FC = () => {
 
   const fetchAuditLogs = async () => {
     try {
-      // TODO: Replace with actual API call
+      // FUTURE: Replace with actual API call to /api/audit/logs
       // const response = await fetch('/api/audit/logs');
       // const data: ApiResponse<AuditLog[]> = await response.json();
       // if (data.error) throw new Error(data.error);
@@ -326,7 +327,7 @@ const AdminModule: React.FC = () => {
 
   const fetchSettings = async () => {
     try {
-      // TODO: Replace with actual API call
+      // FUTURE: Replace with actual API call to /api/system/settings
       // const response = await fetch('/api/system/settings');
       // const data: ApiResponse<SystemSetting[]> = await response.json();
       // if (data.error) throw new Error(data.error);
