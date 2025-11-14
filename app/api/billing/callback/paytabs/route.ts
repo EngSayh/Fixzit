@@ -97,11 +97,11 @@ export async function POST(req: NextRequest) {
   const verifiedOk = verificationData?.payment_result?.response_status === 'A';
   
   const subId = cartId?.replace('SUB-','');
-  const sub = await Subscription.findById(subId);
+  const sub = (await Subscription.findById(subId)) as any;
   if (!sub) return createSecureResponse({ error: 'SUB_NOT_FOUND' }, 400, req);
 
   // Find invoice
-  const inv = await SubscriptionInvoice.findOne({ subscriptionId: sub._id, status: 'pending' });
+  const inv = (await SubscriptionInvoice.findOne({ subscriptionId: sub._id, status: 'pending' })) as any;
   if (!inv) return createSecureResponse({ error: 'INV_NOT_FOUND' }, 400, req);
 
   if (!verifiedOk) {
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
     if (!paymentInfo) {
       logger.warn('[Billing Callback] No payment_info in verification response, skipping token storage');
     } else {
-      const pm = await PaymentMethod.create({
+      const pm = (await PaymentMethod.create({
         customerId: sub.customerId, 
         token, 
         scheme: paymentInfo.card_scheme, 

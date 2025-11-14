@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     const verification = await verifyPayment(tran_ref) as { payment_result?: { response_status?: string } } | null;
 
     await connectToDatabase();
-    const invoice = await Invoice.findById(cart_id);
+    const invoice = (await Invoice.findById(cart_id)) as any;
 
     if (!invoice) {
       logger.error('Invoice not found for payment callback:', { cart_id });

@@ -54,8 +54,8 @@ export async function createSubscriptionCheckout(
   }
 
   const priceBook = input.priceBookId
-    ? await PriceBook.findById(input.priceBookId)
-    : await PriceBook.findOne({ currency, active: true });
+    ? (await PriceBook.findById(input.priceBookId)) as any
+    : (await PriceBook.findOne({ currency, active: true })) as any;
 
   if (!priceBook) {
     throw new Error('PriceBook not found');
@@ -72,7 +72,7 @@ export async function createSubscriptionCheckout(
     return { requiresQuote: true, quote };
   }
 
-  const subscription = await Subscription.create({
+  const subscription = (await Subscription.create({
     tenant_id: input.subscriberType === 'CORPORATE' ? input.tenantId : undefined,
     owner_user_id: input.subscriberType === 'OWNER' ? input.ownerUserId : undefined,
     subscriber_type: input.subscriberType,

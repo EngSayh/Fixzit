@@ -101,10 +101,10 @@ export async function POST(req: NextRequest) {
     }
 
     await connectToDatabase();
-    const invoice = await Invoice.findOne({ 
+    const invoice = (await Invoice.findOne({ 
       _id: invoiceId, 
       tenantId: user.orgId 
-    });
+    })) as any;
 
     if (!invoice) {
       return notFoundError('Invoice');

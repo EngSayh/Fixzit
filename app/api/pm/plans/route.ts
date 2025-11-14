@@ -19,9 +19,9 @@ export async function GET(request: Request) {
     if (status) query.status = status;
     if (category) query.category = category;
     
-    const plans = await FMPMPlan.find(query)
+    const plans = (await FMPMPlan.find(query)
       .sort({ nextScheduledDate: 1 })
-      .lean();
+      .lean()) as any;
     
     return NextResponse.json({
       success: true,
@@ -55,11 +55,11 @@ export async function POST(request: Request) {
     }
     
     // Create PM plan
-    const plan = await FMPMPlan.create({
+    const plan = (await FMPMPlan.create({
       ...body,
       status: body.status || 'ACTIVE',
       nextScheduledDate: body.startDate || new Date()
-    });
+    })) as any;
     
     return NextResponse.json({
       success: true,

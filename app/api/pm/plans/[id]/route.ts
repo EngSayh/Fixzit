@@ -12,7 +12,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const plan = await FMPMPlan.findById(id);
+    const plan = (await FMPMPlan.findById(id)) as any;
     
     if (!plan) {
       return NextResponse.json(
@@ -46,11 +46,11 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
     
-    const plan = await FMPMPlan.findByIdAndUpdate(
+    const plan = (await FMPMPlan.findByIdAndUpdate(
       id,
       { $set: body },
       { new: true, runValidators: true }
-    );
+    )) as any;
     
     if (!plan) {
       return NextResponse.json(
@@ -82,11 +82,11 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const plan = await FMPMPlan.findByIdAndUpdate(
+    const plan = (await FMPMPlan.findByIdAndUpdate(
       id,
       { $set: { status: 'INACTIVE' } },
       { new: true }
-    );
+    )) as any;
     
     if (!plan) {
       return NextResponse.json(

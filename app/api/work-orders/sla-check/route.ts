@@ -17,10 +17,10 @@ export async function POST() {
     // Find work orders that:
     // 1. Are not closed/cancelled
     // 2. Have SLA deadline approaching (within 2 hours) or breached
-    const workOrders = await WorkOrder.find({
+    const workOrders = (await WorkOrder.find({
       status: { $nin: ['CLOSED', 'CANCELLED', 'ARCHIVED'] },
       'sla.deadline': { $exists: true, $lte: twoHoursFromNow }
-    }).lean();
+    }).lean()) as any;
     
     const results = {
       checked: await WorkOrder.countDocuments({
@@ -88,10 +88,10 @@ export async function GET() {
   try {
     const now = new Date();
     
-    const allWorkOrders = await WorkOrder.find({
+    const allWorkOrders = (await WorkOrder.find({
       status: { $nin: ['CLOSED', 'CANCELLED', 'ARCHIVED'] },
       'sla.deadline': { $exists: true }
-    }).lean();
+    }).lean()) as any;
     
     const preview = {
       total: allWorkOrders.length,

@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .lean(),
+        .lean() as any,
       RFQ.countDocuments(filter)
     ]);
 

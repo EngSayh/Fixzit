@@ -19,13 +19,13 @@ export async function chargeDueMonthlySubs() {
   const endOfToday = new Date(today);
   endOfToday.setUTCHours(23, 59, 59, 999);
 
-  const dueSubs = await Subscription.find({
+  const dueSubs = (await Subscription.find({
     billing_cycle: 'MONTHLY',
     status: 'ACTIVE',
     'paytabs.token': { $exists: true, $ne: null },
     // ✅ CRITICAL: Only charge if next_billing_date is today or in the past
     next_billing_date: { $lte: endOfToday }
-  }).lean();
+  }).lean()) as any;
 
   const results = {
     total: dueSubs.length,
@@ -80,7 +80,7 @@ export async function chargeDueMonthlySubs() {
               status: 'SUCCESS'
             }
           }
-        });
+        }) as any;
 
         results.success++;
         logger.info('[Billing] Successfully charged subscription', {

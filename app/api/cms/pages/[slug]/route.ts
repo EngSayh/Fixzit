@@ -27,7 +27,7 @@ import { createSecureResponse } from '@/server/security/headers';
 export async function GET(_req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
   await connectToDatabase();
-  const page = await CmsPage.findOne({ slug: params.slug });
+  const page = (await CmsPage.findOne({ slug: params.slug })) as any;
   if (!page) return createSecureResponse({ error: "Not found" }, 404, _req);
   return createSecureResponse(page, 200, _req);
 }
@@ -48,11 +48,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
   
   const body = await req.json();
   const validated = patchSchema.parse(body);
-  const page = await CmsPage.findOneAndUpdate(
+  const page = (await CmsPage.findOneAndUpdate(
     { slug: params.slug },
     { $set: validated },
     { new: true }
-  );
+  )) as any;
   if (!page) return notFoundError("Resource");
   return NextResponse.json(page);
 }

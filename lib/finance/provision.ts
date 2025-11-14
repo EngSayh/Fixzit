@@ -1,12 +1,12 @@
 import Subscription from '@/server/models/Subscription';
 
 export async function provisionSubscriber(cartIdOrSubscriptionId: string) {
-  const subscription = await Subscription.findOne({
+  const subscription = (await Subscription.findOne({
     $or: [
       { _id: cartIdOrSubscriptionId },
       { 'paytabs.cart_id': cartIdOrSubscriptionId },
     ],
-  });
+  })) as any;
 
   if (!subscription) {
     throw new Error('Subscription not found for provisioning');

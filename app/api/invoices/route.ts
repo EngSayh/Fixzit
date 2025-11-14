@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
       vatAmount: totalTax.toString()
     });
 
-    const invoice = await Invoice.create({
+    const invoice = (await Invoice.create({
       tenantId: user.orgId,
       number,
       ...data,
@@ -246,7 +246,7 @@ export async function GET(req: NextRequest) {
       Invoice.find(match)
         .sort({ issueDate: -1 })
         .skip((page - 1) * limit)
-        .limit(limit),
+        .limit(limit) as any,
       Invoice.countDocuments(match)
     ]);
 

@@ -66,7 +66,7 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
     throw new Error('Missing cart identifier');
   }
 
-  const subscription = await Subscription.findOne({ 'paytabs.cart_id': payload.cart_id });
+  const subscription = (await Subscription.findOne({ 'paytabs.cart_id': payload.cart_id })) as any;
   if (!subscription) {
     throw new Error('Subscription not found for cart');
   }
@@ -88,7 +88,7 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
         owner_user_id: subscription.subscriber_type === 'OWNER' ? subscription.owner_user_id : undefined,
       },
       { upsert: true }
-    );
+    ) as any;
   }
 
   subscription.status = 'ACTIVE';

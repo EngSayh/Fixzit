@@ -71,16 +71,16 @@ export async function POST(req: NextRequest) {
     if (!cand || !job) return validationError("Candidate or Job missing");
 
     const orgId = app.orgId;
-    const existing = await Employee.findOne({ orgId, 'personal.email': cand.email }).lean();
+    const existing = (await Employee.findOne({ orgId, 'personal.email': cand.email }).lean()) as any;
     if (existing) return NextResponse.json({ success: true, data: existing, message: 'Employee already exists' });
 
-    const employee = await Employee.create({
+    const employee = (await Employee.create({
       orgId,
       personal: { firstName: cand.firstName, lastName: cand.lastName, email: cand.email, phone: cand.phone },
       professional: { role: 'EMPLOYEE', department: job.department, title: job.title },
       status: 'ACTIVE',
       metadata: { source: 'ats', jobId: job._id.toString(), applicationId: app._id.toString(), convertedBy: user?.id || 'system' }
-    });
+    })) as any;
     return NextResponse.json({ success: true, data: employee });
   } catch (error) {
     logger.error('Convert to employee error:', error instanceof Error ? error.message : 'Unknown error');

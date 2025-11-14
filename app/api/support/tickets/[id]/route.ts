@@ -32,7 +32,7 @@ const patchSchema = z.object({
 export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   await connectToDatabase();
-  const t = await SupportTicket.findById(params.id);
+  const t = (await SupportTicket.findById(params.id)) as any;
   if (!t) return createSecureResponse({ error: "Not found" }, 404, _req);
   return createSecureResponse(t, 200, _req);
 }
@@ -49,14 +49,14 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
     return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
-  const t = await SupportTicket.findOne({ 
+  const t = (await SupportTicket.findOne({ 
     _id: params.id, 
     $or: [
       { orgId: user.orgId },
       // Allow admins to modify any ticket
       ...(["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role) ? [{}] : [])
     ]
-  });
+  })) as any;
   if (!t) return createSecureResponse({ error: "Not found" }, 404, req);
   if (data.status && t.status==="New" && !t.firstResponseAt) t.firstResponseAt = new Date();
   Object.assign(t, data);

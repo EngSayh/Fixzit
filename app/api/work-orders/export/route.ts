@@ -38,9 +38,9 @@ export async function GET(req:NextRequest): Promise<NextResponse> {
   await connectToDatabase();
   
   // Use .lean() to get plain JavaScript objects instead of Mongoose documents
-  const docs = await WorkOrder.find({tenantId:user.orgId, deletedAt:{$exists:false}})
+  const docs = (await WorkOrder.find({tenantId:user.orgId, deletedAt:{$exists:false}})
     .limit(2000)
-    .lean<WorkOrderExportDoc[]>();
+    .lean<WorkOrderExportDoc[]>()) as any;
   
   const header = ["code","title","status","priority","propertyId","assigneeUserId","createdAt","dueAt"];
   const lines = [header.join(",")].concat(docs.map((d: WorkOrderExportDoc) =>[

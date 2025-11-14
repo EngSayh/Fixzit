@@ -30,14 +30,14 @@ export async function quotePrice(opts: {
     return { requiresQuote: true, total: 0, lines: [], annualDiscount: 0 };
   }
 
-  const pb = await PriceBook.findOne({ currency: priceBookCurrency, active: true }).lean<{
+  const pb = (await PriceBook.findOne({ currency: priceBookCurrency, active: true }).lean<{
     tiers: Array<{
       min_seats: number;
       max_seats: number;
       discount_pct: number;
       prices: Array<{ module_key: string; monthly_usd: number; monthly_sar: number }>;
     }>;
-  }>();
+  }>()) as any;
   if (!pb) {
     throw new Error('PriceBook not found');
   }
@@ -62,7 +62,7 @@ export async function quotePrice(opts: {
     lines.reduce((total, line) => total + line.discountedPerSeatMonthly, 0) * seats;
 
   if (billingCycle === 'ANNUAL') {
-    const rule = await DiscountRule.findOne({ key: 'ANNUAL_PREPAY' }).lean<{ percentage?: number }>();
+    const rule = (await DiscountRule.findOne({ key: 'ANNUAL_PREPAY' }).lean<{ percentage?: number }>()) as any;
     const annualDisc = rule?.percentage ?? 0;
     const total = Math.round(subtotalMonthly * 12 * (1 - annualDisc) * 100) / 100;
 

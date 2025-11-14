@@ -57,7 +57,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   await connectToDatabase();
 
   const body = schema.parse(await req.json());
-  const wo = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId });
+  const wo = (await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId })) as any;
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
 
   // Get current status and target status

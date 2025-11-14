@@ -35,7 +35,7 @@ export async function GET() {
     await connectDb();
 
     // Get the first active organization (or you can get by orgId from session)
-    const org = await Organization.findOne({ /* isActive: true */ }).select('name logo branding').lean();
+    const org = (await Organization.findOne({ /* isActive: true */ }).select('name logo branding').lean()) as any;
 
     if (!org) {
       // Return default settings if no organization found

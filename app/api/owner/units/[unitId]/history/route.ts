@@ -68,10 +68,10 @@ export async function GET(
     const { UtilityBillModel: UtilityBill } = await import('@/server/models/owner/UtilityBill');
     
     // Find property and unit using Mongoose
-    const property = await Property.findOne({
+    const property = (await Property.findOne({
       'ownerPortal.ownerId': ownerId,
       'units.unitNumber': params.unitId
-    }).lean();
+    }).lean()) as any;
     
     if (!property || Array.isArray(property)) {
       return NextResponse.json(
@@ -127,10 +127,10 @@ export async function GET(
         maintenanceMatch.completedDate = dateFilter;
       }
       
-      const workOrders = await WorkOrder.find(maintenanceMatch)
+      const workOrders = (await WorkOrder.find(maintenanceMatch)
         .sort({ completedDate: -1 })
         .limit(50)
-        .lean();
+        .lean()) as any;
       
       historyData.maintenance = workOrders.map(wo => ({
         workOrderNumber: wo.workOrderNumber,

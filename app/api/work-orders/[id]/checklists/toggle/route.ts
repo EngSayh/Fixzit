@@ -35,7 +35,7 @@ export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}
     }>;
     save: () => Promise<void>;
   }
-  const wo = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId }) as WorkOrderDoc | null;
+  const wo = (await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId })) as WorkOrderDoc | null;
   if (!wo) return createSecureResponse({error:"Not found"}, 404, req);
   if (!wo.checklists?.[checklistIndex]?.items?.[itemIndex]) return createSecureResponse({error:"Bad index"}, 400, req);
   wo.checklists[checklistIndex].items[itemIndex].done = done;

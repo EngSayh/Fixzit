@@ -80,7 +80,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
     const data = submitBidSchema.parse(await req.json());
 
-    const rfq = await RFQ.findOne({ _id: params.id, tenantId: user.tenantId });
+    const rfq = (await RFQ.findOne({ _id: params.id, tenantId: user.tenantId })) as any;
     
     if (!rfq) {
       return createSecureResponse({ error: "RFQ not found" }, 404, req);
@@ -144,7 +144,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    const rfq = await RFQ.findOne({ _id: params.id, tenantId: user.tenantId });
+    const rfq = (await RFQ.findOne({ _id: params.id, tenantId: user.tenantId })) as any;
     
     if (!rfq) {
       return createSecureResponse({ error: "RFQ not found" }, 404, req);

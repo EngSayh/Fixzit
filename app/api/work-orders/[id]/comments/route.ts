@@ -29,7 +29,7 @@ export async function GET(req:NextRequest, props:{params: Promise<{id:string}>})
   const params = await props.params;
   const user = await getSessionUser(req);
   await connectToDatabase();
-  const wo = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId });
+  const wo = (await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId })) as any;
   return createSecureResponse(wo?.comments ?? [], 200, req);
 }
 
@@ -41,7 +41,7 @@ export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}
     comments?: Array<{ byUserId: string; text: string; at: Date }>;
     save: () => Promise<void>;
   }
-  const wo = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId }) as WorkOrderDoc | null;
+  const wo = (await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId })) as WorkOrderDoc | null;
   if (!wo) return createSecureResponse({error:"Not found"}, 404, req);
   wo.comments ??= [];
   wo.comments.push({ byUserId:user.id, text: String(text).slice(0, 5000), at:new Date() });

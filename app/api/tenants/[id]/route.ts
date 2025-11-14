@@ -100,10 +100,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    const tenant = await Tenant.findOne({
+    const tenant = (await Tenant.findOne({
       _id: params.id,
       tenantId: user.tenantId
-    });
+    })) as any;
 
     if (!tenant) {
       return createSecureResponse({ error: "Tenant not found" }, 404, req);
@@ -123,11 +123,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     const data = updateTenantSchema.parse(await req.json());
 
-    const tenant = await Tenant.findOneAndUpdate(
+    const tenant = (await Tenant.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },
       { $set: { ...data, updatedBy: user.id } },
       { new: true }
-    );
+    )) as any;
 
     if (!tenant) {
       return createSecureResponse({ error: "Tenant not found" }, 404, req);
@@ -152,11 +152,11 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    const tenant = await Tenant.findOneAndUpdate(
+    const tenant = (await Tenant.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },
       { $set: { status: 'INACTIVE', updatedBy: user.id } },
       { new: true }
-    );
+    )) as any;
 
     if (!tenant) {
       return createSecureResponse({ error: "Tenant not found" }, 404, req);

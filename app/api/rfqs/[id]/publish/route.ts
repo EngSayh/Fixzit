@@ -51,7 +51,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    const rfq = await RFQ.findOneAndUpdate(
+    const rfq = (await RFQ.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId, status: "DRAFT" },
       {
         $set: {
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
           "workflow.publishedAt": new Date(),
           "timeline.publishDate": new Date()}},
       { new: true }
-    );
+    )) as any;
 
     if (!rfq) {
       return createSecureResponse({ error: "RFQ not found or already published" }, 404, req);

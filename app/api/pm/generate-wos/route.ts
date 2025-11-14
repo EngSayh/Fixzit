@@ -13,10 +13,10 @@ export async function POST() {
   try {
     
     // Find all ACTIVE PM plans that should generate WOs now
-    const plans = await FMPMPlan.find({
+    const plans = (await FMPMPlan.find({
       status: 'ACTIVE',
       nextScheduledDate: { $exists: true }
-    });
+    })) as any;
     
     const results = {
       checked: plans.length,

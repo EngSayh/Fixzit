@@ -49,7 +49,7 @@ export async function GET(req: NextRequest){
       return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     }
     
-    const items = await SupportTicket.find({ createdByUserId: user.id }).sort({ createdAt:-1 }).limit(200);
+    const items = (await SupportTicket.find({ createdByUserId: user.id }).sort({ createdAt:-1 }).limit(200)) as any;
     return createSecureResponse({ items }, 200, req);
   } catch (error) {
     logger.error('My tickets query failed:', error instanceof Error ? error.message : 'Unknown error');

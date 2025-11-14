@@ -73,12 +73,12 @@ export async function GET(req: NextRequest) {
     }
     
     // Query properties
-    const properties = await Property.find({
+    const properties = (await Property.find({
       'ownerPortal.ownerId': ownerId
     })
     .select(projection)
     .sort({ name: 1 })
-    .lean();
+    .lean()) as any;
     
     // Calculate summary statistics
     const summary = {

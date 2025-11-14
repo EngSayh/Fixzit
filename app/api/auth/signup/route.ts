@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     const hashedPassword = await bcrypt.hash(body.password, 12);
 
     // ✅ FIX: Pre-check for existing user (good for a fast, clean error)
-    const existingUser = await User.findOne({ email: normalizedEmail });
+    const existingUser = (await User.findOne({ email: normalizedEmail })) as any;
     if (existingUser) {
       return duplicateKeyError("An account with this email already exists.");
     }
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
     let newUser;
     try {
       // Use nested User model schema from @/server/models/User
-      newUser = await User.create({
+      newUser = (await User.create({
         code,
         username: code, // Use unique code as username (no more conflicts)
         email: normalizedEmail,

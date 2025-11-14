@@ -36,10 +36,10 @@ export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}
     return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
   interface WorkOrderDoc {
-    checklists: Array<{ title: string; items: Array<{ label: string; done?: boolean }> }>;
+    checklists: Array<{ title: string; items: Array<{ label: string; done?: boolean }> }};
     save: () => Promise<void>;
   }
-  const wo = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId }) as WorkOrderDoc | null;
+  const wo = (await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId })) as WorkOrderDoc | null;
   if (!wo) return createSecureResponse({error:"Not found"}, 404, req);
   wo.checklists.push({ title:data.title, items:data.items || [] });
   await wo.save();

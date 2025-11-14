@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
 
     const data = createRFQSchema.parse(await req.json());
 
-    const rfq = await RFQ.create({
+    const rfq = (await RFQ.create({
       tenantId: user.orgId,
       code: `RFQ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
         createdBy: user.id
       },
       createdBy: user.id
-    });
+    })) as any;
 
     return createSecureResponse(rfq, 201, req);
   } catch (error: unknown) {
@@ -184,7 +184,7 @@ export async function GET(req: NextRequest) {
       RFQ.find(match)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
-        .limit(limit),
+        .limit(limit) as any,
       RFQ.countDocuments(match)
     ]);
 

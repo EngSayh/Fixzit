@@ -26,7 +26,7 @@ export async function GET(
     }
 
     // Find footer content for this page
-    const footerContent = await FooterContent.findOne({ page }).lean().exec() as {
+    const footerContent = (await FooterContent.findOne({ page }).lean().exec()) as {
       page: string;
       contentEn: string;
       contentAr: string;

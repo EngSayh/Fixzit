@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
   for (let i = 0; i < 5; i++) {
     const ticketCode = genCode();
     try {
-      ticket = await SupportTicket.create({
+      ticket = (await SupportTicket.create({
     orgId: sessionUser?.orgId || undefined,
         code: ticketCode,
     subject: `[${code}] ${message}`.slice(0, 140),

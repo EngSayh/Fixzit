@@ -58,7 +58,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   const body = schema.parse(await req.json());
 
   // MongoDB-only implementation
-  let wo = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId });
+  let wo = (await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId })) as any;
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
 
   wo.assigneeUserId = body.assigneeUserId;

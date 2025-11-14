@@ -183,10 +183,10 @@ export const authConfig = {
           // 4. Find user based on login type
           let user;
           if (loginType === 'personal') {
-            user = await User.findOne({ email: loginIdentifier });
+            user = (await User.findOne({ email: loginIdentifier })) as any;
           } else {
             // Corporate login uses employee number (stored in username field)
-            user = await User.findOne({ username: loginIdentifier });
+            user = (await User.findOne({ username: loginIdentifier })) as any;
           }
 
           if (!user) {
@@ -321,10 +321,10 @@ export const authConfig = {
           await connectToDatabase();
           
           // Load user with populated roles
-          const dbUser = await User.findById(token.id)
+          const dbUser = (await User.findById(token.id)
             .populate('roles')
             .select('isSuperAdmin roles')
-            .lean() as {
+            .lean()) as {
               isSuperAdmin?: boolean;
               roles?: Array<{
                 slug?: string;

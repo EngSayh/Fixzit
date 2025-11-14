@@ -83,7 +83,7 @@ export async function POST(req:NextRequest): Promise<NextResponse> {
           byUserId: user.id,
           at: new Date()
         }] 
-      });
+      }) as any;
       created++;
     } catch (error) {
       logger.error(`[${correlationId}] Work order import error for row ${i + 1}:`, error instanceof Error ? error : new Error(String(error)), { row: i + 1 });

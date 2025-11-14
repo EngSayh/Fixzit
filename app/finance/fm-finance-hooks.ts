@@ -95,7 +95,7 @@ export async function onWorkOrderClosed(
   };
 
   // Save expense to database
-  const savedExpense = await FMFinancialTransaction.create({
+  const savedExpense = (await FMFinancialTransaction.create({
     type: 'EXPENSE',
     workOrderId: expenseTransaction.workOrderId,
     propertyId: expenseTransaction.propertyId,
@@ -106,7 +106,7 @@ export async function onWorkOrderClosed(
     description: expenseTransaction.description,
     transactionDate: expenseTransaction.date,
     status: 'POSTED'
-  });
+  })) as any;
   logger.info(`[Finance] Created expense transaction: ${savedExpense.transactionNumber}`);
   results.expenseTransaction = {
     ...expenseTransaction,
@@ -134,7 +134,7 @@ export async function onWorkOrderClosed(
     };
 
     // Save invoice to database
-    const savedInvoice = await FMFinancialTransaction.create({
+    const savedInvoice = (await FMFinancialTransaction.create({
       type: 'INVOICE',
       workOrderId: invoiceTransaction.workOrderId,
       propertyId: invoiceTransaction.propertyId,
@@ -147,7 +147,7 @@ export async function onWorkOrderClosed(
       transactionDate: invoiceTransaction.date,
       dueDate: invoiceTransaction.dueDate,
       status: 'PENDING'
-    });
+    })) as any;
     logger.info(`[Finance] Created invoice: ${savedInvoice.transactionNumber}`);
     results.invoiceTransaction = {
       ...invoiceTransaction,
@@ -189,12 +189,12 @@ export async function updateOwnerStatement(
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
   
-  const existingTransactions = await FMFinancialTransaction.find({
+  const existingTransactions = (await FMFinancialTransaction.find({
     ownerId,
     propertyId,
     'statementPeriod.month': currentMonth,
     'statementPeriod.year': currentYear
-  });
+  })) as any;
 
   logger.info(`[Finance] Updating statement for owner ${ownerId} property ${propertyId}`);
   logger.info(`[Finance] Adding ${transactions.length} new transactions`);
@@ -223,14 +223,14 @@ export async function generateOwnerStatement(
   period: { from: Date; to: Date }
 ): Promise<OwnerStatement> {
   // Query FMFinancialTransaction collection for transactions in period
-  const dbTransactions = await FMFinancialTransaction.find({
+  const dbTransactions = (await FMFinancialTransaction.find({
     ownerId,
     propertyId,
     transactionDate: {
       $gte: period.from,
       $lte: period.to
     }
-  }).sort({ transactionDate: 1 });
+  }).sort({ transactionDate: 1 })) as any;
 
   // Convert to interface format
   const transactions: FinancialTransaction[] = dbTransactions.map((t) => {
@@ -281,11 +281,11 @@ export async function getTenantPendingInvoices(
   tenantId: string
 ): Promise<FinancialTransaction[]> {
   // Query FMFinancialTransaction collection for pending invoices
-  const dbInvoices = await FMFinancialTransaction.find({
+  const dbInvoices = (await FMFinancialTransaction.find({
     tenantId,
     type: 'INVOICE',
     status: 'PENDING'
-  }).sort({ dueDate: 1 });
+  }).sort({ dueDate: 1 })) as any;
 
   // Convert to interface format
   return dbInvoices.map((t) => {
@@ -334,7 +334,7 @@ export async function recordPayment(
   });
 
   // Create payment transaction
-  const savedPayment = await FMFinancialTransaction.create({
+  const savedPayment = (await FMFinancialTransaction.create({
     type: 'PAYMENT',
     workOrderId: invoice.workOrderId,
     propertyId: invoice.propertyId,

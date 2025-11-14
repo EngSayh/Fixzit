@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, buffer);
 
     // Update or create platform settings
-    const settings = await PlatformSettings.findOneAndUpdate(
+    const settings = (await PlatformSettings.findOneAndUpdate(
       { orgId: user.orgId }, // Filter by orgId (from tenant isolation)
       {
         logoUrl: publicUrl,
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
         new: true,     // Return updated document
         runValidators: true
       }
-    );
+    )) as any;
 
     return NextResponse.json({
       success: true,
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
 
     await connectToDatabase();
 
-    const settings = await PlatformSettings.findOne({ orgId: user.orgId }).lean() as {
+    const settings = (await PlatformSettings.findOne({ orgId: user.orgId }).lean()) as {
       logoUrl?: string;
       logoFileName?: string;
       logoFileSize?: number;

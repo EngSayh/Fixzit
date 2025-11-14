@@ -90,12 +90,12 @@ export async function POST(req: NextRequest) {
 
     const data = createVendorSchema.parse(await req.json());
 
-    const vendor = await Vendor.create({
+    const vendor = (await Vendor.create({
       tenantId: user.orgId,
       code: `VEN-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
-    });
+    })) as any;
 
     return createSecureResponse(vendor, 201, req);
   } catch (error: unknown) {
@@ -150,7 +150,7 @@ export async function GET(req: NextRequest) {
       Vendor.find(match)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
-        .limit(limit),
+        .limit(limit) as any,
       Vendor.countDocuments(match)
     ]);
 

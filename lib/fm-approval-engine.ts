@@ -125,11 +125,11 @@ export function routeApproval(request: ApprovalRequest): ApprovalWorkflow {
       const { User } = await import('@/server/models/User');
       
       for (const roleReq of policy.parallelWith) {
-        const users = await User.find({
+        const users = (await User.find({
           'professional.role': roleReq.role,
           orgId: request.orgId,
           isActive: true,
-        }).select('_id email professional.role').limit(10).lean();
+        }).select('_id email professional.role').limit(10).lean()) as any;
         
         if (users && users.length > 0) {
           parallelApproverIds.push(...users.map(u => u._id.toString()));
@@ -272,11 +272,11 @@ export function checkTimeouts(workflow: ApprovalWorkflow, orgId: string): Approv
             currentStage.approverRoles.push(escalationRole);
             
             // Query and add escalation approvers with orgId filter
-            const escalationUsers = await User.find({
+            const escalationUsers = (await User.find({
               'professional.role': escalationRole,
               orgId: orgId,
               isActive: true,
-            }).select('_id').limit(5).lean();
+            }).select('_id').limit(5).lean()) as any;
             
             if (escalationUsers && escalationUsers.length > 0) {
               const escalationIds = escalationUsers.map(u => u._id.toString());
@@ -343,7 +343,7 @@ export async function saveApprovalWorkflow(
     const approverRole = firstStage.approverRoles[0];
 
     // CRITICAL: Use orgId field name for consistency with database schema
-    const savedApproval = await FMApproval.create({
+    const savedApproval = (await FMApproval.create({
       orgId: request.orgId, // Fixed: Use orgId (camelCase) as per schema
       type: 'QUOTATION',
       entityType: 'WorkOrder',
@@ -371,7 +371,7 @@ export async function saveApprovalWorkflow(
         newStatus: 'PENDING',
         notes: `Approval workflow created for ${request.category} worth ${request.amount}`
       }]
-    });
+    })) as any;
     
     // CRITICAL: Verify the workflow was actually saved
     if (!savedApproval || !savedApproval._id) {
@@ -440,7 +440,7 @@ export async function updateApprovalDecision(
   delegateTo?: string
 ): Promise<void> {
   try {
-    const approval = await FMApproval.findOne({ workflowId, orgId: orgId }); // Fixed: Use orgId (camelCase) as per schema
+    const approval = (await FMApproval.findOne({ workflowId, orgId: orgId })) as any; // Fixed: Use orgId (camelCase) as per schema
     if (!approval) throw new Error(`Approval workflow ${workflowId} not found`);
 
     // Update status
@@ -485,11 +485,11 @@ export async function getPendingApprovalsForUser(
   orgId: string
 ): Promise<ApprovalWorkflow[]> {
   try {
-    const approvals = await FMApproval.find({
+    const approvals = (await FMApproval.find({
       orgId: orgId, // Fixed: Use orgId (camelCase) as per schema
       approverId: userId,
       status: 'PENDING'
-    }).lean();
+    }).lean()) as any;
 
     return approvals.map(approval => ({
       requestId: approval.workflowId.toString(),
@@ -521,12 +521,12 @@ export async function getPendingApprovalsForUser(
  */
 export async function checkApprovalTimeouts(orgId: string): Promise<void> {
   try {
-    const overdueApprovals = await FMApproval.find({
+    const overdueApprovals = (await FMApproval.find({
       orgId: orgId, // Fixed: Use orgId (camelCase) as per schema
       status: 'PENDING',
       dueDate: { $lt: new Date() },
       escalationSentAt: null
-    });
+    })) as any;
 
     for (const approval of overdueApprovals) {
       approval.status = 'ESCALATED';
@@ -601,9 +601,9 @@ export async function notifyApprovers(
       return;
     }
     
-    const approvers = await User.find({
+    const approvers = (await User.find({
       _id: { $in: stage.approvers }
-    }).select('_id email personal.firstName personal.lastName').lean();
+    }).select('_id email personal.firstName personal.lastName').lean()) as any;
     
     if (!approvers || approvers.length === 0) {
       logger.warn('[Approval] Approver details not found', { 

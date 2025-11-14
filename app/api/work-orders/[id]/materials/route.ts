@@ -47,7 +47,7 @@ export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}
     costSummary?: { labor?: number; materials?: number; other?: number; total?: number };
     save: () => Promise<void>;
   }
-  const wo = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId }) as WorkOrderDoc | null;
+  const wo = (await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId })) as WorkOrderDoc | null;
   if (!wo) return createSecureResponse({error:"Not found"}, 404, req);
   wo.materials.push(m);
   const materials = wo.materials.reduce((s, c) => s + (c.qty * c.unitPrice), 0);

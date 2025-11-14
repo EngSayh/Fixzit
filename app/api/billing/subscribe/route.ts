@@ -83,11 +83,11 @@ export async function POST(req: NextRequest) {
     const body = subscriptionSchema.parse(await req.json());
 
     // 1) Upsert customer - ensure tenant isolation
-    const customer = await Customer.findOneAndUpdate(
+    const customer = (await Customer.findOneAndUpdate(
       { type: body.customer.type, billingEmail: body.customer.billingEmail, orgId: user.orgId },
       { ...body.customer, orgId: user.orgId }, 
       { upsert: true, new: true }
-    );
+    )) as any;
 
     // 2) Quote
     const quote = await computeQuote({
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3) Create Subscription snapshot (status pending until paid)
-    const sub = await Subscription.create({
+    const sub = (await Subscription.create({
       customerId: customer._id,
       orgId: user.orgId,
       planType: body.planType,

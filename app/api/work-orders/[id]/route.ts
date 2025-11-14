@@ -28,7 +28,7 @@ import { createSecureResponse } from '@/server/security/headers';
 export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }>}): Promise<NextResponse> {
   const params = await props.params;
   await connectToDatabase();
-  const wo = await WorkOrder.findById(params.id);
+  const wo = (await WorkOrder.findById(params.id)) as any;
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, _req);
   return createSecureResponse(wo, 200, _req);
 }
@@ -62,11 +62,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     updatePayload.dueAt = new Date(updates.dueAt);
   }
 
-  const wo = await WorkOrder.findOneAndUpdate(
+  const wo = (await WorkOrder.findOneAndUpdate(
     { _id: params.id, tenantId: user.tenantId },
     { $set: updatePayload },
     { new: true }
-  );
+  )) as any;
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
   return createSecureResponse(wo, 200, req);
 }

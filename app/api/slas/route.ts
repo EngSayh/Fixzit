@@ -136,13 +136,13 @@ export async function POST(req: NextRequest) {
 
     const data = createSLASchema.parse(await req.json());
 
-    const sla = await SLA.create({
+    const sla = (await SLA.create({
       tenantId: user.orgId,
       code: `SLA-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "DRAFT",
       createdBy: user.id
-    });
+    })) as any;
 
     return createSecureResponse(sla, 201, req);
   } catch (error: unknown) {
@@ -201,7 +201,7 @@ export async function GET(req: NextRequest) {
       SLA.find(match)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
-        .limit(limit),
+        .limit(limit) as any,
       SLA.countDocuments(match)
     ]);
 
