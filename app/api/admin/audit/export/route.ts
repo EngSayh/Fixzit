@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
             }
             
             // Convert batch to CSV rows
-            const csvRows = logs.map((log) => auditToCsvRow(log as Parameters<typeof auditToCsvRow>[0])).join('\n') + '\n';
+            const csvRows = logs.map((log: Parameters<typeof auditToCsvRow>[0]) => auditToCsvRow(log)).join('\n') + '\n';
             controller.enqueue(new TextEncoder().encode(csvRows));
             
             skip += BATCH_SIZE;

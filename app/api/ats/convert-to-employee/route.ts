@@ -45,8 +45,8 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     }
 
-    // Check user permissions (super_admin, corporate_admin, or HR manager can convert applications)
-    const canConvertApplications = ['super_admin', 'corporate_admin', 'hr_manager'].includes(user.role);
+    // Check user permissions (SUPER_ADMIN, ADMIN, or MANAGER can convert applications)
+    const canConvertApplications = ['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(user.role);
     if (!canConvertApplications) {
       return createSecureResponse({ error: 'Forbidden: Insufficient permissions' }, 403, req);
     }

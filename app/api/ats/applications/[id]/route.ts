@@ -37,7 +37,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
   const params = await props.params;
   try {
   await connectToDatabase();
-    const application = await Application
+    const application = await (Application as any)
       .findById(params.id)
       .populate('jobId')
       .populate('candidateId')

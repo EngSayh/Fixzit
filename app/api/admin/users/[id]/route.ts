@@ -20,7 +20,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    if (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'super_admin') {
+    if (session.user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Forbidden - Super Admin access required' }, { status: 403 });
     }
     
@@ -74,7 +74,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    if (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'super_admin') {
+    if (session.user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Forbidden - Super Admin access required' }, { status: 403 });
     }
     
