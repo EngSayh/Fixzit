@@ -26,6 +26,7 @@ export async function GET(
     }
 
     // Find footer content for this page
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const footerContent = (await FooterContent.findOne({ page }).lean().exec()) as {
       page: string;
       contentEn: string;
