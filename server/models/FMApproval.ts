@@ -191,4 +191,4 @@ FMApprovalSchema.virtual('daysUntilDue').get(function() {
 
 export type FMApprovalDoc = InferSchemaType<typeof FMApprovalSchema>;
 
-export const FMApproval = models.FMApproval || model('FMApproval', FMApprovalSchema);
+export const FMApproval = (typeof models !== 'undefined' && models.FMApproval) || model('FMApproval', FMApprovalSchema);

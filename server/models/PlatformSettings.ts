@@ -64,4 +64,4 @@ PlatformSettingsSchema.index({ orgId: 1 }, { unique: true });
 
 export type PlatformSettingsDoc = InferSchemaType<typeof PlatformSettingsSchema>;
 
-export const PlatformSettings = models.PlatformSettings || model("PlatformSettings", PlatformSettingsSchema);
+export const PlatformSettings = (typeof models !== 'undefined' && models.PlatformSettings) || model("PlatformSettings", PlatformSettingsSchema);

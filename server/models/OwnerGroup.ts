@@ -30,4 +30,4 @@ OwnerGroupSchema.index({ orgId: 1, name: 1 }, { unique: true });
 OwnerGroupSchema.index({ orgId: 1, primary_contact_user_id: 1 });
 
 export type OwnerGroup = InferSchemaType<typeof OwnerGroupSchema>;
-export const OwnerGroupModel = models.OwnerGroup || model('OwnerGroup', OwnerGroupSchema);
+export const OwnerGroupModel = (typeof models !== 'undefined' && models.OwnerGroup) || model('OwnerGroup', OwnerGroupSchema);

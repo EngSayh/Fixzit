@@ -488,4 +488,4 @@ WorkOrderSchema.methods.updateSLAStatus = function() {
 
 export type WorkOrderDoc = InferSchemaType<typeof WorkOrderSchema>;
 
-export const WorkOrder = models.WorkOrder || model("WorkOrder", WorkOrderSchema);
+export const WorkOrder = (typeof models !== 'undefined' && models.WorkOrder) || model("WorkOrder", WorkOrderSchema);

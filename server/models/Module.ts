@@ -41,5 +41,5 @@ const ModuleSchema = new Schema(
 // Apply auditPlugin for change tracking (Module is global, so NO tenantIsolationPlugin)
 ModuleSchema.plugin(auditPlugin);
 
-export default models.Module || model('Module', ModuleSchema);
+export default (typeof models !== 'undefined' && models.Module) || model('Module', ModuleSchema);
 export { MODULE_KEYS };

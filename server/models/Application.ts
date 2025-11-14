@@ -90,7 +90,7 @@ ApplicationSchema.pre('save', function() {
   }
 });
 
-const existingApplication = models.Application as ApplicationModel | undefined;
+const existingApplication = (typeof models !== 'undefined' ? models.Application : undefined) as ApplicationModel | undefined;
 export const Application: ApplicationModel = existingApplication || model<ApplicationDoc, ApplicationModel>('Application', ApplicationSchema);
 
 export type { AutoRejectResult, KnockoutInput, ApplicationStage };

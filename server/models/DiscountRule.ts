@@ -29,5 +29,5 @@ DiscountRuleSchema.plugin(auditPlugin);
 // Ensures 'key' (e.g., "VAT") is unique within an organization
 DiscountRuleSchema.index({ orgId: 1, key: 1 }, { unique: true });
 
-export default models.DiscountRule || model('DiscountRule', DiscountRuleSchema);
+export default (typeof models !== 'undefined' && models.DiscountRule) || model('DiscountRule', DiscountRuleSchema);
 

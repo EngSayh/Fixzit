@@ -433,5 +433,5 @@ ReferralCodeSchema.pre('save', function (next) {
 });
 
 // Final export
-export const ReferralCodeModel = (models.ReferralCode ||
+export const ReferralCodeModel = ((typeof models !== 'undefined' && models.ReferralCode) ||
   model<IReferralCode, ReferralCodeModelType>('ReferralCode', ReferralCodeSchema)) as ReferralCodeModelType;

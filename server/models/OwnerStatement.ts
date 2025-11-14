@@ -32,4 +32,4 @@ OwnerStatementSchema.index({ orgId: 1, ownerId: 1, period: 1, year: 1 });
 
 export type OwnerStatementDoc = InferSchemaType<typeof OwnerStatementSchema>;
 
-export const OwnerStatement = models.OwnerStatement || model("OwnerStatement", OwnerStatementSchema);
+export const OwnerStatement = (typeof models !== 'undefined' && models.OwnerStatement) || model("OwnerStatement", OwnerStatementSchema);

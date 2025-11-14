@@ -52,4 +52,4 @@ PriceBookSchema.pre('save', function(next) {
   next();
 });
 
-export default models.PriceBook || model('PriceBook', PriceBookSchema);
+export default (typeof models !== 'undefined' && models.PriceBook) || model('PriceBook', PriceBookSchema);

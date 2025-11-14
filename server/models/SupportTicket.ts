@@ -42,4 +42,4 @@ SupportTicketSchema.index({ orgId: 1, assigneeUserId: 1 });
 
 export type SupportTicketDoc = InferSchemaType<typeof SupportTicketSchema>;
 
-export const SupportTicket = models.SupportTicket || model("SupportTicket", SupportTicketSchema);
+export const SupportTicket = (typeof models !== 'undefined' && models.SupportTicket) || model("SupportTicket", SupportTicketSchema);

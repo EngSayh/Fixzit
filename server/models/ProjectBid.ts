@@ -264,4 +264,4 @@ ProjectBidSchema.methods.calculateScore = function(weights: { technical: number,
 
 // Export type and model
 export type ProjectBid = InferSchemaType<typeof ProjectBidSchema>;
-export const ProjectBidModel = models.ProjectBid || model("ProjectBid", ProjectBidSchema);
+export const ProjectBidModel = (typeof models !== 'undefined' && models.ProjectBid) || model("ProjectBid", ProjectBidSchema);

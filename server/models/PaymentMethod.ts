@@ -48,5 +48,5 @@ PaymentMethodSchema.index({ org_id: 1 });
 PaymentMethodSchema.index({ owner_user_id: 1 });
 PaymentMethodSchema.index({ pt_token: 1 }, { sparse: true }); // For quick token lookup
 
-export default models.PaymentMethod || model('PaymentMethod', PaymentMethodSchema);
+export default (typeof models !== 'undefined' && models.PaymentMethod) || model('PaymentMethod', PaymentMethodSchema);
 

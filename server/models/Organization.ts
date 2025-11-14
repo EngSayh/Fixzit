@@ -610,6 +610,6 @@ OrganizationSchema.statics.setSubscriptionStatus = async function (
 
 // ---------- Export ----------
 export const Organization =
-  models.Organization ||
+  (typeof models !== 'undefined' && models.Organization) ||
   (model<IOrganization, OrganizationModel>('Organization', OrganizationSchema) as OrganizationModel);
 export type { OrganizationDoc, Features, Usage };

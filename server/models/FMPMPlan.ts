@@ -215,4 +215,4 @@ FMPMPlanSchema.methods.recordGeneration = function(
 
 export type FMPMPlanDoc = InferSchemaType<typeof FMPMPlanSchema>;
 
-export const FMPMPlan = models.FMPMPlan || model('FMPMPlan', FMPMPlanSchema);
+export const FMPMPlan = (typeof models !== 'undefined' && models.FMPMPlan) || model('FMPMPlan', FMPMPlanSchema);

@@ -47,4 +47,4 @@ export type FooterContentDoc = InferSchemaType<typeof FooterContentSchema> & {
   getContent(_locale: string): string;
 };
 
-export const FooterContent = models.FooterContent || model("FooterContent", FooterContentSchema);
+export const FooterContent = (typeof models !== 'undefined' && models.FooterContent) || model("FooterContent", FooterContentSchema);

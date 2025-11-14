@@ -108,4 +108,4 @@ FamilyMemberSchema.methods.isInvitationValid = function() {
 
 // Export type and model
 export type FamilyMember = InferSchemaType<typeof FamilyMemberSchema>;
-export const FamilyMemberModel = models.FamilyMember || model("FamilyMember", FamilyMemberSchema);
+export const FamilyMemberModel = (typeof models !== 'undefined' && models.FamilyMember) || model("FamilyMember", FamilyMemberSchema);

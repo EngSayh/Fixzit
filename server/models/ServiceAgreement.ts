@@ -72,4 +72,4 @@ ServiceAgreementSchema.pre('save', function(next) {
   next();
 });
 
-export default models.ServiceAgreement || model('ServiceAgreement', ServiceAgreementSchema);
+export default (typeof models !== 'undefined' && models.ServiceAgreement) || model('ServiceAgreement', ServiceAgreementSchema);

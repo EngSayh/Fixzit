@@ -389,4 +389,4 @@ export interface FeatureFlagStaticMethods {
 // Type the model with statics
 export type FeatureFlagModelType = import('mongoose').Model<FeatureFlag> & FeatureFlagStaticMethods;
 
-export const FeatureFlagModel = (models.FeatureFlag || model("FeatureFlag", FeatureFlagSchema)) as FeatureFlagModelType;
+export const FeatureFlagModel = ((typeof models !== 'undefined' && models.FeatureFlag) || model("FeatureFlag", FeatureFlagSchema)) as FeatureFlagModelType;

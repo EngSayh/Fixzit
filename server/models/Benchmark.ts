@@ -26,5 +26,5 @@ const BenchmarkSchema = new Schema(
   { timestamps: true }
 );
 
-export default models.Benchmark || model('Benchmark', BenchmarkSchema);
+export default (typeof models !== 'undefined' && models.Benchmark) || model('Benchmark', BenchmarkSchema);
 

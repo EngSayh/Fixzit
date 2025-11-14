@@ -70,5 +70,5 @@ CandidateSchema.statics.findByEmail = async function(orgId: string, email: strin
   return this.findOne({ orgId, emailLower: email.toLowerCase() });
 };
 
-const existingCandidateModel = models.Candidate as CandidateModel | undefined;
+const existingCandidateModel = (typeof models !== 'undefined' ? models.Candidate : undefined) as CandidateModel | undefined;
 export const Candidate: CandidateModel = existingCandidateModel || model<CandidateDoc, CandidateModel>('Candidate', CandidateSchema);

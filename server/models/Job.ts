@@ -82,6 +82,6 @@ JobSchema.pre('save', function() {
   }
 });
 
-export const Job: JobModel = models.Job || model<JobDoc>('Job', JobSchema);
+export const Job: JobModel = (typeof models !== 'undefined' && models.Job) || model<JobDoc>('Job', JobSchema);
 
 export type { JobStatus };

@@ -116,4 +116,4 @@ SubscriptionSchema.index({ status: 1 });
 // Index for recurring billing query (billing_cycle + status + next_billing_date)
 SubscriptionSchema.index({ billing_cycle: 1, status: 1, next_billing_date: 1 });
 
-export default models.Subscription || model('Subscription', SubscriptionSchema);
+export default (typeof models !== 'undefined' && models.Subscription) || model('Subscription', SubscriptionSchema);

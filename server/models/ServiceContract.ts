@@ -41,4 +41,4 @@ ServiceContractSchema.index({ orgId: 1, scope: 1, scopeRef: 1 });
 ServiceContractSchema.index({ orgId: 1, contractorRef: 1 });
 ServiceContractSchema.index({ orgId: 1, endDate: 1 });
 
-export default models.ServiceContract || model('ServiceContract', ServiceContractSchema);
+export default (typeof models !== 'undefined' && models.ServiceContract) || model('ServiceContract', ServiceContractSchema);

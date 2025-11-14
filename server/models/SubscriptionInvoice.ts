@@ -54,5 +54,5 @@ subscriptionInvoiceSchema.plugin(auditPlugin);
 subscriptionInvoiceSchema.index({ orgId: 1, status: 1, dueDate: 1 }); // For finding overdue invoices
 subscriptionInvoiceSchema.index({ orgId: 1, subscriptionId: 1 }); // For finding invoices for a subscription
 
-export const SubscriptionInvoice = mongoose.models.SubscriptionInvoice || mongoose.model<ISubscriptionInvoice>('SubscriptionInvoice', subscriptionInvoiceSchema);
+export const SubscriptionInvoice = (typeof mongoose.models !== 'undefined' && mongoose.models.SubscriptionInvoice) || mongoose.model<ISubscriptionInvoice>('SubscriptionInvoice', subscriptionInvoiceSchema);
 export default SubscriptionInvoice;

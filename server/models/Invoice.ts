@@ -189,4 +189,4 @@ InvoiceSchema.index({ orgId: 1, type: 1, status: 1 });
 
 export type InvoiceDoc = InferSchemaType<typeof InvoiceSchema>;
 
-export const Invoice = models.Invoice || model("Invoice", InvoiceSchema);
+export const Invoice = (typeof models !== 'undefined' && models.Invoice) || model("Invoice", InvoiceSchema);

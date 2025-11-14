@@ -21,4 +21,4 @@ CmsPageSchema.index({ orgId: 1, slug: 1 }, { unique: true });
 export type CmsPageDoc = InferSchemaType<typeof CmsPageSchema>;
 
 // Check if we're using mock database
-export const CmsPage = models.CmsPage || model("CmsPage", CmsPageSchema);
+export const CmsPage = (typeof models !== 'undefined' && models.CmsPage) || model("CmsPage", CmsPageSchema);

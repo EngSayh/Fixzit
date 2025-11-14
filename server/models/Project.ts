@@ -247,4 +247,4 @@ ProjectSchema.index({ orgId: 1, code: 1 }, { unique: true });
 export type ProjectDoc = InferSchemaType<typeof ProjectSchema>;
 
 // Check if we're using mock database
-export const Project = models.Project || model("Project", ProjectSchema);
+export const Project = (typeof models !== 'undefined' && models.Project) || model("Project", ProjectSchema);

@@ -28,4 +28,4 @@ EmployeeSchema.index({ orgId: 1, 'personal.email': 1 }, { unique: true });
 
 export type EmployeeDoc = InferSchemaType<typeof EmployeeSchema> & Document;
 
-export const Employee = models.Employee || model<EmployeeDoc>('Employee', EmployeeSchema);
+export const Employee = (typeof models !== 'undefined' && models.Employee) || model<EmployeeDoc>('Employee', EmployeeSchema);

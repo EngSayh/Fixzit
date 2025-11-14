@@ -191,4 +191,4 @@ TenantSchema.index({ orgId: 1, code: 1 }, { unique: true });
 export type TenantDoc = InferSchemaType<typeof TenantSchema>;
 
 // Check if we're using mock database
-export const Tenant = models.Tenant || model("Tenant", TenantSchema);
+export const Tenant = (typeof models !== 'undefined' && models.Tenant) || model("Tenant", TenantSchema);

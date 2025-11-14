@@ -188,4 +188,4 @@ OwnerSchema.virtual('displayName').get(function() {
 
 // Export type and model
 export type Owner = InferSchemaType<typeof OwnerSchema>;
-export const OwnerModel = models.Owner || model("Owner", OwnerSchema);
+export const OwnerModel = (typeof models !== 'undefined' && models.Owner) || model("Owner", OwnerSchema);
