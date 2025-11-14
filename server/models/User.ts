@@ -211,4 +211,5 @@ UserSchema.index({ orgId: 1, isSuperAdmin: 1 }); // RBAC index
 
 export type UserDoc = InferSchemaType<typeof UserSchema>;
 
-export const User = models.User || model("User", UserSchema);
+// Edge Runtime compatible export
+export const User = (typeof models !== 'undefined' && models.User) || model("User", UserSchema);
