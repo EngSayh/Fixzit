@@ -78,7 +78,6 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, buffer);
 
     // Update or create platform settings
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const settings = await PlatformSettings.findOneAndUpdate(
       { orgId: user.orgId }, // Filter by orgId (from tenant isolation)
       {
@@ -144,7 +143,6 @@ export async function GET(request: NextRequest) {
 
     await connectToDatabase();
 
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const settings = await PlatformSettings.findOne({ orgId: user.orgId }).lean() as {
       logoUrl?: string;
       logoFileName?: string;

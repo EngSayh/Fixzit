@@ -25,7 +25,7 @@ async function main() {
 
   const createdProps: any[] = [];
   for (const p of props) {
-    const doc = await (Property as any).findOneAndUpdate(
+    const doc = await Property.findOneAndUpdate(
       { tenantId, code: p.code },
       {
         $set: {
@@ -51,7 +51,7 @@ async function main() {
   ];
   for (const a of assetSeeds) {
     const propId = createdProps[a.propertyIndex]?._id?.toString() || createdProps[a.propertyIndex]?.id;
-    await (Asset as any).findOneAndUpdate(
+    await Property.findOneAndUpdate(
       { tenantId, code: a.code },
       { $set: { tenantId, code: a.code, name: a.name, type: a.type, category: 'SEED', propertyId: propId, status: a.status, criticality: a.criticality, createdBy: actorId } },
       { upsert: true, new: true }
@@ -69,10 +69,10 @@ async function main() {
     const seq = Math.floor((Date.now() / 1000) % 100000);
     const code = `WO-REAL-${seq}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
     const createdAt = new Date();
-    const slaMinutes = computeSlaMinutes(w.priority as any);
+    const slaMinutes = computeSlaMinutes(w.priority);
     const dueAt = computeDueAt(createdAt, slaMinutes);
     const propId = createdProps[w.prop]?._id?.toString() || createdProps[w.prop]?.id;
-    await (WorkOrder as any).create({
+    await WorkOrder.create({
       tenantId,
       code,
       title: w.title,
@@ -93,7 +93,7 @@ async function main() {
   const issueDate = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
   const dueDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const invNumber = `INV-REAL-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 89999)}`;
-  await (Invoice as any).findOneAndUpdate(
+  await Invoice.findOneAndUpdate(
     { tenantId, number: invNumber },
     {
       $set: {

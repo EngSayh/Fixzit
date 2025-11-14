@@ -5,7 +5,7 @@ import { User } from '../server/models/User';
 async function inspectUser() {
   try {
     await db;
-    const user = await (User as any).findOne({ email: 'admin@fixzit.co' });
+    const user = await User.findOne({ email: 'admin@fixzit.co' });
     
     if (user) {
       console.log('📋 Existing admin@fixzit.co user structure:');

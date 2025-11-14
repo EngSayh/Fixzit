@@ -1,641 +1,513 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { useMemo } from 'react';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
-import { type UserRoleType } from '@/types/user';
-import { Headphones } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-// ✅ FIX: Import configuration from centralized config file (Governance V5 compliance)
+// Import the enhanced navigation configuration
 import {
-  MODULES,
-  USER_LINKS,
-  ROLE_PERMISSIONS,
-  SUBSCRIPTION_PLANS,
-  CATEGORY_FALLBACKS,
-  type ModuleItem
+  navigationConfig,
+  filterNavigation,
+  hasAccessToItem,
+  type NavigationItem,
+  type NavigationSection,
+  type UserRole,
+  type SubscriptionPlan,
+  type NavigationBadge,
+  type BadgeCounts,
 } from '@/config/navigation';
 
-// ✅ Local type for sub-modules in the sidebar
-type SubModuleItem = {
-  id: string;
-  name: string; // i18n key, e.g. 'nav.workOrders.create'
-  fallbackLabel: string; // fallback text if translation missing
-  path: string;
-};
+// ==========================================
+// Types & Interfaces
+// ==========================================
 
-// ✅ Governance-aligned sub-menus per root path (no placeholders)
-//    Paths follow your FM + Marketplace IA: Work Orders, Properties, Finance, HR, Admin, CRM, Marketplace, Support, Compliance, Reports, System. 
-const SUB_MODULES_BY_PATH: Record<string, SubModuleItem[]> = {
-  // Work Orders → Create / Track & Assign / Preventive / Service History
-  '/work-orders': [
-    {
-      id: 'work-orders-create',
-      name: 'nav.workOrders.create',
-      fallbackLabel: 'Create Work Order',
-      path: '/work-orders/create'
-    },
-    {
-      id: 'work-orders-track',
-      name: 'nav.workOrders.trackAssign',
-      fallbackLabel: 'Track & Assign',
-      path: '/work-orders/track'
-    },
-    {
-      id: 'work-orders-preventive',
-      name: 'nav.workOrders.preventive',
-      fallbackLabel: 'Preventive Maintenance',
-      path: '/work-orders/preventive'
-    },
-    {
-      id: 'work-orders-history',
-      name: 'nav.workOrders.history',
-      fallbackLabel: 'Service History',
-      path: '/work-orders/history'
-    }
-  ],
-
-  // Properties → List & Details / Units & Tenants / Lease / Inspections / Documents
-  '/properties': [
-    {
-      id: 'properties-list',
-      name: 'nav.properties.list',
-      fallbackLabel: 'Property List & Details',
-      path: '/properties'
-    },
-    {
-      id: 'properties-units',
-      name: 'nav.properties.unitsTenants',
-      fallbackLabel: 'Units & Tenants',
-      path: '/properties/units'
-    },
-    {
-      id: 'properties-leases',
-      name: 'nav.properties.leases',
-      fallbackLabel: 'Lease Management',
-      path: '/properties/leases'
-    },
-    {
-      id: 'properties-inspections',
-      name: 'nav.properties.inspections',
-      fallbackLabel: 'Inspections',
-      path: '/properties/inspections'
-    },
-    {
-      id: 'properties-documents',
-      name: 'nav.properties.documents',
-      fallbackLabel: 'Documents',
-      path: '/properties/documents'
-    }
-  ],
-
-  // Finance → Invoices / Payments / Expenses / Budgets / Reports
-  '/finance': [
-    {
-      id: 'finance-invoices',
-      name: 'nav.finance.invoices',
-      fallbackLabel: 'Invoices',
-      path: '/finance/invoices'
-    },
-    {
-      id: 'finance-payments',
-      name: 'nav.finance.payments',
-      fallbackLabel: 'Payments',
-      path: '/finance/payments'
-    },
-    {
-      id: 'finance-expenses',
-      name: 'nav.finance.expenses',
-      fallbackLabel: 'Expenses',
-      path: '/finance/expenses'
-    },
-    {
-      id: 'finance-budgets',
-      name: 'nav.finance.budgets',
-      fallbackLabel: 'Budgets',
-      path: '/finance/budgets'
-    },
-    {
-      id: 'finance-reports',
-      name: 'nav.finance.reports',
-      fallbackLabel: 'Finance Reports',
-      path: '/finance/reports'
-    }
-  ],
-
-  // HR → Directory / Attendance & Leave / Payroll / Recruitment / Training / Performance
-  '/hr': [
-    {
-      id: 'hr-directory',
-      name: 'nav.hr.directory',
-      fallbackLabel: 'Employee Directory',
-      path: '/hr/directory'
-    },
-    {
-      id: 'hr-attendance',
-      name: 'nav.hr.attendanceLeave',
-      fallbackLabel: 'Attendance & Leave',
-      path: '/hr/attendance'
-    },
-    {
-      id: 'hr-payroll',
-      name: 'nav.hr.payroll',
-      fallbackLabel: 'Payroll',
-      path: '/hr/payroll'
-    },
-    {
-      id: 'hr-recruitment',
-      name: 'nav.hr.recruitment',
-      fallbackLabel: 'Recruitment (ATS)',
-      path: '/hr/recruitment'
-    },
-    {
-      id: 'hr-training',
-      name: 'nav.hr.training',
-      fallbackLabel: 'Training',
-      path: '/hr/training'
-    },
-    {
-      id: 'hr-performance',
-      name: 'nav.hr.performance',
-      fallbackLabel: 'Performance',
-      path: '/hr/performance'
-    }
-  ],
-
-  // Administration → DoA / Policies / Assets / Facilities & Fleet
-  '/administration': [
-    {
-      id: 'admin-doa',
-      name: 'nav.admin.doa',
-      fallbackLabel: 'Delegation of Authority',
-      path: '/administration/doa'
-    },
-    {
-      id: 'admin-policies',
-      name: 'nav.admin.policies',
-      fallbackLabel: 'Policies & Procedures',
-      path: '/administration/policies'
-    },
-    {
-      id: 'admin-assets',
-      name: 'nav.admin.assets',
-      fallbackLabel: 'Asset Management',
-      path: '/administration/assets'
-    },
-    {
-      id: 'admin-facilities-fleet',
-      name: 'nav.admin.facilitiesFleet',
-      fallbackLabel: 'Facilities & Fleet',
-      path: '/administration/facilities-fleet'
-    }
-  ],
-
-  // CRM → Directory / Leads / Contracts / Feedback
-  '/crm': [
-    {
-      id: 'crm-directory',
-      name: 'nav.crm.directory',
-      fallbackLabel: 'Customer Directory',
-      path: '/crm/directory'
-    },
-    {
-      id: 'crm-leads',
-      name: 'nav.crm.leads',
-      fallbackLabel: 'Leads',
-      path: '/crm/leads'
-    },
-    {
-      id: 'crm-contracts',
-      name: 'nav.crm.contracts',
-      fallbackLabel: 'Contracts',
-      path: '/crm/contracts'
-    },
-    {
-      id: 'crm-feedback',
-      name: 'nav.crm.feedback',
-      fallbackLabel: 'Feedback',
-      path: '/crm/feedback'
-    }
-  ],
-
-  // Marketplace → Vendors / Catalog / Procurement / Bidding
-  '/marketplace': [
-    {
-      id: 'marketplace-vendors',
-      name: 'nav.marketplace.vendors',
-      fallbackLabel: 'Vendors',
-      path: '/marketplace/vendors'
-    },
-    {
-      id: 'marketplace-catalog',
-      name: 'nav.marketplace.catalog',
-      fallbackLabel: 'Service & Parts Catalog',
-      path: '/marketplace/catalog'
-    },
-    {
-      id: 'marketplace-procurement',
-      name: 'nav.marketplace.procurement',
-      fallbackLabel: 'Procurement',
-      path: '/marketplace/procurement'
-    },
-    {
-      id: 'marketplace-bidding',
-      name: 'nav.marketplace.bidding',
-      fallbackLabel: 'Bidding / RFQs',
-      path: '/marketplace/bidding'
-    }
-  ],
-
-  // Support → Tickets / Knowledge Base / Live Chat / SLA Monitoring
-  '/support': [
-    {
-      id: 'support-tickets',
-      name: 'nav.support.tickets',
-      fallbackLabel: 'Tickets',
-      path: '/support/tickets'
-    },
-    {
-      id: 'support-kb',
-      name: 'nav.support.kb',
-      fallbackLabel: 'Knowledge Base',
-      path: '/support/kb'
-    },
-    {
-      id: 'support-chat',
-      name: 'nav.support.chat',
-      fallbackLabel: 'Live Chat',
-      path: '/support/chat'
-    },
-    {
-      id: 'support-sla',
-      name: 'nav.support.sla',
-      fallbackLabel: 'SLA Monitoring',
-      path: '/support/sla'
-    }
-  ],
-
-  // Compliance & Legal → Contracts / Disputes / Audit & Risk
-  '/compliance': [
-    {
-      id: 'compliance-contracts',
-      name: 'nav.compliance.contracts',
-      fallbackLabel: 'Contracts',
-      path: '/compliance/contracts'
-    },
-    {
-      id: 'compliance-disputes',
-      name: 'nav.compliance.disputes',
-      fallbackLabel: 'Disputes',
-      path: '/compliance/disputes'
-    },
-    {
-      id: 'compliance-audit',
-      name: 'nav.compliance.auditRisk',
-      fallbackLabel: 'Audit & Risk',
-      path: '/compliance/audit'
-    }
-  ],
-
-  // Reports & Analytics → Standard / Custom / Dashboards
-  '/reports': [
-    {
-      id: 'reports-standard',
-      name: 'nav.reports.standard',
-      fallbackLabel: 'Standard Reports',
-      path: '/reports/standard'
-    },
-    {
-      id: 'reports-custom',
-      name: 'nav.reports.custom',
-      fallbackLabel: 'Custom Reports',
-      path: '/reports/custom'
-    },
-    {
-      id: 'reports-dashboards',
-      name: 'nav.reports.dashboards',
-      fallbackLabel: 'Dashboards',
-      path: '/reports/dashboards'
-    }
-  ],
-
-  // System Management → Users / Roles / Billing / Integrations / Settings
-  '/system': [
-    {
-      id: 'system-users',
-      name: 'nav.system.users',
-      fallbackLabel: 'Users',
-      path: '/system/users'
-    },
-    {
-      id: 'system-roles',
-      name: 'nav.system.roles',
-      fallbackLabel: 'Roles & Permissions',
-      path: '/system/roles'
-    },
-    {
-      id: 'system-billing',
-      name: 'nav.system.billing',
-      fallbackLabel: 'Billing',
-      path: '/system/billing'
-    },
-    {
-      id: 'system-integrations',
-      name: 'nav.system.integrations',
-      fallbackLabel: 'Integrations',
-      path: '/system/integrations'
-    },
-    {
-      id: 'system-settings',
-      name: 'nav.system.settings',
-      fallbackLabel: 'System Settings',
-      path: '/system/settings'
-    }
-  ]
-};
-
-// ✅ FIX: Remove props - role and subscription derived from session (single source of truth)
 interface SidebarProps {
-  tenantId?: string; // Optional, kept for potential future use
+  className?: string;
+  onNavigate?: () => void; // For mobile overlay closing
+  badgeCounts?: BadgeCounts; // Dynamic badge counts
 }
 
- 
-export default function Sidebar({ tenantId: _tenantId }: SidebarProps) {
-  const pathname = usePathname();
-   
-  const { responsiveClasses: _responsiveClasses, screenInfo } = useResponsiveLayout();
+interface BadgeProps {
+  badge: NavigationBadge;
+  badgeCounts?: BadgeCounts;
+}
 
-  // hooks must be top-level
-  const { t, isRTL: translationIsRTL } = useTranslation();
-  const { data: session, status } = useSession();
+interface NavigationItemProps {
+  item: NavigationItem;
+  isActive: boolean;
+  isRTL: boolean;
+  level?: number;
+  onNavigate?: () => void;
+  badgeCounts?: BadgeCounts;
+}
 
-  // ✅ FIX: Derive role and subscription directly from session (single source of truth)
-  const isAuthenticated = status === 'authenticated' && session != null;
-  
-  // Extract role from session - ensure it's a valid UserRoleType or 'guest'
-  // @ts-expect-error: NextAuth session.user may have custom properties
-  const role: UserRoleType | 'guest' = isAuthenticated ? (session.user?.role || 'VIEWER') : 'guest';
-  
-  // Extract subscription plan from session - default to 'DEFAULT' for unknown plans
-  // @ts-expect-error: NextAuth session.user may have custom properties
-  const subscription: string = isAuthenticated ? (session.user?.subscriptionPlan || 'DEFAULT') : 'DEFAULT';
+interface CollapsibleSectionProps {
+  section: NavigationSection;
+  isRTL: boolean;
+  onNavigate?: () => void;
+  badgeCounts?: BadgeCounts;
+}
 
-  const active = useMemo(() => pathname || '', [pathname]);
+// ==========================================
+// Badge Component
+// ==========================================
 
-  const allowedModules = useMemo(() => {
-    const roleModules = ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] ?? [];
-    const subscriptionModules =
-      SUBSCRIPTION_PLANS[subscription as keyof typeof SUBSCRIPTION_PLANS] ?? [];
-    const allowedIds = new Set<string>(
-      subscriptionModules.filter(id => (roleModules as readonly string[]).includes(id))
+const Badge: React.FC<BadgeProps> = ({ badge, badgeCounts }) => {
+  // Get dynamic text from badgeCounts if key is provided, otherwise use static text
+  const badgeText = badge.key && badgeCounts?.[badge.key] 
+    ? String(badgeCounts[badge.key]) 
+    : badge.text;
+
+  const colorClasses = {
+    blue: 'bg-blue-500 text-white',
+    green: 'bg-green-500 text-white',
+    red: 'bg-red-500 text-white',
+    yellow: 'bg-yellow-500 text-black',
+    purple: 'bg-purple-500 text-white',
+    gray: 'bg-gray-500 text-white',
+  };
+
+  const variantClasses = {
+    solid: '',
+    outline: 'bg-transparent border',
+    soft: 'bg-opacity-20',
+  };
+
+  const baseClasses = cn(
+    'inline-flex items-center justify-center',
+    'min-w-[1.25rem] h-5 px-1.5 rounded-full',
+    'text-xs font-medium leading-none',
+    badge.pulse && 'animate-pulse',
+    colorClasses[badge.color || 'gray'],
+    variantClasses[badge.variant || 'solid']
+  );
+
+  if (!badgeText) {
+    return (
+      <span
+        className={cn(
+          'w-2 h-2 rounded-full',
+          badge.color === 'red' ? 'bg-red-500' : 'bg-blue-500',
+          badge.pulse && 'animate-pulse'
+        )}
+        aria-hidden="true"
+      />
     );
-    return MODULES.filter(m => allowedIds.has(m.id));
-  }, [role, subscription]);
-
-  const groupedModules = useMemo(() => {
-    return allowedModules.reduce((acc, m) => {
-      (acc[m.category] ||= []).push(m);
-      return acc;
-    }, {} as Record<string, ModuleItem[]>);
-  }, [allowedModules]);
-
-  const getCategoryName = (category: string) =>
-    t(
-      `sidebar.category.${category}`,
-      CATEGORY_FALLBACKS[category as keyof typeof CATEGORY_FALLBACKS] || category
-    );
-
-  const asideBase =
-    screenInfo.isMobile || screenInfo.isTablet
-      ? `fixed inset-y-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${
-          translationIsRTL ? 'end-0' : 'start-0'
-        }`
-      : 'sticky top-14 w-64 h-[calc(100vh-3.5rem)]';
+  }
 
   return (
-    <aside
-      className={`${asideBase} bg-primary text-primary-foreground overflow-y-auto shadow-lg border-primary/20 ${
-        translationIsRTL ? 'border-l' : 'border-r'
-      }`}
-      aria-label={t('sidebar.mainNav', 'Main navigation')}
-      data-testid="sidebar"
-    >
-      <div className={`${screenInfo.isMobile ? 'p-3' : 'p-4'}`}>
-        <div className={`font-bold text-lg mb-6 ${translationIsRTL ? 'text-right' : ''}`}>
-          {t('common.brand', 'Fixzit Enterprise')}
-        </div>
+    <span className={baseClasses} aria-label={`${badgeText} notifications`}>
+      {badgeText}
+    </span>
+  );
+};
 
-        {/* Role & Plan */}
-        {role !== 'guest' && (
-          <section
-            aria-label={t('sidebar.accountInfo', 'Account info')}
-            className="mb-4 p-3 bg-primary/20 rounded-2xl border border-primary/30"
-          >
-            <div
-              className={`text-xs opacity-80 mb-1 ${translationIsRTL ? 'text-right' : ''}`}
-            >
-              {t('sidebar.role', 'Role')}
-            </div>
-            <div className={`text-sm font-medium ${translationIsRTL ? 'text-right' : ''}`}>
-              {String(role).replace(/_/g, ' ')}
-            </div>
-            <div
-              className={`text-xs opacity-80 mt-1 ${translationIsRTL ? 'text-right' : ''}`}
-            >
-              {t('sidebar.planLabel', 'Plan')}: {subscription}
-            </div>
-          </section>
-        )}
+// ==========================================
+// Navigation Item Component
+// ==========================================
 
-        {/* Modules with sub-menus */}
-        <nav className="space-y-6 mb-8" aria-label={t('sidebar.modules', 'Modules')}>
-          {Object.entries(groupedModules).map(([category, modules]) => (
-            <section key={category} aria-label={getCategoryName(category)}>
-              <div className="text-xs font-medium opacity-80 mb-2 px-3 uppercase tracking-wider">
-                {getCategoryName(category)}
-              </div>
-              <ul className="space-y-1">
-                {modules.map(m => {
-                  const Icon = m.icon;
-                  const isActive =
-                    active === m.path || active.startsWith(m.path + '/');
-                  const subModules = SUB_MODULES_BY_PATH[m.path] || [];
+const NavigationItemComponent: React.FC<NavigationItemProps> = ({
+  item,
+  isActive,
+  isRTL,
+  level = 0,
+  onNavigate,
+  badgeCounts,
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hasChildren = item.children && item.children.length > 0;
+  
+  // Get icon dynamically with proper type checking and fallback
+  const IconComponent = useMemo(() => {
+    if (item.iconName && item.iconName in LucideIcons) {
+      const ResolvedIcon = (LucideIcons as Record<string, unknown>)[item.iconName];
+      if (typeof ResolvedIcon === 'function') {
+        return ResolvedIcon as React.ComponentType<{ className?: string }>;
+      }
+    }
+    return item.icon || LucideIcons.HelpCircle;
+  }, [item.iconName, item.icon]);
 
-                  return (
-                    <li key={m.id}>
-                      {/* Top-level module link */}
-                      <Link
-                        href={m.path}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl transition-all duration-200
-                          ${
-                            isActive
-                              ? 'bg-primary-foreground/10 shadow-md'
-                              : 'opacity-80 hover:bg-primary-foreground/10 hover:opacity-100 hover:translate-x-1'
-                          }
-                          ${
-                            translationIsRTL
-                              ? 'flex-row-reverse text-right'
-                              : 'text-left'
-                          }`}
-                        aria-current={isActive ? 'page' : undefined}
-                        data-testid={`nav-${m.id}`}
-                        prefetch={false}
-                      >
-                        <Icon className="w-5 h-5 flex-shrink-0" aria-hidden />
-                        <span className="text-sm font-medium">
-                          {t(m.name, m.name.replace('nav.', ''))}
-                        </span>
-                        {isActive && (
-                          <span
-                            className={`${
-                              translationIsRTL ? 'me-auto' : 'ms-auto'
-                            } inline-block w-2 h-2 bg-card rounded-full`}
-                            aria-hidden
-                          />
-                        )}
-                      </Link>
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    if (hasChildren) {
+      e.preventDefault();
+      setIsExpanded(prev => !prev);
+    } else if (onNavigate) {
+      onNavigate();
+    }
+  }, [hasChildren, onNavigate]);
 
-                      {/* Sub-modules */}
-                      {subModules.length > 0 && (
-                        <ul className="mt-1 space-y-1">
-                          {subModules.map(sub => {
-                            const isSubActive =
-                              active === sub.path ||
-                              active.startsWith(sub.path + '/');
+  const itemClasses = cn(
+    'group flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200',
+    'hover:bg-accent hover:text-accent-foreground',
+    isActive && 'bg-accent text-accent-foreground shadow-sm',
+    level > 0 && 'ml-6 text-xs py-2',
+    isRTL && 'flex-row-reverse text-right'
+  );
 
-                            return (
-                              <li key={sub.id}>
-                                <Link
-                                  href={sub.path}
-                                  className={`w-full flex items-center gap-2 px-4 py-1.5 rounded-2xl text-xs transition-all duration-200
-                                    ${
-                                      isSubActive
-                                        ? 'bg-primary-foreground/10 shadow-sm'
-                                        : 'opacity-70 hover:bg-primary-foreground/10 hover:opacity-100 hover:translate-x-1'
-                                    }
-                                    ${
-                                      translationIsRTL
-                                        ? 'flex-row-reverse text-right'
-                                        : 'text-left'
-                                    }`}
-                                  aria-current={isSubActive ? 'page' : undefined}
-                                  data-testid={`nav-${sub.id}`}
-                                  prefetch={false}
-                                >
-                                  {/* Bullet dot for sub-items */}
-                                  <span
-                                    className="inline-block w-1.5 h-1.5 rounded-full bg-card flex-shrink-0"
-                                    aria-hidden
-                                  />
-                                  <span className="truncate">
-                                    {t(sub.name, sub.fallbackLabel)}
-                                  </span>
-                                </Link>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
+  if (item.separator) {
+    return <div className="h-px bg-border my-2 mx-3" />;
+  }
 
-          {/* Empty state if nothing is allowed */}
-          {Object.keys(groupedModules).length === 0 && (
-            <p className="px-3 text-xs opacity-80" data-testid="sidebar-empty">
-              {t(
-                'sidebar.noModules',
-                'No modules available for your role/plan.'
-              )}
-            </p>
+  return (
+    <div>
+      {item.href ? (
+        <Link
+          href={item.href}
+          className={itemClasses}
+          onClick={onNavigate}
+          target={item.isExternal ? '_blank' : undefined}
+          rel={item.isExternal ? 'noopener noreferrer' : undefined}
+        >
+          {IconComponent && (
+            <IconComponent 
+              className={cn(
+                'h-5 w-5 flex-shrink-0',
+                isRTL ? 'ml-3' : 'mr-3'
+              )} 
+            />
           )}
-        </nav>
-
-        {/* User Account Links */}
-        <div className="border-t border-primary-foreground/20 pt-4">
-          <div
-            className={`text-xs font-medium opacity-80 mb-3 px-3 uppercase tracking-wider ${
-              translationIsRTL ? 'text-right' : ''
-            }`}
-          >
-            {t('sidebar.account', 'Account')}
-          </div>
-          <ul className="space-y-1" aria-label={t('sidebar.account', 'Account')}>
-            {USER_LINKS.map(link => {
-              const Icon = link.icon;
-              const isActive =
-                active === link.path ||
-                active.startsWith(link.path + '/');
-              return (
-                <li key={link.id}>
-                  <Link
-                    href={link.path}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl transition-all duration-200
-                      ${
-                        isActive
-                          ? 'bg-primary-foreground/10 shadow-md'
-                          : 'opacity-80 hover:bg-primary-foreground/10 hover:opacity-100 hover:translate-x-1'
-                      }
-                      ${
-                        translationIsRTL
-                          ? 'flex-row-reverse text-right'
-                          : 'text-left'
-                      }`}
-                    aria-current={isActive ? 'page' : undefined}
-                    data-testid={`account-${link.id}`}
-                    prefetch={false}
-                  >
-                    <Icon className="w-5 h-5 flex-shrink-0" aria-hidden />
-                    <span className="text-sm font-medium">
-                      {t(link.name, link.name.replace('nav.', ''))}
-                    </span>
-                    {isActive && (
-                      <span
-                        className={`${
-                          translationIsRTL ? 'me-auto' : 'ms-auto'
-                        } inline-block w-2 h-2 bg-card rounded-full`}
-                        aria-hidden
-                      />
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-
-        {/* Help & Support (auth only) */}
-        {isAuthenticated && (
-          <div className="border-t border-primary-foreground/20 pt-4 mt-4">
-            <div
-              className={`text-xs font-medium opacity-80 mb-3 px-3 uppercase tracking-wider ${
-                translationIsRTL ? 'text-right' : ''
-              }`}
-            >
-              {t('sidebar.help', 'Help')}
+          
+          <span className={cn('flex-1', isRTL && 'text-right')}>
+            {isRTL ? item.labelAr || item.label : item.label}
+          </span>
+          
+          {item.isNew && (
+            <span className={cn(
+              'text-xs bg-green-500 text-white px-1.5 py-0.5 rounded-full',
+              isRTL ? 'mr-2' : 'ml-2'
+            )}>
+              New
+            </span>
+          )}
+          
+          {item.isComingSoon && (
+            <span className={cn(
+              'text-xs bg-yellow-500 text-black px-1.5 py-0.5 rounded-full',
+              isRTL ? 'mr-2' : 'ml-2'
+            )}>
+              Soon
+            </span>
+          )}
+          
+          {item.badge && (
+            <div className={isRTL ? 'mr-2' : 'ml-2'}>
+              <Badge badge={item.badge} badgeCounts={badgeCounts} />
             </div>
-            <Link
-              href="/help"
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl transition-all duration-200 opacity-80 hover:bg-primary-foreground/10 hover:opacity-100 hover:translate-x-1 ${
-                translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'
-              }`}
-              data-testid="nav-help"
-              prefetch={false}
-            >
-              <Headphones className="w-5 h-5 flex-shrink-0" aria-hidden />
-              <span className="text-sm font-medium">
-                {t('sidebar.helpCenter', 'Help Center')}
-              </span>
-            </Link>
+          )}
+          
+          {item.isExternal && (
+            <LucideIcons.ExternalLink 
+              className={cn(
+                'h-3 w-3 opacity-50',
+                isRTL ? 'mr-1' : 'ml-1'
+              )} 
+            />
+          )}
+        </Link>
+      ) : (
+        <button
+          className={cn(itemClasses, 'justify-between')}
+          onClick={handleClick}
+          aria-expanded={isExpanded}
+          aria-controls={`submenu-${item.id}`}
+        >
+          <div className={cn('flex items-center', isRTL && 'flex-row-reverse')}>
+            {IconComponent && (
+              <IconComponent 
+                className={cn(
+                  'h-5 w-5 flex-shrink-0',
+                  isRTL ? 'ml-3' : 'mr-3'
+                )} 
+              />
+            )}
+            
+            <span className={cn('flex-1', isRTL && 'text-right')}>
+              {isRTL ? item.labelAr || item.label : item.label}
+            </span>
+          </div>
+          
+          <div className={cn('flex items-center gap-2', isRTL && 'flex-row-reverse')}>
+            {item.badge && <Badge badge={item.badge} badgeCounts={badgeCounts} />}
+            
+            {hasChildren && (
+              <LucideIcons.ChevronDown 
+                className={cn(
+                  'h-4 w-4 transition-transform duration-200',
+                  isExpanded && 'rotate-180'
+                )}
+              />
+            )}
+          </div>
+        </button>
+      )}
+      
+      {/* Children */}
+      {hasChildren && (isExpanded || isActive) && (
+        <div
+          id={`submenu-${item.id}`}
+          className="mt-1 space-y-1"
+        >
+          {item.children!.map((child) => (
+            <NavigationItemComponent
+              key={child.id}
+              item={child}
+              isActive={false} // You might want to implement nested active state
+              isRTL={isRTL}
+              level={level + 1}
+              onNavigate={onNavigate}
+              badgeCounts={badgeCounts}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ==========================================
+// Collapsible Section Component
+// ==========================================
+
+const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
+  section,
+  isRTL,
+  onNavigate,
+  badgeCounts,
+}) => {
+  const [isCollapsed, setIsCollapsed] = useState(section.collapsed || false);
+  const pathname = usePathname();
+  
+  // Check if any item in this section is active
+  const hasActiveItem = useMemo(() => {
+    const checkActive = (items: NavigationItem[]): boolean => {
+      return items.some(item => {
+        if (item.href && pathname === item.href) return true;
+        if (item.children) return checkActive(item.children);
+        return false;
+      });
+    };
+    return checkActive(section.items);
+  }, [section.items, pathname]);
+
+  // Auto-expand if section has active item
+  useEffect(() => {
+    if (hasActiveItem && isCollapsed) {
+      setIsCollapsed(false);
+    }
+  }, [hasActiveItem, isCollapsed]);
+
+  return (
+    <div className="mb-6">
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className={cn(
+          'flex items-center justify-between w-full px-3 py-2 text-xs font-semibold',
+          'text-muted-foreground uppercase tracking-wide hover:text-foreground',
+          'transition-colors duration-200',
+          isRTL && 'flex-row-reverse text-right'
+        )}
+        aria-expanded={!isCollapsed}
+        aria-controls={`section-${section.id}`}
+      >
+        <span>{isRTL ? section.labelAr || section.label : section.label}</span>
+        
+        <LucideIcons.ChevronDown 
+          className={cn(
+            'h-4 w-4 transition-transform duration-200',
+            isCollapsed && 'rotate-180'
+          )}
+        />
+      </button>
+      
+      {!isCollapsed && (
+        <div id={`section-${section.id}`} className="mt-2 space-y-1">
+          {section.items.map((item) => {
+            const isActive = pathname === item.href || 
+              (item.href && pathname.startsWith(item.href + '/'));
+            
+            return (
+              <NavigationItemComponent
+                key={item.id}
+                item={item}
+                isActive={isActive}
+                isRTL={isRTL}
+                onNavigate={onNavigate}
+                badgeCounts={badgeCounts}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ==========================================
+// Main Sidebar Component
+// ==========================================
+
+const Sidebar: React.FC<SidebarProps> = ({ className, onNavigate, badgeCounts }) => {
+  const { data: session } = useSession();
+  const router = useRouter();
+  
+  // Get user role and subscription from session (properly typed now)
+  const userRole: UserRole = session?.user?.role || 'GUEST';
+  const subscriptionPlan: SubscriptionPlan = session?.user?.subscriptionPlan || 'FREE';
+  
+  // Detect RTL based on locale or user preference
+  const isRTL = session?.user?.locale === 'ar' || false;
+  
+  // Filter navigation based on user permissions
+  const filteredConfig = useMemo(() => 
+    filterNavigation(navigationConfig, userRole, subscriptionPlan),
+    [userRole, subscriptionPlan]
+  );
+  
+  const handleLogout = useCallback(() => {
+    router.push('/logout');
+  }, [router]);
+
+  return (
+    <aside 
+      className={cn(
+        'flex flex-col h-full bg-background border-r border-border',
+        'overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent',
+        isRTL && 'border-l border-r-0',
+        className
+      )}
+      dir={isRTL ? 'rtl' : 'ltr'}
+    >
+      {/* Header */}
+      <div className="p-4 border-b border-border">
+        <div className={cn(
+          'flex items-center gap-3',
+          isRTL && 'flex-row-reverse'
+        )}>
+          <LucideIcons.Building2 className="h-8 w-8 text-primary" />
+          <div className={cn('flex flex-col', isRTL && 'text-right')}>
+            <h1 className="text-lg font-bold text-foreground">
+              Fixzit
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              {userRole.replace('_', ' ')} • {subscriptionPlan}
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Navigation */}
+      <nav className="flex-1 p-4 space-y-2" role="navigation" aria-label="Main navigation">
+        {filteredConfig.sections.map((section) => (
+          <CollapsibleSection
+            key={section.id}
+            section={section}
+            isRTL={isRTL}
+            onNavigate={onNavigate}
+            badgeCounts={badgeCounts}
+          />
+        ))}
+        
+        {/* Quick Actions */}
+        {hasAccessToItem(
+          { id: 'quick-actions', label: 'Quick Actions', roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'] } as NavigationItem,
+          userRole,
+          subscriptionPlan
+        ) && (
+          <div className="mt-8 pt-4 border-t border-border">
+            <div className={cn(
+              'px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide',
+              isRTL && 'text-right'
+            )}>
+              Quick Actions
+            </div>
+            
+            <div className="mt-2 space-y-1">
+              <button
+                onClick={() => router.push('/fm/work-orders/create')}
+                className={cn(
+                  'flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg',
+                  'hover:bg-accent hover:text-accent-foreground transition-colors duration-200',
+                  isRTL && 'flex-row-reverse text-right'
+                )}
+              >
+                <LucideIcons.Plus className={cn('h-4 w-4', isRTL ? 'ml-2' : 'mr-2')} />
+                Create Work Order
+              </button>
+              
+              <button
+                onClick={() => router.push('/souq/rfqs/create')}
+                className={cn(
+                  'flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg',
+                  'hover:bg-accent hover:text-accent-foreground transition-colors duration-200',
+                  isRTL && 'flex-row-reverse text-right'
+                )}
+              >
+                <LucideIcons.FileSearch className={cn('h-4 w-4', isRTL ? 'ml-2' : 'mr-2')} />
+                Create RFQ
+              </button>
+            </div>
           </div>
         )}
+      </nav>
+      
+      {/* Footer */}
+      <div className="p-4 border-t border-border">
+        <div className="space-y-1">
+          <Link
+            href="/help"
+            className={cn(
+              'flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg',
+              'hover:bg-accent hover:text-accent-foreground transition-colors duration-200',
+              isRTL && 'flex-row-reverse text-right'
+            )}
+          >
+            <LucideIcons.HelpCircle className={cn('h-4 w-4', isRTL ? 'ml-2' : 'mr-2')} />
+            Help & Support
+          </Link>
+          
+          <Link
+            href="/profile"
+            className={cn(
+              'flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg',
+              'hover:bg-accent hover:text-accent-foreground transition-colors duration-200',
+              isRTL && 'flex-row-reverse text-right'
+            )}
+          >
+            <LucideIcons.User className={cn('h-4 w-4', isRTL ? 'ml-2' : 'mr-2')} />
+            Profile Settings
+          </Link>
+          
+          <button
+            onClick={handleLogout}
+            className={cn(
+              'flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg',
+              'hover:bg-destructive hover:text-destructive-foreground transition-colors duration-200',
+              'text-destructive',
+              isRTL && 'flex-row-reverse text-right'
+            )}
+          >
+            <LucideIcons.LogOut className={cn('h-4 w-4', isRTL ? 'ml-2' : 'mr-2')} />
+            Logout
+          </button>
+        </div>
+        
+        {/* Version Info */}
+        <div className={cn(
+          'mt-4 pt-3 border-t border-border text-xs text-muted-foreground',
+          isRTL && 'text-right'
+        )}>
+          <div>Version 2.0.26</div>
+          <div className="mt-1">
+            © 2024 Fixzit Enterprise
+          </div>
+        </div>
       </div>
     </aside>
   );
-}
+};
+
+export default Sidebar;

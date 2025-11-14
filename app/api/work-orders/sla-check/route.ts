@@ -20,7 +20,7 @@ export async function POST() {
     const workOrders = (await WorkOrder.find({
       status: { $nin: ['CLOSED', 'CANCELLED', 'ARCHIVED'] },
       'sla.deadline': { $exists: true, $lte: twoHoursFromNow }
-    }).lean()) as any;
+    }).lean());
     
     const results = {
       checked: await WorkOrder.countDocuments({
@@ -91,7 +91,7 @@ export async function GET() {
     const allWorkOrders = (await WorkOrder.find({
       status: { $nin: ['CLOSED', 'CANCELLED', 'ARCHIVED'] },
       'sla.deadline': { $exists: true }
-    }).lean()) as any;
+    }).lean());
     
     const preview = {
       total: allWorkOrders.length,

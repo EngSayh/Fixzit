@@ -80,7 +80,7 @@ async function main() {
     const rfqsWithEmbeddedBids = await RFQCollection.find({
       bids: { $exists: true, $type: 'array', $ne: [] },
       'bids.0.vendorId': { $exists: true } // Check if first element is an object (embedded)
-    }).toArray() as any[];
+    }).toArray();
 
     console.log(`Found ${rfqsWithEmbeddedBids.length} RFQs with embedded bids\n`);
 
@@ -256,7 +256,7 @@ async function verifyMigration(
   console.log(`   Total ProjectBids: ${totalBids}`);
 
   // Check 5: Sample data validation
-  const sampleRFQ = await RFQCollection.findOne({ bids: { $ne: [] } }) as any;
+  const sampleRFQ = await RFQCollection.findOne({ bids: { $ne: [] } });
   if (sampleRFQ) {
     console.log(`\nCheck 5: Sample RFQ validation`);
     console.log(`   RFQ ID: ${sampleRFQ._id}`);

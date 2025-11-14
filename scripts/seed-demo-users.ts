@@ -213,7 +213,7 @@ async function seedDemoUsers() {
     let skipped = 0;
     
     for (const userData of demoUsers) {
-      const existingUser = await (User as any).findOne({ email: userData.email });
+      const existingUser = await User.findOne({ email: userData.email });
       
       const hashedPassword = await hashPassword(userData.password);
       const userWithHashedPassword = {
@@ -223,7 +223,7 @@ async function seedDemoUsers() {
       
       if (existingUser) {
         // Update existing user's password using direct MongoDB update to skip validation
-        await (User as any).updateOne(
+        await User.updateOne(
           { _id: existingUser._id },
           {
             $set: {
@@ -237,7 +237,7 @@ async function seedDemoUsers() {
         updated++;
       } else {
         try {
-          await (User as any).create(userWithHashedPassword);
+          await User.create(userWithHashedPassword);
           console.log(`✅ Created user: ${userData.email} (${userData.professional?.role || 'user'})`);
           created++;
         } catch (error: any) {

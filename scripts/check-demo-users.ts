@@ -16,7 +16,7 @@ async function checkUsers() {
     console.log('🔍 Checking demo users in database...\n');
     
     for (const email of demoEmails) {
-      const user = await (User as any).findOne({ email }).select('email professional.role status isActive passwordHash');
+      const user = await User.findOne({ email }).select('email professional.role status isActive passwordHash');
       
       if (user) {
         console.log(`✅ ${email}`);
@@ -32,7 +32,7 @@ async function checkUsers() {
     
     // Check corporate users
     console.log('🏢 Checking corporate users...\n');
-    const corpUsers = await (User as any).find({ 
+    const corpUsers = await User.find({ 
       employeeNumber: { $in: ['EMP001', 'EMP002'] } 
     }).select('employeeNumber email professional.role status');
     

@@ -159,7 +159,6 @@ export async function POST(req: NextRequest) {
       vatAmount: totalTax.toString()
     });
 
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const invoice = (await Invoice.create({
       tenantId: user.orgId,
       number,
@@ -244,12 +243,10 @@ export async function GET(req: NextRequest) {
     }
 
     const [items, total] = await Promise.all([
-      // @ts-ignore - Mongoose type inference issue with conditional model export
       Invoice.find(match)
         .sort({ issueDate: -1 })
         .skip((page - 1) * limit)
-        .limit(limit) as any,
-      // @ts-ignore - Mongoose type inference issue with conditional model export
+        .limit(limit),
       Invoice.countDocuments(match)
     ]);
 

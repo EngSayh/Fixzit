@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import { Schema, model, models, Model, Document } from 'mongoose';
 import { auditPlugin } from '../plugins/auditPlugin';
 
 const PricePerModuleSchema = new Schema(
@@ -52,4 +52,31 @@ PriceBookSchema.pre('save', function(next) {
   next();
 });
 
-export default (typeof models !== 'undefined' && models.PriceBook) || model('PriceBook', PriceBookSchema);
+// TypeScript-safe model export
+interface IPricePerModule {
+  module_key: string;
+  monthly_usd: number;
+  monthly_sar: number;
+}
+
+interface ISeatTier {
+  min_seats: number;
+  max_seats: number;
+  discount_pct: number;
+  prices: IPricePerModule[];
+}
+
+interface IPriceBook extends Document {
+  name: string;
+  currency: 'USD' | 'SAR';
+  effective_from: Date;
+  active: boolean;
+  tiers: ISeatTier[];
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+}
+
+const PriceBook: Model<IPriceBook> = models.PriceBook || model<IPriceBook>('PriceBook', PriceBookSchema);
+export default PriceBook;

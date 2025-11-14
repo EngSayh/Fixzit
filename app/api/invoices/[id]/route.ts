@@ -56,11 +56,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const invoice = (await Invoice.findOne({
       _id: params.id,
       tenantId: user.tenantId
-    })) as any;
+    }));
 
     if (!invoice) {
       return createSecureResponse({ error: "Invoice not found" }, 404, req);
@@ -92,7 +91,6 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     const data = updateInvoiceSchema.parse(await req.json());
 
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const invoice = await Invoice.findOne({
       _id: params.id,
       tenantId: user.tenantId
@@ -227,12 +225,11 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const invoice = (await Invoice.findOne({
       _id: params.id,
       tenantId: user.tenantId,
       status: "DRAFT"
-    })) as any;
+    }));
 
     if (!invoice) {
       return createSecureResponse({ error: "Invoice not found or cannot be deleted" }, 404, req);

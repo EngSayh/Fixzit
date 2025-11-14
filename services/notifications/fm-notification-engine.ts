@@ -454,7 +454,34 @@ async function sendPushNotifications(
     // Handle failures (remove invalid tokens, etc.)
     if (response.failureCount > 0) {
       logger.warn('[Notifications] FCM failures', { failureCount: response.failureCount });
-      // TODO: Remove invalid tokens from DB
+      
+      // Extract failed token indices and remove them from users' fcmTokens arrays
+      const failedTokens: string[] = [];
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          failedTokens.push(batch[idx]);
+          logger.debug('[Notifications] Failed FCM token', { 
+            token: batch[idx], 
+            error: resp.error?.message 
+          });
+        }
+      });
+      
+      // Remove invalid tokens from database
+      if (failedTokens.length > 0) {
+        try {
+          const { User } = await import('@/server/models/User');
+          await User.updateMany(
+            { fcmTokens: { $in: failedTokens } },
+            { $pullAll: { fcmTokens: failedTokens } }
+          );
+          logger.info('[Notifications] Removed invalid FCM tokens', { 
+            count: failedTokens.length 
+          });
+        } catch (error) {
+          logger.error('[Notifications] Failed to remove invalid tokens', { error });
+        }
+      }
     }
   }
 

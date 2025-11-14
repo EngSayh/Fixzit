@@ -56,7 +56,6 @@ export async function POST(req: NextRequest){
     const uuid = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
     const code = `SUP-${new Date().getFullYear()}-${uuid}`;
     
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const ticket = (await SupportTicket.create({
       orgId: user?.orgId,
       code,
@@ -70,7 +69,7 @@ export async function POST(req: NextRequest){
       createdByUserId: user?.id,
       requester: user ? undefined : body.requester,
       messages: [{ byUserId: user?.id, byRole: user ? "USER" : "GUEST", text: body.text, at: new Date() }]
-    })) as any;
+    }));
 
     return createSecureResponse(ticket, 201, req);
   } catch (error: unknown) {
@@ -120,7 +119,7 @@ export async function GET(req: NextRequest) {
     if (priority) match.priority = priority;
 
     const [items,total] = await Promise.all([
-      SupportTicket.find(match).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit) as any,
+      SupportTicket.find(match).sort({ createdAt: -1 }).skip((page-1)*limit).limit(limit),
       SupportTicket.countDocuments(match)
     ]);
     return NextResponse.json({ items, page, limit, total });

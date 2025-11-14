@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from 'mongoose';
+import { Schema, model, models, Model, Document } from 'mongoose';
 import { auditPlugin } from '../plugins/auditPlugin';
 import { MODULE_KEYS } from './Module';
 
@@ -116,4 +116,45 @@ SubscriptionSchema.index({ status: 1 });
 // Index for recurring billing query (billing_cycle + status + next_billing_date)
 SubscriptionSchema.index({ billing_cycle: 1, status: 1, next_billing_date: 1 });
 
-export default (typeof models !== 'undefined' && models.Subscription) || model('Subscription', SubscriptionSchema);
+// TypeScript-safe model export
+interface IPayTabsInfo {
+  profile_id?: string;
+  token?: string;
+  customer_email?: string;
+  last_tran_ref?: string;
+  agreement_id?: string;
+  cart_id?: string;
+}
+
+interface IBillingHistory {
+  date: Date;
+  amount: number;
+  currency: string;
+  tran_ref?: string;
+  status: 'SUCCESS' | 'FAILED' | 'PENDING';
+  error?: string;
+}
+
+interface ISubscription extends Document {
+  tenant_id?: Schema.Types.ObjectId;
+  owner_user_id?: Schema.Types.ObjectId;
+  subscriber_type: 'CORPORATE' | 'OWNER';
+  modules: string[];
+  seats: number;
+  billing_cycle: 'MONTHLY' | 'ANNUAL';
+  currency: 'USD' | 'SAR';
+  price_book_id: Schema.Types.ObjectId;
+  amount: number;
+  status: 'INCOMPLETE' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+  paytabs?: IPayTabsInfo;
+  next_billing_date?: Date;
+  billing_history: IBillingHistory[];
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+}
+
+const Subscription: Model<ISubscription> = models.Subscription || model<ISubscription>('Subscription', SubscriptionSchema);
+export default Subscription;

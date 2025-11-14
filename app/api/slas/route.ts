@@ -136,14 +136,13 @@ export async function POST(req: NextRequest) {
 
     const data = createSLASchema.parse(await req.json());
 
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const sla = (await SLA.create({
       tenantId: user.orgId,
       code: `SLA-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "DRAFT",
       createdBy: user.id
-    })) as any;
+    }));
 
     return createSecureResponse(sla, 201, req);
   } catch (error: unknown) {
@@ -198,14 +197,11 @@ export async function GET(req: NextRequest) {
       match.$text = { $search: search };
     }
 
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const [items, total] = await Promise.all([
-      // @ts-ignore - Mongoose type inference issue with conditional model export
       SLA.find(match)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
-        .limit(limit) as any,
-      // @ts-ignore - Mongoose type inference issue with conditional model export
+        .limit(limit),
       SLA.countDocuments(match)
     ]);
 

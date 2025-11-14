@@ -29,7 +29,7 @@ export async function GET(req:NextRequest, props:{params: Promise<{id:string}>})
   const params = await props.params;
   const user = await getSessionUser(req);
   await connectToDatabase();
-  const wo = (await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId })) as any;
+  const wo = (await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId }));
   return createSecureResponse(wo?.comments ?? [], 200, req);
 }
 

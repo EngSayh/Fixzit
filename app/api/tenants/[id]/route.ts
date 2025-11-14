@@ -103,7 +103,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     const tenant = (await Tenant.findOne({
       _id: params.id,
       tenantId: user.tenantId
-    })) as any;
+    }));
 
     if (!tenant) {
       return createSecureResponse({ error: "Tenant not found" }, 404, req);
@@ -127,7 +127,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       { _id: params.id, tenantId: user.tenantId },
       { $set: { ...data, updatedBy: user.id } },
       { new: true }
-    )) as any;
+    ));
 
     if (!tenant) {
       return createSecureResponse({ error: "Tenant not found" }, 404, req);
@@ -156,7 +156,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       { _id: params.id, tenantId: user.tenantId },
       { $set: { status: 'INACTIVE', updatedBy: user.id } },
       { new: true }
-    )) as any;
+    ));
 
     if (!tenant) {
       return createSecureResponse({ error: "Tenant not found" }, 404, req);

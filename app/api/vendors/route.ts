@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       code: `VEN-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       createdBy: user.id
-    })) as any;
+    }));
 
     return createSecureResponse(vendor, 201, req);
   } catch (error: unknown) {
@@ -150,7 +150,7 @@ export async function GET(req: NextRequest) {
       Vendor.find(match)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
-        .limit(limit) as any,
+        .limit(limit),
       Vendor.countDocuments(match)
     ]);
 

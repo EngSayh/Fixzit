@@ -194,7 +194,7 @@ export async function getAttendanceSummary(orgId: string) {
     .toArray();
 
   const summary: Record<string, number> = {};
-  (result as any[]).forEach((item: any) => {
+  result.forEach((item: { _id: string; count: number }) => {
     summary[item._id] = item.count;
   });
 

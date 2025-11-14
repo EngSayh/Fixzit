@@ -83,15 +83,12 @@ export async function GET(req: NextRequest) {
       filter.$text = { $search: query.search };
     }
 
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const [items, total] = await Promise.all([
-      // @ts-ignore - Mongoose type inference issue with conditional model export
       RFQ.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .lean() as any,
-      // @ts-ignore - Mongoose type inference issue with conditional model export
+        .lean(),
       RFQ.countDocuments(filter)
     ]);
 

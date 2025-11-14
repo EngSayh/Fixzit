@@ -40,7 +40,7 @@ export async function GET(req:NextRequest): Promise<NextResponse> {
   // Use .lean() to get plain JavaScript objects instead of Mongoose documents
   const docs = (await WorkOrder.find({tenantId:user.orgId, deletedAt:{$exists:false}})
     .limit(2000)
-    .lean<WorkOrderExportDoc[]>()) as any;
+    .lean<WorkOrderExportDoc[]>());
   
   const header = ["code","title","status","priority","propertyId","assigneeUserId","createdAt","dueAt"];
   const lines = [header.join(",")].concat(docs.map((d: WorkOrderExportDoc) =>[

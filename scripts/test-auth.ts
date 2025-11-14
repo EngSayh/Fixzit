@@ -16,7 +16,7 @@ async function testAuth() {
     console.log(`🔍 Testing authentication for ${email}...\n`);
     
     // Find user
-    const user = await (User as any).findOne({ email });
+    const user = await User.findOne({ email });
     
     if (!user) {
       console.error('❌ User not found');

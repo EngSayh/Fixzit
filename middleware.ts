@@ -168,6 +168,7 @@ async function getAuthSession(request: NextRequest): Promise<SessionUser | null>
 function hasAnyPermission(user: SessionUser | null, permissions: string[]): boolean {
   if (!user) return false;
   if (user.isSuperAdmin) return true;
+  if (!user.permissions || !Array.isArray(user.permissions)) return false;
   if (user.permissions.includes('*')) return true;
   return permissions.some(p => user.permissions.includes(p));
 }

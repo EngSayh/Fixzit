@@ -11,12 +11,12 @@ async function cleanup() {
     console.log('🧹 Cleaning up test users...');
     
     // Delete by email pattern
-    const result1 = await (User as any).deleteMany({ 
+    const result1 = await User.deleteMany({ 
       email: { $regex: /@test\.fixzit\.co$/ } 
     });
     
     // Delete by orgId with null employeeId (old test users)
-    const result2 = await (User as any).deleteMany({
+    const result2 = await User.deleteMany({
       orgId: '68dc8955a1ba6ed80ff372dc',
       employeeId: null
     });

@@ -60,10 +60,8 @@ export async function POST(req: NextRequest) {
   const cartId = body.cartId;
 
   const subscription = subscriptionId
-    // @ts-ignore - Mongoose type inference issue with conditional model export
-    ? (await Subscription.findById(subscriptionId)) as any
-    // @ts-ignore - Mongoose type inference issue with conditional model export
-    : (await Subscription.findOne({ 'paytabs.cart_id': cartId })) as any;
+    ? await Subscription.findById(subscriptionId)
+    : (await Subscription.findOne({ 'paytabs.cart_id': cartId }));
 
   if (!subscription) {
     return createSecureResponse({ error: 'SUBSCRIPTION_NOT_FOUND' }, 404, req);

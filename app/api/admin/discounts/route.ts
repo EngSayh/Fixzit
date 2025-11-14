@@ -61,7 +61,6 @@ export async function GET(req: NextRequest) {
   try {
     await authenticateAdmin(req);
     await connectToDatabase();
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const d = await DiscountRule.findOne({ code: 'ANNUAL' });
     return NextResponse.json(d || { code:'ANNUAL', value:0, active:false });
   } catch (error: unknown) {
@@ -100,7 +99,6 @@ export async function PUT(req: NextRequest) {
     await connectToDatabase();
     const body = discountSchema.parse(await req.json());
     
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const d = await DiscountRule.findOneAndUpdate({ code: 'ANNUAL' },
       { code:'ANNUAL', type: 'percent', value: body.value, active: true, updatedBy: user.id, updatedAt: new Date() }, 
       { upsert: true, new: true });

@@ -15,7 +15,6 @@ export async function GET(request: NextRequest) {
     // Get orgId from header (set by middleware) or use default
     const orgId = request.headers.get('x-org-id') || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
 
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const settings = (await PlatformSettings.findOne({ orgId }).lean().exec()) as {
       logoUrl: string;
       brandName: string;

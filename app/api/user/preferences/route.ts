@@ -52,7 +52,7 @@ export async function GET() {
     
   await connectDb();
 
-  const user = (await User.findById(session.user.id).select('preferences')) as any;
+  const user = (await User.findById(session.user.id).select('preferences'));
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -122,7 +122,7 @@ export async function PUT(request: NextRequest) {
     
     await connectDb();
 
-  const user = (await User.findById(session.user.id)) as any;
+  const user = (await User.findById(session.user.id));
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });

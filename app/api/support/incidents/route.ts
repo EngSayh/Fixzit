@@ -171,7 +171,6 @@ export async function POST(req: NextRequest) {
   for (let i = 0; i < 5; i++) {
     const ticketCode = genCode();
     try {
-      // @ts-ignore - Mongoose type inference issue with conditional model export
       ticket = (await SupportTicket.create({
     orgId: sessionUser?.orgId || undefined,
         code: ticketCode,

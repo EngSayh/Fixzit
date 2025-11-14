@@ -70,8 +70,7 @@ export async function GET(req: NextRequest) {
   try {
     await authenticateAdmin(req);
     await connectToDatabase();
-    // @ts-ignore - Mongoose type inference issue with conditional model export
-    const rows = await PriceTier.find({}).populate('moduleId','code name') as any;
+    const rows = await PriceTier.find({}).populate('moduleId','code name');
     return createSecureResponse(rows, 200, req);
   } catch (error: unknown) {
     // Check for specific authentication errors
@@ -113,16 +112,14 @@ export async function POST(req: NextRequest) {
     const body = priceTierSchema.parse(await req.json());
     
     // body: { moduleCode, seatsMin, seatsMax, pricePerSeatMonthly, flatMonthly, currency, region }
-    // @ts-ignore - Mongoose type inference issue with conditional model export
-    const mod = await Module.findOne({ code: body.moduleCode }) as any;
+    const mod = await Module.findOne({ code: body.moduleCode });
     if (!mod) return createErrorResponse('MODULE_NOT_FOUND', 400, req);
     
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const doc = await PriceTier.findOneAndUpdate(
       { moduleId: mod._id, seatsMin: body.seatsMin, seatsMax: body.seatsMax, currency: body.currency || 'USD' },
       { ...body, moduleId: mod._id, updatedBy: user.id, updatedAt: new Date() },
       { upsert: true, new: true }
-    ) as any;
+    );
     return createSecureResponse(doc, 201, req);
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {

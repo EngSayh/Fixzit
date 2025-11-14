@@ -97,13 +97,11 @@ export async function POST(req: NextRequest) {
   const verifiedOk = verificationData?.payment_result?.response_status === 'A';
   
   const subId = cartId?.replace('SUB-','');
-  // @ts-ignore - Mongoose type inference issue with conditional model export
-  const sub = (await Subscription.findById(subId)) as any;
+  const sub = (await Subscription.findById(subId));
   if (!sub) return createSecureResponse({ error: 'SUB_NOT_FOUND' }, 400, req);
 
   // Find invoice
-  // @ts-ignore - Mongoose type inference issue with conditional model export
-  const inv = (await SubscriptionInvoice.findOne({ subscriptionId: sub._id, status: 'pending' })) as any;
+  const inv = (await SubscriptionInvoice.findOne({ subscriptionId: sub._id, status: 'pending' }));
   if (!inv) return createSecureResponse({ error: 'INV_NOT_FOUND' }, 400, req);
 
   if (!verifiedOk) {
@@ -121,7 +119,6 @@ export async function POST(req: NextRequest) {
     if (!paymentInfo) {
       logger.warn('[Billing Callback] No payment_info in verification response, skipping token storage');
     } else {
-      // @ts-ignore - Mongoose type inference issue with conditional model export
       const pm = (await PaymentMethod.create({
         customerId: sub.customerId, 
         token, 

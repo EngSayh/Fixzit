@@ -1,4 +1,21 @@
-import { Schema, model, models, Types } from 'mongoose';
+import { Schema, model, models, Model, Document } from 'mongoose';
+
+interface IPlan {
+  name?: string;
+  price_per_user_month_usd?: number;
+  url?: string;
+  features: string[];
+}
+
+interface IBenchmark extends Document {
+  vendor: string;
+  region?: string;
+  plans: IPlan[];
+  retrieved_at: Date;
+  tenantId: Schema.Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 const PlanSchema = new Schema(
   {
@@ -10,7 +27,7 @@ const PlanSchema = new Schema(
   { _id: false }
 );
 
-const BenchmarkSchema = new Schema(
+const BenchmarkSchema = new Schema<IBenchmark>(
   {
     vendor: { type: String, required: true },
     region: String,
@@ -26,5 +43,7 @@ const BenchmarkSchema = new Schema(
   { timestamps: true }
 );
 
-export default (typeof models !== 'undefined' && models.Benchmark) || model('Benchmark', BenchmarkSchema);
+// TypeScript-safe model export
+const Benchmark: Model<IBenchmark> = models.Benchmark || model<IBenchmark>('Benchmark', BenchmarkSchema);
+export default Benchmark;
 

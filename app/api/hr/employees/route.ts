@@ -38,14 +38,12 @@ export async function GET(req: NextRequest) {
     // Execute query with pagination
     const skip = (page - 1) * limit;
     const [employees, total] = await Promise.all([
-      // @ts-ignore - Mongoose type inference issue with conditional model export
       Employee.find(query)
         .select('-bank.iban -documents') // Exclude sensitive data by default
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      // @ts-ignore - Mongoose type inference issue with conditional model export
       Employee.countDocuments(query),
     ]);
 
@@ -88,7 +86,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Check for duplicate employee code within org
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const existing = await Employee.findOne({
       orgId: session.user.orgId,
       employeeCode: body.employeeCode,
@@ -102,7 +99,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Create employee
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const employee = await Employee.create({
       ...body,
       orgId: session.user.orgId,

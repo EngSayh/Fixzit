@@ -54,8 +54,7 @@ export async function POST(req: NextRequest) {
     });
     if (ours.contactSales) return createSecureResponse(ours, 200, req);
 
-    // @ts-ignore - Mongoose type inference issue with conditional model export
-    const rows = (await Benchmark.find({})) as any;
+    const rows = (await Benchmark.find({}));
     const perUserRows = rows.filter((r: any) => r.pricingModel==='per_user_month' && r.priceMonthly);
     const monthlyMedian = perUserRows.sort((a: any,b: any)=>a.priceMonthly-b.priceMonthly)[Math.floor(perUserRows.length/2)]?.priceMonthly || 0;
 

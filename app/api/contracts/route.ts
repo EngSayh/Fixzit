@@ -89,8 +89,7 @@ export async function POST(req: NextRequest) {
       createdAt: new Date()
     };
 
-    // @ts-ignore - Mongoose type inference issue with conditional model export
-    const contract = (await ServiceContract.create(contractData)) as any;
+    const contract = (await ServiceContract.create(contractData));
     return createSecureResponse(contract, 201, req);
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -154,8 +154,7 @@ export async function GET(req: NextRequest) {
     }
     
     // Get properties using Mongoose model
-    // @ts-ignore - Mongoose type inference issue with conditional model export
-    const properties = (await Property.find(propertyFilter).select('_id name code').lean()) as any;
+    const properties = (await Property.find(propertyFilter).select('_id name code').lean());
     const propertyIds = properties.map((p: any) => p._id as Types.ObjectId);
     const propertyMap = new Map(properties.map((p: any) => [(p._id as Types.ObjectId).toString(), p]));
     
@@ -163,16 +162,15 @@ export async function GET(req: NextRequest) {
     const statementLines: StatementLine[] = [];
     
     // 1. INCOME - Rent Payments (using Mongoose model)
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const payments = (await Payment.find({
       propertyId: { $in: propertyIds },
       paymentDate: { $gte: startDate, $lte: endDate },
       status: 'PAID'
-    }).lean()) as any;
+    }).lean());
     
     payments.forEach((payment: unknown) => {
       const p = payment as PaymentResponse;
-      const property = propertyMap.get(p.propertyId?.toString() || '') as any;
+      const property = propertyMap.get(p.propertyId?.toString() || '');
       statementLines.push({
         date: p.paymentDate,
         description: `Rent Payment - ${p.tenantName || 'Unknown'}`,
@@ -186,7 +184,6 @@ export async function GET(req: NextRequest) {
     });
     
     // 2. EXPENSES - Maintenance (Work Orders using Mongoose model)
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const workOrders = (await WorkOrder.find({
       'property.propertyId': { $in: propertyIds },
       status: 'COMPLETED',
@@ -201,7 +198,7 @@ export async function GET(req: NextRequest) {
         logger.warn('Work order missing completedDate, skipping from statement', { workOrderNumber: w.workOrderNumber });
         return;
       }
-      const property = propertyMap.get(w.property?.propertyId?.toString() || '') as any;
+      const property = propertyMap.get(w.property?.propertyId?.toString() || '');
       statementLines.push({
         date: w.completedDate,
         description: `Maintenance - ${w.title || 'Work Order'}`,
@@ -215,7 +212,6 @@ export async function GET(req: NextRequest) {
     });
     
     // 3. EXPENSES - Utilities (using Mongoose model)
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const utilityBills = await UtilityBill.find({
       propertyId: { $in: propertyIds },
       'responsibility.ownerId': ownerId,
@@ -231,7 +227,7 @@ export async function GET(req: NextRequest) {
         logger.warn('Utility bill missing both paidDate and period.endDate, skipping from statement', { reference: b.reference });
         return;
       }
-      const property = propertyMap.get(b.propertyId?.toString() || '') as any;
+      const property = propertyMap.get(b.propertyId?.toString() || '');
       statementLines.push({
         date: billDate,
         description: `Utility - ${b.utilityType || 'Utility Bill'}`,

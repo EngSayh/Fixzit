@@ -68,11 +68,10 @@ export async function GET(
     const { UtilityBillModel: UtilityBill } = await import('@/server/models/owner/UtilityBill');
     
     // Find property and unit using Mongoose
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const property = (await Property.findOne({
       'ownerPortal.ownerId': ownerId,
       'units.unitNumber': params.unitId
-    }).lean()) as any;
+    }).lean());
     
     if (!property || Array.isArray(property)) {
       return NextResponse.json(
@@ -128,11 +127,10 @@ export async function GET(
         maintenanceMatch.completedDate = dateFilter;
       }
       
-      // @ts-ignore - Mongoose type inference issue with conditional model export
       const workOrders = (await WorkOrder.find(maintenanceMatch)
         .sort({ completedDate: -1 })
         .limit(50)
-        .lean()) as any;
+        .lean());
       
       historyData.maintenance = workOrders.map((wo: any) => ({
         workOrderNumber: wo.workOrderNumber,
@@ -157,7 +155,6 @@ export async function GET(
         inspectionMatch.actualDate = dateFilter;
       };
       
-      // @ts-ignore - Mongoose type inference issue with conditional model export
       const inspections = await MoveInOutInspection.find(inspectionMatch)
         .sort({ actualDate: -1 })
         .limit(20)
@@ -192,7 +189,6 @@ export async function GET(
         paymentMatch.paymentDate = dateFilter;
       };
       
-      // @ts-ignore - Mongoose type inference issue with conditional model export
       const payments = await Payment.find(paymentMatch)
         .sort({ paymentDate: -1 })
         .limit(50)
@@ -223,7 +219,6 @@ export async function GET(
         billMatch['period.endDate'] = dateFilter;
       };
       
-      // @ts-ignore - Mongoose type inference issue with conditional model export
       const utilityBills = await UtilityBill.find(billMatch)
         .sort({ 'period.endDate': -1 })
         .limit(24) // Last 2 years of monthly bills

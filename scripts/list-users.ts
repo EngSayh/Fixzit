@@ -5,7 +5,7 @@ import { User } from '../server/models/User';
 async function listUsers() {
   try {
     await db;
-    const users = await (User as any).find({}).select('email username professional.role status').limit(20);
+    const users = await User.find({}).select('email username professional.role status').limit(20);
     
     console.log(`📋 Found ${users.length} users:\n`);
     users.forEach((user: any) => {

@@ -1,4 +1,4 @@
-import { Schema, model, models, Types } from 'mongoose';
+import { Schema, model, models, Types, Model, Document } from 'mongoose';
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
@@ -41,4 +41,23 @@ ServiceContractSchema.index({ orgId: 1, scope: 1, scopeRef: 1 });
 ServiceContractSchema.index({ orgId: 1, contractorRef: 1 });
 ServiceContractSchema.index({ orgId: 1, endDate: 1 });
 
-export default (typeof models !== 'undefined' && models.ServiceContract) || model('ServiceContract', ServiceContractSchema);
+// TypeScript-safe model export
+interface IServiceContract extends Document {
+  scope: 'Property' | 'OwnerGroup';
+  scopeRef?: Schema.Types.ObjectId;
+  contractorType?: 'FM_COMPANY' | 'REAL_ESTATE_AGENT';
+  contractorRef?: Schema.Types.ObjectId;
+  startDate?: Date;
+  endDate?: Date;
+  terms?: string;
+  sla?: string;
+  status: 'draft' | 'active' | 'ended' | 'cancelled';
+  orgId: Schema.Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+}
+
+const ServiceContract: Model<IServiceContract> = models.ServiceContract || model<IServiceContract>('ServiceContract', ServiceContractSchema);
+export default ServiceContract;

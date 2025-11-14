@@ -19,10 +19,9 @@ export async function GET(request: Request) {
     if (status) query.status = status;
     if (category) query.category = category;
     
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const plans = (await FMPMPlan.find(query)
       .sort({ nextScheduledDate: 1 })
-      .lean()) as any;
+      .lean());
     
     return NextResponse.json({
       success: true,
@@ -55,13 +54,25 @@ export async function POST(request: Request) {
       );
     }
     
-    // Create PM plan
-    // @ts-ignore - Mongoose type inference issue with conditional model export
-    const plan = (await FMPMPlan.create({
-      ...body,
+    // Whitelist editable fields only
+    const whitelistedData = {
+      title: body.title,
+      description: body.description,
+      propertyId: body.propertyId,
+      category: body.category,
+      recurrencePattern: body.recurrencePattern,
+      startDate: body.startDate,
       status: body.status || 'ACTIVE',
+      assignedTo: body.assignedTo,
+      estimatedDuration: body.estimatedDuration,
+      instructions: body.instructions
+    };
+    
+    // Create PM plan with whitelisted fields
+    const plan = (await FMPMPlan.create({
+      ...whitelistedData,
       nextScheduledDate: body.startDate || new Date()
-    })) as any;
+    }));
     
     return NextResponse.json({
       success: true,

@@ -30,7 +30,7 @@ export default async function CmsPageScreen(props: { params: Promise<{slug:strin
   await connectToDatabase();
   const { slug } = params;
   const preview = searchParams?.preview === "1";
-  const page = (await CmsPage.findOne({ slug })) as any;
+  const page = await CmsPage.findOne({ slug });
   if (!page) {
     return (
       <div className="mx-auto max-w-3xl p-6">

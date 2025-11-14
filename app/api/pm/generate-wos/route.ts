@@ -13,11 +13,10 @@ export async function POST() {
   try {
     
     // Find all ACTIVE PM plans that should generate WOs now
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const plans = (await FMPMPlan.find({
       status: 'ACTIVE',
       nextScheduledDate: { $exists: true }
-    })) as any;
+    }));
     
     const results = {
       checked: plans.length,
@@ -102,7 +101,6 @@ export async function POST() {
 export async function GET() {
   try {
     
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const plans = await FMPMPlan.find({
       status: 'ACTIVE',
       nextScheduledDate: { $exists: true }

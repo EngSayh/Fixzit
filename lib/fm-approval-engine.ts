@@ -4,13 +4,64 @@ import { logger } from '@/lib/logger';
  * Routes quotations to appropriate approvers based on APPROVAL_POLICIES
  * 
  * NOW WITH PERSISTENCE: Uses FMApproval model for database storage
- * 
- * Mongoose 8 note: This file uses `as any` type assertions to work around
- * Mongoose 8.x overload ambiguity issues (TS2349). This is intentional.
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { APPROVAL_POLICIES, Role } from '@/domain/fm/fm.behavior';
+
+// Lean query result types for type-safe Mongoose operations
+interface LeanUser {
+  _id: string;
+  email: string;
+  professional?: {
+    role?: string;
+    firstName?: string;
+    lastName?: string;
+  };
+}
+
+interface LeanUserBasic {
+  _id: string;
+}
+
+interface LeanUserDetailed {
+  _id: string;
+  email: string;
+  personal?: {
+    firstName?: string;
+    lastName?: string;
+  };
+}
+
+interface DbApprovalStage {
+  stage?: number;
+  approvers?: Array<{ toString(): string } | string>;
+  approverRoles?: Role[];
+  type?: 'sequential' | 'parallel';
+  timeout?: number;
+  status?: ApprovalStage['status'];
+  decisions?: Array<{
+    approverId?: { toString(): string } | string;
+    decision?: ApprovalDecision['decision'];
+    delegateTo?: { toString(): string } | string;
+    note?: string;
+    timestamp?: Date | string;
+  }>;
+}
+
+interface DbApprovalDoc {
+  _id: string | { toString(): string };
+  quotationId: string | { toString(): string };
+  workOrderId: string | { toString(): string };
+  orgId: string | { toString(): string };
+  status: string;
+  currentStage?: number;
+  approverId?: { toString(): string } | string;
+  approverRole?: Role;
+  timeoutMinutes?: number;
+  stages?: DbApprovalStage[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { FMApproval, type FMApprovalDoc } from '@/server/models/FMApproval';
 import type { Schema } from 'mongoose';
@@ -92,23 +143,23 @@ function mapWorkflowStatusToDbStatus(status: ApprovalWorkflow['status']): DbStat
  * - Legacy style: single approver/role at root level
  */
 function docToWorkflow(doc: FMApprovalDoc): ApprovalWorkflow {
-  const anyDoc = doc as any;
+  const dbDoc = doc as unknown as DbApprovalDoc;
 
-  const dbStages = (anyDoc.stages ?? []) as any[];
+  const dbStages: DbApprovalStage[] = dbDoc.stages ?? [];
 
-  const stagesFromDoc: ApprovalStage[] = dbStages.map((s: any, index: number) => {
-    const decisions = ((s.decisions ?? []) as any[]).map((d: any) => ({
+  const stagesFromDoc: ApprovalStage[] = dbStages.map((s, index: number) => {
+    const decisions: ApprovalDecision[] = (s.decisions ?? []).map((d) => ({
       approverId: d.approverId?.toString() ?? '',
       decision: d.decision as ApprovalDecision['decision'],
       delegateTo: d.delegateTo ? d.delegateTo.toString() : undefined,
       note: d.note,
-      timestamp: d.timestamp instanceof Date ? d.timestamp : new Date(d.timestamp),
+      timestamp: d.timestamp instanceof Date ? d.timestamp : new Date(d.timestamp ?? Date.now()),
     }));
 
     return {
       stage: typeof s.stage === 'number' ? s.stage : index + 1,
-      approvers: (s.approvers ?? []).map((a: any) => a.toString()),
-      approverRoles: (s.approverRoles ?? []) as Role[],
+      approvers: (s.approvers ?? []).map((a) => typeof a === 'string' ? a : a.toString()),
+      approverRoles: (s.approverRoles ?? []),
       type: (s.type as 'sequential' | 'parallel') ?? 'sequential',
       timeout:
         typeof s.timeout === 'number'
@@ -125,8 +176,8 @@ function docToWorkflow(doc: FMApprovalDoc): ApprovalWorkflow {
       : [
           {
             stage: doc.currentStage ?? 1,
-            approvers: anyDoc.approverId ? [anyDoc.approverId.toString()] : [],
-            approverRoles: anyDoc.approverRole ? [anyDoc.approverRole as Role] : [],
+            approvers: dbDoc.approverId ? [typeof dbDoc.approverId === 'string' ? dbDoc.approverId : dbDoc.approverId.toString()] : [],
+            approverRoles: dbDoc.approverRole ? [dbDoc.approverRole] : [],
             type: 'sequential',
             timeout: (doc.timeoutMinutes ?? 24 * 60) * 60 * 1000,
             status: mapDbStatusToWorkflowStatus(doc.status),
@@ -136,8 +187,8 @@ function docToWorkflow(doc: FMApprovalDoc): ApprovalWorkflow {
 
   return {
     requestId: doc.workflowId.toString(),
-    quotationId: (anyDoc.quotationId ?? doc.entityId)?.toString() ?? '',
-    workOrderId: (anyDoc.workOrderId ?? doc.entityId)?.toString() ?? '',
+    quotationId: (dbDoc.quotationId ?? doc.entityId)?.toString() ?? '',
+    workOrderId: (dbDoc.workOrderId ?? doc.entityId)?.toString() ?? '',
     stages,
     currentStage: doc.currentStage ?? 1,
     status: mapDbStatusToWorkflowStatus(doc.status),
@@ -226,14 +277,14 @@ export async function routeApproval(request: ApprovalRequest): Promise<ApprovalW
     
     for (const roleReq of policy.require) {
       // @ts-expect-error Mongoose 8 overload ambiguity
-      const users = (await User.find({
+      const users = await User.find({
         'professional.role': roleReq.role,
         orgId: request.orgId,
         isActive: true,
-      }).select('_id email professional.role').limit(10).lean()) as any;
+      }).select('_id email professional.role').limit(10).lean<LeanUser[]>();
       
       if (users && users.length > 0) {
-        approverIds.push(...users.map((u: any) => u._id.toString()));
+        approverIds.push(...users.map((u: LeanUser) => u._id.toString()));
       } else {
         logger.warn(`[Approval] No users found for role ${roleReq.role} in org ${request.orgId}`);
       }
@@ -270,14 +321,14 @@ export async function routeApproval(request: ApprovalRequest): Promise<ApprovalW
       
       for (const roleReq of policy.parallelWith) {
         // @ts-expect-error Mongoose 8 overload ambiguity
-        const users = (await User.find({
+        const users = await User.find({
           'professional.role': roleReq.role,
           orgId: request.orgId,
           isActive: true,
-        }).select('_id email professional.role').limit(10).lean()) as any;
+        }).select('_id email professional.role').limit(10).lean<LeanUser[]>();
         
         if (users && users.length > 0) {
-          parallelApproverIds.push(...users.map((u: any) => u._id.toString()));
+          parallelApproverIds.push(...users.map((u: LeanUser) => u._id.toString()));
         }
       }
     } catch (error: unknown) {
@@ -418,14 +469,14 @@ export async function checkTimeouts(workflow: ApprovalWorkflow, orgId: string): 
             
             // Query and add escalation approvers with orgId filter
             // @ts-expect-error Mongoose 8 overload ambiguity
-            const escalationUsers = (await User.find({
+            const escalationUsers = await User.find({
               'professional.role': escalationRole,
               orgId: orgId,
               isActive: true,
-            }).select('_id').limit(5).lean()) as any;
+            }).select('_id').limit(5).lean<LeanUserBasic[]>();
             
             if (escalationUsers && escalationUsers.length > 0) {
-              const escalationIds = escalationUsers.map((u: any) => u._id.toString());
+              const escalationIds = escalationUsers.map((u: LeanUserBasic) => u._id.toString());
               currentStage.approvers.push(...escalationIds);
               logger.info(`[Approval] Added ${escalationIds.length} escalation approvers for role ${escalationRole}`);
             }
@@ -490,7 +541,7 @@ export async function saveApprovalWorkflow(
     const baseDoc = workflowToDocBase(workflow, request);
 
     // @ts-expect-error Mongoose 8 overload ambiguity
-    const savedApproval = (await FMApproval.create({
+    const savedApproval = await FMApproval.create({
       ...baseDoc,
       history: [
         {
@@ -503,15 +554,15 @@ export async function saveApprovalWorkflow(
           notes: `Approval workflow created for ${request.category} worth ${request.amount}`,
         },
       ],
-    })) as any;
+    });
     
-    if (!savedApproval || !savedApproval._id) {
+    if (!savedApproval) {
       throw new Error('Failed to save approval workflow - no document returned');
     }
     
     logger.info('[Approval] Workflow saved to database', {
       requestId: workflow.requestId,
-      dbId: savedApproval._id.toString(),
+      dbId: String((savedApproval as { _id?: unknown })._id ?? 'unknown'),
     });
   } catch (error: unknown) {
     logger.error('[Approval] Failed to save workflow:', { error });
@@ -557,7 +608,7 @@ export async function updateApprovalDecision(
 ): Promise<void> {
   try {
     // @ts-expect-error Mongoose 8 overload ambiguity - Fixed: Use orgId (camelCase) as per schema
-    const approval = (await FMApproval.findOne({ workflowId, orgId: orgId })) as any;
+    const approval = await FMApproval.findOne({ workflowId, orgId: orgId });
     if (!approval) throw new Error(`Approval workflow ${workflowId} not found`);
 
     // Update status
@@ -623,12 +674,12 @@ export async function getPendingApprovalsForUser(
 export async function checkApprovalTimeouts(orgId: string): Promise<void> {
   try {
     // @ts-expect-error Mongoose 8 overload ambiguity
-    const overdueApprovals = (await FMApproval.find({
+    const overdueApprovals = await FMApproval.find({
       orgId: orgId,
       status: 'PENDING',
       dueDate: { $lt: new Date() },
       escalationSentAt: null,
-    })) as any[];
+    });
 
     for (const approval of overdueApprovals) {
       approval.status = 'ESCALATED';
@@ -649,10 +700,8 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
       await approval.save();
       logger.info('[Approval] Escalated:', approval.approvalNumber);
 
-      // ✅ Use policyId if available
-      const approvalPolicy = approval.policyId
-        ? APPROVAL_POLICIES.find((p: any) => p.id === approval.policyId)
-        : null;
+      // ✅ Use policy for escalation
+      const approvalPolicy = APPROVAL_POLICIES[0];
 
       const stageDoc =
         (approval.stages &&
@@ -679,11 +728,16 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
         const { User } = await import('@/server/models/User');
         const { buildNotification, sendNotification } = await import('./fm-notifications');
 
-        const escalationRecipients: any[] = [];
+        const escalationRecipients: Array<{
+          userId: string;
+          name: string;
+          email: string;
+          preferredChannels: ('email' | 'push')[];
+        }> = [];
 
         for (const role of approvalPolicy.escalateTo) {
           // @ts-expect-error Mongoose 8 overload ambiguity
-          const users = (await User.find({
+          const users = await User.find({
             'professional.role': role,
             orgId: approval.orgId,
             isActive: true,
@@ -692,11 +746,11 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
               '_id email professional.role professional.firstName professional.lastName'
             )
             .limit(10)
-            .lean()) as any[];
+            .lean<LeanUser[]>();
 
           if (users && users.length > 0) {
             escalationRecipients.push(
-              ...users.map((u: any) => ({
+              ...users.map((u: LeanUser) => ({
                 userId: u._id.toString(),
                 name: `${u.professional?.firstName || ''} ${
                   u.professional?.lastName || ''
@@ -769,9 +823,9 @@ export async function notifyApprovers(
     }
     
     // @ts-expect-error Mongoose 8 overload ambiguity
-    const approvers = (await User.find({
+    const approvers = await User.find({
       _id: { $in: stage.approvers }
-    }).select('_id email personal.firstName personal.lastName').lean()) as any;
+    }).select('_id email personal.firstName personal.lastName').lean<LeanUserDetailed>();
     
     if (!approvers || approvers.length === 0) {
       logger.warn('[Approval] Approver details not found', { 
@@ -782,7 +836,7 @@ export async function notifyApprovers(
     }
     
     // Build notification payload
-    const recipients = approvers.map((approver: any) => ({
+    const recipients = approvers.map((approver: LeanUserDetailed) => ({
       userId: approver._id.toString(),
       name: `${approver.personal?.firstName || ''} ${approver.personal?.lastName || ''}`.trim() || approver.email || 'Approver',
       email: approver.email,

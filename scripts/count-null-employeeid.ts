@@ -5,7 +5,7 @@ import { User } from '../server/models/User';
 async function count() {
   try {
     await db;
-    const users = await (User as any).find({ 
+    const users = await User.find({ 
       orgId: '68dc8955a1ba6ed80ff372dc',
       employeeId: null
     }).select('email username code employeeId').lean();

@@ -43,7 +43,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Upsert footer content (create if not exists, update if exists)
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const footerContent = await FooterContent.findOneAndUpdate(
       { page }, // Filter: find by page
       {
@@ -120,7 +119,6 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // @ts-ignore - Mongoose type inference issue with conditional model export
       const footerContent = await FooterContent.findOne({ page }).lean();
 
       if (!footerContent) {
@@ -138,7 +136,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all footer pages
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const allContent = await FooterContent.find({}).lean();
 
     // Ensure all three pages exist (return defaults if missing)

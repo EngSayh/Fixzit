@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose';
+import { Schema, model, models, Model, Document } from 'mongoose';
 import { auditPlugin } from '../plugins/auditPlugin';
 
 const PaymentMethodSchema = new Schema(
@@ -48,5 +48,20 @@ PaymentMethodSchema.index({ org_id: 1 });
 PaymentMethodSchema.index({ owner_user_id: 1 });
 PaymentMethodSchema.index({ pt_token: 1 }, { sparse: true }); // For quick token lookup
 
-export default (typeof models !== 'undefined' && models.PaymentMethod) || model('PaymentMethod', PaymentMethodSchema);
+// TypeScript-safe model export
+interface IPaymentMethod extends Document {
+  org_id?: Schema.Types.ObjectId;
+  owner_user_id?: Schema.Types.ObjectId;
+  gateway: string;
+  pt_token?: string;
+  pt_masked_card?: string;
+  pt_customer_email?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+}
+
+const PaymentMethod: Model<IPaymentMethod> = models.PaymentMethod || model<IPaymentMethod>('PaymentMethod', PaymentMethodSchema);
+export default PaymentMethod;
 

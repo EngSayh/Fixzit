@@ -124,7 +124,6 @@ export async function POST(req: NextRequest) {
 
     const data = createRFQSchema.parse(await req.json());
 
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const rfq = (await RFQ.create({
       tenantId: user.orgId,
       code: `RFQ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
@@ -135,7 +134,7 @@ export async function POST(req: NextRequest) {
         createdBy: user.id
       },
       createdBy: user.id
-    })) as any;
+    }));
 
     return createSecureResponse(rfq, 201, req);
   } catch (error: unknown) {
@@ -181,14 +180,11 @@ export async function GET(req: NextRequest) {
       match.$text = { $search: search };
     }
 
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const [items, total] = await Promise.all([
-      // @ts-ignore - Mongoose type inference issue with conditional model export
       RFQ.find(match)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
-        .limit(limit) as any,
-      // @ts-ignore - Mongoose type inference issue with conditional model export
+        .limit(limit),
       RFQ.countDocuments(match)
     ]);
 

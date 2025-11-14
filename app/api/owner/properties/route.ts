@@ -73,13 +73,12 @@ export async function GET(req: NextRequest) {
     }
     
     // Query properties
-    // @ts-ignore - Mongoose type inference issue with conditional model export
     const properties = (await Property.find({
       'ownerPortal.ownerId': ownerId
     })
     .select(projection)
     .sort({ name: 1 })
-    .lean()) as any;
+    .lean());
     
     // Calculate summary statistics
     const summary = {

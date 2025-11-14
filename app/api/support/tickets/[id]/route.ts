@@ -32,8 +32,7 @@ const patchSchema = z.object({
 export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   await connectToDatabase();
-  // @ts-ignore - Mongoose type inference issue with conditional model export
-  const t = (await SupportTicket.findById(params.id)) as any;
+  const t = (await SupportTicket.findById(params.id));
   if (!t) return createSecureResponse({ error: "Not found" }, 404, _req);
   return createSecureResponse(t, 200, _req);
 }
@@ -50,7 +49,6 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
     return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
-  // @ts-ignore - Mongoose type inference issue with conditional model export
   const t = (await SupportTicket.findOne({ 
     _id: params.id, 
     $or: [
@@ -58,7 +56,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       // Allow admins to modify any ticket
       ...(["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role) ? [{}] : [])
     ]
-  })) as any;
+  }));
   if (!t) return createSecureResponse({ error: "Not found" }, 404, req);
   if (data.status && t.status==="New" && !t.firstResponseAt) t.firstResponseAt = new Date();
   Object.assign(t, data);
