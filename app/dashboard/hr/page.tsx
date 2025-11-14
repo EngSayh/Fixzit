@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Users, UserCheck, UserX, DollarSign, GraduationCap, TrendingUp } from 'lucide-react';
+import { Users, UserCheck, UserX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface HRCounters {
