@@ -107,23 +107,23 @@ export async function GET(
         // Calculate opening balance (balance before startDate if provided)
         let openingBalance = 0;
         if (startDate) {
-          const entriesBeforeStart = await LedgerEntry.find({
+          const entriesBeforeStart = await (LedgerEntry as any).find({
             orgId: new Types.ObjectId(user.orgId),
             accountId: new Types.ObjectId(params.accountId),
             journalDate: { $lt: new Date(startDate) }
           }).sort({ journalDate: 1, createdAt: 1 });
           
-          openingBalance = entriesBeforeStart.reduce((balance, entry) => {
+          openingBalance = entriesBeforeStart.reduce((balance: number, entry: any) => {
             return balance + entry.debit - entry.credit;
           }, 0);
         }
         
         // Get total count for pagination
-        const totalTransactions = await LedgerEntry.countDocuments(queryFilter);
+        const totalTransactions = await (LedgerEntry as any).countDocuments(queryFilter);
         
         // Get paginated transactions with running balance calculation
         const skip = (page - 1) * limit;
-        const transactions = await LedgerEntry.find(queryFilter)
+        const transactions = await (LedgerEntry as any).find(queryFilter)
           .sort({ journalDate: 1, createdAt: 1 })
           .skip(skip)
           .limit(limit)
@@ -134,17 +134,17 @@ export async function GET(
         
         // If not on first page, need to calculate balance up to this page
         if (page > 1) {
-          const previousEntries = await LedgerEntry.find(queryFilter)
+          const previousEntries = await (LedgerEntry as any).find(queryFilter)
             .sort({ journalDate: 1, createdAt: 1 })
             .limit(skip)
             .lean();
           
-          runningBalance = previousEntries.reduce((balance, entry) => {
+          runningBalance = previousEntries.reduce((balance: number, entry: any) => {
             return balance + entry.debit - entry.credit;
           }, openingBalance);
         }
         
-        const transactionsWithBalance = transactions.map((entry) => {
+        const transactionsWithBalance = transactions.map((entry: any) => {
           runningBalance += entry.debit - entry.credit;
           return {
             _id: entry._id.toString(),
@@ -167,12 +167,12 @@ export async function GET(
         }
         
         // Calculate totals for the filtered period
-        const allTransactions = await LedgerEntry.find(queryFilter)
+        const allTransactions = await (LedgerEntry as any).find(queryFilter)
           .sort({ journalDate: 1, createdAt: 1 })
           .lean();
         
-        const totalDebits = allTransactions.reduce((sum, entry) => sum + (entry.debit || 0), 0);
-        const totalCredits = allTransactions.reduce((sum, entry) => sum + (entry.credit || 0), 0);
+        const totalDebits = allTransactions.reduce((sum: number, entry: any) => sum + (entry.debit || 0), 0);
+        const totalCredits = allTransactions.reduce((sum: number, entry: any) => sum + (entry.credit || 0), 0);
         const closingBalance = openingBalance + totalDebits - totalCredits;
         
         return NextResponse.json({

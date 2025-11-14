@@ -74,8 +74,8 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    
-    const plan = (await FMPMPlan.findByIdAndUpdate(
+
+    const plan = (await (FMPMPlan as any).findByIdAndUpdate(
       id,
       { $set: updateData },
       { new: true, runValidators: true }
@@ -111,7 +111,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const plan = (await FMPMPlan.findByIdAndUpdate(
+    const plan = (await (FMPMPlan as any).findByIdAndUpdate(
       id,
       { $set: { status: 'INACTIVE' } },
       { new: true }

@@ -71,7 +71,7 @@ export async function POST(
         status: 'APPROVED',
       });
 
-      const overtimeHours = timesheets.reduce((sum, ts) => sum + (ts.overtimeHours || 0), 0);
+      const overtimeHours = timesheets.reduce((sum: number, ts: any) => sum + (ts.overtimeHours || 0), 0);
 
       // Determine if employee is Saudi national (for GOSI)
       const isSaudiNational = employee.nationality?.toLowerCase() === 'saudi' || gosiApplicable;

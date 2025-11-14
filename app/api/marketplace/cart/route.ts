@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     }
     await connectToDatabase();
     const cart = await getOrCreateCart(context.orgId, context.userId);
-    const productIds = cart.lines.map(line => line.productId);
+    const productIds = cart.lines.map((line: any) => line.productId);
     const products = await Product.find({ _id: { $in: productIds } }).lean();
     const productMap = new Map(products.map(product => [product._id.toString(), serializeProduct(product as Record<string, unknown>)]));
 

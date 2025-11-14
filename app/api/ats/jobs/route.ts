@@ -72,14 +72,14 @@ export async function GET(req: NextRequest) {
     if (jobType) filter.jobType = jobType;
     if (q) filter.$text = { $search: q };
     
-    const jobs = await Job
+    const jobs = await (Job as any)
       .find(filter, q ? { score: { $meta: 'textScore' } } : {})
       .sort(q ? { score: { $meta: 'textScore' } } : { publishedAt: -1, createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .lean();
     
-    const total = await Job.countDocuments(filter);
+    const total = await (Job as any).countDocuments(filter);
     
     return NextResponse.json({ 
       success: true,
@@ -126,11 +126,11 @@ export async function POST(req: NextRequest) {
     const baseSlug = generateSlug(body.title);
     let slug = baseSlug;
     let counter = 1;
-    while (await Job.findOne({ orgId, slug })) {
+    while (await (Job as any).findOne({ orgId, slug })) {
       slug = `${baseSlug}-${counter++}`;
     }
     
-    const job = await Job.create({
+    const job = await (Job as any).create({
       ...body,
       orgId,
       slug,

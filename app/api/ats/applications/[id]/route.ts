@@ -60,7 +60,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const user = token ? await getUserFromToken(token) : null;
     const userId = user?.id || 'system';
     
-    const application = await Application.findById(params.id);
+    const application = await (Application as any).findById(params.id);
     if (!application) return notFoundError("Application");
     
     if (body.stage && body.stage !== application.stage) {

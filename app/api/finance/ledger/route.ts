@@ -108,12 +108,12 @@ export async function GET(req: NextRequest) {
         
         // Execute query with pagination
         const [entries, total] = await Promise.all([
-          LedgerEntry.find(query)
+          (LedgerEntry as any).find(query)
             .sort({ date: -1, createdAt: -1 })
             .skip(skip)
             .limit(limit)
             .lean(),
-          LedgerEntry.countDocuments(query)
+          (LedgerEntry as any).countDocuments(query)
         ]);
         
         return NextResponse.json({

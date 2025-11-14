@@ -106,7 +106,7 @@ export async function GET(
         }).lean();
         
         // Get current balance from most recent ledger entry
-        const latestEntry = await LedgerEntry.findOne({
+        const latestEntry = await (LedgerEntry as any).findOne({
           orgId: new Types.ObjectId(user.orgId),
           accountId: account._id
         }).sort({ date: -1, createdAt: -1 }).lean();
@@ -263,7 +263,7 @@ export async function DELETE(
         }
         
         // Prevent deletion if ledger entries exist for this account
-        const hasEntries = await LedgerEntry.exists({
+        const hasEntries = await (LedgerEntry as any).exists({
           orgId: new Types.ObjectId(user.orgId),
           accountId: account._id
         });
