@@ -92,7 +92,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
     let user;
     try {
       user = await getSessionUser(req);
-    } catch (error) {
+    } catch (_error) {
       const correlationId = crypto.randomUUID();
       logger.warn('Unauthenticated request to GET endpoint', { path: req.url, correlationId });
       return createSecureResponse(
@@ -214,7 +214,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
     let user;
     try {
       user = await getSessionUser(req);
-    } catch (error) {
+    } catch (_error) {
       const correlationId = crypto.randomUUID();
       logger.warn('Unauthenticated request to POST endpoint', { path: req.url, correlationId });
       return createSecureResponse(
@@ -334,7 +334,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
     let user;
     try {
       user = await getSessionUser(req);
-    } catch (error) {
+    } catch (_error) {
       const correlationId = crypto.randomUUID();
       logger.warn('Unauthenticated request to GET by ID endpoint', { path: req.url, correlationId });
       return createSecureResponse(
@@ -412,7 +412,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
     let user;
     try {
       user = await getSessionUser(req);
-    } catch (error) {
+    } catch (_error) {
       const correlationId = crypto.randomUUID();
       logger.warn('Unauthenticated request to PUT endpoint', { path: req.url, correlationId });
       return createSecureResponse(
@@ -513,7 +513,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
     let user;
     try {
       user = await getSessionUser(req);
-    } catch (error) {
+    } catch (_error) {
       const correlationId = crypto.randomUUID();
       logger.warn('Unauthenticated request to DELETE endpoint', { path: req.url, correlationId });
       return createSecureResponse(

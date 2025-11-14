@@ -36,8 +36,6 @@ export async function GET(
       totalRevenue,
       recentRevenue,
       averageRating,
-      totalReviews,
-      pendingReviews,
     ] = await Promise.all([
       SouqListing.countDocuments({ sellerId }),
       SouqListing.countDocuments({ sellerId, status: 'active' }),

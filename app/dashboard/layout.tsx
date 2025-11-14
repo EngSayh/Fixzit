@@ -5,8 +5,8 @@ import dynamic from 'next/dynamic';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Dynamic imports for client components
-const ClientSidebar = dynamic(() => import('@/app/_shell/ClientSidebar'), { ssr: false });
-const TopBar = dynamic(() => import('@/components/TopBar'), { ssr: false });
+const ClientSidebar = dynamic(() => import('@/app/_shell/ClientSidebar'));
+const TopBar = dynamic(() => import('@/components/TopBar'));
 
 /**
  * Dashboard Layout - AppShell Container

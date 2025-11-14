@@ -153,6 +153,14 @@ export default [
     },
   },
 
+  // API Routes - Allow 'any' for Mongoose Model type casting (Mongoose v8 compatibility)
+  {
+    files: ['app/api/**/*'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+
   // Test files - More permissive with test framework globals
   {
     files: [

@@ -1,9 +1,9 @@
 /**
-import { logger } from '@/lib/logger';
  * Database index management for MongoDB
  */
 
 import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
 import mongoose from 'mongoose';
 
 /**
