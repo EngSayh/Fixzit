@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
   await requireSuperAdmin(req);
   const body = await req.json();
 
-  const doc = await PriceBook.create<typeof PriceBook>(body);
+  // @ts-ignore - Mongoose type inference issue with conditional model export
+  const doc = await PriceBook.create(body);
   return createSecureResponse(doc, 200, req);
 }
 

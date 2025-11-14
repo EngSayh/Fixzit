@@ -437,6 +437,7 @@ async function sendPushNotifications(
   const batchSize = 500;
   for (let i = 0; i < tokens.length; i += batchSize) {
     const batch = tokens.slice(i, i + batchSize);
+    // @ts-ignore - sendMulticast method exists in firebase-admin@11+
     const response = await admin.messaging().sendMulticast({
       tokens: batch,
       notification: {

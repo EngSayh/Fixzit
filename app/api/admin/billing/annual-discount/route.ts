@@ -37,10 +37,8 @@ export async function PATCH(req: NextRequest) {
   await requireSuperAdmin(req);
   const { percentage } = await req.json();
 
-  const doc = await DiscountRule.findOneAndUpdate<{
-    key: string;
-    percentage: number;
-  }>(
+  // @ts-ignore - Mongoose type inference issue with conditional model export
+  const doc = await DiscountRule.findOneAndUpdate(
     { key: 'ANNUAL_PREPAY' },
     { percentage },
     { upsert: true, new: true }

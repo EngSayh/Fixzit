@@ -631,8 +631,6 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
     })) as any[];
 
     for (const approval of overdueApprovals) {
-      const workflow = docToWorkflow(approval as FMApprovalDoc);
-
       approval.status = 'ESCALATED';
       approval.escalationDate = new Date();
       approval.escalationSentAt = new Date();

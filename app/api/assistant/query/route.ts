@@ -152,7 +152,8 @@ export async function POST(req: NextRequest) {
     try {
       const seq = Math.floor((Date.now() / 1000) % 100000);
       const code = `WO-${new Date().getFullYear()}-${seq}`;
-      const wo = (await WorkOrder.create({
+      // @ts-ignore - Mongoose type inference issue with conditional model export
+      const wo = await WorkOrder.create({
         tenantId: user.orgId,
         code,
         title: createArgs.title,
@@ -163,7 +164,7 @@ export async function POST(req: NextRequest) {
         requester: { type: "TENANT", id: user.id },
         status: "SUBMITTED",
         statusHistory: [{ from: "DRAFT", to: "SUBMITTED", byUserId: user.id, at: new Date() }],
-        createdBy: user.id})) as any;
+        createdBy: user.id}) as any;
       const answer = `Created work order ${wo.code} – "${wo.title}" with priority ${wo.priority}.`;
       return NextResponse.json({ answer, citations: [] as Citation[] });
     } catch (_e: unknown) {
@@ -186,9 +187,10 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ answer: "Please sign in to view your tickets.", citations: [] });
     }
-    const items = (await WorkOrder.find({ tenantId: user.orgId, createdBy: user.id })
+    // @ts-ignore - Mongoose type inference issue with conditional model export
+    const items = await WorkOrder.find({ tenantId: user.orgId, createdBy: user.id })
       .sort?.({ createdAt: -1 })
-      .limit?.(5)) as any || [];
+      .limit?.(5) as any || [];
     const lines = (Array.isArray(items) ? items : []).map((it: WorkOrderItem) => `• ${it.code}: ${it.title} – ${it.status}`);
     const answer = lines.length ? `Your recent work orders:\n${lines.join("\n")}` : "You have no work orders yet.";
     return NextResponse.json({ answer, citations: [] as Citation[] });

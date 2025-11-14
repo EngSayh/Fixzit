@@ -193,7 +193,6 @@ async function sendPushNotifications(
   // FCM Integration (if configured)
   if (process.env.FCM_SERVER_KEY && process.env.FCM_SENDER_ID) {
     try {
-      // @ts-expect-error - firebase-admin is optional dependency
       const admin = await import('firebase-admin').catch(() => null);
       
       if (admin && !admin.apps.length) {
@@ -321,7 +320,6 @@ async function sendSMSNotifications(
   // Twilio Integration (if configured)
   if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
     try {
-      // @ts-expect-error - twilio is optional dependency
       const twilio = await import('twilio').then(m => m.default).catch(() => null);
       
       if (twilio) {
@@ -369,7 +367,6 @@ async function sendWhatsAppNotifications(
   // WhatsApp Business API via Twilio (if configured)
   if (process.env.TWILIO_WHATSAPP_NUMBER && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
     try {
-      // @ts-expect-error - twilio is optional dependency
       const twilio = await import('twilio').then(m => m.default).catch(() => null);
       
       if (twilio) {

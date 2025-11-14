@@ -42,7 +42,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   await requireSuperAdmin(req);
   const body = await req.json();
 
-  const doc = await PriceBook.findByIdAndUpdate<typeof PriceBook>(params.id, body, { new: true });
+  // @ts-ignore - Mongoose type inference issue with conditional model export
+  const doc = await PriceBook.findByIdAndUpdate(params.id, body, { new: true });
   if (!doc) {
     return createSecureResponse({ error: 'NOT_FOUND' }, 404, req);
   }

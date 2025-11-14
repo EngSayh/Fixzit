@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { auth } from '@/auth';
 import { SouqSeller } from '@/server/models/souq/Seller';
 import { connectDb } from '@/lib/mongodb-unified';
 import { nanoid } from 'nanoid';
@@ -29,7 +30,7 @@ const sellerCreateSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Authentication check
-    const session = await getServerSession();
+    const session = await auth();
     if (!session || !session.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -124,7 +125,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Authentication check
-    const session = await getServerSession();
+    const session = await auth();
     if (!session || !session.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },

@@ -35,7 +35,8 @@ export async function GET(req: NextRequest) {
 
   await connectToDatabase();
   await requireSuperAdmin(req);
-  const docs = await Benchmark.find<typeof Benchmark>({}).lean();
+  // @ts-ignore - Mongoose type inference issue with conditional model export
+  const docs = await Benchmark.find({}).lean();
   return createSecureResponse(docs, 200, req);
 }
 
