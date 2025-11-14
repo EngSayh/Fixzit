@@ -97,6 +97,8 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     const user = await getSessionUser(req);
     await connectToDatabase();
 
+    // @ts-ignore - Mongoose type inference issue with conditional model export
+    const property = (await Property.findOneAndUpdate(sue with conditional model export
     const property = (await Property.findOne({
       _id: params.id,
       tenantId: user.tenantId
@@ -120,6 +122,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     const data = updatePropertySchema.parse(await req.json());
 
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const property = (await Property.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },
       { $set: { ...data, updatedBy: user.id } },
