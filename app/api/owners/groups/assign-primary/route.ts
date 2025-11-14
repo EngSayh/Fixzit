@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
     const body = assignPrimarySchema.parse(await req.json());
     
     // Tenant isolation - ensure group belongs to user's org
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const g = (await OwnerGroup.findOneAndUpdate(
       { buildingId: body.buildingId, orgId: user.orgId }, 
       { 

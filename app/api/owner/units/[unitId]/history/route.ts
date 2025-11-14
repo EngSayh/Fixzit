@@ -134,7 +134,7 @@ export async function GET(
         .limit(50)
         .lean()) as any;
       
-      historyData.maintenance = workOrders.map(wo => ({
+      historyData.maintenance = workOrders.map((wo: any) => ({
         workOrderNumber: wo.workOrderNumber,
         title: wo.title,
         category: wo.category,
