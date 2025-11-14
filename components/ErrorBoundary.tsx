@@ -90,7 +90,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
       const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
       navigator.sendBeacon('/api/support/incidents', blob);
 
-    } catch (reportError) {
+    } catch (reportError: unknown) {
       // Use logger for incident reporting failures
       if (typeof window !== 'undefined') {
         import('../lib/logger')

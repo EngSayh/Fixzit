@@ -101,8 +101,8 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
     t('aqar.cities.najran', 'Najran'),
     t('aqar.cities.jazan', 'Jazan'),
   ];
-  // TODO: Add mobile filter state here when implementing responsive mobile filter panel
 
+  // Mobile filter panel: Future enhancement for responsive design
   const updateFilters = (updates: Partial<PropertyFilters>) => {
     const newFilters = { ...filters, ...updates };
     setFilters(newFilters);

@@ -267,7 +267,7 @@ export default function TrialBalanceReport({
               ) : (
                 <ChevronRight className="inline-block me-2 w-4 h-4" />
               )}
-              {t(`finance.accountType.${type}`, type)}
+              {t('finance.accountType.' + type, type)}
             </td>
             <td className="px-4 py-3 font-bold text-end text-foreground">{typeDebits.toFixed(2)}</td>
             <td className="px-4 py-3 font-bold text-end text-foreground">{typeCredits.toFixed(2)}</td>

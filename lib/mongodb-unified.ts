@@ -81,8 +81,8 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
 
     logger.info('✅ MongoDB connected successfully');
     return connection;
-  } catch (error) {
-    logger.error('❌ MongoDB connection error:', { error });
+  } catch (error: unknown) {
+    logger.error('[MongoDB] Disconnection failed:', { error });
     throw error;
   }
 }
@@ -107,7 +107,7 @@ export async function checkDatabaseHealth(): Promise<boolean> {
     
     await mongoose.connection.db.admin().ping();
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Database health check failed:', { error });
     return false;
   }

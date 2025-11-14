@@ -121,7 +121,7 @@ export async function getDatabase(): Promise<DatabaseHandle> {
     }
     
     throw new Error('No database handle available');
-  } catch (error) {
+  } catch (error: unknown) {
     const correlationId = new mongoose.Types.ObjectId().toString();
     const devMessage = `Failed to get database handle: ${error}`;
     const err = new Error(devMessage) as Error & {

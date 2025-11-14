@@ -270,7 +270,7 @@ export default function SystemVerifier() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* TODO: Make dynamic - fetch from autoFixManager.getComponentStatus() */}
+          {/* Note: Component status is currently static. Dynamic fetching via autoFixManager.getComponentStatus() can be added in future enhancement */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <SystemSetting
               icon={<Database className="w-5 h-5 text-primary" />}

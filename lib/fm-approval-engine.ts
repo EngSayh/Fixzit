@@ -102,7 +102,7 @@ export function routeApproval(request: ApprovalRequest): ApprovalWorkflow {
         roles: approverRoles,
       });
     }
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('[Approval] Failed to query approvers:', { error });
   }
   
@@ -135,7 +135,7 @@ export function routeApproval(request: ApprovalRequest): ApprovalWorkflow {
           parallelApproverIds.push(...users.map(u => u._id.toString()));
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('[Approval] Failed to query parallel approvers:', { error });
     }
     
@@ -295,7 +295,7 @@ export function checkTimeouts(workflow: ApprovalWorkflow): ApprovalWorkflow {
           elapsedHours: Math.round(elapsedTime / (1000 * 60 * 60)),
           escalationRoles: policy.escalateTo,
         });
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('[Approval] Escalation query failed:', { error });
         // Fall back to marking as timeout
         currentStage.status = 'timeout';
@@ -379,7 +379,7 @@ export async function saveApprovalWorkflow(
     }
     
     logger.info('[Approval] Workflow saved to database', { requestId: workflow.requestId, dbId: savedApproval._id.toString() });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('[Approval] Failed to save workflow:', { error });
     // Re-throw with more context for debugging
     const reason = error instanceof Error ? error.message : String(error);
@@ -421,8 +421,8 @@ export async function getWorkflowById(workflowId: string, orgId: string): Promis
       createdAt: approval.createdAt,
       updatedAt: approval.updatedAt
     };
-  } catch (error) {
-    logger.error('[Approval] Failed to get workflow:', { error });
+  } catch (error: unknown) {
+    logger.error('[Approval] Failed to fetch workflow:', { error });
     return null;
   }
 }
@@ -469,7 +469,7 @@ export async function updateApprovalDecision(
 
     await approval.save();
     logger.info('[Approval] Decision recorded', { workflowId, decision });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('[Approval] Failed to update decision:', { error });
     throw error;
   }
@@ -509,7 +509,7 @@ export async function getPendingApprovalsForUser(
       createdAt: approval.createdAt as Date,
       updatedAt: approval.updatedAt as Date
     }));
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('[Approval] Failed to get pending approvals:', { error });
     return [];
   }
@@ -547,11 +547,26 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
       await approval.save();
       logger.info('[Approval] Escalated:', approval.approvalNumber);
       
-      // TODO: Send escalation notifications
+      // Send escalation notifications via fm-notifications system
+      await import('./fm-notifications').then(({ sendNotification }) => {
+        policy.escalateTo?.forEach(role => {
+          void sendNotification({
+            type: 'APPROVAL_ESCALATED',
+            userId: '',
+            role,
+            title: 'Approval Request Escalated',
+            message: `Approval request ${approval.approvalNumber} escalated due to timeout`,
+            data: { approvalId: approval._id.toString(), stage: currentStage.stage },
+            priority: 'HIGH'
+          });
+        });
+      }).catch(err => {
+        logger.error('[Approval] Failed to send escalation notifications:', { err });
+      });
     }
 
     logger.info(`[Approval] Processed ${overdueApprovals.length} timeout escalations`);
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('[Approval] Failed to check timeouts:', { error });
   }
 }
@@ -606,7 +621,7 @@ export async function notifyApprovers(
       stage: stage.stage,
       recipientCount: recipients.length 
     });
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('[Approval] Failed to send notifications:', { error });
   }
 }

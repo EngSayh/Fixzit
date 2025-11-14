@@ -225,7 +225,7 @@ async function sendPushNotifications(
           logger.info('[Notifications] FCM push sent', { tokenCount: tokens.length });
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('[Notifications] FCM push failed:', { error });
     }
   } else {
@@ -273,7 +273,7 @@ async function sendEmailNotifications(
           logger.info('[Notifications] Email sent via SendGrid', { recipientCount: emails.length });
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('[Notifications] Email send failed:', { error });
     }
   } else {
@@ -320,7 +320,7 @@ async function sendSMSNotifications(
           logger.info('[Notifications] SMS sent via Twilio', { recipientCount: phones.length });
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('[Notifications] SMS send failed:', { error });
     }
   } else {

@@ -65,7 +65,7 @@ export async function audit(event: AuditEvent): Promise<void> {
         errorMessage: event.error,
       },
     });
-  } catch (dbError) {
+  } catch (dbError: unknown) {
     // Silent fail - don't break main operation if database write fails
     logger.error('[AUDIT] Database write failed:', { dbError });
   }
@@ -111,8 +111,8 @@ export async function audit(event: AuditEvent): Promise<void> {
       //     })
       //   });
       // }
-    } catch (alertError) {
-      logger.error('[AUDIT] Failed to send critical alert:', { alertError });
+    } catch (alertError: unknown) {
+      logger.error('[AUDIT] Failed to send critical action alert:', { alertError });
     }
   }
 }

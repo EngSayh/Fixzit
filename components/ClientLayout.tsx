@@ -70,7 +70,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           if (!abort && data?.user?.id) {
             setAuthUser({ id: data.user.id, role: data.user.role });
           }
-        } catch (err) {
+        } catch (err: unknown) {
           // Silently ignore - user is guest
           console.debug('Auth check failed (expected for guests):', err);
         }

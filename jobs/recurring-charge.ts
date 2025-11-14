@@ -1,4 +1,5 @@
 import Subscription from '@/server/models/Subscription';
+import { logger } from '@/lib/logger';
 
 export async function chargeDueMonthlySubs() {
   const paytabsDomain = process.env.PAYTABS_DOMAIN;
@@ -35,7 +36,9 @@ export async function chargeDueMonthlySubs() {
 
   for (const subscription of dueSubs) {
     if (!subscription.paytabs?.token) {
-      console.warn(`Subscription ${subscription._id} missing PayTabs token, skipping`);
+      logger.warn('[Billing] Subscription missing PayTabs token, skipping', {
+        subscriptionId: subscription._id
+      });
       results.failed++;
       continue;
     }
@@ -80,7 +83,10 @@ export async function chargeDueMonthlySubs() {
         });
 
         results.success++;
-        console.log(`✅ Successfully charged subscription ${subscription._id} (${data.tran_ref})`);
+        logger.info('[Billing] Successfully charged subscription', {
+          subscriptionId: subscription._id,
+          tranRef: data.tran_ref
+        });
       } else {
         // ❌ Payment failed
         const errorMsg = data.payment_result?.response_message || 'Payment declined';
@@ -117,6 +123,10 @@ export async function chargeDueMonthlySubs() {
     }
   }
 
-  console.log(`Recurring billing completed: ${results.success} success, ${results.failed} failed out of ${results.total} total`);
+  logger.info('[Billing] Recurring billing completed', {
+    success: results.success,
+    failed: results.failed,
+    total: results.total
+  });
   return results;
 }
