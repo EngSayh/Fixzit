@@ -181,11 +181,14 @@ export async function GET(req: NextRequest) {
       match.$text = { $search: search };
     }
 
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const [items, total] = await Promise.all([
+      // @ts-ignore - Mongoose type inference issue with conditional model export
       RFQ.find(match)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit) as any,
+      // @ts-ignore - Mongoose type inference issue with conditional model export
       RFQ.countDocuments(match)
     ]);
 
