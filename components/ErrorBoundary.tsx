@@ -1,12 +1,17 @@
 'use client';
 
-import React from 'react';
+import React, { type ReactNode } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { STORAGE_KEYS } from '@/config/constants';
 import { logger } from '@/lib/logger';
+
+type ErrorBoundaryProps = {
+  children: ReactNode;
+  fallback?: ReactNode;
+};
 
 type ErrorState = {
   hasError: boolean;
@@ -25,8 +30,8 @@ type ErrorState = {
  * 6. ✅ REMOVED all insecure localStorage scraping for PII.
  * 7. ✅ Safely reports the incident.
  */
-export default class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorState> {
-  constructor(props: React.PropsWithChildren) {
+export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, errorId: '' };
   }

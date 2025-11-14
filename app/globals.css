@@ -364,3 +364,29 @@ html[dir="rtl"] body{font-family:"Noto Sans Arabic",system-ui,sans-serif;}
     @apply bg-background text-foreground;
   }
 }
+
+/* Dark mode component overrides - properly flattened CSS (no nesting) */
+.dark .card {
+  background-color: hsl(var(--muted));
+  border-color: hsl(var(--border));
+}
+
+.dark .kanban-open {
+  background-color: #004085;
+  color: white;
+}
+
+.dark .kanban-progress {
+  background-color: #856404;
+  color: white;
+}
+
+.dark .kanban-complete {
+  background-color: #155724;
+  color: white;
+}
+
+.dark .kanban-overdue {
+  background-color: #721c24;
+  color: white;
+}

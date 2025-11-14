@@ -77,7 +77,7 @@ const nextConfig = {
   // Performance optimizations
   compress: true,
   poweredByHeader: false,
-  // Note: swcMinify is enabled by default in Next.js 15+
+  // Note: SWC is the default compiler in Next.js 15+
   
   // Enable production browser sourcemaps for Sentry error tracking
   productionBrowserSourceMaps: true,

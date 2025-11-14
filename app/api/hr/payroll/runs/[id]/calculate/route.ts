@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { connectDb } from '@/lib/mongo';
 import { PayrollRun, Payslip } from '@/models/hr/Payroll';
-import { Employee } from '@/models/hr/Employee';
+import { Employee } from '@/server/models/Employee';
 import { Timesheet } from '@/models/hr/Attendance';
 import { calculateNetPay } from '@/services/hr/ksaPayrollService';
 

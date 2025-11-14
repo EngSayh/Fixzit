@@ -65,8 +65,8 @@ function validateMongoUri(): string {
  */
 
 export async function connectToDatabase(): Promise<typeof mongoose> {
-  if (global._mongooseConnection && mongoose.connection.readyState === 1) {
-    return global._mongooseConnection;
+  if (globalThis._mongooseConnection && mongoose.connection.readyState === 1) {
+    return globalThis._mongooseConnection;
   }
 
   // Validate URI at runtime (not at module load)
@@ -86,7 +86,7 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
     });
 
     if (process.env.NODE_ENV === 'development') {
-      global._mongooseConnection = connection;
+      globalThis._mongooseConnection = connection;
     }
 
     logger.info('✅ MongoDB connected successfully');
@@ -100,7 +100,7 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
 export async function disconnectFromDatabase(): Promise<void> {
   if (mongoose.connection.readyState !== 0) {
     await mongoose.disconnect();
-    global._mongooseConnection = undefined;
+    globalThis._mongooseConnection = undefined;
   }
 }
 

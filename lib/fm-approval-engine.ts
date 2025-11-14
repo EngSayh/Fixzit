@@ -55,6 +55,148 @@ export interface ApprovalWorkflow {
   updatedAt: Date;
 }
 
+// ---- Helper mapping functions: FMApprovalDoc <-> ApprovalWorkflow ----
+
+type DbStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ESCALATED' | 'DELEGATED' | 'TIMEOUT';
+
+function mapDbStatusToWorkflowStatus(status: DbStatus | string | undefined): ApprovalWorkflow['status'] {
+  switch (status) {
+    case 'APPROVED':
+      return 'approved';
+    case 'REJECTED':
+      return 'rejected';
+    case 'ESCALATED':
+      return 'escalated';
+    default:
+      return 'pending';
+  }
+}
+
+function mapWorkflowStatusToDbStatus(status: ApprovalWorkflow['status']): DbStatus {
+  switch (status) {
+    case 'approved':
+      return 'APPROVED';
+    case 'rejected':
+      return 'REJECTED';
+    case 'escalated':
+      return 'ESCALATED';
+    default:
+      return 'PENDING';
+  }
+}
+
+/**
+ * Convert FMApprovalDoc from DB into ApprovalWorkflow used by the engine.
+ * This supports both:
+ * - New style: doc.stages[] with full data
+ * - Legacy style: single approver/role at root level
+ */
+function docToWorkflow(doc: FMApprovalDoc): ApprovalWorkflow {
+  const anyDoc = doc as any;
+
+  const dbStages = (anyDoc.stages ?? []) as any[];
+
+  const stagesFromDoc: ApprovalStage[] = dbStages.map((s: any, index: number) => {
+    const decisions = ((s.decisions ?? []) as any[]).map((d: any) => ({
+      approverId: d.approverId?.toString() ?? '',
+      decision: d.decision as ApprovalDecision['decision'],
+      delegateTo: d.delegateTo ? d.delegateTo.toString() : undefined,
+      note: d.note,
+      timestamp: d.timestamp instanceof Date ? d.timestamp : new Date(d.timestamp),
+    }));
+
+    return {
+      stage: typeof s.stage === 'number' ? s.stage : index + 1,
+      approvers: (s.approvers ?? []).map((a: any) => a.toString()),
+      approverRoles: (s.approverRoles ?? []) as Role[],
+      type: (s.type as 'sequential' | 'parallel') ?? 'sequential',
+      timeout:
+        typeof s.timeout === 'number'
+          ? s.timeout
+          : (doc.timeoutMinutes ?? 24 * 60) * 60 * 1000,
+      status: (s.status as ApprovalStage['status']) ?? 'pending',
+      decisions,
+    };
+  });
+
+  const stages: ApprovalStage[] =
+    stagesFromDoc.length > 0
+      ? stagesFromDoc
+      : [
+          {
+            stage: doc.currentStage ?? 1,
+            approvers: anyDoc.approverId ? [anyDoc.approverId.toString()] : [],
+            approverRoles: anyDoc.approverRole ? [anyDoc.approverRole as Role] : [],
+            type: 'sequential',
+            timeout: (doc.timeoutMinutes ?? 24 * 60) * 60 * 1000,
+            status: mapDbStatusToWorkflowStatus(doc.status),
+            decisions: [],
+          },
+        ];
+
+  return {
+    requestId: doc.workflowId.toString(),
+    quotationId: (anyDoc.quotationId ?? doc.entityId)?.toString() ?? '',
+    workOrderId: (anyDoc.workOrderId ?? doc.entityId)?.toString() ?? '',
+    stages,
+    currentStage: doc.currentStage ?? 1,
+    status: mapDbStatusToWorkflowStatus(doc.status),
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+}
+
+/**
+ * Build a plain object (compatible with FMApproval schema) from an ApprovalWorkflow.
+ * Used when creating a new approval document.
+ */
+function workflowToDocBase(
+  workflow: ApprovalWorkflow,
+  request: ApprovalRequest
+): Record<string, unknown> {
+  const firstStage = workflow.stages[0];
+
+  const timeoutMs =
+    firstStage?.timeout ?? 24 * 60 * 60 * 1000; // fallback 24h
+
+  return {
+    orgId: request.orgId,
+    type: 'QUOTATION',
+    entityType: 'WorkOrder',
+    entityId: request.workOrderId,
+    entityNumber: request.workOrderId,
+    amount: request.amount,
+    currency: 'SAR',
+    thresholdLevel: `L${workflow.stages.length}`,
+    workflowId: workflow.requestId,
+    currentStage: workflow.currentStage,
+    totalStages: workflow.stages.length,
+    approverId: firstStage?.approvers?.[0],
+    approverName: undefined,
+    approverEmail: undefined,
+    approverRole: firstStage?.approverRoles?.[0],
+    status: mapWorkflowStatusToDbStatus(workflow.status),
+    dueDate: new Date(Date.now() + timeoutMs),
+    timeoutMinutes: timeoutMs / 60000,
+    // FULL STAGES PERSISTENCE
+    stages: workflow.stages.map(stage => ({
+      stage: stage.stage,
+      approvers: stage.approvers,
+      approverRoles: stage.approverRoles,
+      type: stage.type,
+      timeout: stage.timeout,
+      status: stage.status,
+      decisions: stage.decisions.map(d => ({
+        approverId: d.approverId,
+        decision: d.decision,
+        delegateTo: d.delegateTo,
+        note: d.note,
+        timestamp: d.timestamp,
+      })),
+    })),
+  };
+}
+
 /**
  * Route a quotation to appropriate approvers based on amount and category
  */
@@ -324,7 +466,7 @@ export async function checkTimeouts(workflow: ApprovalWorkflow, orgId: string): 
 
 /**
  * Save approval workflow to database
- * FIXED: Added proper await, error recovery, and transactional safety
+ * FIXED: Now persists full stages[] array with decisions using workflowToDocBase mapper
  */
 export async function saveApprovalWorkflow(
   workflow: ApprovalWorkflow,
@@ -333,102 +475,70 @@ export async function saveApprovalWorkflow(
   try {
     const firstStage = workflow.stages[0];
     
-    // CRITICAL: Validate stage exists before accessing approvers
     if (!firstStage) {
       throw new Error('Workflow must have at least one approval stage');
     }
     
-    // CRITICAL: Ensure required fields exist (no invalid fallbacks)
-    if (!firstStage.approvers?.[0] || !firstStage.approverRoles?.[0]) {
-      throw new Error('Workflow first stage must have at least one approver and role');
+    // ⚠️ Instead of throwing, log and allow manual assignment later
+    if (!firstStage.approvers?.length || !firstStage.approverRoles?.length) {
+      logger.warn(
+        '[Approval] Saving workflow with unassigned first stage (no approvers / roles)',
+        { workflowId: workflow.requestId, orgId: request.orgId }
+      );
     }
-    
-    const approverId = firstStage.approvers[0];
-    const approverRole = firstStage.approverRoles[0];
 
-    // CRITICAL: Use orgId field name for consistency with database schema
+    const baseDoc = workflowToDocBase(workflow, request);
+
     // @ts-expect-error Mongoose 8 overload ambiguity
     const savedApproval = (await FMApproval.create({
-      orgId: request.orgId, // Fixed: Use orgId (camelCase) as per schema
-      type: 'QUOTATION',
-      entityType: 'WorkOrder',
-      entityId: request.workOrderId,
-      entityNumber: request.workOrderId,
-      amount: request.amount,
-      currency: 'SAR',
-      thresholdLevel: `L${workflow.stages.length}`,
-      workflowId: workflow.requestId,
-      currentStage: workflow.currentStage,
-      totalStages: workflow.stages.length,
-      approverId,
-      approverName: 'TBD', // Will be populated with actual user data
-      approverEmail: 'tbd@example.com',
-      approverRole,
-      status: 'PENDING',
-      dueDate: new Date(Date.now() + firstStage.timeout),
-      timeoutMinutes: firstStage.timeout / 60000,
-      history: [{
-        timestamp: new Date(),
-        action: 'CREATED',
-        actorId: request.requestedBy,
-        actorName: 'System',
-        previousStatus: 'NEW',
-        newStatus: 'PENDING',
-        notes: `Approval workflow created for ${request.category} worth ${request.amount}`
-      }]
+      ...baseDoc,
+      history: [
+        {
+          timestamp: new Date(),
+          action: 'CREATED',
+          actorId: request.requestedBy,
+          actorName: 'System',
+          previousStatus: 'NEW',
+          newStatus: 'PENDING',
+          notes: `Approval workflow created for ${request.category} worth ${request.amount}`,
+        },
+      ],
     })) as any;
     
-    // CRITICAL: Verify the workflow was actually saved
     if (!savedApproval || !savedApproval._id) {
       throw new Error('Failed to save approval workflow - no document returned');
     }
     
-    logger.info('[Approval] Workflow saved to database', { requestId: workflow.requestId, dbId: savedApproval._id.toString() });
+    logger.info('[Approval] Workflow saved to database', {
+      requestId: workflow.requestId,
+      dbId: savedApproval._id.toString(),
+    });
   } catch (error: unknown) {
     logger.error('[Approval] Failed to save workflow:', { error });
-    // Re-throw with more context for debugging
     const reason = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to persist approval workflow ${workflow.requestId}: ${reason}`);
+    throw new Error(
+      `Failed to persist approval workflow ${workflow.requestId}: ${reason}`
+    );
   }
 }
 
 /**
  * Get workflow by ID
- * FIXED: Use org_id field name for consistency with database schema
+ * FIXED: Now uses docToWorkflow mapper for full multi-stage support
  */
 export async function getWorkflowById(workflowId: string, orgId: string): Promise<ApprovalWorkflow | null> {
   try {
     // @ts-expect-error Mongoose 8 overload ambiguity
-    const approval = await FMApproval.findOne({ 
-      workflowId, 
-      orgId: orgId // Fixed: Use orgId (camelCase) as per schema
+    const approval = await FMApproval.findOne({
+      workflowId,
+      orgId: orgId
     }).lean<FMApprovalDoc>();
-    
+
     if (!approval) return null;
 
-    // Convert FMApproval to ApprovalWorkflow format
-    return {
-      requestId: workflowId,
-      quotationId: approval.entityId.toString(),
-      workOrderId: approval.entityId.toString(),
-      stages: [{
-        stage: approval.currentStage,
-        approvers: [approval.approverId.toString()],
-        approverRoles: [approval.approverRole as Role],
-        type: 'sequential',
-        timeout: approval.timeoutMinutes * 60000,
-        status: approval.status === 'APPROVED' ? 'approved' : 
-                approval.status === 'REJECTED' ? 'rejected' : 'pending',
-        decisions: []
-      }],
-      currentStage: approval.currentStage,
-      status: approval.status === 'APPROVED' ? 'approved' :
-              approval.status === 'REJECTED' ? 'rejected' : 'pending',
-      createdAt: approval.createdAt,
-      updatedAt: approval.updatedAt
-    };
+    return docToWorkflow(approval);
   } catch (error: unknown) {
-    logger.error('[Approval] Failed to fetch workflow:', { error });
+    logger.error('[Approval] Failed to fetch workflow:', { error, workflowId, orgId });
     return null;
   }
 }
@@ -494,50 +604,36 @@ export async function getPendingApprovalsForUser(
   try {
     // @ts-expect-error Mongoose 8 overload ambiguity
     const approvals = (await FMApproval.find({
-      orgId: orgId, // Fixed: Use orgId (camelCase) as per schema
-      approverId: userId,
-      status: 'PENDING'
-    }).lean()) as any;
+      orgId: orgId,
+      status: 'PENDING',
+      'stages.approvers': userId, // search across all stages
+    }).lean<FMApprovalDoc>()) as FMApprovalDoc[];
 
-    return approvals.map((approval: any) => ({
-      requestId: approval.workflowId.toString(),
-      quotationId: approval.entityId.toString(),
-      workOrderId: approval.entityId.toString(),
-      stages: [{
-        stage: approval.currentStage,
-        approvers: [approval.approverId.toString()],
-        approverRoles: [approval.approverRole as Role],
-        type: 'sequential',
-        timeout: approval.timeoutMinutes * 60000,
-        status: 'pending',
-        decisions: []
-      }],
-      currentStage: approval.currentStage,
-      status: 'pending',
-      createdAt: approval.createdAt as Date,
-      updatedAt: approval.updatedAt as Date
-    }));
+    return approvals.map(docToWorkflow);
   } catch (error: unknown) {
-    logger.error('[Approval] Failed to get pending approvals:', { error });
+    logger.error('[Approval] Failed to get pending approvals:', { error, userId, orgId });
     return [];
   }
 }
 
 /**
  * Check for approval timeouts and escalate
- * FIXED: Use org_id field name for consistency with database schema
+ * FIXED: Now uses docToWorkflow mapper and defensive stage checking
  */
 export async function checkApprovalTimeouts(orgId: string): Promise<void> {
   try {
     // @ts-expect-error Mongoose 8 overload ambiguity
     const overdueApprovals = (await FMApproval.find({
-      orgId: orgId, // Fixed: Use orgId (camelCase) as per schema
+      orgId: orgId,
       status: 'PENDING',
       dueDate: { $lt: new Date() },
-      escalationSentAt: null
-    })) as any;
+      escalationSentAt: null,
+    })) as any[];
 
     for (const approval of overdueApprovals) {
+      const workflow = docToWorkflow(approval as FMApprovalDoc);
+      const currentStage = workflow.stages[workflow.currentStage - 1];
+
       approval.status = 'ESCALATED';
       approval.escalationDate = new Date();
       approval.escalationSentAt = new Date();
@@ -546,33 +642,108 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
       approval.history.push({
         timestamp: new Date(),
         action: 'ESCALATED',
-        actorId: 'system' as unknown as Schema.Types.ObjectId,
+        actorId: null, // system — better than fake ObjectId
         actorName: 'System',
         previousStatus: 'PENDING',
         newStatus: 'ESCALATED',
-        notes: 'Automatically escalated due to timeout'
+        notes: 'Automatically escalated due to timeout',
       });
 
       await approval.save();
       logger.info('[Approval] Escalated:', approval.approvalNumber);
-      
-      // Resolve policy and current stage from approval for notifications
-      const approvalPolicy = approval.policyId ? 
-        APPROVAL_POLICIES.find(p => p.require.length > 0) : null;
-      const approvalStage = approval.stages?.[approval.currentStageIndex || 0];
-      
-      // Send escalation notifications
-      if (approvalPolicy?.escalateTo && approvalStage) {
-        // TODO: Implement escalation notifications with proper payload structure
-        logger.info('[Approval] Escalation notification needed', {
-          approvalId: approval._id,
-          escalateToRoles: approvalPolicy.escalateTo
-        });
-      } else {
+
+      // ✅ Use policyId if available
+      const approvalPolicy = approval.policyId
+        ? APPROVAL_POLICIES.find((p: any) => p.id === approval.policyId)
+        : null;
+
+      const stageDoc =
+        (approval.stages &&
+          approval.stages[approval.currentStageIndex ?? approval.currentStage - 1]) ||
+        null;
+
+      if (!approvalPolicy || !stageDoc) {
         logger.warn('[Approval] No policy or stage found for escalation notifications', {
           approvalId: approval._id.toString(),
           hasPolicy: !!approvalPolicy,
-          hasStage: !!approvalStage
+          hasStage: !!stageDoc,
+        });
+        continue;
+      }
+
+      if (!approvalPolicy.escalateTo || approvalPolicy.escalateTo.length === 0) {
+        logger.warn('[Approval] Escalation policy has no escalateTo roles', {
+          approvalId: approval._id.toString(),
+        });
+        continue;
+      }
+
+      try {
+        const { User } = await import('@/server/models/User');
+        const { buildNotification, sendNotification } = await import('./fm-notifications');
+
+        const escalationRecipients: any[] = [];
+
+        for (const role of approvalPolicy.escalateTo) {
+          // @ts-expect-error Mongoose 8 overload ambiguity
+          const users = (await User.find({
+            'professional.role': role,
+            orgId: approval.orgId,
+            isActive: true,
+          })
+            .select(
+              '_id email professional.role professional.firstName professional.lastName'
+            )
+            .limit(10)
+            .lean()) as any[];
+
+          if (users && users.length > 0) {
+            escalationRecipients.push(
+              ...users.map((u: any) => ({
+                userId: u._id.toString(),
+                name: `${u.professional?.firstName || ''} ${
+                  u.professional?.lastName || ''
+                }`.trim(),
+                email: u.email,
+                preferredChannels: ['email', 'push'] as const,
+              }))
+            );
+          }
+        }
+
+        if (escalationRecipients.length === 0) {
+          logger.warn('[Approval] No escalation recipients found', {
+            approvalId: approval._id.toString(),
+            escalateToRoles: approvalPolicy.escalateTo,
+          });
+          continue;
+        }
+
+        const notification = buildNotification(
+          'onApprovalRequested',
+          {
+            quotationId: approval.quotationId ?? approval.entityId,
+            workOrderId: approval.workOrderId ?? approval.entityId,
+            amount: approval.amount,
+            priority: 'ESCALATED',
+            description: `Approval escalated due to timeout. Original approvers: ${
+              stageDoc.approverRoles?.join(', ') ?? 'N/A'
+            }`,
+          },
+          escalationRecipients
+        );
+
+        await sendNotification(notification);
+
+        logger.info('[Approval] Escalation notification sent', {
+          approvalId: approval._id,
+          recipientCount: escalationRecipients.length,
+          escalateToRoles: approvalPolicy.escalateTo,
+        });
+      } catch (notifyError) {
+        logger.error('[Approval] Failed to send escalation notification', {
+          approvalId: approval._id,
+          error: notifyError,
         });
       }
     }

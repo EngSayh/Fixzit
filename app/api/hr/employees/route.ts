@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { connectDb } from '@/lib/mongo';
-import { Employee } from '@/models/hr/Employee';
+import { Employee } from '@/server/models/Employee';
 
 import { logger } from '@/lib/logger';
 // GET /api/hr/employees - List all employees for the organization
