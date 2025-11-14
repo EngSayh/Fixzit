@@ -51,6 +51,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     const user = await getSessionUser(req);
     await connectToDatabase();
 
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const rfq = (await RFQ.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId, status: "DRAFT" },
       {
