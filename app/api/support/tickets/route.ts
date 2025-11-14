@@ -56,6 +56,7 @@ export async function POST(req: NextRequest){
     const uuid = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
     const code = `SUP-${new Date().getFullYear()}-${uuid}`;
     
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const ticket = (await SupportTicket.create({
       orgId: user?.orgId,
       code,
