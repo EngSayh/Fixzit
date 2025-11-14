@@ -50,6 +50,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
     return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
+  // @ts-ignore - Mongoose type inference issue with conditional model export
   const t = (await SupportTicket.findOne({ 
     _id: params.id, 
     $or: [
