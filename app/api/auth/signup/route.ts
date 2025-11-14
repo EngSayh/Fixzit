@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
       });
     } catch (dbError: unknown) {
       // 🔒 TYPE SAFETY: Handle MongoDB duplicate key error with type guard
-      if (dbError && typeof dbError === 'object' && 'code' in dbError && dbError.code === 11000) { 
+      if (dbError && typeof dbError === 'object' && 'code' in dbError && (dbError as { code: number }).code === 11000) { 
         return duplicateKeyError("An account with this email already exists.");
       }
       // Re-throw other unexpected database errors

@@ -91,7 +91,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     const data = updateInvoiceSchema.parse(await req.json());
 
-    const invoice = (await Invoice.findOne({
+    const invoice = await Invoice.findOne({
       _id: params.id,
       tenantId: user.tenantId
     });
