@@ -106,7 +106,7 @@ export async function onWorkOrderClosed(
     description: expenseTransaction.description,
     transactionDate: expenseTransaction.date,
     status: 'POSTED'
-  });
+  }));
   logger.info(`[Finance] Created expense transaction: ${savedExpense.transactionNumber}`);
   results.expenseTransaction = {
     ...expenseTransaction,
@@ -230,7 +230,7 @@ export async function generateOwnerStatement(
       $gte: period.from,
       $lte: period.to
     }
-  }).sort({ transactionDate: 1 });
+  }).sort({ transactionDate: 1 }));
 
   // Convert to interface format
   const transactions: FinancialTransaction[] = dbTransactions.map((t) => {
@@ -285,7 +285,7 @@ export async function getTenantPendingInvoices(
     tenantId,
     type: 'INVOICE',
     status: 'PENDING'
-  }).sort({ dueDate: 1 });
+  }).sort({ dueDate: 1 }));
 
   // Convert to interface format
   return dbInvoices.map((t) => {

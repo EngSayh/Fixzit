@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Upsert footer content (create if not exists, update if exists)
     const footerContent = await FooterContent.findOneAndUpdate(
-      { page }, // Filter: find by page
+      { page } as const, // Filter: find by page
       {
         page,
         contentEn,
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         new: true,     // Return updated document
         runValidators: true
       }
-    );
+    ) as any;
 
     return NextResponse.json({
       success: true,
