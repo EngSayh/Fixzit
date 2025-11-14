@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   await requireSuperAdmin(req);
   const body = await req.json();
 
-  const doc = await PriceBook.create(body);
+  const doc = await PriceBook.create<typeof PriceBook>(body);
   return createSecureResponse(doc, 200, req);
 }
 

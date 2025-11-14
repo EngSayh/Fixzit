@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Upsert footer content (create if not exists, update if exists)
-    const footerContent = await FooterContent.findOneAndUpdate(
+    const footerContent = await (FooterContent.findOneAndUpdate(
       { page }, // Filter: find by page
       {
         page,
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         new: true,     // Return updated document
         runValidators: true
       }
-    );
+    ) as ReturnType<typeof FooterContent.findOneAndUpdate>);
 
     return NextResponse.json({
       success: true,
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const footerContent = await FooterContent.findOne({ page }).lean();
+      const footerContent = await (FooterContent.findOne({ page }).lean() as ReturnType<typeof FooterContent.findOne>);
 
       if (!footerContent) {
         // Return default empty content
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all footer pages
-    const allContent = await FooterContent.find({}).lean();
+    const allContent = await (FooterContent.find({}).lean() as ReturnType<typeof FooterContent.find>);
 
     // Ensure all three pages exist (return defaults if missing)
     const pages = ['about', 'privacy', 'terms'];

@@ -37,13 +37,16 @@ export async function PATCH(req: NextRequest) {
   await requireSuperAdmin(req);
   const { percentage } = await req.json();
 
-  const doc = await DiscountRule.findOneAndUpdate(
+  const doc = await DiscountRule.findOneAndUpdate<{
+    key: string;
+    percentage: number;
+  }>(
     { key: 'ANNUAL_PREPAY' },
     { percentage },
     { upsert: true, new: true }
   );
 
-  return NextResponse.json({ ok: true, discount: doc.percentage });
+  return NextResponse.json({ ok: true, discount: doc?.percentage });
 }
 
 

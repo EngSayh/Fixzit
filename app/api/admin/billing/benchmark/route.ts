@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
   await connectToDatabase();
   await requireSuperAdmin(req);
-  const docs = await Benchmark.find({}).lean();
+  const docs = await Benchmark.find<typeof Benchmark>({}).lean();
   return createSecureResponse(docs, 200, req);
 }
 
