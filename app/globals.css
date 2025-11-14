@@ -258,17 +258,17 @@
 }
 
 @layer components{
-  .btn-primary{@apply inline-flex items-center justify-center px-4 h-10 rounded-xl bg-[var(--fixzit-blue)] text-white font-semibold shadow-md hover:opacity-90 transition;}
+  .btn-primary{@apply inline-flex items-center justify-center px-4 h-10 rounded-xl bg-[#0061A8] text-white font-semibold shadow-md hover:opacity-90 transition;}
   .btn-ghost{@apply inline-flex items-center justify-center px-3 h-10 rounded-xl border border-slate-300/70 hover:bg-slate-100 transition;}
 
-  .nav-link{@apply text-slate-700 hover:text-[var(--fixzit-blue)] transition;}
-  .nav-link.active{@apply text-[var(--fixzit-blue)];}
+  .nav-link{@apply text-slate-700 hover:text-[#0061A8] transition;}
+  .nav-link.active{@apply text-[#0061A8];}
 
   .side-link{@apply flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100;}
-  .side-link.active{@apply bg-slate-100 text-[var(--fixzit-blue)] font-medium;}
+  .side-link.active{@apply bg-slate-100 text-[#0061A8] font-medium;}
 
   .tab{@apply inline-flex px-3 py-1.5 rounded-xl border border-slate-300/70 text-sm bg-white hover:bg-slate-50;}
-  .tab.active{@apply border-[var(--fixzit-blue)] text-[var(--fixzit-blue)] bg-white;}
+  .tab.active{@apply border-[#0061A8] text-[#0061A8] bg-white;}
 
   .pill{@apply inline-flex items-center justify-center h-10 rounded-xl border border-slate-300 bg-white px-4 hover:bg-slate-50;}
 
@@ -285,13 +285,13 @@
 
   /* Cards */
   .card{@apply p-6 rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition;}
-  .card-title{@apply text-lg font-semibold text-[var(--fixzit-dark)];}
+  .card-title{@apply text-lg font-semibold text-[#0061A8];}
   .card-body{@apply mt-2 text-slate-600;}
 
   /* Footer */
-  .footer-title{@apply font-semibold text-[var(--fixzit-dark)];}
+  .footer-title{@apply font-semibold text-[#0061A8];}
   .footer-links li{@apply mt-2;}
-  .footer-links a{@apply text-slate-600 hover:text-[var(--fixzit-blue)] transition;}
+  .footer-links a{@apply text-slate-600 hover:text-[#0061A8] transition;}
 }
 
 html[dir="rtl"] body{font-family:"Noto Sans Arabic",system-ui,sans-serif;}
