@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
     }
 
     await connectToDatabase();
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const invoice = (await Invoice.findOne({ 
       _id: invoiceId, 
       tenantId: user.orgId 
