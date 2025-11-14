@@ -124,6 +124,7 @@ export async function POST(req: NextRequest) {
 
     const data = createRFQSchema.parse(await req.json());
 
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const rfq = (await RFQ.create({
       tenantId: user.orgId,
       code: `RFQ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
