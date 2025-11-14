@@ -108,14 +108,14 @@ export async function GET() {
       nextScheduledDate: { $exists: true }
     }).lean();
     
-    const preview = plans.filter(plan => {
+    const preview = plans.filter((plan: any) => {
       // Manually check shouldGenerateNow logic
       const now = new Date();
       const leadTime = plan.woLeadTimeDays * 24 * 60 * 60 * 1000;
       const generateByDate = new Date(plan.nextScheduledDate.getTime() - leadTime);
       
       return now >= generateByDate && (!plan.lastGeneratedDate || plan.lastGeneratedDate < generateByDate);
-    }).map(plan => ({
+    }).map((plan: any) => ({
       planId: plan._id,
       planNumber: plan.planNumber,
       title: plan.title,
