@@ -156,8 +156,8 @@ export async function GET(req: NextRequest) {
     // Get properties using Mongoose model
     // @ts-ignore - Mongoose type inference issue with conditional model export
     const properties = (await Property.find(propertyFilter).select('_id name code').lean()) as any;
-    const propertyIds = properties.map(p => p._id as Types.ObjectId);
-    const propertyMap = new Map(properties.map(p => [(p._id as Types.ObjectId).toString(), p]));
+    const propertyIds = properties.map((p: any) => p._id as Types.ObjectId);
+    const propertyMap = new Map(properties.map((p: any) => [(p._id as Types.ObjectId).toString(), p]));
     
     // Collect all statement lines
     const statementLines: StatementLine[] = [];
@@ -172,7 +172,7 @@ export async function GET(req: NextRequest) {
     
     payments.forEach((payment: unknown) => {
       const p = payment as PaymentResponse;
-      const property = propertyMap.get(p.propertyId?.toString() || '');
+      const property = propertyMap.get(p.propertyId?.toString() || '') as any;
       statementLines.push({
         date: p.paymentDate,
         description: `Rent Payment - ${p.tenantName || 'Unknown'}`,
@@ -201,7 +201,7 @@ export async function GET(req: NextRequest) {
         logger.warn('Work order missing completedDate, skipping from statement', { workOrderNumber: w.workOrderNumber });
         return;
       }
-      const property = propertyMap.get(w.property?.propertyId?.toString() || '');
+      const property = propertyMap.get(w.property?.propertyId?.toString() || '') as any;
       statementLines.push({
         date: w.completedDate,
         description: `Maintenance - ${w.title || 'Work Order'}`,
@@ -231,7 +231,7 @@ export async function GET(req: NextRequest) {
         logger.warn('Utility bill missing both paidDate and period.endDate, skipping from statement', { reference: b.reference });
         return;
       }
-      const property = propertyMap.get(b.propertyId?.toString() || '');
+      const property = propertyMap.get(b.propertyId?.toString() || '') as any;
       statementLines.push({
         date: billDate,
         description: `Utility - ${b.utilityType || 'Utility Bill'}`,
@@ -239,7 +239,7 @@ export async function GET(req: NextRequest) {
         category: 'UTILITIES',
         amount: b.payment?.amount || 0,
         reference: b.reference || 'N/A',
-        propertyName: property?.name
+        propertyName: property?.name,
       });
     });    // 4. EXPENSES - Agent Commissions (using Mongoose model aggregate)
     const agentPayments = await AgentContract.aggregate([
