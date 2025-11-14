@@ -83,6 +83,7 @@ export async function POST(req: NextRequest) {
     const body = subscriptionSchema.parse(await req.json());
 
     // 1) Upsert customer - ensure tenant isolation
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const customer = (await Customer.findOneAndUpdate(
       { type: body.customer.type, billingEmail: body.customer.billingEmail, orgId: user.orgId },
       { ...body.customer, orgId: user.orgId }, 
@@ -98,6 +99,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3) Create Subscription snapshot (status pending until paid)
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const sub = (await Subscription.create({
       customerId: customer._id,
       orgId: user.orgId,
@@ -120,6 +122,7 @@ export async function POST(req: NextRequest) {
     // 4) First invoice amount:
     const amount = body.billingCycle === 'annual' ? quote.annualTotal : quote.monthly;
 
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const inv = await SubscriptionInvoice.create({
       subscriptionId: sub._id,
       orgId: user.orgId,

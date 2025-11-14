@@ -38,12 +38,14 @@ export async function GET(req: NextRequest) {
     // Execute query with pagination
     const skip = (page - 1) * limit;
     const [employees, total] = await Promise.all([
+      // @ts-ignore - Mongoose type inference issue with conditional model export
       Employee.find(query)
         .select('-bank.iban -documents') // Exclude sensitive data by default
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
+      // @ts-ignore - Mongoose type inference issue with conditional model export
       Employee.countDocuments(query),
     ]);
 

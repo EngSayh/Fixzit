@@ -38,12 +38,15 @@ export async function POST(req: NextRequest) {
   if (req.headers.get('x-cron-secret') !== process.env.CRON_SECRET) return createSecureResponse({ error:'UNAUTH' }, 401, req);
   await connectToDatabase();
   const today = new Date();
+  // @ts-ignore - Mongoose type inference issue with conditional model export
   const dueSubs = (await Subscription.find({ billingCycle:'monthly', status:'active', nextInvoiceAt: { $lte: today }, paytabsTokenId: { $ne: null } })) as any;
 
   for (const s of dueSubs) {
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const pm = (await PaymentMethod.findById(s.paytabsTokenId)) as any;
     if (!pm) continue;
 
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const inv = (await SubscriptionInvoice.create({
       subscriptionId: s._id, amount: s.totalMonthly, currency: s.currency,
       periodStart: today, periodEnd: new Date(new Date().setMonth(today.getMonth()+1)),

@@ -27,6 +27,7 @@ import { createSecureResponse } from '@/server/security/headers';
 export async function GET(_req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
   await connectToDatabase();
+  // @ts-ignore - Mongoose type inference issue with conditional model export
   const page = (await CmsPage.findOne({ slug: params.slug })) as any;
   if (!page) return createSecureResponse({ error: "Not found" }, 404, _req);
   return createSecureResponse(page, 200, _req);
@@ -48,6 +49,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ slug: s
   
   const body = await req.json();
   const validated = patchSchema.parse(body);
+  // @ts-ignore - Mongoose type inference issue with conditional model export
   const page = (await CmsPage.findOneAndUpdate(
     { slug: params.slug },
     { $set: validated },
