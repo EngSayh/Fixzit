@@ -98,7 +98,6 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     await connectToDatabase();
 
     // @ts-ignore - Mongoose type inference issue with conditional model export
-    const property = (await Property.findOneAndUpdate(sue with conditional model export
     const property = (await Property.findOne({
       _id: params.id,
       tenantId: user.tenantId
@@ -153,6 +152,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     await connectToDatabase();
 
     // Soft delete by updating status
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const property = (await Property.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },
       { $set: { 'units.$[].status': 'SOLD', updatedBy: user.id } },
