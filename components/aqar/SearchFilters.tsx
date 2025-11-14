@@ -102,7 +102,6 @@ export default function SearchFilters({ onFilterChange, initialFilters }: Search
     t('aqar.cities.jazan', 'Jazan'),
   ];
 
-  // Mobile filter panel: Future enhancement for responsive design
   const updateFilters = (updates: Partial<PropertyFilters>) => {
     const newFilters = { ...filters, ...updates };
     setFilters(newFilters);

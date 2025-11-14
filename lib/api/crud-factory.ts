@@ -439,7 +439,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
         );
       }
 
-      return createSecureResponse(updated, 200, req);
+      return createSecureResponse(entity, 200, req);
     } catch (error: unknown) {
       const correlationId = crypto.randomUUID();
       logger.error(`[PUT /api/${entityName}/:id] Error:`, {

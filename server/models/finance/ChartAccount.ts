@@ -100,7 +100,7 @@ ChartAccountSchema.virtual('isParent').get(function(this: IChartAccount) {
 ChartAccountSchema.methods.getAccountPath = async function(): Promise<string> {
   const path: string[] = [this.accountCode];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let current = this as any;
+  let current: IChartAccount = this;
   
   while (current.parentId) {
     const parent = await model('ChartAccount').findById(current.parentId);

@@ -54,8 +54,8 @@ export async function createSubscriptionCheckout(
   }
 
   const priceBook = input.priceBookId
-    ? (await PriceBook.findById(input.priceBookId)) as any
-    : (await PriceBook.findOne({ currency, active: true })) as any;
+    ? await PriceBook.findById(input.priceBookId)
+    : await PriceBook.findOne({ currency, active: true });
 
   if (!priceBook) {
     throw new Error('PriceBook not found');

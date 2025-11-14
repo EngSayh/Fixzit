@@ -122,7 +122,7 @@ export default function ClientDate({
       logger.error('ClientDate formatting error', { error });
       setFormattedDate(fallback);
     }
-  }, [date, format, locale, timeZone, fallback]); // Removed formatter - caller should memoize it
+  }, [date, format, locale, timeZone, fallback, formatter]);
 
   // Server renders placeholder, client hydrates with actual date
   if (!mounted) {

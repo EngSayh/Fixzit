@@ -130,7 +130,7 @@ export function AutoFixAgent() {
         // Only intercept if agent is active and response is not ok
         if (active && !res.ok) {
           setErrors(s => ({ ...s, network: s.network + 1 }));
-          const url = typeof input === 'string' ? input : (input as any).url;
+          const url = typeof input === 'string' ? input : (input as Request).url;
           bufferNetwork(url, res.status);
           haltAndHeal('network-error', `HTTP ${res.status} on ${url}`);
         }
@@ -139,7 +139,7 @@ export function AutoFixAgent() {
         // Only intercept if agent is active
         if (active) {
           setErrors(s => ({ ...s, network: s.network + 1 }));
-          const url = typeof input === 'string' ? input : (input as any).url;
+          const url = typeof input === 'string' ? input : (input as Request).url;
           bufferNetwork(url, -1);
           haltAndHeal('network-error', `Network error on ${url}: ${String(err?.message || err)}`);
         }

@@ -253,7 +253,7 @@ ReferralCodeSchema.methods.isValid = function (this: ReferralCodeDoc) {
   if (this.status !== 'ACTIVE') return false;
   const now = new Date();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const lim = this.limits || ({} as any);
+  const lim = this.limits || {};
   const maxU = typeof lim.maxUses === 'number' ? lim.maxUses : Infinity;
   const cur = typeof lim.currentUses === 'number' ? lim.currentUses : 0;
   if (lim.validFrom && now < lim.validFrom) return false;

@@ -52,6 +52,7 @@ Ask the agent in Agent mode:
 ## What This Configuration Does
 
 ### Full Unconditional Auto-Approval:
+
 - ✅ **All terminal commands** auto-approved (no command-specific rules)
 - ✅ **All file edits** auto-approved (no file guards)
 - ✅ **All tools** auto-approved (global approval)
@@ -61,6 +62,7 @@ Ask the agent in Agent mode:
 - ✅ **Workspace trust** disabled (no trust banners)
 
 ### Security & Workflow:
+
 - 🔒 **PR-only workflow** enforced via GitHub Branch Protection on `main`
 - 🔒 Local agent has full power; merges still require PR review
 - 📸 **Checkpoints enabled** for easy rollback if needed

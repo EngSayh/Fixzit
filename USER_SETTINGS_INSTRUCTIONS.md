@@ -1,5 +1,31 @@
 # GitHub Copilot Agent - Complete Auto-Approval Setup
 
+## ⚠️ CRITICAL SECURITY WARNING
+
+**These settings disable workspace trust and enable full auto-approval of all agent actions, including terminal commands and file edits.** 
+
+### ⚠️ Security Implications:
+- ❌ **Workspace Trust is DISABLED**: Malicious code in untrusted workspaces can execute automatically
+- ❌ **All commands auto-approved**: Agent can run ANY command without confirmation (including `rm -rf`, system modifications, etc.)
+- ❌ **All file edits auto-approved**: Agent can modify/delete any file in your workspace
+- ❌ **Terminal prompts auto-answered**: Interactive prompts automatically proceed without review
+
+### ✅ Safer Alternative (Recommended):
+Instead of global auto-approval, consider:
+1. Leave `security.workspace.trust.enabled: true` (default)
+2. Only enable auto-approval for specific, trusted workspaces
+3. Review agent actions before approval
+4. Use VS Code's built-in workspace trust system
+
+### 🔄 How to Revert These Settings:
+If you want to restore default security:
+1. Open User Settings JSON (`Cmd+Shift+P` → "Preferences: Open User Settings (JSON)")
+2. Remove or set to `false`: `chat.tools.global.autoApprove`, `chat.tools.terminal.autoApprove`, `chat.tools.edits.autoApprove`
+3. Remove or set to `true`: `security.workspace.trust.enabled`
+4. Reload VS Code
+
+---
+
 ## ✅ Status
 
 - **Workspace Settings**: ✅ Applied (`.vscode/settings.json`)

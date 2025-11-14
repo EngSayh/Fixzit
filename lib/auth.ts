@@ -85,10 +85,10 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
 
   let user;
   if (loginType === 'personal') {
-    user = (await User.findOne({ email: emailOrEmployeeNumber })) as any;
+    user = await User.findOne({ email: emailOrEmployeeNumber });
   } else {
     // For corporate login, search by employee number (username field)
-    user = (await User.findOne({ username: emailOrEmployeeNumber })) as any;
+    user = await User.findOne({ username: emailOrEmployeeNumber });
   }
 
   if (!user) {
@@ -133,7 +133,7 @@ export async function getUserFromToken(token: string) {
   }
 
   // Database connection handled by model layer
-  const user = (await User.findById(payload.id)) as any;
+  const user = await User.findById(payload.id);
 
   if (!user || user.status !== 'ACTIVE') {
     return null;

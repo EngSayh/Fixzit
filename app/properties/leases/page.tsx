@@ -240,9 +240,9 @@ export default function PropertiesLeasesPage() {
         <h3 className="text-lg font-semibold mb-4">{t('properties.leases.upcomingRenewals', 'Upcoming Renewals')}</h3>
         <div className="space-y-3">
           {[
-            { unit: 'A-101', tenant: 'Ahmed Al-Mansouri', date: '2025-12-15', days: 12 },
-            { unit: 'B-305', tenant: 'Sarah Johnson', date: '2025-12-22', days: 19 },
-            { unit: 'C-202', tenant: 'Mohammed Ali', date: '2026-01-01', days: 26 },
+            { unit: 'A-101', tenant: 'Ahmed Al-Mansouri', date: '2025-12-15', days: 31 },
+            { unit: 'B-305', tenant: 'Sarah Johnson', date: '2025-12-22', days: 38 },
+            { unit: 'C-202', tenant: 'Mohammed Ali', date: '2026-01-01', days: 48 },
           ].map((renewal) => (
             <div key={renewal.unit} className="flex items-center justify-between p-3 bg-accent/10 rounded-2xl border border-warning/20">
               <div>

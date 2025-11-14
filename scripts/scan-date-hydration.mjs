@@ -7,7 +7,7 @@
  */
 
 import { readFileSync, readdirSync, statSync } from 'fs';
-import { join } from 'path';
+import { join, normalize, sep } from 'path';
 
 const PATTERNS = [
   { name: 'new Date() in JSX', regex: /\{[^}]*new Date\([^)]*\)[^}]*\}/g },

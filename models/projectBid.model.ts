@@ -447,9 +447,9 @@ const ProjectBidSchema = new Schema<IProjectBid, IProjectBidModel>(
 
 // ---------- Plugins (ensure orgId exists for tenant indices) ----------
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-ProjectBidSchema.plugin(tenantIsolationPlugin as any);
+ProjectBidSchema.plugin(tenantIsolationPlugin);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-ProjectBidSchema.plugin(auditPlugin as any);
+ProjectBidSchema.plugin(auditPlugin);
 
 // ---------- Validation: require either contractorId or vendorId ----------
 // eslint-disable-next-line no-unused-vars

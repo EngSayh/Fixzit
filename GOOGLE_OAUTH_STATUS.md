@@ -8,7 +8,7 @@
 ## Configuration
 
 ### Credentials (Stored Securely)
-- ✅ **Client ID:** 887157574249-s5g75n2bu6p8v2aeghib7uos2fpj220j.apps.googleusercontent.com
+- ✅ **Client ID:** [Configured in .env.local only - NEVER commit Client ID to git]
 - ✅ **Client Secret:** [Configured in .env.local only - NEVER commit secrets to git]
 
 ### OAuth Settings

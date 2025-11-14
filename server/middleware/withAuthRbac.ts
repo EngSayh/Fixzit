@@ -3,7 +3,7 @@ import { can } from "../rbac/workOrdersPolicy";
 import { auth } from "@/auth";
 import { logger } from '@/lib/logger';
 import { verifyToken } from '@/lib/auth';
-import { UserRole, ALL_ROLES, type UserRoleType } from '@/types/user';
+import { ALL_ROLES, type UserRoleType } from '@/types/user';
 
 export type SessionUser = {
   id: string;

@@ -57,12 +57,12 @@ errors.forEach(errorLine => {
       if (pattern.test(line) && !line.includes(' as ')) {
         // Find the end of the statement (semicolon or closing paren)
         let endLine = lineIndex;
-        let parenCount = (line.match(/\\(/g) || []).length - (line.match(/\\)/g) || []).length;
+        let parenCount = (line.match(/\(/g) || []).length - (line.match(/\)/g) || []).length;
         
         while (parenCount > 0 && endLine < lines.length - 1) {
           endLine++;
-          parenCount += (lines[endLine].match(/\\(/g) || []).length;
-          parenCount -= (lines[endLine].match(/\\)/g) || []).length;
+          parenCount += (lines[endLine].match(/\(/g) || []).length;
+          parenCount -= (lines[endLine].match(/\)/g) || []).length;
         }
         
         // Add 'as any' before the semicolon or assignment
