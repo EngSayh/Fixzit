@@ -84,8 +84,8 @@ export async function GET(req: NextRequest) {
     // Calculate summary statistics
     const summary = {
       totalProperties: properties.length,
-      totalUnits: properties.reduce((sum, p) => sum + (p.units?.length || 0), 0),
-      occupiedUnits: properties.reduce((sum, p) => 
+      totalUnits: properties.reduce((sum: number, p: any) => sum + (p.units?.length || 0), 0),
+      occupiedUnits: properties.reduce((sum: number, p: any) => 
         sum + (p.units?.filter((u: { status: string }) => u.status === 'OCCUPIED').length || 0), 0
       ),
       averageOccupancy: 0

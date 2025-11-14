@@ -154,6 +154,7 @@ export async function GET(req: NextRequest) {
     }
     
     // Get properties using Mongoose model
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const properties = (await Property.find(propertyFilter).select('_id name code').lean()) as any;
     const propertyIds = properties.map(p => p._id as Types.ObjectId);
     const propertyMap = new Map(properties.map(p => [(p._id as Types.ObjectId).toString(), p]));
@@ -162,6 +163,7 @@ export async function GET(req: NextRequest) {
     const statementLines: StatementLine[] = [];
     
     // 1. INCOME - Rent Payments (using Mongoose model)
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const payments = (await Payment.find({
       propertyId: { $in: propertyIds },
       paymentDate: { $gte: startDate, $lte: endDate },
@@ -184,6 +186,7 @@ export async function GET(req: NextRequest) {
     });
     
     // 2. EXPENSES - Maintenance (Work Orders using Mongoose model)
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const workOrders = (await WorkOrder.find({
       'property.propertyId': { $in: propertyIds },
       status: 'COMPLETED',
@@ -212,6 +215,7 @@ export async function GET(req: NextRequest) {
     });
     
     // 3. EXPENSES - Utilities (using Mongoose model)
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const utilityBills = await UtilityBill.find({
       propertyId: { $in: propertyIds },
       'responsibility.ownerId': ownerId,
