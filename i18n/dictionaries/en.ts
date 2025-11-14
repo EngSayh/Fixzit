@@ -471,6 +471,7 @@ const en = {
   },
   properties: {
     title: 'Properties',
+    description: 'Browse and manage properties. Use Aqar module for public discovery.',
     addProperty: 'Add Property',
     propertyDetails: 'Property Details',
     propertyName: 'Property Name',

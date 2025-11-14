@@ -646,6 +646,7 @@ const ar = {
   },
   properties: {
     title: 'العقارات',
+    description: 'تصفح وإدارة العقارات. استخدم وحدة عقار للاكتشاف العام.',
     addProperty: 'إضافة عقار',
     propertyDetails: 'تفاصيل العقار',
     propertyName: 'اسم العقار',
