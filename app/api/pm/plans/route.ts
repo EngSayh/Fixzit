@@ -19,6 +19,7 @@ export async function GET(request: Request) {
     if (status) query.status = status;
     if (category) query.category = category;
     
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const plans = (await FMPMPlan.find(query)
       .sort({ nextScheduledDate: 1 })
       .lean()) as any;
@@ -55,6 +56,7 @@ export async function POST(request: Request) {
     }
     
     // Create PM plan
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const plan = (await FMPMPlan.create({
       ...body,
       status: body.status || 'ACTIVE',
