@@ -136,6 +136,7 @@ export async function POST(req: NextRequest) {
 
     const data = createSLASchema.parse(await req.json());
 
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const sla = (await SLA.create({
       tenantId: user.orgId,
       code: `SLA-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
