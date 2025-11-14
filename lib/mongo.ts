@@ -1,6 +1,16 @@
 import mongoose from 'mongoose';
 import { logger } from '@/lib/logger';
 
+// Safe TLS detection function
+function isTlsEnabled(uri: string): boolean {
+  if (!uri) return false;
+  // MongoDB Atlas (srv) always uses TLS
+  if (uri.includes('mongodb+srv://')) return true;
+  // Check for explicit TLS/SSL parameters
+  if (uri.includes('tls=true') || uri.includes('ssl=true')) return true;
+  return false;
+}
+
 /**
  * MongoDB Database Abstraction Layer
  * 
