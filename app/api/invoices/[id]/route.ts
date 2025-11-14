@@ -57,7 +57,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     await connectToDatabase();
 
     // @ts-ignore - Mongoose type inference issue with conditional model export
-    const invoice = await Invoice.findOne({
+    const invoice = (await Invoice.findOne({
       _id: params.id,
       tenantId: user.tenantId
     })) as any;
