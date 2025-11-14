@@ -100,6 +100,15 @@ const DealSchema = new Schema<IDeal>(
       type: Number,
       required: true,
       min: 0,
+      validate: {
+        validator: function(this: IDeal, value: number) {
+          if (this.discountType === 'percentage') {
+            return value <= 100;
+          }
+          return true;
+        },
+        message: 'Percentage discount cannot exceed 100',
+      },
     },
     maxDiscountAmount: {
       type: Number,

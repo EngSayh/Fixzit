@@ -9,6 +9,7 @@ export interface IReview extends Document {
   _id: mongoose.Types.ObjectId;
   reviewId: string;
   
+  org_id: mongoose.Types.ObjectId;
   productId: mongoose.Types.ObjectId;
   fsin: string;
   
@@ -56,6 +57,12 @@ const ReviewSchema = new Schema<IReview>(
       type: String,
       required: true,
       unique: true,
+      index: true,
+    },
+    org_id: {
+      type: Schema.Types.ObjectId,
+      ref: 'Organization',
+      required: true,
       index: true,
     },
     productId: {

@@ -46,6 +46,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: 'Organization ID required' },
+        { status: 400 }
+      );
+    }
+
     await connectDb();
 
     const body = await request.json();
@@ -91,6 +99,7 @@ export async function POST(request: NextRequest) {
     const product = new SouqProduct({
       fsin: finalFsin,
       ...validated,
+      org_id: orgId,
       createdBy: session.user.id,
       isActive: true,
     });

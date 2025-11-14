@@ -28,6 +28,23 @@ const sellerCreateSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Authentication check
+    const session = await getServerSession();
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: 'Organization ID required' },
+        { status: 403 }
+      );
+    }
+
     await connectDb();
     
     const body = await request.json();
@@ -52,6 +69,7 @@ export async function POST(request: NextRequest) {
     const seller = await SouqSeller.create({
       ...validatedData,
       sellerId,
+      org_id: orgId,
       country: validatedData.country || 'SA',
       tier: validatedData.tier || 'individual',
       kycStatus: 'pending',
@@ -105,6 +123,23 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // Authentication check
+    const session = await getServerSession();
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const orgId = (session.user as { orgId?: string }).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: 'Organization ID required' },
+        { status: 403 }
+      );
+    }
+
     await connectDb();
     
     const { searchParams } = new URL(request.url);
@@ -114,7 +149,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     
-    const query: Record<string, unknown> = {};
+    const query: Record<string, unknown> = { org_id: orgId };
     
     if (status) {
       query.kycStatus = status;

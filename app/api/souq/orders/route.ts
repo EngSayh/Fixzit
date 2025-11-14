@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
         productId: listing.productId,
         fsin: listing.fsin,
         sellerId: listing.sellerId,
-        title: (listing.productId as { title?: string })?.title || 'Product',
+        title: (typeof listing.productId === 'object' && listing.productId !== null && 'title' in listing.productId) ? (listing.productId as { title?: string }).title : 'Product',
         quantity: itemRequest.quantity,
         pricePerUnit: listing.price,
         subtotal: itemSubtotal,

@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       name_ar,
       slug,
       parentId: parentId || null,
-      level: level || 1,
+      level: level ?? 1,
       isActive: true,
       createdAt: new Date(),
     });

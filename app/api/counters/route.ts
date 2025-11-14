@@ -18,7 +18,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const orgId = (session.user as { org_id?: string }).org_id;
+    const orgId = (session.user as { orgId?: string }).orgId;
     if (!orgId) {
       return NextResponse.json({ error: 'Organization ID not found' }, { status: 400 });
     }

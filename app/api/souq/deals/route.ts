@@ -66,15 +66,29 @@ export async function POST(request: NextRequest) {
 
     const startDate = new Date(validatedData.startDate);
     const endDate = new Date(validatedData.endDate);
+
+    // Validate date range
+    if (endDate <= startDate) {
+      return NextResponse.json(
+        { error: 'endDate must be after startDate' },
+        { status: 400 }
+      );
+    }
+
     const now = new Date();
+
+    // Use UTC timestamps for timezone-safe comparison
+    const nowUTC = now.getTime();
+    const startUTC = startDate.getTime();
+    const endUTC = endDate.getTime();
 
     let status: 'draft' | 'scheduled' | 'active' | 'expired' | 'paused' = 'draft';
 
-    if (startDate > now) {
+    if (startUTC > nowUTC) {
       status = 'scheduled';
-    } else if (startDate <= now && endDate >= now) {
+    } else if (startUTC <= nowUTC && endUTC >= nowUTC) {
       status = 'active';
-    } else if (endDate < now) {
+    } else if (endUTC < nowUTC) {
       status = 'expired';
     }
 

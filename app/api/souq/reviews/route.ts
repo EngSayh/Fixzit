@@ -77,9 +77,12 @@ export async function POST(request: NextRequest) {
 
     const reviewId = `REV-${nanoid(10).toUpperCase()}`;
 
+    const orgId = (session.user as { orgId?: string }).orgId;
+
     const review = await SouqReview.create({
       ...validatedData,
       reviewId,
+      org_id: orgId,
       isVerifiedPurchase,
       status: 'pending',
       helpful: 0,
