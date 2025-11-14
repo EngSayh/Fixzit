@@ -65,6 +65,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     const user = await getSessionUser(req);
     await connectToDatabase();
 
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const project = (await Project.findOne({
       _id: params.id,
       tenantId: user.tenantId
@@ -89,6 +90,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     const data = updateProjectSchema.parse(await req.json());
 
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const project = (await Project.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },
       { 
@@ -124,6 +126,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     const user = await getSessionUser(req);
     await connectToDatabase();
 
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const project = (await Project.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },
       { $set: { status: "CANCELLED", updatedBy: user.id } },
