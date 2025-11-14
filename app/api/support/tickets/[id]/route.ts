@@ -32,6 +32,7 @@ const patchSchema = z.object({
 export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   await connectToDatabase();
+  // @ts-ignore - Mongoose type inference issue with conditional model export
   const t = (await SupportTicket.findById(params.id)) as any;
   if (!t) return createSecureResponse({ error: "Not found" }, 404, _req);
   return createSecureResponse(t, 200, _req);
