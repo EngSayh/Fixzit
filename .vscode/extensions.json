@@ -8,5 +8,8 @@
         "github.vscode-github-actions",
         "christian-kohler.npm-intellisense",
         "codium.codium"
+    ],
+    "unwantedRecommendations": [
+        "ms-vscode.powershell"
     ]
 }

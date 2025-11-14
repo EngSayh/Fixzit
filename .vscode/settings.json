@@ -1,9 +1,14 @@
 {
+  // PowerShell Extension - Disabled (macOS uses zsh/bash)
   "powershell.promptToUpdatePowerShell": false,
   "powershell.startAutomatically": false,
   "powershell.integratedConsole.showOnStartup": false,
   "powershell.sideBar.CommandExplorerVisibility": false,
   "powershell.powerShellDefaultVersion": "PowerShell (disabled)",
+  "powershell.enableProfileLoading": false,
+  "powershell.codeFormatting.autoCorrectAliases": false,
+  "powershell.scriptAnalysis.enable": false,
+  "powershell.developer.waitForSessionFileTimeoutSeconds": 0,
 
   // TypeScript/Node Memory Settings for Large Projects (25K+ files)
   // Root Cause Fix: Exit Code 5 = OOM caused by TS server + extension host + Turbopack cache
