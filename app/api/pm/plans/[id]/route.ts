@@ -12,6 +12,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const plan = (await FMPMPlan.findById(id)) as any;
     
     if (!plan) {
@@ -46,6 +47,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
     
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const plan = (await FMPMPlan.findByIdAndUpdate(
       id,
       { $set: body },
@@ -82,6 +84,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    // @ts-ignore - Mongoose type inference issue with conditional model export
     const plan = (await FMPMPlan.findByIdAndUpdate(
       id,
       { $set: { status: 'INACTIVE' } },
