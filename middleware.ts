@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
 
 // ⚡ PERFORMANCE OPTIMIZATION: Lazy-load auth only for protected routes
 // Previously: auth imported eagerly (adds ~30-40 KB to middleware bundle)
@@ -158,7 +159,7 @@ async function getAuthSession(request: NextRequest): Promise<SessionUser | null>
     const result = await handler(request);
     return result;
   } catch (error) {
-    console.error('Auth session error:', error);
+    logger.error('Auth session error:', { error });
     return null;
   }
 }

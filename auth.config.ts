@@ -2,6 +2,7 @@ import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 // NOTE: Mongoose imports MUST be dynamic inside authorize() to avoid Edge Runtime issues
 // import { User } from '@/server/models/User'; // ❌ Breaks Edge Runtime
 // import { verifyPassword } from '@/lib/auth'; // ❌ Imports User model
@@ -49,7 +50,7 @@ if (!skipSecretValidation) {
   
   // Google OAuth credentials are optional (can use credentials provider only)
   if (!GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_SECRET) {
-    console.warn('⚠️  Google OAuth not configured. Only credentials authentication will be available.');
+    logger.warn('⚠️  Google OAuth not configured. Only credentials authentication will be available.');
   } else if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
     // If one is set, both must be set
     if (!GOOGLE_CLIENT_ID) missingSecrets.push('GOOGLE_CLIENT_ID');
@@ -62,9 +63,9 @@ if (!skipSecretValidation) {
     );
   }
 } else if (isCI) {
-  console.warn('⚠️  CI=true: Secret validation skipped for CI build. Secrets will be required at runtime.');
+  logger.warn('⚠️  CI=true: Secret validation skipped for CI build. Secrets will be required at runtime.');
 } else {
-  console.warn('⚠️  SKIP_ENV_VALIDATION=true: Secret validation skipped. Secrets will be required at runtime.');
+  logger.warn('⚠️  SKIP_ENV_VALIDATION=true: Secret validation skipped. Secrets will be required at runtime.');
 }
 
 // Helper functions for OAuth provisioning (reserved for future use)
@@ -166,7 +167,7 @@ export const authConfig = {
           // 1. Validate credentials schema
           const parsed = LoginSchema.safeParse(credentials);
           if (!parsed.success) {
-            console.error('[NextAuth] Credentials validation failed:', parsed.error.flatten());
+            logger.error('[NextAuth] Credentials validation failed:', { error: parsed.error.flatten() });
             return null;
           }
 
@@ -190,21 +191,21 @@ export const authConfig = {
           }
 
           if (!user) {
-            console.error('[NextAuth] User not found:', loginIdentifier);
+            logger.error('[NextAuth] User not found:', { loginIdentifier });
             return null;
           }
 
           // 5. Verify password (inline to avoid importing @/lib/auth)
           const isValid = await bcrypt.compare(password, user.password);
           if (!isValid) {
-            console.error('[NextAuth] Invalid password for:', loginIdentifier);
+            logger.error('[NextAuth] Invalid password for:', { loginIdentifier });
             return null;
           }
 
           // 6. Check if user is active
           const isUserActive = user.isActive !== undefined ? user.isActive : (user.status === 'ACTIVE');
           if (!isUserActive) {
-            console.error('[NextAuth] Inactive user attempted login:', loginIdentifier);
+            logger.error('[NextAuth] Inactive user attempted login:', { loginIdentifier });
             return null;
           }
 
@@ -227,7 +228,7 @@ export const authConfig = {
           };
           return authUser;
         } catch (error) {
-          console.error('[NextAuth] Authorize error:', error);
+          logger.error('[NextAuth] Authorize error:', { error });
           return null;
         }
       },
@@ -249,7 +250,7 @@ export const authConfig = {
       // Validate email exists
       if (!_user?.email) {
         if (process.env.LOG_LEVEL === 'debug') {
-          console.debug('OAuth sign-in rejected: No email provided');
+          logger.debug('OAuth sign-in rejected: No email provided');
         }
         return false;
       }
@@ -378,7 +379,7 @@ export const authConfig = {
             token.permissions = [];
           }
         } catch (error) {
-          console.error('[NextAuth] Failed to load RBAC data:', error);
+          logger.error('[NextAuth] Failed to load RBAC data:', { error });
           // On error, keep previous RBAC data or set defaults
           if (token.isSuperAdmin === undefined) {
             token.isSuperAdmin = false;
