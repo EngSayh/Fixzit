@@ -5,6 +5,7 @@
  * across different models. Helps prevent duplicate retry logic across API routes.
  */
 
+import { logger } from '@/lib/logger';
 import type { Model, Types, UpdateQuery, Document } from 'mongoose';
 
 interface IncrementOptions<T = unknown> {
@@ -44,7 +45,7 @@ export async function incrementAnalyticsWithRetry<T extends Document>({
       
       if (retries === 0) {
         // Final failure - log error
-        console.error(`Failed to increment ${entityType} analytics after ${maxRetries} retries`, {
+        logger.error(`Failed to increment ${entityType} analytics after ${maxRetries} retries`, {
           id: id.toString(),
           message: error instanceof Error ? error.message : 'Unknown error',
           type: error instanceof Error ? error.constructor.name : typeof error,

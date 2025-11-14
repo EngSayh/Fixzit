@@ -25,6 +25,7 @@
  * ```
  */
 
+import { logger } from '@/lib/logger';
 import { NextRequest } from 'next/server';
 import { z, ZodSchema } from 'zod';
 import { Model, SortOrder } from 'mongoose';
@@ -178,7 +179,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
       );
     } catch (error: unknown) {
       const correlationId = crypto.randomUUID();
-      console.error(`[GET /api/${entityName}] Error:`, {
+      logger.error(`[DELETE /api/${entityName}/:id] Error:`, {
         correlationId,
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
@@ -250,7 +251,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
           entityData = await onCreate(entityData, user);
         } catch (hookError: unknown) {
           const correlationId = crypto.randomUUID();
-          console.error(`[POST /api/${entityName}] onCreate hook error:`, {
+          logger.error(`[POST /api/${entityName}] onCreate hook error:`, {
             correlationId,
             userId: user.id,
             orgId: user.orgId,
@@ -270,7 +271,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
       return createSecureResponse(entity, 201, req);
     } catch (error: unknown) {
       const correlationId = crypto.randomUUID();
-      console.error(`[POST /api/${entityName}] Error:`, {
+      logger.error(`[POST /api/${entityName}] Error:`, {
         correlationId,
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
@@ -354,7 +355,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
       return createSecureResponse(entity, 200, req);
     } catch (error: unknown) {
       const correlationId = crypto.randomUUID();
-      console.error(`[GET /api/${entityName}/:id] Error:`, {
+      logger.error(`[GET /api/${entityName}/:id] Error:`, {
         correlationId,
         id: context.params.id,
         error: error instanceof Error ? error.message : String(error),
@@ -438,10 +439,10 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
         );
       }
 
-      return createSecureResponse(entity, 200, req);
+      return createSecureResponse(updated, 200, req);
     } catch (error: unknown) {
       const correlationId = crypto.randomUUID();
-      console.error(`[PUT /api/${entityName}/:id] Error:`, {
+      logger.error(`[PUT /api/${entityName}/:id] Error:`, {
         correlationId,
         id: context.params.id,
         error: error instanceof Error ? error.message : String(error),
@@ -515,7 +516,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
       );
     } catch (error: unknown) {
       const correlationId = crypto.randomUUID();
-      console.error(`[DELETE /api/${entityName}/:id] Error:`, {
+      logger.error(`[DELETE /api/${entityName}/:id] Error:`, {
         correlationId,
         id: context.params.id,
         error: error instanceof Error ? error.message : String(error),

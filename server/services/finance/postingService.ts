@@ -339,7 +339,7 @@ class PostingService {
       // Optional debug trace
       try {
         if (process.env.DEBUG_MOCKS === '1') {
-          console.debug(`postingService.postJournal: about to save journal id=${journal._id?.toString?.()} status=${journal.status}`);
+          logger.debug(`postingService.postJournal: about to save journal id=${journal._id?.toString?.()} status=${journal.status}`);
         }
       } catch {
         // Ignore debug errors

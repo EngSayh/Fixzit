@@ -143,8 +143,8 @@ export function formatServerDate(
   try {
     return formatDate(parsedDate, format, locale, timeZone);
   } catch (error: unknown) {
-    // Use console.error for server-side logging (logger may not be available)
-    console.error('formatServerDate formatting error', { error, date, format, locale, timeZone });
+    // Use logger.error for server-side logging
+    logger.error('formatServerDate formatting error', { error, date, format, locale, timeZone });
     return 'Invalid Date';
   }
 }

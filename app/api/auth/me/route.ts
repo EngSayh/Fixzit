@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
@@ -30,7 +31,7 @@ export async function GET() {
       }
     });
   } catch (error) {
-    console.error('[/api/auth/me] Error:', error);
+    logger.error('[/api/auth/me] Error:', error);
     return NextResponse.json(
       { error: 'Internal Server Error' },
       { status: 500 }

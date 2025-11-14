@@ -72,11 +72,11 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
           }
         } catch (err: unknown) {
           // Silently ignore - user is guest
-          console.debug('Auth check failed (expected for guests):', err);
+          logger.debug('Auth check failed (expected for guests):', err);
         }
       };
       checkAuth().catch(err => {
-        console.debug('Unhandled auth check error:', err);
+        logger.debug('Unhandled auth check error:', err);
       });
     }
     return () => { abort = true; };

@@ -120,7 +120,7 @@ export async function ensureCoreIndexes(): Promise<void> {
             continue;
           }
           // Log all other errors for observability
-          console.error(`Failed to create index on ${collection}:`, {
+          logger.error(`Failed to create index on ${collection}:`, {
             index: JSON.stringify(indexSpec.key),
             error: mongoError.message || 'Unknown error',
             code: mongoError.code
@@ -133,7 +133,7 @@ export async function ensureCoreIndexes(): Promise<void> {
       // Log collection-level errors with context
       const error = err as Error;
       failures.push({ collection, error });
-      console.error(`Failed to create indexes for collection ${collection}:`, {
+      logger.error(`Failed to create indexes for collection ${collection}:`, {
         message: error.message,
         stack: error.stack
       });
