@@ -120,6 +120,7 @@ export async function POST(req: NextRequest) {
     // 4) First invoice amount:
     const amount = body.billingCycle === 'annual' ? quote.annualTotal : quote.monthly;
 
+    // @ts-expect-error - Mongoose 8.x type resolution issue with create overloads
     const inv = await SubscriptionInvoice.create({
       subscriptionId: sub._id,
       orgId: user.orgId,

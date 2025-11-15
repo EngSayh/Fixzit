@@ -44,14 +44,21 @@ export async function POST(req: NextRequest) {
     const pm = (await PaymentMethod.findById(s.paytabsTokenId));
     if (!pm) continue;
 
-    // ✅ FIXED: Add orgId from subscription's tenant_id to satisfy tenantIsolationPlugin
+    // Calculate billing period
+    const periodStart = today;
+    const periodEnd = new Date(today);
+    periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+    // ✅ FIXED: Add orgId, periodStart, periodEnd to match schema
     // @ts-expect-error - Mongoose 8.x type resolution issue with create overloads
     const inv = (await SubscriptionInvoice.create({
       orgId: s.tenant_id, // Required by tenantIsolationPlugin
       subscriptionId: s._id, 
       amount: s.totalMonthly, 
       currency: s.currency,
-      dueDate: today, 
+      dueDate: today,
+      periodStart,  // ✅ ADDED: Billing period start
+      periodEnd,    // ✅ ADDED: Billing period end
       status:'pending'
     }));
 

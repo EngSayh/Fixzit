@@ -57,7 +57,7 @@ const DEFAULT_UNSAVED_MESSAGE = 'You have unsaved changes. Are you sure you want
  */
 export function useFormTracking(options: UseFormTrackingOptions) {
   const { formId, isDirty, onSave, unsavedMessage = DEFAULT_UNSAVED_MESSAGE } = options;
-  const { onSaveRequest, unregisterForm, markFormDirty, markFormClean } = useFormState();
+  const { registerForm, onSaveRequest, unregisterForm, markFormDirty, markFormClean } = useFormState();
 
   // Keep a ref to the save function to avoid re-running effects
   const onSaveRef = useRef(onSave);
@@ -65,8 +65,10 @@ export function useFormTracking(options: UseFormTrackingOptions) {
     onSaveRef.current = onSave;
   }, [onSave]);
 
-  // Register form's save function with global context on mount
+  // ✅ FIXED: Register form on mount so it appears in context's forms Map
   useEffect(() => {
+    registerForm(formId); // Register without initial fields (will use empty object)
+    
     const saveCallback = () => onSaveRef.current();
     const unsubscribe = onSaveRequest(formId, saveCallback);
 
@@ -74,7 +76,7 @@ export function useFormTracking(options: UseFormTrackingOptions) {
       unsubscribe();
       unregisterForm(formId);
     };
-  }, [formId, onSaveRequest, unregisterForm]);
+  }, [formId, registerForm, onSaveRequest, unregisterForm]);
 
   // Update global dirty state when this form's state changes
   useEffect(() => {
@@ -85,24 +87,9 @@ export function useFormTracking(options: UseFormTrackingOptions) {
     }
   }, [isDirty, formId, markFormDirty, markFormClean]);
 
-  // Add browser-level navigation guards (from useUnsavedChanges)
-  useEffect(() => {
-    if (isDirty) {
-      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-        e.preventDefault();
-        e.returnValue = unsavedMessage;
-        return unsavedMessage;
-      };
-
-      // Note: popstate logic is complex and often unreliable.
-      // `beforeunload` is the most robust cross-browser solution.
-      window.addEventListener('beforeunload', handleBeforeUnload);
-
-      return () => {
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-      };
-    }
-  }, [isDirty, unsavedMessage]);
+  // ✅ REMOVED: Duplicate beforeunload listener
+  // FormStateContext already installs a centralized guard when hasUnsavedChanges is true
+  // Individual forms should not install their own listeners
 
   /**
    * Wrapper for form's local onSubmit handler.

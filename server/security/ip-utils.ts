@@ -82,6 +82,7 @@ export function isPrivateIP(ip: string): boolean {
   
   const [a, b] = parts;
   
+  // ✅ RFC 1918 Private ranges
   // 10.0.0.0/8
   if (a === 10) return true;
   
@@ -91,11 +92,44 @@ export function isPrivateIP(ip: string): boolean {
   // 192.168.0.0/16
   if (a === 192 && b === 168) return true;
   
-  // 127.0.0.0/8 (loopback)
+  // ✅ RFC 6890 Special-Purpose Address Registries
+  // 0.0.0.0/8 - "This network"
+  if (a === 0) return true;
+  
+  // 127.0.0.0/8 - Loopback
   if (a === 127) return true;
   
-  // 169.254.0.0/16 (link-local)
+  // 169.254.0.0/16 - Link-local
   if (a === 169 && b === 254) return true;
+  
+  // ✅ RFC 6598 - CGNAT (Carrier-Grade NAT)
+  // 100.64.0.0/10
+  if (a === 100 && b >= 64 && b <= 127) return true;
+  
+  // ✅ RFC 5737 - Test/Documentation networks
+  // 192.0.0.0/24 - IETF Protocol Assignments
+  if (a === 192 && b === 0 && parts[2] === 0) return true;
+  
+  // 192.0.2.0/24 - TEST-NET-1
+  if (a === 192 && b === 0 && parts[2] === 2) return true;
+  
+  // 198.51.100.0/24 - TEST-NET-2
+  if (a === 198 && b === 51 && parts[2] === 100) return true;
+  
+  // 203.0.113.0/24 - TEST-NET-3
+  if (a === 203 && b === 0 && parts[2] === 113) return true;
+  
+  // ✅ RFC 2544 - Benchmarking
+  // 198.18.0.0/15
+  if (a === 198 && (b === 18 || b === 19)) return true;
+  
+  // ✅ RFC 1112 - Multicast
+  // 224.0.0.0/4 (224-239)
+  if (a >= 224 && a <= 239) return true;
+  
+  // ✅ RFC 1112 - Reserved for future use
+  // 240.0.0.0/4 (240-255)
+  if (a >= 240) return true;
   
   return false;
 }
@@ -110,8 +144,13 @@ export function validateTrustedProxyCount(): number {
   const envValue = process.env.TRUSTED_PROXY_COUNT;
   
   if (!envValue) {
-    // Default: assume 1 trusted proxy hop (typical edge proxy setup)
-    return 1;
+    // ✅ FIXED: Default to 0 (no proxy stripping) to require explicit configuration
+    // This prevents misidentifying Cloudflare/Vercel IPs as clients when env var is unset
+    // Production deployments MUST set TRUSTED_PROXY_COUNT explicitly:
+    // - Cloudflare → Vercel → Node: set to 2
+    // - Single edge proxy: set to 1
+    // - Direct connection: leave at 0
+    return 0;
   }
   
   const count = parseInt(envValue, 10);
