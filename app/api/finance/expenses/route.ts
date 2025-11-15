@@ -7,9 +7,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Expense } from '@/server/models/finance/Expense';
+import ChartAccount from '@/server/models/finance/ChartAccount';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { runWithContext } from '@/server/lib/authContext';
 import { requirePermission } from '@/server/lib/rbac.config';
+import { Types } from 'mongoose';
 
 import { logger } from '@/lib/logger';
 // Validation schemas
@@ -67,11 +69,11 @@ const CreateExpenseSchema = z.object({
   lineItems: z.array(ExpenseLineItemSchema).min(1),
   subtotal: z.number().min(0),
   totalTax: z.number().min(0).optional(),
-  totalAmount: z.number().min(0),
+  totalAmount: z.number().min(0).optional(), // Calculated server-side
   currency: z.string().default('SAR'),
   notes: z.string().optional(),
   receipts: z.array(ReceiptSchema).optional(),
-  status: z.enum(['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'PAID', 'CANCELLED']).default('DRAFT'),
+  // Status removed - always DRAFT on create
   budgetId: z.string().optional(),
   budgetCategoryId: z.string().optional(),
 });
@@ -107,23 +109,65 @@ export async function POST(req: NextRequest) {
     return await runWithContext(
       { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
       async () => {
-        // Create expense
+        // Validate all accountId references belong to this org
+        const accountIds = data.lineItems
+          .map(item => item.accountId)
+          .filter((id): id is string => !!id);
+        
+        if (accountIds.length > 0) {
+          const validAccounts = await ChartAccount.find({
+            _id: { $in: accountIds.map(id => new Types.ObjectId(id)) },
+            orgId: new Types.ObjectId(user.orgId)
+          }).select('_id');
+          
+          const validIds = new Set(validAccounts.map(a => a._id.toString()));
+          const invalidIds = accountIds.filter(id => !validIds.has(id));
+          
+          if (invalidIds.length > 0) {
+            return NextResponse.json(
+              { success: false, error: `Invalid account IDs: ${invalidIds.join(', ')}` },
+              { status: 400 }
+            );
+          }
+        }
+        
+        // Calculate total amount server-side (prevent client tampering)
+        const calculatedSubtotal = data.lineItems.reduce(
+          (sum, item) => sum + item.totalAmount,
+          0
+        );
+        
+        const calculatedTotal = calculatedSubtotal;
+        
+        // Reject if client provided amount differs significantly (allow 0.01 rounding)
+        if (data.totalAmount !== undefined && Math.abs(data.totalAmount - calculatedTotal) > 0.01) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Amount mismatch',
+              details: {
+                clientTotal: data.totalAmount,
+                serverTotal: calculatedTotal,
+                difference: Math.abs(data.totalAmount - calculatedTotal)
+              }
+            },
+            { status: 400 }
+          );
+        }
+        
+        // Create expense - always DRAFT
         const expense = await Expense.create({
           ...data,
+          totalAmount: calculatedTotal,
           orgId: user.orgId,
           createdBy: user.userId,
-          status: data.status || 'DRAFT',
+          status: 'DRAFT', // Force DRAFT - require submit endpoint for SUBMITTED
         });
-
-        // If submitted (not draft), trigger approval workflow
-        if (data.status === 'SUBMITTED') {
-          await expense.submit(user.userId);
-        }
 
         return NextResponse.json({
           success: true,
           data: expense,
-          message: data.status === 'SUBMITTED' ? 'Expense submitted for approval' : 'Expense draft created',
+          message: 'Expense draft created',
         });
       }
     );

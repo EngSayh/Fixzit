@@ -7,9 +7,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { Payment } from '@/server/models/finance/Payment';
+import { Invoice } from '@/server/models/Invoice';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { runWithContext } from '@/server/lib/authContext';
 import { requirePermission } from '@/server/lib/rbac.config';
+import { Types } from 'mongoose';
 
 
 import { logger } from '@/lib/logger';
@@ -59,7 +61,7 @@ const CreatePaymentSchema = z.object({
   referenceNumber: z.string().optional(),
   notes: z.string().optional(),
   receiptUrl: z.string().optional(),
-  status: z.enum(['DRAFT', 'POSTED', 'CLEARED', 'BOUNCED', 'CANCELLED', 'REFUNDED']).default('DRAFT'),
+  // Status removed - always DRAFT on create, require reconcile/clear/bounce endpoints
 });
 
 async function getUserSession(req: NextRequest) {
@@ -93,12 +95,31 @@ export async function POST(req: NextRequest) {
     return await runWithContext(
       { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
       async () => {
-        // Create payment
+        // Validate all invoice allocations belong to this org
+        if (data.invoiceAllocations && data.invoiceAllocations.length > 0) {
+          const invoiceIds = data.invoiceAllocations.map(a => a.invoiceId);
+          const validInvoices = await Invoice.find({
+            _id: { $in: invoiceIds.map(id => new Types.ObjectId(id)) },
+            orgId: new Types.ObjectId(user.orgId)
+          }).select('_id');
+          
+          const validIds = new Set(validInvoices.map(inv => inv._id.toString()));
+          const invalidIds = invoiceIds.filter(id => !validIds.has(id));
+          
+          if (invalidIds.length > 0) {
+            return NextResponse.json(
+              { success: false, error: `Invalid invoice IDs: ${invalidIds.join(', ')}` },
+              { status: 400 }
+            );
+          }
+        }
+        
+        // Create payment - always DRAFT (require /reconcile /clear /bounce for status changes)
         const payment = await Payment.create({
           ...data,
           orgId: user.orgId,
           createdBy: user.userId,
-          status: data.status || 'DRAFT',
+          status: 'DRAFT', // Force DRAFT - require dedicated endpoints for other statuses
         });
 
         // Auto-allocate to invoices if provided
@@ -115,7 +136,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           success: true,
           data: payment,
-          message: data.status === 'POSTED' ? 'Payment posted successfully' : 'Payment draft created',
+          message: 'Payment draft created',
         });
       }
     );

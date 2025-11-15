@@ -7,8 +7,9 @@ import {zodValidationError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
 
+// Restrict status updates to valid enum values only
 const invoiceUpdateSchema = z.object({
-  status: z.string().optional(),
+  status: z.enum(['DRAFT', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED', 'VOID']).optional(),
   amount: z.number().optional(),
   dueDate: z.string().or(z.date()).optional(),
   description: z.string().optional()

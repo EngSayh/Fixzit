@@ -94,7 +94,8 @@ export async function POST(
             );
           }
 
-          await expense.submit(user.userId);
+          await expense.submit();
+          await expense.save();
 
           return NextResponse.json({
             success: true,
@@ -114,7 +115,8 @@ export async function POST(
           const body = await req.json();
           const { comments } = ApprovalSchema.parse(body);
 
-          await expense.approve(user.userId, comments);
+          await expense.approve(new Types.ObjectId(user.userId), comments);
+          await expense.save();
 
           return NextResponse.json({
             success: true,
@@ -141,7 +143,8 @@ export async function POST(
             );
           }
 
-          await expense.reject(user.userId, comments);
+          await expense.reject(new Types.ObjectId(user.userId), comments);
+          await expense.save();
 
           return NextResponse.json({
             success: true,

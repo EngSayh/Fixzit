@@ -184,6 +184,12 @@ export interface IExpense extends Document {
   createdBy: Types.ObjectId;
   updatedBy?: Types.ObjectId;
   version: number;
+  
+  // Methods
+  submit(): Promise<void>;
+  approve(approverId: Types.ObjectId, comments?: string): Promise<void>;
+  reject(approverId: Types.ObjectId, reason: string): Promise<void>;
+  markAsPaid(paymentId: Types.ObjectId): Promise<void>;
 }
 
 // ============================================================================

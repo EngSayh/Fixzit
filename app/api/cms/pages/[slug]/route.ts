@@ -27,7 +27,7 @@ import { createSecureResponse } from '@/server/security/headers';
 export async function GET(_req: NextRequest, props: { params: Promise<{ slug: string }> }) {
   const params = await props.params;
   await connectToDatabase();
-  const page = (await CmsPage.findOne({ slug: params.slug }));
+  const page = await CmsPage.findOne({ slug: params.slug }).lean();
   if (!page) return createSecureResponse({ error: "Not found" }, 404, _req);
   return createSecureResponse(page, 200, _req);
 }

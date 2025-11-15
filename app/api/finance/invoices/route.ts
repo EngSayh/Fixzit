@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from 'crypto';
 import { logger } from '@/lib/logger';
 import * as svc from "@/server/finance/invoice.service";
 import { rateLimit } from '@/server/security/rateLimit';
@@ -87,7 +88,7 @@ export async function GET(req: NextRequest) {
     const data = await svc.list(user.orgId, q, status);
     return createSecureResponse({ data }, 200, req);
   } catch (error: unknown) {
-    const correlationId = crypto.randomUUID();
+    const correlationId = randomUUID();
     logger.error('[GET /api/finance/invoices] Error fetching invoices:', {
       correlationId,
       error: error instanceof Error ? error.message : String(error),

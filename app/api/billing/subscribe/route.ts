@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
       customer_details: {
         name: customer.name, 
         email: body.customer.billingEmail, // Use email from request body, not DB model
-        country: customer.country || 'SA'
+        country: customer.address?.country || 'SA'
       }
     } as Record<string, unknown>;
 
