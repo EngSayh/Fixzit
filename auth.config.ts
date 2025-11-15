@@ -93,15 +93,16 @@ function _sanitizeImage(image?: string | null): string | undefined {
 }
 
 // Validation schema for credentials login (unified identifier field)
-// NOTE: signIn() from next-auth/react sends all values as strings, so we need to handle string-to-boolean conversion
+// NOTE: signIn() from next-auth/react sends checkbox values as 'on' when checked, undefined when unchecked
 const LoginSchema = z
   .object({
     identifier: z.string().trim().min(1, 'Email or employee number is required'),
     password: z.string().min(1, 'Password is required'),
-    // rememberMe comes as string "true"/"false" from signIn(), coerce to boolean
-    rememberMe: z.union([z.boolean(), z.string()]).transform(val => {
+    // ✅ FIXED: Handle HTML checkbox behavior ('on' when checked, undefined when unchecked)
+    rememberMe: z.union([z.boolean(), z.string(), z.undefined()]).transform(val => {
       if (typeof val === 'boolean') return val;
-      return val === 'true' || val === '1';
+      if (val === 'on' || val === 'true' || val === '1') return true;
+      return false;
     }).optional().default(false),
   })
   .transform((data, ctx) => {
@@ -167,7 +168,11 @@ export const authConfig = {
           // 1. Validate credentials schema
           const parsed = LoginSchema.safeParse(credentials);
           if (!parsed.success) {
-            logger.error('[NextAuth] Credentials validation failed:', { error: parsed.error.flatten() });
+            // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd for proper Sentry/Datadog integration
+            const validationError = new Error('Credentials validation failed');
+            logger.error('[NextAuth] Credentials validation failed', validationError, { 
+              issues: parsed.error.flatten() 
+            });
             return null;
           }
 
@@ -191,21 +196,32 @@ export const authConfig = {
           }
 
           if (!user) {
-            logger.error('[NextAuth] User not found:', { loginIdentifier });
+            // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd
+            const notFoundError = new Error(`User not found: ${loginIdentifier}`);
+            logger.error('[NextAuth] User not found', notFoundError, { loginIdentifier, loginType });
             return null;
           }
 
           // 5. Verify password (inline to avoid importing @/lib/auth)
           const isValid = await bcrypt.compare(password, user.password);
           if (!isValid) {
-            logger.error('[NextAuth] Invalid password for:', { loginIdentifier });
+            // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd
+            const passwordError = new Error(`Invalid password for: ${loginIdentifier}`);
+            logger.error('[NextAuth] Invalid password', passwordError, { loginIdentifier, loginType });
             return null;
           }
 
           // 6. Check if user is active
           const isUserActive = user.isActive !== undefined ? user.isActive : (user.status === 'ACTIVE');
           if (!isUserActive) {
-            logger.error('[NextAuth] Inactive user attempted login:', { loginIdentifier });
+            // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd
+            const inactiveError = new Error(`Inactive user attempted login: ${loginIdentifier}`);
+            logger.error('[NextAuth] Inactive user attempted login', inactiveError, { 
+              loginIdentifier, 
+              loginType,
+              status: user.status,
+              isActive: user.isActive 
+            });
             return null;
           }
 
@@ -229,7 +245,10 @@ export const authConfig = {
           };
           return authUser;
         } catch (error) {
-          logger.error('[NextAuth] Authorize error:', { error });
+          // ✅ FIXED: Pass actual Error as 2nd arg for proper stack traces in Sentry/Datadog
+          logger.error('[NextAuth] Authorize error', error as Error, { 
+            credentials: credentials ? 'present' : 'missing' 
+          });
           return null;
         }
       },

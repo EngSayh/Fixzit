@@ -141,7 +141,9 @@ export async function POST(req: NextRequest) {
       cart_currency: quote.currency,
       return: body.returnUrl, callback: body.callbackUrl,
       customer_details: {
-        name: customer.name, email: customer.billingEmail, country: customer.country || 'SA'
+        name: customer.name, 
+        email: body.customer.billingEmail, // Use email from request body, not DB model
+        country: customer.country || 'SA'
       }
     } as Record<string, unknown>;
 

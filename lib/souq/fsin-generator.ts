@@ -230,6 +230,7 @@ export function generateFSINWithPrefix(customPrefix: string): FSINMetadata {
  * Queries SouqProduct model to verify uniqueness
  * @param _fsin - FSIN to check
  * @returns Promise<boolean> true if exists, false otherwise
+ * @throws Error if database query fails (prevents duplicate FSINs during outages)
  */
 export async function fsinExists(_fsin: string): Promise<boolean> {
   try {
@@ -241,15 +242,27 @@ export async function fsinExists(_fsin: string): Promise<boolean> {
     const product = await SouqProduct.findOne({ fsin: _fsin }).select('_id').lean();
     return !!product;
   } catch (error) {
-    // On error, assume doesn't exist (safer to potentially regenerate than fail)
-    logger.error('[FSIN] Database lookup failed', error as Error, { fsin: _fsin });
-    return false;
+    // ✅ SECURITY FIX: Throw on DB errors to prevent duplicate FSINs during outages
+    // If we can't query the DB, we can't guarantee uniqueness - fail hard
+    logger.error('[FSIN] Database lookup failed - cannot verify uniqueness', error as Error, { fsin: _fsin });
+    throw new Error(`FSIN uniqueness check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
 /**
  * Generate unique FSIN with collision detection
  * Retries if FSIN already exists in database
+ * 
+ * ⚠️ RACE CONDITION: This check-then-insert pattern is NOT atomic.
+ * Two concurrent requests can both pass fsinExists() and insert the same FSIN.
+ * 
+ * ✅ REQUIRED FIX: Add unique index on SouqProduct.fsin field:
+ *    souqProductSchema.index({ fsin: 1 }, { unique: true });
+ * 
+ * Then handle duplicate key errors (code 11000) in product creation:
+ *    try { await SouqProduct.create({ fsin, ... }) }
+ *    catch (err) { if (err.code === 11000) retry with new FSIN }
+ * 
  * @param maxRetries - Maximum retry attempts (default: 5)
  * @returns Promise<FSINMetadata>
  */

@@ -115,30 +115,9 @@ class Logger {
         }
       }
       
-      // DataDog integration (if configured)
-      if (process.env.DATADOG_API_KEY && process.env.DATADOG_APP_KEY) {
-        // Send to DataDog Logs API
-        try {
-          await fetch('https://http-intake.logs.datadoghq.com/api/v2/logs', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'DD-API-KEY': process.env.DATADOG_API_KEY || ''
-            },
-            body: JSON.stringify({
-              ddsource: 'fixzit',
-              service: 'web-app',
-              hostname: typeof window !== 'undefined' ? window.location.hostname : 'server',
-              level,
-              message,
-              timestamp: new Date().toISOString(),
-              ...context
-            })
-          });
-        } catch (_ddError) {
-          // Silent fail - don't break app if DataDog is unreachable
-        }
-      }
+      // ✅ SECURITY FIX: DataDog integration removed from client-accessible logger
+      // Moved to server-only module (/app/api/logs/route.ts) to prevent credential leaks
+      // Client components should call /api/logs endpoint instead of accessing keys directly
       
       // Store in session for debugging (browser only)
       if (typeof window !== 'undefined' && window.sessionStorage) {
