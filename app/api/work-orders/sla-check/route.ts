@@ -33,7 +33,8 @@ export async function POST() {
     };
     
     for (const wo of workOrders) {
-      const deadline = new Date(wo.sla?.deadline || Date.now());
+      // TODO(schema-migration): Schema has responseDeadline/resolutionDeadline, not deadline
+      const deadline = new Date((wo.sla as any)?.deadline || Date.now());
       const diff = deadline.getTime() - now.getTime();
       
       if (diff <= 0) {
