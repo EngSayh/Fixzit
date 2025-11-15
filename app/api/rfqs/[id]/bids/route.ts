@@ -31,6 +31,15 @@ interface Bid {
   status: string;
 }
 
+type RFQWithBids = {
+  bids: Bid[];
+  timeline?: { bidDeadline?: Date | string };
+  bidding?: { targetBids?: number; anonymous?: boolean };
+  workflow?: { closedBy?: string; closedAt?: Date };
+  status: string;
+  save: () => Promise<unknown>;
+};
+
 const submitBidSchema = z.object({
   vendorId: z.string(),
   vendorName: z.string(),
@@ -80,27 +89,27 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
     const data = submitBidSchema.parse(await req.json());
 
-    const { RFQ } = await import('@/server/models/RFQ');
-    const rfq = (await RFQ.findOne({ _id: params.id, tenantId: user.tenantId }));
+    const rfq = await RFQ.findOne({ _id: params.id, tenantId: user.tenantId });
     
     if (!rfq) {
       return createSecureResponse({ error: "RFQ not found" }, 404, req);
     }
 
-    if (rfq.status !== 'PUBLISHED' && rfq.status !== 'BIDDING') {
+    const rfqDoc = rfq as unknown as RFQWithBids;
+
+    if (rfqDoc.status !== 'PUBLISHED' && rfqDoc.status !== 'BIDDING') {
       return createSecureResponse({ error: "RFQ is not accepting bids" }, 400, req);
     }
 
     // Check if vendor already submitted a bid
-    // TODO(type-safety): Add proper Bid type definition
-    const existingBid = (rfq.bids as any).find((b: { vendorId: string }) => b.vendorId === data.vendorId);
+    const bidsArray = Array.isArray(rfqDoc.bids) ? rfqDoc.bids : (rfqDoc.bids = []);
+    const existingBid = bidsArray.find((b) => b.vendorId === data.vendorId);
     if (existingBid) {
       return createSecureResponse({ error: "Vendor has already submitted a bid" }, 400, req);
     }
 
     // Check bid deadline
-    // TODO(type-safety): Add proper timeline type guards
-    if (rfq.timeline && new Date() > new Date((rfq.timeline as any).bidDeadline)) {
+    if (rfqDoc.timeline?.bidDeadline && new Date() > new Date(rfqDoc.timeline.bidDeadline)) {
       return createSecureResponse({ error: "Bid deadline has passed" }, 400, req);
     }
 
@@ -112,25 +121,23 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       status: "SUBMITTED"
     };
 
-    // TODO(type-safety): Align bid structure with RFQ schema
-    (rfq.bids as any).push(bid);
+    bidsArray.push(bid);
 
     // Update status to BIDDING if first bid
-    if (rfq.bids.length === 1 && rfq.status === 'PUBLISHED') {
-      rfq.status = 'BIDDING';
+    if (bidsArray.length === 1 && rfqDoc.status === 'PUBLISHED') {
+      rfqDoc.status = 'BIDDING';
     }
 
     // Check if target bids reached
-    // TODO(type-safety): Add proper bidding/workflow type definitions
-    if ((rfq as any).bidding?.targetBids && rfq.bids.length >= (rfq as any).bidding.targetBids) {
-      rfq.status = 'CLOSED';
-      if ((rfq as any).workflow) {
-        (rfq as any).workflow.closedBy = user.id;
-        (rfq as any).workflow.closedAt = new Date();
+    if (rfqDoc.bidding?.targetBids && bidsArray.length >= rfqDoc.bidding.targetBids) {
+      rfqDoc.status = 'CLOSED';
+      if (rfqDoc.workflow) {
+        rfqDoc.workflow.closedBy = user.id;
+        rfqDoc.workflow.closedAt = new Date();
       }
     }
 
-    await rfq.save();
+    await rfqDoc.save();
 
     return createSecureResponse(bid, 201, req);
   } catch (error: unknown) {
@@ -151,16 +158,17 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    const rfq = (await RFQ.findOne({ _id: params.id, tenantId: user.tenantId }));
+    const rfq = await RFQ.findOne({ _id: params.id, tenantId: user.tenantId });
     
     if (!rfq) {
       return createSecureResponse({ error: "RFQ not found" }, 404, req);
     }
 
+    const rfqDoc = rfq as unknown as RFQWithBids;
+
     // If anonymous bidding is enabled, hide vendor details
-    // TODO(type-safety): Add proper Bid type and bidding structure
-    if ((rfq as any).bidding?.anonymous && rfq.status !== 'AWARDED') {
-      const anonymizedBids = ((rfq.bids || []) as any[]).map((bid, index: number) => ({
+    if (rfqDoc.bidding?.anonymous && rfqDoc.status !== 'AWARDED') {
+      const anonymizedBids = (rfqDoc.bids || []).map((bid, index: number) => ({
         ...bid,
         vendorId: `VENDOR-${index + 1}`,
         vendorName: `Anonymous Vendor ${index + 1}`
@@ -168,7 +176,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
       return createSecureResponse(anonymizedBids, 200, req);
     }
 
-    return createSecureResponse(rfq.bids, 200, req);
+    return createSecureResponse(rfqDoc.bids, 200, req);
   } catch (error: unknown) {
     return handleApiError(error);
   }

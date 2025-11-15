@@ -20,9 +20,9 @@ type Citation = { title: string; slug: string };
  * Represents minimal fields needed for assistant ticket operations
  */
 interface WorkOrderItem {
-  code: string;      // e.g., "WO-2025-12345"
-  title: string;     // User-provided work order title
-  status: string;    // Current status: SUBMITTED, IN_PROGRESS, COMPLETED, etc.
+  workOrderNumber: string;
+  title: string;
+  status: string;
 }
 
 /**
@@ -149,22 +149,43 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ answer: "Please sign in to create a work order.", citations: [] });
     }
+    if (!createArgs.propertyId) {
+      return NextResponse.json({ answer: "Please specify a propertyId when creating a work order.", citations: [] });
+    }
     try {
-      const seq = Math.floor((Date.now() / 1000) % 100000);
-      const code = `WO-${new Date().getFullYear()}-${seq}`;
+      const allowedPriorities = ["LOW","MEDIUM","HIGH","URGENT","CRITICAL"];
+      const priority = allowedPriorities.includes(createArgs.priority) ? createArgs.priority : "MEDIUM";
+      const now = new Date();
       const wo = await WorkOrder.create({
-        tenantId: user.orgId,
-        code,
+        orgId: user.orgId,
         title: createArgs.title,
-        description: createArgs.description,
-        priority: ["LOW","MEDIUM","HIGH","URGENT"].includes(createArgs.priority) ? createArgs.priority : "MEDIUM",
-        propertyId: createArgs.propertyId,
-        unitId: createArgs.unitId,
-        requester: { type: "TENANT", id: user.id },
+        description: createArgs.description || "No description provided",
+        priority,
+        category: "GENERAL",
+        type: "MAINTENANCE",
+        location: {
+          propertyId: createArgs.propertyId,
+          unitNumber: createArgs.unitId
+        },
+        requester: {
+          userId: user.id,
+          type: "TENANT",
+          name: user.id,
+          contactInfo: {
+            email: (user as { email?: string }).email
+          }
+        },
         status: "SUBMITTED",
-        statusHistory: [{ from: "DRAFT", to: "SUBMITTED", byUserId: user.id, at: new Date() }],
-        createdBy: user.id});
-      const answer = `Created work order ${(wo as unknown as WorkOrderItem).code} – "${wo.title}" with priority ${wo.priority}.`;
+        statusHistory: [{
+          fromStatus: "DRAFT",
+          toStatus: "SUBMITTED",
+          changedBy: user.id,
+          changedAt: now,
+          notes: "Created via assistant"
+        }],
+        createdBy: user.id
+      });
+      const answer = `Created work order ${(wo as unknown as WorkOrderItem).workOrderNumber} – "${wo.title}" with priority ${wo.priority}.`;
       return NextResponse.json({ answer, citations: [] as Citation[] });
     } catch (_e: unknown) {
       const errorMsg = _e instanceof Error ? _e.message : "unknown error";
@@ -186,11 +207,12 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ answer: "Please sign in to view your tickets.", citations: [] });
     }
-    const items = await WorkOrder.find({ tenantId: user.orgId, createdBy: user.id })
-      .sort?.({ createdAt: -1 })
-      .limit?.(5) || [];
-    // TODO(schema-migration): Use workOrderNumber instead of code
-    const lines = (Array.isArray(items) ? items : []).map((it: any) => `• ${it.code}: ${it.title} – ${it.status}`);
+    const items = await WorkOrder.find({ orgId: user.orgId, 'requester.userId': user.id })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select(["workOrderNumber", "title", "status"])
+      .lean();
+    const lines = items.map((it: any) => `• ${(it as WorkOrderItem).workOrderNumber}: ${it.title} – ${it.status}`);
     const answer = lines.length ? `Your recent work orders:\n${lines.join("\n")}` : "You have no work orders yet.";
     return NextResponse.json({ answer, citations: [] as Citation[] });
   }
@@ -236,6 +258,5 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ answer, citations });
 }
-
 
 

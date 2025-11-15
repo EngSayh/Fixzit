@@ -9,6 +9,7 @@ import React, {
   useEffect,
   ReactNode,
 } from 'react';
+import { logger } from '@/lib/logger';
 
 type AnyValue = unknown;
 

@@ -372,7 +372,7 @@
     "category": {
       "operational": "تشغيلي",
       "maintenance": "صيانة",
-      "maintenance_repair": "الصيانة والإصلاحات",
+      "maintenanceRepair": "الصيانة والإصلاحات",
       "capital": "رأسمالي",
       "utility": "خدمات",
       "utilities": "المرافق",

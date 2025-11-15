@@ -57,7 +57,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   await connectToDatabase();
 
   const body = schema.parse(await req.json());
-  const wo = (await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId }));
+  const wo = await WorkOrder.findOne({ _id: params.id, orgId: user.orgId });
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
 
   // Get current status and target status
@@ -83,9 +83,9 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     }
 
     // Validate technician assignment guard
-    // TODO(schema-migration): Use assignment.assignedTo fields
     if (transition.guard === 'technicianAssigned') {
-      if (!(wo as any).assigneeUserId && !(wo as any).assigneeVendorId) {
+      const assignedTo = (wo as { assignment?: { assignedTo?: { userId?: string; vendorId?: string } } }).assignment?.assignedTo;
+      if (!assignedTo?.userId && !assignedTo?.vendorId) {
         return createSecureResponse({
           error: "Assignment required",
           message: "Work order must be assigned to a technician before proceeding",
@@ -114,15 +114,34 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   if (gate instanceof NextResponse) return gate;
 
   // Technician/Vendor can only move their own assignments
-  // TODO(schema-migration): Use assignment.assignedTo fields
-  if ((user.role === "TECHNICIAN" || user.role === "VENDOR") &&
-      String((wo as any).assigneeUserId ?? (wo as any).assigneeVendorId ?? "") !== user.id) {
-    return createSecureResponse({ error: "Not your assignment" }, 403, req);
+  if (user.role === "TECHNICIAN" || user.role === "VENDOR") {
+    const assignedTo = (wo as { assignment?: { assignedTo?: { userId?: string; vendorId?: string } } }).assignment?.assignedTo;
+    const matches =
+      (user.role === "TECHNICIAN" && assignedTo?.userId && String(assignedTo.userId) === user.id) ||
+      (user.role === "VENDOR" && assignedTo?.vendorId && String(assignedTo.vendorId) === user.id);
+    if (!matches) {
+      return createSecureResponse({ error: "Not your assignment" }, 403, req);
+    }
   }
 
-  // TODO(schema-migration): Verify statusHistory structure and status enum values
-  (wo as any).statusHistory.push({ from: wo.status, to: body.to, byUserId: user.id, at: new Date(), note: body.note });
-  (wo as any).status = body.to;
+  type StatusHistoryEntry = {
+    fromStatus: string;
+    toStatus: string;
+    changedBy: string;
+    changedAt: Date;
+    notes?: string;
+  };
+
+  const doc = wo as { statusHistory?: StatusHistoryEntry[] };
+  doc.statusHistory ??= [];
+  doc.statusHistory.push({
+    fromStatus: wo.status,
+    toStatus: body.to as unknown as typeof wo.status,
+    changedBy: user.id,
+    changedAt: new Date(),
+    notes: body.note
+  });
+  wo.set('status', body.to as unknown as typeof wo.status);
   await wo.save();
   return createSecureResponse(wo, 200, req);
 }

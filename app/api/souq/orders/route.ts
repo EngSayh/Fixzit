@@ -83,8 +83,25 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // TODO(type-safety): Add reserveStock method to Listing model
-      const reserved = await (listing as any).reserveStock(itemRequest.quantity);
+      const listingDoc = listing as unknown as {
+        reserveStock?: (qty: number) => Promise<boolean>;
+        availableQuantity?: number;
+        reservedQuantity?: number;
+        save?: () => Promise<unknown>;
+      };
+      let reserved = true;
+      if (typeof listingDoc.reserveStock === 'function') {
+        reserved = await listingDoc.reserveStock(itemRequest.quantity);
+      } else {
+        const available = listingDoc.availableQuantity ?? listing.availableQuantity;
+        if (available < itemRequest.quantity) {
+          reserved = false;
+        } else {
+          listingDoc.availableQuantity = available - itemRequest.quantity;
+          listingDoc.reservedQuantity = (listingDoc.reservedQuantity ?? listing.reservedQuantity ?? 0) + itemRequest.quantity;
+          await listingDoc.save?.();
+        }
+      }
       if (!reserved) {
         return NextResponse.json(
           { error: `Failed to reserve stock for ${listing.sku || 'product'}` },

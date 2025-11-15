@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { connectDb } from '@/lib/mongo';
-import { PayrollRun } from '@/models/hr/Payroll';
-
+import { connectToDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
+import { PayrollService } from '@/server/services/hr/payroll.service';
 // GET /api/hr/payroll/runs - List all payroll runs
 export async function GET(req: NextRequest) {
   try {
@@ -12,18 +11,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await connectDb();
+    await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
 
-    const query: Record<string, unknown> = { orgId: session.user.orgId };
-    if (status) query.status = status;
-
-    const runs = await PayrollRun.find(query)
-      .sort({ periodEnd: -1 })
-      .limit(50)
-      .lean();
+    const runs = await PayrollService.list({
+      orgId: session.user.orgId,
+      status: (status as any) || undefined,
+    });
 
     return NextResponse.json({ runs });
   } catch (error) {
@@ -43,41 +39,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await connectDb();
+    await connectToDatabase();
 
     const body = await req.json();
 
-    if (!body.periodStart || !body.periodEnd || !body.cutOffDate) {
+    if (!body.periodStart || !body.periodEnd || !body.name) {
       return NextResponse.json(
-        { error: 'Missing required fields: periodStart, periodEnd, cutOffDate' },
+        { error: 'Missing required fields: name, periodStart, periodEnd' },
         { status: 400 }
       );
     }
 
-    // Check for overlapping runs
-    const existing = await PayrollRun.findOne({
-      orgId: session.user.orgId,
-      $or: [
-        {
-          periodStart: { $lte: new Date(body.periodEnd) },
-          periodEnd: { $gte: new Date(body.periodStart) },
-        },
-      ],
-    });
+    const periodStart = new Date(body.periodStart);
+    const periodEnd = new Date(body.periodEnd);
 
-    if (existing) {
+    const overlap = await PayrollService.existsOverlap(session.user.orgId, periodStart, periodEnd);
+    if (overlap) {
       return NextResponse.json(
         { error: 'A payroll run already exists for this period' },
         { status: 409 }
       );
     }
 
-    const run = await PayrollRun.create({
+    const run = await PayrollService.create({
       orgId: session.user.orgId,
-      periodStart: new Date(body.periodStart),
-      periodEnd: new Date(body.periodEnd),
-      cutOffDate: new Date(body.cutOffDate),
-      status: 'DRAFT',
+      name: body.name,
+      periodStart,
+      periodEnd,
     });
 
     return NextResponse.json(run, { status: 201 });

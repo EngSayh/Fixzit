@@ -59,7 +59,7 @@ vi.mock('@/i18n/config', () => {
   };
 });
 
-import { TranslationProvider, useTranslation } from './TranslationContext';
+import { TranslationProvider, useTranslation } from '@/contexts/TranslationContext';
 import { I18nProvider } from '@/i18n/I18nProvider';
 
 function HookProbe({

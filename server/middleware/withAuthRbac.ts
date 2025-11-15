@@ -108,7 +108,8 @@ export function requireAbility(ability: Parameters<typeof can>[1]) {
   return async (req: NextRequest) => {
     try {
       const user = await getSessionUser(req);
-      if (!can(user.role, ability)) {
+      // TODO(type-safety): Ensure UserRoleType matches Role enum
+      if (!can(user.role as any, ability)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
       return user;

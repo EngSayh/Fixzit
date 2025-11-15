@@ -22,8 +22,10 @@ async function checkUsers() {
         console.log(`✅ ${email}`);
         console.log(`   Role: ${user.professional?.role || 'N/A'}`);
         console.log(`   Status: ${user.status || 'N/A'}`);
-        console.log(`   isActive: ${user.isActive !== undefined ? user.isActive : 'N/A'}`);
-        console.log(`   Has password: ${!!user.passwordHash || !!user.password}`);
+        // TODO(type-safety): Verify User schema has isActive field
+        console.log(`   isActive: ${(user as any).isActive !== undefined ? (user as any).isActive : 'N/A'}`);
+        // TODO(type-safety): User schema has 'password' not 'passwordHash'
+        console.log(`   Has password: ${!!user.password || !!(user as any).passwordHash}`);
       } else {
         console.log(`❌ ${email} - NOT FOUND`);
       }

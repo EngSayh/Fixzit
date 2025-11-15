@@ -25,5 +25,5 @@ export function can(role: Role, ability: Ability) {
 }
 
 // Re-export Role for middleware compatibility
-export { Role as default };
+export type { Role as default };
 

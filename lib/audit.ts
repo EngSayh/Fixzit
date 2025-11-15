@@ -44,12 +44,12 @@ export async function audit(event: AuditEvent): Promise<void> {
 
   // ✅ Write to database
   try {
-    const entityId = (event.meta?.targetId as string | undefined) || undefined;
+    const entityId = ((event.meta?.targetId as string | undefined) || '') as string;
     await AuditLogModel.log({
       orgId: event.orgId || undefined,
       action: event.action ? event.action.toUpperCase() : 'CUSTOM',
       entityType: event.targetType ? event.targetType.toUpperCase() : 'OTHER',
-      entityId: entityId,
+      entityId,  // TODO(type-safety): Verify entityId schema type
       entityName: (event.meta?.targetName as string | undefined) || (event.target ? String(event.target) : undefined),
       userId: event.actorId,
       context: {

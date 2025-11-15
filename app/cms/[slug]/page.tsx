@@ -69,7 +69,8 @@ export default async function CmsPageScreen(props: { params: Promise<{slug:strin
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <div>
                 Last updated <ClientDate date={page.updatedAt} format="date-only" />
-                {page.updatedBy && ` by ${page.updatedBy}`}
+                {/* TODO(type-safety): Add updatedBy to Page schema */}
+                {(page as any).updatedBy && ` by ${(page as any).updatedBy}`}
               </div>
               <Link 
                 href="/" 

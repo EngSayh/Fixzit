@@ -1,18 +1,25 @@
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { withIdempotency, createIdempotencyKey } from "@/server/security/idempotency";
-// Import the main WorkOrder model instead of defining a duplicate schema
 import { WorkOrder } from "@/server/models/WorkOrder";
-// Import Zod validation schemas
 import { WoCreate, WoUpdate } from "./wo.schema";
 
+const DEFAULT_CATEGORY = "GENERAL";
+const DEFAULT_TYPE = "MAINTENANCE";
+const DEFAULT_STATUS = "SUBMITTED";
+
 const _VALID_TRANSITIONS: Record<string, string[]> = {
-  NEW: ["ASSIGNED","CANCELLED"],
+  DRAFT: ["SUBMITTED","CANCELLED"],
+  SUBMITTED: ["ASSIGNED","REJECTED","CANCELLED"],
   ASSIGNED: ["IN_PROGRESS","ON_HOLD","CANCELLED"],
-  IN_PROGRESS: ["ON_HOLD","COMPLETED","CANCELLED"],
+  IN_PROGRESS: ["ON_HOLD","PENDING_APPROVAL","COMPLETED","CANCELLED"],
   ON_HOLD: ["IN_PROGRESS","CANCELLED"],
-  COMPLETED: [],
-  CANCELLED: []
+  PENDING_APPROVAL: ["COMPLETED","REJECTED","IN_PROGRESS"],
+  COMPLETED: ["VERIFIED","REJECTED"],
+  VERIFIED: ["CLOSED"],
+  CLOSED: [],
+  CANCELLED: [],
+  REJECTED: ["DRAFT","SUBMITTED"]
 };
 
 // DUPLICATE SCHEMA REMOVED: Now using the main WorkOrder model from server/models/WorkOrder.ts
@@ -20,18 +27,23 @@ const _VALID_TRANSITIONS: Record<string, string[]> = {
 // were both trying to register as 'WorkOrder' model
 
 export interface WorkOrderInput {
+  orgId: string;
   title: string;
-  description?: string;
-  status?: 'draft' | 'open' | 'in-progress' | 'completed' | 'cancelled';
-  priority?: 'low' | 'medium' | 'high' | 'urgent';
-  tenantId: string;
-  assignedTo?: string;
-  propertyId?: string;
-  estimatedCost?: number;
-  actualCost?: number;
-  scheduledDate?: Date;
-  completedDate?: Date;
-  notes?: string;
+  description: string;
+  priority?: string;
+  category?: string;
+  type?: string;
+  subcategory?: string;
+  propertyId: string;
+  unitNumber?: string;
+  requesterId: string;
+  requesterName?: string;
+  requesterEmail?: string;
+  requesterType?: string;
+  slaHours?: number;
+  responseMinutes?: number;
+  assignmentUserId?: string;
+  assignmentVendorId?: string;
 }
 
 export async function create(data: WorkOrderInput, actorId: string, ip?: string) {
@@ -42,24 +54,69 @@ export async function create(data: WorkOrderInput, actorId: string, ip?: string)
   
   // ⚡ FIXED: Use deterministic idempotency key based on payload content
   // This ensures that duplicate requests with the same data are truly idempotent
-  const key = createIdempotencyKey('wo-create', { ...validated, actorId });
+  const key = createIdempotencyKey('wo:create', { orgId: validated.orgId, title: validated.title });
   
   const wo = await withIdempotency(key, async () => {
-    const code = `WO-${Date.now()}`;
+    const now = new Date();
+    const resolutionMinutes = validated.slaHours * 60;
+    const responseMinutes = validated.responseMinutes ?? 120;
+    const hasAssignment = Boolean(validated.assignmentUserId || validated.assignmentVendorId);
+    const assignment = hasAssignment
+      ? {
+          assignedBy: actorId,
+          assignedAt: now,
+          assignedTo: {
+            ...(validated.assignmentUserId ? { userId: validated.assignmentUserId } : {}),
+            ...(validated.assignmentVendorId ? { vendorId: validated.assignmentVendorId } : {})
+          }
+        }
+      : undefined;
+
     return await WorkOrder.create({
-      ...validated,
-      code,
-      requestedBy: actorId
+      orgId: validated.orgId,
+      title: validated.title,
+      description: validated.description,
+      priority: validated.priority,
+      category: validated.category || DEFAULT_CATEGORY,
+      type: validated.type || DEFAULT_TYPE,
+      subcategory: validated.subcategory,
+      location: {
+        propertyId: validated.propertyId,
+        unitNumber: validated.unitNumber
+      },
+      requester: {
+        userId: validated.requesterId,
+        type: (validated.requesterType || "TENANT").toUpperCase(),
+        name: validated.requesterName || "Requester",
+        contactInfo: {
+          email: validated.requesterEmail
+        }
+      },
+      assignment,
+      sla: {
+        responseTimeMinutes: responseMinutes,
+        resolutionTimeMinutes: resolutionMinutes,
+        responseDeadline: new Date(now.getTime() + responseMinutes * 60 * 1000),
+        resolutionDeadline: new Date(now.getTime() + resolutionMinutes * 60 * 1000),
+        status: "ON_TIME"
+      },
+      status: DEFAULT_STATUS,
+      statusHistory: [{
+        fromStatus: "DRAFT",
+        toStatus: DEFAULT_STATUS,
+        changedBy: actorId,
+        changedAt: now,
+        notes: "Created via wo.service"
+      }],
+      createdBy: actorId
     });
   });
   
-  // Log audit event (simplified without external audit module)
-  // TODO(schema-migration): Use workOrderNumber instead of code
-  logger.info(`Work order created: ${(wo as any).code} by ${actorId} from ${ip || 'unknown'}`);
+  logger.info(`Work order created: ${(wo as any).workOrderNumber || (wo as any).code} by ${actorId} from ${ip || 'unknown'}`);
   return wo;
 }
 
-export async function update(id: string, patch: Partial<WorkOrderInput>, tenantId: string, actorId: string, ip?: string) {
+export async function update(id: string, patch: Partial<WorkOrderInput>, orgId: string, actorId: string, ip?: string) {
   await connectToDatabase();
   
   if (!id) {
@@ -78,9 +135,7 @@ export async function update(id: string, patch: Partial<WorkOrderInput>, tenantI
     throw new Error(`Work order not found: ${id}`);
   }
   
-  // ⚡ FIXED: Verify tenant ownership (multi-tenant security)
-  // TODO(schema-migration): Verify tenantId is in schema or use proper tenant field
-  if ((existing as any).tenantId !== tenantId) {
+  if ((existing as any).orgId?.toString?.() !== orgId) {
     throw new Error(`Work order not found: ${id}`); // Don't leak existence
   }
   
@@ -95,18 +150,78 @@ export async function update(id: string, patch: Partial<WorkOrderInput>, tenantI
     }
   }
   
-  const updated = await WorkOrder.findByIdAndUpdate(id, validated, { new: true });
+  const setUpdate: Record<string, unknown> = {};
+
+  if (validated.title) setUpdate.title = validated.title;
+  if (validated.description) setUpdate.description = validated.description;
+  if (validated.priority) setUpdate.priority = validated.priority;
+  if (validated.category) setUpdate.category = validated.category;
+  if (validated.subcategory) setUpdate.subcategory = validated.subcategory;
+
+  if (validated.assignmentUserId) {
+    setUpdate["assignment.assignedTo.userId"] = validated.assignmentUserId;
+  }
+  if (validated.assignmentVendorId) {
+    setUpdate["assignment.assignedTo.vendorId"] = validated.assignmentVendorId;
+  }
+  if (validated.assignmentUserId || validated.assignmentVendorId) {
+    setUpdate["assignment.assignedBy"] = actorId;
+    setUpdate["assignment.assignedAt"] = new Date();
+  }
+
+  if (validated.slaHours) {
+    const minutes = validated.slaHours * 60;
+    setUpdate["sla.resolutionTimeMinutes"] = minutes;
+    setUpdate["sla.resolutionDeadline"] = new Date(Date.now() + minutes * 60 * 1000);
+  }
+
+  if (validated.responseMinutes) {
+    setUpdate["sla.responseTimeMinutes"] = validated.responseMinutes;
+    setUpdate["sla.responseDeadline"] = new Date(Date.now() + validated.responseMinutes * 60 * 1000);
+  }
+
+  if (validated.scheduledAt) {
+    setUpdate["assignment.scheduledDate"] = validated.scheduledAt;
+  }
+  if (validated.startedAt) {
+    setUpdate["work.actualStartTime"] = validated.startedAt;
+  }
+  if (validated.completedAt) {
+    setUpdate["work.actualEndTime"] = validated.completedAt;
+  }
+
+  if (validated.status) {
+    setUpdate.status = validated.status;
+  }
+
+  if (Object.keys(setUpdate).length === 0) {
+    return existing;
+  }
+
+  const updatePayload: Record<string, unknown> = { $set: setUpdate };
+
+  if (validated.status && validated.status !== existing.status) {
+    updatePayload.$push = {
+      statusHistory: {
+        fromStatus: existing.status,
+        toStatus: validated.status,
+        changedBy: actorId,
+        changedAt: new Date(),
+        notes: "Updated via wo.service"
+      }
+    };
+  }
+
+  const updated = await WorkOrder.findByIdAndUpdate(id, updatePayload, { new: true });
   
-  // Log audit event (simplified)
-  // TODO(schema-migration): Use workOrderNumber instead of code
-  logger.info(`Work order updated: ${(updated as any)?.code} by ${actorId} from ${ip || 'unknown'}`);
+  logger.info(`Work order updated: ${(updated as any)?.workOrderNumber || (updated as any)?.code} by ${actorId} from ${ip || 'unknown'}`);
   return updated;
 }
 
-export async function list(tenantId: string, q?: string, status?: string) {
+export async function list(orgId: string, q?: string, status?: string) {
   await connectToDatabase();
   
-  const filters: Record<string, unknown> = { tenantId };
+  const filters: Record<string, unknown> = { orgId, isDeleted: { $ne: true } };
   
   if (status) {
     filters.status = status;
@@ -114,7 +229,7 @@ export async function list(tenantId: string, q?: string, status?: string) {
   
   if (q) {
     filters.$or = [
-      { code: new RegExp(q, 'i') },
+      { workOrderNumber: new RegExp(q, 'i') },
       { title: new RegExp(q, 'i') },
       { description: new RegExp(q, 'i') }
     ];
@@ -122,5 +237,3 @@ export async function list(tenantId: string, q?: string, status?: string) {
   
   return await WorkOrder.find(filters).sort({ createdAt: -1 }).lean();
 }
-
-

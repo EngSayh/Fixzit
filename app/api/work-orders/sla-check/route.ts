@@ -17,15 +17,15 @@ export async function POST() {
     // Find work orders that:
     // 1. Are not closed/cancelled
     // 2. Have SLA deadline approaching (within 2 hours) or breached
-    const workOrders = (await WorkOrder.find({
+    const workOrders = await WorkOrder.find({
       status: { $nin: ['CLOSED', 'CANCELLED', 'ARCHIVED'] },
-      'sla.deadline': { $exists: true, $lte: twoHoursFromNow }
-    }).lean());
+      'sla.resolutionDeadline': { $exists: true, $lte: twoHoursFromNow }
+    }).lean();
     
     const results = {
       checked: await WorkOrder.countDocuments({
         status: { $nin: ['CLOSED', 'CANCELLED', 'ARCHIVED'] },
-        'sla.deadline': { $exists: true }
+        'sla.resolutionDeadline': { $exists: true }
       }),
       atRisk: 0,
       breached: 0,
@@ -34,7 +34,7 @@ export async function POST() {
     
     for (const wo of workOrders) {
       // TODO(schema-migration): Schema has responseDeadline/resolutionDeadline, not deadline
-      const deadline = new Date((wo.sla as any)?.deadline || Date.now());
+      const deadline = new Date((wo.sla as any)?.resolutionDeadline || Date.now());
       const diff = deadline.getTime() - now.getTime();
       
       if (diff <= 0) {
@@ -89,10 +89,10 @@ export async function GET() {
   try {
     const now = new Date();
     
-    const allWorkOrders = (await WorkOrder.find({
+    const allWorkOrders = await WorkOrder.find({
       status: { $nin: ['CLOSED', 'CANCELLED', 'ARCHIVED'] },
-      'sla.deadline': { $exists: true }
-    }).lean());
+      'sla.resolutionDeadline': { $exists: true }
+    }).lean();
     
     const preview = {
       total: allWorkOrders.length,
@@ -101,7 +101,7 @@ export async function GET() {
       critical: 0,
       breached: 0,
       workOrders: allWorkOrders.map((wo: any) => {
-        const deadline = new Date(wo.sla?.deadline || Date.now());
+        const deadline = new Date(wo.sla?.resolutionDeadline || Date.now());
         const diff = deadline.getTime() - now.getTime();
         const hours = Math.floor(Math.abs(diff) / (1000 * 60 * 60));
         
@@ -125,7 +125,7 @@ export async function GET() {
           title: wo.title,
           status: wo.status,
           priority: wo.priority,
-          deadline: wo.sla?.deadline,
+          deadline: wo.sla?.resolutionDeadline,
           urgency,
           hoursRemaining: diff > 0 ? hours : -hours
         };

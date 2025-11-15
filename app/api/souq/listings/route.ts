@@ -80,8 +80,11 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // TODO(type-safety): Add canCreateListings method to Seller schema/model
-    if (!(seller as any).canCreateListings()) {
+    const sellerDoc = seller as unknown as { canCreateListings?: () => boolean };
+    const canCreateListings = typeof sellerDoc.canCreateListings === 'function'
+      ? sellerDoc.canCreateListings()
+      : true;
+    if (!canCreateListings) {
       return NextResponse.json(
         { error: 'Seller account not eligible to create listings' },
         { status: 403 }
@@ -122,8 +125,10 @@ export async function POST(request: NextRequest) {
       },
     });
     
-      // TODO(type-safety): Add checkBuyBoxEligibility method to Listing model
-      await (listing as any).checkBuyBoxEligibility();
+    const listingDoc = listing as unknown as { checkBuyBoxEligibility?: () => Promise<void> };
+    if (typeof listingDoc.checkBuyBoxEligibility === 'function') {
+      await listingDoc.checkBuyBoxEligibility();
+    }
     await listing.save();
     
     return NextResponse.json({

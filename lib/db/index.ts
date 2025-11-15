@@ -34,15 +34,16 @@ export async function ensureCoreIndexes(): Promise<void> {
     {
       collection: 'workorders',
       indexes: [
-        { key: { code: 1 }, unique: true },
-        { key: { tenantId: 1 } },
+        { key: { workOrderNumber: 1 }, unique: true },
+        { key: { orgId: 1 } },
         { key: { status: 1 } },
         { key: { priority: 1 } },
-        { key: { propertyId: 1 } },
-        { key: { assigneeUserId: 1 } },
+        { key: { 'location.propertyId': 1 } },
+        { key: { 'assignment.assignedTo.userId': 1 } },
+        { key: { 'assignment.assignedTo.vendorId': 1 } },
         { key: { createdAt: -1 } },
-        { key: { dueAt: 1 } },
-        { key: { tenantId: 1, status: 1, createdAt: -1 } }
+        { key: { 'sla.resolutionDeadline': 1 } },
+        { key: { orgId: 1, status: 1, createdAt: -1 } }
       ]
     },
     // Properties

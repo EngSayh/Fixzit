@@ -61,8 +61,20 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   const isOwner = !!user && (t as any).createdByUserId === user.id;
   if (!isAdmin && !isOwner) return createSecureResponse({ error: "Forbidden"}, 403, req);
 
-  t.messages.push({ byUserId: user?.id, byRole: isAdmin ? "ADMIN" : "USER", text: body.text, at: new Date() });
-  if (t.status === "Waiting") t.status = "Open";
+  const ticketDoc = t as unknown as {
+    messages: Array<{ byUserId?: string; byRole: string; text: string; at: Date }>;
+    status?: string;
+  };
+  ticketDoc.messages ??= [];
+  ticketDoc.messages.push({
+    byUserId: user?.id,
+    byRole: isAdmin ? "ADMIN" : "USER",
+    text: body.text,
+    at: new Date()
+  });
+  if (ticketDoc.status === "Waiting") {
+    ticketDoc.status = "Open";
+  }
   await t.save();
   return createSecureResponse({ ok: true }, 200, req);
 }

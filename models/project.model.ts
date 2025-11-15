@@ -522,7 +522,8 @@ const ALLOWED: Record<TProjectStatus, TProjectStatus[]> = {
   CLOSED: [],
 };
 
-ProjectSchema.statics.setStatus = async function (
+// TODO(type-safety): Resolve ProjectModel static method type compatibility
+ProjectSchema.statics.setStatus = (async function (
   this: ProjectModel,
   projectId: Types.ObjectId,
   next: TProjectStatus,
@@ -539,9 +540,10 @@ ProjectSchema.statics.setStatus = async function (
     { $set: { status: next, updatedBy: who } },
     { new: true },
   );
-};
+}) as ProjectModel['setStatus'];
 
-ProjectSchema.statics.recomputeBudget = async function (
+// TODO(type-safety): Resolve ProjectModel static method type compatibility
+ProjectSchema.statics.recomputeBudget = (async function (
   this: ProjectModel,
   projectId: Types.ObjectId,
 ) {
@@ -558,7 +560,7 @@ ProjectSchema.statics.recomputeBudget = async function (
   });
   await doc.save();
   return doc;
-};
+}) as ProjectModel['recomputeBudget'];
 
 // ---------- Export ----------
 export const Project = models.Project || (model<IProject, ProjectModel>('Project', ProjectSchema) as ProjectModel);

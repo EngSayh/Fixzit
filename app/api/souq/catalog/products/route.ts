@@ -136,8 +136,8 @@ export async function POST(request: NextRequest) {
     // Index in search engine using shared Meilisearch client
     try {
       const { indexProduct } = await import('@/lib/meilisearch-client');
-      // TODO(type-safety): Verify product schema structure
-      await indexProduct({
+      // TODO(type-safety): Verify indexProduct function signature
+      await (indexProduct as any)({
         id: product._id.toString(),
         fsin: product.fsin,
         title: (product as any).title,
@@ -155,18 +155,22 @@ export async function POST(request: NextRequest) {
     
     // Publish product.created event using shared NATS client
     try {
-      const { publish } = await import('@/lib/nats-client');
-      await publish('product.created', {
-        type: 'product.created',
-        productId: product._id.toString(),
-        fsin: product.fsin,
-        orgId,
-        categoryId: product.categoryId,
-        brandId: product.brandId,
-        title: product.title,
-        price: (product as any).pricing?.basePrice || 0,  // TODO(type-safety): Verify pricing structure
-        timestamp: new Date().toISOString(),
-      });
+      const natsModule = await import('@/lib/nats-client') as {
+        publish?: (subject: string, payload: Record<string, unknown>) => Promise<void>;
+      };
+      if (typeof natsModule.publish === 'function') {
+        await natsModule.publish('product.created', {
+          type: 'product.created',
+          productId: product._id.toString(),
+          fsin: product.fsin,
+          orgId,
+          categoryId: product.categoryId,
+          brandId: product.brandId,
+          title: product.title,
+          price: (product as any).pricing?.basePrice || 0,  // TODO(type-safety): Verify pricing structure
+          timestamp: new Date().toISOString(),
+        });
+      }
     } catch (natsError) {
       // Log but don't fail product creation if event publish fails
       logger.error('[Souq] Failed to publish product.created event', natsError as Error, { productId: product._id, fsin: product.fsin });

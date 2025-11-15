@@ -69,7 +69,8 @@ async function main() {
     const seq = Math.floor((Date.now() / 1000) % 100000);
     const code = `WO-REAL-${seq}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
     const createdAt = new Date();
-    const slaMinutes = computeSlaMinutes(w.priority);
+    // TODO(type-safety): Ensure w.priority matches WorkOrderPriority enum
+    const slaMinutes = computeSlaMinutes(w.priority as any);
     const dueAt = computeDueAt(createdAt, slaMinutes);
     const propId = createdProps[w.prop]?._id?.toString() || createdProps[w.prop]?.id;
     await WorkOrder.create({

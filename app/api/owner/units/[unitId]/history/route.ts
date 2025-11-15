@@ -121,28 +121,28 @@ export async function GET(
     // Maintenance History (using Mongoose model)
     if (includeOptions.includes('maintenance')) {
       const maintenanceMatch: Record<string, unknown> = {
-        'property.propertyId': property._id,
-        'property.unitNumber': params.unitId,
+        'location.propertyId': property._id,
+        'location.unitNumber': params.unitId,
         status: 'COMPLETED'
       };
       
       if (dateFilter.$gte || dateFilter.$lte) {
-        maintenanceMatch.completedDate = dateFilter;
+        maintenanceMatch['work.actualEndTime'] = dateFilter;
       }
       
-      const workOrders = (await WorkOrder.find(maintenanceMatch)
-        .sort({ completedDate: -1 })
+      const workOrders = await WorkOrder.find(maintenanceMatch)
+        .sort({ 'work.actualEndTime': -1 })
         .limit(50)
-        .lean());
+        .lean();
       
       historyData.maintenance = workOrders.map((wo: any) => ({
         workOrderNumber: wo.workOrderNumber,
         title: wo.title,
         category: wo.category,
         priority: wo.priority,
-        cost: wo.cost?.total,
-        completedDate: wo.completedDate,
-        vendor: wo.vendor?.name
+        cost: wo.financial?.costBreakdown?.total ?? wo.financial?.actualCost,
+        completedDate: wo.work?.actualEndTime ?? wo.updatedAt,
+        vendor: wo.assignment?.assignedTo?.name
       }));
     }
     

@@ -5,7 +5,7 @@ import { vi, beforeAll, afterAll, describe, test, expect, beforeEach, afterEach 
  */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import Providers from './Providers';
+import Providers from '@/providers/Providers';
 
 // Silence console.error during ErrorBoundary test (intentional "Boom" error)
 beforeAll(() => {
