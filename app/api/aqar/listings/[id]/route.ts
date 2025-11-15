@@ -73,7 +73,7 @@ export async function PATCH(
     const user = await getSessionUser(request);
     
     const { id } = await params;
-  try {
+    
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: 'Invalid listing ID' }, { status: 400 });
     }
