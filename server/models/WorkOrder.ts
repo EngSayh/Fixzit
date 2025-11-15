@@ -1,6 +1,7 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
-import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
-import { auditPlugin } from "../plugins/auditPlugin";
+import { Schema, Model, models, InferSchemaType } from 'mongoose';
+import { getModel } from '@/src/types/mongoose-compat';
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 // Work Order Status - State Machine as per specification
 const WorkOrderStatus = [

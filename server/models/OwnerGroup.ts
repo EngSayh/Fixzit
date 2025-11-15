@@ -1,6 +1,7 @@
-import { Schema, model, models, Types, InferSchemaType } from 'mongoose';
+import { Schema, Types, InferSchemaType } from 'mongoose';
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from '@/src/types/mongoose-compat';
 
 const OwnerGroupSchema = new Schema(
   {
@@ -30,10 +31,5 @@ OwnerGroupSchema.index({ orgId: 1, name: 1 }, { unique: true });
 OwnerGroupSchema.index({ orgId: 1, primary_contact_user_id: 1 });
 
 export type OwnerGroup = InferSchemaType<typeof OwnerGroupSchema>;
-let OwnerGroupModelVar: ReturnType<typeof model>;
-if (typeof models !== 'undefined' && models.OwnerGroup) {
-  OwnerGroupModelVar = models.OwnerGroup as ReturnType<typeof model>;
-} else {
-  OwnerGroupModelVar = model('OwnerGroup', OwnerGroupSchema);
-}
-export const OwnerGroupModel = OwnerGroupModelVar;
+
+export const OwnerGroupModel = getModel<OwnerGroup>('OwnerGroup', OwnerGroupSchema);

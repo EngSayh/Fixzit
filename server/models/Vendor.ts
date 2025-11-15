@@ -1,6 +1,7 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
-import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
-import { auditPlugin } from "../plugins/auditPlugin";
+import { Schema, Model, models, InferSchemaType } from 'mongoose';
+import { getModel } from '@/src/types/mongoose-compat';
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 const VendorStatus = ["PENDING", "APPROVED", "SUSPENDED", "REJECTED", "BLACKLISTED"] as const;
 const VendorType = ["SUPPLIER", "CONTRACTOR", "SERVICE_PROVIDER", "CONSULTANT"] as const;
@@ -214,10 +215,4 @@ VendorSchema.index({ orgId: 1, 'business.specializations': 1 });
 
 export type VendorDoc = InferSchemaType<typeof VendorSchema>;
 
-let VendorModel: ReturnType<typeof model<VendorDoc>>;
-if (typeof models !== 'undefined' && models.Vendor) {
-  VendorModel = models.Vendor as ReturnType<typeof model<VendorDoc>>;
-} else {
-  VendorModel = model<VendorDoc>("Vendor", VendorSchema);
-}
-export const Vendor = VendorModel;
+export const Vendor: Model<VendorDoc> = getModel<VendorDoc>('Vendor', VendorSchema);

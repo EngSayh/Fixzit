@@ -15,7 +15,7 @@ export interface AuditOptions {
 
 export async function recordAudit(options: AuditOptions) {
   try {
-    const { CopilotAudit } = await import('@/server/models/CopilotAudit');
+    const { CopilotAudit } = await import('@/server/models/CopilotAudit') as any;
     await CopilotAudit.create({
       tenantId: options.session.tenantId,
       userId: options.session.userId,

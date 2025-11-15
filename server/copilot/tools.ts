@@ -114,7 +114,7 @@ async function listMyWorkOrders(session: CopilotSession): Promise<ToolExecutionR
         priority: item.priority,
         updatedAt: item.updatedAt
       }))
-  ).catch(error => {
+  ).catch((error: unknown) => {
     logger.error('Failed to fetch work orders', error instanceof Error ? error : new Error(String(error)));
     return []; // Return empty array on error
   });
@@ -260,6 +260,8 @@ async function ownerStatements(session: CopilotSession, input: Record<string, un
   const ownerId = input.ownerId || session.userId;
   const year = Number(input.year) || new Date().getFullYear();
   const period = input.period || "YTD";
+
+  const { OwnerStatement } = await import('@/server/models/OwnerStatement') as any;
 
   interface StatementDoc {
     tenantId: string;

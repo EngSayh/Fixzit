@@ -1,6 +1,7 @@
-import { Schema, model, models, InferSchemaType } from 'mongoose';
+import { Schema, InferSchemaType } from 'mongoose';
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
+import { getModel } from '@/src/types/mongoose-compat';
 
 /**
  * PlatformSettings Model
@@ -64,10 +65,4 @@ PlatformSettingsSchema.index({ orgId: 1 }, { unique: true });
 
 export type PlatformSettingsDoc = InferSchemaType<typeof PlatformSettingsSchema>;
 
-let PlatformSettingsModel: ReturnType<typeof model>;
-if (typeof models !== 'undefined' && models.PlatformSettings) {
-  PlatformSettingsModel = models.PlatformSettings as ReturnType<typeof model>;
-} else {
-  PlatformSettingsModel = model("PlatformSettings", PlatformSettingsSchema);
-}
-export const PlatformSettings = PlatformSettingsModel;
+export const PlatformSettings = getModel<PlatformSettingsDoc>('PlatformSettings', PlatformSettingsSchema);

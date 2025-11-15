@@ -1,4 +1,5 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, Model, models, InferSchemaType } from "mongoose";
+import { getModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 import { UserRole, UserStatus } from "@/types/user";
@@ -211,12 +212,4 @@ UserSchema.index({ orgId: 1, isSuperAdmin: 1 }); // RBAC index
 
 export type UserDoc = InferSchemaType<typeof UserSchema>;
 
-// Edge Runtime compatible export - use conditional to avoid union type issues
-let UserModel: ReturnType<typeof model<UserDoc>>;
-if (typeof models !== 'undefined' && models.User) {
-  UserModel = models.User as ReturnType<typeof model<UserDoc>>;
-} else {
-  UserModel = model<UserDoc>("User", UserSchema);
-}
-
-export const User = UserModel;
+export const User: Model<UserDoc> = getModel<UserDoc>('User', UserSchema);

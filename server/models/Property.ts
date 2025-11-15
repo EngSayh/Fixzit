@@ -221,10 +221,4 @@ PropertySchema.index({ orgId: 1, code: 1 }, { unique: true });
 
 export type PropertyDoc = InferSchemaType<typeof PropertySchema>;
 
-let PropertyModel: ReturnType<typeof model<PropertyDoc>>;
-if (typeof models !== 'undefined' && models.Property) {
-  PropertyModel = models.Property as ReturnType<typeof model<PropertyDoc>>;
-} else {
-  PropertyModel = model<PropertyDoc>("Property", PropertySchema);
-}
-export const Property = PropertyModel;
+export const Property: Model<PropertyDoc> = getModel<PropertyDoc>('Property', PropertySchema);

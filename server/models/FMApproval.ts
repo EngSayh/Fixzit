@@ -1,4 +1,5 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, Model, InferSchemaType } from "mongoose";
+import { getModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 import { auditPlugin } from "@/server/plugins/auditPlugin";
 
@@ -191,10 +192,4 @@ FMApprovalSchema.virtual('daysUntilDue').get(function() {
 
 export type FMApprovalDoc = InferSchemaType<typeof FMApprovalSchema>;
 
-let FMApprovalModel: ReturnType<typeof model<FMApprovalDoc>>;
-if (typeof models !== 'undefined' && models.FMApproval) {
-  FMApprovalModel = models.FMApproval as ReturnType<typeof model<FMApprovalDoc>>;
-} else {
-  FMApprovalModel = model<FMApprovalDoc>('FMApproval', FMApprovalSchema);
-}
-export const FMApproval = FMApprovalModel;
+export const FMApproval: Model<FMApprovalDoc> = getModel<FMApprovalDoc>('FMApproval', FMApprovalSchema);

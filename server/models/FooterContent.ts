@@ -1,6 +1,7 @@
-import { Schema, model, models, InferSchemaType } from 'mongoose';
+import { Schema, InferSchemaType } from 'mongoose';
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
+import { getModel } from '@/src/types/mongoose-compat';
 
 /**
  * FooterContent Model
@@ -47,10 +48,4 @@ export type FooterContentDoc = InferSchemaType<typeof FooterContentSchema> & {
   getContent(_locale: string): string;
 };
 
-let FooterContentModel: ReturnType<typeof model>;
-if (typeof models !== 'undefined' && models.FooterContent) {
-  FooterContentModel = models.FooterContent as ReturnType<typeof model>;
-} else {
-  FooterContentModel = model("FooterContent", FooterContentSchema);
-}
-export const FooterContent = FooterContentModel;
+export const FooterContent = getModel<FooterContentDoc>('FooterContent', FooterContentSchema);

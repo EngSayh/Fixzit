@@ -259,12 +259,8 @@ export interface AuditLogStaticMethods {
 /* eslint-enable no-unused-vars */
 
 import type { Model } from 'mongoose';
+import { getModel } from '@/src/types/mongoose-compat';
+
 export type AuditLogModelType = Model<AuditLog> & AuditLogStaticMethods;
 
-let AuditLogModelVar: ReturnType<typeof model>;
-if (typeof models !== 'undefined' && models.AuditLog) {
-  AuditLogModelVar = models.AuditLog as ReturnType<typeof model>;
-} else {
-  AuditLogModelVar = model("AuditLog", AuditLogSchema);
-}
-export const AuditLogModel = AuditLogModelVar as AuditLogModelType;
+export const AuditLogModel: AuditLogModelType = getModel<AuditLog>('AuditLog', AuditLogSchema) as AuditLogModelType;

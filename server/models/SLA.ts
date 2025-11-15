@@ -1,6 +1,7 @@
-import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { Schema, InferSchemaType, Types } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from '@/src/types/mongoose-compat';
 
 const SLAType = ["RESPONSE_TIME", "RESOLUTION_TIME", "UPTIME", "AVAILABILITY", "MAINTENANCE"] as const;
 const SLAPriority = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
@@ -170,11 +171,4 @@ SLASchema.index({ orgId: 1, priority: 1 });
 
 export type SLADoc = InferSchemaType<typeof SLASchema>;
 
-// Check if we're using mock database
-let SLAModel: ReturnType<typeof model>;
-if (typeof models !== 'undefined' && models.SLA) {
-  SLAModel = models.SLA as ReturnType<typeof model>;
-} else {
-  SLAModel = model("SLA", SLASchema);
-}
-export const SLA = SLAModel;
+export const SLA = getModel<SLADoc>('SLA', SLASchema);

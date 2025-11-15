@@ -1,4 +1,5 @@
-import { Schema, model, models, InferSchemaType } from 'mongoose';
+import { Schema, Model, models, InferSchemaType } from 'mongoose';
+import { getModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
@@ -190,11 +191,4 @@ TenantSchema.index({ orgId: 1, code: 1 }, { unique: true });
 
 export type TenantDoc = InferSchemaType<typeof TenantSchema>;
 
-// Check if we're using mock database
-let TenantModel: ReturnType<typeof model<TenantDoc>>;
-if (typeof models !== 'undefined' && models.Tenant) {
-  TenantModel = models.Tenant as ReturnType<typeof model<TenantDoc>>;
-} else {
-  TenantModel = model<TenantDoc>("Tenant", TenantSchema);
-}
-export const Tenant = TenantModel;
+export const Tenant: Model<TenantDoc> = getModel<TenantDoc>('Tenant', TenantSchema);

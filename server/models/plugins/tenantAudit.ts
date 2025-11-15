@@ -118,7 +118,7 @@ export function tenantAuditPlugin(schema: Schema): void {
     if (context?.userId) {
       const update = this.getUpdate() as { $set?: Record<string, unknown> };
       if (!update.$set) {
-        this.set({ updatedBy: context.userId });
+        (this as any).set({ updatedBy: context.userId });
       } else {
         update.$set.updatedBy = context.userId;
       }

@@ -66,7 +66,7 @@ export async function retrieveKnowledge(session: CopilotSession, query: string, 
 
   const embedding = await callEmbedding(query);
 
-  const { CopilotKnowledge } = await import('@/server/models/CopilotKnowledge');
+  const { CopilotKnowledge } = await import('@/server/models/CopilotKnowledge') as any;
   const docs = await CopilotKnowledge.find({
     $and: [
       { $or: [{ orgId: session.tenantId }, { orgId: null }] },

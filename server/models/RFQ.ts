@@ -1,6 +1,7 @@
-import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { Schema, InferSchemaType, Types } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from '@/src/types/mongoose-compat';
 
 const RFQStatus = ["DRAFT", "PUBLISHED", "BIDDING", "CLOSED", "AWARDED", "CANCELLED"] as const;
 
@@ -162,11 +163,4 @@ RFQSchema.index({ orgId: 1, 'location.city': 1 });
 
 export type RFQDoc = InferSchemaType<typeof RFQSchema>;
 
-// Check if we're using mock database
-let RFQModel: ReturnType<typeof model>;
-if (typeof models !== 'undefined' && models.RFQ) {
-  RFQModel = models.RFQ as ReturnType<typeof model>;
-} else {
-  RFQModel = model("RFQ", RFQSchema);
-}
-export const RFQ = RFQModel;
+export const RFQ = getModel<RFQDoc>('RFQ', RFQSchema);

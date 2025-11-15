@@ -1,4 +1,5 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, Model, models, InferSchemaType } from "mongoose";
+import { getModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 
@@ -42,12 +43,4 @@ SupportTicketSchema.index({ orgId: 1, assigneeUserId: 1 });
 
 export type SupportTicketDoc = InferSchemaType<typeof SupportTicketSchema>;
 
-// Edge Runtime compatible export - use conditional to avoid union type issues
-let SupportTicketModel: ReturnType<typeof model<SupportTicketDoc>>;
-if (typeof models !== 'undefined' && models.SupportTicket) {
-  SupportTicketModel = models.SupportTicket as ReturnType<typeof model<SupportTicketDoc>>;
-} else {
-  SupportTicketModel = model<SupportTicketDoc>("SupportTicket", SupportTicketSchema);
-}
-
-export const SupportTicket = SupportTicketModel;
+export const SupportTicket: Model<SupportTicketDoc> = getModel<SupportTicketDoc>('SupportTicket', SupportTicketSchema);

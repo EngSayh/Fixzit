@@ -1,6 +1,7 @@
-import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { Schema, InferSchemaType, Types } from "mongoose";
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
+import { getModel } from '@/src/types/mongoose-compat';
 
 const OwnerStatementSchema = new Schema({
   // tenantId will be added by tenantIsolationPlugin
@@ -32,10 +33,4 @@ OwnerStatementSchema.index({ orgId: 1, ownerId: 1, period: 1, year: 1 });
 
 export type OwnerStatementDoc = InferSchemaType<typeof OwnerStatementSchema>;
 
-let OwnerStatementModel: ReturnType<typeof model>;
-if (typeof models !== 'undefined' && models.OwnerStatement) {
-  OwnerStatementModel = models.OwnerStatement as ReturnType<typeof model>;
-} else {
-  OwnerStatementModel = model("OwnerStatement", OwnerStatementSchema);
-}
-export const OwnerStatement = OwnerStatementModel;
+export const OwnerStatement = getModel<OwnerStatementDoc>('OwnerStatement', OwnerStatementSchema);

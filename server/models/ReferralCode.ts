@@ -5,6 +5,7 @@ import {
   Types,
   HydratedDocument,
 } from 'mongoose';
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
