@@ -143,7 +143,6 @@ export async function GET(request: NextRequest) {
 
     await connectToDatabase();
 
-    // @ts-expect-error - Mongoose 8.x type resolution issue with conditional model export
     const settings: any = await PlatformSettings.findOne({ orgId: user.orgId });
     
     const logoData = settings ? {

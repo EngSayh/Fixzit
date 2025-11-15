@@ -83,7 +83,8 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const reserved = await listing.reserveStock(itemRequest.quantity);
+      // TODO(type-safety): Add reserveStock method to Listing model
+      const reserved = await (listing as any).reserveStock(itemRequest.quantity);
       if (!reserved) {
         return NextResponse.json(
           { error: `Failed to reserve stock for ${listing.sku || 'product'}` },

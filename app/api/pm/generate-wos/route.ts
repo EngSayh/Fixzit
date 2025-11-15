@@ -61,7 +61,8 @@ export async function POST() {
         logger.info(`[PM] WO Data:`, { workOrderData });
         
         // Record generation in plan
-        await plan.recordGeneration(
+        // TODO(type-safety): Add recordGeneration method to PMPlan model
+        await (plan as any).recordGeneration(
           plan._id, // In real impl, this would be the actual WorkOrder._id
           woNumber,
           'SUCCESS'

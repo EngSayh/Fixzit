@@ -75,7 +75,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         id: rfq._id,
         code: rfq.code,
         status: rfq.status,
-        publishedAt: rfq?.workflow?.publishedAt || null
+        publishedAt: (rfq as any)?.workflow?.publishedAt || null  // TODO(type-safety): Add workflow to RFQ schema
       }
     });
   } catch (error: unknown) {

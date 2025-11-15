@@ -30,7 +30,8 @@ export async function GET(req:NextRequest, props:{params: Promise<{id:string}>})
   const user = await getSessionUser(req);
   await connectToDatabase();
   const wo = (await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId }));
-  return createSecureResponse(wo?.comments ?? [], 200, req);
+  // TODO(schema-migration): Verify comments array structure in WorkOrder schema
+  return createSecureResponse((wo as any)?.comments ?? [], 200, req);
 }
 
 export async function POST(req:NextRequest, props:{params: Promise<{id:string}>}) {

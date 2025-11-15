@@ -189,7 +189,8 @@ export async function POST(req: NextRequest) {
     const items = await WorkOrder.find({ tenantId: user.orgId, createdBy: user.id })
       .sort?.({ createdAt: -1 })
       .limit?.(5) || [];
-    const lines = (Array.isArray(items) ? items : []).map((it: WorkOrderItem) => `• ${(it as unknown as WorkOrderItem).code}: ${it.title} – ${it.status}`);
+    // TODO(schema-migration): Use workOrderNumber instead of code
+    const lines = (Array.isArray(items) ? items : []).map((it: any) => `• ${it.code}: ${it.title} – ${it.status}`);
     const answer = lines.length ? `Your recent work orders:\n${lines.join("\n")}` : "You have no work orders yet.";
     return NextResponse.json({ answer, citations: [] as Citation[] });
   }

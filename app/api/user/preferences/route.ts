@@ -132,7 +132,8 @@ export async function PUT(request: NextRequest) {
   // Use an empty object as the first param to avoid mutating stored preferences.
   // Example: updating { notifications: { email: false } } won't delete { notifications: { push: true, sms: false } }
   const currentPreferences = user.preferences || {};
-  user.preferences = deepMerge({}, currentPreferences, body);
+  // TODO(type-safety): Verify deepMerge returns correct UserPreferences type
+  user.preferences = deepMerge({}, currentPreferences, body) as any;
     
     await user.save();
     

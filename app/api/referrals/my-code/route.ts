@@ -40,9 +40,9 @@ export async function GET(request: NextRequest) {
     }
     
     // Paginate referrals array
-    const total = referralCode.referrals.length;
+    const total = referralCode.referrals?.length || 0;
     const totalPages = Math.ceil(total / limit);
-    const paginatedReferrals = referralCode.referrals.slice(offset, offset + limit);
+    const paginatedReferrals = (referralCode.referrals || []).slice(offset, offset + limit);
     
     return NextResponse.json({
       code: referralCode,

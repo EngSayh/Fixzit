@@ -80,7 +80,8 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    if (!seller.canCreateListings()) {
+    // TODO(type-safety): Add canCreateListings method to Seller schema/model
+    if (!(seller as any).canCreateListings()) {
       return NextResponse.json(
         { error: 'Seller account not eligible to create listings' },
         { status: 403 }
@@ -121,7 +122,8 @@ export async function POST(request: NextRequest) {
       },
     });
     
-    await listing.checkBuyBoxEligibility();
+      // TODO(type-safety): Add checkBuyBoxEligibility method to Listing model
+      await (listing as any).checkBuyBoxEligibility();
     await listing.save();
     
     return NextResponse.json({

@@ -92,13 +92,15 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     }
 
     // Check if vendor already submitted a bid
-    const existingBid = rfq.bids.find((b: { vendorId: string }) => b.vendorId === data.vendorId);
+    // TODO(type-safety): Add proper Bid type definition
+    const existingBid = (rfq.bids as any).find((b: { vendorId: string }) => b.vendorId === data.vendorId);
     if (existingBid) {
       return createSecureResponse({ error: "Vendor has already submitted a bid" }, 400, req);
     }
 
     // Check bid deadline
-    if (new Date() > new Date(rfq.timeline.bidDeadline)) {
+    // TODO(type-safety): Add proper timeline type guards
+    if (rfq.timeline && new Date() > new Date((rfq.timeline as any).bidDeadline)) {
       return createSecureResponse({ error: "Bid deadline has passed" }, 400, req);
     }
 
@@ -110,7 +112,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       status: "SUBMITTED"
     };
 
-    rfq.bids.push(bid);
+    // TODO(type-safety): Align bid structure with RFQ schema
+    (rfq.bids as any).push(bid);
 
     // Update status to BIDDING if first bid
     if (rfq.bids.length === 1 && rfq.status === 'PUBLISHED') {
@@ -118,10 +121,13 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     }
 
     // Check if target bids reached
-    if (rfq.bidding.targetBids && rfq.bids.length >= rfq.bidding.targetBids) {
+    // TODO(type-safety): Add proper bidding/workflow type definitions
+    if ((rfq as any).bidding?.targetBids && rfq.bids.length >= (rfq as any).bidding.targetBids) {
       rfq.status = 'CLOSED';
-      rfq.workflow.closedBy = user.id;
-      rfq.workflow.closedAt = new Date();
+      if ((rfq as any).workflow) {
+        (rfq as any).workflow.closedBy = user.id;
+        (rfq as any).workflow.closedAt = new Date();
+      }
     }
 
     await rfq.save();
@@ -152,8 +158,9 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     }
 
     // If anonymous bidding is enabled, hide vendor details
-    if (rfq.bidding.anonymous && rfq.status !== 'AWARDED') {
-      const anonymizedBids = (rfq.bids as Bid[]).map((bid, index: number) => ({
+    // TODO(type-safety): Add proper Bid type and bidding structure
+    if ((rfq as any).bidding?.anonymous && rfq.status !== 'AWARDED') {
+      const anonymizedBids = ((rfq.bids || []) as any[]).map((bid, index: number) => ({
         ...bid,
         vendorId: `VENDOR-${index + 1}`,
         vendorName: `Anonymous Vendor ${index + 1}`

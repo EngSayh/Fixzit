@@ -81,7 +81,8 @@ export async function GET(
     }
     
     type PropertyUnit = { unitNumber: string; type: string; area?: number; bedrooms?: number; bathrooms?: number; status?: string; [key: string]: unknown };
-    const unit = (property.units as PropertyUnit[] | undefined)?.find((u: PropertyUnit) => u.unitNumber === params.unitId);
+    // TODO(type-safety): Verify Property.units schema structure
+    const unit = ((property as any).units as PropertyUnit[] | undefined)?.find((u: PropertyUnit) => u.unitNumber === params.unitId);
     
     if (!unit) {
       return NextResponse.json(
