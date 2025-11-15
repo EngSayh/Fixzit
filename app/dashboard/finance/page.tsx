@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -47,7 +49,7 @@ export default function FinanceDashboard() {
         });
         setLoading(false);
       } catch (error) {
-        console.error('Failed to load finance data:', error);
+        logger.error('Failed to load finance data:', error as Error);
         setLoading(false);
       }
     };

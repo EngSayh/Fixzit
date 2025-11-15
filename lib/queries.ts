@@ -5,6 +5,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { getDatabase } from './mongodb-unified';
+import { logger } from './logger';
 import type { Db } from 'mongodb';
 
 // Alias for consistency
@@ -388,9 +389,9 @@ export async function createPerformanceIndexes() {
   for (const { collection, index } of indexes) {
     try {
       await db.collection(collection).createIndex(index);
-      console.log(`✅ Created index on ${collection}:`, index);
+      logger.info(`✅ Created index on ${collection}`, { collection, index });
     } catch (error) {
-      console.error(`❌ Failed to create index on ${collection}:`, error);
+      logger.error(`❌ Failed to create index on ${collection}`, error as Error, { collection, index });
     }
   }
 }

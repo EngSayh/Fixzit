@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -27,7 +29,7 @@ export default function HRDashboard() {
         });
         setLoading(false);
       } catch (error) {
-        console.error('Failed to load HR data:', error);
+        logger.error('Failed to load HR data:', error as Error);
         setLoading(false);
       }
     };

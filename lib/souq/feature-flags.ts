@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Feature Flags for Fixzit Souq Marketplace
  * Controls gradual rollout of advanced marketplace features
@@ -211,7 +212,7 @@ export function createFeatureMiddleware(flag: SouqFeatureFlag) {
 
 // Development helper: Log feature flags on startup
 if (process.env.NODE_ENV === 'development') {
-  console.info('🎛️  Souq Feature Flags:', currentFlags);
+  logger.info('🎛️  Souq Feature Flags:', { flags: currentFlags });
 }
 
 export default {

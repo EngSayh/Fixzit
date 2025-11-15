@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import type { Locale } from '@/i18n/config';
 
 // 🚀 PERFORMANCE: Cache Intl formatters to avoid expensive re-creation on every call
@@ -58,7 +59,7 @@ export const fmtDate = (
     return getDateFormatter(locale, options).format(date);
   } catch (error) {
     // 🔒 FIX: Catch any unexpected formatting errors
-    console.error('Date formatting error:', error, 'input:', input);
+    logger.error('Date formatting error:', error as Error, { label: 'input:', input });
     return 'Invalid Date';
   }
 };

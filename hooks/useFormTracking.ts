@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * 🟥 ARCHITECTURAL FIX: CONSOLIDATED FORM TRACKING HOOK
  *
@@ -120,7 +121,7 @@ export function useFormTracking(options: UseFormTrackingOptions) {
         // which will set isDirty=false, triggering the effect above.
       } catch (error) {
         // Don't mark clean if save failed
-        console.error(`Form ${formId} save failed:`, error);
+        logger.error(`Form ${formId} save failed`, error as Error, { formId });
         throw error; // Re-throw for local error handling
       }
     },
