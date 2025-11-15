@@ -299,6 +299,22 @@ export async function getMarketplaceCounters(sellerId: string) {
   return { listings, activeListings, orders, reviews };
 }
 
+/**
+ * Get marketplace counters for entire organization (admin dashboard)
+ * ✅ FIXED: Implements org-level aggregation with proper tenant isolation
+ */
+export async function getMarketplaceCountersForOrg(orgId: string) {
+  const db = await getDb();
+
+  const [listings, orders, reviews] = await Promise.all([
+    db.collection('souq_listings').countDocuments({ orgId }), // ✅ Tenant-scoped
+    db.collection('souq_orders').countDocuments({ orgId }), // ✅ Tenant-scoped
+    db.collection('souq_reviews').countDocuments({ orgId }), // ✅ Tenant-scoped
+  ]);
+
+  return { listings, orders, reviews };
+}
+
 async function getSellerProductIds(sellerId: string, db: Db): Promise<string[]> {
   const listings = await db
     .collection('souq_listings')
@@ -319,10 +335,10 @@ export async function getSystemCounters(orgId: string) {
   const db = await getDb();
 
   const [users, roles, tenants, apiKeys] = await Promise.all([
-    db.collection('users').countDocuments({ org_id: orgId }),
-    db.collection('roles').countDocuments({ org_id: orgId }),
-    db.collection('tenants').countDocuments({ org_id: orgId }),
-    db.collection('api_keys').countDocuments({ org_id: orgId, status: 'Active' }),
+    db.collection('users').countDocuments({ orgId }), // ✅ Fixed: use orgId not org_id
+    db.collection('roles').countDocuments({ orgId }), // ✅ Fixed: use orgId not org_id
+    db.collection('tenants').countDocuments({ orgId }), // ✅ Fixed: use orgId not org_id
+    db.collection('api_keys').countDocuments({ orgId, status: 'Active' }), // ✅ Fixed: use orgId not org_id
   ]);
 
   return { users, roles, tenants, apiKeys };
@@ -336,24 +352,29 @@ export async function getSystemCounters(orgId: string) {
  * Get all counters for dashboard (optimized single call)
  */
 export async function getAllCounters(orgId: string) {
-  const [workOrders, invoices, employees, properties, customers, support, marketplace] = await Promise.all([
+  const [workOrders, invoices, employees, properties, customers, support, marketplace, system] = await Promise.all([
     getWorkOrderStats(orgId),
     getInvoiceCounters(orgId),
     getEmployeeCounters(orgId),
     getPropertyCounters(orgId),
     getCustomerCounters(orgId),
     getSupportCounters(orgId),
-    getMarketplaceCounters(orgId),
+    getMarketplaceCountersForOrg(orgId),
+    getSystemCounters(orgId),
   ]);
 
   return {
     workOrders,
     finance: invoices,
     hr: employees,
+    invoices, // ✅ Add key expected by client
+    employees, // ✅ Add key expected by client
     properties,
     crm: customers,
+    customers, // ✅ Add key expected by client
     support,
     marketplace,
+    system, // ✅ Add system counters
     lastUpdated: new Date().toISOString(),
   };
 }

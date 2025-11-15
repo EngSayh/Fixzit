@@ -160,8 +160,10 @@ export default function ClientSidebar() {
     return localStorage.getItem("theme") === "dark";
   });
 
-  // Extract user role from session
-  const userRole: UserRole = (session?.user as { role?: string })?.role as UserRole || 'guest';
+  // Extract user role from session and normalize to lowercase
+  // ✅ FIXED: Normalize to match snake_case navigation slugs (super_admin, fm_admin, etc.)
+  const rawRole = (session?.user as { role?: string })?.role;
+  const userRole: UserRole = (rawRole?.toLowerCase() as UserRole) || 'guest';
 
   // Persist theme to localStorage and apply to document
   useEffect(() => {
@@ -208,6 +210,12 @@ export default function ClientSidebar() {
       }
     };
 
+    // Skip fetch if not authenticated
+    if (!session?.user) {
+      setLoading(false);
+      return;
+    }
+
     fetchCounters();
 
     // Poll for updates every 30 seconds
@@ -218,7 +226,7 @@ export default function ClientSidebar() {
       abortController.abort();
       clearInterval(interval);
     };
-  }, []);
+  }, [session]); // ✅ FIXED: Add session dependency to refetch when auth changes
 
   // Filter navigation items based on user role
   const visibleItems = navigationItems.filter(item => 

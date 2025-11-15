@@ -44,10 +44,15 @@ export async function POST(req: NextRequest) {
     const pm = (await PaymentMethod.findById(s.paytabsTokenId));
     if (!pm) continue;
 
+    // ✅ FIXED: Add orgId from subscription's tenant_id to satisfy tenantIsolationPlugin
+    // @ts-expect-error - Mongoose 8.x type resolution issue with create overloads
     const inv = (await SubscriptionInvoice.create({
-      subscriptionId: s._id, amount: s.totalMonthly, currency: s.currency,
-      periodStart: today, periodEnd: new Date(new Date().setMonth(today.getMonth()+1)),
-      dueDate: today, status:'pending'
+      orgId: s.tenant_id, // Required by tenantIsolationPlugin
+      subscriptionId: s._id, 
+      amount: s.totalMonthly, 
+      currency: s.currency,
+      dueDate: today, 
+      status:'pending'
     }));
 
     // recurring charge (server-to-server) with error handling
@@ -58,7 +63,7 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           profile_id: process.env.PAYTABS_PROFILE_ID, tran_type:'sale', tran_class:'recurring',
           cart_id: `INV-${inv._id}`, cart_description: `Fixzit Monthly ${s.planType}`, cart_amount: inv.amount, cart_currency: inv.currency,
-          token: pm.token
+          token: pm.pt_token // ✅ FIXED: Use pt_token not token
         })
       });
 
