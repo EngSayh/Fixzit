@@ -214,4 +214,10 @@ VendorSchema.index({ orgId: 1, 'business.specializations': 1 });
 
 export type VendorDoc = InferSchemaType<typeof VendorSchema>;
 
-export const Vendor = (typeof models !== 'undefined' && models.Vendor) || model("Vendor", VendorSchema);
+let VendorModel: ReturnType<typeof model<VendorDoc>>;
+if (typeof models !== 'undefined' && models.Vendor) {
+  VendorModel = models.Vendor as ReturnType<typeof model<VendorDoc>>;
+} else {
+  VendorModel = model<VendorDoc>("Vendor", VendorSchema);
+}
+export const Vendor = VendorModel;

@@ -163,4 +163,10 @@ RFQSchema.index({ orgId: 1, 'location.city': 1 });
 export type RFQDoc = InferSchemaType<typeof RFQSchema>;
 
 // Check if we're using mock database
-export const RFQ = (typeof models !== 'undefined' && models.RFQ) || model("RFQ", RFQSchema);
+let RFQModel: ReturnType<typeof model>;
+if (typeof models !== 'undefined' && models.RFQ) {
+  RFQModel = models.RFQ as ReturnType<typeof model>;
+} else {
+  RFQModel = model("RFQ", RFQSchema);
+}
+export const RFQ = RFQModel;

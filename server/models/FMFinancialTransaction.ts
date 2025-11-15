@@ -220,4 +220,10 @@ FMFinancialTransactionSchema.methods.cancel = function(
 
 export type FMFinancialTransactionDoc = InferSchemaType<typeof FMFinancialTransactionSchema>;
 
-export const FMFinancialTransaction = (typeof models !== 'undefined' && models.FMFinancialTransaction) || model('FMFinancialTransaction', FMFinancialTransactionSchema);
+let FMFinancialTransactionModel: ReturnType<typeof model<FMFinancialTransactionDoc>>;
+if (typeof models !== 'undefined' && models.FMFinancialTransaction) {
+  FMFinancialTransactionModel = models.FMFinancialTransaction as ReturnType<typeof model<FMFinancialTransactionDoc>>;
+} else {
+  FMFinancialTransactionModel = model<FMFinancialTransactionDoc>('FMFinancialTransaction', FMFinancialTransactionSchema);
+}
+export const FMFinancialTransaction = FMFinancialTransactionModel;

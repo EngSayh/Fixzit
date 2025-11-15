@@ -261,4 +261,10 @@ export interface AuditLogStaticMethods {
 import type { Model } from 'mongoose';
 export type AuditLogModelType = Model<AuditLog> & AuditLogStaticMethods;
 
-export const AuditLogModel = ((typeof models !== 'undefined' && models.AuditLog) || model("AuditLog", AuditLogSchema)) as AuditLogModelType;
+let AuditLogModelVar: ReturnType<typeof model>;
+if (typeof models !== 'undefined' && models.AuditLog) {
+  AuditLogModelVar = models.AuditLog as ReturnType<typeof model>;
+} else {
+  AuditLogModelVar = model("AuditLog", AuditLogSchema);
+}
+export const AuditLogModel = AuditLogModelVar as AuditLogModelType;

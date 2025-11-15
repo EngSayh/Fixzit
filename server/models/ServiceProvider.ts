@@ -444,5 +444,11 @@ ServiceProviderSchema.pre("save", function(next) {
 });
 
 // Export type and model
-export const ServiceProviderModel = (typeof models !== 'undefined' && models.ServiceProvider) || model("ServiceProvider", ServiceProviderSchema);
+let ServiceProviderModelVar: ReturnType<typeof model>;
+if (typeof models !== 'undefined' && models.ServiceProvider) {
+  ServiceProviderModelVar = models.ServiceProvider as ReturnType<typeof model>;
+} else {
+  ServiceProviderModelVar = model("ServiceProvider", ServiceProviderSchema);
+}
+export const ServiceProviderModel = ServiceProviderModelVar;
 export type ServiceProvider = typeof ServiceProviderModel extends Model<infer T> ? T : never;

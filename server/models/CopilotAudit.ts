@@ -23,4 +23,10 @@ AuditSchema.index({ orgId: 1, userId: 1, role: 1, createdAt: -1 });
 
 export type CopilotAuditDoc = InferSchemaType<typeof AuditSchema>;
 
-export const CopilotAudit = (typeof models !== 'undefined' && models.CopilotAudit) || model("CopilotAudit", AuditSchema);
+let CopilotAuditModel: ReturnType<typeof model>;
+if (typeof models !== 'undefined' && models.CopilotAudit) {
+  CopilotAuditModel = models.CopilotAudit as ReturnType<typeof model>;
+} else {
+  CopilotAuditModel = model("CopilotAudit", AuditSchema);
+}
+export const CopilotAudit = CopilotAuditModel;

@@ -15,5 +15,11 @@ SearchSynonymSchema.index({ locale: 1, term: 1 }, { unique: true });
 
 export type SearchSynonymDoc = InferSchemaType<typeof SearchSynonymSchema>;
 
-export const SearchSynonym = (typeof models !== 'undefined' && models.SearchSynonym) || model("SearchSynonym", SearchSynonymSchema);
+let SearchSynonymModel: ReturnType<typeof model>;
+if (typeof models !== 'undefined' && models.SearchSynonym) {
+  SearchSynonymModel = models.SearchSynonym as ReturnType<typeof model>;
+} else {
+  SearchSynonymModel = model("SearchSynonym", SearchSynonymSchema);
+}
+export const SearchSynonym = SearchSynonymModel;
 

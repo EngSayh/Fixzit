@@ -47,4 +47,10 @@ export type FooterContentDoc = InferSchemaType<typeof FooterContentSchema> & {
   getContent(_locale: string): string;
 };
 
-export const FooterContent = (typeof models !== 'undefined' && models.FooterContent) || model("FooterContent", FooterContentSchema);
+let FooterContentModel: ReturnType<typeof model>;
+if (typeof models !== 'undefined' && models.FooterContent) {
+  FooterContentModel = models.FooterContent as ReturnType<typeof model>;
+} else {
+  FooterContentModel = model("FooterContent", FooterContentSchema);
+}
+export const FooterContent = FooterContentModel;

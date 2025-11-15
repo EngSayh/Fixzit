@@ -171,4 +171,10 @@ SLASchema.index({ orgId: 1, priority: 1 });
 export type SLADoc = InferSchemaType<typeof SLASchema>;
 
 // Check if we're using mock database
-export const SLA = (typeof models !== 'undefined' && models.SLA) || model("SLA", SLASchema);
+let SLAModel: ReturnType<typeof model>;
+if (typeof models !== 'undefined' && models.SLA) {
+  SLAModel = models.SLA as ReturnType<typeof model>;
+} else {
+  SLAModel = model("SLA", SLASchema);
+}
+export const SLA = SLAModel;

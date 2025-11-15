@@ -488,4 +488,10 @@ WorkOrderSchema.methods.updateSLAStatus = function() {
 
 export type WorkOrderDoc = InferSchemaType<typeof WorkOrderSchema>;
 
-export const WorkOrder = (typeof models !== 'undefined' && models.WorkOrder) || model("WorkOrder", WorkOrderSchema);
+let WorkOrderModel: ReturnType<typeof model<WorkOrderDoc>>;
+if (typeof models !== 'undefined' && models.WorkOrder) {
+  WorkOrderModel = models.WorkOrder as ReturnType<typeof model<WorkOrderDoc>>;
+} else {
+  WorkOrderModel = model<WorkOrderDoc>("WorkOrder", WorkOrderSchema);
+}
+export const WorkOrder = WorkOrderModel;

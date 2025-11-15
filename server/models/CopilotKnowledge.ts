@@ -28,4 +28,10 @@ KnowledgeSchema.index({ orgId: 1, roles: 1 });
 
 export type KnowledgeDoc = InferSchemaType<typeof KnowledgeSchema>;
 
-export const CopilotKnowledge = (typeof models !== 'undefined' && models.CopilotKnowledge) || model("CopilotKnowledge", KnowledgeSchema);
+let CopilotKnowledgeModel: ReturnType<typeof model>;
+if (typeof models !== 'undefined' && models.CopilotKnowledge) {
+  CopilotKnowledgeModel = models.CopilotKnowledge as ReturnType<typeof model>;
+} else {
+  CopilotKnowledgeModel = model("CopilotKnowledge", KnowledgeSchema);
+}
+export const CopilotKnowledge = CopilotKnowledgeModel;
