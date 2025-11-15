@@ -104,10 +104,18 @@ export function generateWPSFile(
     // Total deductions
     const totalDeductions = slip.deductions.reduce((sum, d) => sum + d.amount, 0);
     
-    // Calculate actual work days from attendance records (if available)
-    // Note: WPS file generation is synchronous, so we use default 30 days
-    // For accurate work days, calculate attendance separately before calling generateWPSFile
-    let workDays = 30; // Default fallback - caller should provide actual workDays in payslip
+    // Calculate work days from payslip data
+    // If payslip includes workDays field (from attendance calculation), use it
+    // Otherwise, calculate from period: assume standard work month (typically 22-30 days)
+    // Note: Caller should calculate actual attendance and include in payslip for accuracy
+    let workDays = 30; // Default for full month
+    if ((slip as any).workDays && typeof (slip as any).workDays === 'number') {
+      workDays = (slip as any).workDays; // Use pre-calculated work days if provided
+    } else if ((slip as any).attendanceDays && typeof (slip as any).attendanceDays === 'number') {
+      workDays = (slip as any).attendanceDays; // Alternative field name
+    }
+    // Note: For accurate work days, payslip generation should query attendance/timesheet records
+    // and include the calculated days in the payslip object before calling this function
     
     const record: WPSRecord = {
       employeeId: slip.employeeCode,
@@ -247,4 +255,79 @@ export function validateWPSFile(wpsFile: WPSFile): WPSValidation {
     errors,
     warnings,
   };
+}
+
+/**
+ * Calculate actual work days from attendance/timesheet records
+ * 
+ * This function counts the number of days an employee worked in a given month
+ * by querying approved timesheets. Use this before generating payslips to get
+ * accurate work days for WPS file generation.
+ * 
+ * @param employeeId - Employee's unique ID
+ * @param orgId - Organization ID
+ * @param yearMonth - Format: "YYYY-MM" (e.g., "2025-03")
+ * @returns Promise<number> - Number of work days (0-31)
+ * 
+ * @example
+ * const workDays = await calculateWorkDaysFromAttendance(
+ *   employeeId,
+ *   orgId,
+ *   "2025-03"
+ * );
+ * // Use workDays when creating payslip object
+ * const payslip = {
+ *   ...otherFields,
+ *   workDays: workDays,
+ * };
+ */
+export async function calculateWorkDaysFromAttendance(
+  employeeId: string,
+  orgId: string,
+  yearMonth: string
+): Promise<number> {
+  try {
+    // Dynamic import to avoid circular dependencies
+    const { Timesheet } = await import('../../models/hr/Attendance');
+    const { default: mongoose } = await import('mongoose');
+    
+    // Parse yearMonth to get start and end of month
+    const [year, month] = yearMonth.split('-').map(Number);
+    if (!year || !month || month < 1 || month > 12) {
+      throw new Error(`Invalid yearMonth format: ${yearMonth}. Expected YYYY-MM`);
+    }
+    
+    const monthStart = new Date(year, month - 1, 1); // Month is 0-indexed
+    const monthEnd = new Date(year, month, 0, 23, 59, 59, 999); // Last day of month
+    
+    // Query approved timesheets for the month
+    const timesheets = await Timesheet.find({
+      orgId: new mongoose.Types.ObjectId(orgId),
+      employeeId: new mongoose.Types.ObjectId(employeeId),
+      status: 'APPROVED',
+      weekStart: { $gte: monthStart },
+      weekEnd: { $lte: monthEnd },
+    });
+    
+    if (timesheets.length === 0) {
+      // No approved timesheets - return 0 (employee didn't work or timesheets not approved)
+      return 0;
+    }
+    
+    // Calculate total work days from hours
+    // Assumption: 8 hours = 1 work day (standard in Saudi Arabia)
+    const totalHours = timesheets.reduce((sum, ts) => {
+      return sum + (ts.regularHours || 0) + (ts.overtimeHours || 0);
+    }, 0);
+    
+    const workDays = Math.round(totalHours / 8);
+    
+    // Cap at days in month (safety check)
+    const daysInMonth = monthEnd.getDate();
+    return Math.min(workDays, daysInMonth);
+  } catch (error) {
+    // If calculation fails, return default (caller should handle this)
+    console.error('[WPS] Failed to calculate work days from attendance:', error);
+    return 30; // Default fallback
+  }
 }
