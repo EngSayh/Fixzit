@@ -1,4 +1,5 @@
 import { Schema, model, models, InferSchemaType, Model, Document } from 'mongoose';
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
@@ -82,6 +83,6 @@ JobSchema.pre('save', function() {
   }
 });
 
-export const Job: JobModel = (typeof models !== 'undefined' && models.Job) || model<JobDoc>('Job', JobSchema);
+export const Job: JobModel = getModel<JobDoc>('Job', JobSchema);
 
 export type { JobStatus };

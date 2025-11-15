@@ -14,7 +14,8 @@
  * - VAT calculation
  */
 
-import { Schema, model, models, Types, Document } from 'mongoose';
+import { Schema, model, models, Types, Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
 import { auditPlugin } from '../../plugins/auditPlugin';
 
@@ -672,4 +673,4 @@ ExpenseSchema.statics.getSummary = async function(
 // MODEL EXPORT
 // ============================================================================
 
-export const Expense = models.Expense || model<IExpense>('Expense', ExpenseSchema);
+export const Expense = getModel<IExpense>('Expense', ExpenseSchema);

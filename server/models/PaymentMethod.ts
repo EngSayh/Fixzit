@@ -1,4 +1,5 @@
-import { Schema, model, models, Model, Document } from 'mongoose';
+import { Schema, model, models, Model, Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 import { auditPlugin } from '../plugins/auditPlugin';
 
 const PaymentMethodSchema = new Schema(
@@ -62,6 +63,6 @@ interface IPaymentMethod extends Document {
   updatedBy?: Schema.Types.ObjectId;
 }
 
-const PaymentMethod = models.PaymentMethod || model<IPaymentMethod>('PaymentMethod', PaymentMethodSchema);
+const PaymentMethod = getModel<IPaymentMethod>('PaymentMethod', PaymentMethodSchema);
 export default PaymentMethod;
 

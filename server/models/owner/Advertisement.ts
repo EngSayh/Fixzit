@@ -1,4 +1,5 @@
 import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";
 
@@ -295,4 +296,4 @@ AdvertisementSchema.virtual('isActive').get(function() {
 
 // Export type and model
 export type Advertisement = InferSchemaType<typeof AdvertisementSchema>;
-export const AdvertisementModel = models.Advertisement || model("Advertisement", AdvertisementSchema);
+export const AdvertisementModel = getModel<any>("Advertisement", AdvertisementSchema);

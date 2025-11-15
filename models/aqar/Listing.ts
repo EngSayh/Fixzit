@@ -5,7 +5,8 @@
  * Includes KSA compliance (REGA/FAL), geo-spatial indexing, and analytics
  */
 
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 // Enums
 /* eslint-disable no-unused-vars */
@@ -307,6 +308,6 @@ ListingSchema.pre('save', function (this: IListing, next) {
 
 // Model
 const Listing =
-  mongoose.models.AqarListing || mongoose.model('AqarListing', ListingSchema);
+  getModel<any>('AqarListing', ListingSchema);
 
 export default Listing;

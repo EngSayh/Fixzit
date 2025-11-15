@@ -1,4 +1,5 @@
-import mongoose, { Schema, model, models, Model } from 'mongoose';
+import mongoose, { Schema, model, models, Model } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 // Leave type configuration (Annual, Sick, Hajj, etc.)
 export interface ILeaveType extends mongoose.Document {
@@ -131,6 +132,6 @@ const LeaveRequestSchema = new Schema<ILeaveRequest>(
 LeaveRequestSchema.index({ orgId: 1, employeeId: 1, status: 1 });
 LeaveRequestSchema.index({ orgId: 1, startDate: 1, endDate: 1 });
 
-export const LeaveType = models.LeaveType || model<ILeaveType>('LeaveType', LeaveTypeSchema);
-export const LeaveEntitlement = models.LeaveEntitlement || model<ILeaveEntitlement>('LeaveEntitlement', LeaveEntitlementSchema);
-export const LeaveRequest = models.LeaveRequest || model<ILeaveRequest>('LeaveRequest', LeaveRequestSchema);
+export const LeaveType = getModel<ILeaveType>('LeaveType', LeaveTypeSchema);
+export const LeaveEntitlement = getModel<ILeaveEntitlement>('LeaveEntitlement', LeaveEntitlementSchema);
+export const LeaveRequest = getModel<ILeaveRequest>('LeaveRequest', LeaveRequestSchema);

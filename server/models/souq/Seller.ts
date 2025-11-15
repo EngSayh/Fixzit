@@ -3,7 +3,8 @@
  * @module server/models/souq/Seller
  */
 
-import mongoose, { Schema, type Document } from 'mongoose';
+import mongoose, { Schema, type Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 export interface ISeller extends Document {
   _id: mongoose.Types.ObjectId;
@@ -498,6 +499,6 @@ SellerSchema.statics.getCriticalHealthSellers = async function () {
 };
 
 export const SouqSeller =
-  mongoose.models.SouqSeller || mongoose.model<ISeller>('SouqSeller', SellerSchema);
+  getModel<ISeller>('SouqSeller', SellerSchema);
 
 export default SouqSeller;

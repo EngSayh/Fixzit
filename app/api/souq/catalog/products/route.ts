@@ -65,9 +65,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
     }
 
-    // TODO: Check seller authorization for restricted categories
+    // Check seller authorization for restricted categories
     if (category.isRestricted) {
-      // For now, allow all - implement RBAC check later
+      // Check if seller has approval for this restricted category
+      const { SouqSeller } = await import('@/server/models/souq/Seller');
+      const seller = await SouqSeller.findOne({ 
+        orgId, 
+        isActive: true,
+        'approvedCategories.categoryId': validated.categoryId
+      });
+      
+      if (!seller) {
+        return NextResponse.json(
+          { error: 'Unauthorized', message: 'Seller not approved for this restricted category' },
+          { status: 403 }
+        );
+      }
     }
 
     // Check brand exists and seller is authorized if gated
@@ -77,9 +90,21 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
       }
 
-      // TODO: Check seller authorization for gated brands
+      // Check seller authorization for gated brands
       if (brand.isGated) {
-        // For now, allow all - implement authorization check later
+        const { SouqSeller } = await import('@/server/models/souq/Seller');
+        const seller = await SouqSeller.findOne({ 
+          orgId, 
+          isActive: true,
+          'approvedBrands.brandId': validated.brandId
+        });
+        
+        if (!seller) {
+          return NextResponse.json(
+            { error: 'Unauthorized', message: 'Seller not approved for this gated brand' },
+            { status: 403 }
+          );
+        }
       }
     }
 
@@ -106,8 +131,52 @@ export async function POST(request: NextRequest) {
 
     await product.save();
 
-    // TODO: Index in search engine (Meilisearch)
-    // TODO: Publish product.created event to NATS
+    // Index in search engine (Meilisearch) - if configured
+    if (process.env.MEILISEARCH_HOST && process.env.MEILISEARCH_API_KEY) {
+      try {
+        const { MeiliSearch } = await import('meilisearch');
+        const client = new MeiliSearch({
+          host: process.env.MEILISEARCH_HOST,
+          apiKey: process.env.MEILISEARCH_API_KEY
+        });
+        
+        await client.index('products').addDocuments([{
+          id: product._id.toString(),
+          fsin: product.fsin,
+          title: product.title,
+          description: product.description,
+          categoryId: product.categoryId,
+          brandId: product.brandId,
+          searchKeywords: product.searchKeywords,
+          isActive: product.isActive
+        }]);
+      } catch (searchError) {
+        // Log but don't fail product creation if indexing fails
+        console.error('[Souq] Failed to index product in Meilisearch:', searchError);
+      }
+    }
+    
+    // Publish product.created event to NATS - if configured
+    if (process.env.NATS_URL) {
+      try {
+        const { connect, JSONCodec } = await import('nats');
+        const nc = await connect({ servers: process.env.NATS_URL });
+        const jc = JSONCodec();
+        
+        nc.publish('product.created', jc.encode({
+          productId: product._id.toString(),
+          fsin: product.fsin,
+          orgId,
+          categoryId: product.categoryId,
+          timestamp: new Date().toISOString()
+        }));
+        
+        await nc.drain();
+      } catch (natsError) {
+        // Log but don't fail product creation if event publish fails
+        console.error('[Souq] Failed to publish product.created event:', natsError);
+      }
+    }
 
     return NextResponse.json({
       success: true,

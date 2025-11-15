@@ -45,7 +45,9 @@ interface DiscountRuleDoc {
 export class PricingError extends Error {
   constructor(
     message: string,
+    // eslint-disable-next-line no-unused-vars
     public readonly code: string,
+    // eslint-disable-next-line no-unused-vars
     public readonly details?: Record<string, unknown>
   ) {
     super(message);

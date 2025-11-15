@@ -1,4 +1,5 @@
 import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";
 
@@ -354,4 +355,4 @@ MoveInOutInspectionSchema.methods.allSignaturesCollected = function() {
 
 // Export type and model
 export type MoveInOutInspection = InferSchemaType<typeof MoveInOutInspectionSchema>;
-export const MoveInOutInspectionModel = models.MoveInOutInspection || model("MoveInOutInspection", MoveInOutInspectionSchema);
+export const MoveInOutInspectionModel = getModel<any>("MoveInOutInspection", MoveInOutInspectionSchema);

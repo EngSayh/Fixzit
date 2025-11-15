@@ -17,7 +17,8 @@
  * - Audit trail
  */
 
-import { Schema, model, models, Types } from 'mongoose';
+import { Schema, model, models, Types } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 import Decimal from 'decimal.js';
 import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
 import { auditPlugin } from '../../plugins/auditPlugin';
@@ -278,6 +279,6 @@ JournalSchema.statics.getForPeriod = async function(
   }).sort({ journalDate: -1 });
 };
 
-const JournalModel = models.Journal || model<IJournal>('Journal', JournalSchema);
+const JournalModel = getModel<IJournal>('Journal', JournalSchema);
 
 export default JournalModel;

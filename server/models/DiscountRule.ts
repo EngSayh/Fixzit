@@ -1,4 +1,5 @@
-import { Schema, model, models, Model, Document } from 'mongoose';
+import { Schema, model, models, Model, Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
@@ -41,6 +42,6 @@ DiscountRuleSchema.plugin(auditPlugin);
 DiscountRuleSchema.index({ orgId: 1, key: 1 }, { unique: true });
 
 // TypeScript-safe model export
-const DiscountRule = models.DiscountRule || model<IDiscountRule>('DiscountRule', DiscountRuleSchema);
+const DiscountRule = getModel<IDiscountRule>('DiscountRule', DiscountRuleSchema);
 export default DiscountRule;
 

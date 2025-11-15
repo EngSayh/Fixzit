@@ -5,7 +5,8 @@
  * Pricing: 50 SAR (5 ads), 150 SAR (20 ads), 250 SAR (50 ads)
  */
 
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 /* eslint-disable no-unused-vars */
 export enum PackageType {
@@ -155,6 +156,6 @@ PackageSchema.methods.checkExpiry = async function (this: IPackage) {
 };
 
 const Package =
-  mongoose.models.AqarPackage || mongoose.model('AqarPackage', PackageSchema);
+  getModel<any>('AqarPackage', PackageSchema);
 
 export default Package;

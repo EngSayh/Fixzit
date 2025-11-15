@@ -1,4 +1,5 @@
 import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";
 
@@ -187,4 +188,4 @@ UtilityMeterSchema.methods.recordReading = function(value: number, readBy: strin
 
 // Export type and model
 export type UtilityMeter = InferSchemaType<typeof UtilityMeterSchema>;
-export const UtilityMeterModel = models.UtilityMeter || model("UtilityMeter", UtilityMeterSchema);
+export const UtilityMeterModel = getModel<any>("UtilityMeter", UtilityMeterSchema);

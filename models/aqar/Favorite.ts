@@ -4,7 +4,8 @@
  * User bookmarks for listings and projects
  */
 
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 /* eslint-disable no-unused-vars */
 export enum FavoriteType {
@@ -58,6 +59,6 @@ FavoriteSchema.index({ userId: 1, targetType: 1, createdAt: -1 });
 FavoriteSchema.index({ userId: 1, targetId: 1, targetType: 1 }, { unique: true }); // Prevent duplicates
 
 const Favorite =
-  mongoose.models.AqarFavorite || mongoose.model('AqarFavorite', FavoriteSchema);
+  getModel<any>('AqarFavorite', FavoriteSchema);
 
 export default Favorite;

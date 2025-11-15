@@ -20,7 +20,9 @@
  * - HIGHLIGHTED: Visual distinction (25 SAR/day)
  */
 
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
+import type { HydratedDocument } from 'mongoose';
+import { getModel, MModel, CommonModelStatics } from '@/src/types/mongoose-compat';
 
 /* eslint-disable no-unused-vars */
 export enum BoostType {
@@ -71,7 +73,7 @@ export interface IBoost extends Document {
 }
 
 /* eslint-disable no-unused-vars */
-interface BoostModel  {
+export type BoostModel = MModel<IBoost> & CommonModelStatics<IBoost> & {
   /**
    * Get pricing for a boost type and duration
    * @param type - Boost type (FEATURED, PINNED, HIGHLIGHTED)
@@ -101,7 +103,7 @@ interface BoostModel  {
     listingId: mongoose.Types.ObjectId,
     type?: BoostType
   ): Promise<IBoost[]>;
-}
+};
 /* eslint-enable no-unused-vars */
 
 const BoostSchema = new Schema<IBoost>(
@@ -358,9 +360,7 @@ BoostSchema.statics.findActiveFor = function (
 
 /* ---------------- Model Export ---------------- */
 
-const Boost =
-  (mongoose.models.AqarBoost as BoostModel) ||
-  (mongoose.model<IBoost, BoostModel>('AqarBoost', BoostSchema));
+const Boost = getModel<IBoost>('AqarBoost', BoostSchema) as BoostModel;
 
 export default Boost;
-export type BoostDoc = IBoost;
+export type BoostDoc = HydratedDocument<IBoost>;

@@ -4,8 +4,8 @@ import {
   models,
   Types,
   HydratedDocument,
-  Model,
 } from 'mongoose';
+import { MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
@@ -133,7 +133,7 @@ export interface ReferralCodeStaticMethods {
 /* eslint-enable no-unused-vars */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ReferralCodeModelType = Model & ReferralCodeStaticMethods;
+type ReferralCodeModelType = MModel<IReferralCode> & ReferralCodeStaticMethods;
 
 // ---------------- Schema ----------------
 const ReferralCodeSchema = new Schema<IReferralCode>(
@@ -224,9 +224,7 @@ const ReferralCodeSchema = new Schema<IReferralCode>(
 );
 
 // Plugins
-// @ts-expect-error - Plugin typing mismatch with strongly-typed schema
 ReferralCodeSchema.plugin(tenantIsolationPlugin);
-// @ts-expect-error - Plugin typing mismatch with strongly-typed schema
 ReferralCodeSchema.plugin(auditPlugin);
 
 // Indices (post-plugin so orgId exists)
@@ -430,5 +428,4 @@ ReferralCodeSchema.pre('save', function (next) {
 });
 
 // Final export
-export const ReferralCodeModel = ((typeof models !== 'undefined' && models.ReferralCode) ||
-  model<IReferralCode, ReferralCodeModelType>('ReferralCode', ReferralCodeSchema)) as ReferralCodeModelType;
+export const ReferralCodeModel = (getModel<IReferralCode, ReferralCodeModelType>('ReferralCode', ReferralCodeSchema) as MModel<IReferralCode, ReferralCodeModelType>) as ReferralCodeModelType;

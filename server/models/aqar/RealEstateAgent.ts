@@ -1,4 +1,5 @@
-import { Schema, model, models, Types } from 'mongoose';
+import { Schema, model, models, Types } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 export type AgentStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 export type AgentTier = 'BASIC' | 'PREMIUM' | 'ELITE';
@@ -194,6 +195,6 @@ RealEstateAgentSchema.index({
   'bio.ar': 'text'
 });
 
-const RealEstateAgentModel = models.RealEstateAgent || model<RealEstateAgent>('RealEstateAgent', RealEstateAgentSchema);
+const RealEstateAgentModel = getModel<RealEstateAgent>('RealEstateAgent', RealEstateAgentSchema);
 
 export default RealEstateAgentModel;

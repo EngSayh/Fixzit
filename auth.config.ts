@@ -306,88 +306,15 @@ export const authConfig = {
         }
       }
 
-      // Load RBAC data from database on every token refresh
-      // This ensures permissions are always up-to-date
-      if (token?.id) {
-        try {
-          // Dynamic imports to avoid Edge Runtime issues
-          const { connectToDatabase } = await import('@/lib/mongodb-unified');
-          const userModelModule = await import('@/server/models/User');
-          const User = userModelModule.User;
-          
-          // Check if User model loaded successfully
-          if (!User) {
-            throw new Error('User model not loaded');
-          }
-          
-          await connectToDatabase();
-          
-          // Load user with populated roles
-          const dbUser = (await User.findById(token.id)
-            .populate('roles')
-            .select('isSuperAdmin roles')
-            .lean()) as {
-              isSuperAdmin?: boolean;
-              roles?: Array<{
-                slug?: string;
-                name?: string;
-                permissions?: Array<string | { key: string }>;
-                wildcard?: boolean;
-              }>;
-            } | null;
-          
-          if (dbUser) {
-            // Set Super Admin flag
-            token.isSuperAdmin = dbUser.isSuperAdmin || false;
-            
-            // Extract role slugs
-            token.roles = Array.isArray(dbUser.roles)
-              ? dbUser.roles.map((r) => r.slug || r.name).filter((s): s is string => typeof s === 'string')
-              : [];
-            
-            // Extract permissions from roles
-            const permissionSet = new Set<string>();
-            
-            // Super Admin gets wildcard permission
-            if (dbUser.isSuperAdmin) {
-              permissionSet.add('*');
-            }
-            
-            // Collect permissions from all roles
-            if (Array.isArray(dbUser.roles)) {
-              for (const role of dbUser.roles) {
-                if (role && Array.isArray(role.permissions)) {
-                  for (const perm of role.permissions) {
-                    if (typeof perm === 'string') {
-                      permissionSet.add(perm);
-                    } else if (perm && typeof perm === 'object' && 'key' in perm) {
-                      permissionSet.add(perm.key);
-                    }
-                  }
-                }
-                // If role has wildcard flag, add wildcard
-                if (role && role.wildcard) {
-                  permissionSet.add('*');
-                }
-              }
-            }
-            
-            token.permissions = Array.from(permissionSet);
-          } else {
-            // User not found, clear RBAC data
-            token.isSuperAdmin = false;
-            token.roles = [];
-            token.permissions = [];
-          }
-        } catch (error) {
-          logger.error('[NextAuth] Failed to load RBAC data:', { error });
-          // On error, keep previous RBAC data or set defaults
-          if (token.isSuperAdmin === undefined) {
-            token.isSuperAdmin = false;
-            token.roles = [];
-            token.permissions = [];
-          }
-        }
+      // ⚠️ RBAC data cannot be loaded here - JWT callback runs in Edge Runtime
+      // Edge Runtime does not support Mongoose connections
+      // RBAC data is loaded in API routes (Node.js runtime) using getSessionUser()
+      // Set default empty values for RBAC fields in token
+      if (token?.id && token.isSuperAdmin === undefined) {
+        // Initialize RBAC fields to empty (will be populated by API routes)
+        token.isSuperAdmin = false;
+        token.roles = [];
+        token.permissions = [];
       }
       
       return token;

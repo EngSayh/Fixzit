@@ -117,21 +117,27 @@ class Logger {
       
       // DataDog integration (if configured)
       if (process.env.DATADOG_API_KEY && process.env.DATADOG_APP_KEY) {
-        // Future: Send to DataDog Logs API
-        // await fetch('https://http-intake.logs.datadoghq.com/api/v2/logs', {
-        //   method: 'POST',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //     'DD-API-KEY': process.env.DATADOG_API_KEY
-        //   },
-        //   body: JSON.stringify({
-        //     ddsource: 'fixzit',
-        //     service: 'web-app',
-        //     level,
-        //     message,
-        //     ...context
-        //   })
-        // });
+        // Send to DataDog Logs API
+        try {
+          await fetch('https://http-intake.logs.datadoghq.com/api/v2/logs', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'DD-API-KEY': process.env.DATADOG_API_KEY || ''
+            },
+            body: JSON.stringify({
+              ddsource: 'fixzit',
+              service: 'web-app',
+              hostname: typeof window !== 'undefined' ? window.location.hostname : 'server',
+              level,
+              message,
+              timestamp: new Date().toISOString(),
+              ...context
+            })
+          });
+        } catch (ddError) {
+          // Silent fail - don't break app if DataDog is unreachable
+        }
       }
       
       // Store in session for debugging (browser only)

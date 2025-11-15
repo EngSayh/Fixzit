@@ -226,15 +226,24 @@ export function generateFSINWithPrefix(customPrefix: string): FSINMetadata {
 
 /**
  * Check if FSIN exists in database
- * This is a placeholder - implement with actual DB check
+ * Queries SouqProduct model to verify uniqueness
  * @param _fsin - FSIN to check
  * @returns Promise<boolean> true if exists, false otherwise
  */
 export async function fsinExists(_fsin: string): Promise<boolean> {
-  // TODO: Implement database lookup
-  // const product = await ProductModel.findOne({ fsin: _fsin });
-  // return !!product;
-  return false;
+  try {
+    const { SouqProduct } = await import('@/server/models/souq/Product');
+    const { connectDb } = await import('@/lib/mongodb-unified');
+    
+    await connectDb();
+    
+    const product = await SouqProduct.findOne({ fsin: _fsin }).select('_id').lean();
+    return !!product;
+  } catch (error) {
+    // On error, assume doesn't exist (safer to potentially regenerate than fail)
+    console.error('[FSIN] Database lookup failed:', error);
+    return false;
+  }
 }
 
 /**

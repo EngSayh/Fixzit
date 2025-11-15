@@ -3,7 +3,8 @@
  * @module server/models/souq/Listing
  */
 
-import mongoose, { Schema, type Document } from 'mongoose';
+import mongoose, { Schema, type Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 export interface IListing extends Document {
   _id: mongoose.Types.ObjectId;
@@ -404,6 +405,6 @@ ListingSchema.statics.getProductOffers = async function (fsin: string, options =
 };
 
 export const SouqListing =
-  mongoose.models.SouqListing || mongoose.model<IListing>('SouqListing', ListingSchema);
+  getModel<IListing>('SouqListing', ListingSchema);
 
 export default SouqListing;

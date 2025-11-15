@@ -1,4 +1,5 @@
 import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";
 
@@ -297,4 +298,4 @@ DelegationSchema.methods.canApproveAmount = function(amount: number): boolean {
 
 // Export type and model
 export type Delegation = InferSchemaType<typeof DelegationSchema>;
-export const DelegationModel = models.Delegation || model("Delegation", DelegationSchema);
+export const DelegationModel = getModel<any>("Delegation", DelegationSchema);

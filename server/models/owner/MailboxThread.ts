@@ -1,4 +1,5 @@
 import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";
 
@@ -307,4 +308,4 @@ MailboxThreadSchema.methods.markAsRead = function(messageId: string, userId: Typ
 
 // Export type and model
 export type MailboxThread = InferSchemaType<typeof MailboxThreadSchema>;
-export const MailboxThreadModel = models.MailboxThread || model("MailboxThread", MailboxThreadSchema);
+export const MailboxThreadModel = getModel<any>("MailboxThread", MailboxThreadSchema);

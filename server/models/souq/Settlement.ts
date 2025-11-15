@@ -3,7 +3,8 @@
  * @module server/models/souq/Settlement
  */
 
-import mongoose, { Schema, Model, Types } from 'mongoose';
+import mongoose, { Schema, Model, Types } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 export interface ISettlement {
   _id: Types.ObjectId;
@@ -140,5 +141,4 @@ SettlementSchema.pre('save', function (next) {
 });
 
 export const SouqSettlement =
-  mongoose.models.SouqSettlement ||
-  mongoose.model('SouqSettlement', SettlementSchema);
+  getModel<any>('SouqSettlement', SettlementSchema);

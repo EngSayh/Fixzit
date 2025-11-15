@@ -1,4 +1,5 @@
-import { Schema, model, models, Types, Model, Document } from 'mongoose';
+import { Schema, model, models, Types, Model, Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
@@ -93,5 +94,5 @@ interface IServiceAgreement extends Document {
   updatedBy?: Schema.Types.ObjectId;
 }
 
-const ServiceAgreement = models.ServiceAgreement || model<IServiceAgreement>('ServiceAgreement', ServiceAgreementSchema);
+const ServiceAgreement = getModel<IServiceAgreement>('ServiceAgreement', ServiceAgreementSchema);
 export default ServiceAgreement;

@@ -1,4 +1,5 @@
-import { Schema, model, models, Types, HydratedDocument, Model } from 'mongoose';
+import { Schema, model, models, Types, HydratedDocument } from 'mongoose';
+import { MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from '../server/plugins/tenantIsolation';
 import { auditPlugin } from '../server/plugins/auditPlugin';
 
@@ -202,7 +203,7 @@ export interface IProjectBid {
 
 type ProjectBidDoc = HydratedDocument<IProjectBid>;
 /* eslint-disable no-unused-vars */
-type IProjectBidModel = Model & {
+type IProjectBidModel = MModel<IProjectBid> & {
   submit(id: Types.ObjectId, by: Types.ObjectId | string): Promise<ProjectBidDoc | null>;
   withdraw(
     id: Types.ObjectId,

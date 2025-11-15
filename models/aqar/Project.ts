@@ -5,7 +5,8 @@
  * Matches sa.aqar.fm Projects functionality
  */
 
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 /* eslint-disable no-unused-vars */
 export enum ProjectStatus {
@@ -164,6 +165,6 @@ ProjectSchema.methods.incrementInquiries = async function (this: IProject) {
 };
 
 const Project =
-  mongoose.models.AqarProject || mongoose.model('AqarProject', ProjectSchema);
+  getModel<any>('AqarProject', ProjectSchema);
 
 export default Project;

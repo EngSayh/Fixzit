@@ -3,7 +3,8 @@
  * @module server/models/souq/Deal
  */
 
-import mongoose, { Schema, type Document } from 'mongoose';
+import mongoose, { Schema, type Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 export interface IDeal extends Document {
   _id: mongoose.Types.ObjectId;
@@ -168,6 +169,6 @@ const DealSchema = new Schema<IDeal>(
 DealSchema.index({ status: 1, startDate: 1, endDate: 1 });
 DealSchema.index({ 'applicableProducts.fsin': 1, status: 1 });
 
-export const SouqDeal = mongoose.models.SouqDeal || mongoose.model<IDeal>('SouqDeal', DealSchema);
+export const SouqDeal = getModel<IDeal>('SouqDeal', DealSchema);
 
 export default SouqDeal;

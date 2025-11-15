@@ -3,7 +3,8 @@
  * Generates sequential numbers with format PREFIX-YYYYMM-#### (e.g., PAY-202510-0001)
  */
 
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 interface ICounter extends Document {
   orgId: string;
@@ -31,7 +32,7 @@ const CounterSchema = new Schema<ICounter>(
 // Compound unique index to prevent duplicates
 CounterSchema.index({ orgId: 1, prefix: 1, year: 1, month: 1 }, { unique: true });
 
-const Counter = mongoose.models.Counter || mongoose.model<ICounter>('Counter', CounterSchema);
+const Counter = getModel<ICounter>('Counter', CounterSchema);
 
 /**
  * Get next sequential number for a given prefix

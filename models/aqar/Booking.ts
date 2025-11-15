@@ -5,7 +5,8 @@
  * Matches sa.aqar.fm Daily Rentals functionality
  */
 
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 /* eslint-disable no-unused-vars */
 export enum BookingStatus {
@@ -221,6 +222,6 @@ BookingSchema.methods.cancel = async function (
 };
 
 const Booking =
-  mongoose.models.AqarBooking || mongoose.model('AqarBooking', BookingSchema);
+  getModel<any>('AqarBooking', BookingSchema);
 
 export default Booking;

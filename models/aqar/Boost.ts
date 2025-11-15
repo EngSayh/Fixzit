@@ -5,7 +5,8 @@
  * Increases visibility in search results
  */
 
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 /* eslint-disable no-unused-vars */
 export enum BoostType {
@@ -142,6 +143,6 @@ BoostSchema.methods.checkExpiry = async function (this: IBoost) {
 };
 
 const Boost =
-  mongoose.models.AqarBoost || mongoose.model('AqarBoost', BoostSchema);
+  getModel<any>('AqarBoost', BoostSchema);
 
 export default Boost;

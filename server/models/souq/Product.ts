@@ -3,7 +3,8 @@
  * @module server/models/souq/Product
  */
 
-import mongoose, { Schema, type Document } from 'mongoose';
+import mongoose, { Schema, type Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 export interface IProduct extends Document {
   _id: mongoose.Types.ObjectId;
@@ -197,6 +198,6 @@ ProductSchema.statics.searchProducts = async function (
 };
 
 export const SouqProduct =
-  mongoose.models.SouqProduct || mongoose.model<IProduct>('SouqProduct', ProductSchema);
+  getModel<IProduct>('SouqProduct', ProductSchema);
 
 export default SouqProduct;

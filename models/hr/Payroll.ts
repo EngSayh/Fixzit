@@ -1,4 +1,5 @@
-import mongoose, { Schema, model, models, Model } from 'mongoose';
+import mongoose, { Schema, model, models, Model } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 // A single line item on a payslip (earning or deduction)
 interface IPayslipItem {
@@ -124,5 +125,5 @@ const PayrollRunSchema = new Schema<IPayrollRun>(
 PayrollRunSchema.index({ orgId: 1, periodStart: 1, periodEnd: 1 });
 PayrollRunSchema.index({ orgId: 1, status: 1 });
 
-export const Payslip = models.Payslip || model<IPayslip>('Payslip', PayslipSchema);
-export const PayrollRun = models.PayrollRun || model<IPayrollRun>('PayrollRun', PayrollRunSchema);
+export const Payslip = getModel<IPayslip>('Payslip', PayslipSchema);
+export const PayrollRun = getModel<IPayrollRun>('PayrollRun', PayrollRunSchema);

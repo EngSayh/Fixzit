@@ -1,4 +1,5 @@
-import mongoose, { Schema, model, models, Model } from 'mongoose';
+import mongoose, { Schema, model, models, Model } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 // Clock-in/out log
 export interface IAttendanceLog extends mongoose.Document {
@@ -154,7 +155,7 @@ const RosterSchema = new Schema<IRoster>(
 // Overlap validation should be handled at application/service layer
 RosterSchema.index({ orgId: 1, date: 1, site: 1 }); // Optimize "who's working at this site today?"
 
-export const AttendanceLog = models.AttendanceLog || model<IAttendanceLog>('AttendanceLog', AttendanceLogSchema);
-export const Timesheet = models.Timesheet || model<ITimesheet>('Timesheet', TimesheetSchema);
-export const Shift = models.Shift || model<IShift>('Shift', ShiftSchema);
-export const Roster = models.Roster || model<IRoster>('Roster', RosterSchema);
+export const AttendanceLog = getModel<IAttendanceLog>('AttendanceLog', AttendanceLogSchema);
+export const Timesheet = getModel<ITimesheet>('Timesheet', TimesheetSchema);
+export const Shift = getModel<IShift>('Shift', ShiftSchema);
+export const Roster = getModel<IRoster>('Roster', RosterSchema);

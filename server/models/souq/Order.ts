@@ -3,7 +3,8 @@
  * @module server/models/souq/Order
  */
 
-import mongoose, { Schema, type Document } from 'mongoose';
+import mongoose, { Schema, type Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 export interface IOrder extends Document {
   _id: mongoose.Types.ObjectId;
@@ -289,6 +290,6 @@ OrderSchema.index({ 'items.sellerId': 1, createdAt: -1 });
 OrderSchema.index({ status: 1, createdAt: -1 });
 OrderSchema.index({ orderId: 'text' });
 
-export const SouqOrder = mongoose.models.SouqOrder || mongoose.model<IOrder>('SouqOrder', OrderSchema);
+export const SouqOrder = getModel<IOrder>('SouqOrder', OrderSchema);
 
 export default SouqOrder;

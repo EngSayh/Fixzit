@@ -3,7 +3,8 @@
  * @module server/models/souq/Variation
  */
 
-import mongoose, { Schema, type Document } from 'mongoose';
+import mongoose, { Schema, type Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 export interface IVariation extends Document {
   _id: mongoose.Types.ObjectId;
@@ -132,6 +133,6 @@ VariationSchema.statics.findBySKU = async function (sku: string) {
 };
 
 export const SouqVariation =
-  mongoose.models.SouqVariation || mongoose.model<IVariation>('SouqVariation', VariationSchema);
+  getModel<IVariation>('SouqVariation', VariationSchema);
 
 export default SouqVariation;

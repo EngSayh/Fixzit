@@ -1,4 +1,5 @@
-import { Schema, model, models, Model, Document } from 'mongoose';
+import { Schema, model, models, Model, Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 import { auditPlugin } from '../plugins/auditPlugin';
 
 const PricePerModuleSchema = new Schema(
@@ -78,5 +79,5 @@ interface IPriceBook extends Document {
   updatedBy?: Schema.Types.ObjectId;
 }
 
-const PriceBook = models.PriceBook || model<IPriceBook>('PriceBook', PriceBookSchema);
+const PriceBook = getModel<IPriceBook>('PriceBook', PriceBookSchema);
 export default PriceBook;

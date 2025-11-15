@@ -1,4 +1,5 @@
 import { Schema, model, models, Document } from 'mongoose';
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { auditPlugin } from '../plugins/auditPlugin';
 
 export interface IPriceTier extends Document {
@@ -78,5 +79,5 @@ priceTierSchema.plugin(auditPlugin);
 
 priceTierSchema.index({ moduleId: 1, seatsMin: 1, seatsMax: 1, currency: 1 }, { unique: true });
 
-export const PriceTier = (typeof models !== 'undefined' && models.PriceTier) || model<IPriceTier>('PriceTier', priceTierSchema);
+export const PriceTier = getModel<IPriceTier>('PriceTier', priceTierSchema);
 export default PriceTier;

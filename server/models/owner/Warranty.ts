@@ -1,4 +1,5 @@
 import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";
 
@@ -303,4 +304,4 @@ WarrantySchema.methods.addClaim = function(claimData: {
 
 // Export type and model
 export type Warranty = InferSchemaType<typeof WarrantySchema>;
-export const WarrantyModel = models.Warranty || model("Warranty", WarrantySchema);
+export const WarrantyModel = getModel<any>("Warranty", WarrantySchema);

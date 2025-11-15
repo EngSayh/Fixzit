@@ -1,4 +1,5 @@
-import { Schema, model, models, Model, Document } from 'mongoose';
+import { Schema, model, models, Model, Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 import { auditPlugin } from '../plugins/auditPlugin';
 
 export type ModuleKey =
@@ -53,6 +54,6 @@ interface IModule extends Document {
   updatedBy?: Schema.Types.ObjectId;
 }
 
-const Module = models.Module || model<IModule>('Module', ModuleSchema);
+const Module = getModel<IModule>('Module', ModuleSchema);
 export default Module;
 export { MODULE_KEYS };

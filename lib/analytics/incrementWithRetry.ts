@@ -6,10 +6,11 @@
  */
 
 import { logger } from '@/lib/logger';
-import type { Model, Types, UpdateQuery, Document } from 'mongoose';
+import type { Types, UpdateQuery, Document } from 'mongoose';
+import type { MModel } from '@/src/types/mongoose-compat';
 
 interface IncrementOptions<T = unknown> {
-  model: Model<T, any, any, any, any, any, any>;
+  model: MModel<T>;
   id: Types.ObjectId;
   updateOp: UpdateQuery<T>;
   entityType: string;

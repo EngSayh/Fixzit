@@ -3,7 +3,8 @@
  * @module server/models/souq/Brand
  */
 
-import mongoose, { Schema, type Document } from 'mongoose';
+import mongoose, { Schema, type Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 export interface IBrand extends Document {
   _id: mongoose.Types.ObjectId;
@@ -175,6 +176,6 @@ BrandSchema.pre('save', function (next) {
 });
 
 export const SouqBrand =
-  mongoose.models.SouqBrand || mongoose.model<IBrand>('SouqBrand', BrandSchema);
+  getModel<IBrand>('SouqBrand', BrandSchema);
 
 export default SouqBrand;

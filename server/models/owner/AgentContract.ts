@@ -1,4 +1,5 @@
 import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";
 
@@ -186,4 +187,4 @@ AgentContractSchema.pre('save', function(next) {
 
 // Export type and model
 export type AgentContract = InferSchemaType<typeof AgentContractSchema>;
-export const AgentContractModel = models.AgentContract || model("AgentContract", AgentContractSchema);
+export const AgentContractModel = getModel<any>("AgentContract", AgentContractSchema);

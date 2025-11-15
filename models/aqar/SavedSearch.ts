@@ -5,7 +5,8 @@
  * Auto-notify when new listings match criteria
  */
 
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 export interface ISavedSearchCriteria {
   intent?: 'BUY' | 'RENT' | 'DAILY';
@@ -139,7 +140,6 @@ SavedSearchSchema.methods.toggleActive = async function (this: ISavedSearch) {
 };
 
 const SavedSearch =
-  mongoose.models.AqarSavedSearch ||
-  mongoose.model('AqarSavedSearch', SavedSearchSchema);
+  getModel<any>('AqarSavedSearch', SavedSearchSchema);
 
 export default SavedSearch;

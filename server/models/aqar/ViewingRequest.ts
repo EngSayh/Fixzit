@@ -1,4 +1,5 @@
-import { Schema, model, models, Types } from 'mongoose';
+import { Schema, model, models, Types } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
 import { auditPlugin } from '../../plugins/auditPlugin';
 
@@ -154,6 +155,6 @@ ViewingRequestSchema.index({ orgId: 1, confirmedDate: 1, status: 1 });
 ViewingRequestSchema.index({ orgId: 1, status: 1 });
 ViewingRequestSchema.index({ orgId: 1, preferredDate: 1 });
 
-const ViewingRequestModel = models.ViewingRequest || model<ViewingRequest>('ViewingRequest', ViewingRequestSchema);
+const ViewingRequestModel = getModel<ViewingRequest>('ViewingRequest', ViewingRequestSchema);
 
 export default ViewingRequestModel;

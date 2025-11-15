@@ -1,4 +1,5 @@
-import { Schema, model, models, Model, Document } from 'mongoose';
+import { Schema, model, models, Model, Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 interface IPlan {
   name?: string;
@@ -44,6 +45,6 @@ const BenchmarkSchema = new Schema<IBenchmark>(
 );
 
 // TypeScript-safe model export
-const Benchmark = models.Benchmark || model<IBenchmark>('Benchmark', BenchmarkSchema);
+const Benchmark = getModel<IBenchmark>('Benchmark', BenchmarkSchema);
 export default Benchmark;
 

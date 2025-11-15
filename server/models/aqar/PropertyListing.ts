@@ -1,4 +1,5 @@
-import { Schema, model, models, Types } from 'mongoose';
+import { Schema, model, models, Types } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 export type PropertyType = 'APARTMENT' | 'VILLA' | 'TOWNHOUSE' | 'PENTHOUSE' | 'STUDIO' | 'LAND' | 'COMMERCIAL' | 'WAREHOUSE' | 'OFFICE';
 export type ListingType = 'SALE' | 'RENT' | 'LEASE';
@@ -267,6 +268,6 @@ PropertyListingSchema.index({
   'location.address.city': 'text'
 });
 
-const PropertyListingModel = models.PropertyListing || model<PropertyListing>('PropertyListing', PropertyListingSchema);
+const PropertyListingModel = getModel<PropertyListing>('PropertyListing', PropertyListingSchema);
 
 export default PropertyListingModel;

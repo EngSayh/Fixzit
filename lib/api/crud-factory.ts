@@ -28,12 +28,13 @@
 import { logger } from '@/lib/logger';
 import { NextRequest } from 'next/server';
 import { z, ZodSchema } from 'zod';
-import { Model, SortOrder } from 'mongoose';
+import { SortOrder } from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { createSecureResponse, getClientIP } from '@/server/security/headers';
+import type { MModel } from '@/src/types/mongoose-compat';
 
 /**
  * Escapes special regex characters to prevent ReDoS (Regular Expression Denial of Service) attacks
@@ -46,7 +47,7 @@ function escapeRegex(str: string): string {
 
 export interface CrudFactoryOptions<T = unknown> {
   /** Mongoose Model */
-  Model: Model<T, any, any, any, any, any, any>;
+  Model: MModel<T>;
   /** Zod schema for POST/create validation */
   createSchema?: ZodSchema;
   /** Zod schema for PUT/update validation (if different from create) */

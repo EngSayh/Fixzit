@@ -13,7 +13,8 @@
  * - Integration with Chart of Accounts
  */
 
-import { Schema, model, models, Types, Document } from 'mongoose';
+import { Schema, model, models, Types, Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 import Decimal from 'decimal.js';
 import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
 import { auditPlugin } from '../../plugins/auditPlugin';
@@ -538,4 +539,4 @@ PaymentSchema.statics.getCashFlowSummary = async function(
 // MODEL EXPORT
 // ============================================================================
 
-export const Payment = models.Payment || model<IPayment>('Payment', PaymentSchema);
+export const Payment = getModel<IPayment>('Payment', PaymentSchema);

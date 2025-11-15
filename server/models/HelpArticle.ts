@@ -1,4 +1,5 @@
 import { Schema, model, models, InferSchemaType, Model } from "mongoose";
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 
@@ -28,4 +29,4 @@ HelpArticleSchema.index({ orgId: 1, status: 1 });
 export type HelpArticleDoc = InferSchemaType<typeof HelpArticleSchema>;
 
 // Export model with singleton pattern for production, recreation for tests
-export const HelpArticle: Model<HelpArticleDoc> = (typeof models !== 'undefined' && models.HelpArticle) || model<HelpArticleDoc>("HelpArticle", HelpArticleSchema);
+export const HelpArticle: Model<HelpArticleDoc> = getModel<HelpArticleDoc>("HelpArticle", HelpArticleSchema);

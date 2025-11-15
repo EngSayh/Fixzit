@@ -72,9 +72,12 @@ async function getUsersByRole(
     }).select('_id').limit(limit).lean();
     
     type UserDoc = { _id: { toString: () => string } };
-    return users && users.length > 0 
+    const userIds = users && users.length > 0 
       ? users.map((u: UserDoc) => u._id.toString())
       : [];
+    
+    logger.debug('[Approval] Found approvers by role:', { role, orgId, count: userIds.length });
+    return userIds;
   } catch (error: unknown) {
     logger.error('[Approval] Failed to query users by role:', { error, role, orgId });
     return [];

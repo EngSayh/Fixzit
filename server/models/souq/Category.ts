@@ -3,7 +3,8 @@
  * @module server/models/souq/Category
  */
 
-import mongoose, { Schema, type Document } from 'mongoose';
+import mongoose, { Schema, type Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 export interface ICategory extends Document {
   _id: mongoose.Types.ObjectId;
@@ -212,6 +213,6 @@ CategorySchema.pre('save', async function (next) {
 });
 
 export const SouqCategory =
-  mongoose.models.SouqCategory || mongoose.model<ICategory>('SouqCategory', CategorySchema);
+  getModel<ICategory>('SouqCategory', CategorySchema);
 
 export default SouqCategory;

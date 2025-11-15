@@ -1,4 +1,5 @@
 import { Schema, model, models, InferSchemaType, Document } from 'mongoose';
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
@@ -28,4 +29,4 @@ EmployeeSchema.index({ orgId: 1, 'personal.email': 1 }, { unique: true });
 
 export type EmployeeDoc = InferSchemaType<typeof EmployeeSchema> & Document;
 
-export const Employee = (typeof models !== 'undefined' && models.Employee) || model<EmployeeDoc>('Employee', EmployeeSchema);
+export const Employee = getModel<EmployeeDoc>('Employee', EmployeeSchema);

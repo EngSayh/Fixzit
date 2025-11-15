@@ -3,7 +3,8 @@
  * @module server/models/souq/Review
  */
 
-import mongoose, { Schema, type Document } from 'mongoose';
+import mongoose, { Schema, type Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 export interface IReview extends Document {
   _id: mongoose.Types.ObjectId;
@@ -174,6 +175,6 @@ ReviewSchema.index({ customerId: 1, productId: 1 }, { unique: true });
 ReviewSchema.index({ rating: 1, status: 1 });
 ReviewSchema.index({ helpful: -1, status: 1 });
 
-export const SouqReview = mongoose.models.SouqReview || mongoose.model<IReview>('SouqReview', ReviewSchema);
+export const SouqReview = getModel<IReview>('SouqReview', ReviewSchema);
 
 export default SouqReview;

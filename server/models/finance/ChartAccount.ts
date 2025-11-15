@@ -19,7 +19,8 @@
  * - Audit trail
  */
 
-import { Schema, model, models, Types } from 'mongoose';
+import { Schema, model, models, Types } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
 import { auditPlugin } from '../../plugins/auditPlugin';
 
@@ -195,6 +196,6 @@ ChartAccountSchema.pre('deleteOne', { document: true, query: false }, async func
   next();
 });
 
-const ChartAccountModel = models.ChartAccount || model<IChartAccount>('ChartAccount', ChartAccountSchema);
+const ChartAccountModel = getModel<IChartAccount>('ChartAccount', ChartAccountSchema);
 
 export default ChartAccountModel;

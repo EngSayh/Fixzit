@@ -4,8 +4,8 @@ import {
   models,
   Types,
   HydratedDocument,
-  Model,
 } from 'mongoose';
+import { MModel } from '@/src/types/mongoose-compat';
 
 // ---------- Enums ----------
 const ProjectStatus = ['PLANNING', 'APPROVED', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED', 'CLOSED'] as const;
@@ -215,7 +215,7 @@ export interface IProject {
 
 type ProjectDoc = HydratedDocument<IProject>;
 /* eslint-disable no-unused-vars */
-type ProjectModel = Model & {
+type ProjectModel = MModel<IProject> & {
   setStatus(projectId: Types.ObjectId, next: TProjectStatus, who: Types.ObjectId | string): Promise<ProjectDoc | null>;
   recomputeBudget(projectId: Types.ObjectId): Promise<ProjectDoc | null>;
 };
