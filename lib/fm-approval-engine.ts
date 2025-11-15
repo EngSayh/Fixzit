@@ -48,6 +48,39 @@ interface DbApprovalStage {
   }>;
 }
 
+/**
+ * Helper function to query users by role (DRY pattern)
+ * @param orgId Organization ID to filter users
+ * @param role Role to search for
+ * @param limit Maximum number of users to return (default: 10)
+ * @returns Array of user IDs as strings
+ */
+async function getUsersByRole(
+  orgId: string,
+  role: Role,
+  limit = 10
+): Promise<string[]> {
+  try {
+    const { User } = await import('@/server/models/User');
+    const { connectToDatabase } = await import('@/lib/mongodb-unified');
+    await connectToDatabase();
+    
+    const users = await User.find({
+      'professional.role': role,
+      orgId: orgId,
+      isActive: true,
+    }).select('_id').limit(limit).lean();
+    
+    type UserDoc = { _id: { toString: () => string } };
+    return users && users.length > 0 
+      ? users.map((u: UserDoc) => u._id.toString())
+      : [];
+  } catch (error: unknown) {
+    logger.error('[Approval] Failed to query users by role:', { error, role, orgId });
+    return [];
+  }
+}
+
 interface DbApprovalDoc {
   _id: string | { toString(): string };
   quotationId: string | { toString(): string };
@@ -275,34 +308,22 @@ export async function routeApproval(request: ApprovalRequest): Promise<ApprovalW
   const approverIds: string[] = [];
   const approverRoles: Role[] = policy.require.map(r => r.role);
   
-  try {
-    // Query users with required roles in the same organization
-    const { User } = await import('@/server/models/User');
-    await connectToDatabase();
+  for (const roleReq of policy.require) {
+    const userIds = await getUsersByRole(request.orgId, roleReq.role);
     
-    for (const roleReq of policy.require) {
-      const users = await User.find({
-        'professional.role': roleReq.role,
-        orgId: request.orgId,
-        isActive: true,
-      }).select('_id email professional.role').limit(10).lean<LeanUser[]>();
-      
-      if (users && users.length > 0) {
-        approverIds.push(...users.map((u: LeanUser) => u._id.toString()));
-      } else {
-        logger.warn(`[Approval] No users found for role ${roleReq.role} in org ${request.orgId}`);
-      }
+    if (userIds.length > 0) {
+      approverIds.push(...userIds);
+    } else {
+      logger.warn(`[Approval] No users found for role ${roleReq.role} in org ${request.orgId}`);
     }
-    
-    // If no approvers found, log warning but don't fail workflow creation
-    if (approverIds.length === 0) {
-      logger.warn('[Approval] No approvers found - workflow will need manual assignment', {
-        orgId: request.orgId,
-        roles: approverRoles,
-      });
-    }
-  } catch (error: unknown) {
-    logger.error('[Approval] Failed to query approvers:', { error });
+  }
+  
+  // If no approvers found, log warning but don't fail workflow creation
+  if (approverIds.length === 0) {
+    logger.warn('[Approval] No approvers found - workflow will need manual assignment', {
+      orgId: request.orgId,
+      roles: approverRoles,
+    });
   }
   
   stages.push({
@@ -320,22 +341,11 @@ export async function routeApproval(request: ApprovalRequest): Promise<ApprovalW
     const parallelApproverIds: string[] = [];
     const parallelRoles: Role[] = policy.parallelWith.map(r => r.role);
     
-    try {
-      const { User } = await import('@/server/models/User');
-      
-      for (const roleReq of policy.parallelWith) {
-        const users = await User.find({
-          'professional.role': roleReq.role,
-          orgId: request.orgId,
-          isActive: true,
-        }).select('_id email professional.role').limit(10).lean<LeanUser[]>();
-        
-        if (users && users.length > 0) {
-          parallelApproverIds.push(...users.map((u: LeanUser) => u._id.toString()));
-        }
+    for (const roleReq of policy.parallelWith) {
+      const userIds = await getUsersByRole(request.orgId, roleReq.role);
+      if (userIds.length > 0) {
+        parallelApproverIds.push(...userIds);
       }
-    } catch (error: unknown) {
-      logger.error('[Approval] Failed to query parallel approvers:', { error });
     }
     
     stages.push({
@@ -745,7 +755,7 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
           email: string;
           preferredChannels: ('email' | 'push')[];
         }> = [];
-
+        
         for (const role of approvalPolicy.escalateTo) {
           const users = await User.find({
             'professional.role': role,
