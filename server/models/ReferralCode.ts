@@ -6,7 +6,6 @@ import {
   HydratedDocument,
 } from 'mongoose';
 import { getModel, MModel } from '@/src/types/mongoose-compat';
-import { MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
@@ -429,4 +428,4 @@ ReferralCodeSchema.pre('save', function (next) {
 });
 
 // Final export
-export const ReferralCodeModel = (getModel<IReferralCode, ReferralCodeModelType>('ReferralCode', ReferralCodeSchema) as MModel<IReferralCode, ReferralCodeModelType>) as ReferralCodeModelType;
+export const ReferralCodeModel = getModel<IReferralCode>('ReferralCode', ReferralCodeSchema) as ReferralCodeModelType;

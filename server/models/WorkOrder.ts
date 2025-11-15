@@ -498,10 +498,4 @@ WorkOrderSchema.virtual('code').get(function(this: WorkOrderDoc) {
 WorkOrderSchema.set('toJSON', { virtuals: true });
 WorkOrderSchema.set('toObject', { virtuals: true });
 
-let WorkOrderModel: ReturnType<typeof model<WorkOrderDoc>>;
-if (typeof models !== 'undefined' && models.WorkOrder) {
-  WorkOrderModel = models.WorkOrder as ReturnType<typeof model<WorkOrderDoc>>;
-} else {
-  WorkOrderModel = model<WorkOrderDoc>("WorkOrder", WorkOrderSchema);
-}
-export const WorkOrder = WorkOrderModel;
+export const WorkOrder: Model<WorkOrderDoc> = getModel<WorkOrderDoc>("WorkOrder", WorkOrderSchema);

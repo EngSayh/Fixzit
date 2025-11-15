@@ -1,4 +1,4 @@
-import { Schema, Types, Model } from "mongoose";
+import { Schema, Types, Model, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 import { getModel } from '@/src/types/mongoose-compat';
@@ -445,5 +445,5 @@ ServiceProviderSchema.pre("save", function(next) {
 });
 
 // Export type and model
+export type ServiceProvider = InferSchemaType<typeof ServiceProviderSchema>;
 export const ServiceProviderModel = getModel<ServiceProvider>('ServiceProvider', ServiceProviderSchema);
-export type ServiceProvider = typeof ServiceProviderModel extends Model<infer T> ? T : never;
