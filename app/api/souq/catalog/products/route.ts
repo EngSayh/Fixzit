@@ -170,7 +170,6 @@ export async function POST(request: NextRequest) {
       // Log but don't fail product creation if event publish fails
       logger.error('[Souq] Failed to publish product.created event', natsError as Error, { productId: product._id, fsin: product.fsin });
     }
-    }
 
     return NextResponse.json({
       success: true,
