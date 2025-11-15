@@ -135,7 +135,7 @@ class Logger {
               ...context
             })
           });
-        } catch (ddError) {
+        } catch (_ddError) {
           // Silent fail - don't break app if DataDog is unreachable
         }
       }

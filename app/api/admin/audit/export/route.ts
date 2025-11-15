@@ -32,23 +32,23 @@ function auditToCsvRow(log: {
   _id: unknown;
   orgId: string;
   userId: string;
-  userName?: string;
-  userEmail?: string;
+  userName?: string | null;
+  userEmail?: string | null;
   action: string;
   entityType: string;
-  entityId?: string;
-  entityName?: string;
+  entityId?: string | null;
+  entityName?: string | null;
   timestamp: Date;
   context?: {
-    ipAddress?: string;
-    userAgent?: string;
-    endpoint?: string;
-    method?: string;
-  };
+    ipAddress?: string | null;
+    userAgent?: string | null;
+    endpoint?: string | null;
+    method?: string | null;
+  } | null;
   result?: {
-    success?: boolean;
-    errorMessage?: string;
-  };
+    success?: boolean | null;
+    errorMessage?: string | null;
+  } | null;
   metadata?: unknown;
 }): string {
   return [

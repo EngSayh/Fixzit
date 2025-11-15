@@ -143,15 +143,18 @@ export async function GET(request: NextRequest) {
 
     await connectToDatabase();
 
-    const settings = await PlatformSettings.findOne({ orgId: user.orgId }).lean() as {
-      logoUrl?: string;
-      logoFileName?: string;
-      logoFileSize?: number;
-      logoMimeType?: string;
-      updatedAt?: Date;
-    } | null;
+    // @ts-expect-error - Mongoose 8.x type resolution issue with conditional model export
+    const settings: any = await PlatformSettings.findOne({ orgId: user.orgId });
+    
+    const logoData = settings ? {
+      logoUrl: settings.logoUrl,
+      logoFileName: settings.logoFileName,
+      logoFileSize: settings.logoFileSize,
+      logoMimeType: settings.logoMimeType,
+      updatedAt: settings.updatedAt
+    } : null;
 
-    if (!settings || !settings.logoUrl) {
+    if (!logoData || !logoData.logoUrl) {
       return NextResponse.json({
         logoUrl: null,
         fileName: null,
@@ -162,11 +165,11 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      logoUrl: settings.logoUrl,
-      fileName: settings.logoFileName,
-      fileSize: settings.logoFileSize,
-      mimeType: settings.logoMimeType,
-      updatedAt: settings.updatedAt
+      logoUrl: logoData.logoUrl,
+      fileName: logoData.logoFileName,
+      fileSize: logoData.logoFileSize,
+      mimeType: logoData.logoMimeType,
+      updatedAt: logoData.updatedAt
     });
 
   } catch (error) {

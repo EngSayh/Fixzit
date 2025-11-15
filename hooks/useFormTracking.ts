@@ -1,4 +1,9 @@
+'use client';
+
 import { logger } from '@/lib/logger';
+import { useEffect, useCallback, useRef } from 'react';
+import { useFormState } from '@/contexts/FormStateContext';
+
 /**
  * 🟥 ARCHITECTURAL FIX: CONSOLIDATED FORM TRACKING HOOK
  *
@@ -10,11 +15,6 @@ import { logger } from '@/lib/logger';
  *
  * It deprecates `useFormDirtyState` and `useUnsavedChanges`.
  */
-
-'use client';
-
-import { useEffect, useCallback, useRef } from 'react';
-import { useFormState } from '@/contexts/FormStateContext';
 
 export interface UseFormTrackingOptions {
   /** A unique ID for this form */

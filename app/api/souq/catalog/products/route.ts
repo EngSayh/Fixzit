@@ -37,6 +37,7 @@ const CreateProductSchema = z.object({
  * Create new product with auto-generated FSIN
  */
 export async function POST(request: NextRequest) {
+  let orgId: string | undefined;
   try {
     // Authentication check
     const session = await getServerSession();
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const orgId = (session.user as { orgId?: string }).orgId;
+    orgId = (session.user as { orgId?: string }).orgId;
     if (!orgId) {
       return NextResponse.json(
         { error: 'Organization ID required' },

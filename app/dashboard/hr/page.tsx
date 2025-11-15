@@ -1,8 +1,7 @@
-import { logger } from '@/lib/logger';
-
 'use client';
 
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Users, UserCheck, UserX } from 'lucide-react';
 import { cn } from '@/lib/utils';

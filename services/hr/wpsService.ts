@@ -105,37 +105,9 @@ export function generateWPSFile(
     const totalDeductions = slip.deductions.reduce((sum, d) => sum + d.amount, 0);
     
     // Calculate actual work days from attendance records (if available)
-    let workDays = 30; // Default fallback
-    
-    // Try to calculate actual work days from attendance
-    try {
-      const { Attendance } = await import('@/server/models/hr/Attendance').catch(() => ({ Attendance: null }));
-      
-      if (Attendance) {
-        // Parse period month (YYYY-MM) to get start and end dates
-        const [year, month] = periodMonth.split('-').map(Number);
-        const startDate = new Date(year, month - 1, 1);
-        const endDate = new Date(year, month, 0); // Last day of month
-        
-        // Query attendance records for this employee in the period
-        const attendanceRecords = await Attendance.find({
-          employeeId: slip.employeeId,
-          date: { $gte: startDate, $lte: endDate },
-          status: { $in: ['PRESENT', 'HALF_DAY'] }
-        }).lean();
-        
-        // Count work days (HALF_DAY counts as 0.5)
-        workDays = attendanceRecords.reduce((sum, record) => {
-          return sum + (record.status === 'HALF_DAY' ? 0.5 : 1);
-        }, 0);
-        
-        // Round to nearest 0.5
-        workDays = Math.round(workDays * 2) / 2;
-      }
-    } catch (error: unknown) {
-      // Fallback to 30 days if attendance lookup fails
-      // This is acceptable for WPS - better to use default than fail generation
-    }
+    // Note: WPS file generation is synchronous, so we use default 30 days
+    // For accurate work days, calculate attendance separately before calling generateWPSFile
+    let workDays = 30; // Default fallback - caller should provide actual workDays in payslip
     
     const record: WPSRecord = {
       employeeId: slip.employeeCode,

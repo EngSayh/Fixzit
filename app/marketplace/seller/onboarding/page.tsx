@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { logger } from '@/lib/logger';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { CheckCircle, Upload, FileText, CreditCard, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
