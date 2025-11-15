@@ -231,7 +231,7 @@ type IProjectBidModel = Model & {
 /* eslint-enable no-unused-vars */
 
 // ---------- Schema ----------
-const ProjectBidSchema = new Schema<IProjectBid, IProjectBidModel>(
+const ProjectBidSchema = new Schema<IProjectBid>(
   {
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     contractorId: { type: Schema.Types.ObjectId, ref: 'Contractor' },

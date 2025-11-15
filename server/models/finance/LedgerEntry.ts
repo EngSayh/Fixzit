@@ -73,7 +73,7 @@ export interface ILedgerEntryModel  {
 }
 /* eslint-enable no-unused-vars */
 
-const LedgerEntrySchema = new Schema<ILedgerEntry, ILedgerEntryModel>(
+const LedgerEntrySchema = new Schema<ILedgerEntry>(
   {
     // orgId will be added by tenantIsolationPlugin
     journalId: { type: Schema.Types.ObjectId, required: true, ref: 'Journal', index: true },

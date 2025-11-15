@@ -137,7 +137,7 @@ export interface ReferralCodeStaticMethods {
 type ReferralCodeModelType = Model & ReferralCodeStaticMethods;
 
 // ---------------- Schema ----------------
-const ReferralCodeSchema = new Schema<IReferralCode, ReferralCodeModelType>({
+const ReferralCodeSchema = new Schema<IReferralCode>({
   orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' },
 
   referrerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },

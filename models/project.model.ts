@@ -222,7 +222,7 @@ type ProjectModel = Model & {
 /* eslint-enable no-unused-vars */
 
 // ---------- Schema ----------
-const ProjectSchema = new Schema<IProject, ProjectModel>(
+const ProjectSchema = new Schema<IProject>(
   {
     tenantId: { type: String, required: true, index: true },
 

@@ -255,7 +255,7 @@ export interface IOrganization {
 }
 
 // ---------- Schema ----------
-const OrganizationSchema = new Schema<IOrganization, OrganizationModel>(
+const OrganizationSchema = new Schema<IOrganization>(
   {
     orgId: { type: String, required: true, unique: true },
 

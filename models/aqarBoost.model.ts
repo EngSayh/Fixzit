@@ -104,7 +104,7 @@ interface BoostModel  {
 }
 /* eslint-enable no-unused-vars */
 
-const BoostSchema = new Schema<IBoost, BoostModel>(
+const BoostSchema = new Schema<IBoost>(
   {
     listingId: { type: Schema.Types.ObjectId, ref: 'AqarListing', required: true, index: true },
     orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },

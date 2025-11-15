@@ -136,7 +136,7 @@ export interface ReferralCodeStaticMethods {
 type ReferralCodeModelType = Model & ReferralCodeStaticMethods;
 
 // ---------------- Schema ----------------
-const ReferralCodeSchema = new Schema<IReferralCode, ReferralCodeModelType>(
+const ReferralCodeSchema = new Schema<IReferralCode>(
   {
     // tenant via plugin, but declare for typing + indices
     // Multi-tenancy: which organization this referral code belongs to
