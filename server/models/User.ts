@@ -211,5 +211,12 @@ UserSchema.index({ orgId: 1, isSuperAdmin: 1 }); // RBAC index
 
 export type UserDoc = InferSchemaType<typeof UserSchema>;
 
-// Edge Runtime compatible export
-export const User = (typeof models !== 'undefined' && models.User) || model("User", UserSchema);
+// Edge Runtime compatible export - use conditional to avoid union type issues
+let UserModel: ReturnType<typeof model<UserDoc>>;
+if (typeof models !== 'undefined' && models.User) {
+  UserModel = models.User as ReturnType<typeof model<UserDoc>>;
+} else {
+  UserModel = model<UserDoc>("User", UserSchema);
+}
+
+export const User = UserModel;

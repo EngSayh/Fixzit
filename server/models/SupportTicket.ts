@@ -42,4 +42,12 @@ SupportTicketSchema.index({ orgId: 1, assigneeUserId: 1 });
 
 export type SupportTicketDoc = InferSchemaType<typeof SupportTicketSchema>;
 
-export const SupportTicket = (typeof models !== 'undefined' && models.SupportTicket) || model("SupportTicket", SupportTicketSchema);
+// Edge Runtime compatible export - use conditional to avoid union type issues
+let SupportTicketModel: ReturnType<typeof model<SupportTicketDoc>>;
+if (typeof models !== 'undefined' && models.SupportTicket) {
+  SupportTicketModel = models.SupportTicket as ReturnType<typeof model<SupportTicketDoc>>;
+} else {
+  SupportTicketModel = model<SupportTicketDoc>("SupportTicket", SupportTicketSchema);
+}
+
+export const SupportTicket = SupportTicketModel;

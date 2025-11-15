@@ -149,6 +149,11 @@ export interface IPayment extends Document {
   // Audit fields added by auditPlugin
   createdBy: Types.ObjectId;
   updatedBy?: Types.ObjectId;
+  
+  // Instance methods
+  allocateToInvoice(invoiceId: Types.ObjectId | string, invoiceNumber: string, amount: number): void;
+  reconcile(reconciledBy: Types.ObjectId, bankStatementDate: Date, bankStatementReference: string, notes?: string): void;
+  reverse(reversedBy: Types.ObjectId, reason: string): Promise<IPayment>;
   version: number;
 }
 

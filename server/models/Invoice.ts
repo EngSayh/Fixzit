@@ -189,4 +189,12 @@ InvoiceSchema.index({ orgId: 1, type: 1, status: 1 });
 
 export type InvoiceDoc = InferSchemaType<typeof InvoiceSchema>;
 
-export const Invoice = (typeof models !== 'undefined' && models.Invoice) || model("Invoice", InvoiceSchema);
+// Edge Runtime compatible export - use conditional to avoid union type issues
+let InvoiceModel: ReturnType<typeof model<InvoiceDoc>>;
+if (typeof models !== 'undefined' && models.Invoice) {
+  InvoiceModel = models.Invoice as ReturnType<typeof model<InvoiceDoc>>;
+} else {
+  InvoiceModel = model<InvoiceDoc>("Invoice", InvoiceSchema);
+}
+
+export const Invoice = InvoiceModel;

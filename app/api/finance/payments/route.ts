@@ -126,9 +126,9 @@ export async function POST(req: NextRequest) {
         if (data.invoiceAllocations && data.invoiceAllocations.length > 0) {
           for (const allocation of data.invoiceAllocations) {
             await payment.allocateToInvoice(
-              allocation.invoiceId,
-              allocation.amount,
-              allocation.description
+              new Types.ObjectId(allocation.invoiceId),
+              `INV-${Date.now()}`, // Fallback invoice number
+              allocation.amount
             );
           }
         }

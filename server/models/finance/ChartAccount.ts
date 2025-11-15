@@ -30,6 +30,10 @@ export interface IChartAccount {
   accountCode: string; // e.g., "1100", "4200", "6300"
   accountName: string; // e.g., "Cash - Operating Account"
   accountType: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
+  // Add aliases for common property names
+  code: string; // Alias for accountCode
+  name: string; // Alias for accountName
+  type: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE'; // Alias for accountType
   parentId?: Types.ObjectId; // For hierarchical COA (e.g., 1100 under 1000)
   description?: string;
   isActive: boolean;
@@ -95,6 +99,19 @@ ChartAccountSchema.index({ orgId: 1, accountName: 'text' }); // For search
 // eslint-disable-next-line no-unused-vars
 ChartAccountSchema.virtual('isParent').get(function(this: IChartAccount) {
   return !this.parentId;
+});
+
+// Virtual aliases for backward compatibility
+ChartAccountSchema.virtual('code').get(function(this: IChartAccount) {
+  return this.accountCode;
+});
+
+ChartAccountSchema.virtual('name').get(function(this: IChartAccount) {
+  return this.accountName;
+});
+
+ChartAccountSchema.virtual('type').get(function(this: IChartAccount) {
+  return this.accountType;
 });
 
 // Method: Get full account path (e.g., "1000 › 1100 › 1110")
