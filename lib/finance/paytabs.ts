@@ -128,6 +128,7 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
   ) {
   const meta = subscription.metadata.ownerGroup as Record<string, unknown>;
     if (meta?.name) {
+      const { default: OwnerGroup } = await import('@/server/models/OwnerGroup');
       await OwnerGroup.findOneAndUpdate(
         {
           name: meta.name,

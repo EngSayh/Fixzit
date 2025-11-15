@@ -125,6 +125,7 @@ export async function requireFMAuth(
   try {
     await connectDb();
     // Always use ctx.orgId - don't allow callers to query other orgs
+    const { Organization } = await import('@/server/models/Organization');
     const org = await Organization.findOne({ orgId: ctx.orgId });
     
     if (org) {

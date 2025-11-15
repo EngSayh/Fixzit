@@ -63,12 +63,14 @@ export function validateZATCAData(data: ZATCAData): boolean {
   }
   
   // Validate total amount
-  if (!data.total || isNaN(parseFloat(data.total)) || parseFloat(data.total) < 0) {
+  const totalStr = String(data.total);
+  if (!data.total || isNaN(parseFloat(totalStr)) || parseFloat(totalStr) < 0) {
     return false;
   }
   
   // Validate VAT amount
-  if (!data.vatAmount || isNaN(parseFloat(data.vatAmount)) || parseFloat(data.vatAmount) < 0) {
+  const vatStr = String(data.vatAmount);
+  if (!data.vatAmount || isNaN(parseFloat(vatStr)) || parseFloat(vatStr) < 0) {
     return false;
   }
   

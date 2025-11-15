@@ -102,7 +102,9 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
   }
 
   // Check if user is active (handle both status and isActive fields)
-  const isUserActive = user.isActive !== undefined ? user.isActive : (user.status === 'ACTIVE');
+  type UserDoc = { isActive?: boolean; status?: string; _id: unknown; email: string; professional?: { role?: string }; role?: string; orgId?: unknown; personal?: { firstName?: string; lastName?: string } };
+  const userDoc = user as unknown as UserDoc;
+  const isUserActive = userDoc.isActive !== undefined ? userDoc.isActive : (userDoc.status === 'ACTIVE');
   if (!isUserActive) {
     throw new Error('Account is not active');
   }
@@ -110,8 +112,8 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
   const token = await generateToken({
     id: user._id.toString(),
     email: user.email,
-    role: user.professional?.role || user.role || 'USER',
-    orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || '')
+    role: userDoc.professional?.role || userDoc.role || 'USER',
+    orgId: typeof userDoc.orgId === 'string' ? userDoc.orgId : (userDoc.orgId?.toString() || '')
   });
 
   return {
@@ -119,9 +121,9 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
     user: {
       id: user._id.toString(),
       email: user.email,
-      name: `${user.personal?.firstName || ''} ${user.personal?.lastName || ''}`.trim(),
-      role: user.professional?.role || user.role || 'USER',
-      orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || '')
+      name: `${userDoc.personal?.firstName || ''} ${userDoc.personal?.lastName || ''}`.trim(),
+      role: userDoc.professional?.role || userDoc.role || 'USER',
+      orgId: typeof userDoc.orgId === 'string' ? userDoc.orgId : (userDoc.orgId?.toString() || '')
     }
   };
 }
@@ -135,16 +137,23 @@ export async function getUserFromToken(token: string) {
   // Database connection handled by model layer
   const user = await User.findById(payload.id);
 
-  if (!user || user.status !== 'ACTIVE') {
+  if (!user) {
+    return null;
+  }
+
+  type UserDoc = { status?: string; _id: unknown; email: string; professional?: { role?: string }; role?: string; orgId?: unknown; personal?: { firstName?: string; lastName?: string } };
+  const userDoc = user as unknown as UserDoc;
+
+  if (userDoc.status !== 'ACTIVE') {
     return null;
   }
 
   return {
     id: user._id.toString(),
     email: user.email,
-    name: `${user.personal?.firstName || ''} ${user.personal?.lastName || ''}`.trim(),
-    role: user.professional?.role || user.role || 'USER',
-    orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || '')
+    name: `${userDoc.personal?.firstName || ''} ${userDoc.personal?.lastName || ''}`.trim(),
+    role: userDoc.professional?.role || userDoc.role || 'USER',
+    orgId: typeof userDoc.orgId === 'string' ? userDoc.orgId : (userDoc.orgId?.toString() || '')
   };
 }
 

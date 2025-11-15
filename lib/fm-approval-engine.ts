@@ -645,16 +645,18 @@ export async function updateApprovalDecision(
     approval.notes = notes;
 
     if (decision === 'DELEGATE' && delegateTo) {
-      approval.delegatedTo = delegateTo as unknown as Schema.Types.ObjectId;
+      const { Types } = await import('mongoose');
+      approval.delegatedTo = new Types.ObjectId(delegateTo) as unknown as Schema.Types.ObjectId;
       approval.delegationDate = new Date();
       approval.delegationReason = notes;
     }
 
     // Add to history
+    const { Types } = await import('mongoose');
     approval.history.push({
       timestamp: new Date(),
       action: decision,
-      actorId: approverId as unknown as Schema.Types.ObjectId,
+      actorId: new Types.ObjectId(approverId) as unknown as Schema.Types.ObjectId,
       actorName: 'TBD',
       previousStatus: 'PENDING',
       newStatus: approval.status,
@@ -722,14 +724,16 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
       });
 
       await approval.save();
-      logger.info('[Approval] Escalated:', approval.approvalNumber);
+      logger.info('[Approval] Escalated:', { approvalNumber: approval.approvalNumber });
 
       // ✅ Use policy for escalation (with defensive check)
       const approvalPolicy = APPROVAL_POLICIES && APPROVAL_POLICIES.length > 0 ? APPROVAL_POLICIES[0] : null;
 
+      type ApprovalWithStages = { stages?: Array<{ approverRoles?: string[] }>; currentStage?: number };
+      const approvalWithStages = approval as unknown as ApprovalWithStages;
       const stageDoc =
-        (approval.stages &&
-          approval.stages[approval.currentStageIndex ?? approval.currentStage - 1]) ||
+        (approvalWithStages.stages &&
+          approvalWithStages.stages[approvalWithStages.currentStage ? approvalWithStages.currentStage - 1 : 0]) ||
         null;
 
       if (!approvalPolicy || !stageDoc) {
@@ -759,10 +763,13 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
           preferredChannels: ('email' | 'push')[];
         }> = [];
         
+        type ApprovalDoc = { orgId?: string; _id: unknown; entityId?: unknown; quotationId?: unknown; workOrderId?: unknown };
+        const approvalDoc = approval as unknown as ApprovalDoc;
+        
         for (const role of approvalPolicy.escalateTo) {
           const users = await User.find({
             'professional.role': role,
-            orgId: approval.orgId,
+            orgId: approvalDoc.orgId,
             isActive: true,
           })
             .select(
@@ -779,7 +786,7 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
                   u.professional?.lastName || ''
                 }`.trim(),
                 email: u.email,
-                preferredChannels: ['email', 'push'] as const,
+                preferredChannels: ['email', 'push'] as ('email' | 'push')[],
               }))
             );
           }
@@ -796,8 +803,8 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
         const notification = buildNotification(
           'onApprovalRequested',
           {
-            quotationId: approval.quotationId ?? approval.entityId,
-            workOrderId: approval.workOrderId ?? approval.entityId,
+            quotationId: String(approvalDoc.quotationId ?? approvalDoc.entityId ?? ''),
+            workOrderId: String(approvalDoc.workOrderId ?? approvalDoc.entityId ?? ''),
             amount: approval.amount,
             priority: 'ESCALATED',
             description: `Approval escalated due to timeout. Original approvers: ${
@@ -847,7 +854,7 @@ export async function notifyApprovers(
     
     const approvers = await User.find({
       _id: { $in: stage.approvers }
-    }).select('_id email personal.firstName personal.lastName').lean<LeanUserDetailed>();
+    }).select('_id email personal.firstName personal.lastName').lean<LeanUserDetailed[]>();
     
     if (!approvers || approvers.length === 0) {
       logger.warn('[Approval] Approver details not found', { 
@@ -862,7 +869,7 @@ export async function notifyApprovers(
       userId: approver._id.toString(),
       name: `${approver.personal?.firstName || ''} ${approver.personal?.lastName || ''}`.trim() || approver.email || 'Approver',
       email: approver.email,
-      preferredChannels: ['push', 'email'] as const,
+      preferredChannels: ['push', 'email'] as ('push' | 'email')[],
     }));
     
     const notification = buildNotification('onApprovalRequested', {
