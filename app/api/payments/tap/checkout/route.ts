@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
+import { Types } from 'mongoose';
+import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import {
   tapPayments,
@@ -8,6 +11,28 @@ import {
   type TapChargeRequest,
 } from '@/lib/finance/tap-payments';
 import { getSessionUser } from '@/lib/auth-middleware';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { TapTransaction } from '@/server/models/finance/TapTransaction';
+import { Invoice } from '@/server/models/Invoice';
+
+const CheckoutRequestSchema = z.object({
+  amount: z.number().positive(),
+  currency: z.string().optional(),
+  description: z.string().optional(),
+  orderId: z.string().optional(),
+  invoiceId: z.string().optional(),
+  metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
+  successPath: z.string().optional(),
+  errorPath: z.string().optional(),
+  paymentContext: z.object({
+    partyType: z.enum(['TENANT', 'CUSTOMER', 'VENDOR', 'SUPPLIER', 'OWNER', 'OTHER']).optional(),
+    partyId: z.string().optional(),
+    partyName: z.string().optional(),
+    propertyId: z.string().optional(),
+    unitId: z.string().optional(),
+    notes: z.string().optional(),
+  }).optional(),
+});
 
 /**
  * POST /api/payments/tap/checkout
@@ -30,7 +55,7 @@ import { getSessionUser } from '@/lib/auth-middleware';
  * }
  */
 export async function POST(req: NextRequest) {
-  const correlationId = crypto.randomUUID();
+  const correlationId = randomUUID();
 
   try {
     // Authenticate user
@@ -45,21 +70,50 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Parse request body
-    const body = await req.json();
+    await connectToDatabase();
+
+    const body = CheckoutRequestSchema.parse(await req.json());
     const {
       amount,
+      currency = 'SAR',
       description,
       orderId,
+      invoiceId,
       metadata = {},
+      successPath,
+      errorPath,
+      paymentContext,
     } = body;
 
-    // Validate required fields
-    if (!amount || typeof amount !== 'number' || amount <= 0) {
+    const orgObjectId = Types.ObjectId.isValid(user.orgId) ? new Types.ObjectId(user.orgId) : null;
+    if (!orgObjectId) {
+      logger.error('[POST /api/payments/tap/checkout] Invalid orgId on session', {
+        correlationId,
+        orgId: user.orgId,
+      });
       return NextResponse.json(
-        { error: 'Invalid amount - must be a positive number' },
+        { error: 'Invalid organization context' },
         { status: 400 }
       );
+    }
+
+    let invoiceDoc: Awaited<ReturnType<typeof Invoice.findById>> | null = null;
+    let invoiceObjectId: Types.ObjectId | undefined;
+    if (invoiceId) {
+      if (!Types.ObjectId.isValid(invoiceId)) {
+        return NextResponse.json(
+          { error: 'Invalid invoiceId' },
+          { status: 400 }
+        );
+      }
+      invoiceObjectId = new Types.ObjectId(invoiceId);
+      invoiceDoc = await Invoice.findById(invoiceObjectId).lean();
+      if (!invoiceDoc) {
+        return NextResponse.json(
+          { error: 'Invoice not found' },
+          { status: 404 }
+        );
+      }
     }
 
     logger.info('[POST /api/payments/tap/checkout] Creating checkout session', {
@@ -68,22 +122,37 @@ export async function POST(req: NextRequest) {
       email: user.email,
       amount,
       orderId,
+      invoiceId,
     });
 
-    // Convert amount to halalas (smallest currency unit)
     const amountInHalalas = tapPayments.sarToHalalas(amount);
 
     // Build customer object
+    type InvoiceWithRecipient = typeof invoiceDoc & {
+      recipient?: {
+        name?: string;
+        email?: string;
+        phone?: string;
+      };
+    };
+    const invoice = invoiceDoc as InvoiceWithRecipient;
+    
+    const invoiceRecipientName = invoice?.recipient?.name;
+    const defaultNameParts = user.email ? user.email.split('@') : ['User'];
     const tapCustomer = buildTapCustomer({
-      firstName: user.firstName || user.name?.split(' ')[0] || 'User',
-      lastName: user.lastName || user.name?.split(' ').slice(1).join(' ') || '',
-      email: user.email,
-      phone: user.phone,
+      firstName: invoiceRecipientName?.split(' ')[0] || defaultNameParts[0] || 'User',
+      lastName: invoiceRecipientName?.split(' ').slice(1).join(' ') || '',
+      email: invoice?.recipient?.email || user.email,
+      phone: invoice?.recipient?.phone,
     });
 
     // Build redirect URLs (user will be sent here after payment)
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const redirectUrls = buildRedirectUrls(baseUrl, '/payments/success', '/payments/error');
+    const redirectUrls = buildRedirectUrls(
+      baseUrl,
+      successPath || '/payments/success',
+      errorPath || '/payments/error'
+    );
 
     // Build webhook config (Tap will send payment events here)
     const webhookConfig = buildWebhookConfig(baseUrl);
@@ -91,7 +160,7 @@ export async function POST(req: NextRequest) {
     // Create Tap charge request
     const chargeRequest: TapChargeRequest = {
       amount: amountInHalalas,
-      currency: 'SAR',
+      currency,
       customer: tapCustomer,
       redirect: redirectUrls,
       post: webhookConfig,
@@ -102,6 +171,7 @@ export async function POST(req: NextRequest) {
         userEmail: user.email,
         organizationId: user.orgId || '',
         orderId: orderId || '',
+        invoiceId: invoiceId || '',
       },
       reference: {
         transaction: correlationId,
@@ -123,15 +193,64 @@ export async function POST(req: NextRequest) {
       transactionUrl: charge.transaction.url,
     });
 
-    // Return checkout URL to frontend
+    const expiresAt = charge.transaction.expiry
+      ? new Date(Date.now() + (charge.transaction.expiry.period ?? 0) * 60000)
+      : null;
+
+    const resolvedPartyName =
+      paymentContext?.partyName ||
+      invoice?.recipient?.name ||
+      `${tapCustomer.first_name} ${tapCustomer.last_name}`.trim() ||
+      user.email;
+    const resolvedPartyType = paymentContext?.partyType || 'CUSTOMER';
+    const resolvedPartyId = paymentContext?.partyId || (invoice?.recipient as any)?.customerId;
+
+    await TapTransaction.create({
+      orgId: orgObjectId,
+      userId: user.id,
+      chargeId: charge.id,
+      correlationId,
+      orderId: orderId || undefined,
+      invoiceId: invoiceObjectId,
+      paymentContext: {
+        partyType: resolvedPartyType,
+        partyId: resolvedPartyId,
+        partyName: resolvedPartyName,
+        propertyId: paymentContext?.propertyId,
+        unitId: paymentContext?.unitId,
+        notes: paymentContext?.notes || description,
+      },
+      status: charge.status,
+      currency: charge.currency,
+      amountHalalas: amountInHalalas,
+      amountSAR: amount,
+      redirectUrl: charge.transaction.url,
+      expiresAt,
+      metadata,
+      tapMetadata: charge.metadata,
+      rawCharge: charge,
+      requestContext: {
+        successPath: successPath || '/payments/success',
+        errorPath: errorPath || '/payments/error',
+      },
+      events: [
+        {
+          type: 'charge.created',
+          status: charge.status,
+          at: new Date(),
+          payload: {
+            transactionUrl: charge.transaction.url,
+          },
+        },
+      ],
+    });
+
     return NextResponse.json({
       success: true,
       chargeId: charge.id,
       transactionUrl: charge.transaction.url,
       status: charge.status,
-      expiresAt: charge.transaction.expiry ? 
-        new Date(Date.now() + charge.transaction.expiry.period * 60000).toISOString() : 
-        null,
+      expiresAt: expiresAt ? expiresAt.toISOString() : null,
     });
 
   } catch (error) {
@@ -140,6 +259,13 @@ export async function POST(req: NextRequest) {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid request payload', issues: error.issues },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json(
       {
@@ -158,7 +284,7 @@ export async function POST(req: NextRequest) {
  * Retrieve charge status
  */
 export async function GET(req: NextRequest) {
-  const correlationId = crypto.randomUUID();
+  const correlationId = randomUUID();
 
   try {
     // Authenticate user

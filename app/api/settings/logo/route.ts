@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PlatformSettings } from '@/server/models/PlatformSettings';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 

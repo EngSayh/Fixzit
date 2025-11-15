@@ -202,7 +202,7 @@ export default function PayrollPage() {
                     {run.calculatedAt && (
                       <div className="text-xs text-muted-foreground">
                         {t('hr.payroll.calculatedAt', 'Calculated at')}{' '}
-                        <ClientDate date={run.calculatedAt} format="date-time" />
+                        <ClientDate date={run.calculatedAt} format="medium" />
                       </div>
                     )}
                   </div>

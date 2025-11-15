@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongodb-unified';
-import { Organization } from '@/server/models/Organization';
-
 import { logger } from '@/lib/logger';
 /**
  * @openapi

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { FooterContent } from '@/server/models/FooterContent';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { SLA } from "@/server/models/SLA";
 import { z, ZodError } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
@@ -222,5 +221,4 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ error: 'Failed to fetch SLAs' }, 500, req);
   }
 }
-
 

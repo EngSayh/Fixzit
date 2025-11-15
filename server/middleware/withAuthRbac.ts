@@ -74,23 +74,32 @@ async function loadRBACData(userId: string, orgId: string): Promise<{
     const roles: string[] = [];
     const permissionsSet = new Set<string>();
     
+    // Type for populated role object
+    type PopulatedRole = {
+      slug?: string;
+      wildcard?: boolean;
+      permissions?: Array<{ key?: string }>;
+    };
+    
     if (user.roles && Array.isArray(user.roles)) {
       for (const role of user.roles) {
         if (role && typeof role === 'object') {
+          const populatedRole = role as unknown as PopulatedRole;
+          
           // Add role slug
-          if (role.slug) {
-            roles.push(role.slug);
+          if (populatedRole.slug) {
+            roles.push(populatedRole.slug);
           }
           
           // Check if role has wildcard
-          if (role.wildcard) {
+          if (populatedRole.wildcard) {
             permissionsSet.add('*');
             continue; // Wildcard role grants all permissions
           }
           
           // Add permissions from role
-          if (role.permissions && Array.isArray(role.permissions)) {
-            for (const perm of role.permissions) {
+          if (populatedRole.permissions && Array.isArray(populatedRole.permissions)) {
+            for (const perm of populatedRole.permissions) {
               if (perm && typeof perm === 'object' && perm.key) {
                 permissionsSet.add(perm.key);
               }

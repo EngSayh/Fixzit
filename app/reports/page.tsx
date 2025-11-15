@@ -1,213 +1,199 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { useTranslation } from '@/contexts/TranslationContext'
+
+type ReportTab = 'dashboard' | 'builder' | 'viewer'
+
+type ReportAction = 'download' | 'retry'
+
+interface ReportRow {
+  name: string
+  type: string
+  lastRun: string
+  status: 'ready' | 'running' | 'error'
+  actionType: ReportAction
+  disableActions?: boolean
+}
+
+const statusColorMap: Record<ReportRow['status'], string> = {
+  ready: 'hsl(var(--success))',
+  running: 'hsl(var(--warning))',
+  error: 'hsl(var(--destructive))'
+}
 
 export default function Reports() {
-  const [isRTL, setIsRTL] = useState(false)
+  const { t, language, setLanguage } = useTranslation()
+  const [activeTab, setActiveTab] = useState<ReportTab>('dashboard')
 
-  const toggleLang = () => {
-    const html = document.documentElement;
-    const now = html.getAttribute('dir') === 'rtl' ? 'ltr' : 'rtl';
-    html.setAttribute('dir', now);
-    html.setAttribute('lang', now === 'rtl' ? 'ar' : 'en');
-    setIsRTL(now === 'rtl');
+  const toggleLanguage = () => {
+    setLanguage(language === 'ar' ? 'en' : 'ar')
   }
 
-  useEffect(() => {
-    const html = document.documentElement;
-    setIsRTL(html.getAttribute('dir') === 'rtl');
-  }, [])
-
-  const translations = {
-    en: {
-      brand: "Reports",
-      newReport: "+ New Report",
-      langBtn: "EN / عربي",
-      core: "Core",
-      business: "Business",
-      dashboard: "Dashboard",
-      workOrders: "Work Orders",
-      properties: "Properties",
-      finance: "Finance",
-      hr: "HR",
-      crm: "CRM",
-      marketplace: "Fixzit Souq",
-      support: "Support",
-      compliance: "Compliance",
-      reports: "Reports",
-      system: "System Mgmt.",
-      builder: "Report Builder",
-      viewer: "Report Viewer",
-      reportName: "Report Name",
-      type: "Type",
-      lastRun: "Last Run",
-      status: "Status",
-      actions: "Actions",
-      financial: "Financial",
-      operational: "Operational",
-      ready: "Ready",
-      running: "Running",
-      error: "Error",
-      footer: "© 2025 Fixzit Enterprise — Version 1.0"
+  const reportRows: ReportRow[] = [
+    {
+      name: t('reports.samples.monthlyFinancialSummary', 'Monthly Financial Summary'),
+      type: t('reports.types.financial', 'Financial'),
+      lastRun: '2024-01-15 10:30',
+      status: 'ready',
+      actionType: 'download'
     },
-    ar: {
-      brand: "التقارير",
-      newReport: "+ تقرير جديد",
-      langBtn: "EN / عربي",
-      core: "الأساسية",
-      business: "الأعمال",
-      dashboard: "لوحة التحكم",
-      workOrders: "أوامر العمل",
-      properties: "العقارات",
-      finance: "المالية",
-      hr: "الموارد البشرية",
-      crm: "إدارة العملاء",
-      marketplace: "سوق فيكزيت",
-      support: "الدعم",
-      compliance: "الامتثال",
-      reports: "التقارير",
-      system: "إدارة النظام",
-      builder: "منشئ التقارير",
-      viewer: "عارض التقارير",
-      reportName: "اسم التقرير",
-      type: "النوع",
-      lastRun: "آخر تشغيل",
-      status: "الحالة",
-      actions: "الإجراءات",
-      financial: "مالي",
-      operational: "تشغيلي",
-      ready: "جاهز",
-      running: "قيد التشغيل",
-      error: "خطأ",
-      footer: "© 2025 فيكزيت إنتربرايز — الإصدار 1.0"
+    {
+      name: t('reports.samples.workOrdersPerformance', 'Work Orders Performance'),
+      type: t('reports.types.operational', 'Operational'),
+      lastRun: '2024-01-14 15:45',
+      status: 'running',
+      actionType: 'download',
+      disableActions: true
+    },
+    {
+      name: t('reports.samples.complianceStatus', 'Compliance Status Report'),
+      type: t('reports.types.compliance', 'Compliance'),
+      lastRun: '2024-01-13 09:15',
+      status: 'error',
+      actionType: 'retry'
     }
-  }
-
-  const t = translations[isRTL ? 'ar' : 'en']
+  ]
 
   return (
     <>
       <div className="fxz-topbar">
-        <div className="fxz-brand">{t.brand}</div>
+        <div className="fxz-brand">{t('reports.page.title', 'Reports')}</div>
         <div className="fxz-top-actions">
-          <button type="button" className="fxz-btn primary" onClick={() => toast.info('New Report feature coming soon')}>{t.newReport}</button>
-          <button type="button" className="fxz-btn secondary" onClick={toggleLang}>{t.langBtn}</button>
+          <button
+            type="button"
+            className="fxz-btn primary"
+            onClick={() => toast.info(t('reports.toast.newReportComingSoon', 'New Report feature coming soon'))}
+          >
+            {t('reports.actions.newReport', '+ New Report')}
+          </button>
+          <button type="button" className="fxz-btn secondary" onClick={toggleLanguage}>
+            {t('reports.actions.langToggle', 'EN / عربي')}
+          </button>
         </div>
       </div>
 
       <div className="fxz-app">
         <aside className="fxz-sidebar">
-          <div className="fxz-sidehead">{t.core}</div>
+          <div className="fxz-sidehead">{t('sidebar.category.core', 'Core')}</div>
           <nav className="fxz-nav">
-            <Link href="/dashboard">🏠 <span>{t.dashboard}</span></Link>
-            <Link href="/work-orders">🧰 <span>{t.workOrders}</span></Link>
-            <Link href="/properties">🏢 <span>{t.properties}</span></Link>
-            <Link href="/finance">💳 <span>{t.finance}</span></Link>
-            <Link href="/hr">👥 <span>{t.hr}</span></Link>
+            <Link href="/dashboard">🏠 <span>{t('nav.dashboard', 'Dashboard')}</span></Link>
+            <Link href="/work-orders">🧰 <span>{t('nav.work-orders', 'Work Orders')}</span></Link>
+            <Link href="/properties">🏢 <span>{t('nav.properties', 'Properties')}</span></Link>
+            <Link href="/finance">💳 <span>{t('nav.finance', 'Finance')}</span></Link>
+            <Link href="/hr">👥 <span>{t('nav.hr', 'HR')}</span></Link>
           </nav>
-          <div className="fxz-sidehead">{t.business}</div>
+          <div className="fxz-sidehead">{t('sidebar.category.business', 'Business')}</div>
           <nav className="fxz-nav">
-            <Link href="/crm">📇 <span>{t.crm}</span></Link>
-            <Link href="/marketplace">🛍️ <span>{t.marketplace}</span></Link>
-            <Link href="/support">🎧 <span>{t.support}</span></Link>
-            <Link href="/compliance">🛡️ <span>{t.compliance}</span></Link>
-            <Link href="/reports" className="active">📊 <span>{t.reports}</span></Link>
-            <Link href="/system">⚙️ <span>{t.system}</span></Link>
+            <Link href="/crm">📇 <span>{t('nav.crm', 'CRM')}</span></Link>
+            <Link href="/marketplace">🛍️ <span>{t('nav.marketplace', 'Marketplace')}</span></Link>
+            <Link href="/support">🎧 <span>{t('nav.support', 'Support')}</span></Link>
+            <Link href="/compliance">🛡️ <span>{t('nav.compliance', 'Compliance')}</span></Link>
+            <Link href="/reports" className="active">📊 <span>{t('nav.reports', 'Reports')}</span></Link>
+            <Link href="/system">⚙️ <span>{t('nav.system', 'System Mgmt.')}</span></Link>
           </nav>
         </aside>
 
         <main className="fxz-main">
           <div className="fxz-content">
-            <h2 style={{margin: '0 0 6px'}}>{t.reports}</h2>
+            <h2 style={{margin: '0 0 6px'}}>{t('reports.page.title', 'Reports')}</h2>
             <div className="fxz-pills" data-tabs="reports">
-              <button type="button" className="fxz-pill active" data-tab="dashboard" onClick={() => {
-                document.querySelectorAll('[data-tabs="reports"] .fxz-pill').forEach(p => {
-                  p.classList.toggle('active', p.getAttribute('data-tab') === 'dashboard');
-                });
-                document.querySelectorAll('[data-panels="reports"] [data-panel]').forEach(p => {
-                  p.classList.toggle('fxz-hidden', p.getAttribute('data-panel') !== 'dashboard');
-                });
-              }}>{t.dashboard}</button>
-              <button type="button" className="fxz-pill" data-tab="builder" onClick={() => {
-                document.querySelectorAll('[data-tabs="reports"] .fxz-pill').forEach(p => {
-                  p.classList.toggle('active', p.getAttribute('data-tab') === 'builder');
-                });
-                document.querySelectorAll('[data-panels="reports"] [data-panel]').forEach(p => {
-                  p.classList.toggle('fxz-hidden', p.getAttribute('data-panel') !== 'builder');
-                });
-              }}>{t.builder}</button>
-              <button type="button" className="fxz-pill" data-tab="viewer" onClick={() => {
-                document.querySelectorAll('[data-tabs="reports"] .fxz-pill').forEach(p => {
-                  p.classList.toggle('active', p.getAttribute('data-tab') === 'viewer');
-                });
-                document.querySelectorAll('[data-panels="reports"] [data-panel]').forEach(p => {
-                  p.classList.toggle('fxz-hidden', p.getAttribute('data-panel') !== 'viewer');
-                });
-              }}>{t.viewer}</button>
+              <button
+                type="button"
+                className={`fxz-pill ${activeTab === 'dashboard' ? 'active' : ''}`}
+                onClick={() => setActiveTab('dashboard')}
+                data-tab="dashboard"
+              >
+                {t('nav.dashboard', 'Dashboard')}
+              </button>
+              <button
+                type="button"
+                className={`fxz-pill ${activeTab === 'builder' ? 'active' : ''}`}
+                onClick={() => setActiveTab('builder')}
+                data-tab="builder"
+              >
+                {t('reports.tabs.builder', 'Report Builder')}
+              </button>
+              <button
+                type="button"
+                className={`fxz-pill ${activeTab === 'viewer' ? 'active' : ''}`}
+                onClick={() => setActiveTab('viewer')}
+                data-tab="viewer"
+              >
+                {t('reports.tabs.viewer', 'Report Viewer')}
+              </button>
             </div>
 
             <div data-panels="reports">
-              <section data-panel="dashboard">
+              <section data-panel="dashboard" className={activeTab === 'dashboard' ? '' : 'fxz-hidden'}>
                 <table className="fxz-table">
                   <thead>
                     <tr>
-                      <th>{t.reportName}</th>
-                      <th>{t.type}</th>
-                      <th>{t.lastRun}</th>
-                      <th>{t.status}</th>
-                      <th>{t.actions}</th>
+                      <th>{t('reports.table.reportName', 'Report Name')}</th>
+                      <th>{t('reports.table.type', 'Type')}</th>
+                      <th>{t('reports.table.lastRun', 'Last Run')}</th>
+                      <th>{t('reports.table.status', 'Status')}</th>
+                      <th>{t('reports.table.actions', 'Actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td>Monthly Financial Summary</td>
-                      <td>{t.financial}</td>
-                      <td>2024-01-15 10:30</td>
-                      <td style={{color: 'hsl(var(--success))'}}>{t.ready}</td>
-                      <td>
-                        <button className="fxz-btn secondary" style={{padding: '4px 8px', fontSize: '12px'}}>View</button>
-                        <button className="fxz-btn primary" style={{padding: '4px 8px', fontSize: '12px', marginLeft: '4px'}}>Download</button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Work Orders Performance</td>
-                      <td>{t.operational}</td>
-                      <td>2024-01-14 15:45</td>
-                      <td style={{color: 'hsl(var(--warning))'}}>{t.running}</td>
-                      <td>
-                        <button className="fxz-btn secondary" style={{padding: '4px 8px', fontSize: '12px'}} disabled>View</button>
-                        <button className="fxz-btn primary" style={{padding: '4px 8px', fontSize: '12px', marginLeft: '4px'}} disabled>Download</button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>Compliance Status Report</td>
-                      <td>{t.compliance}</td>
-                      <td>2024-01-13 09:15</td>
-                      <td style={{color: 'hsl(var(--destructive))'}}>{t.error}</td>
-                      <td>
-                        <button className="fxz-btn secondary" style={{padding: '4px 8px', fontSize: '12px'}}>Retry</button>
-                        <button className="fxz-btn primary" style={{padding: '4px 8px', fontSize: '12px', marginLeft: '4px'}}>Edit</button>
-                      </td>
-                    </tr>
+                    {reportRows.map((row) => (
+                      <tr key={`${row.name}-${row.lastRun}`}>
+                        <td>{row.name}</td>
+                        <td>{row.type}</td>
+                        <td>{row.lastRun}</td>
+                        <td style={{ color: statusColorMap[row.status] }}>
+                          {t(`reports.status.${row.status}`, row.status)}
+                        </td>
+                        <td>
+                          {row.actionType === 'download' ? (
+                            <>
+                              <button
+                                className="fxz-btn secondary"
+                                style={{padding: '4px 8px', fontSize: '12px'}}
+                                disabled={row.disableActions}
+                              >
+                                {t('common.view', 'View')}
+                              </button>
+                              <button
+                                className="fxz-btn primary"
+                                style={{padding: '4px 8px', fontSize: '12px', marginInlineStart: '4px'}}
+                                disabled={row.disableActions}
+                              >
+                                {t('common.download', 'Download')}
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button className="fxz-btn secondary" style={{padding: '4px 8px', fontSize: '12px'}}>
+                                {t('common.retry', 'Retry')}
+                              </button>
+                              <button className="fxz-btn primary" style={{padding: '4px 8px', fontSize: '12px', marginInlineStart: '4px'}}>
+                                {t('common.edit', 'Edit')}
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </section>
 
-              <section className="fxz-hidden" data-panel="builder">
-                <div className="fxz-card">Drag-and-drop report builder interface</div>
+              <section className={activeTab === 'builder' ? '' : 'fxz-hidden'} data-panel="builder">
+                <div className="fxz-card">{t('reports.builder.placeholder', 'Drag-and-drop report builder interface')}</div>
               </section>
 
-              <section className="fxz-hidden" data-panel="viewer">
-                <div className="fxz-card">Report viewer with export options</div>
+              <section className={activeTab === 'viewer' ? '' : 'fxz-hidden'} data-panel="viewer">
+                <div className="fxz-card">{t('reports.viewer.placeholder', 'Report viewer with export options')}</div>
               </section>
             </div>
           </div>
-          <div className="fxz-footer">{t.footer}</div>
+          <div className="fxz-footer">{t('reports.footer', '© 2025 Fixzit Enterprise — Version 1.0')}</div>
         </main>
       </div>
     </>
   )
 }
-

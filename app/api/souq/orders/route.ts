@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       }
 
       const listingDoc = listing as unknown as {
-        reserveStock?: (qty: number) => Promise<boolean>;
+        reserveStock?: (_quantity: number) => Promise<boolean>;
         availableQuantity?: number;
         reservedQuantity?: number;
         save?: () => Promise<unknown>;

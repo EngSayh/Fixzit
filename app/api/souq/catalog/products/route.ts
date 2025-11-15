@@ -155,8 +155,9 @@ export async function POST(request: NextRequest) {
     
     // Publish product.created event using shared NATS client
     try {
+      type PublishFn = (_event: string, _data: Record<string, unknown>) => Promise<void>;
       const natsModule = await import('@/lib/nats-client') as {
-        publish?: (subject: string, payload: Record<string, unknown>) => Promise<void>;
+        publish?: PublishFn;
       };
       if (typeof natsModule.publish === 'function') {
         await natsModule.publish('product.created', {

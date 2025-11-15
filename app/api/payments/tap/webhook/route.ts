@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
+import { Types } from 'mongoose';
 import { logger } from '@/lib/logger';
 import {
   tapPayments,
-  isChargeSuccessful,
-  isChargeFailed,
   type TapWebhookEvent,
   type TapChargeResponse,
   type TapRefundResponse,
 } from '@/lib/finance/tap-payments';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { TapTransaction, type TapTransactionDoc } from '@/server/models/finance/TapTransaction';
+import { Payment } from '@/server/models/finance/Payment';
+import { Invoice } from '@/server/models/Invoice';
 
 /**
  * POST /api/payments/tap/webhook
@@ -30,7 +34,7 @@ import {
  * - Idempotent processing based on event ID
  */
 export async function POST(req: NextRequest) {
-  const correlationId = crypto.randomUUID();
+  const correlationId = randomUUID();
 
   try {
     // Get raw body for signature verification
@@ -65,6 +69,8 @@ export async function POST(req: NextRequest) {
       liveMode: event.live_mode,
     });
 
+    await connectToDatabase();
+
     // Process event based on type
     switch (event.type) {
       case 'charge.created':
@@ -85,6 +91,8 @@ export async function POST(req: NextRequest) {
         break;
 
       case 'refund.created':
+        await handleRefundCreated(event, correlationId);
+        break;
       case 'refund.succeeded':
         await handleRefundSucceeded(event, correlationId);
         break;
@@ -141,19 +149,10 @@ async function handleChargeCreated(event: TapWebhookEvent, correlationId: string
     metadata: charge.metadata,
   });
 
-  // TODO: Store charge in database
-  // Example:
-  // await prisma.payment.create({
-  //   data: {
-  //     tapChargeId: charge.id,
-  //     amount: charge.amount,
-  //     currency: charge.currency,
-  //     status: 'PENDING',
-  //     userId: charge.metadata?.userId,
-  //     organizationId: charge.metadata?.organizationId,
-  //     metadata: charge.metadata,
-  //   },
-  // });
+  await upsertTransactionFromCharge(event.type, charge, correlationId, {
+    responseCode: charge.response?.code,
+    responseMessage: charge.response?.message,
+  });
 }
 
 /**
@@ -173,27 +172,13 @@ async function handleChargeCaptured(event: TapWebhookEvent, correlationId: strin
     metadata: charge.metadata,
   });
 
-  // TODO: Update payment status in database
-  // TODO: Fulfill order/service
-  // TODO: Send confirmation email/SMS
-  // Example:
-  // await prisma.payment.update({
-  //   where: { tapChargeId: charge.id },
-  //   data: { 
-  //     status: 'CAPTURED',
-  //     capturedAt: new Date(),
-  //   },
-  // });
-  //
-  // await prisma.order.update({
-  //   where: { id: charge.reference?.order },
-  //   data: { 
-  //     paymentStatus: 'PAID',
-  //     paidAt: new Date(),
-  //   },
-  // });
-  //
-  // await sendPaymentConfirmationEmail(charge.customer.email, charge);
+  const transaction = await upsertTransactionFromCharge(event.type, charge, correlationId, {
+    responseCode: charge.response?.code,
+    responseMessage: charge.response?.message,
+  });
+  if (transaction) {
+    await ensurePaymentForCharge(transaction, charge, correlationId);
+  }
 }
 
 /**
@@ -211,16 +196,10 @@ async function handleChargeAuthorized(event: TapWebhookEvent, correlationId: str
     customerEmail: charge.customer.email,
   });
 
-  // TODO: Update payment status to AUTHORIZED
-  // You can capture the payment later by calling Tap API's capture endpoint
-  // Example:
-  // await prisma.payment.update({
-  //   where: { tapChargeId: charge.id },
-  //   data: { 
-  //     status: 'AUTHORIZED',
-  //     authorizedAt: new Date(),
-  //   },
-  // });
+  await upsertTransactionFromCharge(event.type, charge, correlationId, {
+    responseCode: charge.response?.code,
+    responseMessage: charge.response?.message,
+  });
 }
 
 /**
@@ -240,19 +219,13 @@ async function handleChargeFailed(event: TapWebhookEvent, correlationId: string)
     responseMessage: charge.response.message,
   });
 
-  // TODO: Update payment status to FAILED/DECLINED
-  // TODO: Notify user of failed payment
-  // Example:
-  // await prisma.payment.update({
-  //   where: { tapChargeId: charge.id },
-  //   data: { 
-  //     status: charge.status,
-  //     failedAt: new Date(),
-  //     failureReason: charge.response.message,
-  //   },
-  // });
-  //
-  // await sendPaymentFailedEmail(charge.customer.email, charge);
+  const transaction = await upsertTransactionFromCharge(event.type, charge, correlationId, {
+    responseCode: charge.response?.code,
+    responseMessage: charge.response?.message,
+  });
+  if (transaction) {
+    await markInvoicePaymentStatus(transaction, charge, 'FAILED', charge.response?.message);
+  }
 }
 
 /**
@@ -271,19 +244,20 @@ async function handleRefundSucceeded(event: TapWebhookEvent, correlationId: stri
     reason: refund.reason,
   });
 
-  // TODO: Update refund status in database
-  // TODO: Update order/invoice status
-  // TODO: Notify user of successful refund
-  // Example:
-  // await prisma.refund.update({
-  //   where: { tapRefundId: refund.id },
-  //   data: { 
-  //     status: 'SUCCEEDED',
-  //     succeededAt: new Date(),
-  //   },
-  // });
-  //
-  // await sendRefundConfirmationEmail(customerEmail, refund);
+  await updateRefundRecord(refund, 'SUCCEEDED', correlationId);
+}
+
+async function handleRefundCreated(event: TapWebhookEvent, correlationId: string) {
+  const refund = event.data.object as TapRefundResponse;
+
+  logger.info('[Webhook] Refund created', {
+    correlationId,
+    refundId: refund.id,
+    chargeId: refund.charge,
+    amount: refund.amount,
+  });
+
+  await updateRefundRecord(refund, 'PENDING', correlationId);
 }
 
 /**
@@ -302,19 +276,7 @@ async function handleRefundFailed(event: TapWebhookEvent, correlationId: string)
     responseMessage: refund.response.message,
   });
 
-  // TODO: Update refund status to FAILED
-  // TODO: Alert admin/finance team
-  // Example:
-  // await prisma.refund.update({
-  //   where: { tapRefundId: refund.id },
-  //   data: { 
-  //     status: 'FAILED',
-  //     failedAt: new Date(),
-  //     failureReason: refund.response.message,
-  //   },
-  // });
-  //
-  // await notifyAdminOfRefundFailure(refund);
+  await updateRefundRecord(refund, 'FAILED', correlationId);
 }
 
 /**
@@ -341,4 +303,322 @@ export async function GET(req: NextRequest) {
       'refund.failed',
     ],
   });
+}
+
+// ============================================================================
+// Persistence Helpers
+// ============================================================================
+
+async function upsertTransactionFromCharge(
+  eventType: string,
+  charge: TapChargeResponse,
+  correlationId: string,
+  payload: Record<string, unknown>
+): Promise<TapTransactionDoc | null> {
+  let transaction = await TapTransaction.findOne({ chargeId: charge.id });
+
+  if (!transaction) {
+    const orgId = extractOrgId(charge.metadata);
+    if (!orgId) {
+      logger.error('[Webhook] Missing organizationId metadata on Tap charge', {
+        correlationId,
+        chargeId: charge.id,
+      });
+      return null;
+    }
+
+    transaction = new TapTransaction({
+      orgId,
+      userId: typeof charge.metadata?.userId === 'string' ? charge.metadata?.userId : undefined,
+      chargeId: charge.id,
+      orderId: charge.reference?.order,
+      correlationId,
+      status: charge.status,
+      currency: charge.currency || 'SAR',
+      amountHalalas: charge.amount,
+      amountSAR: tapPayments.halalasToSAR(charge.amount || 0),
+      paymentContext: transactionContextFromCharge(charge),
+      metadata: {},
+      tapMetadata: charge.metadata,
+      rawCharge: charge,
+      events: [],
+    });
+  }
+
+  transaction.status = charge.status;
+  transaction.currency = charge.currency || transaction.currency;
+  transaction.amountHalalas = charge.amount || transaction.amountHalalas;
+  transaction.amountSAR = tapPayments.halalasToSAR(transaction.amountHalalas || 0);
+  transaction.orderId = transaction.orderId || charge.reference?.order;
+  transaction.tapMetadata = charge.metadata;
+  transaction.rawCharge = charge;
+  transaction.lastEventAt = new Date();
+  transaction.redirectUrl = charge.transaction?.url || transaction.redirectUrl;
+  if (charge.transaction?.expiry?.period) {
+    transaction.expiresAt = new Date(Date.now() + (charge.transaction.expiry.period ?? 0) * 60000);
+  }
+
+  transaction.events = transaction.events || [];
+  (transaction.events as any).push({
+    type: eventType,
+    status: charge.status,
+    at: new Date(),
+    payload,
+  });
+  if (transaction.events.length > 25) {
+    transaction.events = (transaction.events as any).slice(transaction.events.length - 25);
+  }
+
+  await transaction.save();
+  return transaction;
+}
+
+async function ensurePaymentForCharge(
+  transaction: TapTransactionDoc,
+  charge: TapChargeResponse,
+  correlationId: string
+) {
+  if (transaction.paymentId) {
+    return;
+  }
+
+  const amountSAR = tapPayments.halalasToSAR(charge.amount || transaction.amountHalalas || 0);
+  const partyName =
+    transaction.paymentContext?.partyName ||
+    `${charge.customer?.first_name || ''} ${charge.customer?.last_name || ''}`.trim() ||
+    charge.customer?.email ||
+    'Customer';
+  const partyType = transaction.paymentContext?.partyType || 'CUSTOMER';
+
+  const paymentPayload: Record<string, unknown> = {
+    orgId: transaction.orgId,
+    paymentDate: new Date(),
+    paymentType: 'RECEIVED',
+    paymentMethod: 'ONLINE',
+    amount: amountSAR,
+    currency: charge.currency || 'SAR',
+    status: 'POSTED',
+    partyType,
+    partyName,
+    referenceNumber: charge.id,
+    notes: transaction.paymentContext?.notes,
+    receiptUrl: charge.transaction?.url,
+    cardDetails: {
+      transactionId: charge.id,
+      authorizationCode: charge.response?.code,
+    },
+    createdBy: transaction.userId,
+  };
+
+  if (transaction.paymentContext?.partyId && Types.ObjectId.isValid(transaction.paymentContext.partyId)) {
+    paymentPayload.partyId = new Types.ObjectId(transaction.paymentContext.partyId) as any;
+  }
+
+  const payment = await Payment.create(paymentPayload as Record<string, unknown>);
+  transaction.paymentId = payment._id as any;
+  await transaction.save();
+
+  await allocateInvoicePayment(transaction, payment, charge, amountSAR, correlationId);
+}
+
+async function allocateInvoicePayment(
+  transaction: TapTransactionDoc,
+  payment: typeof Payment.prototype,
+  charge: TapChargeResponse,
+  amountSar: number,
+  correlationId: string
+) {
+  if (!transaction.invoiceId) {
+    return;
+  }
+
+  const invoice = await Invoice.findById(transaction.invoiceId);
+  if (!invoice) {
+    logger.warn('[Webhook] Invoice not found for Tap payment allocation', {
+      correlationId,
+      invoiceId: transaction.invoiceId?.toString(),
+      chargeId: charge.id,
+    });
+    return;
+  }
+
+  try {
+    await payment.allocateToInvoice(
+      transaction.invoiceId,
+      invoice.number || transaction.invoiceId.toString(),
+      amountSar
+    );
+    await payment.save();
+  } catch (allocationError) {
+    logger.warn('[Webhook] Failed to allocate Tap payment to invoice', {
+      correlationId,
+      invoiceId: invoice._id.toString(),
+      error: allocationError instanceof Error ? allocationError.message : allocationError,
+    });
+  }
+
+  invoice.payments = invoice.payments || [];
+  const existing = invoice.payments.find((p: any) => p.transactionId === charge.id);
+  if (existing) {
+    existing.status = 'COMPLETED';
+    existing.notes = 'Paid via Tap';
+  } else {
+    invoice.payments.push({
+      date: new Date(),
+      amount: amountSar,
+      method: 'TAP_PAYMENTS',
+      reference: charge.id,
+      status: 'COMPLETED',
+      transactionId: charge.id,
+      notes: 'Paid via Tap',
+    });
+  }
+  invoice.status = 'PAID';
+  invoice.history = invoice.history || [];
+  invoice.history.push({
+    action: 'PAID',
+    performedBy: transaction.userId || 'tap-webhook',
+    performedAt: new Date(),
+    details: 'Payment captured via Tap webhook',
+    ipAddress: 'tap-webhook',
+    userAgent: 'tap-webhook',
+  });
+  invoice.updatedBy = transaction.userId || invoice.updatedBy;
+  await invoice.save();
+}
+
+async function markInvoicePaymentStatus(
+  transaction: TapTransactionDoc,
+  charge: TapChargeResponse,
+  status: string,
+  message?: string
+) {
+  if (!transaction.invoiceId) {
+    return;
+  }
+  const invoice = await Invoice.findById(transaction.invoiceId);
+  if (!invoice) {
+    return;
+  }
+
+  invoice.payments = invoice.payments || [];
+  const amount = tapPayments.halalasToSAR(charge.amount || transaction.amountHalalas || 0);
+  const existing = invoice.payments.find((p: any) => p.transactionId === charge.id);
+  if (existing) {
+    existing.status = status;
+    existing.notes = message;
+  } else {
+    invoice.payments.push({
+      date: new Date(),
+      amount,
+      method: 'TAP_PAYMENTS',
+      reference: charge.id,
+      status,
+      transactionId: charge.id,
+      notes: message,
+    });
+  }
+  await invoice.save();
+}
+
+async function updateRefundRecord(
+  refund: TapRefundResponse,
+  status: 'PENDING' | 'SUCCEEDED' | 'FAILED',
+  correlationId: string
+) {
+  const transaction = await TapTransaction.findOne({ chargeId: refund.charge });
+  if (!transaction) {
+    logger.warn('[Webhook] Refund received for unknown Tap transaction', {
+      correlationId,
+      refundId: refund.id,
+      chargeId: refund.charge,
+    });
+    return;
+  }
+
+  transaction.refunds = transaction.refunds || [];
+  const existingRefund = transaction.refunds.find((r) => r.refundId === refund.id);
+  const amountSar = tapPayments.halalasToSAR(refund.amount || 0);
+  if (existingRefund) {
+    existingRefund.status = status;
+    existingRefund.reason = refund.reason;
+    existingRefund.processedAt = new Date();
+  } else {
+    transaction.refunds.push({
+      refundId: refund.id,
+      status,
+      amountHalalas: refund.amount,
+      amountSAR: amountSar,
+      currency: refund.currency,
+      reason: refund.reason,
+      processedAt: new Date(),
+    });
+  }
+  transaction.events = transaction.events || [];
+  (transaction.events as any).push({
+    type:
+      status === 'SUCCEEDED'
+        ? 'refund.succeeded'
+        : status === 'FAILED'
+          ? 'refund.failed'
+          : 'refund.created',
+    status,
+    at: new Date(),
+    payload: {
+      refundId: refund.id,
+      responseCode: refund.response?.code,
+      responseMessage: refund.response?.message,
+    },
+  });
+  if (transaction.events.length > 25) {
+    transaction.events = (transaction.events as any).slice(transaction.events.length - 25);
+  }
+  await transaction.save();
+
+  if (transaction.paymentId) {
+    const payment = await Payment.findById(transaction.paymentId);
+    if (payment) {
+      if (status === 'SUCCEEDED') {
+        payment.status = 'REFUNDED';
+        payment.isRefund = true;
+      }
+      if (status === 'FAILED' && payment.status === 'REFUNDED') {
+        payment.status = 'POSTED';
+      }
+      payment.refundReason = refund.reason;
+      await payment.save();
+    }
+  }
+
+  if (transaction.invoiceId) {
+    const invoice = await Invoice.findById(transaction.invoiceId);
+    if (invoice) {
+      const entry = invoice.payments?.find((p: any) => p.transactionId === refund.charge);
+      if (entry) {
+        entry.status = status === 'SUCCEEDED' ? 'REFUNDED' : status;
+        entry.notes = refund.reason || entry.notes;
+      }
+      await invoice.save();
+    }
+  }
+}
+
+function extractOrgId(metadata?: Record<string, unknown>): Types.ObjectId | null {
+  const orgValue = metadata?.organizationId || metadata?.orgId;
+  if (typeof orgValue === 'string' && Types.ObjectId.isValid(orgValue)) {
+    return new Types.ObjectId(orgValue);
+  }
+  if (orgValue instanceof Types.ObjectId) {
+    return orgValue;
+  }
+  return null;
+}
+
+function transactionContextFromCharge(charge: TapChargeResponse) {
+  return {
+    partyType: 'CUSTOMER',
+    partyName:
+      `${charge.customer?.first_name || ''} ${charge.customer?.last_name || ''}`.trim() ||
+      charge.customer?.email,
+  };
 }

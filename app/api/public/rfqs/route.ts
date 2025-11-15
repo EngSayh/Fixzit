@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import { RFQ } from '@/server/models/RFQ';
 import { z } from 'zod';
 
 import { rateLimit } from '@/server/security/rateLimit';
@@ -184,5 +183,4 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }
-
 
