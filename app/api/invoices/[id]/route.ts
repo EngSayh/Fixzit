@@ -159,7 +159,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         p.status === "COMPLETED" ? sum + p.amount : sum, 0
       );
 
-      if (totalPaid >= invoice.total) {
+      if (invoice.total && totalPaid >= invoice.total) {
         invoice.status = "PAID";
         invoice.history.push({
           action: "PAID",
@@ -171,7 +171,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     }
 
     // Handle approval
-    if (data.approval) {
+    if (data.approval && invoice.approval) {
       const level = invoice.approval.levels.find((l: { approver: string; status: string }) => 
         l.approver === user.id && l.status === "PENDING"
       );

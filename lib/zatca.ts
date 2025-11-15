@@ -5,8 +5,8 @@ interface ZATCAData {
   sellerName: string;
   vatNumber: string;
   timestamp: string;
-  total: string;
-  vatAmount: string;
+  total: string | number;
+  vatAmount: string | number;
 }
 
 function toTLV(tag: number, value: string): Buffer {
@@ -22,8 +22,8 @@ export function generateZATCATLV(data: ZATCAData): string {
     toTLV(1, data.sellerName),
     toTLV(2, data.vatNumber),
     toTLV(3, data.timestamp),
-    toTLV(4, data.total),
-    toTLV(5, data.vatAmount)
+    toTLV(4, String(data.total)),
+    toTLV(5, String(data.vatAmount))
   ];
   
   const tlvBuffer = Buffer.concat(tlvArray);

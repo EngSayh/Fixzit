@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
         status: "SUBMITTED",
         statusHistory: [{ from: "DRAFT", to: "SUBMITTED", byUserId: user.id, at: new Date() }],
         createdBy: user.id});
-      const answer = `Created work order ${wo.code} – "${wo.title}" with priority ${wo.priority}.`;
+      const answer = `Created work order ${(wo as unknown as WorkOrderItem).code} – "${wo.title}" with priority ${wo.priority}.`;
       return NextResponse.json({ answer, citations: [] as Citation[] });
     } catch (_e: unknown) {
       const errorMsg = _e instanceof Error ? _e.message : "unknown error";
@@ -187,11 +187,10 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ answer: "Please sign in to view your tickets.", citations: [] });
     }
-    // @ts-expect-error - Mongoose 8.x type resolution issue with conditional model export
     const items = await WorkOrder.find({ tenantId: user.orgId, createdBy: user.id })
       .sort?.({ createdAt: -1 })
       .limit?.(5) || [];
-    const lines = (Array.isArray(items) ? items : []).map((it: WorkOrderItem) => `• ${it.code}: ${it.title} – ${it.status}`);
+    const lines = (Array.isArray(items) ? items : []).map((it: WorkOrderItem) => `• ${(it as unknown as WorkOrderItem).code}: ${it.title} – ${it.status}`);
     const answer = lines.length ? `Your recent work orders:\n${lines.join("\n")}` : "You have no work orders yet.";
     return NextResponse.json({ answer, citations: [] as Citation[] });
   }

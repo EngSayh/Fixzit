@@ -80,7 +80,8 @@ export async function GET(
       );
     }
     
-    const unit = property.units?.find((u: { unitNumber: string }) => u.unitNumber === params.unitId);
+    type PropertyUnit = { unitNumber: string; type: string; area?: number; bedrooms?: number; bathrooms?: number; status?: string; [key: string]: unknown };
+    const unit = (property.units as PropertyUnit[] | undefined)?.find((u: PropertyUnit) => u.unitNumber === params.unitId);
     
     if (!unit) {
       return NextResponse.json(
