@@ -124,6 +124,7 @@ export async function POST(req: NextRequest) {
 
     const data = createRFQSchema.parse(await req.json());
 
+    const { RFQ } = await import('@/server/models/RFQ');
     const rfq = (await RFQ.create({
       tenantId: user.orgId,
       code: `RFQ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
@@ -180,6 +181,7 @@ export async function GET(req: NextRequest) {
       match.$text = { $search: search };
     }
 
+    const { RFQ } = await import('@/server/models/RFQ');
     const [items, total] = await Promise.all([
       RFQ.find(match)
         .sort({ createdAt: -1 })

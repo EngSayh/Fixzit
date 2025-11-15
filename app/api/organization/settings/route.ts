@@ -35,7 +35,9 @@ export async function GET() {
     await connectDb();
 
     // Get the first active organization (or you can get by orgId from session)
-    const org = await Organization.findOne({ /* isActive: true */ }).select('name logo branding').lean() as unknown;
+    const { Organization } = await import('@/server/models/Organization');
+    type OrgDoc = { name?: string; logo?: string; branding?: { primaryColor?: string; secondaryColor?: string; accentColor?: string } };
+    const org = await Organization.findOne({ /* isActive: true */ }).select('name logo branding').lean() as OrgDoc | null;
 
     if (!org) {
       // Return default settings if no organization found

@@ -136,6 +136,7 @@ export async function POST(req: NextRequest) {
 
     const data = createSLASchema.parse(await req.json());
 
+    const { SLA } = await import('@/server/models/SLA');
     const sla = (await SLA.create({
       tenantId: user.orgId,
       code: `SLA-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
@@ -197,6 +198,7 @@ export async function GET(req: NextRequest) {
       match.$text = { $search: search };
     }
 
+    const { SLA } = await import('@/server/models/SLA');
     const [items, total] = await Promise.all([
       SLA.find(match)
         .sort({ createdAt: -1 })

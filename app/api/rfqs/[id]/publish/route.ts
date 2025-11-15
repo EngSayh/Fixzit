@@ -51,6 +51,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     const user = await getSessionUser(req);
     await connectToDatabase();
 
+    const { RFQ } = await import('@/server/models/RFQ');
     const rfq = (await RFQ.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId, status: "DRAFT" },
       {

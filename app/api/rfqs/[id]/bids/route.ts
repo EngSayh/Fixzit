@@ -80,6 +80,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
     const data = submitBidSchema.parse(await req.json());
 
+    const { RFQ } = await import('@/server/models/RFQ');
     const rfq = (await RFQ.findOne({ _id: params.id, tenantId: user.tenantId }));
     
     if (!rfq) {

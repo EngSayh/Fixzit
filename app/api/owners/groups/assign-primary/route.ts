@@ -62,7 +62,8 @@ export async function POST(req: NextRequest) {
     const body = assignPrimarySchema.parse(await req.json());
     
     // Tenant isolation - ensure group belongs to user's org
-    const g = await OwnerGroup.findOneAndUpdate(
+    const { OwnerGroupModel } = await import('@/server/models/OwnerGroup');
+    const g = await OwnerGroupModel.findOneAndUpdate(
       { buildingId: body.buildingId, orgId: user.orgId }, 
       { 
         buildingId: body.buildingId, 

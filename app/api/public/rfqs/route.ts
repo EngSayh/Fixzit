@@ -83,6 +83,7 @@ export async function GET(req: NextRequest) {
       filter.$text = { $search: query.search };
     }
 
+    const { RFQ } = await import('@/server/models/RFQ');
     const [items, total] = await Promise.all([
       RFQ.find(filter)
         .sort({ createdAt: -1 })
