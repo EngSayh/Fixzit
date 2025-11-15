@@ -142,7 +142,7 @@ export async function runRecurringBillingJob(payTabsClient: PayTabsClient, now =
         cartId: sub.paytabs.cart_id,
       });
       
-      await markSubscriptionPaid(sub._id.toString(), result);
+      await markSubscriptionPaid((sub._id as Types.ObjectId).toString(), result);
       if (result.status === 'SUCCESS') succeeded++;
       else failed++;
     } catch (error) {

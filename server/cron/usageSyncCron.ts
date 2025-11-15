@@ -18,7 +18,7 @@ async function syncUsageForAllSubscriptions() {
     try {
       // In a real implementation, you would fetch actual usage counts from the database
       // For now, just record a sync attempt
-      await updateUsageSnapshot(sub._id.toString(), {
+      await updateUsageSnapshot((sub._id as any).toString(), {
         users: 0,
         properties: 0,
         units: 0,
