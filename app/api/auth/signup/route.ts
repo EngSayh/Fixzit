@@ -77,7 +77,18 @@ export async function POST(req: NextRequest) {
     }
 
     await connectToDatabase();
-    const body = signupSchema.parse(await req.json());
+    
+    // Parse and validate JSON body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (_jsonError) {
+      return zodValidationError({
+        issues: [{ path: ['body'], message: 'Invalid JSON in request body' }]
+      } as z.ZodError);
+    }
+    
+    const body = signupSchema.parse(requestBody);
 
     // 🛑 SECURITY FIX: Public signup MUST NOT be able to set admin roles.
     // The 'userType' from the client is only a hint for data categorization.
@@ -103,6 +114,10 @@ export async function POST(req: NextRequest) {
     // Generate unique user code atomically (race-condition safe)
     const code = await getNextAtomicUserCode();
     const fullName = body.fullName || `${body.firstName} ${body.lastName}`;
+    
+    // Get or create organization for new user
+    // For public signups, use default PUBLIC org or create personal org
+    const defaultOrgId = process.env.PUBLIC_ORG_ID || 'ORG-00000001'; // Default public org
 
     // ✅ FIX: Add try/catch around the 'create' to handle race conditions
     let newUser;
@@ -110,6 +125,7 @@ export async function POST(req: NextRequest) {
       // Use nested User model schema from @/server/models/User
       // @ts-expect-error - Mongoose 8.x type resolution issue with conditional model export
       newUser = await User.create({
+        orgId: defaultOrgId, // Required by tenant isolation plugin
         code,
         username: code, // Use unique code as username (no more conflicts)
         email: normalizedEmail,

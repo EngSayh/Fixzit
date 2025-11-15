@@ -173,10 +173,23 @@ export default function ClientSidebar() {
   // Fetch live counters from API
   useEffect(() => {
     let mounted = true;
+    const abortController = new AbortController();
 
     const fetchCounters = async () => {
       try {
-        const response = await fetch('/api/counters');
+        const response = await fetch('/api/counters', {
+          signal: abortController.signal,
+        });
+        
+        // Handle auth errors explicitly
+        if (response.status === 401 || response.status === 403) {
+          // Session expired or lacks permission - redirect to login
+          if (mounted && typeof window !== 'undefined') {
+            window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+          }
+          return;
+        }
+        
         if (!response.ok) throw new Error('Failed to fetch counters');
         
         const data = await response.json();
@@ -185,8 +198,13 @@ export default function ClientSidebar() {
           setLoading(false);
         }
       } catch (error) {
-        console.error('Failed to load sidebar counters:', error);
-        if (mounted) setLoading(false);
+        // Ignore abort errors
+        if (error instanceof Error && error.name === 'AbortError') return;
+        
+        if (mounted) {
+          console.error('Failed to load sidebar counters:', error);
+          setLoading(false);
+        }
       }
     };
 
@@ -197,6 +215,7 @@ export default function ClientSidebar() {
 
     return () => {
       mounted = false;
+      abortController.abort();
       clearInterval(interval);
     };
   }, []);

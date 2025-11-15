@@ -64,8 +64,13 @@ export function isPrivateIP(ip: string): boolean {
       return true;
     }
     
-    // SECURITY: Fail-safe approach - treat unparsable/unknown IPv6 as private
-    // This prevents accidentally treating malformed IPs as public/trusted
+    // All other IPv6 addresses are public (2000::/3 global unicast, etc.)
+    // Valid IPv6 format check: must have at least one colon and valid hex chars
+    if (/^[0-9a-f:]+$/i.test(normalized)) {
+      return false; // Public IPv6 address
+    }
+    
+    // SECURITY: Fail-safe - treat malformed/unparsable IPs as private
     return true;
   }
   

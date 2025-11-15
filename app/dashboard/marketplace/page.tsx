@@ -16,21 +16,50 @@ export default function MarketplaceDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const abortController = new AbortController();
+    let mounted = true;
+
     const fetchData = async () => {
       try {
-        const response = await fetch('/api/counters');
+        const response = await fetch('/api/counters', {
+          signal: abortController.signal,
+        });
+        
+        // Handle auth errors explicitly
+        if (response.status === 401 || response.status === 403) {
+          if (mounted && typeof window !== 'undefined') {
+            // User is not authenticated or lacks permission
+            window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+          }
+          return;
+        }
+        
         if (!response.ok) throw new Error('Failed to fetch counters');
         const data = await response.json();
-        setCounters({
-          marketplace: data.marketplace || { listings: 0, orders: 0, reviews: 0 },
-        });
-        setLoading(false);
+        
+        if (mounted) {
+          setCounters({
+            marketplace: data.marketplace || { listings: 0, orders: 0, reviews: 0 },
+          });
+          setLoading(false);
+        }
       } catch (error) {
-        logger.error('Failed to load marketplace data:', error as Error);
-        setLoading(false);
+        // Ignore abort errors
+        if (error instanceof Error && error.name === 'AbortError') return;
+        
+        if (mounted) {
+          logger.error('Failed to load marketplace data:', error as Error);
+          setLoading(false);
+        }
       }
     };
+    
     fetchData();
+    
+    return () => {
+      mounted = false;
+      abortController.abort();
+    };
   }, []);
 
   const tabs = [

@@ -336,13 +336,14 @@ export async function getSystemCounters(orgId: string) {
  * Get all counters for dashboard (optimized single call)
  */
 export async function getAllCounters(orgId: string) {
-  const [workOrders, invoices, employees, properties, customers, support] = await Promise.all([
+  const [workOrders, invoices, employees, properties, customers, support, marketplace] = await Promise.all([
     getWorkOrderStats(orgId),
     getInvoiceCounters(orgId),
     getEmployeeCounters(orgId),
     getPropertyCounters(orgId),
     getCustomerCounters(orgId),
     getSupportCounters(orgId),
+    getMarketplaceCounters(orgId),
   ]);
 
   return {
@@ -352,6 +353,7 @@ export async function getAllCounters(orgId: string) {
     properties,
     crm: customers,
     support,
+    marketplace,
     lastUpdated: new Date().toISOString(),
   };
 }
