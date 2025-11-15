@@ -35,83 +35,105 @@ type SubModuleItem = {
   path: string;
 };
 
-const DASHBOARD_PREFIX = '/dashboard';
 const COLLAPSE_KEY = STORAGE_KEYS.sidebarCollapsed;
 type CategoryKey = keyof typeof CATEGORY_FALLBACKS;
 
-const makePath = (segment: string) => `${DASHBOARD_PREFIX}${segment}`;
+type SubModuleConfig = Omit<SubModuleItem, 'path'> & { suffix?: string };
 
-const SUB_MODULES_BY_PATH: Record<string, SubModuleItem[]> = {
-  [makePath('/work-orders')]: [
-    { id: 'work-orders-create', name: 'nav.workOrders.create', fallbackLabel: 'Create Work Order', path: makePath('/work-orders/create') },
-    { id: 'work-orders-track', name: 'nav.workOrders.trackAssign', fallbackLabel: 'Track & Assign', path: makePath('/work-orders/track') },
-    { id: 'work-orders-preventive', name: 'nav.workOrders.preventive', fallbackLabel: 'Preventive Maintenance', path: makePath('/work-orders/preventive') },
-    { id: 'work-orders-history', name: 'nav.workOrders.history', fallbackLabel: 'Service History', path: makePath('/work-orders/history') },
+const modulePathMap = MODULES.reduce<Record<ModuleId, string>>((acc, module) => {
+  acc[module.id] = module.path;
+  return acc;
+}, {} as Record<ModuleId, string>);
+
+const SUB_MODULE_CONFIG: Partial<Record<ModuleId, SubModuleConfig[]>> = {
+  work_orders: [
+    { id: 'work-orders-create', name: 'nav.workOrders.create', fallbackLabel: 'Create Work Order', suffix: '?view=create' },
+    { id: 'work-orders-track', name: 'nav.workOrders.trackAssign', fallbackLabel: 'Track & Assign', suffix: '?view=track' },
+    { id: 'work-orders-preventive', name: 'nav.workOrders.preventive', fallbackLabel: 'Preventive Maintenance', suffix: '?view=pm' },
+    { id: 'work-orders-history', name: 'nav.workOrders.history', fallbackLabel: 'Service History', suffix: '?view=history' },
   ],
-  [makePath('/properties')]: [
-    { id: 'properties-overview', name: 'nav.properties.list', fallbackLabel: 'Property List & Details', path: makePath('/properties') },
-    { id: 'properties-units', name: 'nav.properties.unitsTenants', fallbackLabel: 'Units & Tenants', path: makePath('/properties/units') },
-    { id: 'properties-leases', name: 'nav.properties.leases', fallbackLabel: 'Lease Management', path: makePath('/properties/leases') },
-    { id: 'properties-inspections', name: 'nav.properties.inspections', fallbackLabel: 'Inspections', path: makePath('/properties/inspections') },
-    { id: 'properties-documents', name: 'nav.properties.documents', fallbackLabel: 'Documents', path: makePath('/properties/documents') },
+  properties: [
+    { id: 'properties-overview', name: 'nav.properties.list', fallbackLabel: 'Property List & Details', suffix: '?view=overview' },
+    { id: 'properties-units', name: 'nav.properties.unitsTenants', fallbackLabel: 'Units & Tenants', suffix: '?view=units' },
+    { id: 'properties-leases', name: 'nav.properties.leases', fallbackLabel: 'Lease Management', suffix: '?view=leases' },
+    { id: 'properties-inspections', name: 'nav.properties.inspections', fallbackLabel: 'Inspections', suffix: '?view=inspections' },
+    { id: 'properties-documents', name: 'nav.properties.documents', fallbackLabel: 'Documents', suffix: '?view=documents' },
   ],
-  [makePath('/finance')]: [
-    { id: 'finance-invoices', name: 'nav.finance.invoices', fallbackLabel: 'Invoices', path: makePath('/finance/invoices') },
-    { id: 'finance-payments', name: 'nav.finance.payments', fallbackLabel: 'Payments', path: makePath('/finance/payments') },
-    { id: 'finance-expenses', name: 'nav.finance.expenses', fallbackLabel: 'Expenses', path: makePath('/finance/expenses') },
-    { id: 'finance-budgets', name: 'nav.finance.budgets', fallbackLabel: 'Budgets', path: makePath('/finance/budgets') },
-    { id: 'finance-reports', name: 'nav.finance.reports', fallbackLabel: 'Finance Reports', path: makePath('/finance/reports') },
+  finance: [
+    { id: 'finance-invoices', name: 'nav.finance.invoices', fallbackLabel: 'Invoices', suffix: '?view=invoices' },
+    { id: 'finance-payments', name: 'nav.finance.payments', fallbackLabel: 'Payments', suffix: '?view=payments' },
+    { id: 'finance-expenses', name: 'nav.finance.expenses', fallbackLabel: 'Expenses', suffix: '?view=expenses' },
+    { id: 'finance-budgets', name: 'nav.finance.budgets', fallbackLabel: 'Budgets', suffix: '?view=budgets' },
+    { id: 'finance-reports', name: 'nav.finance.reports', fallbackLabel: 'Finance Reports', suffix: '?view=reports' },
   ],
-  [makePath('/hr')]: [
-    { id: 'hr-directory', name: 'nav.hr.directory', fallbackLabel: 'Employee Directory', path: makePath('/hr/directory') },
-    { id: 'hr-attendance', name: 'nav.hr.attendanceLeave', fallbackLabel: 'Attendance & Leave', path: makePath('/hr/attendance') },
-    { id: 'hr-payroll', name: 'nav.hr.payroll', fallbackLabel: 'Payroll', path: makePath('/hr/payroll') },
-    { id: 'hr-recruitment', name: 'nav.hr.recruitment', fallbackLabel: 'Recruitment (ATS)', path: makePath('/hr/recruitment') },
-    { id: 'hr-training', name: 'nav.hr.training', fallbackLabel: 'Training', path: makePath('/hr/training') },
-    { id: 'hr-performance', name: 'nav.hr.performance', fallbackLabel: 'Performance', path: makePath('/hr/performance') },
+  hr: [
+    { id: 'hr-directory', name: 'nav.hr.directory', fallbackLabel: 'Employee Directory', suffix: '/employees' },
+    { id: 'hr-attendance', name: 'nav.hr.attendanceLeave', fallbackLabel: 'Attendance & Leave', suffix: '?view=attendance' },
+    { id: 'hr-payroll', name: 'nav.hr.payroll', fallbackLabel: 'Payroll', suffix: '/payroll' },
+    { id: 'hr-recruitment', name: 'nav.hr.recruitment', fallbackLabel: 'Recruitment (ATS)', suffix: '?view=recruitment' },
+    { id: 'hr-training', name: 'nav.hr.training', fallbackLabel: 'Training', suffix: '?view=training' },
+    { id: 'hr-performance', name: 'nav.hr.performance', fallbackLabel: 'Performance', suffix: '?view=performance' },
   ],
-  [makePath('/admin')]: [
-    { id: 'admin-doa', name: 'nav.admin.doa', fallbackLabel: 'Delegation of Authority', path: makePath('/admin/doa') },
-    { id: 'admin-policies', name: 'nav.admin.policies', fallbackLabel: 'Policies & Procedures', path: makePath('/admin/policies') },
-    { id: 'admin-assets', name: 'nav.admin.assets', fallbackLabel: 'Asset Management', path: makePath('/admin/assets') },
-    { id: 'admin-fleet', name: 'nav.admin.facilitiesFleet', fallbackLabel: 'Facilities & Fleet', path: makePath('/admin/facilities-fleet') },
+  administration: [
+    { id: 'admin-doa', name: 'nav.admin.doa', fallbackLabel: 'Delegation of Authority', suffix: '?view=doa' },
+    { id: 'admin-policies', name: 'nav.admin.policies', fallbackLabel: 'Policies & Procedures', suffix: '?view=policies' },
+    { id: 'admin-assets', name: 'nav.admin.assets', fallbackLabel: 'Asset Management', suffix: '?view=assets' },
+    { id: 'admin-fleet', name: 'nav.admin.facilitiesFleet', fallbackLabel: 'Facilities & Fleet', suffix: '?view=fleet' },
   ],
-  [makePath('/crm')]: [
-    { id: 'crm-directory', name: 'nav.crm.directory', fallbackLabel: 'Customer Directory', path: makePath('/crm/directory') },
-    { id: 'crm-leads', name: 'nav.crm.leads', fallbackLabel: 'Leads & Opportunities', path: makePath('/crm/leads') },
-    { id: 'crm-contracts', name: 'nav.crm.contracts', fallbackLabel: 'Contracts & Renewals', path: makePath('/crm/contracts') },
-    { id: 'crm-feedback', name: 'nav.crm.feedback', fallbackLabel: 'Feedback & Complaints', path: makePath('/crm/feedback') },
+  crm: [
+    { id: 'crm-directory', name: 'nav.crm.directory', fallbackLabel: 'Customer Directory', suffix: '?view=customers' },
+    { id: 'crm-leads', name: 'nav.crm.leads', fallbackLabel: 'Leads & Opportunities', suffix: '?view=leads' },
+    { id: 'crm-contracts', name: 'nav.crm.contracts', fallbackLabel: 'Contracts & Renewals', suffix: '?view=contracts' },
+    { id: 'crm-feedback', name: 'nav.crm.feedback', fallbackLabel: 'Feedback & Complaints', suffix: '?view=feedback' },
   ],
-  [makePath('/marketplace')]: [
-    { id: 'marketplace-vendors', name: 'nav.marketplace.vendors', fallbackLabel: 'Vendors & Suppliers', path: makePath('/marketplace/vendors') },
-    { id: 'marketplace-catalog', name: 'nav.marketplace.catalog', fallbackLabel: 'Service Catalog', path: makePath('/marketplace/catalog') },
-    { id: 'marketplace-procurement', name: 'nav.marketplace.procurement', fallbackLabel: 'Procurement Requests', path: makePath('/marketplace/requests') },
-    { id: 'marketplace-bidding', name: 'nav.marketplace.bidding', fallbackLabel: 'Bidding & RFQs', path: makePath('/marketplace/rfqs') },
+  marketplace: [
+    { id: 'marketplace-vendors', name: 'nav.marketplace.vendors', fallbackLabel: 'Vendors & Suppliers', suffix: '?view=vendors' },
+    { id: 'marketplace-catalog', name: 'nav.marketplace.catalog', fallbackLabel: 'Service Catalog', suffix: '?view=catalog' },
+    { id: 'marketplace-procurement', name: 'nav.marketplace.procurement', fallbackLabel: 'Procurement', suffix: '?view=procurement' },
+    { id: 'marketplace-bidding', name: 'nav.marketplace.bidding', fallbackLabel: 'Bidding / RFQs', suffix: '?view=rfqs' },
   ],
-  [makePath('/support')]: [
-    { id: 'support-tickets', name: 'nav.support.tickets', fallbackLabel: 'Tickets', path: makePath('/support/tickets') },
-    { id: 'support-kb', name: 'nav.support.kb', fallbackLabel: 'Knowledge Base', path: makePath('/support/kb') },
-    { id: 'support-chat', name: 'nav.support.chat', fallbackLabel: 'Live Chat', path: makePath('/support/chat') },
-    { id: 'support-sla', name: 'nav.support.sla', fallbackLabel: 'SLA Monitoring', path: makePath('/support/sla') },
+  support: [
+    { id: 'support-tickets', name: 'nav.support.tickets', fallbackLabel: 'Tickets', suffix: '?view=tickets' },
+    { id: 'support-kb', name: 'nav.support.kb', fallbackLabel: 'Knowledge Base', suffix: '?view=kb' },
+    { id: 'support-chat', name: 'nav.support.chat', fallbackLabel: 'Live Chat', suffix: '?view=chat' },
+    { id: 'support-sla', name: 'nav.support.sla', fallbackLabel: 'SLA Monitoring', suffix: '?view=sla' },
   ],
-  [makePath('/compliance')]: [
-    { id: 'compliance-contracts', name: 'nav.compliance.contracts', fallbackLabel: 'Contracts', path: makePath('/compliance/contracts') },
-    { id: 'compliance-disputes', name: 'nav.compliance.disputes', fallbackLabel: 'Disputes & Claims', path: makePath('/compliance/disputes') },
-    { id: 'compliance-audit', name: 'nav.compliance.auditRisk', fallbackLabel: 'Audit & Risk', path: makePath('/compliance/audit') },
+  compliance: [
+    { id: 'compliance-contracts', name: 'nav.compliance.contracts', fallbackLabel: 'Contracts', suffix: '?view=contracts' },
+    { id: 'compliance-disputes', name: 'nav.compliance.disputes', fallbackLabel: 'Disputes', suffix: '?view=disputes' },
+    { id: 'compliance-audit', name: 'nav.compliance.auditRisk', fallbackLabel: 'Audit & Risk', suffix: '?view=audit' },
   ],
-  [makePath('/reports')]: [
-    { id: 'reports-standard', name: 'nav.reports.standard', fallbackLabel: 'Standard Reports', path: makePath('/reports/standard') },
-    { id: 'reports-custom', name: 'nav.reports.custom', fallbackLabel: 'Custom Reports', path: makePath('/reports/custom') },
-    { id: 'reports-dashboards', name: 'nav.reports.dashboards', fallbackLabel: 'Dashboards', path: makePath('/reports/dashboards') },
+  reports: [
+    { id: 'reports-standard', name: 'nav.reports.standard', fallbackLabel: 'Standard Reports', suffix: '?view=standard' },
+    { id: 'reports-custom', name: 'nav.reports.custom', fallbackLabel: 'Custom Reports', suffix: '?view=custom' },
+    { id: 'reports-dashboards', name: 'nav.reports.dashboards', fallbackLabel: 'Dashboards', suffix: '?view=dashboards' },
   ],
-  [makePath('/system')]: [
-    { id: 'system-users', name: 'nav.system.users', fallbackLabel: 'Users', path: makePath('/system/users') },
-    { id: 'system-roles', name: 'nav.system.roles', fallbackLabel: 'Roles & Permissions', path: makePath('/system/roles') },
-    { id: 'system-billing', name: 'nav.system.billing', fallbackLabel: 'Billing', path: makePath('/system/billing') },
-    { id: 'system-integrations', name: 'nav.system.integrations', fallbackLabel: 'Integrations', path: makePath('/system/integrations') },
-    { id: 'system-settings', name: 'nav.system.settings', fallbackLabel: 'System Settings', path: makePath('/system/settings') },
+  system: [
+    { id: 'system-users', name: 'nav.system.users', fallbackLabel: 'Users', suffix: '?view=users' },
+    { id: 'system-roles', name: 'nav.system.roles', fallbackLabel: 'Roles & Permissions', suffix: '?view=roles' },
+    { id: 'system-billing', name: 'nav.system.billing', fallbackLabel: 'Billing', suffix: '?view=billing' },
+    { id: 'system-integrations', name: 'nav.system.integrations', fallbackLabel: 'Integrations', suffix: '?view=integrations' },
+    { id: 'system-settings', name: 'nav.system.settings', fallbackLabel: 'System Settings', suffix: '?view=settings' },
   ],
 };
+
+const buildSubModuleMap = (): Record<string, SubModuleItem[]> => {
+  const map: Record<string, SubModuleItem[]> = {};
+  Object.entries(SUB_MODULE_CONFIG).forEach(([moduleId, subItems]) => {
+    if (!subItems?.length) return;
+    const basePath = modulePathMap[moduleId as ModuleId];
+    if (!basePath) return;
+    map[basePath] = subItems.map((item) => ({
+      id: item.id,
+      name: item.name,
+      fallbackLabel: item.fallbackLabel,
+      path: item.suffix ? `${basePath}${item.suffix}` : basePath,
+    }));
+  });
+  return map;
+};
+
+const SUB_MODULES_BY_PATH = buildSubModuleMap();
 
 const normalizeRole = (value?: string): UserRoleType | 'guest' => {
   if (!value) return 'guest';
@@ -168,7 +190,7 @@ const Sidebar = ({ className, onNavigate, badgeCounts }: SidebarProps) => {
   }, []);
 
   const allowedModules = useMemo(() => {
-    const roleModules = ROLE_PERMISSIONS[role] ?? ROLE_PERMISSIONS.guest;
+    const roleModules = ROLE_PERMISSIONS[role as UserRoleType] ?? ROLE_PERMISSIONS.guest;
     const planModules = SUBSCRIPTION_PLANS[subscription] ?? SUBSCRIPTION_PLANS.DEFAULT;
     const allowedIds = planModules.filter((id) => roleModules.includes(id));
 
