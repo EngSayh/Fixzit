@@ -15,10 +15,12 @@ interface EmployeeOption {
   lastName: string;
 }
 
+type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'ON_LEAVE' | 'OFF';
+
 interface AttendanceEntry {
   _id: string;
   date: string;
-  status: string;
+  status: AttendanceStatus;
   clockIn?: string;
   clockOut?: string;
   overtimeMinutes?: number;
@@ -93,6 +95,9 @@ export default function AttendancePage() {
   };
 
   const selectedEmployeeObj = employees.find((emp) => emp._id === selectedEmployee);
+
+  const formatStatus = (status: AttendanceStatus) =>
+    t(`hr.attendance.status.${status.toLowerCase()}`, status.replace('_', ' '));
 
   return (
     <div className="space-y-6">
@@ -183,7 +188,7 @@ export default function AttendancePage() {
                       <td className="px-4 py-3 font-medium">
                         <ClientDate date={entry.date} format="date-only" />
                       </td>
-                      <td className="px-4 py-3 capitalize">{entry.status.replace('_', ' ').toLowerCase()}</td>
+                      <td className="px-4 py-3 capitalize">{formatStatus(entry.status)}</td>
                       <td className="px-4 py-3">
                         {entry.clockIn ? <ClientDate date={entry.clockIn} format="time-only" /> : '—'}
                       </td>

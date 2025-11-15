@@ -13,16 +13,19 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { 
   Users, Shield, Activity, Settings as SettingsIcon, 
   UserPlus, Download, Edit, Lock, Unlock, Trash2, 
   Search, Filter, Save, X, Check, AlertCircle,
-  MoreVertical, Eye, UserCog
+  MoreVertical, Eye, UserCog, Globe, DollarSign
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useAuthRbac } from '@/hooks/useAuthRbac';
+import { adminApi, type OrgSettings, type AdminUser, type AdminRole, type AuditLogEntry } from '@/lib/api/admin';
 
 // Types
 interface User {
@@ -72,44 +75,22 @@ interface SystemSetting {
 //   message?: string;
 // }
 
-// Mock auth hook (replace with actual implementation)
-const useAuth = () => {
-  // NOTE: Placeholder for demonstration purposes.
-  // Production implementation should use @/hooks/useAuth or next-auth session.
-  const [user, setUser] = useState<{ role: string; name: string } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate auth check
-    const checkAuth = async () => {
-      try {
-        // const response = await fetch('/api/auth/session');
-        // const data = await response.json();
-        // setUser(data.user);
-        
-        // Mock for development
-        setUser({ role: 'Super Admin', name: 'Test Admin' });
-      } catch (error) {
-        logger.error('Auth check failed:', error);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
-
-  return { user, isLoading };
-};
-
 const AdminModule: React.FC = () => {
   const router = useRouter();
   const { t } = useTranslation();
-  const { user, isLoading: authLoading } = useAuth();
+  const { data: session, status: sessionStatus } = useSession();
+  const { isSuperAdmin, isLoading: rbacLoading } = useAuthRbac();
+
+  // Session + RBAC helpers
+  const sessionUser = session?.user;
+  const authLoading = sessionStatus === 'loading' || rbacLoading;
+  const isCorporateAdmin = sessionUser?.role === 'ADMIN';
+  const hasAdminAccess = isSuperAdmin || isCorporateAdmin;
+  const orgId = sessionUser?.orgId ?? undefined;
+  const activeOrgId = orgId ?? 'platform';
 
   // State management
-  const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'audit' | 'settings'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'audit' | 'settings' | 'tenants' | 'billing'>('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -137,24 +118,29 @@ const AdminModule: React.FC = () => {
   // Settings state
   const [settings, setSettings] = useState<SystemSetting[]>([]);
   const [editedSettings, setEditedSettings] = useState<Map<string, string>>(new Map());
+  const [orgSettings, setOrgSettings] = useState<OrgSettings | null>(null);
 
   // RBAC Check
   useEffect(() => {
-    if (!authLoading && user) {
-      const allowedRoles = ['Super Admin', 'Corporate Admin'];
-      if (!allowedRoles.includes(user.role)) {
-        logger.warn('Access denied to admin module', { role: user.role });
-        router.push('/dashboard');
-      }
+    if (authLoading) return;
+
+    if (!sessionUser) {
+      router.replace(`/login?callbackUrl=${encodeURIComponent('/administration')}`);
+      return;
     }
-  }, [user, authLoading, router]);
+
+    if (!hasAdminAccess) {
+      logger.warn('Access denied to admin module', { role: sessionUser.role });
+      router.replace('/dashboard');
+    }
+  }, [authLoading, sessionUser, hasAdminAccess, router]);
 
   // Data fetching
   useEffect(() => {
-    if (user) {
+    if (sessionUser && hasAdminAccess) {
       fetchData();
     }
-  }, [activeTab, user]);
+  }, [activeTab, sessionUser, hasAdminAccess]);
 
   const fetchData = async () => {
     setIsLoadingData(true);
@@ -511,17 +497,28 @@ const AdminModule: React.FC = () => {
     );
   }
 
-  if (!user || !['Super Admin', 'Corporate Admin'].includes(user.role)) {
+  if (!sessionUser || !hasAdminAccess) {
     return null; // Router will redirect
   }
 
   // Render functions
-  const tabs = [
-    { id: 'users', label: t('admin.tabs.users', 'Users'), icon: Users },
-    { id: 'roles', label: t('admin.tabs.roles', 'Roles'), icon: Shield },
-    { id: 'audit', label: t('admin.tabs.audit', 'Audit Logs'), icon: Activity },
-    { id: 'settings', label: t('admin.tabs.settings', 'Settings'), icon: SettingsIcon }
-  ];
+  const tabs = useMemo(() => {
+    const baseTabs = [
+      { id: 'users', label: t('admin.tabs.users', 'Users'), icon: Users },
+      { id: 'roles', label: t('admin.tabs.roles', 'Roles'), icon: Shield },
+      { id: 'audit', label: t('admin.tabs.audit', 'Audit Logs'), icon: Activity },
+      { id: 'settings', label: t('admin.tabs.settings', 'Settings'), icon: SettingsIcon }
+    ];
+
+    if (isSuperAdmin) {
+      baseTabs.push(
+        { id: 'tenants', label: t('admin.tabs.tenants', 'Tenant Management'), icon: Globe },
+        { id: 'billing', label: t('admin.tabs.billing', 'Subscriptions & Billing'), icon: DollarSign }
+      );
+    }
+
+    return baseTabs;
+  }, [isSuperAdmin, t]);
 
   const renderUsers = () => (
     <div className="space-y-6">
@@ -943,6 +940,44 @@ const AdminModule: React.FC = () => {
     );
   };
 
+  const renderTenantManagement = () => (
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-2xl font-bold text-gray-900">
+          {t('admin.tenants.title', 'Tenant Management')}
+        </h2>
+        <p className="text-gray-600 mt-1">
+          {t('admin.tenants.subtitle', 'Manage corporate organizations, branding, and module assignments.')}
+        </p>
+        <div className="mt-6 border rounded-lg p-4 bg-slate-50 text-sm text-slate-600">
+          {t(
+            'admin.tenants.placeholder',
+            'Tenant management tooling is restricted to Super Admin users. Connect to the platform directory to view and update organizations.'
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderBilling = () => (
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-2xl font-bold text-gray-900">
+          {t('admin.billing.title', 'Subscriptions & Billing')}
+        </h2>
+        <p className="text-gray-600 mt-1">
+          {t('admin.billing.subtitle', 'Track plans, invoices, and platform revenue operations.')}
+        </p>
+        <div className="mt-6 border rounded-lg p-4 bg-slate-50 text-sm text-slate-600">
+          {t(
+            'admin.billing.placeholder',
+            'Billing tooling hooks into /api/admin/billing endpoints. Wire the adminApi billing client to surface plan limits, invoices, and dunning events.'
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Success/Error notifications */}
@@ -999,6 +1034,8 @@ const AdminModule: React.FC = () => {
         {activeTab === 'roles' && renderRoles()}
         {activeTab === 'audit' && renderAuditLogs()}
         {activeTab === 'settings' && renderSettings()}
+        {activeTab === 'tenants' && renderTenantManagement()}
+        {activeTab === 'billing' && renderBilling()}
       </div>
     </div>
   );

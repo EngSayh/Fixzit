@@ -2,12 +2,12 @@
 **Date:** November 15, 2025  
 **Scope:** All `app/**/page.tsx` files in workspace  
 **Total Pages Found:** 120 pages  
-**Completed:** 57 pages (47.5%)  
-**Pending:** 63 pages (52.5%)  
+**Completed:** 58 pages (48.3%)  
+**Pending:** 62 pages (51.7%)  
 
 ---
 
-## ✅ Pages WITH Translation Support (57 pages)
+## ✅ Pages WITH Translation Support (58 pages)
 
 ### Already Internationalized - Using `useTranslation()` Hook
 1. ✅ `app/page.tsx` - Landing page
@@ -67,15 +67,15 @@
 1. ✅ `app/test-cms/page.tsx` - CMS test links (localized titles and links)
 1. ✅ `app/dev/login-helpers/page.tsx` - Developer login utilities (phase 1 quick win)
 1. ✅ `app/administration/page.tsx` - Administration control center
+1. ✅ `app/notifications/page.tsx` - Notifications center (Phase 2 start)
 
 ---
 
-## ❌ Pages WITHOUT Translation Support (63 pages)
+## ❌ Pages WITHOUT Translation Support (62 pages)
 
-### Priority 1: High Traffic / User-Facing Pages (14 pages)
+### Priority 1: High Traffic / User-Facing Pages (13 pages)
 **Estimated:** 12-15 hours for all Priority 1 pages
 
-1. ❌ `app/notifications/page.tsx` - **CRITICAL** - 380 lines, extensive UI, notifications center
 1. ❌ `app/settings/page.tsx` - **HIGH** - User settings page
 1. ❌ `app/marketplace/page.tsx` - Marketplace landing
 1. ❌ `app/marketplace/cart/page.tsx` - Shopping cart
@@ -152,9 +152,9 @@
 | Category | Count | Percentage |
 |----------|-------|------------|
 | **Total Pages** | 120 | 100% |
-| **With i18n** | 57 | 47.5% |
-| **Without i18n** | 63 | 52.5% |
-| **Priority 1** | 14 | 11.7% |
+| **With i18n** | 58 | 48.3% |
+| **Without i18n** | 62 | 51.7% |
+| **Priority 1** | 13 | 10.8% |
 | **Priority 2** | 20 | 16.7% |
 | **Priority 3** | 25 | 20.8% |
 | **Priority 4** | 0 | 0% |
@@ -164,10 +164,10 @@
 ## 🔍 Key Findings
 
 ### Critical Issues
-1. **`app/notifications/page.tsx`** (380 lines) - Most complex page, extensive hardcoded strings
 1. **`app/settings/page.tsx`** - High-traffic account page with no translation coverage
 1. **`app/careers/page.tsx`** - Comprehensive job board with NO i18n, 780+ lines of hardcoded strings
 1. **`app/marketplace/*`** - Checkout, cart, search, and seller onboarding all remain hardcoded
+1. **`app/aqar/*`** - Map/search flows still rely on English-only copy
 
 ### Patterns Identified
 1. **Custom Translation Objects:** Some pages use local `translations = { en: {...}, ar: {...} }` pattern

@@ -113,6 +113,15 @@ export default function PayrollPage() {
     }
   };
 
+  const formatStatusLabel = (status: PayrollStatus) => {
+    const key = `hr.payroll.status.${status.toLowerCase()}`;
+    const fallback = status
+      .replace('_', ' ')
+      .toLowerCase()
+      .replace(/\b\w/g, (l) => l.toUpperCase());
+    return t(key, fallback);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -165,7 +174,7 @@ export default function PayrollPage() {
                       {run.employeeCount} {t('hr.payroll.employees', 'employees')}
                     </p>
                   </div>
-                  <span className={getStatusBadge(run.status)}>{run.status}</span>
+                  <span className={getStatusBadge(run.status)}>{formatStatusLabel(run.status)}</span>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
