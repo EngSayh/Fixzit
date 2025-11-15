@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { SouqListing } from '@/server/models/souq/Listing';
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    console.error('Listing creation error:', error);
+    logger.error('Listing creation error:', error as Error);
     return NextResponse.json(
       { error: 'Failed to create listing' },
       { status: 500 }
@@ -215,7 +216,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Listing fetch error:', error);
+    logger.error('Listing fetch error:', error as Error);
     return NextResponse.json(
       { error: 'Failed to fetch listings' },
       { status: 500 }

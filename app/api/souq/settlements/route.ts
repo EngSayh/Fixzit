@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { auth } from '@/auth';
 import { connectDb } from '@/lib/mongodb-unified';
 import { SouqSettlement } from '@/server/models/souq/Settlement';
@@ -56,7 +57,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error('GET /api/souq/settlements error:', error);
+    logger.error('GET /api/souq/settlements error:', error as Error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch settlements' },
       { status: 500 }
@@ -127,7 +128,7 @@ export async function POST(request: Request) {
       data: settlement,
     });
   } catch (error) {
-    console.error('POST /api/souq/settlements error:', error);
+    logger.error('POST /api/souq/settlements error:', error as Error);
     return NextResponse.json(
       { success: false, error: 'Failed to process settlement' },
       { status: 500 }

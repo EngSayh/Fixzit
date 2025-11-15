@@ -6,6 +6,7 @@
  */
 
 import { randomBytes } from 'crypto';
+import { logger } from '@/lib/logger';
 
 export interface FSINMetadata {
   fsin: string;
@@ -241,7 +242,7 @@ export async function fsinExists(_fsin: string): Promise<boolean> {
     return !!product;
   } catch (error) {
     // On error, assume doesn't exist (safer to potentially regenerate than fail)
-    console.error('[FSIN] Database lookup failed:', error);
+    logger.error('[FSIN] Database lookup failed', error as Error, { fsin: _fsin });
     return false;
   }
 }

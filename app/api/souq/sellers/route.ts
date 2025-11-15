@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/auth';
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    console.error('Seller creation error:', error);
+    logger.error('Seller creation error:', error as Error);
     return NextResponse.json(
       { error: 'Failed to create seller account' },
       { status: 500 }
@@ -192,7 +193,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Seller fetch error:', error);
+    logger.error('Seller fetch error:', error as Error);
     return NextResponse.json(
       { error: 'Failed to fetch sellers' },
       { status: 500 }

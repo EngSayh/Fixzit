@@ -206,7 +206,7 @@ export function FormStateProvider({ children }: ProviderProps) {
         markFormClean(form.id);
       }
     } catch (error) {
-      console.error('Failed to save one or more forms:', error);
+      logger.error('Failed to save one or more forms', error as Error, { formCount: Object.keys(forms).length });
       // Keep flags intact so user can retry
       throw error;
     }
@@ -248,7 +248,7 @@ export function FormStateProvider({ children }: ProviderProps) {
         const promise = Promise.resolve()
           .then(() => callback())
           .catch((error) => {
-            console.error(`Form save error (${formId}):`, error);
+            logger.error(`Form save error (${formId})`, error as Error, { formId });
             throw error; // Re-throw so Promise.all() in requestSave() can handle it
           });
         

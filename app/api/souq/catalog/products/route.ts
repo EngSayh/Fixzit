@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 import { generateFSIN } from '@/lib/souq/fsin-generator';
 import { SouqProduct } from '@/server/models/souq/Product';
 import { SouqCategory } from '@/server/models/souq/Category';
@@ -152,7 +153,7 @@ export async function POST(request: NextRequest) {
         }]);
       } catch (searchError) {
         // Log but don't fail product creation if indexing fails
-        console.error('[Souq] Failed to index product in Meilisearch:', searchError);
+        logger.error('[Souq] Failed to index product in Meilisearch', searchError as Error, { productId: product._id, fsin: product.fsin });
       }
     }
     
@@ -174,7 +175,7 @@ export async function POST(request: NextRequest) {
         await nc.drain();
       } catch (natsError) {
         // Log but don't fail product creation if event publish fails
-        console.error('[Souq] Failed to publish product.created event:', natsError);
+        logger.error('[Souq] Failed to publish product.created event', natsError as Error, { productId: product._id, fsin: product.fsin });
       }
     }
 
@@ -199,7 +200,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.error('[Catalog API] Product creation error:', error);
+    logger.error('[Catalog API] Product creation error', error as Error, { orgId });
     return NextResponse.json({
       error: 'Failed to create product',
       message: error instanceof Error ? error.message : 'Unknown error',
@@ -256,7 +257,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Catalog API] List products error:', error);
+    logger.error('[Catalog API] List products error', error as Error);
     return NextResponse.json({
       error: 'Failed to list products',
     }, { status: 500 });

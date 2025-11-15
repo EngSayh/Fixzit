@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { auth } from '@/auth';
 import Category from '@/server/models/souq/Category';
 import { connectToDatabase } from '@/lib/mongodb-unified';
@@ -21,7 +22,7 @@ export async function GET() {
       total: categories.length,
     });
   } catch (error) {
-    console.error('GET /api/souq/categories error:', error);
+    logger.error('GET /api/souq/categories error:', error as Error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch categories' },
       { status: 500 }
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
       data: category,
     }, { status: 201 });
   } catch (error) {
-    console.error('POST /api/souq/categories error:', error);
+    logger.error('POST /api/souq/categories error:', error as Error);
     return NextResponse.json(
       { success: false, error: 'Failed to create category' },
       { status: 500 }

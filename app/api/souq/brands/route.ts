@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { auth } from '@/auth';
 import Brand from '@/server/models/souq/Brand';
 import { connectToDatabase } from '@/lib/mongodb-unified';
@@ -21,7 +22,7 @@ export async function GET() {
       total: brands.length,
     });
   } catch (error) {
-    console.error('GET /api/souq/brands error:', error);
+    logger.error('GET /api/souq/brands error:', error as Error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch brands' },
       { status: 500 }
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
       data: brand,
     }, { status: 201 });
   } catch (error) {
-    console.error('POST /api/souq/brands error:', error);
+    logger.error('POST /api/souq/brands error:', error as Error);
     return NextResponse.json(
       { success: false, error: 'Failed to create brand' },
       { status: 500 }

@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { SouqSeller } from '@/server/models/souq/Seller';
 import { SouqListing } from '@/server/models/souq/Listing';
 import { SouqOrder } from '@/server/models/souq/Order';
@@ -146,7 +147,7 @@ export async function GET(
       data: stats,
     });
   } catch (error) {
-    console.error('Seller dashboard error:', error);
+    logger.error('Seller dashboard error:', error as Error);
     return NextResponse.json(
       { error: 'Failed to fetch seller dashboard' },
       { status: 500 }

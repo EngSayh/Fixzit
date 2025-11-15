@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { SouqReview } from '@/server/models/souq/Review';
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error('Review creation error:', error);
+    logger.error('Review creation error:', error as Error);
     return NextResponse.json(
       { error: 'Failed to create review' },
       { status: 500 }
@@ -195,7 +196,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Review fetch error:', error);
+    logger.error('Review fetch error:', error as Error);
     return NextResponse.json(
       { error: 'Failed to fetch reviews' },
       { status: 500 }

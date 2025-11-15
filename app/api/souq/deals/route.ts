@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { SouqDeal } from '@/server/models/souq/Deal';
@@ -114,7 +115,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error('Deal creation error:', error);
+    logger.error('Deal creation error:', error as Error);
     return NextResponse.json(
       { error: 'Failed to create deal' },
       { status: 500 }
@@ -186,7 +187,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Deal fetch error:', error);
+    logger.error('Deal fetch error:', error as Error);
     return NextResponse.json(
       { error: 'Failed to fetch deals' },
       { status: 500 }

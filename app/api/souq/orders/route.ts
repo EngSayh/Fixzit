@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { SouqOrder } from '@/server/models/souq/Order';
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Validation failed', issues: error.issues }, { status: 400 });
     }
 
-    console.error('Order creation error:', error);
+    logger.error('Order creation error:', error as Error);
     return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
   }
 }
@@ -200,7 +201,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Order fetch error:', error);
+    logger.error('Order fetch error:', error as Error);
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
   }
 }
