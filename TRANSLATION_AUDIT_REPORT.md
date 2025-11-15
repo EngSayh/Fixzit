@@ -2,8 +2,8 @@
 **Date:** November 15, 2025  
 **Scope:** All `app/**/page.tsx` files in workspace  
 **Total Pages Found:** 120 pages  
-**Completed:** 55 pages (45.8%)  
-**Pending:** 65 pages (54.2%)  
+**Completed:** 56 pages (46.7%)  
+**Pending:** 64 pages (53.3%)  
 
 ---
 
@@ -65,6 +65,7 @@
 1. ✅ `app/reports/page.tsx` - Reports hub (migrated from legacy translations to `useTranslation()`)
 1. ✅ `app/test/page.tsx` - Test sandbox page (now reads from translation dictionaries)
 1. ✅ `app/test-cms/page.tsx` - CMS test links (localized titles and links)
+1. ✅ `app/dev/login-helpers/page.tsx` - Developer login utilities (phase 1 quick win)
 
 ---
 
@@ -145,10 +146,9 @@
 1. ❌ `app/cms/[slug]/page.tsx` - Dynamic CMS page
 1. ❌ `app/careers/[slug]/page.tsx` - Job detail page
 
-### Priority 4: Test & Dev Pages (2 pages)
-**Estimated:** 1 hour for remaining Priority 4 pages
+### Priority 4: Test & Dev Pages (1 page)
+**Estimated:** ~0.5 hour for remaining Priority 4 page
 
-1. ❌ `app/dev/login-helpers/page.tsx` - Dev login helpers
 1. ❌ `app/administration/page.tsx` - Administration stub
 
 ---
@@ -158,12 +158,12 @@
 | Category | Count | Percentage |
 |----------|-------|------------|
 | **Total Pages** | 120 | 100% |
-| **With i18n** | 55 | 45.8% |
-| **Without i18n** | 65 | 54.2% |
+| **With i18n** | 56 | 46.7% |
+| **Without i18n** | 64 | 53.3% |
 | **Priority 1** | 14 | 11.7% |
 | **Priority 2** | 20 | 16.7% |
 | **Priority 3** | 25 | 20.8% |
-| **Priority 4** | 2 | 1.7% |
+| **Priority 4** | 1 | 0.8% |
 
 ---
 
@@ -185,7 +185,7 @@
 - **Priority 1:** 12-15 hours (high-impact pages)
 - **Priority 2:** 8-12 hours (admin pages)
 - **Priority 3:** 10-14 hours (FM module)
-- **Priority 4:** 2-3 hours (test pages)
+- **Priority 4:** ~1 hour (remaining dev/test utilities)
 - **TOTAL:** 32-44 hours remaining
 
 ---
@@ -196,7 +196,8 @@
 - ✅ `app/souq/catalog/page.tsx` – strings wrapped + hooks wired in this pass
 - ✅ `app/reports/page.tsx` – removed legacy translation object, now on `useTranslation()`
 - ✅ `app/test/page.tsx` & `app/test-cms/page.tsx` – stub/test pages fully localized
-- ⏭️ Remaining quick wins: `app/administration/page.tsx` (large but still hardcoded) and `app/dev/login-helpers/page.tsx`
+- ✅ `app/dev/login-helpers/page.tsx` – developer helper fully localized
+- ⏭️ Remaining quick win: `app/administration/page.tsx` (large but still hardcoded)
 
 ### Phase 2: High-Impact Pages (8-10 hours)
 - `app/notifications/page.tsx` - Critical notification center
@@ -244,8 +245,8 @@ const { t, isRTL } = useTranslation();
 
 ## 📝 Next Steps
 
-1. ✅ **COMPLETED:** Phase 1 quick wins (reports, souq catalog, test pages)
-1. 🔄 **IN PROGRESS:** Finish remaining quick wins (`app/administration`, `app/dev/login-helpers`)
+1. ✅ **COMPLETED:** Phase 1 quick wins (reports, souq catalog, test pages, dev login helpers)
+1. 🔄 **IN PROGRESS:** Finish final quick win (`app/administration`)
 1. ⏭️ **NEXT:** Move to Phase 2 high-impact pages (`app/notifications`, `app/settings`, `app/marketplace/*`, `app/aqar/*`)
 1. ⏳ **FUTURE:** Phases 3-5 (dashboards, FM module, remaining help/CMS pages) – est. 30-40 hours
 
@@ -254,7 +255,7 @@ const { t, isRTL } = useTranslation();
 ## 🎯 Updated Task Priority Order
 
 **Immediate Priority:**
-- Finish Phase 1 translation quick wins (`app/administration`, `app/dev/login-helpers`)
+- Finish Phase 1 translation quick win (`app/administration`)
 - Kick off Phase 2 high-impact pages (`app/notifications`, `app/settings`, `app/marketplace/*`, `app/aqar/*`)
 
 **Deferred (after translation baseline improves):**

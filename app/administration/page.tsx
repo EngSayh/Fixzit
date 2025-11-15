@@ -22,6 +22,7 @@ import {
   MoreVertical, Eye, UserCog
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 // Types
 interface User {
@@ -104,6 +105,7 @@ const useAuth = () => {
 
 const AdminModule: React.FC = () => {
   const router = useRouter();
+  const { t } = useTranslation();
   const { user, isLoading: authLoading } = useAuth();
 
   // State management
@@ -174,7 +176,7 @@ const AdminModule: React.FC = () => {
           break;
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch data';
+      const errorMessage = err instanceof Error ? err.message : t('admin.common.errors.fetchData', 'Failed to fetch data');
       setError(errorMessage);
       logger.error(`Failed to fetch ${activeTab} data:`, err);
     } finally {
@@ -233,7 +235,7 @@ const AdminModule: React.FC = () => {
       setUsers(mockUsers);
       logger.info('Users fetched successfully', { count: mockUsers.length });
     } catch {
-      throw new Error('Failed to fetch users');
+      throw new Error(t('admin.users.errors.fetch', 'Failed to fetch users'));
     }
   };
 
@@ -275,7 +277,7 @@ const AdminModule: React.FC = () => {
       setRoles(mockRoles);
       logger.info('Roles fetched successfully', { count: mockRoles.length });
     } catch {
-      throw new Error('Failed to fetch roles');
+      throw new Error(t('admin.roles.errors.fetch', 'Failed to fetch roles'));
     }
   };
 
@@ -321,7 +323,7 @@ const AdminModule: React.FC = () => {
       setAuditLogs(mockLogs);
       logger.info('Audit logs fetched successfully', { count: mockLogs.length });
     } catch {
-      throw new Error('Failed to fetch audit logs');
+      throw new Error(t('admin.audit.errors.fetch', 'Failed to fetch audit logs'));
     }
   };
 
@@ -367,7 +369,7 @@ const AdminModule: React.FC = () => {
       setSettings(mockSettings);
       logger.info('Settings fetched successfully', { count: mockSettings.length });
     } catch {
-      throw new Error('Failed to fetch settings');
+      throw new Error(t('admin.settings.errors.fetch', 'Failed to fetch settings'));
     }
   };
 
@@ -394,8 +396,8 @@ const AdminModule: React.FC = () => {
         // const data = await response.json();
         // if (data.error) throw new Error(data.error);
         
-        setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...userData } : u));
-        setSuccessMessage('User updated successfully');
+      setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...userData } : u));
+      setSuccessMessage(t('admin.users.toast.updated', 'User updated successfully'));
         logger.info('User updated', { userId: editingUser.id });
       } else {
         // Create new user
@@ -414,13 +416,13 @@ const AdminModule: React.FC = () => {
           org_id: 'org_1'
         };
         setUsers([...users, newUser]);
-        setSuccessMessage('User created successfully');
+        setSuccessMessage(t('admin.users.toast.created', 'User created successfully'));
         logger.info('User created', { userId: newUser.id });
       }
       setUserModalOpen(false);
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save user';
+      const errorMessage = err instanceof Error ? err.message : t('admin.users.errors.save', 'Failed to save user');
       setError(errorMessage);
       logger.error('Failed to save user:', err);
     }
@@ -439,26 +441,30 @@ const AdminModule: React.FC = () => {
       // });
 
       setUsers(users.map(u => u.id === userId ? { ...u, status: (newStatus.charAt(0).toUpperCase() + newStatus.slice(1)) as 'Active' | 'Inactive' | 'Locked' } : u));
-      setSuccessMessage(`User ${newStatus.toLowerCase()} successfully`);
+      setSuccessMessage(
+        newStatus === 'Active'
+          ? t('admin.users.toast.activated', 'User activated successfully')
+          : t('admin.users.toast.deactivated', 'User deactivated successfully')
+      );
       logger.info('User status updated', { userId, newStatus });
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
-      setError('Failed to update user status');
+      setError(t('admin.users.errors.status', 'Failed to update user status'));
       logger.error('Failed to update user status:', err);
     }
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
+    if (!confirm(t('admin.users.confirmDelete', 'Are you sure you want to delete this user?'))) return;
 
     try {
       // await fetch(`/api/org/users/${userId}`, { method: 'DELETE' });
       setUsers(users.filter(u => u.id !== userId));
-      setSuccessMessage('User deleted successfully');
+      setSuccessMessage(t('admin.users.toast.deleted', 'User deleted successfully'));
       logger.info('User deleted', { userId });
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
-      setError('Failed to delete user');
+      setError(t('admin.users.errors.delete', 'Failed to delete user'));
       logger.error('Failed to delete user:', err);
     }
   };
@@ -484,11 +490,11 @@ const AdminModule: React.FC = () => {
         return newValue !== undefined ? { ...s, value: newValue } : s;
       }));
       setEditedSettings(new Map());
-      setSuccessMessage('Settings saved successfully');
+      setSuccessMessage(t('admin.settings.toast.saved', 'Settings saved successfully'));
       logger.info('Settings updated', { count: updates.length });
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
-      setError('Failed to save settings');
+      setError(t('admin.settings.errors.save', 'Failed to save settings'));
       logger.error('Failed to save settings:', err);
     }
   };
@@ -499,7 +505,7 @@ const AdminModule: React.FC = () => {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent mb-4"></div>
-          <p className="text-gray-600">Loading session...</p>
+          <p className="text-gray-600">{t('admin.common.loadingSession', 'Loading session...')}</p>
         </div>
       </div>
     );
@@ -510,30 +516,37 @@ const AdminModule: React.FC = () => {
   }
 
   // Render functions
+  const tabs = [
+    { id: 'users', label: t('admin.tabs.users', 'Users'), icon: Users },
+    { id: 'roles', label: t('admin.tabs.roles', 'Roles'), icon: Shield },
+    { id: 'audit', label: t('admin.tabs.audit', 'Audit Logs'), icon: Activity },
+    { id: 'settings', label: t('admin.tabs.settings', 'Settings'), icon: SettingsIcon }
+  ];
+
   const renderUsers = () => (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
-          <p className="text-gray-600 mt-1">Manage organization users and access</p>
+          <h2 className="text-2xl font-bold text-gray-900">{t('admin.users.title', 'User Management')}</h2>
+          <p className="text-gray-600 mt-1">{t('admin.users.subtitle', 'Manage organization users and access')}</p>
         </div>
         <div className="flex gap-3">
           <button
             onClick={() => {/* Export functionality */}}
             className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
-            aria-label="Export users"
+            aria-label={t('admin.users.actions.exportAria', 'Export users')}
           >
             <Download size={20} />
-            <span className="hidden sm:inline">Export</span>
+            <span className="hidden sm:inline">{t('admin.common.export', 'Export')}</span>
           </button>
           <button
             onClick={handleAddUser}
             className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 flex items-center gap-2"
-            aria-label="Add new user"
+            aria-label={t('admin.users.actions.addAria', 'Add new user')}
           >
             <UserPlus size={20} />
-            Add User
+            {t('admin.users.actions.add', 'Add User')}
           </button>
         </div>
       </div>
@@ -544,16 +557,19 @@ const AdminModule: React.FC = () => {
           <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
-            placeholder="Search users..."
+            placeholder={t('admin.users.searchPlaceholder', 'Search users...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full ps-10 pe-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-            aria-label="Search users"
+            aria-label={t('admin.users.searchAria', 'Search users')}
           />
         </div>
-        <button className="px-4 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-2" aria-label="Filter users">
+        <button
+          className="px-4 py-2 border rounded-lg hover:bg-gray-50 flex items-center gap-2"
+          aria-label={t('admin.users.actions.filterAria', 'Filter users')}
+        >
           <Filter size={20} />
-          Filters
+          {t('admin.common.filters', 'Filters')}
         </button>
       </div>
 
@@ -563,22 +579,22 @@ const AdminModule: React.FC = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                User
+                {t('admin.users.table.user', 'User')}
               </th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Role
+                {t('admin.users.table.role', 'Role')}
               </th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
+                {t('admin.users.table.status', 'Status')}
               </th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Last Login
+                {t('admin.users.table.lastLogin', 'Last Login')}
               </th>
               <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Department
+                {t('admin.users.table.department', 'Department')}
               </th>
               <th className="px-6 py-3 text-end text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
+                {t('admin.users.table.actions', 'Actions')}
               </th>
             </tr>
           </thead>
@@ -615,7 +631,7 @@ const AdminModule: React.FC = () => {
                     user.status === 'Locked' ? 'bg-red-100 text-red-800' :
                     'bg-gray-100 text-gray-800'
                   }`}>
-                    {user.status}
+                    {formatUserStatus(user.status)}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">{user.lastLogin}</td>
@@ -625,24 +641,32 @@ const AdminModule: React.FC = () => {
                     <button
                       onClick={() => handleEditUser(user)}
                       className="p-2 hover:bg-gray-100 rounded"
-                      title="Edit user"
-                      aria-label={`Edit ${user.name}`}
+                      title={t('admin.users.actions.edit', 'Edit user')}
+                      aria-label={`${t('admin.users.actions.edit', 'Edit user')} ${user.name}`}
                     >
                       <Edit size={18} />
                     </button>
                     <button
                       onClick={() => handleToggleUserStatus(user.id, user.status)}
                       className="p-2 hover:bg-gray-100 rounded"
-                      title={user.status === 'Active' ? 'Deactivate' : 'Activate'}
-                      aria-label={`${user.status === 'Active' ? 'Deactivate' : 'Activate'} ${user.name}`}
+                      title={
+                        user.status === 'Active'
+                          ? t('admin.users.actions.deactivate', 'Deactivate user')
+                          : t('admin.users.actions.activate', 'Activate user')
+                      }
+                      aria-label={`${
+                        user.status === 'Active'
+                          ? t('admin.users.actions.deactivate', 'Deactivate user')
+                          : t('admin.users.actions.activate', 'Activate user')
+                      } ${user.name}`}
                     >
                       {user.status === 'Active' ? <Lock size={18} /> : <Unlock size={18} />}
                     </button>
                     <button
                       onClick={() => handleDeleteUser(user.id)}
                       className="p-2 hover:bg-gray-100 rounded text-red-600"
-                      title="Delete user"
-                      aria-label={`Delete ${user.name}`}
+                      title={t('admin.users.actions.delete', 'Delete user')}
+                      aria-label={`${t('admin.users.actions.delete', 'Delete user')} ${user.name}`}
                     >
                       <Trash2 size={18} />
                     </button>
@@ -660,15 +684,15 @@ const AdminModule: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Role Management</h2>
-          <p className="text-gray-600 mt-1">Define roles and permissions</p>
+          <h2 className="text-2xl font-bold text-gray-900">{t('admin.roles.title', 'Role Management')}</h2>
+          <p className="text-gray-600 mt-1">{t('admin.roles.subtitle', 'Define roles and permissions')}</p>
         </div>
         <button
           className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 flex items-center gap-2"
-          aria-label="Add new role"
+          aria-label={t('admin.roles.actions.addAria', 'Add new role')}
         >
           <Shield size={20} />
-          Add Role
+          {t('admin.roles.actions.add', 'Add Role')}
         </button>
       </div>
 
@@ -686,10 +710,12 @@ const AdminModule: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">{role.name}</h3>
-                  <p className="text-sm text-gray-500">{role.userCount} users</p>
+                  <p className="text-sm text-gray-500">
+                    {t('admin.roles.usersCount', '{{count}} users').replace('{{count}}', String(role.userCount))}
+                  </p>
                 </div>
               </div>
-              <button className="p-1 hover:bg-gray-100 rounded" aria-label="More options">
+              <button className="p-1 hover:bg-gray-100 rounded" aria-label={t('admin.roles.actions.more', 'More options')}>
                 <MoreVertical size={20} />
               </button>
             </div>
@@ -702,7 +728,7 @@ const AdminModule: React.FC = () => {
               ))}
               {role.permissions.length > 3 && (
                 <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
-                  +{role.permissions.length - 3} more
+                  {t('admin.roles.morePermissions', '+{{count}} more').replace('{{count}}', String(role.permissions.length - 3))}
                 </span>
               )}
             </div>
@@ -715,26 +741,40 @@ const AdminModule: React.FC = () => {
   const renderAuditLogs = () => (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Audit Logs</h2>
-        <p className="text-gray-600 mt-1">System activity and security audit trail</p>
+        <h2 className="text-2xl font-bold text-gray-900">{t('admin.audit.title', 'Audit Logs')}</h2>
+        <p className="text-gray-600 mt-1">{t('admin.audit.subtitle', 'System activity and security audit trail')}</p>
       </div>
 
       {/* Filters */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <select className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" aria-label="Filter by action">
-          <option value="">All Actions</option>
-          <option>User Created</option>
-          <option>User Updated</option>
-          <option>Login</option>
-          <option>Logout</option>
+        <select
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+          aria-label={t('admin.audit.filters.actionAria', 'Filter by action')}
+        >
+          <option value="">{t('admin.audit.filters.allActions', 'All Actions')}</option>
+          <option>{t('admin.audit.filters.userCreated', 'User Created')}</option>
+          <option>{t('admin.audit.filters.userUpdated', 'User Updated')}</option>
+          <option>{t('admin.audit.filters.login', 'Login')}</option>
+          <option>{t('admin.audit.filters.logout', 'Logout')}</option>
         </select>
-        <select className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" aria-label="Filter by status">
-          <option value="">All Status</option>
-          <option>Success</option>
-          <option>Failed</option>
+        <select
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+          aria-label={t('admin.audit.filters.statusAria', 'Filter by status')}
+        >
+          <option value="">{t('admin.audit.filters.allStatus', 'All Status')}</option>
+          <option>{t('admin.audit.status.success', 'Success')}</option>
+          <option>{t('admin.audit.status.failed', 'Failed')}</option>
         </select>
-        <input type="date" className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" aria-label="From date" />
-        <input type="date" className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500" aria-label="To date" />
+        <input
+          type="date"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+          aria-label={t('admin.audit.filters.fromDate', 'From date')}
+        />
+        <input
+          type="date"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+          aria-label={t('admin.audit.filters.toDate', 'To date')}
+        />
       </div>
 
       {/* Audit table */}
@@ -742,13 +782,27 @@ const AdminModule: React.FC = () => {
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Timestamp</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">User</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Action</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Resource</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">IP Address</th>
-              <th className="px-6 py-3 text-end text-xs font-medium text-gray-500 uppercase">Details</th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">
+                {t('admin.audit.table.timestamp', 'Timestamp')}
+              </th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">
+                {t('admin.audit.table.user', 'User')}
+              </th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">
+                {t('admin.audit.table.action', 'Action')}
+              </th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">
+                {t('admin.audit.table.resource', 'Resource')}
+              </th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">
+                {t('admin.audit.table.status', 'Status')}
+              </th>
+              <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">
+                {t('admin.audit.table.ip', 'IP Address')}
+              </th>
+              <th className="px-6 py-3 text-end text-xs font-medium text-gray-500 uppercase">
+                {t('admin.audit.table.details', 'Details')}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -768,13 +822,17 @@ const AdminModule: React.FC = () => {
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     log.status === 'Success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                   }`}>
-                    {log.status}
+                    {formatAuditStatus(log.status)}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500 font-mono">{log.ip}</td>
                 <td className="px-6 py-4 text-end">
                   {log.details && (
-                    <button className="p-2 hover:bg-gray-100 rounded" title="View details" aria-label="View log details">
+                    <button
+                      className="p-2 hover:bg-gray-100 rounded"
+                      title={t('admin.audit.actions.viewDetails', 'View details')}
+                      aria-label={t('admin.audit.actions.viewDetails', 'View log details')}
+                    >
                       <Eye size={18} />
                     </button>
                   )}
@@ -795,26 +853,26 @@ const AdminModule: React.FC = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">System Settings</h2>
-            <p className="text-gray-600 mt-1">Configure system-wide parameters</p>
+            <h2 className="text-2xl font-bold text-gray-900">{t('admin.settings.title', 'System Settings')}</h2>
+            <p className="text-gray-600 mt-1">{t('admin.settings.subtitle', 'Configure system-wide parameters')}</p>
           </div>
           {hasChanges && (
             <div className="flex gap-3">
               <button
                 onClick={() => setEditedSettings(new Map())}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
-                aria-label="Cancel changes"
+                aria-label={t('admin.settings.buttons.cancelAria', 'Cancel changes')}
               >
                 <X size={20} />
-                Cancel
+                {t('admin.settings.buttons.cancel', 'Cancel')}
               </button>
               <button
                 onClick={handleSaveSettings}
                 className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 flex items-center gap-2"
-                aria-label="Save settings"
+                aria-label={t('admin.settings.buttons.saveAria', 'Save settings')}
               >
                 <Save size={20} />
-                Save Changes
+                {t('admin.settings.buttons.save', 'Save Changes')}
               </button>
             </div>
           )}
@@ -853,8 +911,8 @@ const AdminModule: React.FC = () => {
                             onChange={(e) => handleSettingChange(setting.key, e.target.value)}
                             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
                           >
-                            <option value="true">Enabled</option>
-                            <option value="false">Disabled</option>
+                            <option value="true">{t('admin.settings.options.enabled', 'Enabled')}</option>
+                            <option value="false">{t('admin.settings.options.disabled', 'Disabled')}</option>
                           </select>
                         ) : setting.type === 'number' ? (
                           <input
@@ -909,19 +967,14 @@ const AdminModule: React.FC = () => {
               <Shield size={32} className="text-purple-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Administration</h1>
-              <p className="text-gray-600">System configuration and user management</p>
+              <h1 className="text-3xl font-bold text-gray-900">{t('admin.header.title', 'Administration')}</h1>
+              <p className="text-gray-600">{t('admin.header.subtitle', 'System configuration and user management')}</p>
             </div>
           </div>
 
           {/* Tabs */}
           <div className="flex gap-1 mt-6 border-b overflow-x-auto">
-            {[
-              { id: 'users', label: 'Users', icon: Users },
-              { id: 'roles', label: 'Roles', icon: Shield },
-              { id: 'audit', label: 'Audit Logs', icon: Activity },
-              { id: 'settings', label: 'Settings', icon: SettingsIcon }
-            ].map(tab => (
+            {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
