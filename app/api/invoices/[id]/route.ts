@@ -66,7 +66,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     }
 
     // Add to history if viewed for first time by recipient
-    if (invoice.status === "SENT" && user.id === invoice.recipient.customerId) {
+    if (invoice.status === "SENT" && invoice.recipient?.customerId && user.id === invoice.recipient.customerId) {
       invoice.status = "VIEWED";
       invoice.history.push({
         action: "VIEWED",
@@ -113,11 +113,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       // If sending invoice, generate ZATCA XML and sign
       if (data.status === "SENT") {
         try {
-          // Prepare ZATCA data from invoice with safer field extraction
+          // Prepare ZATCA data from invoice using issuer (seller/from are virtual aliases)
           const zatcaData = {
-            sellerName: invoice.seller?.name || invoice.from?.name || "Unknown Seller",
-            vatNumber: invoice.seller?.vatNumber || invoice.from?.taxId || "000000000000000",
-            timestamp: invoice.issueDate || new Date().toISOString(),
+            sellerName: invoice.issuer?.name || "Unknown Seller",
+            vatNumber: invoice.issuer?.taxId || "000000000000000",
+            timestamp: (invoice.issueDate || new Date()).toISOString(),
             total: invoice.total || 0,
             vatAmount: invoice.tax || 0
           };
@@ -126,16 +126,21 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
           const tlv = await generateZATCATLV(zatcaData);
           const qrCode = await generateZATCAQR(zatcaData);
 
-          // Update invoice ZATCA fields
-          invoice.zatca = invoice.zatca || {};
+          // Update invoice ZATCA fields with proper initialization
+          if (!invoice.zatca) {
+            invoice.zatca = { status: "PENDING" };
+          }
           invoice.zatca.tlv = tlv;
           invoice.zatca.qrCode = qrCode;
           invoice.zatca.generatedAt = new Date();
           invoice.zatca.status = "GENERATED";
         } catch (error) {
           logger.error("ZATCA generation failed:", error instanceof Error ? error.message : 'Unknown error');
-          invoice.zatca = invoice.zatca || {};
-          invoice.zatca.status = "FAILED";
+          if (!invoice.zatca) {
+            invoice.zatca = { status: "FAILED" };
+          } else {
+            invoice.zatca.status = "FAILED";
+          }
           invoice.zatca.error = error instanceof Error ? error.message : String(error);
         }
       }

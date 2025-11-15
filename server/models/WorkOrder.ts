@@ -488,6 +488,15 @@ WorkOrderSchema.methods.updateSLAStatus = function() {
 
 export type WorkOrderDoc = InferSchemaType<typeof WorkOrderSchema>;
 
+// Virtual property for 'code' as alias to 'workOrderNumber'
+WorkOrderSchema.virtual('code').get(function(this: WorkOrderDoc) {
+  return this.workOrderNumber;
+});
+
+// Ensure virtuals are included in JSON/Object output
+WorkOrderSchema.set('toJSON', { virtuals: true });
+WorkOrderSchema.set('toObject', { virtuals: true });
+
 let WorkOrderModel: ReturnType<typeof model<WorkOrderDoc>>;
 if (typeof models !== 'undefined' && models.WorkOrder) {
   WorkOrderModel = models.WorkOrder as ReturnType<typeof model<WorkOrderDoc>>;
