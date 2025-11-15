@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     const body = assignPrimarySchema.parse(await req.json());
     
     // Tenant isolation - ensure group belongs to user's org
-    const g = (await OwnerGroup.findOneAndUpdate(
+    const g = await OwnerGroup.findOneAndUpdate(
       { buildingId: body.buildingId, orgId: user.orgId }, 
       { 
         buildingId: body.buildingId, 
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
         updatedAt: new Date()
       }, 
       { upsert: true, new: true }
-    ));
+    );
     return createSecureResponse(g, 201, req);
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {

@@ -106,12 +106,13 @@ export async function GET(
     if (includeOptions.includes('tenants')) {
       // In production, this would query a Tenant/Lease collection
       // For now, using data from property model
-      historyData.tenants = unit.tenant ? [{
-        name: unit.tenant.name,
-        contact: unit.tenant.contact,
-        leaseStart: unit.tenant.leaseStart,
-        leaseEnd: unit.tenant.leaseEnd,
-        monthlyRent: unit.tenant.monthlyRent,
+      const tenant = unit.tenant as { name?: string; contact?: string; leaseStart?: Date; leaseEnd?: Date; monthlyRent?: number } | undefined;
+      historyData.tenants = tenant ? [{
+        name: tenant.name,
+        contact: tenant.contact,
+        leaseStart: tenant.leaseStart,
+        leaseEnd: tenant.leaseEnd,
+        monthlyRent: tenant.monthlyRent,
         status: unit.status === 'OCCUPIED' ? 'CURRENT' : 'PAST'
       }] : [];
     }

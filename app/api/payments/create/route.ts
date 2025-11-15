@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
       return notFoundError('Invoice');
     }
     
-    if (invoice.status === 'paid') {
+    if (invoice.status === 'PAID') {
       return validationError('Invoice is already paid');
     }
 
@@ -119,10 +119,10 @@ export async function POST(req: NextRequest) {
       amount: invoice.total,
       currency: invoice.currency,
       customerDetails: {
-        name: invoice.recipient.name,
-        email: invoice.recipient.email || 'customer@fixzit.co',
-        phone: invoice.recipient.phone || '+966500000000',
-        address: invoice.recipient.address || 'Saudi Arabia',
+        name: invoice.recipient?.name || 'Unknown Customer',
+        email: invoice.recipient?.email || 'customer@fixzit.co',
+        phone: invoice.recipient?.phone || '+966500000000',
+        address: invoice.recipient?.address || 'Saudi Arabia',
         city: 'Riyadh',
         state: 'Riyadh',
         country: 'SA',

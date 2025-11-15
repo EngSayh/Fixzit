@@ -47,7 +47,7 @@ export async function GET() {
       });
     }
 
-    const orgDoc = org as { name?: string; logo?: string; branding?: { primaryColor?: string; secondaryColor?: string } } | null;
+    const orgDoc = org as { name?: string; logo?: string; branding?: { primaryColor?: string; secondaryColor?: string } };
 
     return NextResponse.json({
       name: orgDoc?.name || 'FIXZIT ENTERPRISE',

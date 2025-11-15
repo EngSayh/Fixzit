@@ -152,7 +152,6 @@ export async function POST(req: NextRequest) {
     try {
       const seq = Math.floor((Date.now() / 1000) % 100000);
       const code = `WO-${new Date().getFullYear()}-${seq}`;
-      // @ts-expect-error - Mongoose 8.x type resolution issue with conditional model export
       const wo = await WorkOrder.create({
         tenantId: user.orgId,
         code,

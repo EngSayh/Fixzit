@@ -28,7 +28,8 @@ export async function POST() {
     
     for (const plan of plans) {
       // Check if plan should generate WO now (considering lead time)
-      if (!plan.shouldGenerateNow()) {
+      const shouldGenerate = (plan as unknown as { shouldGenerateNow?: () => boolean }).shouldGenerateNow?.();
+      if (!shouldGenerate) {
         results.skipped++;
         continue;
       }
