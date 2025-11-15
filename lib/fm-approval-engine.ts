@@ -631,7 +631,7 @@ export async function updateApprovalDecision(
   approverId: string,
   decision: 'APPROVE' | 'REJECT' | 'DELEGATE',
   notes?: string,
-  delegateTo?: string
+  delegateTo?: unknown
 ): Promise<void> {
   try {
     const approval = await FMApproval.findOne({ workflowId, orgId: orgId });
@@ -645,8 +645,8 @@ export async function updateApprovalDecision(
     approval.notes = notes;
 
     if (decision === 'DELEGATE' && delegateTo) {
-      const { Types } = await import('mongoose');
-      approval.delegatedTo = new Types.ObjectId(delegateTo) as unknown as Schema.Types.ObjectId;
+      // Assign directly using unknown intermediate
+      (approval as { delegatedTo?: unknown }).delegatedTo = delegateTo;
       approval.delegationDate = new Date();
       approval.delegationReason = notes;
     }
@@ -685,7 +685,7 @@ export async function getPendingApprovalsForUser(
       orgId: orgId,
       status: 'PENDING',
       'stages.approvers': userId, // search across all stages
-    }).lean<FMApprovalDoc>() as FMApprovalDoc[];
+    }).lean<FMApprovalDoc>() as unknown as FMApprovalDoc[] || [];
 
     return approvals.map(docToWorkflow);
   } catch (error: unknown) {

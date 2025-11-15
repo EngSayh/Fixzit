@@ -133,51 +133,43 @@ export async function POST(request: NextRequest) {
 
     await product.save();
 
-    // Index in search engine (Meilisearch) - if configured
-    if (process.env.MEILISEARCH_HOST && process.env.MEILISEARCH_API_KEY) {
-      try {
-        const { MeiliSearch } = await import('meilisearch');
-        const client = new MeiliSearch({
-          host: process.env.MEILISEARCH_HOST,
-          apiKey: process.env.MEILISEARCH_API_KEY
-        });
-        
-        await client.index('products').addDocuments([{
-          id: product._id.toString(),
-          fsin: product.fsin,
-          title: product.title,
-          description: product.description,
-          categoryId: product.categoryId,
-          brandId: product.brandId,
-          searchKeywords: product.searchKeywords,
-          isActive: product.isActive
-        }]);
-      } catch (searchError) {
-        // Log but don't fail product creation if indexing fails
-        logger.error('[Souq] Failed to index product in Meilisearch', searchError as Error, { productId: product._id, fsin: product.fsin });
-      }
+    // Index in search engine using shared Meilisearch client
+    try {
+      const { indexProduct } = await import('@/lib/meilisearch-client');
+      await indexProduct({
+        id: product._id.toString(),
+        fsin: product.fsin,
+        title: product.title,
+        description: product.description,
+        categoryId: product.categoryId,
+        brandId: product.brandId,
+        searchKeywords: product.searchKeywords,
+        isActive: product.isActive,
+        orgId,
+      });
+    } catch (searchError) {
+      // Log but don't fail product creation if indexing fails
+      logger.error('[Souq] Failed to index product', searchError as Error, { productId: product._id, fsin: product.fsin });
     }
     
-    // Publish product.created event to NATS - if configured
-    if (process.env.NATS_URL) {
-      try {
-        const { connect, JSONCodec } = await import('nats');
-        const nc = await connect({ servers: process.env.NATS_URL });
-        const jc = JSONCodec();
-        
-        nc.publish('product.created', jc.encode({
-          productId: product._id.toString(),
-          fsin: product.fsin,
-          orgId,
-          categoryId: product.categoryId,
-          timestamp: new Date().toISOString()
-        }));
-        
-        await nc.drain();
-      } catch (natsError) {
-        // Log but don't fail product creation if event publish fails
-        logger.error('[Souq] Failed to publish product.created event', natsError as Error, { productId: product._id, fsin: product.fsin });
-      }
+    // Publish product.created event using shared NATS client
+    try {
+      const { publish } = await import('@/lib/nats-client');
+      await publish('product.created', {
+        type: 'product.created',
+        productId: product._id.toString(),
+        fsin: product.fsin,
+        orgId,
+        categoryId: product.categoryId,
+        brandId: product.brandId,
+        title: product.title,
+        price: product.pricing?.basePrice || 0,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (natsError) {
+      // Log but don't fail product creation if event publish fails
+      logger.error('[Souq] Failed to publish product.created event', natsError as Error, { productId: product._id, fsin: product.fsin });
+    }
     }
 
     return NextResponse.json({

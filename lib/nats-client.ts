@@ -1,4 +1,4 @@
-import { connect, NatsConnection, JSONCodec, NatsError } from 'nats';
+import { connect, NatsConnection, JSONCodec } from 'nats';
 
 let nc: NatsConnection | null = null;
 const jc = JSONCodec();
