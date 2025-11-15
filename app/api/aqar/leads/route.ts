@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
       })();
     } else if (projectId) {
       const { AqarProject } = await import('@/models/aqar');
-      const project = await AqarProject.findById(projectId);
+      const project = await (AqarProject as any).findById(projectId);
       if (!project) {
         return NextResponse.json({ error: 'Project not found' }, { status: 404 });
       }
