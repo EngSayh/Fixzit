@@ -313,16 +313,36 @@ if (org.members && Array.isArray(org.members)) {
 
 ## 4. Remaining TypeScript Errors
 
-**Current Status**: ~200-207 errors remaining (down from 283)
+**Current Status**: ~164 errors remaining (down from 283, **42% reduction**)
+
+**Error Distribution by Directory**:
+1. **lib/** (32 errors): Utility functions, auth middleware, logger, etc.
+2. **server/models/** (25 errors): Mongoose model type definitions
+3. **server/copilot/** (16 errors): AI assistant and copilot features
+4. **tests/** (13 errors): Test files (12 e2e finance + 3 unit tests)
+5. **modules/users/** (5 errors): User management modules
+6. **services/** (5 errors): Business logic services
+7. **app/api/** (20 errors): Various API routes
+8. **contexts/** (2 errors): React context providers
+9. **Other** (46 errors): Scattered across scripts, plugins, etc.
+
+**Fixed in This Session** (119 errors eliminated):
+- ✅ 26 Mongoose model union type exports (60 errors)
+- ✅ Invoice ZATCA compliance (16 errors)
+- ✅ WorkOrder code property (3 errors)
+- ✅ Invoice API route null checks (8 errors)
+- ✅ Payment API status comparisons (4 errors)
+- ✅ Organization settings (2 errors)
+- ✅ Owner units history (7 errors)
+- ✅ Various API route type assertions (19 errors)
 
 **Categories**:
-1. **lib/* files** (~80 errors): Model export cascading fixes should auto-resolve
-2. **services/* files** (~40 errors): Same as above
-3. **tests/* files** (~30 errors): Test-specific type mismatches
-4. **app/api/* files** (~20 errors): Minor null checks and property access
-5. **contexts/* files** (~10 errors): Missing logger imports, type definitions
-6. **models/* files** (~15 errors): Schema type inference issues
-7. **Misc** (~12 errors): Various small issues
+1. **lib/* files** (~32 errors): Model imports and type inference
+2. **server/models/* files** (~25 errors): Schema type definitions
+3. **tests/* files** (~13 errors): Test-specific type mismatches
+4. **app/api/* files** (~20 errors): API route edge cases
+5. **contexts/* files** (~2 errors): Missing logger imports, type definitions
+6. **Other** (~72 errors): Various type issues across codebase
 
 **Next Steps for Zero Errors**:
 1. Run full recompile to verify cascade fixes
