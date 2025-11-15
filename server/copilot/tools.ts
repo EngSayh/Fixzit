@@ -211,17 +211,24 @@ async function dispatchWorkOrder(session: CopilotSession, input: Record<string, 
     throw new Error("Work order not found");
   }
 
+  const hasAssignee = typeof input.assigneeUserId === "string" || typeof input.assigneeVendorId === "string";
+  const nextStatus = hasAssignee ? "ASSIGNED" : current.status;
   const setUpdate: Record<string, unknown> = {
-    status: "ASSIGNED",
+    status: nextStatus,
     "assignment.assignedBy": session.userId,
-    "assignment.assignedAt": new Date()
+    "assignment.assignedAt": new Date(),
   };
 
   if (typeof input.assigneeUserId === "string") {
     setUpdate["assignment.assignedTo.userId"] = input.assigneeUserId;
+  } else if (input.assigneeUserId === null) {
+    setUpdate["assignment.assignedTo.userId"] = null;
   }
+
   if (typeof input.assigneeVendorId === "string") {
     setUpdate["assignment.assignedTo.vendorId"] = input.assigneeVendorId;
+  } else if (input.assigneeVendorId === null) {
+    setUpdate["assignment.assignedTo.vendorId"] = null;
   }
 
   const updated = await WorkOrder.findByIdAndUpdate(
@@ -231,7 +238,7 @@ async function dispatchWorkOrder(session: CopilotSession, input: Record<string, 
       $push: {
         statusHistory: {
           fromStatus: current.status,
-          toStatus: "ASSIGNED",
+          toStatus: nextStatus,
           changedBy: session.userId,
           changedAt: new Date(),
           notes: "Assigned via Copilot assistant"

@@ -5,14 +5,14 @@ import {requireAbility } from "@/server/middleware/withAuthRbac";
 
 // Define type for exported work order fields
 interface WorkOrderExportDoc {
-  code?: string;
+  workOrderNumber?: string;
   title?: string;
   status?: string;
   priority?: string;
-  propertyId?: string;
-  assigneeUserId?: string;
+  location?: { propertyId?: string; unitNumber?: string };
+  assignment?: { assignedTo?: { userId?: string; vendorId?: string } };
   createdAt?: Date;
-  dueAt?: Date;
+  sla?: { resolutionDeadline?: Date };
 }
 
 /**
@@ -38,20 +38,21 @@ export async function GET(req:NextRequest): Promise<NextResponse> {
   await connectToDatabase();
   
   // Use .lean() to get plain JavaScript objects instead of Mongoose documents
-  const docs = (await WorkOrder.find({tenantId:user.orgId, deletedAt:{$exists:false}})
+  const docs = await WorkOrder.find({ orgId: user.orgId, isDeleted: { $ne: true } })
     .limit(2000)
-    .lean<WorkOrderExportDoc[]>());
-  
-  const header = ["code","title","status","priority","propertyId","assigneeUserId","createdAt","dueAt"];
+    .lean<WorkOrderExportDoc[]>();
+
+  const header = ["workOrderNumber","title","status","priority","propertyId","assigneeUserId","assigneeVendorId","createdAt","resolutionDeadline"];
   const lines = [header.join(",")].concat(docs.map((d: WorkOrderExportDoc) =>[
-    d.code || "", 
+    d.workOrderNumber || "", 
     JSON.stringify(d.title || ""), 
     d.status || "", 
     d.priority || "", 
-    d.propertyId || "", 
-    d.assigneeUserId || "", 
+    d.location?.propertyId || "", 
+    d.assignment?.assignedTo?.userId || "", 
+    d.assignment?.assignedTo?.vendorId || "",
     d.createdAt?.toISOString() || "", 
-    d.dueAt?.toISOString() || ""
+    d.sla?.resolutionDeadline?.toISOString() || ""
   ].join(",")));
   
   const csv = lines.join("\n");
@@ -63,5 +64,4 @@ export async function GET(req:NextRequest): Promise<NextResponse> {
     }
   });
 }
-
 

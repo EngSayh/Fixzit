@@ -242,7 +242,7 @@ describe("listMyWorkOrders", () => {
     const session = makeSession({ role: "TECHNICIAN" });
     const items = Array.from({ length: 7 }).map((_, i) => ({
       _id: `id-${i}`,
-      code: `WO-${i}`,
+      workOrderNumber: `WO-${i}`,
       title: `T-${i}`,
       status: "SUBMITTED",
       priority: "LOW",
@@ -252,9 +252,9 @@ describe("listMyWorkOrders", () => {
 
     const res = await executeTool("listMyWorkOrders", {}, session);
     expect(workOrderFind).toHaveBeenCalledWith({
-      tenantId: session.tenantId,
-      deletedAt: { $exists: false },
-      assigneeUserId: session.userId,
+      orgId: session.tenantId,
+      isDeleted: { $ne: true },
+      'assignment.assignedTo.userId': session.userId,
     });
     expect(res.success).toBe(true);
     expect(res.data).toHaveLength(5);
@@ -285,24 +285,28 @@ describe("dispatchWorkOrder", () => {
 
   test("updates work order and returns assignee data", async () => {
     const session = makeSession();
+    workOrderFindOne.mockResolvedValue({
+      _id: "WOID",
+      orgId: session.tenantId,
+      status: "SUBMITTED",
+    });
     workOrderFindOneAndUpdate.mockResolvedValue({
-      code: "WO-42",
-      status: "DISPATCHED",
-      assigneeUserId: "tech-9",
-      assigneeVendorId: undefined,
+      workOrderNumber: "WO-42",
+      status: "ASSIGNED",
+      assignment: { assignedTo: { userId: "tech-9" } },
     });
 
     const res = await executeTool("dispatchWorkOrder", { workOrderId: "WOID", assigneeUserId: "tech-9" }, session);
     expect(workOrderFindOneAndUpdate).toHaveBeenCalledWith(
-      { _id: "WOID", tenantId: session.tenantId },
+      { _id: "WOID", orgId: session.tenantId },
       expect.objectContaining({
-        $set: expect.objectContaining({ status: "DISPATCHED", assigneeUserId: "tech-9" }),
+        $set: expect.objectContaining({ status: "ASSIGNED", 'assignment.assignedTo.userId': "tech-9" }),
         $push: expect.any(Object),
       }),
       { new: true }
     );
     expect(res.data).toEqual(
-      expect.objectContaining({ code: "WO-42", status: "DISPATCHED", assigneeUserId: "tech-9" })
+      expect.objectContaining({ code: "WO-42", status: "ASSIGNED", assigneeUserId: "tech-9" })
     );
   });
 
@@ -335,19 +339,20 @@ describe("scheduleVisit", () => {
     );
   });
 
-  test("updates dueAt and returns localized message", async () => {
+  test("updates SLA deadline and returns localized message", async () => {
     const session = makeSession({ locale: "en" });
     const when = "2025-07-01T10:00:00Z";
-    const updated = { code: "WO-9", dueAt: new Date(when).toISOString() };
+    workOrderFindOne.mockResolvedValue({ _id: "A1", orgId: session.tenantId, status: "IN_PROGRESS" });
+    const updated = { workOrderNumber: "WO-9", sla: { resolutionDeadline: new Date(when).toISOString() } };
     workOrderFindOneAndUpdate.mockResolvedValue(updated);
 
     const res = await executeTool("scheduleVisit", { workOrderId: "A1", scheduledFor: when }, session);
     expect(workOrderFindOneAndUpdate).toHaveBeenCalledWith(
-      { _id: "A1", tenantId: session.tenantId },
-      expect.objectContaining({ $set: { dueAt: new Date(when) } }),
+      { _id: "A1", orgId: session.tenantId },
+      expect.objectContaining({ $set: { "assignment.scheduledDate": new Date(when), "sla.resolutionDeadline": new Date(when) } }),
       { new: true }
     );
-    expect(res.data).toEqual({ code: "WO-9", dueAt: updated.dueAt });
+    expect(res.data).toEqual({ code: "WO-9", dueAt: updated.sla?.resolutionDeadline });
     expect(res.message).toContain("Visit scheduled for");
   });
 
@@ -472,4 +477,3 @@ describe("ownerStatements", () => {
     );
   });
 });
-

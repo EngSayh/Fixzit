@@ -73,7 +73,8 @@ function isWorkOrderPriority(value: string): value is WorkOrderPriority {
 
 type WorkOrderRecord = {
   id: string;
-  code: string;
+  code?: string;
+  workOrderNumber?: string;
   title: string;
   description?: string;
   status: keyof typeof statusLabels;
@@ -82,8 +83,17 @@ type WorkOrderRecord = {
   dueAt?: string;
   slaMinutes?: number;
   propertyId?: string;
-  assigneeUserId?: string;
-  assigneeVendorId?: string;
+  location?: { propertyId?: string; unitNumber?: string };
+  sla?: {
+    resolutionDeadline?: string;
+    resolutionTimeMinutes?: number;
+  };
+  assignment?: {
+    assignedTo?: {
+      userId?: string;
+      vendorId?: string;
+    };
+  };
   category?: string;
 };
 
@@ -244,7 +254,13 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
         ) : null}
 
         {workOrders.map((workOrder) => {
-          const dueMeta = getDueMeta(workOrder.dueAt);
+          const dueAt = workOrder.sla?.resolutionDeadline || workOrder.dueAt;
+          const dueMeta = getDueMeta(dueAt);
+          const slaWindowMinutes = workOrder.sla?.resolutionTimeMinutes ?? workOrder.slaMinutes;
+          const code = workOrder.workOrderNumber || workOrder.code || workOrder.id;
+          const assignedUser = workOrder.assignment?.assignedTo?.userId || workOrder.assigneeUserId;
+          const assignedVendor = workOrder.assignment?.assignedTo?.vendorId || workOrder.assigneeVendorId;
+          const propertyId = workOrder.location?.propertyId || workOrder.propertyId;
           return (
             <Card key={workOrder.id} className="border border-border shadow-sm">
               <CardHeader className="flex flex-col gap-2 pb-4 sm:flex-row sm:items-start sm:justify-between">
@@ -258,10 +274,10 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
                       {statusLabels[workOrder.status] ?? workOrder.status}
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">Code: {workOrder.code}</p>
+                  <p className="text-sm text-muted-foreground">Code: {code}</p>
                 </div>
                 <div className="text-end text-sm text-muted-foreground">
-                  <p>SLA window: {workOrder.slaMinutes ? `${Math.round(workOrder.slaMinutes / 60)}h` : 'N/A'}</p>
+                  <p>SLA window: {slaWindowMinutes ? `${Math.round(slaWindowMinutes / 60)}h` : 'N/A'}</p>
                   <p className={dueMeta.overdue ? 'text-destructive font-semibold' : ''}>Due {dueMeta.label}</p>
                 </div>
               </CardHeader>
@@ -272,11 +288,11 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
                 <div className="grid grid-cols-1 gap-3 text-sm text-muted-foreground md:grid-cols-2">
                   <div>
                     <span className="font-medium text-foreground">Property:</span>{' '}
-                    {workOrder.propertyId || 'Not linked'}
+                    {propertyId || 'Not linked'}
                   </div>
                   <div>
                     <span className="font-medium text-foreground">Assigned to:</span>{' '}
-                    {workOrder.assigneeUserId || workOrder.assigneeVendorId || 'Unassigned'}
+                    {assignedUser || assignedVendor || 'Unassigned'}
                   </div>
                   <div>
                     <span className="font-medium text-foreground">Category:</span>{' '}
@@ -476,4 +492,3 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
 }
 
 export default WorkOrdersView;
-

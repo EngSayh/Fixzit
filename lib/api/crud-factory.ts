@@ -140,7 +140,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
 
       // RBAC: Super Admin can access all tenants, others are scoped to their org_id
       if (user.role !== 'SUPER_ADMIN') {
-        match.org_id = user.orgId;
+        match.orgId = user.orgId;
       }
 
       // Implement search functionality
@@ -262,7 +262,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
 
       // Prepare entity data
       let entityData = {
-        org_id: user.orgId,
+        orgId: user.orgId,
         ...(generateCode && { code: generateCode() }),
         ...data,
         createdBy: user.id,

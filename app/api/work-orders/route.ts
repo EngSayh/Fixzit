@@ -21,7 +21,7 @@ const createWorkOrderSchema = z.object({
   category: z.string().optional(),
   subcategory: z.string().optional(),
   propertyId: z.string().optional(),
-  unitId: z.string().optional(),
+  unitNumber: z.string().optional(),
   requester: z.object({
     type: z.enum(["TENANT", "OWNER", "STAFF"]).default("TENANT"),
     id: z.string().optional(),
@@ -36,7 +36,7 @@ const createWorkOrderSchema = z.object({
  */
 // 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB filter
 function buildWorkOrderFilter(searchParams: URLSearchParams, orgId: string) {
-  const filter: Record<string, unknown> = { orgId, deletedAt: { $exists: false } };
+  const filter: Record<string, unknown> = { orgId, isDeleted: { $ne: true } };
 
   const status = searchParams.get('status');
   if (status) {
@@ -47,16 +47,15 @@ function buildWorkOrderFilter(searchParams: URLSearchParams, orgId: string) {
   if (priority && ["CRITICAL", "HIGH", "MEDIUM", "LOW"].includes(priority)) {
     filter.priority = priority;
   }
-
   const propertyId = searchParams.get('propertyId');
   if (propertyId) {
-    filter.propertyId = propertyId;
+    filter['location.propertyId'] = propertyId;
   }
 
   const search = searchParams.get('search') || searchParams.get('q');
   if (search) {
     filter.$or = [
-      { code: { $regex: search, $options: 'i' } },
+      { workOrderNumber: { $regex: search, $options: 'i' } },
       { title: { $regex: search, $options: 'i' } },
       { description: { $regex: search, $options: 'i' } },
       { category: { $regex: search, $options: 'i' } },
@@ -69,7 +68,7 @@ function buildWorkOrderFilter(searchParams: URLSearchParams, orgId: string) {
 /**
  * Generate Work Order Code with Year + Crypto UUID
  */
-function generateWorkOrderCode() {
+function generateWorkOrderNumber() {
   const uuid = crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
   return `WO-${new Date().getFullYear()}-${uuid}`;
 }
@@ -81,28 +80,47 @@ export const { GET, POST } = createCrudHandlers({
   Model: WorkOrder,
   createSchema: createWorkOrderSchema,
   entityName: 'work order',
-  generateCode: generateWorkOrderCode,
   defaultSort: { createdAt: -1 },
-  searchFields: ['code', 'title', 'description', 'category'],
+  searchFields: ['workOrderNumber', 'title', 'description', 'category'],
   buildFilter: buildWorkOrderFilter,
   // Custom onCreate hook to add SLA calculations
   // 🔒 TYPE SAFETY: Using Record for dynamic work order data
-  onCreate: async (data: Record<string, unknown>) => {
+  onCreate: async (data: Record<string, unknown>, user) => {
     const createdAt = new Date();
     const { slaMinutes, dueAt } = resolveSlaTarget(data.priority as WorkOrderPriority, createdAt);
-    
+    const responseMinutes = 120;
+
+    const location = data.propertyId
+      ? {
+          propertyId: data.propertyId,
+          unitNumber: data.unitNumber,
+        }
+      : undefined;
+
+    delete data.propertyId;
+    delete data.unitNumber;
+
     return {
       ...data,
+      orgId: user.orgId,
+      workOrderNumber: generateWorkOrderNumber(),
       status: "SUBMITTED",
-      statusHistory: [{ 
-        from: "DRAFT", 
-        to: "SUBMITTED", 
-        byUserId: data.createdBy, 
-        at: createdAt 
+      statusHistory: [{
+        fromStatus: "DRAFT",
+        toStatus: "SUBMITTED",
+        changedBy: user.id,
+        changedAt: createdAt,
+        notes: "Created via API",
       }],
-      slaMinutes,
-      dueAt,
-      createdAt
+      location,
+      sla: {
+        responseTimeMinutes: responseMinutes,
+        resolutionTimeMinutes: slaMinutes,
+        responseDeadline: new Date(createdAt.getTime() + responseMinutes * 60 * 1000),
+        resolutionDeadline: dueAt,
+        status: "ON_TIME",
+      },
+      createdAt,
     };
   }
 });

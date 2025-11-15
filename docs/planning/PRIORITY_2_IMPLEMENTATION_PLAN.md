@@ -52,7 +52,7 @@
 // Add compound indexes for common queries
 WorkOrderSchema.index({ orgId: 1, status: 1, priority: 1, createdAt: -1 });
 WorkOrderSchema.index({ orgId: 1, propertyId: 1, status: 1 });
-WorkOrderSchema.index({ orgId: 1, assigneeUserId: 1, status: 1 });
+WorkOrderSchema.index({ orgId: 1, 'assignment.assignedTo.userId': 1, status: 1 });
 WorkOrderSchema.index({ orgId: 1, code: 1 }, { unique: true });
 ```
 

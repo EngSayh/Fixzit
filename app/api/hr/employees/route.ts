@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
-import { EmployeeService } from '../../../../../server/services/hr/employee.service';
+import { EmployeeService } from '@/server/services/hr/employee.service';
 // GET /api/hr/employees - List all employees for the organization
 export async function GET(req: NextRequest) {
   try {

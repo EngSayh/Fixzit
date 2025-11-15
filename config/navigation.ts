@@ -4,7 +4,26 @@
 // Comprehensive navigation system with RBAC, subscription filtering,
 // and multi-level menu support for Fixzit platform
 
-import { LucideIcon } from 'lucide-react';
+import {
+  LucideIcon,
+  LayoutDashboard,
+  Wrench,
+  Building2,
+  Wallet,
+  Users,
+  Briefcase,
+  UserCog,
+  ShoppingBag,
+  Headphones,
+  ShieldCheck,
+  BarChart3,
+  Settings,
+  User,
+  CreditCard,
+  Shield,
+  Bell
+} from 'lucide-react';
+import { type UserRoleType } from '@/types/user';
 
 // ==========================================
 // Types & Interfaces
@@ -105,6 +124,288 @@ export interface NavigationConfig {
     rtlSupport: boolean;
   };
 }
+
+// ------------------------------------------
+// Sidebar module metadata (Governance V5)
+// ------------------------------------------
+
+export type ModuleCategory =
+  | 'core'
+  | 'fm'
+  | 'procurement'
+  | 'finance'
+  | 'hr'
+  | 'crm'
+  | 'marketplace'
+  | 'support'
+  | 'compliance'
+  | 'reporting'
+  | 'system';
+
+export type ModuleId =
+  | 'dashboard'
+  | 'work_orders'
+  | 'properties'
+  | 'finance'
+  | 'hr'
+  | 'administration'
+  | 'crm'
+  | 'marketplace'
+  | 'support'
+  | 'compliance'
+  | 'reports'
+  | 'system';
+
+export interface ModuleItem {
+  id: ModuleId;
+  name: string; // translation key
+  fallbackLabel: string;
+  path: string;
+  icon: LucideIcon;
+  category: ModuleCategory;
+  order: number;
+  badgeKey?: keyof BadgeCounts;
+}
+
+export interface UserLinkItem {
+  id: string;
+  name: string;
+  fallbackLabel: string;
+  path: string;
+  icon: LucideIcon;
+  requiresAuth?: boolean;
+}
+
+export const CATEGORY_FALLBACKS: Record<ModuleCategory, string> = {
+  core: 'Core',
+  fm: 'Facility Management',
+  procurement: 'Procurement',
+  finance: 'Finance',
+  hr: 'Human Resources',
+  crm: 'Customer Relations',
+  marketplace: 'Marketplace',
+  support: 'Support & Helpdesk',
+  compliance: 'Compliance & Legal',
+  reporting: 'Reports & Analytics',
+  system: 'System Management',
+};
+
+export const MODULES: readonly ModuleItem[] = [
+  {
+    id: 'dashboard',
+    name: 'nav.dashboard',
+    fallbackLabel: 'Dashboard',
+    path: '/dashboard',
+    icon: LayoutDashboard,
+    category: 'core',
+    order: 1,
+  },
+  {
+    id: 'work_orders',
+    name: 'nav.workOrders',
+    fallbackLabel: 'Work Orders',
+    path: '/dashboard/work-orders',
+    icon: Wrench,
+    category: 'fm',
+    order: 2,
+  },
+  {
+    id: 'properties',
+    name: 'nav.properties',
+    fallbackLabel: 'Properties',
+    path: '/dashboard/properties',
+    icon: Building2,
+    category: 'fm',
+    order: 3,
+  },
+  {
+    id: 'finance',
+    name: 'nav.finance',
+    fallbackLabel: 'Finance',
+    path: '/dashboard/finance',
+    icon: Wallet,
+    category: 'finance',
+    order: 4,
+  },
+  {
+    id: 'hr',
+    name: 'nav.hr',
+    fallbackLabel: 'Human Resources',
+    path: '/dashboard/hr',
+    icon: Users,
+    category: 'hr',
+    order: 5,
+  },
+  {
+    id: 'administration',
+    name: 'nav.administration',
+    fallbackLabel: 'Administration',
+    path: '/dashboard/admin',
+    icon: Briefcase,
+    category: 'system',
+    order: 6,
+  },
+  {
+    id: 'crm',
+    name: 'nav.crm',
+    fallbackLabel: 'CRM',
+    path: '/dashboard/crm',
+    icon: UserCog,
+    category: 'crm',
+    order: 7,
+  },
+  {
+    id: 'marketplace',
+    name: 'nav.marketplace',
+    fallbackLabel: 'Marketplace',
+    path: '/dashboard/marketplace',
+    icon: ShoppingBag,
+    category: 'marketplace',
+    order: 8,
+  },
+  {
+    id: 'support',
+    name: 'nav.support',
+    fallbackLabel: 'Support & Helpdesk',
+    path: '/dashboard/support',
+    icon: Headphones,
+    category: 'support',
+    order: 9,
+  },
+  {
+    id: 'compliance',
+    name: 'nav.compliance',
+    fallbackLabel: 'Compliance & Legal',
+    path: '/dashboard/compliance',
+    icon: ShieldCheck,
+    category: 'compliance',
+    order: 10,
+  },
+  {
+    id: 'reports',
+    name: 'nav.reports',
+    fallbackLabel: 'Reports & Analytics',
+    path: '/dashboard/reports',
+    icon: BarChart3,
+    category: 'reporting',
+    order: 11,
+  },
+  {
+    id: 'system',
+    name: 'nav.system',
+    fallbackLabel: 'System Management',
+    path: '/dashboard/system',
+    icon: Settings,
+    category: 'system',
+    order: 12,
+  },
+];
+
+const ALL_MODULE_IDS = MODULES.map((m) => m.id);
+const CORE_PLAN: ModuleId[] = ['dashboard', 'work_orders', 'properties', 'support'];
+const PRO_PLAN: ModuleId[] = [...CORE_PLAN, 'finance', 'hr', 'crm', 'marketplace', 'reports'];
+
+export const SUBSCRIPTION_PLANS: Record<string, readonly ModuleId[]> = {
+  DEFAULT: ALL_MODULE_IDS,
+  FREE: CORE_PLAN,
+  BASIC: CORE_PLAN,
+  PRO: PRO_PLAN,
+  ENTERPRISE: ALL_MODULE_IDS,
+  CUSTOM: ALL_MODULE_IDS,
+};
+
+const fullAccess = ALL_MODULE_IDS;
+const adminCore: ModuleId[] = [
+  'dashboard',
+  'work_orders',
+  'properties',
+  'finance',
+  'hr',
+  'administration',
+  'crm',
+  'marketplace',
+  'support',
+  'compliance',
+  'reports',
+  'system',
+];
+const fmLeadership: ModuleId[] = ['dashboard', 'work_orders', 'properties', 'hr', 'support', 'reports'];
+const propertyOps: ModuleId[] = ['dashboard', 'properties', 'work_orders', 'crm', 'support', 'reports'];
+const financeOnly: ModuleId[] = ['dashboard', 'finance', 'reports', 'support'];
+const hrOnly: ModuleId[] = ['dashboard', 'hr', 'support', 'reports'];
+const procurementOnly: ModuleId[] = ['dashboard', 'marketplace', 'support', 'reports'];
+const technicianOnly: ModuleId[] = ['dashboard', 'work_orders', 'support'];
+const ownerTenant: ModuleId[] = ['dashboard', 'properties', 'support', 'reports'];
+const vendorOnly: ModuleId[] = ['dashboard', 'marketplace', 'support'];
+const customerOnly: ModuleId[] = ['dashboard', 'support'];
+const complianceOnly: ModuleId[] = ['dashboard', 'compliance', 'reports'];
+const viewerOnly: ModuleId[] = ['dashboard', 'reports'];
+
+export const ROLE_PERMISSIONS: Record<UserRoleType | 'guest', readonly ModuleId[]> = {
+  SUPER_ADMIN: fullAccess,
+  CORPORATE_ADMIN: fullAccess,
+  ADMIN: adminCore,
+  FM_MANAGER: fmLeadership,
+  PROPERTY_MANAGER: propertyOps,
+  FINANCE: financeOnly,
+  HR: hrOnly,
+  PROCUREMENT: procurementOnly,
+  TECHNICIAN: technicianOnly,
+  EMPLOYEE: hrOnly,
+  OWNER: ownerTenant,
+  TENANT: ownerTenant,
+  VENDOR: vendorOnly,
+  CUSTOMER: customerOnly,
+  AUDITOR: complianceOnly,
+  VIEWER: viewerOnly,
+  DISPATCHER: technicianOnly,
+  SUPPORT: ['dashboard', 'support'],
+  // External roles fall back to view-only
+  guest: viewerOnly,
+};
+
+export const USER_LINKS: readonly UserLinkItem[] = [
+  {
+    id: 'profile',
+    name: 'sidebar.account.profile',
+    fallbackLabel: 'Profile',
+    path: '/account/profile',
+    icon: User,
+    requiresAuth: true,
+  },
+  {
+    id: 'preferences',
+    name: 'sidebar.account.preferences',
+    fallbackLabel: 'Preferences',
+    path: '/account/preferences',
+    icon: Settings,
+    requiresAuth: true,
+  },
+  {
+    id: 'billing',
+    name: 'sidebar.account.billing',
+    fallbackLabel: 'Billing & Plans',
+    path: '/account/billing',
+    icon: CreditCard,
+    requiresAuth: true,
+  },
+  {
+    id: 'notifications',
+    name: 'sidebar.account.notifications',
+    fallbackLabel: 'Notifications',
+    path: '/account/notifications',
+    icon: Bell,
+    requiresAuth: true,
+  },
+  {
+    id: 'security',
+    name: 'sidebar.account.security',
+    fallbackLabel: 'Security & Audit',
+    path: '/account/security',
+    icon: Shield,
+    requiresAuth: true,
+  },
+];
 
 // ==========================================
 // Navigation Configuration
