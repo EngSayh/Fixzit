@@ -78,11 +78,25 @@ const CreateExpenseSchema = z.object({
   budgetCategoryId: z.string().optional(),
 });
 
+function isUnauthenticatedError(error: unknown): boolean {
+  return error instanceof Error && error.message.toLowerCase().includes('unauthenticated');
+}
+
 async function getUserSession(req: NextRequest) {
-  const user = await getSessionUser(req);
-  if (!user || !user.id || !user.orgId) {
-    throw new Error('Unauthorized: Invalid session');
+  let user;
+  try {
+    user = await getSessionUser(req);
+  } catch (error) {
+    if (isUnauthenticatedError(error)) {
+      return null;
+    }
+    throw error;
   }
+
+  if (!user || !user.id || !user.orgId) {
+    return null;
+  }
+
   return {
     userId: user.id,
     orgId: user.orgId,
@@ -97,6 +111,9 @@ async function getUserSession(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
 
     // Authorization check
     requirePermission(user.role, 'finance.expenses.create');
@@ -174,6 +191,10 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     logger.error('Error creating expense:', error);
 
+    if (error instanceof Error && error.message.includes('Unauthorized')) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });
     }
@@ -206,6 +227,9 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const user = await getUserSession(req);
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
 
     // Authorization check
     requirePermission(user.role, 'finance.expenses.read');
@@ -285,6 +309,10 @@ export async function GET(req: NextRequest) {
     );
   } catch (error) {
     logger.error('Error fetching expenses:', error);
+
+    if (error instanceof Error && error.message.includes('Unauthorized')) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });

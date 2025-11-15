@@ -22,6 +22,21 @@ const invoiceCreateSchema = z.object({
   })).optional()
 });
 
+function isUnauthenticatedError(error: unknown): boolean {
+  return error instanceof Error && error.message.toLowerCase().includes('unauthenticated');
+}
+
+async function tryGetSessionUser(req: NextRequest) {
+  try {
+    return await getSessionUser(req);
+  } catch (error) {
+    if (isUnauthenticatedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 /**
  * @openapi
  * /api/finance/invoices:
@@ -49,7 +64,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Try session-based auth first (cookies), fallback to Bearer token
-    let user: Awaited<ReturnType<typeof getSessionUser>> = await getSessionUser(req);
+    let user = await tryGetSessionUser(req);
     
     if (!user) {
       // Fallback to Bearer token authentication
@@ -116,21 +131,14 @@ export async function POST(req: NextRequest) {
     const user = await getUserFromToken(token);
 
     if (!user) {
-
       return createSecureResponse({ error: 'Invalid token' }, 401, req);
-
     }
 
     if (!user?.orgId) {
-
       return NextResponse.json(
-
         { error: 'Unauthorized', message: 'Missing tenant context' },
-
         { status: 401 }
-
       );
-
     }
 
     // Role-based access control - only finance roles can create invoices
@@ -159,5 +167,4 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ error: 'Failed to create invoice', correlationId }, 400, req);
   }
 }
-
 

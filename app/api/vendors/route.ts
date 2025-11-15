@@ -53,6 +53,21 @@ const createVendorSchema = z.object({
   tags: z.array(z.string()).optional()
 });
 
+function isUnauthenticatedError(error: unknown): boolean {
+  return error instanceof Error && error.message.toLowerCase().includes('unauthenticated');
+}
+
+async function resolveSessionUser(req: NextRequest) {
+  try {
+    return await getSessionUser(req);
+  } catch (error) {
+    if (isUnauthenticatedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 /**
  * @openapi
  * /api/vendors:
@@ -72,7 +87,10 @@ const createVendorSchema = z.object({
  */
 export async function POST(req: NextRequest) {
   try {
-    const user = await getSessionUser(req);
+    const user = await resolveSessionUser(req);
+    if (!user) {
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
+    }
     
     // Rate limiting AFTER authentication
     const clientIp = getClientIP(req);
@@ -115,7 +133,10 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getSessionUser(req);
+    const user = await resolveSessionUser(req);
+    if (!user) {
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
+    }
     
     // Rate limiting AFTER authentication
     const clientIp = getClientIP(req);
@@ -174,5 +195,4 @@ export async function GET(req: NextRequest) {
     }, 500, req);
   }
 }
-
 

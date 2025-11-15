@@ -74,6 +74,21 @@ const createRFQSchema = z.object({
   tags: z.array(z.string()).optional()
 });
 
+function isUnauthenticatedError(error: unknown): boolean {
+  return error instanceof Error && error.message.toLowerCase().includes('unauthenticated');
+}
+
+async function resolveSessionUser(req: NextRequest) {
+  try {
+    return await getSessionUser(req);
+  } catch (error) {
+    if (isUnauthenticatedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 /**
  * Create a new RFQ (Request for Quotation) from the incoming JSON payload.
  *
@@ -113,13 +128,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const user = await getSessionUser(req);
-  if (!user?.orgId) {
-    return NextResponse.json(
-      { error: 'Unauthorized', message: 'Missing tenant context' },
-      { status: 401 }
-    );
-  }
+    const user = await resolveSessionUser(req);
+    if (!user) {
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
+    }
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
     await connectToDatabase();
 
     const data = createRFQSchema.parse(await req.json());
@@ -155,13 +173,16 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const user = await getSessionUser(req);
-  if (!user?.orgId) {
-    return NextResponse.json(
-      { error: 'Unauthorized', message: 'Missing tenant context' },
-      { status: 401 }
-    );
-  }
+    const user = await resolveSessionUser(req);
+    if (!user) {
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
+    }
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
@@ -201,5 +222,4 @@ export async function GET(req: NextRequest) {
     return handleApiError(error);
   }
 }
-
 
