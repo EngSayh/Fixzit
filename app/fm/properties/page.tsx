@@ -18,6 +18,7 @@ import { Building2, Plus, Search, MapPin, Eye, Edit, Trash2, Home, Building, Fac
 import { useTranslation } from '@/contexts/TranslationContext';
 
 import { logger } from '@/lib/logger';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 interface PropertyUnit {
   status?: string;
 }
@@ -81,6 +82,7 @@ export default function PropertiesPage() {
 
   return (
     <div className="space-y-6">
+      <ModuleViewTabs moduleId="properties" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

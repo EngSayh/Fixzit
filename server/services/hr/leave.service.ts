@@ -42,6 +42,10 @@ export class LeaveService {
     if (status) {
       query.status = status;
     }
-    return LeaveRequest.find(query).sort({ startDate: -1 }).lean<LeaveRequestDoc>().exec();
+    return LeaveRequest.find(query)
+      .sort({ startDate: -1 })
+      .populate('employeeId', 'firstName lastName employeeCode')
+      .lean<LeaveRequestDoc & { employeeId: { _id: string; firstName: string; lastName: string; employeeCode: string } }>()
+      .exec();
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,25 +8,28 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Search, Plus, Eye } from 'lucide-react';
 import ClientDate from '@/components/ClientDate';
-
 import { logger } from '@/lib/logger';
+
+type EmploymentStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'TERMINATED';
+
+interface EmployeeCompensation {
+  baseSalary?: number;
+  housingAllowance?: number;
+  transportAllowance?: number;
+  currency?: string;
+}
+
 interface Employee {
-  id: string;
+  _id: string;
   employeeCode: string;
-  personalInfo: {
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-  employment: {
-    department: string;
-    position: string;
-    joinDate: string;
-    status: 'Active' | 'Inactive' | 'On Leave';
-  };
-  compensation: {
-    basicSalary: number;
-  };
+  firstName: string;
+  lastName: string;
+  email?: string;
+  jobTitle: string;
+  departmentId?: string;
+  hireDate: string;
+  employmentStatus: EmploymentStatus;
+  compensation?: EmployeeCompensation;
 }
 
 export default function EmployeesPage() {
@@ -34,10 +37,10 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | EmploymentStatus>('all');
 
   useEffect(() => {
-    fetchEmployees();
+    void fetchEmployees();
   }, []);
 
   const fetchEmployees = async () => {
@@ -45,7 +48,7 @@ export default function EmployeesPage() {
       const response = await fetch('/api/hr/employees');
       if (response.ok) {
         const data = await response.json();
-        setEmployees(data);
+        setEmployees(data.employees || []);
       }
     } catch (error) {
       logger.error('Error fetching employees:', error);
@@ -54,27 +57,43 @@ export default function EmployeesPage() {
     }
   };
 
-  const filteredEmployees = employees.filter((emp) => {
+  const statusOptions: { value: EmploymentStatus; label: string }[] = useMemo(() => [
+    { value: 'ACTIVE', label: t('hr.employees.status.active', 'Active') },
+    { value: 'INACTIVE', label: t('hr.employees.status.inactive', 'Inactive') },
+    { value: 'ON_LEAVE', label: t('hr.employees.status.onLeave', 'On Leave') },
+    { value: 'TERMINATED', label: t('hr.employees.status.terminated', 'Terminated') },
+  ], [t]);
+
+  const filteredEmployees = employees.filter((employee) => {
+    const query = searchQuery.trim().toLowerCase();
     const matchesSearch =
-      searchQuery === '' ||
-      emp.employeeCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.personalInfo.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.personalInfo.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      emp.employment.department.toLowerCase().includes(searchQuery.toLowerCase());
+      query.length === 0 ||
+      employee.employeeCode.toLowerCase().includes(query) ||
+      employee.firstName.toLowerCase().includes(query) ||
+      employee.lastName.toLowerCase().includes(query) ||
+      employee.jobTitle.toLowerCase().includes(query);
 
-    const matchesStatus = statusFilter === 'all' || emp.employment.status === statusFilter;
-
+    const matchesStatus = statusFilter === 'all' || employee.employmentStatus === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusColor = (status: string) => {
+  const formatSalary = (comp?: EmployeeCompensation) => {
+    if (!comp?.baseSalary) return t('common.notAvailable', 'N/A');
+    return new Intl.NumberFormat('en-SA', {
+      style: 'currency',
+      currency: comp.currency || 'SAR',
+      minimumFractionDigits: 2,
+    }).format(comp.baseSalary);
+  };
+
+  const getStatusColor = (status: EmploymentStatus) => {
     switch (status) {
-      case 'Active':
-        return 'bg-success/10 text-success-foreground border-success';
-      case 'Inactive':
-        return 'bg-muted text-foreground border-border';
-      case 'On Leave':
-        return 'bg-warning/10 text-warning border-warning';
+      case 'ACTIVE':
+        return 'bg-success/10 text-success-foreground border-success/40';
+      case 'ON_LEAVE':
+        return 'bg-warning/10 text-warning border-warning/40';
+      case 'TERMINATED':
+      case 'INACTIVE':
       default:
         return 'bg-muted text-foreground border-border';
     }
@@ -84,7 +103,7 @@ export default function EmployeesPage() {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
           <p className="mt-4 text-muted-foreground">{t('common.loading', 'Loading...')}</p>
         </div>
       </div>
@@ -93,7 +112,6 @@ export default function EmployeesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header with Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground">
@@ -109,7 +127,6 @@ export default function EmployeesPage() {
         </Button>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -125,24 +142,25 @@ export default function EmployeesPage() {
             </div>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-primary"
+              onChange={(e) => setStatusFilter(e.target.value as EmploymentStatus | 'all')}
+              className="px-4 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary/40 focus:border-primary"
             >
               <option value="all">{t('hr.employees.filter.allStatus', 'All Status')}</option>
-              <option value="Active">{t('hr.employees.status.active', 'Active')}</option>
-              <option value="Inactive">{t('hr.employees.status.inactive', 'Inactive')}</option>
-              <option value="On Leave">{t('hr.employees.status.onLeave', 'On Leave')}</option>
+              {statusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Results Count */}
       <div className="text-sm text-muted-foreground">
-        {t('hr.employees.showing', 'Showing')} {filteredEmployees.length} {t('hr.employees.of', 'of')} {employees.length} {t('hr.employees.employees', 'employees')}
+        {t('hr.employees.showing', 'Showing')} {filteredEmployees.length} {t('hr.employees.of', 'of')}{' '}
+        {employees.length} {t('hr.employees.employees', 'employees')}
       </div>
 
-      {/* Employee List */}
       <div className="grid grid-cols-1 gap-4">
         {filteredEmployees.length === 0 ? (
           <Card>
@@ -160,16 +178,16 @@ export default function EmployeesPage() {
           </Card>
         ) : (
           filteredEmployees.map((employee) => (
-            <Card key={employee.id} className="hover:shadow-md transition-shadow">
+            <Card key={employee._id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center gap-3">
                       <h3 className="text-lg font-semibold text-foreground">
-                        {employee.personalInfo.firstName} {employee.personalInfo.lastName}
+                        {employee.firstName} {employee.lastName}
                       </h3>
-                      <Badge className={getStatusColor(employee.employment.status)}>
-                        {employee.employment.status}
+                      <Badge className={getStatusColor(employee.employmentStatus)}>
+                        {t(`hr.employees.status.${employee.employmentStatus.toLowerCase()}`, employee.employmentStatus)}
                       </Badge>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
@@ -179,26 +197,28 @@ export default function EmployeesPage() {
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t('hr.employees.department', 'Department')}:</span>
-                        <span className="ms-2 font-medium">{employee.employment.department}</span>
+                        <span className="ms-2 font-medium">{employee.departmentId || t('common.notAvailable', 'N/A')}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t('hr.employees.position', 'Position')}:</span>
-                        <span className="ms-2 font-medium">{employee.employment.position}</span>
+                        <span className="ms-2 font-medium">{employee.jobTitle}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t('hr.employees.joinDate', 'Join Date')}:</span>
                         <span className="ms-2 font-medium">
-                          <ClientDate date={employee.employment.joinDate} format="date-only" />
+                          <ClientDate date={employee.hireDate} format="date-only" />
                         </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">{t('hr.employees.compensation.base', 'Base Salary')}:</span>
+                        <span className="ms-2 font-medium">{formatSalary(employee.compensation)}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2 ms-4">
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 me-2" />
-                      {t('common.view', 'View')}
-                    </Button>
-                  </div>
+                  <Button variant="outline" size="sm">
+                    <Eye className="h-4 w-4 me-2" />
+                    {t('common.view', 'View')}
+                  </Button>
                 </div>
               </CardContent>
             </Card>

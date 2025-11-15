@@ -7,19 +7,28 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calculator, Download, Eye, Plus } from 'lucide-react';
 import ClientDate from '@/components/ClientDate';
-
 import { logger } from '@/lib/logger';
+
+type PayrollStatus = 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'LOCKED' | 'EXPORTED';
+
+interface Totals {
+  baseSalary: number;
+  allowances: number;
+  overtime: number;
+  deductions: number;
+  gosi: number;
+  net: number;
+}
+
 interface PayrollRun {
-  id: string;
-  period: string; // YYYY-MM format
-  status: 'DRAFT' | 'CALCULATED' | 'APPROVED' | 'LOCKED';
+  _id: string;
+  name: string;
+  periodStart: string;
+  periodEnd: string;
+  status: PayrollStatus;
   employeeCount: number;
-  totalBasicPay?: number;
-  totalAllowances?: number;
-  totalDeductions?: number;
-  totalNetPay?: number;
+  totals: Totals;
   calculatedAt?: string;
-  approvedAt?: string;
 }
 
 export default function PayrollPage() {
@@ -28,7 +37,7 @@ export default function PayrollPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchPayrollRuns();
+    void fetchPayrollRuns();
   }, []);
 
   const fetchPayrollRuns = async () => {
@@ -36,7 +45,7 @@ export default function PayrollPage() {
       const response = await fetch('/api/hr/payroll/runs');
       if (response.ok) {
         const data = await response.json();
-        setPayrollRuns(data);
+        setPayrollRuns(data.runs || []);
       }
     } catch (error) {
       logger.error('Error fetching payroll runs:', error);
@@ -47,11 +56,9 @@ export default function PayrollPage() {
 
   const handleCalculate = async (runId: string) => {
     try {
-      const response = await fetch(`/api/hr/payroll/runs/${runId}/calculate`, {
-        method: 'POST',
-      });
+      const response = await fetch(`/api/hr/payroll/runs/${runId}/calculate`, { method: 'POST' });
       if (response.ok) {
-        await fetchPayrollRuns(); // Refresh the list
+        await fetchPayrollRuns();
       }
     } catch (error) {
       logger.error('Error calculating payroll:', error);
@@ -61,39 +68,21 @@ export default function PayrollPage() {
   const handleExportWPS = async (runId: string) => {
     try {
       const response = await fetch(`/api/hr/payroll/runs/${runId}/export/wps`);
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `payroll_${runId}_wps.csv`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }
+      if (!response.ok) return;
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `payroll_${runId}_wps.csv`;
+      anchor.click();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       logger.error('Error exporting WPS file:', error);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'DRAFT':
-        return 'bg-muted text-foreground border-border';
-      case 'CALCULATED':
-        return 'bg-primary/10 text-primary-foreground border-primary/30';
-      case 'APPROVED':
-        return 'bg-success/10 text-success-foreground border-success/30';
-      case 'LOCKED':
-        return 'bg-secondary/10 text-secondary border-secondary';
-      default:
-        return 'bg-muted text-foreground border-border';
-    }
-  };
-
-  const formatCurrency = (amount: number | undefined) => {
-    if (amount === undefined) return '-';
+  const formatCurrency = (amount?: number) => {
+    if (typeof amount !== 'number') return '-';
     return new Intl.NumberFormat('en-SA', {
       style: 'currency',
       currency: 'SAR',
@@ -101,17 +90,34 @@ export default function PayrollPage() {
     }).format(amount);
   };
 
-  const formatPeriod = (period: string) => {
-    const [year, month] = period.split('-');
-    const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+  const formatPeriod = (run: PayrollRun) => {
+    return `${new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(
+      new Date(run.periodStart)
+    )}`;
+  };
+
+  const getStatusBadge = (status: PayrollStatus) => {
+    const base = 'border px-3 py-1 rounded-full text-xs font-medium';
+    switch (status) {
+      case 'DRAFT':
+        return `${base} bg-muted text-foreground border-border`;
+      case 'IN_REVIEW':
+        return `${base} bg-primary/10 text-primary border-primary/30`;
+      case 'APPROVED':
+        return `${base} bg-success/10 text-success border-success/30`;
+      case 'LOCKED':
+      case 'EXPORTED':
+        return `${base} bg-secondary/10 text-secondary border-secondary/30`;
+      default:
+        return `${base} bg-muted text-foreground border-border`;
+    }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
           <p className="mt-4 text-muted-foreground">{t('common.loading', 'Loading...')}</p>
         </div>
       </div>
@@ -120,7 +126,6 @@ export default function PayrollPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header with Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground">
@@ -136,7 +141,6 @@ export default function PayrollPage() {
         </Button>
       </div>
 
-      {/* Payroll Runs List */}
       <div className="grid grid-cols-1 gap-6">
         {payrollRuns.length === 0 ? (
           <Card>
@@ -152,106 +156,81 @@ export default function PayrollPage() {
           </Card>
         ) : (
           payrollRuns.map((run) => (
-            <Card key={run.id} className="hover:shadow-lg transition-shadow">
+            <Card key={run._id} className="hover:shadow-lg transition-shadow">
               <CardHeader className="pb-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="text-xl font-bold">
-                      {formatPeriod(run.period)}
-                    </CardTitle>
+                    <CardTitle className="text-xl font-bold">{formatPeriod(run)}</CardTitle>
                     <p className="text-sm text-muted-foreground mt-1">
                       {run.employeeCount} {t('hr.payroll.employees', 'employees')}
                     </p>
                   </div>
-                  <Badge className={getStatusColor(run.status)}>
-                    {run.status}
-                  </Badge>
+                  <span className={getStatusBadge(run.status)}>{run.status}</span>
                 </div>
               </CardHeader>
-              <CardContent>
-                {/* Payroll Summary */}
-                {run.status !== 'DRAFT' && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <CardContent className="space-y-6">
+                {run.totals && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
                         {t('hr.payroll.basicPay', 'Basic Pay')}
                       </p>
-                      <p className="text-lg font-semibold mt-1">
-                        {formatCurrency(run.totalBasicPay)}
-                      </p>
+                      <p className="text-lg font-semibold mt-1">{formatCurrency(run.totals.baseSalary)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
                         {t('hr.payroll.allowances', 'Allowances')}
                       </p>
                       <p className="text-lg font-semibold mt-1 text-success">
-                        +{formatCurrency(run.totalAllowances)}
+                        +{formatCurrency(run.totals.allowances + run.totals.overtime)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
                         {t('hr.payroll.deductions', 'Deductions')}
                       </p>
                       <p className="text-lg font-semibold mt-1 text-destructive">
-                        -{formatCurrency(run.totalDeductions)}
+                        -{formatCurrency(run.totals.deductions + run.totals.gosi)}
                       </p>
                     </div>
-                    <div className="col-span-2 md:col-span-1">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
                         {t('hr.payroll.netPay', 'Net Pay')}
                       </p>
-                      <p className="text-xl font-bold mt-1 text-primary">
-                        {formatCurrency(run.totalNetPay)}
-                      </p>
+                      <p className="text-lg font-semibold mt-1">{formatCurrency(run.totals.net)}</p>
                     </div>
+                    {run.calculatedAt && (
+                      <div className="text-xs text-muted-foreground">
+                        {t('hr.payroll.calculatedAt', 'Calculated at')}{' '}
+                        <ClientDate date={run.calculatedAt} format="date-time" />
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Timestamp Info */}
-                {run.calculatedAt && (
-                  <div className="text-xs text-muted-foreground mb-4">
-                    {t('hr.payroll.calculatedAt', 'Calculated at')}: <ClientDate date={run.calculatedAt} format="medium" />
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm">
-                    <Eye className="h-4 w-4 me-2" />
-                    {t('hr.payroll.viewDetails', 'View Details')}
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={run.status !== 'DRAFT'}
+                    onClick={() => handleCalculate(run._id)}
+                  >
+                    <Calculator className="h-4 w-4 me-2" />
+                    {t('hr.payroll.actions.calculate', 'Calculate')}
                   </Button>
-
-                  {run.status === 'DRAFT' && (
-                    <Button
-                      size="sm"
-                      className="bg-primary hover:bg-primary text-white"
-                      onClick={() => handleCalculate(run.id)}
-                    >
-                      <Calculator className="h-4 w-4 me-2" />
-                      {t('hr.payroll.calculate', 'Calculate Payroll')}
-                    </Button>
-                  )}
-
-                  {(run.status === 'CALCULATED' || run.status === 'APPROVED') && (
-                    <Button
-                      size="sm"
-                      className="bg-success hover:bg-success text-white"
-                      onClick={() => handleExportWPS(run.id)}
-                    >
-                      <Download className="h-4 w-4 me-2" />
-                      {t('hr.payroll.exportWPS', 'Export WPS File')}
-                    </Button>
-                  )}
-
-                  {run.status === 'CALCULATED' && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-success border-success hover:bg-success/10"
-                    >
-                      {t('hr.payroll.approve', 'Approve')}
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={run.status === 'DRAFT'}
+                    onClick={() => handleExportWPS(run._id)}
+                  >
+                    <Download className="h-4 w-4 me-2" />
+                    {t('hr.payroll.actions.exportWps', 'Export WPS')}
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <Eye className="h-4 w-4 me-2" />
+                    {t('common.view', 'View')}
+                  </Button>
                 </div>
               </CardContent>
             </Card>

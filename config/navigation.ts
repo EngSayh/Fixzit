@@ -191,6 +191,22 @@ export interface UserLinkItem {
   requiresAuth?: boolean;
 }
 
+export type ModuleSubView =
+  | {
+      id: string;
+      name: string;
+      fallbackLabel: string;
+      kind: 'query';
+      value: string;
+    }
+  | {
+      id: string;
+      name: string;
+      fallbackLabel: string;
+      kind: 'path';
+      value: string;
+    };
+
 export const CATEGORY_FALLBACKS: Record<ModuleCategory, string> = {
   core: 'Core',
   fm: 'Facility Management',
@@ -322,6 +338,78 @@ export const MODULES: readonly ModuleItem[] = [
     order: 12,
   },
 ];
+
+export const MODULE_SUB_VIEWS: Partial<Record<ModuleId, ModuleSubView[]>> = {
+  work_orders: [
+    { id: 'work-orders-create', name: 'nav.workOrders.create', fallbackLabel: 'Create Work Order', kind: 'query', value: 'create' },
+    { id: 'work-orders-track', name: 'nav.workOrders.trackAssign', fallbackLabel: 'Track & Assign', kind: 'query', value: 'track' },
+    { id: 'work-orders-preventive', name: 'nav.workOrders.preventive', fallbackLabel: 'Preventive Maintenance', kind: 'query', value: 'preventive' },
+    { id: 'work-orders-history', name: 'nav.workOrders.history', fallbackLabel: 'Service History', kind: 'query', value: 'history' },
+  ],
+  properties: [
+    { id: 'properties-overview', name: 'nav.properties.list', fallbackLabel: 'Property List & Details', kind: 'query', value: 'overview' },
+    { id: 'properties-units', name: 'nav.properties.unitsTenants', fallbackLabel: 'Units & Tenants', kind: 'query', value: 'units' },
+    { id: 'properties-leases', name: 'nav.properties.leases', fallbackLabel: 'Lease Management', kind: 'query', value: 'leases' },
+    { id: 'properties-inspections', name: 'nav.properties.inspections', fallbackLabel: 'Inspections', kind: 'query', value: 'inspections' },
+    { id: 'properties-documents', name: 'nav.properties.documents', fallbackLabel: 'Documents', kind: 'query', value: 'documents' },
+  ],
+  finance: [
+    { id: 'finance-invoices', name: 'nav.finance.invoices', fallbackLabel: 'Invoices', kind: 'query', value: 'invoices' },
+    { id: 'finance-payments', name: 'nav.finance.payments', fallbackLabel: 'Payments', kind: 'query', value: 'payments' },
+    { id: 'finance-expenses', name: 'nav.finance.expenses', fallbackLabel: 'Expenses', kind: 'query', value: 'expenses' },
+    { id: 'finance-budgets', name: 'nav.finance.budgets', fallbackLabel: 'Budgets', kind: 'query', value: 'budgets' },
+    { id: 'finance-reports', name: 'nav.finance.reports', fallbackLabel: 'Finance Reports', kind: 'query', value: 'reports' },
+  ],
+  hr: [
+    { id: 'hr-directory', name: 'nav.hr.directory', fallbackLabel: 'Employee Directory', kind: 'path', value: '/employees' },
+    { id: 'hr-attendance', name: 'nav.hr.attendanceLeave', fallbackLabel: 'Attendance & Leave', kind: 'query', value: 'attendance' },
+    { id: 'hr-payroll', name: 'nav.hr.payroll', fallbackLabel: 'Payroll', kind: 'path', value: '/payroll' },
+    { id: 'hr-recruitment', name: 'nav.hr.recruitment', fallbackLabel: 'Recruitment (ATS)', kind: 'query', value: 'recruitment' },
+    { id: 'hr-training', name: 'nav.hr.training', fallbackLabel: 'Training', kind: 'query', value: 'training' },
+    { id: 'hr-performance', name: 'nav.hr.performance', fallbackLabel: 'Performance', kind: 'query', value: 'performance' },
+  ],
+  administration: [
+    { id: 'admin-doa', name: 'nav.admin.doa', fallbackLabel: 'Delegation of Authority', kind: 'query', value: 'doa' },
+    { id: 'admin-policies', name: 'nav.admin.policies', fallbackLabel: 'Policies & Procedures', kind: 'query', value: 'policies' },
+    { id: 'admin-assets', name: 'nav.admin.assets', fallbackLabel: 'Asset Management', kind: 'query', value: 'assets' },
+    { id: 'admin-fleet', name: 'nav.admin.facilitiesFleet', fallbackLabel: 'Facilities & Fleet', kind: 'query', value: 'fleet' },
+  ],
+  crm: [
+    { id: 'crm-directory', name: 'nav.crm.directory', fallbackLabel: 'Customer Directory', kind: 'query', value: 'customers' },
+    { id: 'crm-leads', name: 'nav.crm.leads', fallbackLabel: 'Leads & Opportunities', kind: 'query', value: 'leads' },
+    { id: 'crm-contracts', name: 'nav.crm.contracts', fallbackLabel: 'Contracts & Renewals', kind: 'query', value: 'contracts' },
+    { id: 'crm-feedback', name: 'nav.crm.feedback', fallbackLabel: 'Feedback & Complaints', kind: 'query', value: 'feedback' },
+  ],
+  marketplace: [
+    { id: 'marketplace-vendors', name: 'nav.marketplace.vendors', fallbackLabel: 'Vendors & Suppliers', kind: 'query', value: 'vendors' },
+    { id: 'marketplace-catalog', name: 'nav.marketplace.catalog', fallbackLabel: 'Service Catalog', kind: 'query', value: 'catalog' },
+    { id: 'marketplace-procurement', name: 'nav.marketplace.procurement', fallbackLabel: 'Procurement', kind: 'query', value: 'procurement' },
+    { id: 'marketplace-bidding', name: 'nav.marketplace.bidding', fallbackLabel: 'Bidding / RFQs', kind: 'query', value: 'rfqs' },
+  ],
+  support: [
+    { id: 'support-tickets', name: 'nav.support.tickets', fallbackLabel: 'Tickets', kind: 'query', value: 'tickets' },
+    { id: 'support-kb', name: 'nav.support.kb', fallbackLabel: 'Knowledge Base', kind: 'query', value: 'kb' },
+    { id: 'support-chat', name: 'nav.support.chat', fallbackLabel: 'Live Chat', kind: 'query', value: 'chat' },
+    { id: 'support-sla', name: 'nav.support.sla', fallbackLabel: 'SLA Monitoring', kind: 'query', value: 'sla' },
+  ],
+  compliance: [
+    { id: 'compliance-contracts', name: 'nav.compliance.contracts', fallbackLabel: 'Contracts', kind: 'query', value: 'contracts' },
+    { id: 'compliance-disputes', name: 'nav.compliance.disputes', fallbackLabel: 'Disputes', kind: 'query', value: 'disputes' },
+    { id: 'compliance-audit', name: 'nav.compliance.auditRisk', fallbackLabel: 'Audit & Risk', kind: 'query', value: 'audit' },
+  ],
+  reports: [
+    { id: 'reports-standard', name: 'nav.reports.standard', fallbackLabel: 'Standard Reports', kind: 'query', value: 'standard' },
+    { id: 'reports-custom', name: 'nav.reports.custom', fallbackLabel: 'Custom Reports', kind: 'query', value: 'custom' },
+    { id: 'reports-dashboards', name: 'nav.reports.dashboards', fallbackLabel: 'Dashboards', kind: 'query', value: 'dashboards' },
+  ],
+  system: [
+    { id: 'system-users', name: 'nav.system.users', fallbackLabel: 'Users', kind: 'query', value: 'users' },
+    { id: 'system-roles', name: 'nav.system.roles', fallbackLabel: 'Roles & Permissions', kind: 'query', value: 'roles' },
+    { id: 'system-billing', name: 'nav.system.billing', fallbackLabel: 'Billing', kind: 'query', value: 'billing' },
+    { id: 'system-integrations', name: 'nav.system.integrations', fallbackLabel: 'Integrations', kind: 'query', value: 'integrations' },
+    { id: 'system-settings', name: 'nav.system.settings', fallbackLabel: 'System Settings', kind: 'query', value: 'settings' },
+  ],
+};
 
 const ALL_MODULE_IDS = MODULES.map((m) => m.id);
 const CORE_PLAN: ModuleId[] = ['dashboard', 'work_orders', 'properties', 'support'];

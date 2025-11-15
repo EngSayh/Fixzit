@@ -174,6 +174,7 @@ export default function AdministrationPage() {
           </div>
         </div>
       </div>
+      <ModuleViewTabs moduleId="administration" />
 
       {/* Admin Modules Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
