@@ -154,7 +154,7 @@ const RosterSchema = new Schema<IRoster>(
 // Overlap validation should be handled at application/service layer
 RosterSchema.index({ orgId: 1, date: 1, site: 1 }); // Optimize "who's working at this site today?"
 
-export const AttendanceLog: Model<IAttendanceLog> = models.AttendanceLog || model<IAttendanceLog>('AttendanceLog', AttendanceLogSchema);
-export const Timesheet: Model<ITimesheet> = models.Timesheet || model<ITimesheet>('Timesheet', TimesheetSchema);
-export const Shift: Model<IShift> = models.Shift || model<IShift>('Shift', ShiftSchema);
-export const Roster: Model<IRoster> = models.Roster || model<IRoster>('Roster', RosterSchema);
+export const AttendanceLog = models.AttendanceLog || model<IAttendanceLog>('AttendanceLog', AttendanceLogSchema);
+export const Timesheet = models.Timesheet || model<ITimesheet>('Timesheet', TimesheetSchema);
+export const Shift = models.Shift || model<IShift>('Shift', ShiftSchema);
+export const Roster = models.Roster || model<IRoster>('Roster', RosterSchema);

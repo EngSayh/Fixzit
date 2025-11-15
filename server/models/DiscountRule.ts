@@ -41,6 +41,6 @@ DiscountRuleSchema.plugin(auditPlugin);
 DiscountRuleSchema.index({ orgId: 1, key: 1 }, { unique: true });
 
 // TypeScript-safe model export
-const DiscountRule: Model<IDiscountRule> = models.DiscountRule || model<IDiscountRule>('DiscountRule', DiscountRuleSchema);
+const DiscountRule = models.DiscountRule || model<IDiscountRule>('DiscountRule', DiscountRuleSchema);
 export default DiscountRule;
 

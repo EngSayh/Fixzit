@@ -141,7 +141,7 @@ BoostSchema.methods.checkExpiry = async function (this: IBoost) {
   }
 };
 
-const Boost: Model<IBoost> =
-  mongoose.models.AqarBoost || mongoose.model<IBoost>('AqarBoost', BoostSchema);
+const Boost =
+  mongoose.models.AqarBoost || mongoose.model('AqarBoost', BoostSchema);
 
 export default Boost;

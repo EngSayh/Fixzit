@@ -131,6 +131,6 @@ const LeaveRequestSchema = new Schema<ILeaveRequest>(
 LeaveRequestSchema.index({ orgId: 1, employeeId: 1, status: 1 });
 LeaveRequestSchema.index({ orgId: 1, startDate: 1, endDate: 1 });
 
-export const LeaveType: Model<ILeaveType> = models.LeaveType || model<ILeaveType>('LeaveType', LeaveTypeSchema);
-export const LeaveEntitlement: Model<ILeaveEntitlement> = models.LeaveEntitlement || model<ILeaveEntitlement>('LeaveEntitlement', LeaveEntitlementSchema);
-export const LeaveRequest: Model<ILeaveRequest> = models.LeaveRequest || model<ILeaveRequest>('LeaveRequest', LeaveRequestSchema);
+export const LeaveType = models.LeaveType || model<ILeaveType>('LeaveType', LeaveTypeSchema);
+export const LeaveEntitlement = models.LeaveEntitlement || model<ILeaveEntitlement>('LeaveEntitlement', LeaveEntitlementSchema);
+export const LeaveRequest = models.LeaveRequest || model<ILeaveRequest>('LeaveRequest', LeaveRequestSchema);

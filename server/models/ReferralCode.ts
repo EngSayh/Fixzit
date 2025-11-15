@@ -133,7 +133,7 @@ export interface ReferralCodeStaticMethods {
 /* eslint-enable no-unused-vars */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ReferralCodeModelType = Model<IReferralCode, {}, {}, {}, any> & ReferralCodeStaticMethods;
+type ReferralCodeModelType = Model & ReferralCodeStaticMethods;
 
 // ---------------- Schema ----------------
 const ReferralCodeSchema = new Schema<IReferralCode, ReferralCodeModelType>(

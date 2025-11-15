@@ -124,5 +124,5 @@ const PayrollRunSchema = new Schema<IPayrollRun>(
 PayrollRunSchema.index({ orgId: 1, periodStart: 1, periodEnd: 1 });
 PayrollRunSchema.index({ orgId: 1, status: 1 });
 
-export const Payslip: Model<IPayslip> = models.Payslip || model<IPayslip>('Payslip', PayslipSchema);
-export const PayrollRun: Model<IPayrollRun> = models.PayrollRun || model<IPayrollRun>('PayrollRun', PayrollRunSchema);
+export const Payslip = models.Payslip || model<IPayslip>('Payslip', PayslipSchema);
+export const PayrollRun = models.PayrollRun || model<IPayrollRun>('PayrollRun', PayrollRunSchema);

@@ -306,7 +306,7 @@ ListingSchema.pre('save', function (this: IListing, next) {
 });
 
 // Model
-const Listing: Model<IListing> =
-  mongoose.models.AqarListing || mongoose.model<IListing>('AqarListing', ListingSchema);
+const Listing =
+  mongoose.models.AqarListing || mongoose.model('AqarListing', ListingSchema);
 
 export default Listing;

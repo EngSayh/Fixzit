@@ -215,7 +215,7 @@ export interface IProject {
 
 type ProjectDoc = HydratedDocument<IProject>;
 /* eslint-disable no-unused-vars */
-type ProjectModel = Model<IProject> & {
+type ProjectModel = Model & {
   setStatus(projectId: Types.ObjectId, next: TProjectStatus, who: Types.ObjectId | string): Promise<ProjectDoc | null>;
   recomputeBudget(projectId: Types.ObjectId): Promise<ProjectDoc | null>;
 };

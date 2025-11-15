@@ -212,8 +212,8 @@ MarketingRequestSchema.methods.linkListing = async function (
   Object.assign(this, result.toObject());
 };
 
-const MarketingRequest: Model<IMarketingRequest> =
+const MarketingRequest =
   mongoose.models.AqarMarketingRequest ||
-  mongoose.model<IMarketingRequest>('AqarMarketingRequest', MarketingRequestSchema);
+  mongoose.model('AqarMarketingRequest', MarketingRequestSchema);
 
 export default MarketingRequest;

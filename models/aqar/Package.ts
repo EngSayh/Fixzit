@@ -49,7 +49,7 @@ export interface IPackage extends Document, IPackageMethods {
   updatedAt: Date;
 }
 
-const PackageSchema = new Schema<IPackage, Model<IPackage, {}, IPackageMethods>>(
+const PackageSchema = new Schema<IPackage>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     orgId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
@@ -154,7 +154,7 @@ PackageSchema.methods.checkExpiry = async function (this: IPackage) {
   }
 };
 
-const Package: Model<IPackage> =
-  mongoose.models.AqarPackage || mongoose.model<IPackage>('AqarPackage', PackageSchema);
+const Package =
+  mongoose.models.AqarPackage || mongoose.model('AqarPackage', PackageSchema);
 
 export default Package;

@@ -66,7 +66,7 @@ export interface AccountActivityEntry extends Omit<ILedgerEntry, 'journalId' | '
 }
 
 /* eslint-disable no-unused-vars */
-export interface ILedgerEntryModel extends Model<ILedgerEntry> {
+export interface ILedgerEntryModel  {
   getAccountBalance(orgId: Types.ObjectId, accountId: Types.ObjectId, asOfDate?: Date): Promise<number>;
   getTrialBalance(orgId: Types.ObjectId, fiscalYear: number, fiscalPeriod: number): Promise<TrialBalanceEntry[]>;
   getAccountActivity(orgId: Types.ObjectId, accountId: Types.ObjectId, startDate: Date, endDate: Date): Promise<AccountActivityEntry[]>;

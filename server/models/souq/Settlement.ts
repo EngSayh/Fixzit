@@ -139,6 +139,6 @@ SettlementSchema.pre('save', function (next) {
   next();
 });
 
-export const SouqSettlement: Model<ISettlement> =
+export const SouqSettlement =
   mongoose.models.SouqSettlement ||
-  mongoose.model<ISettlement>('SouqSettlement', SettlementSchema);
+  mongoose.model('SouqSettlement', SettlementSchema);

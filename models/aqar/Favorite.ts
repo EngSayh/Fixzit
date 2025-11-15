@@ -57,7 +57,7 @@ const FavoriteSchema = new Schema<IFavorite>(
 FavoriteSchema.index({ userId: 1, targetType: 1, createdAt: -1 });
 FavoriteSchema.index({ userId: 1, targetId: 1, targetType: 1 }, { unique: true }); // Prevent duplicates
 
-const Favorite: Model<IFavorite> =
-  mongoose.models.AqarFavorite || mongoose.model<IFavorite>('AqarFavorite', FavoriteSchema);
+const Favorite =
+  mongoose.models.AqarFavorite || mongoose.model('AqarFavorite', FavoriteSchema);
 
 export default Favorite;

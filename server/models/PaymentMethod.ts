@@ -62,6 +62,6 @@ interface IPaymentMethod extends Document {
   updatedBy?: Schema.Types.ObjectId;
 }
 
-const PaymentMethod: Model<IPaymentMethod> = models.PaymentMethod || model<IPaymentMethod>('PaymentMethod', PaymentMethodSchema);
+const PaymentMethod = models.PaymentMethod || model<IPaymentMethod>('PaymentMethod', PaymentMethodSchema);
 export default PaymentMethod;
 

@@ -78,5 +78,5 @@ interface IPriceBook extends Document {
   updatedBy?: Schema.Types.ObjectId;
 }
 
-const PriceBook: Model<IPriceBook> = models.PriceBook || model<IPriceBook>('PriceBook', PriceBookSchema);
+const PriceBook = models.PriceBook || model<IPriceBook>('PriceBook', PriceBookSchema);
 export default PriceBook;

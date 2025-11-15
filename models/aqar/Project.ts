@@ -163,7 +163,7 @@ ProjectSchema.methods.incrementInquiries = async function (this: IProject) {
   );
 };
 
-const Project: Model<IProject> =
-  mongoose.models.AqarProject || mongoose.model<IProject>('AqarProject', ProjectSchema);
+const Project =
+  mongoose.models.AqarProject || mongoose.model('AqarProject', ProjectSchema);
 
 export default Project;

@@ -138,8 +138,8 @@ SavedSearchSchema.methods.toggleActive = async function (this: ISavedSearch) {
   await this.save();
 };
 
-const SavedSearch: Model<ISavedSearch> =
+const SavedSearch =
   mongoose.models.AqarSavedSearch ||
-  mongoose.model<ISavedSearch>('AqarSavedSearch', SavedSearchSchema);
+  mongoose.model('AqarSavedSearch', SavedSearchSchema);
 
 export default SavedSearch;

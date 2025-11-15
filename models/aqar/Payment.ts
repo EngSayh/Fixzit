@@ -302,7 +302,7 @@ PaymentSchema.methods.markAsRefunded = async function (
   this.refundedAt = (result as IPayment).refundedAt;
 };
 
-const Payment: Model<IPayment> =
-  mongoose.models.AqarPayment || mongoose.model<IPayment>('AqarPayment', PaymentSchema);
+const Payment =
+  mongoose.models.AqarPayment || mongoose.model('AqarPayment', PaymentSchema);
 
 export default Payment;

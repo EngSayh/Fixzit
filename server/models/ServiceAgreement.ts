@@ -93,5 +93,5 @@ interface IServiceAgreement extends Document {
   updatedBy?: Schema.Types.ObjectId;
 }
 
-const ServiceAgreement: Model<IServiceAgreement> = models.ServiceAgreement || model<IServiceAgreement>('ServiceAgreement', ServiceAgreementSchema);
+const ServiceAgreement = models.ServiceAgreement || model<IServiceAgreement>('ServiceAgreement', ServiceAgreementSchema);
 export default ServiceAgreement;

@@ -247,7 +247,7 @@ LeadSchema.methods.markAsSpam = async function (this: ILead) {
   await this.save();
 };
 
-const Lead: Model<ILead> =
-  mongoose.models.AqarLead || mongoose.model<ILead>('AqarLead', LeadSchema);
+const Lead =
+  mongoose.models.AqarLead || mongoose.model('AqarLead', LeadSchema);
 
 export default Lead;

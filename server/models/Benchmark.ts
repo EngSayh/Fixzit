@@ -44,6 +44,6 @@ const BenchmarkSchema = new Schema<IBenchmark>(
 );
 
 // TypeScript-safe model export
-const Benchmark: Model<IBenchmark> = models.Benchmark || model<IBenchmark>('Benchmark', BenchmarkSchema);
+const Benchmark = models.Benchmark || model<IBenchmark>('Benchmark', BenchmarkSchema);
 export default Benchmark;
 

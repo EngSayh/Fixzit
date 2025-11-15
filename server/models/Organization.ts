@@ -59,7 +59,7 @@ type Usage = {
 
 type OrganizationDoc = HydratedDocument<IOrganization>;
 /* eslint-disable no-unused-vars */
-type OrganizationModel = Model<IOrganization> & {
+type OrganizationModel = Model & {
   incrementUsage(orgId: string, patch: Partial<Usage>): Promise<OrganizationDoc | null>;
   setSubscriptionStatus(orgId: string, status: TSubscriptionStatus): Promise<OrganizationDoc | null>;
 };

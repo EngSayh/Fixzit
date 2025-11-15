@@ -220,7 +220,7 @@ BookingSchema.methods.cancel = async function (
   await this.save();
 };
 
-const Booking: Model<IBooking> =
-  mongoose.models.AqarBooking || mongoose.model<IBooking>('AqarBooking', BookingSchema);
+const Booking =
+  mongoose.models.AqarBooking || mongoose.model('AqarBooking', BookingSchema);
 
 export default Booking;

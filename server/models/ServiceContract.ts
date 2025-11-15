@@ -59,5 +59,5 @@ interface IServiceContract extends Document {
   updatedBy?: Schema.Types.ObjectId;
 }
 
-const ServiceContract: Model<IServiceContract> = models.ServiceContract || model<IServiceContract>('ServiceContract', ServiceContractSchema);
+const ServiceContract = models.ServiceContract || model<IServiceContract>('ServiceContract', ServiceContractSchema);
 export default ServiceContract;

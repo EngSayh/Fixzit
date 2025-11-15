@@ -71,7 +71,7 @@ export interface IBoost extends Document {
 }
 
 /* eslint-disable no-unused-vars */
-interface BoostModel extends Model<IBoost> {
+interface BoostModel  {
   /**
    * Get pricing for a boost type and duration
    * @param type - Boost type (FEATURED, PINNED, HIGHLIGHTED)

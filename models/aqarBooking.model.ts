@@ -336,7 +336,7 @@ BookingSchema.methods.cancel = async function (
 /* ---------------- Statics: availability & atomic create ---------------- */
 
 /* eslint-disable no-unused-vars */
-interface BookingModel extends Model<IBooking> {
+interface BookingModel  {
   /**
    * Check if any active booking overlaps with the given nights
    * @param orgId - Organization ID

@@ -53,6 +53,6 @@ interface IModule extends Document {
   updatedBy?: Schema.Types.ObjectId;
 }
 
-const Module: Model<IModule> = models.Module || model<IModule>('Module', ModuleSchema);
+const Module = models.Module || model<IModule>('Module', ModuleSchema);
 export default Module;
 export { MODULE_KEYS };

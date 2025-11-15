@@ -134,7 +134,7 @@ export interface ReferralCodeStaticMethods {
 }
 /* eslint-enable no-unused-vars */
 
-type ReferralCodeModelType = Model<IReferralCode, Record<string, never>, Record<string, never>, Record<string, never>, HydratedDocument<IReferralCode>> & ReferralCodeStaticMethods;
+type ReferralCodeModelType = Model & ReferralCodeStaticMethods;
 
 // ---------------- Schema ----------------
 const ReferralCodeSchema = new Schema<IReferralCode, ReferralCodeModelType>({

@@ -202,7 +202,7 @@ export interface IProjectBid {
 
 type ProjectBidDoc = HydratedDocument<IProjectBid>;
 /* eslint-disable no-unused-vars */
-type IProjectBidModel = Model<IProjectBid> & {
+type IProjectBidModel = Model & {
   submit(id: Types.ObjectId, by: Types.ObjectId | string): Promise<ProjectBidDoc | null>;
   withdraw(
     id: Types.ObjectId,
