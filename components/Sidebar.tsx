@@ -190,7 +190,7 @@ const Sidebar = ({ className, onNavigate, badgeCounts }: SidebarProps) => {
   }, []);
 
   const allowedModules = useMemo(() => {
-    const roleModules = ROLE_PERMISSIONS[role as UserRoleType] ?? ROLE_PERMISSIONS.guest;
+    const roleModules = ROLE_PERMISSIONS[role] ?? ROLE_PERMISSIONS.guest;
     const planModules = SUBSCRIPTION_PLANS[subscription] ?? SUBSCRIPTION_PLANS.DEFAULT;
     const allowedIds = planModules.filter((id) => roleModules.includes(id));
 
