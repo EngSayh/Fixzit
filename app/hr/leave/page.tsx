@@ -5,7 +5,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Check, X } from 'lucide-react';
 import ClientDate from '@/components/ClientDate';
 import { logger } from '@/lib/logger';
 
@@ -27,6 +27,7 @@ export default function LeavePage() {
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ALL' | LeaveStatus>('ALL');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     void fetchRequests();
@@ -63,6 +64,28 @@ export default function LeavePage() {
       case 'CANCELLED':
       default:
         return 'bg-muted text-foreground border-border';
+    }
+  };
+
+  const handleStatusUpdate = async (leaveRequestId: string, status: Exclude<LeaveStatus, 'PENDING'>) => {
+    setActionLoading(`${leaveRequestId}-${status}`);
+    try {
+      const response = await fetch('/api/hr/leaves', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ leaveRequestId, status }),
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to update status (${response.status})`);
+      }
+      await fetchRequests(filter === 'ALL' ? undefined : filter);
+    } catch (error) {
+      logger.error('Failed to update leave status', { error });
+      alert(t('hr.leave.actions.error', 'Unable to update leave request. Please try again.'));
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -123,6 +146,36 @@ export default function LeavePage() {
                     {t(`hr.leave.status.${request.status.toLowerCase()}`, request.status)}
                   </Badge>
                 </div>
+                {request.status === 'PENDING' && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      className="bg-success hover:bg-success/90 text-white"
+                      onClick={() => handleStatusUpdate(request._id, 'APPROVED')}
+                      disabled={Boolean(actionLoading)}
+                    >
+                      {actionLoading === `${request._id}-APPROVED` ? (
+                        <Loader2 className="h-4 w-4 animate-spin me-2" />
+                      ) : (
+                        <Check className="h-4 w-4 me-2" />
+                      )}
+                      {t('hr.leave.actions.approve', 'Approve')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleStatusUpdate(request._id, 'REJECTED')}
+                      disabled={Boolean(actionLoading)}
+                    >
+                      {actionLoading === `${request._id}-REJECTED` ? (
+                        <Loader2 className="h-4 w-4 animate-spin me-2" />
+                      ) : (
+                        <X className="h-4 w-4 me-2" />
+                      )}
+                      {t('hr.leave.actions.reject', 'Reject')}
+                    </Button>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                   <div>
