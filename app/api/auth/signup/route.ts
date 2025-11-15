@@ -94,6 +94,7 @@ export async function POST(req: NextRequest) {
     const hashedPassword = await bcrypt.hash(body.password, 12);
 
     // ✅ FIX: Pre-check for existing user (good for a fast, clean error)
+    // @ts-expect-error - Mongoose 8.x type resolution issue with conditional model export
     const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return duplicateKeyError("An account with this email already exists.");
@@ -107,6 +108,7 @@ export async function POST(req: NextRequest) {
     let newUser;
     try {
       // Use nested User model schema from @/server/models/User
+      // @ts-expect-error - Mongoose 8.x type resolution issue with conditional model export
       newUser = await User.create({
         code,
         username: code, // Use unique code as username (no more conflicts)

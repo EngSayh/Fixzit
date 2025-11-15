@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     const projectMap = new Map(projects.map((p: { _id: { toString: () => string } }) => [p._id.toString(), p]));
     
     // Step 4: Attach targets to favorites
-    const favoritesWithTargets = favorites.map((fav: { targetId: { toString: () => string }; targetType: string }) => {
+    const favoritesWithTargets = favorites.map((fav: any) => {
       const targetIdStr = fav.targetId.toString();
       
       if (fav.targetType === 'LISTING') {

@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     });
     if (ours.contactSales) return createSecureResponse(ours, 200, req);
 
-    const rows = (await Benchmark.find({}));
+    const rows: any = (await Benchmark.find({}));
     const perUserRows = rows.filter((r: any) => r.pricingModel==='per_user_month' && r.priceMonthly);
     const monthlyMedian = perUserRows.sort((a: any, b: any)=>a.priceMonthly-b.priceMonthly)[Math.floor(perUserRows.length/2)]?.priceMonthly || 0;
 

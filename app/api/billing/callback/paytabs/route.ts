@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
   if (!sub) return createSecureResponse({ error: 'SUB_NOT_FOUND' }, 400, req);
 
   // Find invoice
+  // @ts-expect-error - Mongoose 8.x type resolution issue with conditional model export
   const inv = (await SubscriptionInvoice.findOne({ subscriptionId: sub._id, status: 'pending' }));
   if (!inv) return createSecureResponse({ error: 'INV_NOT_FOUND' }, 400, req);
 
