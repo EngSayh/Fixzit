@@ -13,7 +13,8 @@
  */
 
 import { createHash } from 'crypto';
-import type { IPayslip } from '../../models/hr/Payroll';
+import { AttendanceRecord } from '@/server/models/hr.models';
+import type { PayrollLineDoc } from '@/server/models/hr.models';
 
 export interface WPSRecord {
   employeeId: string; // Employee code/ID
@@ -73,7 +74,7 @@ function extractBankCode(iban: string): string {
  * Returns both the file and any errors encountered (for robust error handling)
  */
 export function generateWPSFile(
-  payslips: IPayslip[],
+  lines: PayrollLineDoc[],
   organizationId: string,
   periodMonth: string // Format: YYYY-MM
 ): { file: WPSFile; errors: string[] } {
@@ -81,52 +82,39 @@ export function generateWPSFile(
   const errors: string[] = [];
   let totalNetSalary = 0;
   
-  for (const slip of payslips) {
-    // Validate IBAN before processing
-    if (!slip.iban || !slip.iban.startsWith('SA') || slip.iban.length !== 24) {
-      errors.push(`Invalid IBAN for employee ${slip.employeeCode}: ${slip.iban || 'missing'}`);
-      continue; // Skip this record but continue processing others
-    }
-    
-    const bankCode = extractBankCode(slip.iban);
-    if (bankCode === 'INVALID_IBAN') {
-      errors.push(`Could not extract bank code for employee ${slip.employeeCode}: ${slip.iban}`);
+  for (const line of lines) {
+    if (!line.iban || !line.iban.startsWith('SA') || line.iban.length !== 24) {
+      errors.push(`Invalid IBAN for employee ${line.employeeCode}: ${line.iban || 'missing'}`);
       continue;
     }
     
-    // Extract earnings
-    const basicSalary = slip.earnings.find(e => e.code === 'BASIC')?.amount || 0;
-    const housingAllowance = slip.earnings.find(e => e.code === 'HOUSING')?.amount || 0;
-    const otherAllowances = slip.earnings
-      .filter(e => !['BASIC', 'HOUSING'].includes(e.code))
-      .reduce((sum, e) => sum + e.amount, 0);
-    
-    // Total deductions
-    const totalDeductions = slip.deductions.reduce((sum, d) => sum + d.amount, 0);
-    
-    // Calculate work days from payslip data
-    // If payslip includes workDays field (from attendance calculation), use it
-    // Otherwise, calculate from period: assume standard work month (typically 22-30 days)
-    // Note: Caller should calculate actual attendance and include in payslip for accuracy
-    let workDays = 30; // Default for full month
-    if ((slip as any).workDays && typeof (slip as any).workDays === 'number') {
-      workDays = (slip as any).workDays; // Use pre-calculated work days if provided
-    } else if ((slip as any).attendanceDays && typeof (slip as any).attendanceDays === 'number') {
-      workDays = (slip as any).attendanceDays; // Alternative field name
+    const bankCode = extractBankCode(line.iban);
+    if (bankCode === 'INVALID_IBAN') {
+      errors.push(`Could not extract bank code for employee ${line.employeeCode}: ${line.iban}`);
+      continue;
     }
-    // Note: For accurate work days, payslip generation should query attendance/timesheet records
-    // and include the calculated days in the payslip object before calling this function
+    
+    const housingAllowance = (line.housingAllowance || 0) + (line.transportAllowance || 0);
+    const otherAllowances =
+      line.otherAllowances?.reduce((sum, allowance) => sum + (allowance.amount || 0), 0) || 0;
+    const totalDeductions =
+      (line.deductions || 0) + (line.taxDeduction || 0) + (line.gosiContribution || 0);
+    
+    let workDays = 30;
+    if ((line as any).workDays && typeof (line as any).workDays === 'number') {
+      workDays = (line as any).workDays;
+    }
     
     const record: WPSRecord = {
-      employeeId: slip.employeeCode,
-      employeeName: slip.employeeName,
+      employeeId: line.employeeCode,
+      employeeName: line.employeeName,
       bankCode,
-      iban: slip.iban,
-      basicSalary: Math.round(basicSalary * 100) / 100,
+      iban: line.iban,
+      basicSalary: Math.round((line.baseSalary || 0) * 100) / 100,
       housingAllowance: Math.round(housingAllowance * 100) / 100,
       otherAllowances: Math.round(otherAllowances * 100) / 100,
       totalDeductions: Math.round(totalDeductions * 100) / 100,
-      netSalary: Math.round(slip.netPay * 100) / 100,
+      netSalary: Math.round((line.netPay || 0) * 100) / 100,
       salaryMonth: periodMonth,
       workDays,
     };
@@ -287,10 +275,6 @@ export async function calculateWorkDaysFromAttendance(
   yearMonth: string
 ): Promise<number> {
   try {
-    // Dynamic import to avoid circular dependencies
-    const { Timesheet } = await import('../../models/hr/Attendance');
-    const { default: mongoose } = await import('mongoose');
-    
     // Parse yearMonth to get start and end of month
     const [year, month] = yearMonth.split('-').map(Number);
     if (!year || !month || month < 1 || month > 12) {
@@ -300,29 +284,19 @@ export async function calculateWorkDaysFromAttendance(
     const monthStart = new Date(year, month - 1, 1); // Month is 0-indexed
     const monthEnd = new Date(year, month, 0, 23, 59, 59, 999); // Last day of month
     
-    // Query approved timesheets for the month
-    const timesheets = await Timesheet.find({
-      orgId: new mongoose.Types.ObjectId(orgId),
-      employeeId: new mongoose.Types.ObjectId(employeeId),
-      status: 'APPROVED',
-      weekStart: { $gte: monthStart },
-      weekEnd: { $lte: monthEnd },
-    });
+    const records = await AttendanceRecord.find({
+      orgId,
+      employeeId,
+      isDeleted: false,
+      date: { $gte: monthStart, $lte: monthEnd },
+      status: { $in: ['PRESENT', 'LATE'] },
+    }).select('date');
     
-    if (timesheets.length === 0) {
-      // No approved timesheets - return 0 (employee didn't work or timesheets not approved)
-      return 0;
-    }
+    const workDaySet = new Set(
+      records.map((record) => record.date.toISOString().slice(0, 10))
+    );
     
-    // Calculate total work days from hours
-    // Assumption: 8 hours = 1 work day (standard in Saudi Arabia)
-    const totalHours = timesheets.reduce((sum, ts) => {
-      return sum + (ts.regularHours || 0) + (ts.overtimeHours || 0);
-    }, 0);
-    
-    const workDays = Math.round(totalHours / 8);
-    
-    // Cap at days in month (safety check)
+    const workDays = workDaySet.size;
     const daysInMonth = monthEnd.getDate();
     return Math.min(workDays, daysInMonth);
   } catch (error) {

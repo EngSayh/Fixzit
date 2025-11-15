@@ -651,6 +651,7 @@ const en = {
   },
   support: {
     title: 'Support',
+    description: 'Coming online – UI wired, API scaffolded.',
     contactSupport: 'Contact Support',
     helpCenter: 'Help Center',
     openTicket: 'Open Ticket',

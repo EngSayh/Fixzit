@@ -5,6 +5,7 @@ import {
   type AttendanceRecordDoc,
   AttendanceRecord,
   type TechnicianProfile,
+  type EmployeeCompensation,
 } from '@/server/models/hr.models';
 
 export interface EmployeeSearchFilters {
@@ -34,6 +35,8 @@ export interface UpsertEmployeePayload {
   employmentStatus?: EmployeeDoc['employmentStatus'];
   hireDate: Date;
   technicianProfile?: TechnicianProfile;
+  compensation?: EmployeeCompensation;
+  bankDetails?: EmployeeDoc['bankDetails'];
 }
 
 export class EmployeeService {
@@ -98,6 +101,22 @@ export class EmployeeService {
 
     if (payload.technicianProfile) {
       update.technicianProfile = payload.technicianProfile;
+    }
+
+    if (payload.compensation) {
+      const comp = payload.compensation;
+      update.compensation = comp;
+      update.baseSalary = comp.baseSalary;
+      const allowancesTotal =
+        (comp.housingAllowance ?? 0) +
+        (comp.transportAllowance ?? 0) +
+        (comp.otherAllowances?.reduce((sum, item) => sum + (item.amount || 0), 0) ?? 0);
+      update.allowanceTotal = allowancesTotal;
+      update.currency = comp.currency ?? update.currency;
+    }
+
+    if (payload.bankDetails) {
+      update.bankDetails = payload.bankDetails;
     }
 
     return Employee.findOneAndUpdate(

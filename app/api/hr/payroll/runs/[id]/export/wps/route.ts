@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { connectDb } from '@/lib/mongo';
-import { PayrollRun, Payslip, IPayslip } from '@/models/hr/Payroll';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
+import { PayrollService } from '@/server/services/hr/payroll.service';
 import { generateWPSFile, validateWPSFile } from '@/services/hr/wpsService';
 
-import { logger } from '@/lib/logger';
-// GET /api/hr/payroll/runs/[id]/export/wps - Generate WPS/Mudad compliant file
+type RouteParams = { id: string };
+
 export async function GET(
-  req: NextRequest,
-  props: { params: Promise<{ id: string }> }
+  _req: NextRequest,
+  props: { params: Promise<RouteParams> }
 ) {
   try {
     const session = await auth();
@@ -16,15 +17,10 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await connectDb();
+    await connectToDatabase();
 
-    const params = await props.params;
-
-    // Fetch the payroll run
-    const run = await PayrollRun.findOne({
-      _id: params.id,
-      orgId: session.user.orgId,
-    });
+    const { id } = await props.params;
+    const run = await PayrollService.getById(session.user.orgId, id);
 
     if (!run) {
       return NextResponse.json({ error: 'Payroll run not found' }, { status: 404 });
@@ -32,68 +28,44 @@ export async function GET(
 
     if (run.status === 'DRAFT') {
       return NextResponse.json(
-        { error: 'Cannot export DRAFT payroll run. Calculate first.' },
+        { error: 'Cannot export WPS file for a DRAFT payroll run' },
         { status: 400 }
       );
     }
 
-    // Fetch all payslips for this run
-    const payslips = await Payslip.find({
-      orgId: session.user.orgId,
-      payrollRunId: run._id,
-    }).lean();
-
-    if (payslips.length === 0) {
+    if (!run.lines.length) {
       return NextResponse.json(
-        { error: 'No payslips found for this run' },
-        { status: 404 }
+        { error: 'Payroll run has no calculated lines' },
+        { status: 400 }
       );
     }
 
-    // Generate period month in YYYY-MM format
     const periodMonth = new Date(run.periodEnd).toISOString().slice(0, 7);
+    const { file: wpsFile, errors } = generateWPSFile(run.lines, session.user.orgId, periodMonth);
 
-    // Generate WPS file (now returns { file, errors })
-    // Cast to IPayslip[] to work around Mongoose lean() type complexity
-    const { file: wpsFile, errors: generationErrors } = generateWPSFile(
-      payslips as unknown as IPayslip[],
-      session.user.orgId,
-      periodMonth
-    );
-
-    // Check for generation errors (e.g., invalid IBANs)
-    if (generationErrors.length > 0) {
-      logger.warn('WPS generation warnings:', { generationErrors });
-      // If we have no valid records, return error
-      if (wpsFile.recordCount === 0) {
-        return NextResponse.json(
-          {
-            error: 'Failed to generate WPS file - no valid records',
-            errors: generationErrors,
-          },
-          { status: 400 }
-        );
-      }
-      // Otherwise continue with partial file but log warnings
-    }
-
-    // Validate the generated file
-    const validation = validateWPSFile(wpsFile);
-
-    if (!validation.isValid) {
-      logger.error('WPS validation failed:', validation.errors);
+    if (!wpsFile.recordCount) {
       return NextResponse.json(
         {
-          error: 'WPS file validation failed',
-          errors: validation.errors,
-          warnings: validation.warnings,
-          generationErrors,
+          error: 'Failed to generate WPS file - no valid records',
+          errors,
         },
         { status: 400 }
       );
     }
 
-    // Return the CSV file
+    const validation = validateWPSFile(wpsFile);
+    if (!validation.isValid) {
+      return NextResponse.json(
+        {
+          error: 'WPS file validation failed',
+          errors: validation.errors,
+          warnings: validation.warnings,
+          generationErrors: errors,
+        },
+        { status: 400 }
+      );
+    }
+
     return new NextResponse(wpsFile.content, {
       status: 200,
       headers: {
@@ -102,9 +74,7 @@ export async function GET(
         'X-File-Checksum': wpsFile.checksum,
         'X-Record-Count': wpsFile.recordCount.toString(),
         'X-Total-Net-Salary': wpsFile.totalNetSalary.toString(),
-        ...(generationErrors.length > 0 && {
-          'X-Generation-Warnings': generationErrors.length.toString(),
-        }),
+        ...(errors.length > 0 && { 'X-Generation-Warnings': errors.length.toString() }),
       },
     });
   } catch (error) {

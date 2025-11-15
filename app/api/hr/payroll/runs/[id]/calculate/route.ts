@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { connectDb } from '@/lib/mongo';
-import { PayrollRun, Payslip } from '@/models/hr/Payroll';
-import { Employee } from '@/server/models/Employee';
-import { Timesheet } from '@/models/hr/Attendance';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
+import {
+  Employee,
+  AttendanceRecord,
+  type PayrollLineDoc,
+} from '@/server/models/hr.models';
+import { PayrollService } from '@/server/services/hr/payroll.service';
 import { calculateNetPay } from '@/services/hr/ksaPayrollService';
 
-import { logger } from '@/lib/logger';
-// POST /api/hr/payroll/runs/[id]/calculate - Calculate payroll for all active employees
+type RouteParams = { id: string };
+
 export async function POST(
-  req: NextRequest,
-  props: { params: Promise<{ id: string }> }
+  _req: NextRequest,
+  props: { params: Promise<RouteParams> }
 ) {
   try {
     const session = await auth();
@@ -18,15 +22,10 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await connectDb();
+    await connectToDatabase();
 
-    const params = await props.params;
-
-    // Fetch the payroll run
-    const run = await PayrollRun.findOne({
-      _id: params.id,
-      orgId: session.user.orgId,
-    });
+    const { id } = await props.params;
+    const run = await PayrollService.getById(session.user.orgId, id);
 
     if (!run) {
       return NextResponse.json({ error: 'Payroll run not found' }, { status: 404 });
@@ -39,106 +38,113 @@ export async function POST(
       );
     }
 
-    // Fetch all ACTIVE employees
-    const employees = await (Employee as any).find({
+    const employees = await Employee.find({
       orgId: session.user.orgId,
-      status: 'ACTIVE',
-    });
+      employmentStatus: 'ACTIVE',
+      isDeleted: false,
+    }).lean();
 
-    let totalGross = 0;
-    let totalNet = 0;
-    let totalGOSI = 0;
-    let totalSANED = 0;
+    if (!employees.length) {
+      return NextResponse.json(
+        { error: 'No active employees available for payroll calculation' },
+        { status: 400 }
+      );
+    }
 
-    // Calculate payslip for each employee
-    const payslips = [];
+    const overtimeAggregate = await AttendanceRecord.aggregate<{ _id: string; totalMinutes: number }>([
+      {
+        $match: {
+          orgId: session.user.orgId,
+          isDeleted: false,
+          date: { $gte: run.periodStart, $lte: run.periodEnd },
+        },
+      },
+      { $group: { _id: '$employeeId', totalMinutes: { $sum: '$overtimeMinutes' } } },
+    ]);
+
+    const overtimeMinutesMap = new Map<string, number>(
+      overtimeAggregate.map((entry) => [String(entry._id), entry.totalMinutes || 0])
+    );
+
+    const payrollLines: PayrollLineDoc[] = [];
 
     for (const employee of employees) {
-      const {
-        baseSalary = 0,
-        housingAllowance = 0,
-        transportAllowance = 0,
-        otherAllowances = [],
-        gosiApplicable = false,
-      } = employee.compensation;
+      const compensation = employee.compensation || {
+        baseSalary: employee.baseSalary || 0,
+        housingAllowance: 0,
+        transportAllowance: 0,
+        otherAllowances: [],
+        currency: employee.currency || 'SAR',
+      };
 
-      // Fetch approved overtime from timesheets
-      const timesheets = await Timesheet.find({
-        orgId: session.user.orgId,
-        employeeId: employee._id,
-        weekStart: { $gte: run.periodStart },
-        weekEnd: { $lte: run.periodEnd },
-        status: 'APPROVED',
-      });
+      const baseSalary = compensation.baseSalary || 0;
+      const housingAllowance = compensation.housingAllowance || 0;
+      const transportAllowance = compensation.transportAllowance || 0;
+      const otherAllowances = compensation.otherAllowances || [];
+      const otherAllowanceTotal = otherAllowances.reduce((sum, item) => sum + (item.amount || 0), 0);
 
-      const overtimeHours = timesheets.reduce((sum: number, ts: any) => sum + (ts.overtimeHours || 0), 0);
+      const overtimeMinutes = overtimeMinutesMap.get(String(employee._id)) || 0;
+      const overtimeHours = Math.round((overtimeMinutes / 60) * 100) / 100;
 
-      // Determine if employee is Saudi national (for GOSI)
-      const isSaudiNational = employee.nationality?.toLowerCase() === 'saudi' || gosiApplicable;
-      
-      // Check if new entrant (joined after 2024 for new GOSI rates)
-      const joinDate = new Date(employee.employment.joinDate);
-      const isNewEntrant = joinDate >= new Date('2024-01-01');
+      const nationality = (employee.nationality || '').toLowerCase();
+      const isSaudiNational = nationality === 'saudi' || nationality === 'saudi arabia';
+      const isNewEntrant = employee.hireDate ? employee.hireDate >= new Date('2024-01-01') : false;
 
-      // Calculate net pay using KSA compliance service
       const calculation = calculateNetPay(
         baseSalary,
         housingAllowance,
         transportAllowance,
         otherAllowances,
         overtimeHours,
-        isSaudiNational,
+        compensation.gosiApplicable ?? isSaudiNational,
         isNewEntrant
       );
 
-      // Create payslip
-      const payslip = new Payslip({
-        orgId: session.user.orgId,
-        payrollRunId: run._id,
-        employeeId: employee._id,
+      const overtimeComponent = calculation.earnings.find((earning) => earning.code === 'OVERTIME');
+
+      payrollLines.push({
+        employeeId: employee._id as any,
         employeeCode: employee.employeeCode,
         employeeName: `${employee.firstName} ${employee.lastName}`,
-        iban: employee.bank?.iban || '',
-        periodStart: run.periodStart,
-        periodEnd: run.periodEnd,
-        earnings: calculation.earnings,
-        deductions: calculation.deductions,
-        grossPay: calculation.grossPay,
+        iban: employee.bankDetails?.iban,
+        baseSalary,
+        housingAllowance,
+        transportAllowance,
+        otherAllowances,
+        allowances: housingAllowance + transportAllowance + otherAllowanceTotal,
+        overtimeHours,
+        overtimeAmount: overtimeComponent?.amount || 0,
+        deductions: calculation.totalDeductions,
+        taxDeduction: 0,
+        gosiContribution: calculation.gosi.employerContribution,
         netPay: calculation.netPay,
-        gosiEmployee: calculation.gosi.breakdown.annuitiesEmployee + calculation.gosi.breakdown.sanedEmployee,
-        gosiEmployer: calculation.gosi.breakdown.annuitiesEmployer + calculation.gosi.breakdown.occupationalHazards + calculation.gosi.breakdown.sanedEmployer,
-        sanedEmployee: calculation.gosi.breakdown.sanedEmployee,
-        sanedEmployer: calculation.gosi.breakdown.sanedEmployer,
-        currency: 'SAR',
+        currency: compensation.currency || employee.currency || 'SAR',
+        notes: undefined,
+        earnings: calculation.earnings,
+        deductionLines: calculation.deductions,
+        gosiBreakdown: calculation.gosi.breakdown,
       });
-
-      await payslip.save();
-      payslips.push(payslip);
-
-      // Accumulate totals
-      totalGross += calculation.grossPay;
-      totalNet += calculation.netPay;
-      totalGOSI += calculation.gosi.employeeDeduction + calculation.gosi.employerContribution;
-      totalSANED += calculation.gosi.breakdown.sanedEmployee + calculation.gosi.breakdown.sanedEmployer;
     }
 
-    // Update the payroll run
-    run.status = 'CALCULATED';
-    run.totalGross = Math.round(totalGross * 100) / 100;
-    run.totalNet = Math.round(totalNet * 100) / 100;
-    run.totalGOSI = Math.round(totalGOSI * 100) / 100;
-    run.totalSANED = Math.round(totalSANED * 100) / 100;
-    run.employeeCount = employees.length;
-    await run.save();
+    const updatedRun = await PayrollService.updateCalculation(
+      session.user.orgId,
+      id,
+      payrollLines,
+      'IN_REVIEW'
+    );
+
+    if (!updatedRun) {
+      return NextResponse.json(
+        { error: 'Failed to persist payroll calculation results' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
-      run,
+      run: updatedRun,
       summary: {
-        employeesProcessed: employees.length,
-        totalGross: run.totalGross,
-        totalNet: run.totalNet,
-        totalGOSI: run.totalGOSI,
-        totalSANED: run.totalSANED,
+        employeesProcessed: payrollLines.length,
+        totals: updatedRun.totals,
       },
     });
   } catch (error) {

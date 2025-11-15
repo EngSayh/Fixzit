@@ -3,6 +3,27 @@ import { auth } from '@/auth';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 import { LeaveService } from '@/server/services/hr/leave.service';
+import type { LeaveRequestStatus } from '@/server/models/hr.models';
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.orgId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get('status') as LeaveRequestStatus | null;
+
+    await connectToDatabase();
+
+    const requests = await LeaveService.list(session.user.orgId, status || undefined);
+    return NextResponse.json({ requests });
+  } catch (error) {
+    logger.error('Error fetching leave requests:', error);
+    return NextResponse.json({ error: 'Failed to fetch leave requests' }, { status: 500 });
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {

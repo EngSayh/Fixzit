@@ -937,6 +937,7 @@ const ar = {
   },
   support: {
     title: 'الدعم',
+    description: 'قريباً - واجهة المستخدم جاهزة، API متصل.',
     contactSupport: 'اتصل بالدعم',
     helpCenter: 'مركز المساعدة',
     openTicket: 'فتح تذكرة',

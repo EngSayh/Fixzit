@@ -4,7 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { Application } from '@/server/models/Application';
 import { Candidate } from '@/server/models/Candidate';
 import { Job } from '@/server/models/Job';
-import { Employee } from '@/server/models/Employee';
+import { Employee } from '@/server/models/hr.models';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { rateLimit } from '@/server/security/rateLimit';
 import {notFoundError, validationError, rateLimitError} from '@/server/utils/errorResponses';
@@ -71,23 +71,36 @@ export async function POST(req: NextRequest) {
     if (!cand || !job) return validationError("Candidate or Job missing");
 
     const orgId = app.orgId;
-    const existing = await (Employee as any).findOne({ orgId, 'personal.email': cand.email }).lean();
+    const existing = await Employee.findOne({ orgId, email: cand.email, isDeleted: false }).lean();
     if (existing) return NextResponse.json({ success: true, data: existing, message: 'Employee already exists' });
 
-    const employee = await (Employee as any).create({
+    const employeeCode = `ATS-${(job.code || job.title || 'NEW').slice(0, 4).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+    const hireDate = job.startDate ? new Date(job.startDate) : new Date();
+
+    const employee = await Employee.create({
       orgId,
-      personal: { firstName: cand.firstName, lastName: cand.lastName, email: cand.email, phone: cand.phone },
-      professional: { role: 'EMPLOYEE', department: job.department, title: job.title },
-      status: 'ACTIVE',
-      metadata: { source: 'ats', jobId: job._id.toString(), applicationId: app._id.toString(), convertedBy: user?.id || 'system' }
-    });
+      employeeCode,
+      firstName: cand.firstName,
+      lastName: cand.lastName,
+      email: cand.email,
+      phone: cand.phone,
+      jobTitle: job.title || 'Employee',
+      departmentId: job.departmentId,
+      employmentType: job.employmentType || 'FULL_TIME',
+      employmentStatus: 'ACTIVE',
+      hireDate,
+      compensation: {
+        baseSalary: job.salaryRange?.min || job.salaryRange?.max || 0,
+        currency: job.currency || 'SAR',
+      },
+      meta: { source: 'ats', jobId: job._id.toString(), applicationId: app._id.toString(), convertedBy: user?.id || 'system' }
+    } as any);
     return NextResponse.json({ success: true, data: employee });
   } catch (error) {
     logger.error('Convert to employee error:', error instanceof Error ? error.message : 'Unknown error');
     return createSecureResponse({ error: "Failed to convert to employee" }, 500, req);
   }
 }
-
 
 
 

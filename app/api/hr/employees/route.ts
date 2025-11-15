@@ -88,9 +88,11 @@ export async function POST(req: NextRequest) {
       departmentId: body.departmentId,
       managerId: body.managerId,
       employmentType: body.employmentType || 'FULL_TIME',
-      employmentStatus: body.employmentStatus || 'ONBOARDING',
+      employmentStatus: body.employmentStatus || 'ACTIVE',
       hireDate: new Date(body.hireDate),
       technicianProfile: body.technicianProfile,
+      compensation: body.compensation,
+      bankDetails: body.bankDetails,
     });
 
     return NextResponse.json(employee, { status: 201 });

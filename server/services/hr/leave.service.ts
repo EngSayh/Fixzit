@@ -36,4 +36,12 @@ export class LeaveService {
       { upsert: true, new: true, setDefaultsOnInsert: true }
     ).exec();
   }
+
+  static async list(orgId: string, status?: LeaveRequestDoc['status']) {
+    const query: Record<string, unknown> = { orgId, isDeleted: false };
+    if (status) {
+      query.status = status;
+    }
+    return LeaveRequest.find(query).sort({ startDate: -1 }).lean<LeaveRequestDoc>().exec();
+  }
 }

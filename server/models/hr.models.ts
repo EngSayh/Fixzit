@@ -108,6 +108,28 @@ export interface TechnicianProfile {
   certifications?: ObjectId[];
 }
 
+interface EmployeeBankDetails {
+  iban?: string;
+  bankName?: string;
+  bankCode?: string;
+  accountNumber?: string;
+}
+
+interface EmployeeAllowance {
+  name: string;
+  amount: number;
+}
+
+export interface EmployeeCompensation {
+  baseSalary: number;
+  housingAllowance?: number;
+  transportAllowance?: number;
+  otherAllowances?: EmployeeAllowance[];
+  overtimeEligible?: boolean;
+  gosiApplicable?: boolean;
+  currency?: string;
+}
+
 export interface EmployeeDoc extends BaseOrgDoc {
   employeeCode: string;
   userId?: ObjectId;
@@ -133,6 +155,8 @@ export interface EmployeeDoc extends BaseOrgDoc {
   documents?: EmployeeDocumentRecord[];
   technicianProfile?: TechnicianProfile;
   meta?: Record<string, unknown>;
+  compensation?: EmployeeCompensation;
+  bankDetails?: EmployeeBankDetails;
 }
 
 const TechnicianProfileSchema = new Schema<TechnicianProfile>({
@@ -177,6 +201,24 @@ const EmployeeSchema = new Schema<EmployeeDoc>({
     expiryDate: { type: Date },
     fileId: { type: String }
   }],
+  compensation: {
+    baseSalary: { type: Number, default: 0 },
+    housingAllowance: { type: Number, default: 0 },
+    transportAllowance: { type: Number, default: 0 },
+    otherAllowances: [{
+      name: { type: String, required: true },
+      amount: { type: Number, default: 0 }
+    }],
+    overtimeEligible: { type: Boolean, default: true },
+    gosiApplicable: { type: Boolean, default: true },
+    currency: { type: String, default: 'SAR' }
+  },
+  bankDetails: {
+    iban: { type: String },
+    bankName: { type: String },
+    bankCode: { type: String },
+    accountNumber: { type: String }
+  },
   technicianProfile: TechnicianProfileSchema,
   isDeleted: { type: Boolean, default: false, index: true },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -380,10 +422,28 @@ LeaveRequestSchema.pre('save', function(next) {
 export const LeaveRequest: Model<LeaveRequestDoc> = models.LeaveRequest || model<LeaveRequestDoc>('LeaveRequest', LeaveRequestSchema);
 
 // PayrollRun
+interface PayrollComponentLine {
+  code: string;
+  name: string;
+  amount: number;
+}
+
+interface PayrollLineAllowance {
+  name: string;
+  amount: number;
+}
+
 interface PayrollLine {
   employeeId: ObjectId;
+  employeeCode: string;
+  employeeName: string;
+  iban?: string;
   baseSalary: number;
+  housingAllowance?: number;
+  transportAllowance?: number;
+  otherAllowances?: PayrollLineAllowance[];
   allowances: number;
+  overtimeHours?: number;
   overtimeAmount: number;
   deductions: number;
   taxDeduction: number;
@@ -391,6 +451,15 @@ interface PayrollLine {
   netPay: number;
   currency: string;
   notes?: string;
+  earnings?: PayrollComponentLine[];
+  deductionLines?: PayrollComponentLine[];
+  gosiBreakdown?: {
+    annuitiesEmployee?: number;
+    annuitiesEmployer?: number;
+    occupationalHazards?: number;
+    sanedEmployee?: number;
+    sanedEmployer?: number;
+  };
 }
 
 export interface PayrollRunDoc extends BaseOrgDoc {
@@ -400,19 +469,56 @@ export interface PayrollRunDoc extends BaseOrgDoc {
   status: PayrollRunStatus;
   lines: PayrollLine[];
   exportReference?: string;
+  employeeCount: number;
+  totals: {
+    baseSalary: number;
+    allowances: number;
+    overtime: number;
+    deductions: number;
+    gosi: number;
+    net: number;
+  };
+  calculatedAt?: Date;
 }
 
 const PayrollLineSchema = new Schema<PayrollLine>({
   employeeId: { type: Schema.Types.ObjectId, ref: 'Employee', required: true },
+  employeeCode: { type: String, required: true },
+  employeeName: { type: String, required: true },
+  iban: { type: String },
   baseSalary: { type: Number, required: true },
+  housingAllowance: { type: Number, default: 0 },
+  transportAllowance: { type: Number, default: 0 },
+  otherAllowances: [{
+    name: { type: String, required: true },
+    amount: { type: Number, default: 0 }
+  }],
   allowances: { type: Number, default: 0 },
+  overtimeHours: { type: Number, default: 0 },
   overtimeAmount: { type: Number, default: 0 },
   deductions: { type: Number, default: 0 },
   taxDeduction: { type: Number, default: 0 },
   gosiContribution: { type: Number, default: 0 },
   netPay: { type: Number, required: true },
   currency: { type: String, default: 'SAR' },
-  notes: { type: String }
+  notes: { type: String },
+  earnings: [{
+    code: { type: String, required: true },
+    name: { type: String, required: true },
+    amount: { type: Number, required: true }
+  }],
+  deductionLines: [{
+    code: { type: String, required: true },
+    name: { type: String, required: true },
+    amount: { type: Number, required: true }
+  }],
+  gosiBreakdown: {
+    annuitiesEmployee: { type: Number, default: 0 },
+    annuitiesEmployer: { type: Number, default: 0 },
+    occupationalHazards: { type: Number, default: 0 },
+    sanedEmployee: { type: Number, default: 0 },
+    sanedEmployer: { type: Number, default: 0 }
+  }
 }, { _id: false });
 
 PayrollLineSchema.virtual('calculatedNetPay').get(function(this: PayrollLine) {
@@ -427,6 +533,16 @@ const PayrollRunSchema = new Schema<PayrollRunDoc>({
   status: { type: String, enum: PAYROLL_RUN_STATUSES, default: 'DRAFT', index: true },
   lines: { type: [PayrollLineSchema], default: [] },
   exportReference: { type: String },
+  employeeCount: { type: Number, default: 0 },
+  totals: {
+    baseSalary: { type: Number, default: 0 },
+    allowances: { type: Number, default: 0 },
+    overtime: { type: Number, default: 0 },
+    deductions: { type: Number, default: 0 },
+    gosi: { type: Number, default: 0 },
+    net: { type: Number, default: 0 }
+  },
+  calculatedAt: { type: Date },
   isDeleted: { type: Boolean, default: false, index: true },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User' }
@@ -435,13 +551,41 @@ const PayrollRunSchema = new Schema<PayrollRunDoc>({
 PayrollRunSchema.index({ orgId: 1, periodStart: 1, periodEnd: 1 });
 
 PayrollRunSchema.pre('save', function(next) {
-  this.lines = (this.lines || []).map((line) => ({
+  const normalizedLines = (this.lines || []).map((line) => ({
     ...line,
     netPay: (line as any).calculatedNetPay ?? line.netPay
   }));
+
+  this.lines = normalizedLines;
+
+  const totals = normalizedLines.reduce(
+    (acc, line) => {
+      acc.baseSalary += line.baseSalary || 0;
+      acc.allowances += line.allowances || 0;
+      acc.overtime += line.overtimeAmount || 0;
+      acc.deductions += line.deductions || 0;
+      acc.gosi += line.gosiContribution || 0;
+      acc.net += line.netPay || 0;
+      return acc;
+    },
+    { baseSalary: 0, allowances: 0, overtime: 0, deductions: 0, gosi: 0, net: 0 }
+  );
+
+  this.totals = {
+    baseSalary: Math.round(totals.baseSalary * 100) / 100,
+    allowances: Math.round(totals.allowances * 100) / 100,
+    overtime: Math.round(totals.overtime * 100) / 100,
+    deductions: Math.round(totals.deductions * 100) / 100,
+    gosi: Math.round(totals.gosi * 100) / 100,
+    net: Math.round(totals.net * 100) / 100
+  };
+
+  this.employeeCount = normalizedLines.length;
+
   next();
 });
 
+export type PayrollLineDoc = PayrollRunDoc['lines'][number];
 export const PayrollRun: Model<PayrollRunDoc> = models.PayrollRun || model<PayrollRunDoc>('PayrollRun', PayrollRunSchema);
 
 // JobPosting
@@ -658,4 +802,3 @@ const PerformanceReviewSchema = new Schema<PerformanceReviewDoc>({
 PerformanceReviewSchema.index({ orgId: 1, employeeId: 1, periodStart: 1, periodEnd: 1 });
 
 export const PerformanceReview: Model<PerformanceReviewDoc> = models.PerformanceReview || model<PerformanceReviewDoc>('PerformanceReview', PerformanceReviewSchema);
-

@@ -5,6 +5,7 @@ import { Search, Filter, ShoppingCart, Heart, Star, User, LogIn } from 'lucide-r
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface Product {
   id: string;
@@ -101,6 +102,7 @@ const SAMPLE_PRODUCTS: Product[] = [
 
 export default function CatalogPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('relevance');
