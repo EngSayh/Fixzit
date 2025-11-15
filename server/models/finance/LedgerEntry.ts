@@ -217,13 +217,15 @@ LedgerEntrySchema.statics.getAccountActivity = async function (
   startDate: Date,
   endDate: Date
 ): Promise<AccountActivityEntry[]> {
-  return this.find(
+  const results = await this.find(
     { orgId, accountId, postingDate: { $gte: startDate, $lte: endDate } },
     null,
     { sort: { postingDate: -1, createdAt: -1 } }
   )
     .populate('journalId', 'journalNumber sourceType sourceNumber')
-    .lean<AccountActivityEntry>();
+    .lean();
+  
+  return results as AccountActivityEntry[];
 };
 
 export const LedgerEntryModel = getModel<ILedgerEntry>('LedgerEntry', LedgerEntrySchema) as ILedgerEntryModel;

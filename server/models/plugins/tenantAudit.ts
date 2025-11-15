@@ -116,7 +116,12 @@ export function tenantAuditPlugin(schema: Schema): void {
       this.where({ orgId: context.orgId });
     }
     if (context?.userId) {
-      this.set({ updatedBy: context.userId });
+      const update = this.getUpdate() as { $set?: Record<string, unknown> };
+      if (!update.$set) {
+        this.set({ updatedBy: context.userId });
+      } else {
+        update.$set.updatedBy = context.userId;
+      }
     }
     next();
   });

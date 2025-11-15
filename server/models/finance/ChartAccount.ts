@@ -117,11 +117,11 @@ ChartAccountSchema.virtual('type').get(function(this: IChartAccount) {
 // Method: Get full account path (e.g., "1000 › 1100 › 1110")
 ChartAccountSchema.methods.getAccountPath = async function(): Promise<string> {
   const path: string[] = [this.accountCode];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let current: IChartAccount = this;
+  type AccountDoc = { accountCode: string; parentId?: unknown };
+  let current = this as unknown as AccountDoc;
   
   while (current.parentId) {
-    const parent = await model('ChartAccount').findById(current.parentId);
+    const parent = await model('ChartAccount').findById(current.parentId) as AccountDoc | null;
     if (!parent) break;
     path.unshift(parent.accountCode);
     current = parent;
