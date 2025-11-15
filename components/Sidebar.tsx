@@ -18,6 +18,7 @@ import {
   CATEGORY_FALLBACKS,
   type ModuleItem,
   type UserLinkItem,
+  type ModuleId,
   type BadgeCounts
 } from '@/config/navigation';
 
