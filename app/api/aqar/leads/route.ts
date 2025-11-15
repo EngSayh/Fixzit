@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     let recipientId;
     
     if (listingId) {
-      const listing = await AqarListing.findById(listingId);
+      const listing = await (AqarListing as any).findById(listingId);
       if (!listing) {
         return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
       }

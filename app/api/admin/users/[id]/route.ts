@@ -37,7 +37,7 @@ export async function DELETE(
     
     const UserModel = models.User || model('User', UserSchema);
     
-    const user = await UserModel.findOne({
+    const user = await (UserModel as any).findOne({
       _id: id,
       orgId: session.user.orgId || 'default',
     });
@@ -109,7 +109,7 @@ export async function PATCH(
     
     const UserModel = models.User || model('User', UserSchema);
     
-    const user = await UserModel.findOne({
+    const user = await (UserModel as any).findOne({
       _id: id,
       orgId: session.user.orgId || 'default',
     });
@@ -136,9 +136,9 @@ export async function PATCH(
     if (body.accessLevel) updates['security.accessLevel'] = body.accessLevel;
     if (body.status) updates.status = body.status;
     
-    await UserModel.updateOne({ _id: id }, { $set: updates });
+    await (UserModel as any).updateOne({ _id: id }, { $set: updates });
     
-    const updatedUser = await UserModel.findById(id);
+    const updatedUser = await (UserModel as any).findById(id);
     
     return NextResponse.json({ user: updatedUser });
   } catch (error) {

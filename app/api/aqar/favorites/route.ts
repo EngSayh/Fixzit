@@ -85,10 +85,10 @@ export async function GET(request: NextRequest) {
     // Step 2: Batch-fetch all listings and projects in parallel (with tenant isolation)
     const [listings, projects] = await Promise.all([
       listingIds.length > 0 
-        ? AqarListing.find({ _id: { $in: listingIds }, orgId: tenantOrgId }).lean()
+        ? (AqarListing as any).find({ _id: { $in: listingIds }, orgId: tenantOrgId }).lean()
         : [],
       projectIds.length > 0
-        ? AqarProject.find({ _id: { $in: projectIds }, orgId: tenantOrgId }).lean()
+        ? (AqarProject as any).find({ _id: { $in: projectIds }, orgId: tenantOrgId }).lean()
         : []
     ]);
     
@@ -183,12 +183,12 @@ export async function POST(request: NextRequest) {
     // Verify referenced target exists within same tenant (prevent cross-tenant favorites)
     const targetObjectId = new mongoose.Types.ObjectId(targetId);
     if (targetType === 'LISTING') {
-      const listingExists = await AqarListing.findOne({ _id: targetObjectId, orgId: tenantOrgId }).lean();
+      const listingExists = await (AqarListing as any).findOne({ _id: targetObjectId, orgId: tenantOrgId }).lean();
       if (!listingExists) {
         return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
       }
     } else if (targetType === 'PROJECT') {
-      const projectExists = await AqarProject.findOne({ _id: targetObjectId, orgId: tenantOrgId }).lean();
+      const projectExists = await (AqarProject as any).findOne({ _id: targetObjectId, orgId: tenantOrgId }).lean();
       if (!projectExists) {
         return NextResponse.json({ error: 'Project not found' }, { status: 404 });
       }

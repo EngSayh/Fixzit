@@ -121,8 +121,8 @@ export async function GET(request: NextRequest) {
     
     const select = '_id title price areaSqm city status media.coverImage analytics.views publishedAt';
     const [listings, total] = await Promise.all([
-      AqarListing.find(query).select(select).sort(sortQuery).skip(skip).limit(limit).lean(),
-      AqarListing.countDocuments(countQuery),
+      (AqarListing as any).find(query).select(select).sort(sortQuery).skip(skip).limit(limit).lean(),
+      (AqarListing as any).countDocuments(countQuery),
     ]);
     
     // Calculate facets - $near cannot be used in $match within $facet

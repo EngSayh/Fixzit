@@ -40,7 +40,7 @@ export async function POST(
     }
 
     // Fetch all ACTIVE employees
-    const employees = await Employee.find({
+    const employees = await (Employee as any).find({
       orgId: session.user.orgId,
       status: 'ACTIVE',
     });

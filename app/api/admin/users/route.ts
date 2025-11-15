@@ -89,14 +89,14 @@ export async function GET(request: NextRequest) {
       query['professional.role'] = role;
     }
     
-    const users = await UserModel.find(query)
+    const users = await (UserModel as any).find(query)
       .select('code username email phone personal professional security status createdAt')
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip(skip)
       .lean();
     
-    const total = await UserModel.countDocuments(query);
+    const total = await (UserModel as any).countDocuments(query);
     
     return NextResponse.json({ users, total });
   } catch (error) {
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
     const UserModel = models.User || model('User', UserSchema);
     
     // Check if user already exists
-    const existing = await UserModel.findOne({
+    const existing = await (UserModel as any).findOne({
       orgId: session.user.orgId || 'default',
       $or: [
         { email: body.email },
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
     
     const hashedPassword = await bcrypt.hash(body.password, 12); // 12 rounds = industry standard
     
-    const newUser = await UserModel.create({
+    const newUser = await (UserModel as any).create({
       orgId: session.user.orgId || 'default',
       code: body.code || `USER-${crypto.randomUUID()}`, // SECURITY: Use crypto instead of Date.now()
       username: body.username,

@@ -38,13 +38,13 @@ export async function GET(req: NextRequest) {
     // Execute query with pagination
     const skip = (page - 1) * limit;
     const [employees, total] = await Promise.all([
-      Employee.find(query)
+      (Employee as any).find(query)
         .select('-bank.iban -documents') // Exclude sensitive data by default
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      Employee.countDocuments(query),
+      (Employee as any).countDocuments(query),
     ]);
 
     return NextResponse.json({
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check for duplicate employee code within org
-    const existing = await Employee.findOne({
+    const existing = await (Employee as any).findOne({
       orgId: session.user.orgId,
       employeeCode: body.employeeCode,
     });
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create employee
-    const employee = await Employee.create({
+    const employee = await (Employee as any).create({
       ...body,
       orgId: session.user.orgId,
       status: body.status || 'ONBOARDING',

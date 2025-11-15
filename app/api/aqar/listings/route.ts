@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       }
       
       // Create listing
-      const created = await AqarListing.create({
+      const created = await (AqarListing as any).create({
         ...body,
         listerId: user.id,
         orgId: user.orgId || user.id,
