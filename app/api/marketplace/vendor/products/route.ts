@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
     
     // Secure response
     return createSecureResponse(
-      { ok: true, data: products.map(product => serializeProduct(product as Record<string, unknown>)) },
+      { ok: true, data: products.map((product: any) => serializeProduct(product as Record<string, unknown>)) },
       200,
       request
     );

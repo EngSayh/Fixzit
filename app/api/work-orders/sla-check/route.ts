@@ -99,7 +99,7 @@ export async function GET() {
       warning: 0,
       critical: 0,
       breached: 0,
-      workOrders: allWorkOrders.map(wo => {
+      workOrders: allWorkOrders.map((wo: any) => {
         const deadline = new Date(wo.sla?.deadline || Date.now());
         const diff = deadline.getTime() - now.getTime();
         const hours = Math.floor(Math.abs(diff) / (1000 * 60 * 60));
@@ -128,7 +128,7 @@ export async function GET() {
           urgency,
           hoursRemaining: diff > 0 ? hours : -hours
         };
-      }).sort((a, b) => a.hoursRemaining - b.hoursRemaining)
+      }).sort((a: any, b: any) => a.hoursRemaining - b.hoursRemaining)
     };
     
     return NextResponse.json({

@@ -252,6 +252,11 @@ function workflowToDocBase(
  * Route a quotation to appropriate approvers based on amount and category
  */
 export async function routeApproval(request: ApprovalRequest): Promise<ApprovalWorkflow> {
+  // Validate required fields
+  if (!request.orgId || !request.quotationId || !request.workOrderId) {
+    throw new Error('Missing required fields: orgId, quotationId, or workOrderId');
+  }
+  
   // Find matching policy
   const policy = APPROVAL_POLICIES.find(p => {
     const meetsAmount = request.amount >= (p.when.amountGte || 0);
@@ -276,7 +281,6 @@ export async function routeApproval(request: ApprovalRequest): Promise<ApprovalW
     await connectToDatabase();
     
     for (const roleReq of policy.require) {
-      // @ts-expect-error Mongoose 8 overload ambiguity
       const users = await User.find({
         'professional.role': roleReq.role,
         orgId: request.orgId,
@@ -320,7 +324,6 @@ export async function routeApproval(request: ApprovalRequest): Promise<ApprovalW
       const { User } = await import('@/server/models/User');
       
       for (const roleReq of policy.parallelWith) {
-        // @ts-expect-error Mongoose 8 overload ambiguity
         const users = await User.find({
           'professional.role': roleReq.role,
           orgId: request.orgId,
@@ -347,7 +350,7 @@ export async function routeApproval(request: ApprovalRequest): Promise<ApprovalW
   }
 
   return {
-    requestId: `APR-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+    requestId: `APR-${Date.now()}-${crypto.randomUUID().substring(0, 8)}`,
     quotationId: request.quotationId,
     workOrderId: request.workOrderId,
     stages,
@@ -370,10 +373,24 @@ export function processDecision(
     delegateTo?: string;
   }
 ): ApprovalWorkflow {
+  if (!approverId) {
+    throw new Error('approverId is required for processing decisions');
+  }
+  
   const currentStage = workflow.stages[workflow.currentStage - 1];
 
   if (!currentStage) {
-    throw new Error('Invalid workflow stage');
+    throw new Error(`Invalid workflow stage: ${workflow.currentStage}. Workflow has ${workflow.stages.length} stages.`);
+  }
+
+  // Verify approver is authorized for this stage (unless delegating)
+  if (decision !== 'delegate' && currentStage.approvers.length > 0 && !currentStage.approvers.includes(approverId)) {
+    logger.warn('[Approval] Unauthorized approver attempted decision', {
+      approverId,
+      authorizedApprovers: currentStage.approvers,
+      workflowId: workflow.requestId,
+    });
+    throw new Error('Approver not authorized for this workflow stage');
   }
 
   // Add decision
@@ -468,7 +485,6 @@ export async function checkTimeouts(workflow: ApprovalWorkflow, orgId: string): 
             currentStage.approverRoles.push(escalationRole);
             
             // Query and add escalation approvers with orgId filter
-            // @ts-expect-error Mongoose 8 overload ambiguity
             const escalationUsers = await User.find({
               'professional.role': escalationRole,
               orgId: orgId,
@@ -540,7 +556,6 @@ export async function saveApprovalWorkflow(
 
     const baseDoc = workflowToDocBase(workflow, request);
 
-    // @ts-expect-error Mongoose 8 overload ambiguity
     const savedApproval = await FMApproval.create({
       ...baseDoc,
       history: [
@@ -579,7 +594,6 @@ export async function saveApprovalWorkflow(
  */
 export async function getWorkflowById(workflowId: string, orgId: string): Promise<ApprovalWorkflow | null> {
   try {
-    // @ts-expect-error Mongoose 8 overload ambiguity
     const approval = await FMApproval.findOne({
       workflowId,
       orgId: orgId
@@ -607,7 +621,6 @@ export async function updateApprovalDecision(
   delegateTo?: string
 ): Promise<void> {
   try {
-    // @ts-expect-error Mongoose 8 overload ambiguity - Fixed: Use orgId (camelCase) as per schema
     const approval = await FMApproval.findOne({ workflowId, orgId: orgId });
     if (!approval) throw new Error(`Approval workflow ${workflowId} not found`);
 
@@ -653,12 +666,11 @@ export async function getPendingApprovalsForUser(
   orgId: string
 ): Promise<ApprovalWorkflow[]> {
   try {
-    // @ts-expect-error Mongoose 8 overload ambiguity
-    const approvals = (await FMApproval.find({
+    const approvals = await FMApproval.find({
       orgId: orgId,
       status: 'PENDING',
       'stages.approvers': userId, // search across all stages
-    }).lean<FMApprovalDoc>()) as FMApprovalDoc[];
+    }).lean<FMApprovalDoc>() as FMApprovalDoc[];
 
     return approvals.map(docToWorkflow);
   } catch (error: unknown) {
@@ -673,7 +685,6 @@ export async function getPendingApprovalsForUser(
  */
 export async function checkApprovalTimeouts(orgId: string): Promise<void> {
   try {
-    // @ts-expect-error Mongoose 8 overload ambiguity
     const overdueApprovals = await FMApproval.find({
       orgId: orgId,
       status: 'PENDING',
@@ -736,7 +747,6 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
         }> = [];
 
         for (const role of approvalPolicy.escalateTo) {
-          // @ts-expect-error Mongoose 8 overload ambiguity
           const users = await User.find({
             'professional.role': role,
             orgId: approval.orgId,
@@ -822,7 +832,6 @@ export async function notifyApprovers(
       return;
     }
     
-    // @ts-expect-error Mongoose 8 overload ambiguity
     const approvers = await User.find({
       _id: { $in: stage.approvers }
     }).select('_id email personal.firstName personal.lastName').lean<LeanUserDetailed>();

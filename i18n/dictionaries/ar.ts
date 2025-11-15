@@ -81,21 +81,21 @@ const ar = {
       preventive: 'الصيانة الوقائية',
       history: 'سجل الخدمات',
     },
-    properties: {
+    propertiesMenu: {
       list: 'قائمة وتفاصيل العقارات',
       unitsTenants: 'الوحدات والمستأجرون',
       leases: 'إدارة عقود الإيجار',
       inspections: 'التفتيش',
       documents: 'المستندات',
     },
-    finance: {
+    financeMenu: {
       invoices: 'الفواتير',
       payments: 'المدفوعات',
       expenses: 'المصروفات',
       budgets: 'الميزانيات',
       reports: 'تقارير المالية',
     },
-    hr: {
+    hrMenu: {
       directory: 'دليل الموظفين',
       attendanceLeave: 'الحضور والإجازات',
       payroll: 'الرواتب',
@@ -103,42 +103,42 @@ const ar = {
       training: 'التدريب',
       performance: 'الأداء',
     },
-    admin: {
+    adminMenu: {
       redirecting: 'جارِ إعادة التوجيه إلى الإدارة...',
       doa: 'تفويض الصلاحيات',
       policies: 'السياسات والإجراءات',
       assets: 'إدارة الأصول',
       facilitiesFleet: 'المرافق والأسطول',
     },
-    crm: {
+    crmMenu: {
       directory: 'دليل العملاء',
       leads: 'العملاء المحتملون',
       contracts: 'العقود',
       feedback: 'الملاحظات',
     },
-    marketplace: {
+    marketplaceMenu: {
       vendors: 'الموردون',
       catalog: 'كتالوج الخدمات والقطع',
       procurement: 'المشتريات',
       bidding: 'المناقصات / طلبات العروض',
     },
-    support: {
+    supportMenu: {
       tickets: 'التذاكر',
       kb: 'قاعدة المعرفة',
       chat: 'الدردشة المباشرة',
       sla: 'مراقبة اتفاقية مستوى الخدمة',
     },
-    compliance: {
+    complianceMenu: {
       contracts: 'العقود',
       disputes: 'النزاعات',
       auditRisk: 'المراجعة والمخاطر',
     },
-    reports: {
+    reportsMenu: {
       standard: 'التقارير القياسية',
       custom: 'التقارير المخصصة',
       dashboards: 'لوحات المعلومات',
     },
-    system: {
+    systemMenu: {
       users: 'المستخدمون',
       roles: 'الأدوار والصلاحيات',
       billing: 'الفوترة',

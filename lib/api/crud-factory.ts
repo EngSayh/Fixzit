@@ -46,7 +46,7 @@ function escapeRegex(str: string): string {
 
 export interface CrudFactoryOptions<T = unknown> {
   /** Mongoose Model */
-  Model: Model<T>;
+  Model: Model<T, any, any, any, any, any, any>;
   /** Zod schema for POST/create validation */
   createSchema?: ZodSchema;
   /** Zod schema for PUT/update validation (if different from create) */
@@ -164,10 +164,10 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
 
       // Execute query with pagination
       const [items, total] = await Promise.all([
-        Model.find(match)
+        (Model.find(match)
           .sort(defaultSort)
           .skip((page - 1) * limit)
-          .limit(limit)
+          .limit(limit) as any)
           .lean(), // Already using .lean() for 5-10x faster queries
         Model.countDocuments(match),
       ]);
@@ -374,7 +374,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
         query.org_id = user.orgId;
       }
 
-      const entity = await Model.findOne(query).lean();
+      const entity = await (Model.findOne(query) as any).lean();
 
       if (!entity) {
         const correlationId = crypto.randomUUID();
@@ -462,7 +462,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
         query.org_id = user.orgId;
       }
 
-      const entity = await Model.findOneAndUpdate(
+      const entity = await (Model.findOneAndUpdate(
         query,
         {
           $set: {
@@ -472,7 +472,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
           },
         },
         { new: true, runValidators: true }
-      ).lean();
+      ) as any).lean();
 
       if (!entity) {
         const correlationId = crypto.randomUUID();
@@ -553,7 +553,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
         query.org_id = user.orgId;
       }
 
-      const entity = await Model.findOneAndDelete(query).lean();
+      const entity = await (Model.findOneAndDelete(query) as any).lean();
 
       if (!entity) {
         const correlationId = crypto.randomUUID();

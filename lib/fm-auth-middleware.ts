@@ -254,6 +254,7 @@ export async function getPropertyOwnership(_propertyId: string): Promise<{
     await connectDb();
     
     // Try to import FMProperty model (may not exist yet)
+    // @ts-expect-error FMProperty model may not be created yet
     const FMPropertyModule = await import('@/server/models/FMProperty').catch(() => null);
     
     if (FMPropertyModule && FMPropertyModule.FMProperty) {
@@ -275,6 +276,7 @@ export async function getPropertyOwnership(_propertyId: string): Promise<{
     } else {
       // Fallback: Try WorkOrder model which may have propertyId reference
       logger.debug('[FM Auth] FMProperty model not found, checking WorkOrders');
+      // @ts-expect-error FMWorkOrder model may not be created yet
       const { FMWorkOrder } = await import('@/server/models/FMWorkOrder');
       const workOrder = await FMWorkOrder.findOne({ propertyId: _propertyId })
         .select('propertyOwnerId orgId')

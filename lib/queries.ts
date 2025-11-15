@@ -199,7 +199,7 @@ export async function getAttendanceSummary(orgId: string) {
   }
 
   const summary: Record<string, number> = {};
-  result.forEach((item: AttendanceSummaryResult) => {
+  (result as unknown as AttendanceSummaryResult[]).forEach((item: AttendanceSummaryResult) => {
     summary[item._id] = item.count;
   });
 

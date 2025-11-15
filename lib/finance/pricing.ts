@@ -42,13 +42,13 @@ export async function quotePrice(opts: {
     throw new Error('PriceBook not found');
   }
 
-  const tier = pb.tiers.find((t) => seats >= t.min_seats && seats <= t.max_seats);
+  const tier = pb.tiers.find((t: any) => seats >= t.min_seats && seats <= t.max_seats);
   if (!tier) {
     throw new Error('Tier not found');
   }
 
   const lines = modules.map((moduleKey) => {
-    const priceRow = tier.prices.find((row) => row.module_key === moduleKey);
+    const priceRow = tier.prices.find((row: any) => row.module_key === moduleKey);
     if (!priceRow) {
       throw new Error(`No price for module ${moduleKey}`);
     }

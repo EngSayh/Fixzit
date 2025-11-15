@@ -9,7 +9,7 @@ import { logger } from '@/lib/logger';
 import type { Model, Types, UpdateQuery, Document } from 'mongoose';
 
 interface IncrementOptions<T = unknown> {
-  model: Model<T>;
+  model: Model<T, any, any, any, any, any, any>;
   id: Types.ObjectId;
   updateOp: UpdateQuery<T>;
   entityType: string;

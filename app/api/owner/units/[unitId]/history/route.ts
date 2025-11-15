@@ -194,11 +194,11 @@ export async function GET(
         .limit(50)
         .lean();
       
-      const totalRevenue = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const totalRevenue = payments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
       
       historyData.revenue = {
         total: totalRevenue,
-        payments: payments.map(p => ({
+        payments: payments.map((p: any) => ({
           amount: p.amount,
           date: p.paymentDate,
           method: p.method,

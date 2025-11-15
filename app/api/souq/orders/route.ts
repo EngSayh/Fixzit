@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     let subtotal = 0;
 
     for (const itemRequest of validatedData.items) {
-      const listing = listings.find((l) => l._id.toString() === itemRequest.listingId);
+      const listing = listings.find((l: any) => l._id.toString() === itemRequest.listingId);
 
       if (!listing) {
         return NextResponse.json(

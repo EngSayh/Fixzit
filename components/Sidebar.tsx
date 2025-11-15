@@ -326,8 +326,10 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
       {!isCollapsed && (
         <div id={`section-${section.id}`} className="mt-2 space-y-1">
           {section.items.map((item) => {
-            const isActive = pathname === item.href || 
-              (item.href && pathname.startsWith(item.href + '/'));
+            const isActive = Boolean(
+              pathname === item.href || 
+              (item.href && pathname.startsWith(item.href + '/'))
+            );
             
             return (
               <NavigationItemComponent
@@ -355,8 +357,13 @@ const Sidebar: React.FC<SidebarProps> = ({ className, onNavigate, badgeCounts })
   const router = useRouter();
   
   // Get user role and subscription from session (properly typed now)
-  const userRole: UserRole = session?.user?.role || 'GUEST';
-  const subscriptionPlan: SubscriptionPlan = session?.user?.subscriptionPlan || 'FREE';
+  const userRole: UserRole = (session?.user?.role || 'GUEST') as UserRole;
+  const subscriptionPlan: SubscriptionPlan = (session?.user?.subscriptionPlan === 'FREE' || 
+    session?.user?.subscriptionPlan === 'STARTER' || 
+    session?.user?.subscriptionPlan === 'PROFESSIONAL' ||
+    session?.user?.subscriptionPlan === 'ENTERPRISE' 
+      ? session.user.subscriptionPlan 
+      : 'FREE') as SubscriptionPlan;
   
   // Detect RTL based on locale or user preference
   const isRTL = session?.user?.locale === 'ar' || false;

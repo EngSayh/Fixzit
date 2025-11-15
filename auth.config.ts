@@ -221,7 +221,8 @@ export const authConfig = {
             id: user._id.toString(),
             email: user.email,
             name: `${user.personal?.firstName || ''} ${user.personal?.lastName || ''}`.trim() || user.email,
-            role: user.professional?.role || user.role || 'USER',
+            role: user.professional?.role || user.role || 'GUEST',
+            subscriptionPlan: user.subscriptionPlan || 'FREE',
             orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || null),
             sessionId: null, // NextAuth will generate session ID
             rememberMe, // Pass rememberMe to session callbacks
@@ -294,7 +295,7 @@ export const authConfig = {
       // Add user info to token on first sign-in
       if (user) {
         token.id = user.id;
-        token.role = (user as ExtendedUser).role || 'USER';
+        token.role = (user as ExtendedUser).role as 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'VENDOR' | 'OWNER' | 'TENANT' | 'VIEWER' | 'GUEST' || 'GUEST';
         token.orgId = (user as ExtendedUser).orgId || null;
         
         // Handle rememberMe for credentials provider

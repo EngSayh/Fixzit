@@ -202,12 +202,12 @@ export async function updateOwnerStatement(
   
   // Calculate totals from database records
   const expenses = existingTransactions
-    .filter(t => t.type === 'EXPENSE')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .filter((t: any) => t.type === 'EXPENSE')
+    .reduce((sum: number, t: any) => sum + t.amount, 0);
   
   const revenue = existingTransactions
-    .filter(t => t.type === 'INVOICE' && t.status === 'PAID')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .filter((t: any) => t.type === 'INVOICE' && t.status === 'PAID')
+    .reduce((sum: number, t: any) => sum + t.amount, 0);
 
   logger.info(`[Finance] Total expenses: ${expenses} SAR`);
   logger.info(`[Finance] Total revenue: ${revenue} SAR`);
@@ -233,7 +233,7 @@ export async function generateOwnerStatement(
   }).sort({ transactionDate: 1 }));
 
   // Convert to interface format
-  const transactions: FinancialTransaction[] = dbTransactions.map((t) => {
+  const transactions: FinancialTransaction[] = dbTransactions.map((t: any) => {
     const doc = t as unknown as { _id: { toString(): string } };
     return {
       id: doc._id.toString(),
@@ -288,7 +288,7 @@ export async function getTenantPendingInvoices(
   }).sort({ dueDate: 1 }));
 
   // Convert to interface format
-  return dbInvoices.map((t) => {
+  return dbInvoices.map((t: any) => {
     const doc = t as unknown as { _id: { toString(): string } };
     return {
       id: doc._id.toString(),

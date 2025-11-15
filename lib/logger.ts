@@ -86,9 +86,7 @@ class Logger {
         if (Sentry) {
           // Pass original Error if available, otherwise create new Error with cause
           let errorToCapture: Error;
-          if (message instanceof Error) {
-            errorToCapture = message;
-          } else if (context?.error instanceof Error) {
+          if (context?.error instanceof Error) {
             errorToCapture = context.error;
           } else {
             errorToCapture = new Error(message, {

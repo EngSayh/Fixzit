@@ -95,7 +95,7 @@ jobs:
 
       - name: Fixzit Agent (dry, full similarity)
         shell: bash
-        run: node scripts/fixzit-agent.mjs --report --port 3000 --keepAlive=false --limit=0 || true
+        run: node scripts/fixzit-agent.mjs --report --port 3000 --keepAlive=false --limit=0
 
       - name: Delta & Regression checks
         shell: bash
@@ -106,18 +106,18 @@ jobs:
         shell: bash
         run: |
           case "${{ steps.pm.outputs.manager }}" in
-            pnpm) pnpm lint || pnpm run eslint . || echo "Lint completed with warnings" ;;
-            yarn) yarn lint || yarn run eslint . || echo "Lint completed with warnings" ;;
-            *) npm run lint || npm run eslint . || echo "Lint completed with warnings" ;;
+            pnpm) pnpm lint || pnpm run eslint . ;;
+            yarn) yarn lint || yarn run eslint . ;;
+            *) npm run lint || npm run eslint . ;;
           esac
           
       - name: Typecheck
         shell: bash
         run: |
           case "${{ steps.pm.outputs.manager }}" in
-            pnpm) pnpm typecheck || pnpm run tsc --noEmit || echo "Typecheck completed with warnings" ;;
-            yarn) yarn typecheck || yarn run tsc --noEmit || echo "Typecheck completed with warnings" ;;
-            *) npm run typecheck || npm run tsc --noEmit || echo "Typecheck completed with warnings" ;;
+            pnpm) pnpm typecheck || pnpm run tsc --noEmit ;;
+            yarn) yarn typecheck || yarn run tsc --noEmit ;;
+            *) npm run typecheck || npm run tsc --noEmit ;;
           esac
 
       # ---------- Unit Tests -------------
@@ -306,9 +306,12 @@ jobs:
               ;;
           esac
           
-          if [ "${audit_status}" -ne 0 ]; then
+          # Fail on critical vulnerabilities (audit level 4+)
+          if [ "${audit_status}" -ge 16 ]; then
+            echo "::error::Critical security vulnerabilities detected. See .artifacts/dep-audit.json"
+            exit 1
+          elif [ "${audit_status}" -ne 0 ]; then
             echo "::warning::Dependency audit detected issues. See .artifacts/dep-audit.json for details."
-            # Don't fail the build, just warn
           fi
 
       # ---------- k6 Smoke (package only) ----------

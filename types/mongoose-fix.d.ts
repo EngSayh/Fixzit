@@ -12,9 +12,20 @@
  * Reference: https://github.com/Automattic/mongoose/issues/13752
  */
 
-import { Model, Document, FilterQuery, UpdateQuery, QueryOptions } from 'mongoose';
+import type { Model as MongooseModel, Document, FilterQuery, UpdateQuery, QueryOptions } from 'mongoose';
 
 declare module 'mongoose' {
+  // Simplify Model type to avoid requiring all 7 generic parameters
+  export type Model<
+    T,
+    TQueryHelpers = any,
+    TInstanceMethods = any,
+    TVirtuals = any,
+    THydratedDocumentType = any,
+    TSchema = any,
+    TRest = any
+  > = MongooseModel<T, TQueryHelpers, TInstanceMethods, TVirtuals, THydratedDocumentType, TSchema, TRest>;
+  
   interface Model<T> {
     findOneAndUpdate(
       filter: FilterQuery<T>,

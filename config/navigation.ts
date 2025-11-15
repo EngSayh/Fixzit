@@ -1433,7 +1433,7 @@ function filterNavigationItems(
         children: filteredChildren,
       };
     })
-    .filter((item): item is NavigationItem => item !== null);
+    .filter(item => item !== null) as NavigationItem[];
 }
 
 /**
