@@ -72,6 +72,7 @@ vi.mock("@/lib/mongo", () => ({
 // Models
 const workOrderCreate = vi.fn();
 const workOrderFind = vi.fn();
+const workOrderFindOne = vi.fn();
 const workOrderFindOneAndUpdate = vi.fn();
 
 const ownerStatementFind = vi.fn();
@@ -80,6 +81,7 @@ vi.mock("@/server/models/WorkOrder", () => ({
   WorkOrder: {
     create: workOrderCreate,
     find: workOrderFind,
+    findOne: workOrderFindOne,
     findOneAndUpdate: workOrderFindOneAndUpdate,
   },
 }));

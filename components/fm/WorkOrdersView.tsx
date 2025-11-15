@@ -258,8 +258,8 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
           const dueMeta = getDueMeta(dueAt);
           const slaWindowMinutes = workOrder.sla?.resolutionTimeMinutes ?? workOrder.slaMinutes;
           const code = workOrder.workOrderNumber || workOrder.code || workOrder.id;
-          const assignedUser = workOrder.assignment?.assignedTo?.userId || workOrder.assigneeUserId;
-          const assignedVendor = workOrder.assignment?.assignedTo?.vendorId || workOrder.assigneeVendorId;
+          const assignedUser = workOrder.assignment?.assignedTo?.userId || (workOrder as any).assigneeUserId;
+          const assignedVendor = workOrder.assignment?.assignedTo?.vendorId || (workOrder as any).assigneeVendorId;
           const propertyId = workOrder.location?.propertyId || workOrder.propertyId;
           return (
             <Card key={workOrder.id} className="border border-border shadow-sm">

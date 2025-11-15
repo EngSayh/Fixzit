@@ -32,7 +32,7 @@ async function call(path: string, init: any = {}) {
     if (created.error) {
       console.log("⚠️  Create endpoint not ready yet - this is expected for initial setup");
     } else {
-      assert(created.code.startsWith("WO-"));
+      assert((created.workOrderNumber || created.code || '').startsWith("WO-"));
       console.log("✅ Create endpoint working");
 
       // Test 2: List Work Orders
@@ -50,7 +50,8 @@ async function call(path: string, init: any = {}) {
         if (assigned.error) {
           console.log("⚠️  Assign endpoint not ready yet");
         } else {
-          assert(assigned.assigneeUserId === "tech-007");
+          const assignedUser = assigned.assignment?.assignedTo?.userId || assigned.assigneeUserId;
+          assert(assignedUser === "tech-007");
           console.log("✅ Assign endpoint working");
 
           // Test 4: Update Status

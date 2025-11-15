@@ -59,8 +59,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
   // End user may reply only to own ticket; admins can reply to any
   const isAdmin = !!user && ["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role);
-  // TODO(type-safety): Verify ticket schema has createdByUserId field
-  const isOwner = !!user && t.createdBy?.toString?.() === user.id;
+  const isOwner = !!user && (t as any).createdBy?.toString?.() === user.id;
   if (!isAdmin && !isOwner) return createSecureResponse({ error: "Forbidden"}, 403, req);
 
   const ticketDoc = t as unknown as {

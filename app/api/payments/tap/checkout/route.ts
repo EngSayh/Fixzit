@@ -7,7 +7,7 @@ import {
   buildWebhookConfig,
   type TapChargeRequest,
 } from '@/lib/finance/tap-payments';
-import { getSessionUser } from '@/lib/auth';
+import { getSessionUser } from '@/lib/auth-middleware';
 
 /**
  * POST /api/payments/tap/checkout
@@ -34,16 +34,16 @@ export async function POST(req: NextRequest) {
 
   try {
     // Authenticate user
-    const session = await getSessionUser();
-    if (!session || !session.user) {
+    let user: any;
+    try {
+      user = await getSessionUser(req);
+    } catch (_error) {
       logger.warn('[POST /api/payments/tap/checkout] Unauthenticated request', { correlationId });
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
-
-    const user = session.user;
 
     // Parse request body
     const body = await req.json();
@@ -162,8 +162,10 @@ export async function GET(req: NextRequest) {
 
   try {
     // Authenticate user
-    const session = await getSessionUser();
-    if (!session || !session.user) {
+    let user: any;
+    try {
+      user = await getSessionUser(req);
+    } catch (_error) {
       logger.warn('[GET /api/payments/tap/checkout] Unauthenticated request', { correlationId });
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -186,7 +188,7 @@ export async function GET(req: NextRequest) {
     logger.info('[GET /api/payments/tap/checkout] Retrieving charge', {
       correlationId,
       chargeId,
-      userId: session.user.id,
+      userId: user.id,
     });
 
     // Retrieve charge from Tap

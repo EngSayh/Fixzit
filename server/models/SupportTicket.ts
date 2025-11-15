@@ -22,7 +22,7 @@ const SupportTicketSchema = new Schema({
   subCategory: { type: String, enum: ["Bug Report","Performance Issue","UI Error","API Error","Database Error","New Feature","Enhancement","Integration","Customization","Mobile App","Invoice Issue","Payment Error","Subscription","Refund","Pricing","Login Issue","Password Reset","Profile Update","Permissions","Access Denied","Documentation","Training","Support","Feedback","Other","Critical Bug","Minor Bug","Cosmetic Issue","Data Error","Security Issue"], default: "Other" },
   status: { type: String, enum: ["New","Open","Waiting","Resolved","Closed"], default: "New" },
   
-  // createdByUserId will be added by auditPlugin as 'createdBy'
+  // createdBy will be added by auditPlugin
   
   requester: { name:String, email:String, phone:String },
   messages: { type: [Message], default: [] },

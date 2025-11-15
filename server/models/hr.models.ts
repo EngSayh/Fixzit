@@ -98,7 +98,7 @@ interface EmployeeDocumentRecord {
   fileId?: string;
 }
 
-interface TechnicianProfile {
+export interface TechnicianProfile {
   isTechnician: boolean;
   skills: string[];
   grade?: 'JUNIOR' | 'MID' | 'SENIOR' | 'SUPERVISOR';
