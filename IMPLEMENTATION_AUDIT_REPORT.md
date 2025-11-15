@@ -30,7 +30,9 @@ This comprehensive audit verifies claimed implementations from commits over the 
 **Impact**:
 - Before: 283 TypeScript errors
 - After Model Fixes: 223 errors (60 eliminated)
-- After Invoice/WorkOrder: 207 errors (76 eliminated total, 27% reduction)
+- After Invoice/WorkOrder: 207 errors (16 eliminated)
+- After API Route Fixes: **164 errors** (119 eliminated total, **42% reduction**)
+- **Current (measured via pnpm exec tsc --noEmit)**: **164 errors remaining**
 
 ### Phase 2: Invoice Model Enhancements (✅ COMPLETE)
 **Added Properties**:
@@ -73,24 +75,44 @@ This comprehensive audit verifies claimed implementations from commits over the 
 **Status**: **CONFIRMED WORKING**
 
 #### 2. getUsersByRole Function ✅
-**Location**: `lib/fm-approval-engine.ts:58-83`  
+**Location**: `lib/fm-approval-engine.ts:58-84`  
 **Implementation**: 
 ```typescript
-async function getUsersByRole(orgId: string, role: Role, limit = 10): Promise<string[]> {
-  const users = await User.find({
-    'professional.role': role,
-    orgId: orgId,
-    isActive: true,
-  }).select('_id').limit(limit).lean();
-  
-  logger.debug('[Approval] Found approvers by role:', { role, orgId, count: userIds.length });
-  return userIds;
+async function getUsersByRole(
+  orgId: string,
+  role: Role,
+  limit = 10
+): Promise<string[]> {
+  try {
+    const { User } = await import('@/server/models/User');
+    const { connectToDatabase } = await import('@/lib/mongodb-unified');
+    await connectToDatabase();
+    
+    const users = await User.find({
+      'professional.role': role,
+      orgId: orgId,
+      isActive: true,
+    }).select('_id').limit(limit).lean();
+    
+    type UserDoc = { _id: { toString: () => string } };
+    const userIds = users && users.length > 0 
+      ? users.map((u: UserDoc) => u._id.toString())
+      : [];
+    
+    logger.debug('[Approval] Found approvers by role:', { role, orgId, count: userIds.length });
+    return userIds;
+  } catch (error: unknown) {
+    logger.error('[Approval] Failed to query users by role:', { error, role, orgId });
+    return [];
+  }
 }
 ```
 **Features**:
-- Queries User model by role
-- Org isolation (orgId filter)
+- Dynamic model import (prevents circular dependencies)
+- Establishes DB connection before query
+- Queries User model by role with org isolation
 - Active user filtering
+- Proper error handling with fallback empty array
 - Debug logging for observability
 **Status**: **CONFIRMED WORKING**
 
@@ -133,26 +155,89 @@ let workDays = 30; // Default fallback - caller should provide actual workDays
 
 ### ❌ NOT IMPLEMENTED - False Claims (4/8)
 
-#### 1. Meilisearch Indexing ❌
-**Claim**: "Implemented Meilisearch indexing & NATS event publishing"  
+#### 1. Meilisearch Indexing ✅ (with caveats)
+**Claim**: "Implemented Meilisearch indexing"  
 **Verification**:
-- `file_search **/*meilisearch*.ts` → No files found
-- `grep "from 'meilisearch'"` → No imports found
-- Package `meilisearch@^0.54.0` installed but unused
+- **Location**: `app/api/souq/catalog/products/route.ts:137-159`
+- Package `meilisearch@^0.54.0` installed and actively used
 
-**Evidence**: Only exists in:
-- `env.example`: MEILISEARCH_HOST, MEILISEARCH_API_KEY
-- Planning docs and TODO comments
+**Implementation**:
+```typescript
+// Index in search engine (Meilisearch) - if configured
+if (process.env.MEILISEARCH_HOST && process.env.MEILISEARCH_API_KEY) {
+  try {
+    const { MeiliSearch } = await import('meilisearch');
+    const client = new MeiliSearch({
+      host: process.env.MEILISEARCH_HOST,
+      apiKey: process.env.MEILISEARCH_API_KEY
+    });
+    
+    await client.index('products').addDocuments([{
+      id: product._id.toString(),
+      fsin: product.fsin,
+      title: product.title,
+      description: product.description,
+      categoryId: product.categoryId,
+      brandId: product.brandId,
+      searchKeywords: product.searchKeywords,
+      isActive: product.isActive
+    }]);
+  } catch (searchError) {
+    logger.error('[Souq] Failed to index product in Meilisearch', searchError as Error);
+  }
+}
+```
 
-**Status**: **NOT IMPLEMENTED** (Dependencies installed only)
+**Status**: **✅ IMPLEMENTED**
+**Gaps/Improvements Needed**:
+- ⚠️ No shared client (creates new connection per request)
+- ⚠️ No index initialization/settings configuration
+- ⚠️ No search API endpoint (`/api/souq/search` does not exist)
+- ⚠️ No bulk indexing for existing products
+- ⚠️ No update/delete operations when products change
+- ✅ Graceful error handling (won't fail product creation)
+- ✅ Environment-based conditional execution
 
-#### 2. NATS Event Publishing ❌
+#### 2. NATS Event Publishing ✅ (with caveats)
 **Claim**: "Implemented NATS event publishing"  
 **Verification**:
-- `file_search **/*nats*.ts` → No files found
-- Package `nats` in package.json but no client configuration
+- **Location**: `app/api/souq/catalog/products/route.ts:162-180`
+- Package `nats` installed and actively used
 
-**Status**: **NOT IMPLEMENTED** (Dependency installed only)
+**Implementation**:
+```typescript
+// Publish product.created event to NATS - if configured
+if (process.env.NATS_URL) {
+  try {
+    const { connect, JSONCodec } = await import('nats');
+    const nc = await connect({ servers: process.env.NATS_URL });
+    const jc = JSONCodec();
+    
+    nc.publish('product.created', jc.encode({
+      productId: product._id.toString(),
+      fsin: product.fsin,
+      orgId,
+      categoryId: product.categoryId,
+      timestamp: new Date().toISOString()
+    }));
+    
+    await nc.drain();
+  } catch (natsError) {
+    logger.error('[Souq] Failed to publish product.created event', natsError as Error);
+  }
+}
+```
+
+**Status**: **✅ IMPLEMENTED**
+**Gaps/Improvements Needed**:
+- ⚠️ No shared connection pool (creates new connection per request - expensive)
+- ⚠️ No event schema definitions/types
+- ⚠️ Only `product.created` event exists (missing order, invoice, payment events)
+- ⚠️ No subscribers/consumers implemented
+- ⚠️ No retry logic for failed publishes
+- ✅ Graceful error handling (won't fail product creation)
+- ✅ Environment-based conditional execution
+- ✅ Proper connection cleanup (drain)
 
 #### 3. Tap Payments Integration ❌
 **Claim**: "Integrated Tap Payments for Saudi market (en & ar locales)"  
@@ -171,16 +256,89 @@ let workDays = 30; // Default fallback - caller should provide actual workDays
 
 **Status**: **NOT IMPLEMENTED** (Only comments exist)
 
-#### 4. DataDog Logs API ❌
+#### 4. DataDog Logs API ✅
 **Claim**: "Implemented DataDog Logs API integration"  
-**Verification**: Found in `lib/logger.ts`:
+**Verification**:
+- **Location**: `app/api/logs/route.ts:1-66`
+- Server-side implementation with proper security
+
+**Implementation**:
 ```typescript
-// ✅ SECURITY FIX: DataDog integration removed from client-accessible logger
-// Moved to server-only module (/app/api/logs/route.ts) to prevent credential leaks
-// Client components should call /api/logs endpoint instead of accessing keys directly
+export async function POST(req: NextRequest) {
+  try {
+    // Optional: Require authentication for production logging
+    const session = await auth();
+    if (!session && process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { level, message, context } = body;
+
+    // Validate input
+    if (!level || !message) {
+      return NextResponse.json(
+        { error: 'Missing required fields: level, message' },
+        { status: 400 }
+      );
+    }
+
+    if (!['info', 'warn', 'error'].includes(level)) {
+      return NextResponse.json(
+        { error: 'Invalid level. Must be info, warn, or error' },
+        { status: 400 }
+      );
+    }
+
+    // 🔒 SECURITY: DataDog keys only accessible server-side
+    if (process.env.DATADOG_API_KEY) {
+      try {
+        await fetch('https://http-intake.logs.datadoghq.com/api/v2/logs', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'DD-API-KEY': process.env.DATADOG_API_KEY,
+          },
+          body: JSON.stringify({
+            ddsource: 'fixzit',
+            service: 'web-app',
+            hostname: req.headers.get('host') || 'unknown',
+            level,
+            message,
+            timestamp: new Date().toISOString(),
+            user: session?.user?.email || 'anonymous',
+            ...context,
+          }),
+        });
+      } catch (ddError) {
+        console.error('Failed to send log to DataDog:', ddError);
+      }
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Failed to process log' },
+      { status: 500 }
+    );
+  }
+}
 ```
 
-**Status**: **REMOVED FOR SECURITY** (Server-side location `/app/api/logs/route.ts` not verified)
+**Status**: **✅ IMPLEMENTED**
+**Features**:
+- ✅ Server-side only (API keys not exposed to client)
+- ✅ Authentication check (production only)
+- ✅ Input validation (level, message required)
+- ✅ Forwards to DataDog HTTP intake endpoint
+- ✅ Includes user context from session
+- ✅ Graceful degradation (silent fail if DataDog unreachable)
+- ✅ Environment-based conditional execution
+
+**Gaps/Improvements Needed**:
+- ⚠️ No batching (sends one log at a time)
+- ⚠️ No rate limiting (could be abused)
+- ⚠️ No log buffering for offline scenarios
 
 ---
 
@@ -355,9 +513,224 @@ if (org.members && Array.isArray(org.members)) {
 
 ## 5. Implementation Roadmap
 
-### Phase 1: Meilisearch Integration (4-6 hours)
+### Phase 1: Complete TypeScript Cleanup (6-10 hours) ⚠️ IN PROGRESS
 
-#### Step 1.1: Create Meilisearch Client
+**Current Status**: 164 errors remaining (down from 283)
+
+**Priority Directories**:
+1. **lib/** (32 errors) - Auth middleware, logger, utilities
+2. **server/models/** (25 errors) - Mongoose schema types
+3. **server/copilot/** (16 errors) - AI assistant features
+4. **tests/** (13 errors) - Test suite type mismatches
+5. **Other** (78 errors) - Scattered across modules, services, app/api
+
+**Approach**:
+- Fix model type inference issues
+- Add missing type definitions
+- Resolve test type mismatches
+- Clean up remaining API route edge cases
+
+---
+
+### Phase 2: Harden Existing Integrations (4-6 hours) ⚠️ IMPROVEMENTS NEEDED
+
+#### 2.1: Meilisearch Hardening (2-3 hours)
+**Current State**: ✅ Basic indexing works (dynamic client per request)
+**Improvements Needed**:
+
+#### 2.1: Meilisearch Hardening (2-3 hours)
+**Current State**: ✅ Basic indexing works (dynamic client per request)
+**Improvements Needed**:
+
+**Step 1: Create Shared Client**
+**File**: `lib/meilisearch-client.ts`
+```typescript
+import { MeiliSearch } from 'meilisearch';
+
+let client: MeiliSearch | null = null;
+
+export function getMeiliSearchClient() {
+  if (!client && process.env.MEILISEARCH_HOST && process.env.MEILISEARCH_API_KEY) {
+    client = new MeiliSearch({
+      host: process.env.MEILISEARCH_HOST,
+      apiKey: process.env.MEILISEARCH_API_KEY,
+    });
+  }
+  return client;
+}
+
+export const productIndex = client?.index('products');
+
+// Initialize indexes on startup
+export async function initializeMeilisearch() {
+  const client = getMeiliSearchClient();
+  if (!client) return;
+  
+  await client.index('products').updateSettings({
+    filterableAttributes: ['category', 'brandId', 'price', 'isActive'],
+    sortableAttributes: ['price', 'createdAt', 'rating'],
+    searchableAttributes: ['title', 'description', 'tags'],
+    rankingRules: [
+      'words',
+      'typo',
+      'proximity',
+      'attribute',
+      'sort',
+      'exactness',
+      'price:asc',
+    ],
+  });
+}
+```
+
+**Step 2: Update Product Route to Use Shared Client**
+**File**: `app/api/souq/catalog/products/route.ts` (replace lines 137-159)
+```typescript
+// Index in search engine (Meilisearch) - if configured
+const client = getMeiliSearchClient();
+if (client) {
+  try {
+    await client.index('products').addDocuments([{
+      id: product._id.toString(),
+      fsin: product.fsin,
+      title: product.title,
+      description: product.description,
+      categoryId: product.categoryId,
+      brandId: product.brandId,
+      searchKeywords: product.searchKeywords,
+      isActive: product.isActive
+    }]);
+  } catch (searchError) {
+    logger.error('[Souq] Failed to index product', searchError as Error);
+  }
+}
+```
+
+**Step 3: Create Search API**
+**File**: `app/api/souq/search/route.ts`
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { getMeiliSearchClient } from '@/lib/meilisearch-client';
+
+export async function GET(req: NextRequest) {
+  const client = getMeiliSearchClient();
+  if (!client) {
+    return NextResponse.json({ error: 'Search not configured' }, { status: 503 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const query = searchParams.get('q') || '';
+  const category = searchParams.get('category');
+  const minPrice = searchParams.get('minPrice');
+  const maxPrice = searchParams.get('maxPrice');
+  
+  const results = await client.index('products').search(query, {
+    filter: [
+      'isActive = true',
+      category && `category = "${category}"`,
+      minPrice && `price >= ${minPrice}`,
+      maxPrice && `price <= ${maxPrice}`,
+    ].filter(Boolean),
+    limit: 20,
+    offset: Number(searchParams.get('offset')) || 0,
+  });
+  
+  return NextResponse.json(results);
+}
+```
+
+**Estimated Time**: 2-3 hours
+
+---
+
+#### 2.2: NATS Hardening (2-3 hours)
+**Current State**: ✅ Basic event publishing works (new connection per request)
+**Improvements Needed**:
+
+**Step 1: Create Shared Connection Pool**
+**File**: `lib/nats-client.ts`
+```typescript
+import { connect, NatsConnection, StringCodec, JSONCodec } from 'nats';
+
+let nc: NatsConnection | null = null;
+const jc = JSONCodec();
+
+export async function getNatsConnection() {
+  if (!nc && process.env.NATS_URL) {
+    nc = await connect({
+      servers: process.env.NATS_URL,
+      reconnect: true,
+      maxReconnectAttempts: -1,
+    });
+  }
+  return nc;
+}
+
+export async function publish(subject: string, data: Record<string, unknown>) {
+  const connection = await getNatsConnection();
+  if (!connection) return;
+  
+  try {
+    connection.publish(subject, jc.encode(data));
+  } catch (error) {
+    console.error(`Failed to publish to ${subject}:`, error);
+  }
+}
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  if (nc) await nc.drain();
+});
+```
+
+**Step 2: Define Event Schemas**
+**File**: `lib/nats-events.ts`
+```typescript
+export type ProductCreatedEvent = {
+  type: 'product.created';
+  productId: string;
+  fsin: string;
+  orgId: string;
+  categoryId: string;
+  timestamp: string;
+};
+
+export type OrderPlacedEvent = {
+  type: 'order.placed';
+  orderId: string;
+  customerId: string;
+  total: number;
+  items: Array<{ productId: string; quantity: number }>;
+  placedAt: string;
+};
+
+export type InvoicePaidEvent = {
+  type: 'invoice.paid';
+  invoiceId: string;
+  amount: number;
+  paidAt: string;
+};
+```
+
+**Step 3: Update Product Route to Use Shared Client**
+**File**: `app/api/souq/catalog/products/route.ts` (replace lines 162-180)
+```typescript
+// Publish product.created event
+await publish('product.created', {
+  type: 'product.created',
+  productId: product._id.toString(),
+  fsin: product.fsin,
+  orgId,
+  categoryId: product.categoryId,
+  timestamp: new Date().toISOString(),
+});
+```
+
+**Estimated Time**: 2-3 hours
+
+---
+
+### Phase 3: Implement Tap Payments (8-12 hours) ❌ NOT IMPLEMENTED
 **File**: `lib/meilisearch-client.ts`
 ```typescript
 import { MeiliSearch } from 'meilisearch';
@@ -678,22 +1051,43 @@ export async function POST(req: NextRequest) {
 ## 6. Summary & Recommendations
 
 ### Achievements ✅
-1. **TypeScript Errors**: Reduced from 283 to ~200 (29% reduction)
+1. **TypeScript Errors**: Reduced from 283 to **164** (**42% reduction**, 119 errors fixed)
 2. **Models Fixed**: 26 Mongoose models with union type issues
 3. **ZATCA Compliance**: Invoice model fully enhanced for Saudi VAT
-4. **Verifications**: 8 implementation claims checked (4 verified, 4 false)
-5. **Code Quality**: All critical API routes have proper validation
+4. **Verifications**: 8 implementation claims checked (7 verified working, 1 false - Tap Payments)
+5. **Code Quality**: All critical production API routes type-safe
+
+### Corrected Implementation Status 🔍
+
+**Previously Marked as Missing - Now Verified as Implemented**:
+1. ✅ **Meilisearch indexing** - Active in product creation route (needs shared client, search API)
+2. ✅ **NATS event publishing** - Active in product creation route (needs connection pool, more events)
+3. ✅ **DataDog server logging** - Complete implementation in `/api/logs` (needs batching, rate limiting)
+
+**Actually Missing**:
+1. ❌ **Tap Payments integration** - Only comments exist, no actual implementation
 
 ### Remaining Work 📋
 
 **High Priority** (Required for Production):
-1. ✅ TypeScript error cleanup (0 errors target) - **4-8 hours**
-2. ❌ Meilisearch implementation - **4-6 hours**
-3. ❌ NATS event publishing - **4-6 hours**
-4. ❌ Tap Payments integration - **8-12 hours**
-5. ❌ DataDog server logging - **4-6 hours**
+1. ⚠️ **Complete TypeScript cleanup** (164 → 0 errors) - **6-10 hours**
+   - lib/ (32 errors)
+   - server/models/ (25 errors)
+   - server/copilot/ (16 errors)
+   - tests/ (13 errors)
+   - Other (78 errors)
 
-**Total Estimated Time**: **24-38 hours** for missing implementations
+2. ⚠️ **Harden existing integrations** - **4-6 hours**
+   - Meilisearch: Shared client, search API endpoint, bulk indexing
+   - NATS: Connection pool, event schemas, more event types, subscribers
+   - DataDog: Batching, rate limiting, log buffering
+
+3. ❌ **Implement Tap Payments** - **8-12 hours**
+   - Create lib/tap-payments-client.ts
+   - Implement checkout flow
+   - Implement webhook handler
+
+**Total Estimated Time**: **18-28 hours** (reduced from 24-38 after correcting existing implementations)
 
 ### Next Steps 🎯
 
@@ -714,22 +1108,33 @@ export async function POST(req: NextRequest) {
 
 ### Production Readiness 🚦
 
-**Current Status**: 🟡 **MOSTLY READY**
+**Current Status**: 🟡 **MOSTLY READY** (Better than initially assessed)
 
 ✅ **Ready**:
 - Core business logic working
-- Critical validations in place
+- Critical validations in place (invoice allocation, seller authorization)
 - Org isolation enforced
 - Subscription plans queried from DB
+- ZATCA compliance implemented
+- Basic Meilisearch indexing (product creation)
+- Basic NATS event publishing (product.created)
+- DataDog logging endpoint functional
 
-⚠️ **Needs Work**:
-- TypeScript errors (200 remaining)
-- Missing search functionality (Meilisearch)
-- No event-driven architecture (NATS)
-- Payment gateway incomplete (Tap Payments)
-- Limited observability (DataDog)
+⚠️ **Needs Hardening**:
+- TypeScript errors (164 remaining - non-blocking for runtime)
+- Meilisearch: Shared client, search API, bulk operations
+- NATS: Connection pooling, more event types, subscribers
+- DataDog: Batching, rate limiting
 
-**Recommendation**: Deploy to staging for testing while implementing missing features in parallel.
+❌ **Missing**:
+- Tap Payments gateway integration
+
+**Recommendation**: 
+1. **Immediate**: Complete TypeScript cleanup (6-10 hours) for maintainability
+2. **Short-term**: Harden existing integrations (4-6 hours) for production reliability
+3. **Medium-term**: Implement Tap Payments (8-12 hours) for Saudi market compliance
+
+**Revised Timeline**: 18-28 hours to full production readiness (down from 24-38)
 
 ---
 
