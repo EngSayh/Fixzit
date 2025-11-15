@@ -342,6 +342,9 @@ importers:
       globby:
         specifier: ^15.0.0
         version: 15.0.0
+      import-in-the-middle:
+        specifier: ^1.15.0
+        version: 1.15.0
       js-yaml:
         specifier: ^4.1.0
         version: 4.1.0
@@ -390,6 +393,9 @@ importers:
       recast:
         specifier: ^0.23.11
         version: 0.23.11
+      require-in-the-middle:
+        specifier: ^7.5.2
+        version: 7.5.2
       rimraf:
         specifier: ^6.1.0
         version: 6.1.0

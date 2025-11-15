@@ -1,7 +1,7 @@
 'use client';
 import { logger } from '@/lib/logger';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import dynamic from 'next/dynamic';
@@ -11,6 +11,65 @@ import HtmlAttrs from './HtmlAttrs';
 import PreferenceBroadcast from './PreferenceBroadcast';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { UserRole, type UserRoleType } from '@/types/user';
+import useSWR from 'swr';
+import type { BadgeCounts } from '@/config/navigation';
+
+const countersFetcher = async (url: string) => {
+  const response = await fetch(url, { credentials: 'include' });
+  if (!response.ok) {
+    throw new Error('Failed to fetch counters');
+  }
+  return response.json();
+};
+
+const mapCountersToBadgeCounts = (counters?: Record<string, any>): BadgeCounts | undefined => {
+  if (!counters) return undefined;
+  const value: BadgeCounts = {};
+
+  const setCount = (key: keyof BadgeCounts, input?: number) => {
+    if (typeof input === 'number' && Number.isFinite(input)) {
+      value[key] = input;
+    }
+  };
+
+  const workOrders = counters.workOrders ?? {};
+  setCount('work_orders', workOrders.total);
+  setCount('pending_work_orders', workOrders.open);
+  setCount('in_progress_work_orders', workOrders.inProgress);
+  setCount('urgent_work_orders', workOrders.overdue);
+
+  const finance = counters.finance ?? counters.invoices ?? {};
+  setCount('pending_invoices', finance.unpaid);
+  setCount('overdue_invoices', finance.overdue);
+
+  const hr = counters.hr ?? counters.employees ?? {};
+  setCount('hr_applications', hr.probation ?? hr.onLeave);
+
+  const properties = counters.properties ?? {};
+  const vacantUnits =
+    typeof properties.total === 'number' && typeof properties.leased === 'number'
+      ? Math.max(properties.total - properties.leased, 0)
+      : undefined;
+  if (typeof vacantUnits === 'number') {
+    value.vacant_units = vacantUnits;
+  }
+  setCount('properties_needing_attention', properties.maintenance);
+
+  const crm = counters.crm ?? counters.customers ?? {};
+  setCount('crm_deals', crm.contracts);
+  setCount('aqar_leads', crm.leads);
+
+  const support = counters.support ?? {};
+  setCount('open_support_tickets', support.open);
+  setCount('pending_approvals', support.pending);
+
+  const marketplace = counters.marketplace ?? {};
+  setCount('marketplace_orders', marketplace.orders);
+  setCount('marketplace_products', marketplace.listings);
+  setCount('open_rfqs', marketplace.reviews);
+
+  return Object.keys(value).length ? value : undefined;
+};
 
 // Dynamic imports for heavy components to reduce initial bundle size
 const TopBar = dynamic(() => import('./TopBar'), { ssr: false });
@@ -84,6 +143,11 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
 
   // ⚡ FIXED: Unified authentication check (GOLD STANDARD from TopBar.tsx)
   const isAuthenticated = (status === 'authenticated' && session != null) || !!authUser;
+  const shouldFetchCounters = isAuthenticated && !isLandingPage && !isAuthPage;
+  const { data: counterData } = useSWR(shouldFetchCounters ? '/api/counters' : null, countersFetcher, {
+    revalidateOnFocus: false,
+  });
+  const badgeCounts = useMemo(() => mapCountersToBadgeCounts(counterData), [counterData]);
 
   useEffect(() => {
     // 1) Auth pages -> always guest, no fetch
@@ -195,7 +259,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         <AutoFixInitializer />
         <ResponsiveLayout
           header={<TopBar />}
-          sidebar={<Sidebar key={`sidebar-${language}-${isRTL}`} />}
+          sidebar={<Sidebar key={`sidebar-${language}-${isRTL}`} badgeCounts={badgeCounts} />}
           showSidebarToggle={true}
           footer={<Footer />}
         >
@@ -208,4 +272,3 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     </>
   );
 }
-

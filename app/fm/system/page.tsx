@@ -1,14 +1,17 @@
 'use client';
 
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+
 export default function SystemPage() {
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">System Management</h1>
           <p className="text-muted-foreground">Configure system settings and preferences</p>
         </div>
       </div>
+      <ModuleViewTabs moduleId="system" />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-card rounded-2xl shadow-md border border-border p-6">
@@ -52,4 +55,3 @@ export default function SystemPage() {
     </div>
   );
 }
-

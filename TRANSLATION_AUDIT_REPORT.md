@@ -244,12 +244,23 @@ const { t, isRTL } = useTranslation();
 ## 📝 Next Steps
 
 1. ✅ **COMPLETED:** Audit all pages (this report)
-2. 🔄 **IN PROGRESS:** Task 8 - Arabic translations (2/68 pages started)
-3. ⏭️ **NEXT:** Proceed to Task 9 (lib/audit.ts implementation)
-4. ⏳ **FUTURE:** Complete translation coverage (Phase 1-5 plan above)
+2. ⏳ **DEFERRED:** Task 8 - Arabic translations (2/68 pages started) - **MOVED TO LAST PRIORITY**
+3. ⏭️ **NEXT:** Proceed to Task 11 (lib/fm-notifications.ts implementation)
+4. ⏳ **FUTURE:** Complete translation coverage (Phase 1-5 plan above) - Est 32-44 hours
+
+---
+
+## 🎯 Updated Task Priority Order
+
+**Immediate Priority:**
+- **Task 12:** Fix SelectValue warnings (38 files, 2-3 hours) ← QUICK WIN
+- **Task 11:** lib/fm-notifications.ts (FCM, Email, SMS, WhatsApp, 12-16 hours)
+
+**Deferred to Last:**
+- **Task 8:** Arabic Translations (68 pages, 32-44 hours) - MAJOR EFFORT, moved to final priority
 
 ---
 
 **Report Generated:** November 15, 2025  
 **Audit Performed By:** GitHub Copilot  
-**Status:** READY FOR TASK 9 ONWARDS
+**Status:** READY FOR TASKS 11-12, TASK 8 DEFERRED
