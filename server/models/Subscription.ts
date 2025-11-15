@@ -156,5 +156,5 @@ interface ISubscription extends Document {
   updatedBy?: Schema.Types.ObjectId;
 }
 
-const Subscription: Model<ISubscription> = models.Subscription || model<ISubscription>('Subscription', SubscriptionSchema);
+const Subscription = (models.Subscription || model('Subscription', SubscriptionSchema)) as any;
 export default Subscription;
