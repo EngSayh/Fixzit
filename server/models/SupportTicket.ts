@@ -26,7 +26,14 @@ const SupportTicketSchema = new Schema({
   
   requester: { name:String, email:String, phone:String },
   messages: { type: [Message], default: [] },
-  assigneeUserId: { type: Schema.Types.ObjectId, ref: 'User' },
+  assignment: {
+    assignedTo: {
+      userId: { type: Schema.Types.ObjectId, ref: 'User' },
+      teamId: { type: Schema.Types.ObjectId, ref: 'Team' }
+    },
+    assignedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    assignedAt: Date
+  },
   firstResponseAt: { type: Date },
   resolvedAt: { type: Date }
 }, { timestamps: true });
@@ -39,7 +46,7 @@ SupportTicketSchema.plugin(auditPlugin);
 SupportTicketSchema.index({ orgId: 1, code: 1 }, { unique: true }); // Tenant-scoped unique code
 SupportTicketSchema.index({ orgId: 1, status: 1, module: 1, priority: 1 });
 SupportTicketSchema.index({ orgId: 1, 'requester.email': 1 });
-SupportTicketSchema.index({ orgId: 1, assigneeUserId: 1 });
+SupportTicketSchema.index({ orgId: 1, 'assignment.assignedTo.userId': 1 });
 
 export type SupportTicketDoc = InferSchemaType<typeof SupportTicketSchema>;
 

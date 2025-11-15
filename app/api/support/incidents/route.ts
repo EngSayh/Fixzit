@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
     category: 'Technical',
     subCategory: 'Bug Report',
     status: 'New',
-    createdByUserId: sessionUser?.id || undefined,
+    createdBy: sessionUser?.id || undefined,
     requester: !sessionUser && body?.userContext?.email ? {
       name: String(body?.userContext?.email).split('@')[0],
       email: body?.userContext?.email,
@@ -217,5 +217,4 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return new NextResponse(null, { status: 405 });
 }
-
 

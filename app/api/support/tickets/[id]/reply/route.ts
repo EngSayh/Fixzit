@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SupportTicket } from "@/server/models/SupportTicket";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { Types } from 'mongoose';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
@@ -44,21 +45,22 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
     return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
-  const t = (await SupportTicket.findOne({ 
+  const creatorMatch = user?.id ? [{ createdBy: Types.ObjectId.isValid(user.id) ? new Types.ObjectId(user.id) : user.id }] : [];
+  const adminMatch = user && ["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role) ? [{}] : [];
+  const t = await SupportTicket.findOne({ 
     _id: params.id, 
     $or: [
       { orgId: user?.orgId },
-      { createdByUserId: user?.id },
-      // Allow admins to reply to any ticket
-      ...(user && ["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role) ? [{}] : [])
+      ...creatorMatch,
+      ...adminMatch,
     ]
-  }));
+  });
   if (!t) return createSecureResponse({ error: "Not found" }, 404, req);
 
   // End user may reply only to own ticket; admins can reply to any
   const isAdmin = !!user && ["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role);
   // TODO(type-safety): Verify ticket schema has createdByUserId field
-  const isOwner = !!user && (t as any).createdByUserId === user.id;
+  const isOwner = !!user && t.createdBy?.toString?.() === user.id;
   if (!isAdmin && !isOwner) return createSecureResponse({ error: "Forbidden"}, 403, req);
 
   const ticketDoc = t as unknown as {

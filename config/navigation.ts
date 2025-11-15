@@ -208,6 +208,7 @@ export const MODULES: readonly ModuleItem[] = [
     icon: Wrench,
     category: 'fm',
     order: 2,
+    badgeKey: 'pending_work_orders',
   },
   {
     id: 'properties',
@@ -217,6 +218,7 @@ export const MODULES: readonly ModuleItem[] = [
     icon: Building2,
     category: 'fm',
     order: 3,
+    badgeKey: 'properties_needing_attention',
   },
   {
     id: 'finance',
@@ -226,6 +228,7 @@ export const MODULES: readonly ModuleItem[] = [
     icon: Wallet,
     category: 'finance',
     order: 4,
+    badgeKey: 'pending_invoices',
   },
   {
     id: 'hr',
@@ -235,6 +238,7 @@ export const MODULES: readonly ModuleItem[] = [
     icon: Users,
     category: 'hr',
     order: 5,
+    badgeKey: 'hr_applications',
   },
   {
     id: 'administration',
@@ -262,6 +266,7 @@ export const MODULES: readonly ModuleItem[] = [
     icon: ShoppingBag,
     category: 'marketplace',
     order: 8,
+    badgeKey: 'open_rfqs',
   },
   {
     id: 'support',
@@ -271,6 +276,7 @@ export const MODULES: readonly ModuleItem[] = [
     icon: Headphones,
     category: 'support',
     order: 9,
+    badgeKey: 'open_support_tickets',
   },
   {
     id: 'compliance',
@@ -280,6 +286,7 @@ export const MODULES: readonly ModuleItem[] = [
     icon: ShieldCheck,
     category: 'compliance',
     order: 10,
+    badgeKey: 'pending_approvals',
   },
   {
     id: 'reports',

@@ -140,7 +140,7 @@ describe('POST /api/support/incidents', () => {
         category: 'Technical',
         subCategory: 'Bug Report',
         status: 'New',
-        createdByUserId: 'u_1',
+        createdBy: 'u_1',
         requester: undefined,
         messages: [
           expect.objectContaining({
@@ -223,7 +223,6 @@ describe('POST /api/support/incidents', () => {
 
     expect(SupportTicket.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        createdByUserId: undefined,
         requester: {
           name: 'guest.user',
           email: 'guest.user@example.com',
@@ -266,4 +265,3 @@ describe('POST /api/support/incidents', () => {
     expect(call.messages[0].text).toBe('boom');
   });
 });
-

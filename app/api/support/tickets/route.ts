@@ -66,7 +66,7 @@ export async function POST(req: NextRequest){
       category: body.category,
       subCategory: body.subCategory,
       status: "New",
-      createdByUserId: user?.id,
+      createdBy: user?.id,
       requester: user ? undefined : body.requester,
       messages: [{ byUserId: user?.id, byRole: user ? "USER" : "GUEST", text: body.text, at: new Date() }]
     }));
@@ -113,6 +113,10 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, Number(sp.get("page")||1));
     const limit = Math.min(100, Number(sp.get("limit")||20));
     const match: Record<string, unknown> = {};
+    const isGlobalAdmin = ['SUPER_ADMIN','SUPPORT'].includes(user.role);
+    if (!isGlobalAdmin) {
+      match.orgId = user.orgId;
+    }
     if (status) match.status = status;
     if (moduleKey) match.module = moduleKey;
     if (type) match.type = type;
@@ -128,5 +132,3 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ error: 'Failed to fetch support tickets' }, 500, req);
   }
 }
-
-

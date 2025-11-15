@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SupportTicket } from "@/server/models/SupportTicket";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { Types } from 'mongoose';
 
 import { createSecureResponse } from '@/server/security/headers';
 
@@ -59,6 +60,14 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   }));
   if (!t) return createSecureResponse({ error: "Not found" }, 404, req);
   if (data.status && t.status==="New" && !t.firstResponseAt) t.firstResponseAt = new Date();
+  if (data.assigneeUserId !== undefined) {
+    t.assignment = t.assignment || {};
+    t.assignment.assignedTo = t.assignment.assignedTo || {};
+    t.assignment.assignedTo.userId = data.assigneeUserId ? new Types.ObjectId(data.assigneeUserId) : undefined;
+    t.assignment.assignedBy = data.assigneeUserId ? new Types.ObjectId(user.id) : undefined;
+    t.assignment.assignedAt = data.assigneeUserId ? new Date() : undefined;
+    delete (data as Record<string, unknown>).assigneeUserId;
+  }
   Object.assign(t, data);
   if (data.status==="Resolved") t.resolvedAt = new Date();
   await t.save();
