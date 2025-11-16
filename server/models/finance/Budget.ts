@@ -1,5 +1,9 @@
 import mongoose, { Schema } from 'mongoose';
-import { tenantIsolation, auditTrail } from '../../lib/plugins';
+import { ensureMongoConnection } from '@/server/lib/db';
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+import { auditPlugin } from '@/server/plugins/auditPlugin';
+
+ensureMongoConnection();
 
 const BudgetSchema = new Schema({
   propertyId: { type: Schema.Types.ObjectId, ref: 'Property', required: true },
@@ -8,8 +12,8 @@ const BudgetSchema = new Schema({
   currency: { type: String, default: 'SAR' },
 }, { timestamps: true });
 
-tenantIsolation(BudgetSchema);
-auditTrail(BudgetSchema);
+tenantIsolationPlugin(BudgetSchema);
+auditPlugin(BudgetSchema);
 BudgetSchema.index({ orgId: 1, propertyId: 1, period: 1 }, { unique: true });
 
 export const Budget = mongoose.models.Budget || mongoose.model('Budget', BudgetSchema);

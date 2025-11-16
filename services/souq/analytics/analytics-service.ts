@@ -7,6 +7,7 @@
  * - Traffic analytics (sources, engagement, bounce rate)
  */
 
+import { connectDb } from '@/lib/mongodb-unified';
 import { SouqOrder } from '@/server/models/souq/Order';
 import { SouqProduct } from '@/server/models/souq/Product';
 import mongoose from 'mongoose';
@@ -123,43 +124,40 @@ class AnalyticsService {
     sellerId: string,
     period: 'last_7_days' | 'last_30_days' | 'last_90_days' | 'ytd' = 'last_30_days'
   ): Promise<ISalesMetrics> {
+    await this.ensureConnection();
     const { startDate, endDate, previousStartDate, previousEndDate } = this.getPeriodDates(period);
+    const sellerObjectId = this.toObjectId(sellerId);
+    const sellerIdStr = sellerObjectId.toString();
 
     // Current period orders
     const currentOrders = await SouqOrder.find({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      'items.sellerId': sellerObjectId,
       createdAt: { $gte: startDate, $lte: endDate }
     });
 
     // Previous period orders for trend calculation
     const previousOrders = await SouqOrder.find({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      'items.sellerId': sellerObjectId,
       createdAt: { $gte: previousStartDate, $lt: previousEndDate }
     });
 
-    const currentRevenue = currentOrders.reduce((sum, order) => {
-      if (order.status !== 'cancelled' && order.status !== 'returned') {
-        return sum + order.pricing.total;
-      }
-      return sum;
-    }, 0);
+    const currentRevenue = currentOrders.reduce((sum, order) => (
+      sum + this.calculateSellerOrderRevenue(order, sellerIdStr)
+    ), 0);
 
-    const previousRevenue = previousOrders.reduce((sum, order) => {
-      if (order.status !== 'cancelled' && order.status !== 'returned') {
-        return sum + order.pricing.total;
-      }
-      return sum;
-    }, 0);
+    const previousRevenue = previousOrders.reduce((sum, order) => (
+      sum + this.calculateSellerOrderRevenue(order, sellerIdStr)
+    ), 0);
 
     const revenueTrend = this.calculateTrend(currentRevenue, previousRevenue);
 
     // Revenue by day
-    const dailyRevenue = this.groupByDay(currentOrders, startDate, endDate);
+    const dailyRevenue = this.groupByDay(currentOrders, sellerIdStr, startDate, endDate);
 
     // Order statistics
-    const completedOrders = currentOrders.filter(o => o.status === 'delivered').length;
-    const cancelledOrders = currentOrders.filter(o => o.status === 'cancelled').length;
-    const returnedOrders = currentOrders.filter(o => o.status === 'returned').length;
+    const completedOrders = currentOrders.filter(order => this.allSellerItemsDelivered(order, sellerIdStr)).length;
+    const cancelledOrders = currentOrders.filter(order => this.hasSellerItemStatus(order, sellerIdStr, 'cancelled')).length;
+    const returnedOrders = currentOrders.filter(order => this.hasSellerItemStatus(order, sellerIdStr, 'returned')).length;
 
     const ordersTrend = this.calculateTrend(currentOrders.length, previousOrders.length);
 
@@ -212,11 +210,14 @@ class AnalyticsService {
     sellerId: string,
     period: 'last_7_days' | 'last_30_days' | 'last_90_days' = 'last_30_days'
   ): Promise<IProductPerformance> {
+    await this.ensureConnection();
     const { startDate, endDate } = this.getPeriodDates(period);
+    const sellerObjectId = this.toObjectId(sellerId);
+    const sellerIdStr = sellerObjectId.toString();
 
     // Get all orders in period
     const orders = await SouqOrder.find({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      'items.sellerId': sellerObjectId,
       createdAt: { $gte: startDate, $lte: endDate },
       status: { $nin: ['cancelled', 'refunded'] }
     });
@@ -229,24 +230,29 @@ class AnalyticsService {
     }>();
 
     orders.forEach(order => {
-      order.items.forEach(item => {
-        const productId = item.productId.toString();
+      const sellerItems = this.getSellerItems(order, sellerIdStr);
+      sellerItems.forEach(item => {
+        const productId = item.productId?.toString();
+        if (!productId) return;
         const existing = productStats.get(productId) || { revenue: 0, unitsSold: 0, orders: 0 };
         
         productStats.set(productId, {
-          revenue: existing.revenue + item.pricePerUnit * item.quantity,
-          unitsSold: existing.unitsSold + item.quantity,
+          revenue: existing.revenue + this.getItemSubtotal(item),
+          unitsSold: existing.unitsSold + (item.quantity || 0),
           orders: existing.orders + 1
         });
       });
     });
 
     // Get product details
-    const productIds = Array.from(productStats.keys()).map(id => new mongoose.Types.ObjectId(id));
-    const products = await SouqProduct.find({
-      _id: { $in: productIds },
-      sellerId: new mongoose.Types.ObjectId(sellerId)
-    });
+    const productIdValues = Array.from(productStats.keys());
+    const productIds = productIdValues.map(id => new mongoose.Types.ObjectId(id));
+    const products = productIds.length > 0
+      ? await SouqProduct.find({
+          _id: { $in: productIds },
+          createdBy: sellerObjectId
+        })
+      : [];
 
     // Build top products list
     const topProducts = products.map(product => {
@@ -315,16 +321,19 @@ class AnalyticsService {
     sellerId: string,
     period: 'last_7_days' | 'last_30_days' | 'last_90_days' = 'last_30_days'
   ): Promise<ICustomerInsights> {
+    await this.ensureConnection();
     const { startDate, endDate, previousStartDate, previousEndDate } = this.getPeriodDates(period);
+    const sellerObjectId = this.toObjectId(sellerId);
+    const sellerIdStr = sellerObjectId.toString();
 
     // Get orders for current and previous period
     const currentOrders = await SouqOrder.find({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      'items.sellerId': sellerObjectId,
       createdAt: { $gte: startDate, $lte: endDate }
     });
 
     const previousOrders = await SouqOrder.find({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      'items.sellerId': sellerObjectId,
       createdAt: { $gte: previousStartDate, $lt: previousEndDate }
     });
 
@@ -352,7 +361,7 @@ class AnalyticsService {
     const retentionTrend = this.calculateTrend(repeatCustomerRate, previousRepeatRate);
 
     const averageOrdersPerCustomer = currentCustomerIds.size > 0 ? currentOrders.length / currentCustomerIds.size : 0;
-    const totalRevenue = currentOrders.reduce((sum, o) => sum + o.pricing.total, 0);
+    const totalRevenue = currentOrders.reduce((sum, order) => sum + this.calculateSellerOrderRevenue(order, sellerIdStr), 0);
     const lifetimeValue = currentCustomerIds.size > 0 ? totalRevenue / currentCustomerIds.size : 0;
 
     // Geography (simplified - would use real location data)
@@ -410,16 +419,18 @@ class AnalyticsService {
     sellerId: string,
     period: 'last_7_days' | 'last_30_days' | 'last_90_days' = 'last_30_days'
   ): Promise<ITrafficAnalytics> {
+    await this.ensureConnection();
     const { startDate, endDate, previousStartDate, previousEndDate } = this.getPeriodDates(period);
+    const sellerObjectId = this.toObjectId(sellerId);
 
     // Get orders to estimate traffic (in production, would use real analytics data)
     const currentOrders = await SouqOrder.find({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      'items.sellerId': sellerObjectId,
       createdAt: { $gte: startDate, $lte: endDate }
     });
 
     const previousOrders = await SouqOrder.find({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      'items.sellerId': sellerObjectId,
       createdAt: { $gte: previousStartDate, $lt: previousEndDate }
     });
 
@@ -510,6 +521,14 @@ class AnalyticsService {
     return ((current - previous) / previous) * 100;
   }
 
+  private async ensureConnection(): Promise<void> {
+    await connectDb();
+  }
+
+  private toObjectId(id: string): mongoose.Types.ObjectId {
+    return new mongoose.Types.ObjectId(id);
+  }
+
   /**
    * Get period date ranges
    */
@@ -551,7 +570,12 @@ class AnalyticsService {
   /**
    * Group orders by day for charting
    */
-  private groupByDay(orders: Array<{ createdAt: Date; pricing: { total: number }; status: string }>, startDate: Date, endDate: Date) {
+  private groupByDay(
+    orders: Array<{ createdAt: Date; status?: string; items?: Array<any> }>,
+    sellerIdStr: string,
+    startDate: Date,
+    endDate: Date
+  ) {
     const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     const dailyData: Array<{ date: string; amount: number }> = [];
 
@@ -564,17 +588,69 @@ class AnalyticsService {
         return orderDate === dateStr;
       });
 
-      const amount = dayOrders.reduce((sum, order) => {
-        if (order.status !== 'cancelled' && order.status !== 'returned') {
-          return sum + order.pricing.total;
-        }
-        return sum;
-      }, 0);
+      const amount = dayOrders.reduce((sum, order) => (
+        sum + this.calculateSellerOrderRevenue(order, sellerIdStr)
+      ), 0);
 
       dailyData.push({ date: dateStr, amount });
     }
 
     return dailyData;
+  }
+
+  private getSellerItems(order: { items?: Array<any> }, sellerIdStr: string) {
+    if (!Array.isArray(order.items)) return [];
+    return order.items.filter(item => {
+      const rawSellerId = item?.sellerId;
+      if (!rawSellerId) return false;
+      const value = typeof rawSellerId === 'string' ? rawSellerId : rawSellerId.toString();
+      return value === sellerIdStr;
+    });
+  }
+
+  private getItemSubtotal(item: any): number {
+    if (typeof item.subtotal === 'number') return item.subtotal;
+    const price = typeof item.pricePerUnit === 'number'
+      ? item.pricePerUnit
+      : typeof item.price === 'number'
+        ? item.price
+        : 0;
+    const quantity = typeof item.quantity === 'number' ? item.quantity : 0;
+    return price * quantity;
+  }
+
+  private calculateSellerOrderRevenue(order: { items?: Array<any>; status?: string }, sellerIdStr: string): number {
+    const sellerItems = this.getSellerItems(order, sellerIdStr);
+    return sellerItems
+      .filter(item => !this.isCancelledOrReturned(item, order.status))
+      .reduce((sum, item) => sum + this.getItemSubtotal(item), 0);
+  }
+
+  private hasSellerItemStatus(order: { items?: Array<any>; status?: string }, sellerIdStr: string, statuses: string | string[]): boolean {
+    const targetStatuses = Array.isArray(statuses) ? statuses : [statuses];
+    const normalizedTargets = targetStatuses.map(status => status.toLowerCase());
+    return this.getSellerItems(order, sellerIdStr).some(item => {
+      const itemStatus = this.normalizeItemStatus(item.status, order.status);
+      return normalizedTargets.includes(itemStatus);
+    });
+  }
+
+  private allSellerItemsDelivered(order: { items?: Array<any>; status?: string }, sellerIdStr: string): boolean {
+    const sellerItems = this.getSellerItems(order, sellerIdStr);
+    if (sellerItems.length === 0) return false;
+    return sellerItems.every(item => this.normalizeItemStatus(item.status, order.status) === 'delivered');
+  }
+
+  private isCancelledOrReturned(item: any, orderStatus?: string): boolean {
+    const status = this.normalizeItemStatus(item.status, orderStatus);
+    return status === 'cancelled' || status === 'returned';
+  }
+
+  private normalizeItemStatus(itemStatus?: unknown, fallback?: string): string {
+    const status = typeof itemStatus === 'string' && itemStatus.length > 0
+      ? itemStatus
+      : fallback ?? '';
+    return status.toLowerCase();
   }
 }
 

@@ -13,11 +13,14 @@
  * - Integration with Chart of Accounts
  */
 
-import { Schema, model, models, Types, Document } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import { Schema, model, models, Types, Document } from 'mongoose';
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import Decimal from 'decimal.js';
-import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
-import { auditPlugin } from '../../plugins/auditPlugin';
+import { ensureMongoConnection } from '@/server/lib/db';
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+import { auditPlugin } from '@/server/plugins/auditPlugin';
+
+ensureMongoConnection();
 
 // ============================================================================
 // ENUMS & CONSTANTS

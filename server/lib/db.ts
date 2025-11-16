@@ -8,3 +8,11 @@ export async function getDb() {
   }
   return mongoose.connection.db;
 }
+
+export function ensureMongoConnection(): void {
+  if (mongoose.connection.readyState === 0) {
+    void connectToDatabase().catch((error) => {
+      console.error('[Mongo] Failed to establish connection', error);
+    });
+  }
+}

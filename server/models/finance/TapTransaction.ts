@@ -1,5 +1,9 @@
 import { Schema, type InferSchemaType, type Model, type Document, Types } from 'mongoose';
 import { getModel } from '@/src/types/mongoose-compat';
+import { ensureMongoConnection } from '@/server/lib/db';
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+
+ensureMongoConnection();
 
 const TapTransactionSchema = new Schema(
   {
@@ -64,6 +68,8 @@ const TapTransactionSchema = new Schema(
     collection: 'finance_tap_transactions',
   }
 );
+
+TapTransactionSchema.plugin(tenantIsolationPlugin);
 
 TapTransactionSchema.index({ orgId: 1, createdAt: -1 });
 TapTransactionSchema.index({ status: 1, updatedAt: -1 });

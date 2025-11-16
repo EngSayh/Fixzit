@@ -17,11 +17,14 @@
  * - Audit trail
  */
 
-import { Schema, model, models, Types } from 'mongoose'
-import { getModel, MModel } from '@/src/types/mongoose-compat';;
+import { Schema, model, models, Types } from 'mongoose';
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import Decimal from 'decimal.js';
-import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
-import { auditPlugin } from '../../plugins/auditPlugin';
+import { ensureMongoConnection } from '@/server/lib/db';
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+import { auditPlugin } from '@/server/plugins/auditPlugin';
+
+ensureMongoConnection();
 
 export interface IJournalLine {
   lineNumber: number;
@@ -206,8 +209,10 @@ JournalSchema.pre('save', function(next) {
    */
   
   // Calculate totals with Decimal.js (exact precision)
-  const totalDebit = Decimal.sum(...this.lines.map((l: { debit?: number; credit?: number }) => l.debit || 0));
-  const totalCredit = Decimal.sum(...this.lines.map((l: { debit?: number; credit?: number }) => l.credit || 0));
+  const debitValues = this.lines.length ? this.lines.map((l: { debit?: number }) => l.debit || 0) : [0];
+  const creditValues = this.lines.length ? this.lines.map((l: { credit?: number }) => l.credit || 0) : [0];
+  const totalDebit = Decimal.sum(...debitValues);
+  const totalCredit = Decimal.sum(...creditValues);
   
   // Convert to number for storage (rounded to 2 decimal places)
   this.totalDebit = totalDebit.toDP(2).toNumber();

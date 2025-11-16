@@ -16,8 +16,11 @@
 import { Schema, Types, type FilterQuery } from 'mongoose';
 import type { HydratedDocument } from 'mongoose';
 import { getModel, MModel, CommonModelStatics } from '@/src/types/mongoose-compat';
-import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
-import { auditPlugin } from '../../plugins/auditPlugin';
+import { ensureMongoConnection } from '@/server/lib/db';
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+import { auditPlugin } from '@/server/plugins/auditPlugin';
+
+ensureMongoConnection();
 
 export interface ILedgerEntry {
   _id: Types.ObjectId;
