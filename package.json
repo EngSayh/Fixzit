@@ -75,6 +75,8 @@
     "clean:root": "tsx scripts/janitor.ts --apply",
     "bundle:check": "webpack --config webpack.config.js --mode=production",
     "seed:marketplace": "tsx scripts/seed-marketplace.ts",
+    "seed:test": "pnpm exec tsx scripts/seed-test-users.ts",
+    "check:env": "tsx scripts/check-required-env.ts",
     "docs:marketplace-bible": "node scripts/generate-marketplace-bible.js",
     "replace:in-file": "tsx scripts/replace-string-in-file.ts",
     "replace:in-file:verbose": "tsx scripts/replace-string-in-file-verbose.ts",

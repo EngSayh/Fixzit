@@ -198,6 +198,17 @@ pnpm dev
 # Press Ctrl+C to stop
 ```
 
+### 6. ✅ Environment & Test Accounts
+```bash
+# Confirm marketplace env vars are set (fails fast if missing)
+pnpm check:env
+
+# Seed the .env.test users into your local database
+pnpm seed:test
+```
+- `pnpm check:env` ensures `MARKETPLACE_ENABLED=true` matches `env.example`.
+- `pnpm seed:test` replays `scripts/seed-test-users.ts` so Playwright credentials from `.env.test` exist in MongoDB.
+
 ### 6. ⚠️ Test Users Exist (Optional)
 
 If you want to test authentication flows:
