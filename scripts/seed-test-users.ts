@@ -8,6 +8,8 @@ const TEST_ORG_ID = '68dc8955a1ba6ed80ff372dc';
 const TEST_PASSWORD = 'Test@1234';
 const SEED_USER_ID = new Types.ObjectId('000000000000000000000001');
 
+const TEST_PHONE = '+966552233456';
+
 const testUsers = [
   { code: 'TEST-SUPERADMIN', username: 'test-superadmin', email: 'superadmin@test.fixzit.co', password: TEST_PASSWORD, orgId: TEST_ORG_ID, employeeId: 'EMP-TEST-001', createdBy: SEED_USER_ID, isSuperAdmin: true, personal: { firstName: 'Test', lastName: 'SuperAdmin', nationalId: '1000000001', dateOfBirth: new Date('1980-01-01'), gender: 'Male', nationality: 'SA', address: { street: 'Test St 1', city: 'Riyadh', region: 'Riyadh', postalCode: '11564', country: 'SA' } }, professional: { role: 'SUPER_ADMIN', title: 'Super Administrator', department: 'IT', skills: [], licenses: [], certifications: [] }, security: { accessLevel: 'ADMIN', permissions: ['*'] }, preferences: { notifications: { email: true, sms: false, app: true, workOrders: true, maintenance: true, reports: true }, language: 'en', timezone: 'Asia/Riyadh', theme: 'LIGHT' }, workload: { maxAssignments: 100, currentAssignments: 0, available: true, location: { city: 'Riyadh', region: 'Riyadh', radius: 100 }, workingHours: { start: '00:00', end: '23:59', days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'], timezone: 'Asia/Riyadh' } }, performance: { reviews: [] }, employment: { employeeId: 'EMP-TEST-001', benefits: [] }, compliance: { training: [] }, status: 'ACTIVE', tenantId: 'test-tenant' },
   { code: 'TEST-ADMIN', username: 'test-admin', email: 'admin@test.fixzit.co', password: TEST_PASSWORD, orgId: TEST_ORG_ID, employeeId: 'EMP-TEST-002', createdBy: SEED_USER_ID, personal: { firstName: 'Test', lastName: 'Admin', nationalId: '1000000002', dateOfBirth: new Date('1985-03-15'), gender: 'Female', nationality: 'SA', address: { street: 'Test St 2', city: 'Riyadh', region: 'Riyadh', postalCode: '11622', country: 'SA' } }, professional: { role: 'ADMIN', title: 'Corporate Admin', department: 'Operations', skills: [], licenses: [], certifications: [] }, security: { accessLevel: 'WRITE', permissions: ['properties.*', 'tenants.*', 'workorders.*', 'finance.*', 'hr.*', 'crm.*'] }, preferences: { notifications: { email: true, sms: true, app: true, workOrders: true, maintenance: true, reports: true }, language: 'en', timezone: 'Asia/Riyadh', theme: 'LIGHT' }, workload: { maxAssignments: 50, currentAssignments: 0, available: true, location: { city: 'Riyadh', region: 'Riyadh', radius: 50 }, workingHours: { start: '08:00', end: '17:00', days: ['monday', 'tuesday', 'wednesday', 'thursday', 'sunday'], timezone: 'Asia/Riyadh' } }, performance: { reviews: [] }, employment: { employeeId: 'EMP-TEST-002', benefits: [] }, compliance: { training: [] }, status: 'ACTIVE', tenantId: 'test-tenant' },
@@ -19,12 +21,18 @@ const testUsers = [
   { code: 'TEST-GUEST', username: 'test-guest', email: 'guest@test.fixzit.co', password: TEST_PASSWORD, orgId: TEST_ORG_ID, employeeId: 'EMP-TEST-008', createdBy: SEED_USER_ID, personal: { firstName: 'Test', lastName: 'Guest', nationalId: '1000000010', dateOfBirth: new Date('1992-08-15'), gender: 'Female', nationality: 'SA', address: { street: 'Test St 10', city: 'Riyadh', region: 'Riyadh', postalCode: '11564', country: 'SA' } }, professional: { role: 'VIEWER', title: 'Guest User', department: 'N/A', skills: [], licenses: [], certifications: [] }, security: { accessLevel: 'READ', permissions: ['support.read'] }, preferences: { notifications: { email: false, sms: false, app: false, workOrders: false, maintenance: false, reports: false }, language: 'en', timezone: 'Asia/Riyadh', theme: 'LIGHT' }, workload: { maxAssignments: 0, currentAssignments: 0, available: false, location: { city: 'Riyadh', region: 'Riyadh', radius: 0 }, workingHours: { start: '00:00', end: '23:59', days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'], timezone: 'Asia/Riyadh' } }, performance: { reviews: [] }, employment: { employeeId: 'EMP-TEST-008', benefits: [] }, compliance: { training: [] }, status: 'ACTIVE', tenantId: 'test-tenant' }
 ];
 
+const normalizedUsers = testUsers.map(user => ({
+  ...user,
+  phone: TEST_PHONE,
+  mobile: TEST_PHONE,
+}));
+
 async function seedTestUsers() {
   try {
     await db;
     console.log('🧪 Seeding test users...\n');
     let created = 0, updated = 0, skipped = 0;
-    for (const userData of testUsers) {
+    for (const userData of normalizedUsers) {
       const existingUser = await (User as any).findOne({ email: userData.email });
       const hashedPassword = await hashPassword(userData.password);
       const userWithHashedPassword = { ...userData, password: hashedPassword };
@@ -49,7 +57,7 @@ async function seedTestUsers() {
     }
     console.log(`\n📊 Summary: Created ${created}, Updated ${updated}, Skipped ${skipped}, Total ${created+updated+skipped}/8`);
     console.log('\n📝 Test Credentials (password: Test@1234):');
-    testUsers.forEach(u => console.log(`   ${u.professional.role.padEnd(20)} ${u.email}`));
+    normalizedUsers.forEach(u => console.log(`   ${u.professional.role.padEnd(20)} ${u.email}`));
     console.log('\n🎯 Run: pnpm test:e2e --project=setup && pnpm test:e2e');
     process.exit(0);
   } catch (error) {

@@ -1059,5 +1059,8 @@
     "pending": "قيد الانتظار",
     "suspended": "معلق",
     "rejected": "مرفوض"
+  },
+  "fonts": {
+    "woff2": "woff2"
   }
 }

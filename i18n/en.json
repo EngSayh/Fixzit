@@ -1057,5 +1057,8 @@
     "pending": "Pending",
     "suspended": "Suspended",
     "rejected": "Rejected"
+  },
+  "fonts": {
+    "woff2": "woff2"
   }
 }

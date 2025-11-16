@@ -2,244 +2,221 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  /* Brand tokens */
-  --fxz-primary: #0061A8;
-  --fxz-secondary: #00A859;
-  --fxz-accent: #FFB400;
-  --fxz-status-success: #16A34A;
-  --fxz-status-warning: #FACC15;
-  --fxz-status-error: #DC2626;
-  --fxz-status-info: #2563EB;
-  --fxz-status-neutral: #6B7280;
-  --fxz-bg: #F9FAFB;
-  --fxz-surface: #FFFFFF;
-  --fxz-border: #E5E7EB;
-  --fxz-text-primary: #111827;
-  --fxz-text-muted: #6B7280;
-  --fxz-spacing-lg: 1.5rem; /* 24px */
-  --fxz-spacing-xl: 2rem;   /* 32px */
-
-  /* Tailwind HSL tokens */
-  --background: 210 20% 98%;
-  --foreground: 221 39% 11%;
-  --card: 0 0% 100%;
-  --card-foreground: 221 39% 11%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 221 39% 11%;
-  --muted: 220 16% 90%;
-  --muted-foreground: 220 9% 46%;
-  --accent: 42 100% 50%;
-  --accent-foreground: 221 39% 11%;
-  --border: 220 13% 91%;
-  --input: 220 13% 91%;
-  --primary: 205 100% 33%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 152 100% 33%;
-  --secondary-foreground: 0 0% 100%;
-  --destructive: 0 72% 51%;
-  --destructive-foreground: 210 20% 98%;
-  --ring: 205 100% 33%;
-  --radius: 1rem;
-  --chart-1: 205 100% 33%;
-  --chart-2: 152 100% 33%;
-  --chart-3: 42 100% 50%;
-  --chart-4: 221 83% 53%;
-  --chart-5: 142 76% 36%;
-  --brand-500: #0061A8;
-  --accent-500: #00A859;
-
-  color-scheme: light;
-}
-
-html.dark {
-  color-scheme: dark;
-  --fxz-bg: #111827;
-  --fxz-surface: #1F2937;
-  --fxz-border: #374151;
-  --fxz-text-primary: #F9FAFB;
-  --fxz-text-muted: #9CA3AF;
-  --background: 221 39% 11%;
-  --foreground: 210 20% 98%;
-  --card: 215 28% 17%;
-  --card-foreground: 210 20% 98%;
-  --popover: 215 28% 17%;
-  --popover-foreground: 210 20% 98%;
-  --muted: 217 19% 27%;
-  --muted-foreground: 218 11% 65%;
-  --border: 217 19% 27%;
-  --input: 217 19% 27%;
-  --ring: 205 100% 70%;
-}
+/* Brown Apple-inspired theme using HSL variables only. */
 
 @layer base {
+  :root {
+    /* Light mode */
+    --background: 0 0% 100%;
+    --foreground: 24 15% 20%; /* brownish dark text */
+
+    --card: 0 0% 100%;
+    --card-foreground: 24 15% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 15% 20%;
+
+    /* Primary BROWN accent */
+    --primary: 30 60% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 24 15% 20%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 30 60% 40%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 30 60% 40%;
+
+    /* Extra Apple-style tokens (brown-biased) */
+    --apple-blue: 30 60% 40%;
+    --apple-orange: 25 95% 50%;
+    --apple-gray: 0 0% 96%;
+    --apple-dark: 24 25% 20%;
+    --apple-mid-gray: 0 0% 60%;
+    --apple-light-gray: 0 0% 98%;
+
+    /* Subtle gradients and shadows */
+    --hero-gradient: linear-gradient(
+      180deg,
+      hsl(30 60% 96%),
+      hsl(30 30% 90%)
+    );
+    --card-shadow: 0 2px 8px hsl(0 0% 0% / 0.06);
+    --card-shadow-lg: 0 4px 16px hsl(0 0% 0% / 0.10);
+
+    /* Section backgrounds */
+    --section-bg: 0 0% 100%;
+    --section-alt: 0 0% 98%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar tokens (light) */
+    --sidebar-background: 30 20% 96%;
+    --sidebar-foreground: 24 15% 20%;
+    --sidebar-primary: 30 60% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 24 15% 20%;
+    --sidebar-border: 0 0% 88%;
+    --sidebar-ring: 30 60% 40%;
+  }
+
+  .dark {
+    /* Dark mode */
+    --background: 222 84% 5%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 84% 5%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 84% 5%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Slightly lighter brown in dark mode so it pops */
+    --primary: 30 60% 60%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 33% 18%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 18%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 18%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 18%;
+    --input: 217 33% 18%;
+    --ring: 30 60% 60%;
+
+    /* Sidebar dark */
+    --sidebar-background: 240 6% 10%;
+    --sidebar-foreground: 240 5% 96%;
+    --sidebar-primary: 30 60% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 4% 16%;
+    --sidebar-accent-foreground: 240 5% 96%;
+    --sidebar-border: 240 4% 16%;
+    --sidebar-ring: 30 60% 60%;
+  }
+
   * {
     @apply border-border;
   }
 
   body {
-    font-family: var(--font-inter), var(--font-noto-sans-arabic), 'Inter', 'Noto Sans Arabic', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 16px;
-    line-height: 1.5;
-    background-color: var(--fxz-bg);
-    color: var(--fxz-text-primary);
-    @apply antialiased;
+    @apply bg-background text-foreground;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  }
+}
+
+/* Shell-specific utility classes for Fixzit */
+
+@layer components {
+  .fxz-topbar {
+    background-color: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border-bottom: 1px solid hsl(var(--border));
+    box-shadow: var(--card-shadow);
   }
 
-  html[dir='rtl'] body {
-    font-family: var(--font-noto-sans-arabic), var(--font-inter), 'Noto Sans Arabic', 'Inter', system-ui, sans-serif;
+  .fxz-topbar-logo {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
   }
 
-  a {
-    color: inherit;
+  .fxz-topbar-pill {
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+    border-radius: 9999px;
+    border: 1px solid hsl(var(--border));
+  }
+
+  .fxz-btn-primary {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-radius: 9999px;
+    border: 1px solid hsl(var(--primary));
+    box-shadow: var(--card-shadow);
+  }
+
+  .fxz-btn-primary:hover {
+    filter: brightness(1.05);
+  }
+
+  .fxz-btn-outline {
+    background-color: hsl(var(--card));
+    color: hsl(var(--primary));
+    border-radius: 9999px;
+    border: 1px solid hsl(var(--border));
+  }
+
+  .fxz-btn-outline:hover {
+    background-color: hsl(var(--secondary));
+  }
+
+  .fxz-sidebar {
+    background-color: hsl(var(--sidebar-background));
+    color: hsl(var(--sidebar-foreground));
+    border-right: 1px solid hsl(var(--sidebar-border));
+  }
+
+  .fxz-sidebar-title {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: hsl(0 0% 55%);
+  }
+
+  .fxz-sidebar-item {
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: hsl(var(--sidebar-foreground));
     text-decoration: none;
   }
 
-  ::selection {
-    background-color: color-mix(in srgb, var(--fxz-primary) 30%, transparent);
-    color: var(--fxz-surface);
+  .fxz-sidebar-item:hover {
+    background-color: hsl(var(--sidebar-accent));
+  }
+
+  .fxz-sidebar-item-active {
+    background-color: hsl(var(--sidebar-primary));
+    color: hsl(var(--sidebar-primary-foreground));
+    box-shadow: 0 0 0 1px hsl(var(--sidebar-ring));
+  }
+
+  .fxz-card {
+    background-color: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border-radius: var(--radius);
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--card-shadow);
+  }
+
+  .fxz-footer {
+    background-color: hsl(var(--card));
+    color: hsl(var(--muted-foreground));
+    border-top: 1px solid hsl(var(--border));
+  }
+
+  .fxz-hero {
+    background: var(--hero-gradient);
+    border-bottom: 1px solid hsl(var(--border));
   }
 }
-
-.app-shell {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--fxz-bg);
-}
-
-.app-main-row {
-  flex: 1;
-  display: flex;
-  min-height: 0;
-}
-
-.app-sidebar {
-  width: 256px;
-  background-color: #0f172a;
-  color: #E2E8F0;
-  border-inline-end: 1px solid rgba(226, 232, 240, 0.08);
-}
-
-.app-content {
-  flex: 1;
-  background-color: var(--fxz-bg);
-}
-
-@layer components {
-  .card {
-    background-color: var(--fxz-surface);
-    border: 1px solid var(--fxz-border);
-    border-radius: 1rem;
-    padding: 1.5rem;
-    @apply shadow-card hover:shadow-card-hover transition;
-  }
-
-  .btn-primary {
-    @apply inline-flex h-10 items-center justify-center rounded-xl px-4 font-semibold text-white shadow-card;
-    background-color: var(--fxz-primary);
-  }
-
-  .btn-ghost {
-    @apply inline-flex h-10 items-center justify-center rounded-xl border px-3 text-sm;
-    background-color: transparent;
-    border-color: rgba(148, 163, 184, 0.4);
-    color: var(--fxz-text-primary);
-  }
-
-  .nav-link {
-    @apply text-sm text-slate-100/80 hover:text-white transition-colors;
-  }
-
-  .side-link {
-    @apply flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 transition;
-  }
-
-  .side-link-active {
-    background-color: rgba(255, 255, 255, 0.08);
-    color: #FFFFFF;
-    font-weight: 600;
-  }
-
-  .pill {
-    @apply inline-flex h-9 items-center rounded-full border px-3 text-sm font-medium;
-    border-color: var(--fxz-border);
-    background-color: var(--fxz-surface);
-  }
-
-  .badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-tight;
-    background-color: rgba(15, 23, 42, 0.04);
-    color: var(--fxz-text-primary);
-  }
-
-  .badge-success {
-    background-color: rgba(22, 163, 74, 0.15);
-    color: var(--fxz-status-success);
-  }
-
-  .badge-warning {
-    background-color: rgba(250, 204, 21, 0.25);
-    color: #b45309;
-  }
-
-  .badge-error {
-    background-color: rgba(220, 38, 38, 0.2);
-    color: var(--fxz-status-error);
-  }
-
-  .status-chip {
-    @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-tight;
-  }
-
-  /* Work Orders */
-  .wo-status-open { background-color: var(--fxz-primary); color: #fff; }
-  .wo-status-progress { background-color: var(--fxz-status-warning); color: #1f2937; }
-  .wo-status-complete { background-color: var(--fxz-status-success); color: #fff; }
-  .wo-status-overdue { background-color: var(--fxz-status-error); color: #fff; }
-
-  /* Properties */
-  .properties-status-active { color: var(--fxz-primary); }
-  .properties-status-occupied { color: var(--fxz-status-success); }
-  .properties-status-expired { color: var(--fxz-status-error); }
-
-  /* Finance */
-  .finance-status-paid { background-color: var(--fxz-status-success); color: #fff; }
-  .finance-status-unpaid { background-color: var(--fxz-status-warning); color: #1f2937; }
-  .finance-status-overdue { background-color: var(--fxz-status-error); color: #fff; }
-
-  /* HR */
-  .hr-profile-active { border-color: var(--fxz-primary); }
-  .hr-profile-terminated { border-color: var(--fxz-status-error); }
-
-  /* CRM */
-  .crm-stage-new { background-color: var(--fxz-primary); color: #fff; }
-  .crm-stage-contacted { background-color: var(--fxz-status-warning); color: #1f2937; }
-  .crm-stage-won { background-color: var(--fxz-status-success); color: #fff; }
-  .crm-stage-lost { background-color: var(--fxz-status-error); color: #fff; }
-
-  /* Marketplace */
-  .marketplace-tab { background-color: color-mix(in srgb, var(--fxz-secondary) 15%, transparent); color: var(--fxz-secondary); }
-  .marketplace-rating { color: var(--fxz-accent); }
-  .marketplace-verified { background-color: var(--fxz-secondary); color: #fff; }
-
-  /* Support */
-  .support-sla-bar {
-    background-image: linear-gradient(90deg, var(--fxz-status-success), var(--fxz-status-warning), var(--fxz-status-error));
-  }
-
-  /* Admin / Reports */
-  .admin-status-active { color: var(--fxz-primary); }
-  .admin-status-suspended { color: var(--fxz-status-error); }
-}
-
-.space-24 { gap: var(--fxz-spacing-lg); }
-.space-32 { gap: var(--fxz-spacing-xl); }
-
-.dark .card {
-  background-color: var(--fxz-surface);
-  border-color: var(--fxz-border);
-}
-
-.dark .side-link { color: rgba(226, 232, 240, 0.8); }
-.dark .side-link:hover { color: #fff; }

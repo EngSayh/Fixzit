@@ -5,6 +5,7 @@ import { Application } from '@/server/models/Application';
 import { Job } from '@/server/models/Job';
 import { Interview } from '@/server/models/ats/Interview';
 import { atsRBAC } from '@/lib/ats/rbac';
+import { getCached, CacheTTL } from '@/lib/cache/redis';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
@@ -35,142 +36,145 @@ export async function GET(req: NextRequest) {
     const period = searchParams.get('period') || '30'; // days
     const jobId = searchParams.get('jobId');
     
-    const periodDays = parseInt(period, 10);
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - periodDays);
+    // Cache key: analytics:{orgId}:{period}:{jobId}
+    const cacheKey = `analytics:${orgId}:${period}${jobId ? `:${jobId}` : ''}`;
     
-    // Build filter
-    const filter: Record<string, unknown> = { 
-      orgId,
-      createdAt: { $gte: startDate }
-    };
-    if (jobId) filter.jobId = jobId;
+    // Use cached data if available (5 minutes TTL)
+    const analytics = await getCached(cacheKey, CacheTTL.FIVE_MINUTES, async () => {
+      const periodDays = parseInt(period, 10);
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - periodDays);
+      
+      // Build filter
+      const filter: Record<string, unknown> = { 
+        orgId,
+        createdAt: { $gte: startDate }
+      };
+      if (jobId) filter.jobId = jobId;
     
-    // Get applications by stage
-    const applicationsByStage = await (Application as any).aggregate([
-      { $match: filter },
-      { $group: { _id: '$stage', count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
-    ]);
-    
-    // Get total applications
-    const totalApplications = await (Application as any).countDocuments(filter);
-    
-    // Get applications over time (last 7 days)
-    const applicationsOverTime = await (Application as any).aggregate([
-      { $match: filter },
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { _id: 1 } },
-      { $limit: 30 }
-    ]);
-    
-    // Get conversion rates
-    const stageTransitions = await (Application as any).aggregate([
-      { $match: filter },
-      {
-        $group: {
-          _id: null,
-          applied: { $sum: { $cond: [{ $eq: ['$stage', 'applied'] }, 1, 0] } },
-          screening: { $sum: { $cond: [{ $eq: ['$stage', 'screening'] }, 1, 0] } },
-          interview: { $sum: { $cond: [{ $eq: ['$stage', 'interview'] }, 1, 0] } },
-          offer: { $sum: { $cond: [{ $eq: ['$stage', 'offer'] }, 1, 0] } },
-          hired: { $sum: { $cond: [{ $eq: ['$stage', 'hired'] }, 1, 0] } },
-          rejected: { $sum: { $cond: [{ $eq: ['$stage', 'rejected'] }, 1, 0] } }
-        }
-      }
-    ]);
-    
-    const stages = stageTransitions[0] || {};
-    const conversionRates = {
-      appliedToScreening: stages.applied > 0 ? ((stages.screening / stages.applied) * 100).toFixed(1) : '0',
-      screeningToInterview: stages.screening > 0 ? ((stages.interview / stages.screening) * 100).toFixed(1) : '0',
-      interviewToOffer: stages.interview > 0 ? ((stages.offer / stages.interview) * 100).toFixed(1) : '0',
-      offerToHired: stages.offer > 0 ? ((stages.hired / stages.offer) * 100).toFixed(1) : '0',
-      overallConversion: stages.applied > 0 ? ((stages.hired / stages.applied) * 100).toFixed(1) : '0'
-    };
-    
-    // Get average time in stage
-    const avgTimeInStage = await (Application as any).aggregate([
-      { $match: filter },
-      {
-        $project: {
-          stage: 1,
-          timeInStage: {
-            $divide: [
-              { $subtract: [new Date(), '$createdAt'] },
-              1000 * 60 * 60 * 24 // Convert to days
-            ]
+      // Get applications by stage
+      const applicationsByStage = await (Application as any).aggregate([
+        { $match: filter },
+        { $group: { _id: '$stage', count: { $sum: 1 } } },
+        { $sort: { _id: 1 } }
+      ]);
+      
+      // Get total applications
+      const totalApplications = await (Application as any).countDocuments(filter);
+      
+      // Get applications over time (last 7 days)
+      const applicationsOverTime = await (Application as any).aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } },
+        { $limit: 30 }
+      ]);
+      
+      // Get conversion rates
+      const stageTransitions = await (Application as any).aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: null,
+            applied: { $sum: { $cond: [{ $eq: ['$stage', 'applied'] }, 1, 0] } },
+            screening: { $sum: { $cond: [{ $eq: ['$stage', 'screening'] }, 1, 0] } },
+            interview: { $sum: { $cond: [{ $eq: ['$stage', 'interview'] }, 1, 0] } },
+            offer: { $sum: { $cond: [{ $eq: ['$stage', 'offer'] }, 1, 0] } },
+            hired: { $sum: { $cond: [{ $eq: ['$stage', 'hired'] }, 1, 0] } },
+            rejected: { $sum: { $cond: [{ $eq: ['$stage', 'rejected'] }, 1, 0] } }
           }
         }
-      },
-      {
-        $group: {
-          _id: '$stage',
-          avgDays: { $avg: '$timeInStage' }
+      ]);
+      
+      const stages = stageTransitions[0] || {};
+      const conversionRates = {
+        appliedToScreening: stages.applied > 0 ? ((stages.screening / stages.applied) * 100).toFixed(1) : '0',
+        screeningToInterview: stages.screening > 0 ? ((stages.interview / stages.screening) * 100).toFixed(1) : '0',
+        interviewToOffer: stages.interview > 0 ? ((stages.offer / stages.interview) * 100).toFixed(1) : '0',
+        offerToHired: stages.offer > 0 ? ((stages.hired / stages.offer) * 100).toFixed(1) : '0',
+        overallConversion: stages.applied > 0 ? ((stages.hired / stages.applied) * 100).toFixed(1) : '0'
+      };
+      
+      // Get average time in stage
+      const avgTimeInStage = await (Application as any).aggregate([
+        { $match: filter },
+        {
+          $project: {
+            stage: 1,
+            timeInStage: {
+              $divide: [
+                { $subtract: [new Date(), '$createdAt'] },
+                1000 * 60 * 60 * 24 // Convert to days
+              ]
+            }
+          }
+        },
+        {
+          $group: {
+            _id: '$stage',
+            avgDays: { $avg: '$timeInStage' }
+          }
         }
-      }
-    ]);
-    
-    // Get top performing jobs
-    const topJobs = await (Application as any).aggregate([
-      { $match: { orgId, createdAt: { $gte: startDate } } },
-      {
-        $group: {
-          _id: '$jobId',
-          applicationsCount: { $sum: 1 },
-          avgScore: { $avg: '$score' }
+      ]);
+      
+      // Get top performing jobs
+      const topJobs = await (Application as any).aggregate([
+        { $match: { orgId, createdAt: { $gte: startDate } } },
+        {
+          $group: {
+            _id: '$jobId',
+            applicationsCount: { $sum: 1 },
+            avgScore: { $avg: '$score' }
+          }
+        },
+        { $sort: { applicationsCount: -1 } },
+        { $limit: 5 },
+        {
+          $lookup: {
+            from: 'jobs',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'job'
+          }
+        },
+        { $unwind: '$job' },
+        {
+          $project: {
+            jobTitle: '$job.title',
+            applicationsCount: 1,
+            avgScore: { $round: ['$avgScore', 1] }
+          }
         }
-      },
-      { $sort: { applicationsCount: -1 } },
-      { $limit: 5 },
-      {
-        $lookup: {
-          from: 'jobs',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'job'
+      ]);
+      
+      // Get interview statistics
+      const interviewStats = await (Interview as any).aggregate([
+        { $match: { orgId, createdAt: { $gte: startDate } } },
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 }
+          }
         }
-      },
-      { $unwind: '$job' },
-      {
-        $project: {
-          jobTitle: '$job.title',
-          applicationsCount: 1,
-          avgScore: { $round: ['$avgScore', 1] }
-        }
-      }
-    ]);
-    
-    // Get interview statistics
-    const interviewStats = await (Interview as any).aggregate([
-      { $match: { orgId, createdAt: { $gte: startDate } } },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
-    
-    const totalInterviews = await (Interview as any).countDocuments({
-      orgId,
-      createdAt: { $gte: startDate }
-    });
-    
-    // Get active jobs count
-    const activeJobs = await (Job as any).countDocuments({
-      orgId,
-      status: 'published'
-    });
-    
-    return NextResponse.json({
-      success: true,
-      data: {
+      ]);
+      
+      const totalInterviews = await (Interview as any).countDocuments({
+        orgId,
+        createdAt: { $gte: startDate }
+      });
+      
+      // Get active jobs count
+      const activeJobs = await (Job as any).countDocuments({
+        orgId,
+        status: 'published'
+      });
+      
+      return {
         period: periodDays,
         summary: {
           totalApplications,
@@ -196,7 +200,12 @@ export async function GET(req: NextRequest) {
           status: item._id,
           count: item.count
         }))
-      }
+      };
+    });
+    
+    return NextResponse.json({
+      success: true,
+      data: analytics
     });
   } catch (error) {
     logger.error('Analytics fetch error:', error instanceof Error ? error.message : 'Unknown error');

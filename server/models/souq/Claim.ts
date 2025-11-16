@@ -190,6 +190,7 @@ const ClaimSchema = new Schema<IClaim>({
 ClaimSchema.index({ status: 1, createdAt: -1 });
 ClaimSchema.index({ buyerId: 1, status: 1 });
 ClaimSchema.index({ sellerId: 1, status: 1 });
+ClaimSchema.index({ sellerId: 1, createdAt: -1 });
 ClaimSchema.index({ sellerResponseDeadline: 1, status: 1 });
 ClaimSchema.index({ assignedTo: 1, status: 1 });
 

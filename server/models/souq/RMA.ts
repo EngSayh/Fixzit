@@ -241,6 +241,7 @@ const RMASchema = new Schema<IRMA>({
 RMASchema.index({ status: 1, createdAt: -1 });
 RMASchema.index({ buyerId: 1, status: 1 });
 RMASchema.index({ sellerId: 1, status: 1 });
+RMASchema.index({ sellerId: 1, createdAt: -1 });
 RMASchema.index({ returnDeadline: 1 });
 
 // Methods

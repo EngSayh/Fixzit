@@ -108,6 +108,7 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@sendgrid/mail": "^8.1.6",
     "@sentry/nextjs": "^10.25.0",
+    "@types/redis": "^4.0.11",
     "axios": "^1.13.1",
     "bcryptjs": "^3.0.2",
     "bullmq": "^5.28.2",
