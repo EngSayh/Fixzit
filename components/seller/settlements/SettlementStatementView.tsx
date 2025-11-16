@@ -6,6 +6,7 @@
 'use client';
 
 import React from 'react';
+import logger from '@/lib/logger';
 import { Card } from '@/components/ui/card';
 import { Download, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -55,7 +56,7 @@ export function SettlementStatementView({ statement }: SettlementStatementViewPr
   };
 
   const downloadPDF = () => {
-    console.log('Downloading PDF for', statement.statementId);
+    logger.info('Downloading PDF for', statement.statementId);
   };
 
   return (

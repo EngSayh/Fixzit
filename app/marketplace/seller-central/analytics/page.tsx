@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import logger from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SalesChart } from '@/components/seller/analytics/SalesChart';
 import { ProductPerformanceTable } from '@/components/seller/analytics/ProductPerformanceTable';
@@ -151,12 +152,12 @@ export default function AnalyticsPage() {
 
   const handleExportCSV = () => {
     // TODO: Implement CSV export
-    console.log('Exporting to CSV...');
+    logger.info('Exporting to CSV...');
   };
 
   const handleExportPDF = () => {
     // TODO: Implement PDF export
-    console.log('Exporting to PDF...');
+    logger.info('Exporting to PDF...');
   };
 
   return (

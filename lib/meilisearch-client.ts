@@ -1,4 +1,6 @@
 import { MeiliSearch } from 'meilisearch';
+import logger from '@/lib/logger';
+
 
 let client: MeiliSearch | null = null;
 
@@ -23,7 +25,7 @@ export function getMeiliSearchClient(): MeiliSearch | null {
 export async function initializeMeilisearch(): Promise<void> {
   const client = getMeiliSearchClient();
   if (!client) {
-    console.warn('[Meilisearch] Not configured, skipping initialization');
+    logger.warn('[Meilisearch] Not configured, skipping initialization');
     return;
   }
 
@@ -43,9 +45,9 @@ export async function initializeMeilisearch(): Promise<void> {
       ],
     });
 
-    console.log('[Meilisearch] Initialized products index');
+    logger.info('[Meilisearch] Initialized products index');
   } catch (error) {
-    console.error('[Meilisearch] Failed to initialize indexes:', error);
+    logger.error('[Meilisearch] Failed to initialize indexes:', error);
     throw error;
   }
 }
@@ -71,7 +73,7 @@ export async function indexProduct(product: {
   try {
     await client.index('products').addDocuments([product]);
   } catch (error) {
-    console.error('[Meilisearch] Failed to index product:', error);
+    logger.error('[Meilisearch] Failed to index product:', error);
     // Don't throw - indexing failure shouldn't break product creation
   }
 }
@@ -98,7 +100,7 @@ export async function updateProduct(
       { id: productId, ...updates },
     ]);
   } catch (error) {
-    console.error('[Meilisearch] Failed to update product:', error);
+    logger.error('[Meilisearch] Failed to update product:', error);
   }
 }
 
@@ -113,7 +115,7 @@ export async function deleteProduct(productId: string): Promise<void> {
   try {
     await client.index('products').deleteDocument(productId);
   } catch (error) {
-    console.error('[Meilisearch] Failed to delete product:', error);
+    logger.error('[Meilisearch] Failed to delete product:', error);
   }
 }
 
@@ -139,8 +141,8 @@ export async function bulkIndexProducts(
 
   try {
     await client.index('products').addDocuments(products);
-    console.log(`[Meilisearch] Bulk indexed ${products.length} products`);
+    logger.info(`[Meilisearch] Bulk indexed ${products.length} products`);
   } catch (error) {
-    console.error('[Meilisearch] Failed to bulk index products:', error);
+    logger.error('[Meilisearch] Failed to bulk index products:', error);
   }
 }

@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import logger from '@/lib/logger';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -127,7 +128,7 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
 
   const exportToCSV = () => {
     // TODO: Implement CSV export
-    console.log('Exporting transactions to CSV...');
+    logger.info('Exporting transactions to CSV...');
   };
 
   return (

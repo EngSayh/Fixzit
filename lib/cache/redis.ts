@@ -1,4 +1,6 @@
 /**
+import logger from '@/lib/logger';
+
  * Redis Caching Layer
  * 
  * Provides a centralized caching mechanism using Redis for:
@@ -25,7 +27,7 @@ export async function getRedisClient(): Promise<RedisClientType | null> {
   const redisUrl = process.env.REDIS_URL;
   if (!redisUrl) {
     if (!warnedMissingRedis && process.env.NODE_ENV !== 'test') {
-      console.warn('[Cache] REDIS_URL not configured. Falling back to in-memory execution.');
+      logger.warn('[Cache] REDIS_URL not configured. Falling back to in-memory execution.');
       warnedMissingRedis = true;
     }
     return null;
@@ -45,7 +47,7 @@ export async function getRedisClient(): Promise<RedisClientType | null> {
         connectTimeout: 5000,
         reconnectStrategy: (retries) => {
           if (retries > 10) {
-            console.error('Redis: Max reconnection attempts reached');
+            logger.error('Redis: Max reconnection attempts reached');
             return new Error('Redis connection failed');
           }
           return Math.min(50 * Math.pow(2, retries), 3000);
@@ -54,15 +56,15 @@ export async function getRedisClient(): Promise<RedisClientType | null> {
     });
 
     client.on('error', (err) => {
-      console.error('Redis Client Error:', err);
+      logger.error('Redis Client Error:', err);
     });
 
     client.on('connect', () => {
-      console.log('✅ Redis connected');
+      logger.info('✅ Redis connected');
     });
 
     client.on('reconnecting', () => {
-      console.log('🔄 Redis reconnecting...');
+      logger.info('🔄 Redis reconnecting...');
     });
 
     client.on('end', () => {
@@ -72,7 +74,7 @@ export async function getRedisClient(): Promise<RedisClientType | null> {
     await client.connect();
     return client;
   } catch (error) {
-    console.error('Redis connection error:', error);
+    logger.error('Redis connection error:', error);
     client = null;
     return null;
   } finally {
@@ -99,12 +101,12 @@ export async function getCached<T>(
     try {
       const cached = await redis.get(key);
       if (cached) {
-        console.log(`📦 Cache HIT: ${key}`);
+        logger.info(`📦 Cache HIT: ${key}`);
         return JSON.parse(cached) as T;
       }
-      console.log(`🔍 Cache MISS: ${key}`);
+      logger.info(`🔍 Cache MISS: ${key}`);
     } catch (error) {
-      console.error(`Cache read error for key ${key}:`, error);
+      logger.error(`Cache read error for key ${key}:`, error);
     }
   }
 
@@ -113,9 +115,9 @@ export async function getCached<T>(
   if (redis && data !== null && data !== undefined) {
     try {
       await redis.setEx(key, ttl, JSON.stringify(data));
-      console.log(`💾 Cached: ${key} (TTL: ${ttl}s)`);
+      logger.info(`💾 Cached: ${key} (TTL: ${ttl}s)`);
     } catch (error) {
-      console.error(`Cache write error for key ${key}:`, error);
+      logger.error(`Cache write error for key ${key}:`, error);
     }
   }
 
@@ -143,11 +145,11 @@ export async function invalidateCache(pattern: string): Promise<void> {
       deleted = await redis.del(keys as [string, ...string[]]);
     }
 
-    console.log(deleted > 0
+    logger.info(deleted > 0
       ? `🗑️  Invalidated ${deleted} keys matching: ${pattern}`
       : `ℹ️  No keys found matching: ${pattern}`);
   } catch (error) {
-    console.error(`Error invalidating cache pattern ${pattern}:`, error);
+    logger.error(`Error invalidating cache pattern ${pattern}:`, error);
   }
 }
 
@@ -163,10 +165,10 @@ export async function invalidateCacheKey(key: string): Promise<void> {
   try {
     const deleted = await redis.del(key);
     if (deleted > 0) {
-      console.log(`🗑️  Invalidated cache key: ${key}`);
+      logger.info(`🗑️  Invalidated cache key: ${key}`);
     }
   } catch (error) {
-    console.error(`Error invalidating cache key ${key}:`, error);
+    logger.error(`Error invalidating cache key ${key}:`, error);
   }
 }
 
@@ -183,9 +185,9 @@ export async function setCache<T>(key: string, value: T, ttl: number): Promise<v
 
   try {
     await redis.setEx(key, ttl, JSON.stringify(value));
-    console.log(`💾 Set cache: ${key} (TTL: ${ttl}s)`);
+    logger.info(`💾 Set cache: ${key} (TTL: ${ttl}s)`);
   } catch (error) {
-    console.error(`Error setting cache key ${key}:`, error);
+    logger.error(`Error setting cache key ${key}:`, error);
   }
 }
 
@@ -202,13 +204,13 @@ export async function getCache<T>(key: string): Promise<T | null> {
   try {
     const cached = await redis.get(key);
     if (cached) {
-      console.log(`📦 Cache HIT: ${key}`);
+      logger.info(`📦 Cache HIT: ${key}`);
       return JSON.parse(cached) as T;
     }
-    console.log(`🔍 Cache MISS: ${key}`);
+    logger.info(`🔍 Cache MISS: ${key}`);
     return null;
   } catch (error) {
-    console.error(`Error getting cache key ${key}:`, error);
+    logger.error(`Error getting cache key ${key}:`, error);
     return null;
   }
 }
@@ -225,7 +227,7 @@ export async function isRedisHealthy(): Promise<boolean> {
     await redis.ping();
     return true;
   } catch (error) {
-    console.error('Redis health check failed:', error);
+    logger.error('Redis health check failed:', error);
     return false;
   }
 }
@@ -238,10 +240,10 @@ export async function closeRedis(): Promise<void> {
     if (client && client.isOpen) {
       await client.quit();
       client = null;
-      console.log('👋 Redis connection closed');
+      logger.info('👋 Redis connection closed');
     }
   } catch (error) {
-    console.error('Error closing Redis connection:', error);
+    logger.error('Error closing Redis connection:', error);
   }
 }
 
