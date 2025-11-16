@@ -11,7 +11,8 @@ import { runWithContext } from '@/server/lib/authContext';
 import { requirePermission } from '@/server/lib/rbac.config';
 
 import { dbConnect } from '@/lib/mongodb-unified';
-import LedgerEntry, { type TrialBalanceEntry } from '@/server/models/finance/LedgerEntry';
+import { trialBalance as trialBalanceReport } from '@/server/finance/reporting.service';
+import { decimal128ToMinor } from '@/server/lib/money';
 
 import { Types } from 'mongoose';
 
@@ -70,42 +71,47 @@ export async function GET(req: NextRequest) {
           asOfDate = new Date(year, period, 0); // Day 0 = last day of previous month
         }
         
-        // Get trial balance from LedgerEntry model
-        const trialBalance = await LedgerEntry.getTrialBalance(
-          new Types.ObjectId(user.orgId),
-          year,
-          period
+        const periodStart = new Date(year, period - 1, 1);
+        const periodEnd = asOfDate;
+
+        const result = await trialBalanceReport(
+          { userId: user.userId, orgId: user.orgId, role: user.role, timestamp: new Date() },
+          periodStart,
+          periodEnd
         );
-        
-        // Calculate totals
-        const totalDebits = trialBalance.reduce((sum: number, account: TrialBalanceEntry) => sum + account.debit, 0);
-        const totalCredits = trialBalance.reduce((sum: number, account: TrialBalanceEntry) => sum + account.credit, 0);
-        const totalBalance = totalDebits - totalCredits;
-        
-        // Group by account type
-        const byType: Record<string, TrialBalanceEntry[]> = {};
-        trialBalance.forEach((account: TrialBalanceEntry) => {
-          if (!byType[account.accountType]) {
-            byType[account.accountType] = [];
-          }
-          byType[account.accountType].push(account);
+
+        const decimalZero = Types.Decimal128.fromString('0');
+        const toMajor = (minor: bigint) => Number(minor) / 100;
+
+        const accounts = result.rows.map((row) => {
+          const debitMinor = decimal128ToMinor((row.debit as Types.Decimal128) ?? decimalZero);
+          const creditMinor = decimal128ToMinor((row.credit as Types.Decimal128) ?? decimalZero);
+
+          return {
+            accountId: row.accountId?.toString?.() ?? '',
+            accountCode: row.code ?? row.accountCode ?? '',
+            accountName: row.name ?? row.accountName ?? '',
+            accountType: row.type,
+            debit: toMajor(debitMinor),
+            credit: toMajor(creditMinor),
+            balance: toMajor(debitMinor - creditMinor),
+            level: 0,
+            hasChildren: false,
+          };
         });
-        
+
+        const totalDebits = toMajor(result.totDr);
+        const totalCredits = toMajor(result.totCr);
+
         return NextResponse.json({
-          success: true,
-          data: {
-            asOfDate,
-            year,
-            period,
-            accounts: trialBalance,
-            byType,
-            totals: {
-              debits: totalDebits,
-              credits: totalCredits,
-              balance: totalBalance,
-              isBalanced: Math.abs(totalBalance) < 0.01 // Allow for rounding
-            }
-          }
+          year,
+          period,
+          asOfDate: asOfDate.toISOString(),
+          accounts,
+          totalDebits,
+          totalCredits,
+          isBalanced: result.balanced,
+          difference: totalDebits - totalCredits,
         });
       }
     );

@@ -248,6 +248,16 @@ class ReviewService {
       throw new Error('Can only respond to published reviews');
     }
 
+    const product = await SouqProduct.findById(review.productId).select('createdBy');
+    const ownerId =
+      typeof product?.createdBy === 'string'
+        ? product.createdBy
+        : product?.createdBy?.toString?.();
+
+    if (!product || ownerId !== sellerId) {
+      throw new Error('Unauthorized to respond to this review');
+    }
+
     // Set seller response
     review.sellerResponse = {
       content,

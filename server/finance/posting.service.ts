@@ -38,7 +38,14 @@ export async function postJournal(ctx: RequestContext, journalId: string) {
       if (!account) throw new Error('Account not found');
 
       const baseCurrency = process.env.FINANCE_BASE_CURRENCY || 'SAR';
-      const fxRate = p.fxRate || await getFxRate(ctx.orgId, p.currency, baseCurrency, j.journalDate);
+      let fxRate = p.fxRate;
+      if (!fxRate) {
+        if (p.currency === baseCurrency) {
+          fxRate = 1;
+        } else {
+          fxRate = await getFxRate(ctx.orgId, p.currency, baseCurrency, j.journalDate);
+        }
+      }
       const baseDeb = applyFxMinor(debMinor, fxRate);
       const baseCre = applyFxMinor(creMinor, fxRate);
 

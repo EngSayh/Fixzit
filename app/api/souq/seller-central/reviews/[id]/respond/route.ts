@@ -4,12 +4,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { reviewService } from '@/services/souq/reviews/review-service';
 import { auth } from '@/auth';
+import { connectDb } from '@/lib/mongodb-unified';
+import { z } from 'zod';
 
 type RouteContext = {
   params: Promise<{
     id: string;
   }>;
 };
+
+const sellerResponseSchema = z.object({
+  content: z.string().min(10).max(1000),
+});
 
 export async function POST(req: NextRequest, context: RouteContext) {
   try {
@@ -18,16 +24,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    await connectDb();
+
     const { id: reviewId } = await context.params;
     const body = await req.json();
-    const { content } = body;
-
-    if (!content) {
-      return NextResponse.json(
-        { error: 'Response content is required' },
-        { status: 400 }
-      );
-    }
+    const { content } = sellerResponseSchema.parse(body);
 
     const review = await reviewService.respondToReview(
       reviewId,
@@ -37,6 +38,13 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     return NextResponse.json(review);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation failed', issues: error.issues },
+        { status: 400 }
+      );
+    }
+
     console.error('[POST /api/souq/seller-central/reviews/[id]/respond]', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to respond to review' },
