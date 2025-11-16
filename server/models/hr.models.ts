@@ -31,7 +31,7 @@ import mongoose, { Schema, model, models, Types, Document, Model } from 'mongoos
 export type ObjectId = Types.ObjectId;
 
 interface BaseOrgDoc extends Document {
-  orgId: string;
+  orgId: Types.ObjectId;
   isDeleted: boolean;
   createdBy?: ObjectId;
   updatedBy?: ObjectId;
@@ -76,7 +76,7 @@ export interface DepartmentDoc extends BaseOrgDoc {
 }
 
 const DepartmentSchema = new Schema<DepartmentDoc>({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' },
   name: { type: String, required: true },
   code: { type: String },
   description: { type: String },
@@ -170,7 +170,7 @@ const TechnicianProfileSchema = new Schema<TechnicianProfile>({
 }, { _id: false });
 
 const EmployeeSchema = new Schema<EmployeeDoc>({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' },
   employeeCode: { type: String, required: true },
   userId: { type: Schema.Types.ObjectId, ref: 'User' },
   firstName: { type: String, required: true },
@@ -243,7 +243,7 @@ export interface ShiftTemplateDoc extends BaseOrgDoc {
 }
 
 const ShiftTemplateSchema = new Schema<ShiftTemplateDoc>({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' },
   name: { type: String, required: true },
   type: { type: String, enum: SHIFT_TYPES, default: 'MORNING' },
   startTime: { type: String, required: true },
@@ -272,7 +272,7 @@ export interface AttendanceRecordDoc extends BaseOrgDoc {
 }
 
 const AttendanceRecordSchema = new Schema<AttendanceRecordDoc>({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' },
   employeeId: { type: Schema.Types.ObjectId, ref: 'Employee', required: true },
   date: { type: Date, required: true },
   shiftTemplateId: { type: Schema.Types.ObjectId, ref: 'ShiftTemplate' },
@@ -318,7 +318,7 @@ export interface LeaveTypeDoc extends BaseOrgDoc {
 }
 
 const LeaveTypeSchema = new Schema<LeaveTypeDoc>({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' },
   code: { type: String, required: true },
   name: { type: String, required: true },
   description: { type: String },
@@ -345,7 +345,7 @@ export interface LeaveBalanceDoc extends BaseOrgDoc {
 }
 
 const LeaveBalanceSchema = new Schema<LeaveBalanceDoc>({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' },
   employeeId: { type: Schema.Types.ObjectId, ref: 'Employee', required: true },
   leaveTypeId: { type: Schema.Types.ObjectId, ref: 'LeaveType', required: true },
   year: { type: Number, required: true },
@@ -390,7 +390,7 @@ export interface LeaveRequestDoc extends BaseOrgDoc {
 }
 
 const LeaveRequestSchema = new Schema<LeaveRequestDoc>({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' },
   employeeId: { type: Schema.Types.ObjectId, ref: 'Employee', required: true },
   leaveTypeId: { type: Schema.Types.ObjectId, ref: 'LeaveType', required: true },
   startDate: { type: Date, required: true },
@@ -530,7 +530,7 @@ PayrollLineSchema.virtual('calculatedNetPay').get(function(this: PayrollLine) {
 });
 
 const PayrollRunSchema = new Schema<PayrollRunDoc>({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' },
   name: { type: String, required: true },
   periodStart: { type: Date, required: true },
   periodEnd: { type: Date, required: true },
@@ -608,7 +608,7 @@ export interface JobPostingDoc extends BaseOrgDoc {
 }
 
 const JobPostingSchema = new Schema<JobPostingDoc>({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' },
   title: { type: String, required: true },
   code: { type: String },
   departmentId: { type: Schema.Types.ObjectId, ref: 'Department' },
@@ -641,7 +641,7 @@ export interface CandidateDoc extends BaseOrgDoc {
 }
 
 const CandidateSchema = new Schema<CandidateDoc>({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' },
   fullName: { type: String, required: true },
   email: { type: String, required: true },
   phone: { type: String },
@@ -672,7 +672,7 @@ export interface TrainingCourseDoc extends BaseOrgDoc {
 }
 
 const TrainingCourseSchema = new Schema<TrainingCourseDoc>({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' },
   code: { type: String, required: true },
   title: { type: String, required: true },
   description: { type: String },
@@ -698,7 +698,7 @@ export interface TrainingSessionDoc extends BaseOrgDoc {
 }
 
 const TrainingSessionSchema = new Schema<TrainingSessionDoc>({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' },
   courseId: { type: Schema.Types.ObjectId, ref: 'TrainingCourse', required: true },
   startDate: { type: Date, required: true },
   endDate: { type: Date },
@@ -729,7 +729,7 @@ export interface CertificationDoc extends BaseOrgDoc {
 }
 
 const CertificationSchema = new Schema<CertificationDoc>({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' },
   employeeId: { type: Schema.Types.ObjectId, ref: 'Employee', required: true },
   name: { type: String, required: true },
   issuingBody: { type: String },
@@ -777,7 +777,7 @@ export interface PerformanceReviewDoc extends BaseOrgDoc {
 }
 
 const PerformanceReviewSchema = new Schema<PerformanceReviewDoc>({
-  orgId: { type: String, required: true, index: true },
+  orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' },
   employeeId: { type: Schema.Types.ObjectId, ref: 'Employee', required: true },
   periodStart: { type: Date, required: true },
   periodEnd: { type: Date, required: true },
