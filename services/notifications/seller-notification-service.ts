@@ -1,5 +1,6 @@
 import { logger } from '@/lib/logger';
 import { getDatabase } from '@/lib/mongodb-unified';
+import { sendSMS as sendSMSViaService } from '@/lib/sms';
 
 /**
  * Seller Notification Templates for Souq Marketplace
@@ -152,12 +153,17 @@ async function sendEmail(to: string, subject: string, body: string): Promise<voi
 }
 
 /**
- * Send SMS via Twilio/SNS (placeholder - implement when SMS service is configured)
+ * Send SMS using the centralized SMS service
  */
 async function sendSMS(to: string, message: string): Promise<void> {
-  // TODO: Implement SMS sending via Twilio, AWS SNS, or Unifonic (for KSA)
-  logger.info('[SellerNotification] SMS would be sent', { to, message });
-  // Placeholder for future implementation
+  const result = await sendSMSViaService(to, message);
+  
+  if (!result.success) {
+    logger.warn('[SellerNotification] SMS send failed', { 
+      to, 
+      error: result.error 
+    });
+  }
 }
 
 /**
