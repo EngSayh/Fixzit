@@ -827,7 +827,7 @@ lib/i18n.ts:142:export function applyHtmlLang(lang: Lang) {
 lib/i18n.ts:152:export function t(key: string, lang: Lang = 'en'): string {
 lib/i18n.ts:159:export function getMarketplaceErrorMessage(
 POWERSHELL_HEREDOC_CONFIGURED.md:103:export default function MyComponent({ title }: Props) {
-tailwind.config.ts:26:export default config;
+tailwind.config.js:1:const tailwindcssLogical = require('tailwindcss-logical');
 kb/chunk.ts:1:export type TextChunk = {
 kb/chunk.ts:7:export function chunkText(input: string, chunkSize = 1000, overlap = 200): TextChunk[] {
 app/finance/budgets/new/page.tsx:3:export default function NewBudgetPage() {

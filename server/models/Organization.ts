@@ -58,6 +58,17 @@ type Usage = {
   storageUsed: number; // MB
 };
 
+type ModulesConfig = {
+  ats?: {
+    enabled: boolean;
+    jobPostLimit: number;
+    seats: number;
+    seatWarningThreshold?: number;
+    activatedAt?: Date;
+    billingPlan?: string;
+  };
+};
+
 type OrganizationDoc = HydratedDocument<IOrganization>;
 /* eslint-disable no-unused-vars */
 type OrganizationModel = MModel<IOrganization> & {
@@ -247,6 +258,8 @@ export interface IOrganization {
     healthStatus: 'HEALTHY' | 'WARNING' | 'CRITICAL';
     healthDetails?: Record<string, unknown>;
   };
+
+  modules?: ModulesConfig;
 
   customFields?: Record<string, unknown>;
   tags?: string[];
@@ -447,6 +460,17 @@ const OrganizationSchema = new Schema<IOrganization>(
           provider: { type: String, enum: SsoProvider },
           settings: Schema.Types.Mixed,
         },
+      },
+    },
+
+    modules: {
+      ats: {
+        enabled: { type: Boolean, default: false },
+        jobPostLimit: { type: Number, default: 5, min: 0 },
+        seats: { type: Number, default: 25, min: 0 },
+        seatWarningThreshold: { type: Number, default: 0.9, min: 0, max: 1 },
+        activatedAt: { type: Date },
+        billingPlan: { type: String, default: 'ATS_STARTER' },
       },
     },
 

@@ -120,8 +120,9 @@ export async function POST(req: NextRequest) {
             invoiceId: invoice._id 
           });
           
-          // Enqueue background retry job (TODO: implement retry queue)
-          // await enqueueActivationRetry(invoice.metadata.aqarPaymentId, invoice._id);
+          // Enqueue background retry job
+          const { enqueueActivationRetry } = await import('@/jobs/package-activation-queue');
+          await enqueueActivationRetry(invoice.metadata.aqarPaymentId, String(invoice._id));
         }
       }
     } else {

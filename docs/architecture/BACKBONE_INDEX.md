@@ -173,7 +173,7 @@ app/api/
 
 ```
 ├── next.config.js            ✅ CANONICAL - Next.js configuration
-├── tailwind.config.ts        ✅ CANONICAL - Tailwind + brand tokens
+├── tailwind.config.js        ✅ CANONICAL - Tailwind + brand tokens
 ├── tsconfig.json             ✅ CANONICAL - TypeScript configuration
 ├── eslint.config.js          ✅ CANONICAL - ESLint rules
 ├── postcss.config.js         ✅ CANONICAL - PostCSS configuration

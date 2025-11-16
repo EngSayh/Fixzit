@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
-const ATS_UPGRADE_PATH = '/billing/upgrade?feature=ats';
-const ATS_SEAT_USER_ROLES = ['HR', 'CORPORATE_ADMIN', 'ADMIN', 'FM_MANAGER', 'PROPERTY_MANAGER'];
-const ATS_SEAT_PROFESSIONAL_ROLES = ['HR Manager', 'Recruiter', 'Hiring Manager', 'Corporate Admin', 'Talent Acquisition Lead'];
-const ATS_SEAT_REQUIRED_ROLES: ATSRole[] = ['Corporate Admin', 'HR Manager', 'Recruiter', 'Hiring Manager'];
-
 export type AtsModuleAccess = {
   enabled: boolean;
   jobPostLimit: number;
@@ -30,6 +25,11 @@ export type ATSRole =
   | 'Recruiter'          // Dept: view jobs, manage applications, schedule interviews
   | 'Hiring Manager'     // Dept: view jobs/apps, add feedback, approve offers
   | 'Candidate';         // Public: apply to jobs, view own applications
+
+const ATS_UPGRADE_PATH = '/billing/upgrade?feature=ats';
+const ATS_SEAT_USER_ROLES = ['HR', 'CORPORATE_ADMIN', 'ADMIN', 'FM_MANAGER', 'PROPERTY_MANAGER'];
+const ATS_SEAT_PROFESSIONAL_ROLES = ['HR Manager', 'Recruiter', 'Hiring Manager', 'Corporate Admin', 'Talent Acquisition Lead'];
+const ATS_SEAT_REQUIRED_ROLES: ATSRole[] = ['Corporate Admin', 'HR Manager', 'Recruiter', 'Hiring Manager'];
 
 /**
  * ATS Permissions Matrix
