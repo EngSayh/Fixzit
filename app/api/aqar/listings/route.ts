@@ -31,15 +31,27 @@ export async function POST(request: NextRequest) {
       // Type-aware validation
       const missingString = ['intent', 'propertyType', 'title', 'description', 'city', 'source']
         .filter((f) => typeof body[f] !== 'string' || !body[f].trim());
-      const invalidNumbers = ['price', 'areaSqm']
-        .filter((f) => typeof body[f] !== 'number' || body[f] <= 0);
+      const invalidNumbers = ['areaSqm']
+        .filter((f) => body[f] !== undefined && (typeof body[f] !== 'number' || body[f] <= 0));
+
+      const locationGeo = body.location?.geo || body.geo;
+      const validPricing =
+        typeof body.price?.amount === 'number' &&
+        body.price.amount > 0 &&
+        typeof (body.price.currency || 'SAR') === 'string';
+
       const validGeo =
-        body.geo?.type === 'Point' &&
-        Array.isArray(body.geo.coordinates) &&
-        body.geo.coordinates.length === 2 &&
-        body.geo.coordinates.every((n: unknown) => typeof n === 'number');
+        locationGeo?.type === 'Point' &&
+        Array.isArray(locationGeo.coordinates) &&
+        locationGeo.coordinates.length === 2 &&
+        locationGeo.coordinates.every((n: unknown) => typeof n === 'number');
       
-      const missing = [...missingString, ...invalidNumbers, ...(validGeo ? [] : ['geo'])];
+      const missing = [
+        ...missingString,
+        ...invalidNumbers,
+        ...(validPricing ? [] : ['price']),
+        ...(validGeo ? [] : ['location.geo']),
+      ];
       if (missing.length) {
         return badRequest(`Missing/invalid fields: ${missing.join(', ')}`, { correlationId });
       }
@@ -62,19 +74,89 @@ export async function POST(request: NextRequest) {
       }
       
       // Create listing
-      const created = await (AqarListing as any).create({
+      const orgId = user.orgId || user.id;
+      const listingPayload = {
         ...body,
+        orgId,
         listerId: user.id,
-        orgId: user.orgId || user.id,
+        location: {
+          addressLine: body.location?.addressLine || body.address,
+          cityId: body.location?.cityId || body.city,
+          neighborhoodId: body.location?.neighborhoodId || body.neighborhood,
+          geo: locationGeo,
+        },
+        price: {
+          amount: body.price.amount,
+          currency: body.price.currency || 'SAR',
+          frequency: body.price.frequency || body.rentFrequency || null,
+        },
+        vatRate: typeof body.vatRate === 'number' ? body.vatRate : 15,
+        media: Array.isArray(body.media) ? body.media : [],
+        compliance: {
+          falLicenseNo: body.compliance?.falLicenseNo,
+          adPermitNo: body.compliance?.adPermitNo,
+          brokerageContractId: body.compliance?.brokerageContractId,
+          verifiedOwner: Boolean(body.compliance?.verifiedOwner),
+          nafathVerified: Boolean(body.compliance?.nafathVerified),
+          foreignOwnerCompliant: Boolean(body.compliance?.foreignOwnerCompliant),
+          verifiedAt: body.compliance?.verifiedAt ? new Date(body.compliance.verifiedAt) : undefined,
+        },
+        boost: body.boost,
+        auction: body.auction,
+        rnplEligible: Boolean(body.rnplEligible),
         status: 'DRAFT',
-      });
+      };
+
+      if (listingPayload.intent === 'AUCTION') {
+        listingPayload.auction = {
+          isAuction: true,
+          startAt: body.auction?.startAt ? new Date(body.auction.startAt) : undefined,
+          endAt: body.auction?.endAt ? new Date(body.auction.endAt) : undefined,
+          reserve: body.auction?.reserve,
+          deposit: body.auction?.deposit,
+          externalLink: body.auction?.externalLink,
+        };
+      }
+
+      const created = await (AqarListing as any).create(listingPayload);
       
       // Sanitize response
-      const { _id, title, price, areaSqm, city, status, listerId, orgId, media, amenities, geo, createdAt } =
+      const {
+        _id,
+        title,
+        price,
+        areaSqm,
+        city,
+        status,
+        listerId,
+        media,
+        amenities,
+        location,
+        rnplEligible,
+        auction,
+        createdAt,
+      } =
         created.toObject?.() ?? created;
       
       return ok(
-        { listing: { _id, title, price, areaSqm, city, status, listerId, orgId, media, amenities, geo, createdAt } },
+        {
+          listing: {
+            _id,
+            title,
+            price,
+            areaSqm,
+            city,
+            status,
+            listerId,
+            orgId,
+            media,
+            amenities,
+            location,
+            rnplEligible,
+            auction,
+            createdAt,
+          },
+        },
         { correlationId },
         201
       );

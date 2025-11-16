@@ -9,8 +9,31 @@ import { MessageSquare } from 'lucide-react';
 interface SellerResponseFormProps {
   reviewId: string;
   reviewTitle: string;
-  onSubmit: (_reviewId: string, _content: string) => Promise<void>;
+  onSubmit?: (_reviewId: string, _content: string) => Promise<void>;
   onCancel?: () => void;
+}
+
+async function postSellerResponse(reviewId: string, content: string): Promise<void> {
+  const response = await fetch(`/api/souq/seller-central/reviews/${reviewId}/respond`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ content }),
+  });
+
+  if (!response.ok) {
+    let message = 'Failed to submit response';
+    try {
+      const data = await response.json();
+      if (typeof data?.error === 'string') {
+        message = data.error;
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+    throw new Error(message);
+  }
 }
 
 export function SellerResponseForm({
@@ -22,10 +45,12 @@ export function SellerResponseForm({
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     if (content.length < 10) {
       setError('Response must be at least 10 characters');
@@ -35,8 +60,13 @@ export function SellerResponseForm({
     setIsSubmitting(true);
 
     try {
-      await onSubmit(reviewId, content);
-      setContent(''); // Clear form on success
+      if (onSubmit) {
+        await onSubmit(reviewId, content);
+      } else {
+        await postSellerResponse(reviewId, content);
+      }
+      setContent('');
+      setSuccess('Response submitted successfully');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit response');
     } finally {
@@ -70,6 +100,11 @@ export function SellerResponseForm({
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm mt-3">
           {error}
+        </div>
+      )}
+      {success && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg text-sm mt-3">
+          {success}
         </div>
       )}
 

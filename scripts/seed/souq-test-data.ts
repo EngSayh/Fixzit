@@ -13,6 +13,12 @@
  * - Historical sales data for analytics
  */
 
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load environment variables from .env.local
+config({ path: resolve(process.cwd(), '.env.local') });
+
 import { connectDb } from '@/lib/mongodb-unified';
 import { SouqProduct } from '@/server/models/souq/Product';
 import { SouqOrder } from '@/server/models/souq/Order';
@@ -21,69 +27,79 @@ import { nanoid } from 'nanoid';
 
 // Test organization ID (replace with your actual test org ID)
 const TEST_ORG_ID = 'org-test-001';
-const TEST_SELLER_ID = 'seller-test-001';
+const TEST_SELLER_ID = '6740b53c5b1a08c748eec97f'; // Valid MongoDB ObjectId format
 
-// Sample product data
+// Sample product data matching the Product schema
 const PRODUCT_TEMPLATES = [
   {
-    name: 'Premium Office Chair',
-    category: 'Furniture',
+    title: { en: 'Premium Office Chair', ar: 'كرسي مكتب فاخر' },
+    description: { en: 'Ergonomic office chair with lumbar support', ar: 'كرسي مكتب مريح مع دعم قطني' },
+    categoryId: 'CAT-FURNITURE-001',
     basePrice: 299.99,
-    description: 'Ergonomic office chair with lumbar support',
+    images: ['https://placehold.co/600x400/png?text=Office+Chair'],
   },
   {
-    name: 'Wireless Keyboard',
-    category: 'Electronics',
+    title: { en: 'Wireless Keyboard', ar: 'لوحة مفاتيح لاسلكية' },
+    description: { en: 'Mechanical wireless keyboard with RGB lighting', ar: 'لوحة مفاتيح ميكانيكية لاسلكية مع إضاءة RGB' },
+    categoryId: 'CAT-ELECTRONICS-001',
     basePrice: 79.99,
-    description: 'Mechanical wireless keyboard with RGB lighting',
+    images: ['https://placehold.co/600x400/png?text=Keyboard'],
   },
   {
-    name: 'Standing Desk',
-    category: 'Furniture',
+    title: { en: 'Standing Desk', ar: 'مكتب واقف' },
+    description: { en: 'Height-adjustable standing desk', ar: 'مكتب قابل لتعديل الارتفاع' },
+    categoryId: 'CAT-FURNITURE-001',
     basePrice: 499.99,
-    description: 'Height-adjustable standing desk',
+    images: ['https://placehold.co/600x400/png?text=Standing+Desk'],
   },
   {
-    name: '4K Monitor',
-    category: 'Electronics',
+    title: { en: '4K Monitor', ar: 'شاشة 4K' },
+    description: { en: '27-inch 4K IPS monitor', ar: 'شاشة 27 بوصة 4K IPS' },
+    categoryId: 'CAT-ELECTRONICS-001',
     basePrice: 349.99,
-    description: '27-inch 4K IPS monitor',
+    images: ['https://placehold.co/600x400/png?text=4K+Monitor'],
   },
   {
-    name: 'Desk Lamp',
-    category: 'Lighting',
+    title: { en: 'Desk Lamp', ar: 'مصباح مكتب' },
+    description: { en: 'LED desk lamp with adjustable brightness', ar: 'مصباح LED مع سطوع قابل للتعديل' },
+    categoryId: 'CAT-LIGHTING-001',
     basePrice: 39.99,
-    description: 'LED desk lamp with adjustable brightness',
+    images: ['https://placehold.co/600x400/png?text=Desk+Lamp'],
   },
   {
-    name: 'Laptop Stand',
-    category: 'Accessories',
+    title: { en: 'Laptop Stand', ar: 'حامل لابتوب' },
+    description: { en: 'Aluminum laptop stand with cooling', ar: 'حامل لابتوب ألمنيوم مع تبريد' },
+    categoryId: 'CAT-ACCESSORIES-001',
     basePrice: 49.99,
-    description: 'Aluminum laptop stand with cooling',
+    images: ['https://placehold.co/600x400/png?text=Laptop+Stand'],
   },
   {
-    name: 'Webcam HD',
-    category: 'Electronics',
+    title: { en: 'Webcam HD', ar: 'كاميرا ويب عالية الدقة' },
+    description: { en: '1080p HD webcam with auto-focus', ar: 'كاميرا ويب 1080p مع تركيز تلقائي' },
+    categoryId: 'CAT-ELECTRONICS-001',
     basePrice: 89.99,
-    description: '1080p HD webcam with auto-focus',
+    images: ['https://placehold.co/600x400/png?text=Webcam'],
   },
   {
-    name: 'Mouse Pad',
-    category: 'Accessories',
+    title: { en: 'Mouse Pad', ar: 'ماوس باد' },
+    description: { en: 'Large gaming mouse pad', ar: 'ماوس باد كبير للألعاب' },
+    categoryId: 'CAT-ACCESSORIES-001',
     basePrice: 19.99,
-    description: 'Large gaming mouse pad',
+    images: ['https://placehold.co/600x400/png?text=Mouse+Pad'],
   },
   {
-    name: 'Headphone Stand',
-    category: 'Accessories',
+    title: { en: 'Headphone Stand', ar: 'حامل سماعات' },
+    description: { en: 'RGB headphone stand with USB hub', ar: 'حامل سماعات RGB مع USB hub' },
+    categoryId: 'CAT-ACCESSORIES-001',
     basePrice: 24.99,
-    description: 'RGB headphone stand with USB hub',
+    images: ['https://placehold.co/600x400/png?text=Headphone+Stand'],
   },
   {
-    name: 'Cable Management Box',
-    category: 'Accessories',
+    title: { en: 'Cable Management Box', ar: 'صندوق تنظيم الكابلات' },
+    description: { en: 'Cable organizer box', ar: 'صندوق منظم للكابلات' },
+    categoryId: 'CAT-ACCESSORIES-001',
     basePrice: 29.99,
-    description: 'Cable organizer box',
+    images: ['https://placehold.co/600x400/png?text=Cable+Box'],
   },
 ];
 
@@ -205,27 +221,25 @@ async function seedProducts() {
   for (let i = 0; i < PRODUCT_TEMPLATES.length; i++) {
     const template = PRODUCT_TEMPLATES[i];
     const fsin = `FSIN-${nanoid(10).toUpperCase()}`;
-    const productId = `PROD-${nanoid(10).toUpperCase()}`;
     
     products.push({
       fsin,
-      productId,
-      org_id: TEST_ORG_ID,
-      sellerId: TEST_SELLER_ID,
-      name: template.name,
-      category: template.category,
-      price: template.basePrice,
+      title: template.title,
       description: template.description,
-      stockQuantity: Math.floor(Math.random() * 100) + 10,
-      status: 'active',
-      imageUrl: `/images/products/${template.category.toLowerCase()}-${i + 1}.jpg`,
+      categoryId: template.categoryId,
+      images: template.images,
+      isActive: true,
+      hasVariations: false,
+      attributes: {},
+      complianceFlags: [],
+      createdBy: TEST_SELLER_ID,
       createdAt: randomDateWithinDays(180),
       updatedAt: new Date(),
     });
   }
   
   // Clear existing test products
-  await SouqProduct.deleteMany({ org_id: TEST_ORG_ID });
+  await SouqProduct.deleteMany({ createdBy: TEST_SELLER_ID });
   
   // Insert new products
   const insertedProducts = await SouqProduct.insertMany(products);

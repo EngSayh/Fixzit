@@ -4,6 +4,8 @@ import { WorkOrder } from "@/server/models/WorkOrder";
 import { z } from "zod";
 import { getSessionUser, requireAbility } from "@/server/middleware/withAuthRbac";
 import { WORK_ORDER_FSM } from "@/domain/fm/fm.behavior";
+import { postFromWorkOrder } from '@/server/finance/fmFinance.service';
+import { logger } from '@/lib/logger';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
@@ -141,7 +143,35 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     changedAt: new Date(),
     notes: body.note
   });
+  const shouldPostToFinance = body.to === 'FINANCIAL_POSTING' && wo.status !== body.to;
+
   wo.set('status', body.to as unknown as typeof wo.status);
   await wo.save();
+
+  if (shouldPostToFinance) {
+    const financial = (wo as { financial?: { actualCost?: number; estimatedCost?: number; isBillable?: boolean; costBreakdown?: { total?: number } } }).financial || {};
+    const expense = typeof financial.actualCost === 'number'
+      ? financial.actualCost
+      : typeof financial.estimatedCost === 'number'
+        ? financial.estimatedCost
+        : 0;
+    const billable = financial.isBillable
+      ? (typeof financial.costBreakdown?.total === 'number' ? financial.costBreakdown.total : expense)
+      : 0;
+
+    if (expense > 0 || billable > 0) {
+      try {
+        await postFromWorkOrder(
+          { userId: user.id, orgId: user.orgId, role: user.role ?? 'STAFF', timestamp: new Date() },
+          wo._id.toString(),
+          { expense, billable }
+        );
+      } catch (financeError) {
+        logger.error('Failed to post work order to finance', { financeError, workOrderId: wo._id.toString() });
+        return createSecureResponse({ error: 'Failed to post finance journal', details: financeError instanceof Error ? financeError.message : String(financeError) }, 500, req);
+      }
+    }
+  }
+
   return createSecureResponse(wo, 200, req);
 }

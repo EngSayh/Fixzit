@@ -144,9 +144,6 @@ export default async function SellerReviewsPage({
                     <SellerResponseForm
                       reviewId={review.reviewId}
                       reviewTitle={review.title}
-                      onSubmit={async () => {
-                        // Client-side handling in actual implementation
-                      }}
                     />
                   </div>
                 )}
