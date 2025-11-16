@@ -482,24 +482,15 @@ async function testWorkOrderEndpoints() {
       body: {
         title: 'Test Work Order - Leaking Faucet',
         description: 'Kitchen faucet is leaking and needs repair',
-        type: 'MAINTENANCE',
         priority: 'MEDIUM',
         category: 'PLUMBING',
-        location: {
-          propertyId: testUserId || '691a122168aef400bf90dbbe', // Use test user ID as fallback
-          unitNumber: '101',
-          floor: '1',
-          area: 'Kitchen',
-        },
+        propertyId: testUserId || '691a122168aef400bf90dbbe', // API extracts this into location.propertyId
+        unitNumber: '101',
         requester: {
           type: 'STAFF',
           name: 'Test Admin',
+          phone: '+966500000001',
         },
-        sla: {
-          responseTimeMinutes: 240, // 4 hours
-          resolutionTimeMinutes: 1440, // 24 hours
-        },
-        orgId: TEST_ORG_ID,
       },
       requiresAuth: true,
       expectedStatus: 201,
