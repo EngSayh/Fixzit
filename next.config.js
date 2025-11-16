@@ -89,6 +89,7 @@ const nextConfig = {
   // Turbopack is 700x faster than Webpack for hot reloads
   // ✅ FIXES WARNING: "Webpack is configured while Turbopack is not"
   turbopack: {
+    root: __dirname,
     // Configure module resolution for Turbopack
     resolveAlias: {
       '@': '.',

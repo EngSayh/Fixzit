@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { hasPermission } from '@/lib/ats/rbac';
 import type { ATSRole } from '@/lib/ats/rbac';
+import ApplicationsKanban from '@/components/ats/ApplicationsKanban';
 
 /**
  * ATS Recruitment Dashboard (Monday.com-style)
@@ -46,6 +47,7 @@ export default function RecruitmentPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>('jobs');
+  const [applicationsView, setApplicationsView] = useState<'list' | 'kanban'>('list');
   
   const userRole = (session?.user?.role || 'Candidate') as ATSRole;
   
@@ -285,6 +287,30 @@ export default function RecruitmentPage() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold">All Applications ({applicationsCount})</h2>
                   <div className="flex gap-2">
+                    {/* View Toggle */}
+                    <div className="flex border rounded-md overflow-hidden">
+                      <button
+                        onClick={() => setApplicationsView('list')}
+                        className={`px-3 py-2 text-sm transition-colors ${
+                          applicationsView === 'list'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-background hover:bg-accent'
+                        }`}
+                      >
+                        📋 List
+                      </button>
+                      <button
+                        onClick={() => setApplicationsView('kanban')}
+                        className={`px-3 py-2 text-sm transition-colors ${
+                          applicationsView === 'kanban'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-background hover:bg-accent'
+                        }`}
+                      >
+                        📊 Kanban
+                      </button>
+                    </div>
+                    
                     <select className="px-3 py-2 border rounded-md text-sm">
                       <option value="all">All Stages</option>
                       <option value="applied">Applied</option>
@@ -297,9 +323,12 @@ export default function RecruitmentPage() {
                   </div>
                 </div>
                 
-                <div className="grid gap-4">
-                  {applications.map((app: any) => (
-                    <div key={app._id} className="bg-card border rounded-lg p-6 hover:shadow-md transition-shadow">
+                {applicationsView === 'kanban' ? (
+                  <ApplicationsKanban />
+                ) : (
+                  <div className="grid gap-4">
+                    {applications.map((app: any) => (
+                      <div key={app._id} className="bg-card border rounded-lg p-6 hover:shadow-md transition-shadow">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
@@ -363,7 +392,8 @@ export default function RecruitmentPage() {
                       </div>
                     </div>
                   ))}
-                </div>
+                  </div>
+                )}
               </div>
             )}
           </TabsContent>
