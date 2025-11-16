@@ -38,7 +38,7 @@ function logMessage(message, isError = false) {
   if (isError) {
     console.error(message);
   } else {
-    console.logMessage(message);
+    console.log(message);
   }
   try {
     writeFileSync(logFile, entry, { flag: 'a' });
