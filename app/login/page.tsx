@@ -255,7 +255,7 @@ export default function LoginPage() {
   }
 
   // Handle OTP verification success
-  const handleOTPVerified = async (_authToken: string) => {
+  const handleOTPVerified = async (otpToken: string) => {
     setLoading(true);
 
     try {
@@ -266,6 +266,7 @@ export default function LoginPage() {
         identifier,
         password,
         rememberMe,
+        otpToken,
         redirect: false,
       });
 
@@ -294,6 +295,62 @@ export default function LoginPage() {
       setErrors({ general: t('login.errors.networkError', 'Network error. Please check your connection.') });
       setLoading(false);
       setShowOTP(false);
+    }
+  };
+
+  const handleOTPResend = async () => {
+    const identifier = loginMethod === 'personal' ? email.trim() : employeeNumber.trim();
+
+    try {
+      const response = await fetch('/api/auth/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return {
+            success: false,
+            error: t('login.errors.rateLimited', 'Too many attempts. Please try again later.'),
+          };
+        }
+
+        if (response.status === 401) {
+          return {
+            success: false,
+            error: t('login.errors.invalidCredentials', 'Invalid email/employee number or password'),
+          };
+        }
+
+        return {
+          success: false,
+          error: data.error || t('otp.errors.resendFailed', 'Failed to resend OTP'),
+        };
+      }
+
+      setOtpState((prev) =>
+        prev
+          ? {
+              ...prev,
+              maskedPhone: data.data.phone || prev.maskedPhone,
+              expiresIn: data.data.expiresIn,
+            }
+          : null
+      );
+
+      return {
+        success: true,
+        expiresIn: data.data.expiresIn,
+      };
+    } catch (err) {
+      logger.error('OTP resend error', err instanceof Error ? err : new Error(String(err)));
+      return {
+        success: false,
+        error: t('otp.errors.networkError', 'Network error. Please try again.'),
+      };
     }
   };
 
@@ -344,6 +401,7 @@ export default function LoginPage() {
               maskedPhone={otpState.maskedPhone}
               expiresIn={otpState.expiresIn}
               onVerified={handleOTPVerified}
+              onResend={handleOTPResend}
               onBack={handleOTPBack}
               t={t}
               isRTL={isRTL}

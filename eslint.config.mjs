@@ -4,6 +4,7 @@
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 export default [
@@ -75,6 +76,7 @@ export default [
     },
     plugins: {
       '@typescript-eslint': tseslint.plugin,
+      'react-hooks': reactHooks,
     },
     rules: {
       ...eslint.configs.recommended.rules,
@@ -102,6 +104,10 @@ export default [
       'no-mixed-spaces-and-tabs': 'off',
 
       /* Next.js specific rules */
+
+      /* React Hooks Rules */
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
 

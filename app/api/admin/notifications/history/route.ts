@@ -6,15 +6,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/auth.config';
+import { auth } from '@/auth';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
     // Authentication check
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user) {
       return NextResponse.json(

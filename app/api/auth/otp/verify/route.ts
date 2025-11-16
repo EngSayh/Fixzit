@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { randomBytes } from 'crypto';
 import { logger } from '@/lib/logger';
-import { otpStore, MAX_ATTEMPTS } from '@/lib/otp-store';
+import {
+  otpStore,
+  MAX_ATTEMPTS,
+  otpSessionStore,
+  OTP_SESSION_EXPIRY_MS,
+} from '@/lib/otp-store';
 
 // Validation schema
 const VerifyOTPSchema = z.object({
@@ -134,21 +140,19 @@ export async function POST(request: NextRequest) {
     // 8. Clean up OTP from store
     otpStore.delete(loginIdentifier);
 
-    // 9. Generate temporary auth token (valid for 5 minutes to complete login)
-    const authToken = Buffer.from(
-      JSON.stringify({
-        userId: otpData.userId,
-        identifier: loginIdentifier,
-        verified: true,
-        expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
-      })
-    ).toString('base64');
+    // 9. Generate temporary OTP login session token (server-side store, not user-modifiable)
+    const sessionToken = randomBytes(32).toString('hex');
+    otpSessionStore.set(sessionToken, {
+      userId: otpData.userId,
+      identifier: loginIdentifier,
+      expiresAt: Date.now() + OTP_SESSION_EXPIRY_MS,
+    });
 
     return NextResponse.json({
       success: true,
       message: 'OTP verified successfully',
       data: {
-        authToken,
+        otpToken: sessionToken,
         userId: otpData.userId,
       },
     });

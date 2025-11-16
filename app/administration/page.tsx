@@ -20,9 +20,10 @@ import {
   Users, Shield, Activity, Settings as SettingsIcon, 
   UserPlus, Download, Edit, Lock, Unlock, Trash2, 
   Search, Filter, Save, X, Check, AlertCircle,
-  MoreVertical, Eye, UserCog, Globe, DollarSign, Bell
+  MoreVertical, Eye, UserCog, Globe, DollarSign, Bell, MessageSquare
 } from 'lucide-react';
 import AdminNotificationsTab from '@/components/admin/AdminNotificationsTab';
+import CommunicationDashboard from '@/components/admin/CommunicationDashboard';
 import { logger } from '@/lib/logger';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useAuthRbac } from '@/hooks/useAuthRbac';
@@ -91,7 +92,7 @@ const AdminModule: React.FC = () => {
   const activeOrgId = orgId ?? 'platform';
 
   // State management
-  const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'audit' | 'settings' | 'tenants' | 'billing' | 'notifications'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'audit' | 'settings' | 'tenants' | 'billing' | 'notifications' | 'communications'>('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -462,6 +463,7 @@ const AdminModule: React.FC = () => {
     if (isSuperAdmin) {
       baseTabs.push(
         { id: 'notifications', label: t('admin.tabs.notifications', 'Send Notifications'), icon: Bell },
+        { id: 'communications', label: t('admin.tabs.communications', 'Communications'), icon: MessageSquare },
         { id: 'tenants', label: t('admin.tabs.tenants', 'Tenant Management'), icon: Globe },
         { id: 'billing', label: t('admin.tabs.billing', 'Subscriptions & Billing'), icon: DollarSign }
       );
@@ -985,6 +987,7 @@ const AdminModule: React.FC = () => {
         {activeTab === 'audit' && renderAuditLogs()}
         {activeTab === 'settings' && renderSettings()}
         {activeTab === 'notifications' && isSuperAdmin && <AdminNotificationsTab t={t} />}
+        {activeTab === 'communications' && isSuperAdmin && <CommunicationDashboard t={t} isRTL={false} />}
         {activeTab === 'tenants' && renderTenantManagement()}
         {activeTab === 'billing' && renderBilling()}
       </div>

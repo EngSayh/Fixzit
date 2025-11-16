@@ -7,8 +7,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/auth.config';
+import { ObjectId } from 'mongodb';
+import { auth } from '@/auth';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { sendEmail } from '@/lib/email';
 import { sendSMS } from '@/lib/sms';
@@ -29,7 +29,7 @@ interface NotificationRequest {
 export async function POST(req: NextRequest) {
   try {
     // Authentication check
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     if (!session?.user) {
       return NextResponse.json(
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     if (recipients.type === 'users') {
       const query = recipients.ids?.length 
-        ? { _id: { $in: recipients.ids } }
+        ? { _id: { $in: recipients.ids.map(id => new ObjectId(id)) } }
         : {};
       
       const users = await db.collection('users').find(query).toArray();
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
       }));
     } else if (recipients.type === 'tenants') {
       const query = recipients.ids?.length
-        ? { _id: { $in: recipients.ids } }
+        ? { _id: { $in: recipients.ids.map(id => new ObjectId(id)) } }
         : {};
       
       const tenants = await db.collection('tenants').find(query).toArray();
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
       }));
     } else if (recipients.type === 'corporate') {
       const query = recipients.ids?.length
-        ? { _id: { $in: recipients.ids } }
+        ? { _id: { $in: recipients.ids.map(id => new ObjectId(id)) } }
         : {};
       
       const corps = await db.collection('organizations').find(query).toArray();

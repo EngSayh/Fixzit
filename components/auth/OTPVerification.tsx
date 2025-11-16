@@ -11,7 +11,8 @@ interface OTPVerificationProps {
   maskedPhone: string;
   expiresIn: number;
   // eslint-disable-next-line no-unused-vars
-  onVerified: (authToken: string) => void;
+  onVerified: (otpToken: string) => void;
+  onResend: () => Promise<{ success: boolean; expiresIn?: number; error?: string }>;
   onBack: () => void;
   // eslint-disable-next-line no-unused-vars
   t: (key: string, fallback: string) => string;
@@ -23,6 +24,7 @@ export default function OTPVerification({
   maskedPhone,
   expiresIn: initialExpiresIn,
   onVerified,
+  onResend,
   onBack,
   t,
   isRTL,
@@ -33,6 +35,9 @@ export default function OTPVerification({
   const [resending, setResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(initialExpiresIn);
+  useEffect(() => {
+    setTimeRemaining(initialExpiresIn);
+  }, [initialExpiresIn]);
 
   // Timer for OTP expiration
   useEffect(() => {
@@ -95,7 +100,7 @@ export default function OTPVerification({
       }
 
       // OTP verified successfully
-      onVerified(data.data.authToken);
+      onVerified(data.data.otpToken ?? data.data.authToken);
     } catch (err) {
       logger.error('OTP verification error', err instanceof Error ? err : new Error(String(err)));
       setError(t('otp.errors.networkError', 'Network error. Please try again.'));
@@ -108,28 +113,25 @@ export default function OTPVerification({
     setError('');
 
     try {
-      const response = await fetch('/api/auth/otp/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier, password: '' }), // Password already verified
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || t('otp.errors.resendFailed', 'Failed to resend OTP'));
+      const result = await onResend();
+      if (!result.success) {
+        setError(result.error || t('otp.errors.resendFailed', 'Failed to resend OTP'));
         setResending(false);
         return;
       }
 
       // Reset timers
-      setTimeRemaining(data.data.expiresIn);
+      if (typeof result.expiresIn === 'number') {
+        setTimeRemaining(result.expiresIn);
+      } else {
+        setTimeRemaining(initialExpiresIn);
+      }
       setResendCooldown(60); // 60 second cooldown
       setOtp('');
-      setResending(false);
     } catch (err) {
       logger.error('OTP resend error', err instanceof Error ? err : new Error(String(err)));
       setError(t('otp.errors.networkError', 'Network error. Please try again.'));
+    } finally {
       setResending(false);
     }
   };

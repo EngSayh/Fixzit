@@ -3,6 +3,7 @@ import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { otpSessionStore } from '@/lib/otp-store';
 // NOTE: Mongoose imports MUST be dynamic inside authorize() to avoid Edge Runtime issues
 // import { User } from '@/server/models/User'; // ❌ Breaks Edge Runtime
 // import { verifyPassword } from '@/lib/auth'; // ❌ Imports User model
@@ -94,16 +95,28 @@ function _sanitizeImage(image?: string | null): string | undefined {
 
 // Validation schema for credentials login (unified identifier field)
 // NOTE: signIn() from next-auth/react sends checkbox values as 'on' when checked, undefined when unchecked
+const REQUIRE_SMS_OTP = process.env.NEXTAUTH_REQUIRE_SMS_OTP !== 'false';
+
 const LoginSchema = z
   .object({
     identifier: z.string().trim().min(1, 'Email or employee number is required'),
     password: z.string().min(1, 'Password is required'),
+    otpToken: z.string().trim().min(1, 'OTP verification token is required').optional(),
     // ✅ FIXED: Handle HTML checkbox behavior ('on' when checked, undefined when unchecked)
     rememberMe: z.union([z.boolean(), z.string(), z.undefined()]).transform(val => {
       if (typeof val === 'boolean') return val;
       if (val === 'on' || val === 'true' || val === '1') return true;
       return false;
     }).optional().default(false),
+  })
+  .superRefine((data, ctx) => {
+    if (REQUIRE_SMS_OTP && !data.otpToken) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['otpToken'],
+        message: 'OTP verification is required. Please enter the latest code.',
+      });
+    }
   })
   .transform((data, ctx) => {
     const idRaw = data.identifier.trim();
@@ -133,6 +146,7 @@ const LoginSchema = z
       loginIdentifier,
       loginType,
       password: data.password,
+      otpToken: data.otpToken || null,
       rememberMe: data.rememberMe,
     };
   });
@@ -176,7 +190,7 @@ export const authConfig = {
             return null;
           }
 
-          const { loginIdentifier, loginType, password, rememberMe } = parsed.data;
+          const { loginIdentifier, loginType, password, rememberMe, otpToken } = parsed.data;
 
           // 2. Dynamic imports (Edge Runtime compatible)
           const { connectToDatabase } = await import('@/lib/mongodb-unified');
@@ -232,7 +246,42 @@ export const authConfig = {
             { $set: { 'security.lastLogin': new Date() } }
           );
 
-          // 8. Return user object for NextAuth session
+          // 8. Enforce OTP session usage unless explicitly disabled
+          if (REQUIRE_SMS_OTP) {
+            if (!otpToken) {
+              logger.warn('[NextAuth] Missing OTP token for credentials login', { loginIdentifier });
+              return null;
+            }
+
+            const session = otpSessionStore.get(otpToken);
+            if (!session) {
+              logger.warn('[NextAuth] OTP session not found or already used', { loginIdentifier });
+              return null;
+            }
+
+            const now = Date.now();
+            if (now > session.expiresAt) {
+              otpSessionStore.delete(otpToken);
+              logger.warn('[NextAuth] OTP session expired', { loginIdentifier });
+              return null;
+            }
+
+            if (
+              session.userId !== user._id.toString() ||
+              session.identifier !== loginIdentifier
+            ) {
+              otpSessionStore.delete(otpToken);
+              logger.error('[NextAuth] OTP session mismatch', new Error('OTP session mismatch'), {
+                loginIdentifier,
+                sessionIdentifier: session.identifier,
+              });
+              return null;
+            }
+
+            otpSessionStore.delete(otpToken);
+          }
+
+          // 9. Return user object for NextAuth session
           const authUser = {
             id: user._id.toString(),
             email: user.email,

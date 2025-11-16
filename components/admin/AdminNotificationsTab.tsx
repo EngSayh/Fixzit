@@ -13,7 +13,7 @@ import {
 import { logger } from '@/lib/logger';
 
 interface NotificationHistory {
-  id: string;
+  _id: string;
   senderId: string;
   senderEmail: string;
   recipients: {
@@ -62,7 +62,13 @@ export default function AdminNotificationsTab({ t }: { t: (key: string, fallback
       const data = await response.json();
       
       if (data.success) {
-        setHistory(data.data);
+        const normalized = (data.data || []).map(
+          (item: NotificationHistory & { id?: string }, index: number) => ({
+            ...item,
+            _id: item._id || item.id || `${item.senderId}-${index}`,
+          })
+        );
+        setHistory(normalized);
       } else {
         throw new Error(data.error);
       }
@@ -400,7 +406,7 @@ export default function AdminNotificationsTab({ t }: { t: (key: string, fallback
             ) : (
               <div className="space-y-4">
                 {history.map((item) => (
-                  <div key={item.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                  <div key={item._id} className="border rounded-lg p-4 hover:bg-gray-50">
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <h4 className="font-medium">{item.subject}</h4>
