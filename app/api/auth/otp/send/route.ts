@@ -170,7 +170,25 @@ export async function POST(request: NextRequest) {
     }
 
     // 8. Get user's phone number
-    const userPhone = user.contact?.phone || user.personal?.phone || user.phone;
+    let userPhone = user.contact?.phone || user.personal?.phone || user.phone;
+
+    if (
+      !userPhone &&
+      (user.role === 'SUPER_ADMIN' || user.roles?.includes?.('SUPER_ADMIN'))
+    ) {
+      const fallbackPhone =
+        process.env.NEXTAUTH_SUPERADMIN_FALLBACK_PHONE ||
+        process.env.SUPER_ADMIN_FALLBACK_PHONE ||
+        '';
+
+      if (fallbackPhone) {
+        userPhone = fallbackPhone;
+        logger.warn('[OTP] Using fallback phone for super admin', {
+          userId: user._id.toString(),
+        });
+      }
+    }
+
     if (!userPhone) {
       logger.error('[OTP] User has no phone number', { userId: user._id.toString() });
       return NextResponse.json(

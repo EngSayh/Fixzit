@@ -172,6 +172,10 @@ Enhanced the login flow with SMS OTP (One-Time Password) verification using Twil
 - Prevents OTP spam to random phone numbers
 - User account status checked (must be active)
 
+### 5.1 Super Admin Fallback (optional)
+- Set `NEXTAUTH_SUPERADMIN_FALLBACK_PHONE` (or legacy `SUPER_ADMIN_FALLBACK_PHONE`) if your seeded SUPER_ADMIN account lacks a phone.
+- The fallback is only used for SUPER_ADMINs with no stored phone; a warning is logged whenever it is used.
+
 ### 6. SMS Content
 ```
 Your Fixzit verification code is: 123456
@@ -298,6 +302,9 @@ TWILIO_PHONE_NUMBER=+966501234567
 # NextAuth (Required)
 NEXTAUTH_SECRET=your_secret_key
 NEXTAUTH_URL=http://localhost:3000
+
+# Optional: fallback phone for seeded super admin (OTP only)
+# NEXTAUTH_SUPERADMIN_FALLBACK_PHONE=+966501234567
 ```
 
 **Testing:**
