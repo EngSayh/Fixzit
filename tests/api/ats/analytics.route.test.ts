@@ -72,7 +72,16 @@ describe('API /api/ats/analytics', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    atsRBAC.mockResolvedValue({ authorized: true, orgId: 'org-1' });
+    atsRBAC.mockResolvedValue({
+      authorized: true,
+      orgId: 'org-1',
+      atsModule: {
+        enabled: true,
+        jobPostLimit: Number.MAX_SAFE_INTEGER,
+        seats: Number.MAX_SAFE_INTEGER,
+        seatUsage: 0,
+      },
+    });
     ApplicationMock.aggregate.mockReset();
     ApplicationMock.aggregate
       .mockResolvedValueOnce([{ _id: 'applied', count: 2 }])

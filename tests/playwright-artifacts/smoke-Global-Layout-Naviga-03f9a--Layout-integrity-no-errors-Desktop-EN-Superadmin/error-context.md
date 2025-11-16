@@ -1,0 +1,140 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]: Fx
+          - generic [ref=e7]:
+            - generic [ref=e8]: Fixzit Enterprise
+            - generic [ref=e9]: FM & Marketplaces · Brown shell
+        - navigation [ref=e10]:
+          - link "Dashboard" [ref=e11] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Work Orders" [ref=e12] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Properties" [ref=e13] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Finance" [ref=e14] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Souq" [ref=e15] [cursor=pointer]:
+            - /url: "#modules"
+        - generic [ref=e16]:
+          - button "🇸🇦 AR ▼" [ref=e17] [cursor=pointer]:
+            - generic [ref=e18]: 🇸🇦
+            - generic [ref=e19]: AR
+            - generic [ref=e20]: ▼
+          - generic [ref=e22]: SA
+    - generic [ref=e23]:
+      - complementary [ref=e24]:
+        - generic [ref=e26]: Core
+        - navigation [ref=e27]:
+          - link "🏠 Dashboard" [ref=e28] [cursor=pointer]:
+            - /url: "#dashboard"
+            - generic [ref=e29]: 🏠
+            - generic [ref=e30]: Dashboard
+          - link "🛠️ Work Orders" [ref=e31] [cursor=pointer]:
+            - /url: "#workorders"
+            - generic [ref=e32]: 🛠️
+            - generic [ref=e33]: Work Orders
+          - link "🏢 Properties" [ref=e34] [cursor=pointer]:
+            - /url: "#properties"
+            - generic [ref=e35]: 🏢
+            - generic [ref=e36]: Properties
+          - link "💰 Finance" [ref=e37] [cursor=pointer]:
+            - /url: "#finance"
+            - generic [ref=e38]: 💰
+            - generic [ref=e39]: Finance
+          - link "👥 HR" [ref=e40] [cursor=pointer]:
+            - /url: "#hr"
+            - generic [ref=e41]: 👥
+            - generic [ref=e42]: HR
+        - generic [ref=e44]: Business
+        - navigation [ref=e45]:
+          - link "📞 CRM" [ref=e46] [cursor=pointer]:
+            - /url: "#crm"
+            - generic [ref=e47]: 📞
+            - generic [ref=e48]: CRM
+          - link "🛒 Fixzit Souq" [ref=e49] [cursor=pointer]:
+            - /url: "#souq"
+            - generic [ref=e50]: 🛒
+            - generic [ref=e51]: Fixzit Souq
+          - link "🎧 Support" [ref=e52] [cursor=pointer]:
+            - /url: "#support"
+            - generic [ref=e53]: 🎧
+            - generic [ref=e54]: Support
+          - link "📊 Reports" [ref=e55] [cursor=pointer]:
+            - /url: "#reports"
+            - generic [ref=e56]: 📊
+            - generic [ref=e57]: Reports
+        - generic [ref=e59]: System
+        - navigation [ref=e60]:
+          - link "⚙️ System Mgmt." [ref=e61] [cursor=pointer]:
+            - /url: "#system"
+            - generic [ref=e62]: ⚙️
+            - generic [ref=e63]: System Mgmt.
+      - main [ref=e64]:
+        - generic [ref=e66]:
+          - generic [ref=e67]:
+            - heading "404" [level=1] [ref=e68]
+            - heading "الصفحة غير موجودة" [level=2] [ref=e69]
+            - paragraph [ref=e70]: الصفحة التي تبحث عنها غير موجودة أو تم نقلها.
+          - generic [ref=e71]:
+            - link "الذهاب إلى الصفحة الرئيسية" [ref=e72] [cursor=pointer]:
+              - /url: /
+              - img [ref=e73]
+              - text: الذهاب إلى الصفحة الرئيسية
+            - button "العودة" [ref=e76] [cursor=pointer]:
+              - img [ref=e77]
+              - text: العودة
+          - generic [ref=e79]:
+            - heading "الصفحات الشائعة" [level=3] [ref=e80]:
+              - img [ref=e81]
+              - text: الصفحات الشائعة
+            - generic [ref=e84]:
+              - link "🏠 لوحة التحكم" [ref=e85] [cursor=pointer]:
+                - /url: /dashboard
+                - generic [ref=e86]: 🏠
+                - generic [ref=e87]: لوحة التحكم
+              - link "🏢 العقارات" [ref=e88] [cursor=pointer]:
+                - /url: /properties
+                - generic [ref=e89]: 🏢
+                - generic [ref=e90]: العقارات
+              - link "🧰 أوامر العمل" [ref=e91] [cursor=pointer]:
+                - /url: /work-orders
+                - generic [ref=e92]: 🧰
+                - generic [ref=e93]: أوامر العمل
+              - link "🛍️ السوق" [ref=e94] [cursor=pointer]:
+                - /url: /marketplace
+                - generic [ref=e95]: 🛍️
+                - generic [ref=e96]: السوق
+              - link "💳 المالية" [ref=e97] [cursor=pointer]:
+                - /url: /finance
+                - generic [ref=e98]: 💳
+                - generic [ref=e99]: المالية
+              - link "👥 الموارد البشرية" [ref=e100] [cursor=pointer]:
+                - /url: /hr
+                - generic [ref=e101]: 👥
+                - generic [ref=e102]: الموارد البشرية
+              - link "🔐 تسجيل الدخول" [ref=e103] [cursor=pointer]:
+                - /url: /login
+                - generic [ref=e104]: 🔐
+                - generic [ref=e105]: تسجيل الدخول
+          - paragraph [ref=e107]:
+            - text: إذا كنت تعتقد أن هذا خطأ، يرجى الاتصال
+            - link "support@fixzit.co" [ref=e108] [cursor=pointer]:
+              - /url: mailto:support@fixzit.co
+        - region "Notifications alt+T"
+    - contentinfo [ref=e109]:
+      - generic [ref=e110]:
+        - generic [ref=e111]: © 2025 Fixzit Enterprise — Brown Theme
+        - generic [ref=e112]:
+          - button "Privacy" [ref=e113] [cursor=pointer]
+          - button "Terms" [ref=e114] [cursor=pointer]
+          - button "Support" [ref=e115] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e121] [cursor=pointer]:
+    - img [ref=e122]
+  - alert [ref=e125]
+```

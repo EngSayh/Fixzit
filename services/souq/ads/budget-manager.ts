@@ -10,6 +10,7 @@
  */
 
 import Redis from 'ioredis';
+import logger from '@/lib/logger';
 
 const redis = new Redis({
   host: process.env.BULLMQ_REDIS_HOST || 'localhost',
@@ -146,7 +147,7 @@ export class BudgetManager {
       resetCount++;
     }
 
-    console.log(`[BudgetManager] Reset ${resetCount} campaign budgets`);
+    logger.info(`[BudgetManager] Reset ${resetCount} campaign budgets`);
     
     return { reset: resetCount };
   }
@@ -166,7 +167,7 @@ export class BudgetManager {
       { $set: { spentToday: 0, lastBudgetReset: new Date() } }
     );
 
-    console.log(`[BudgetManager] Reset budget for campaign: ${campaignId}`);
+    logger.info(`[BudgetManager] Reset budget for campaign: ${campaignId}`);
   }
 
   /**
@@ -207,7 +208,7 @@ export class BudgetManager {
 
     const percentage = Math.round(threshold * 100);
     
-    console.log(
+    logger.info(
       `[BudgetManager] ALERT: Campaign ${campaignId} has used ${percentage}% of daily budget`
     );
 
@@ -241,7 +242,7 @@ export class BudgetManager {
       }
     );
 
-    console.log(`[BudgetManager] Paused campaign ${campaignId}: ${reason}`);
+    logger.info(`[BudgetManager] Paused campaign ${campaignId}: ${reason}`);
 
     // TODO: Send notification
   }
@@ -345,7 +346,7 @@ export class BudgetManager {
       { $set: { dailyBudget: newBudget } }
     );
 
-    console.log(`[BudgetManager] Updated budget for ${campaignId}: ${newBudget} SAR`);
+    logger.info(`[BudgetManager] Updated budget for ${campaignId}: ${newBudget} SAR`);
   }
 
   /**

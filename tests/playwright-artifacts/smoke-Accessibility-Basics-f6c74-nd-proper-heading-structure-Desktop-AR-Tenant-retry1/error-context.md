@@ -1,0 +1,60 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]: Fx
+        - generic [ref=e7]: Fixzit EnterpriseFM & Marketplaces · Brown shell
+      - navigation [ref=e8]:
+        - link "Dashboard" [ref=e9] [cursor=pointer]:
+          - /url: "#modules"
+        - link "Work Orders" [ref=e10] [cursor=pointer]:
+          - /url: "#modules"
+        - link "Properties" [ref=e11] [cursor=pointer]:
+          - /url: "#modules"
+        - link "Finance" [ref=e12] [cursor=pointer]:
+          - /url: "#modules"
+        - link "Souq" [ref=e13] [cursor=pointer]:
+          - /url: "#modules"
+      - generic [ref=e14]:
+        - button "🇸🇦AR▼" [ref=e15]
+        - generic [ref=e16]: SA
+  - generic [ref=e17]:
+    - complementary [ref=e18]:
+      - generic [ref=e20]: Core
+      - navigation [ref=e21]:
+        - link "🏠Dashboard" [ref=e22] [cursor=pointer]:
+          - /url: "#dashboard"
+        - link "🛠️Work Orders" [ref=e23] [cursor=pointer]:
+          - /url: "#workorders"
+        - link "🏢Properties" [ref=e24] [cursor=pointer]:
+          - /url: "#properties"
+        - link "💰Finance" [ref=e25] [cursor=pointer]:
+          - /url: "#finance"
+        - link "👥HR" [ref=e26] [cursor=pointer]:
+          - /url: "#hr"
+      - generic [ref=e28]: Business
+      - navigation [ref=e29]:
+        - link "📞CRM" [ref=e30] [cursor=pointer]:
+          - /url: "#crm"
+        - link "🛒Fixzit Souq" [ref=e31] [cursor=pointer]:
+          - /url: "#souq"
+        - link "🎧Support" [ref=e32] [cursor=pointer]:
+          - /url: "#support"
+        - link "📊Reports" [ref=e33] [cursor=pointer]:
+          - /url: "#reports"
+      - generic [ref=e35]: System
+      - navigation [ref=e36]:
+        - link "⚙️System Mgmt." [ref=e37] [cursor=pointer]:
+          - /url: "#system"
+    - main
+  - contentinfo [ref=e38]:
+    - generic [ref=e39]:
+      - generic [ref=e40]: © 2025 Fixzit Enterprise — Brown Theme
+      - generic [ref=e41]:
+        - button "Privacy" [ref=e42]
+        - button "Terms" [ref=e43]
+        - button "Support" [ref=e44]
+```

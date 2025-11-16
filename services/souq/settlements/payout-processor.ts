@@ -15,6 +15,7 @@
 
 import { ObjectId } from 'mongodb';
 import { connectDb } from '@/lib/mongodb-unified';
+import logger from '@/lib/logger';
 import type { SettlementStatement } from './settlement-calculator';
 
 /**
@@ -310,7 +311,7 @@ export class PayoutProcessorService {
 
       // Schedule retry job (via BullMQ or cron)
       const retryDelay = PAYOUT_CONFIG.retryDelayMinutes * 60 * 1000 * Math.pow(2, newRetryCount - 1);
-      console.log(`Scheduling retry ${newRetryCount} for payout ${payout.payoutId} in ${retryDelay}ms`);
+      logger.info(`Scheduling retry ${newRetryCount} for payout ${payout.payoutId} in ${retryDelay}ms`);
 
       return {
         ...payout,
@@ -330,7 +331,7 @@ export class PayoutProcessorService {
     // TODO: Replace with actual SADAD/SPAN API integration
     // This is a mock implementation
 
-    console.log(`Executing ${payout.method.toUpperCase()} transfer for ${payout.amount} SAR to ${payout.bankAccount.iban}`);
+    logger.info(`Executing ${payout.method.toUpperCase()} transfer for ${payout.amount} SAR to ${payout.bankAccount.iban}`);
 
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -594,12 +595,12 @@ export class PayoutProcessorService {
     errorMessage?: string
   ): Promise<void> {
     // TODO: Implement email/SMS notification
-    console.log(`Sending ${type} notification for payout ${payout.payoutId}`);
+    logger.info(`Sending ${type} notification for payout ${payout.payoutId}`);
 
     if (type === 'success') {
-      console.log(`Payout of ${payout.amount} SAR completed successfully. Transaction ID: ${payout.transactionReference}`);
+      logger.info(`Payout of ${payout.amount} SAR completed successfully. Transaction ID: ${payout.transactionReference}`);
     } else {
-      console.log(`Payout of ${payout.amount} SAR failed. Error: ${errorMessage}`);
+      logger.info(`Payout of ${payout.amount} SAR failed. Error: ${errorMessage}`);
     }
 
     // Real implementation:

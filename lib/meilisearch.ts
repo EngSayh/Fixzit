@@ -1,4 +1,5 @@
 import { MeiliSearch } from 'meilisearch';
+import logger from '@/lib/logger';
 
 // Initialize Meilisearch client
 const meiliHost = process.env.MEILI_HOST || 'http://localhost:7700';
@@ -128,7 +129,7 @@ export async function configureProductsIndex() {
     },
   });
 
-  console.log(`Products index configured: ${INDEXES.PRODUCTS}`);
+  logger.info(`Products index configured: ${INDEXES.PRODUCTS}`);
 }
 
 // Configure sellers index
@@ -175,7 +176,7 @@ export async function configureSellersIndex() {
     ],
   });
 
-  console.log(`Sellers index configured: ${INDEXES.SELLERS}`);
+  logger.info(`Sellers index configured: ${INDEXES.SELLERS}`);
 }
 
 // Initialize all indexes
@@ -189,10 +190,10 @@ export async function initializeSearchIndexes() {
     await configureProductsIndex();
     await configureSellersIndex();
     
-    console.log('All search indexes initialized successfully');
+    logger.info('All search indexes initialized successfully');
   } catch (_error) {
     // Indexes might already exist, configure anyway
-    console.log('Search indexes already exist, configuring...');
+    logger.info('Search indexes already exist, configuring...');
     await configureProductsIndex();
     await configureSellersIndex();
   }

@@ -134,7 +134,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
         return;
       }
 
-      const res = await fetch(`/api/ats/jobs/${jobId}/apply`, {
+      const res = await fetch(`/api/careers/apply`, {
         method: 'POST',
         body: formData,
         credentials: 'include',

@@ -1,4 +1,5 @@
 import { searchClient, INDEXES, ProductDocument, SellerDocument } from '@/lib/meilisearch';
+import logger from '@/lib/logger';
 
 /**
  * Search Indexer Service
@@ -66,7 +67,7 @@ export class SearchIndexerService {
    * Run daily at 2 AM via BullMQ cron job
    */
   static async fullReindexProducts(): Promise<{ indexed: number; errors: number }> {
-    console.log('[SearchIndexer] Starting full product reindex...');
+    logger.info('[SearchIndexer] Starting full product reindex...');
     
     let indexed = 0;
     let errors = 0;
@@ -77,7 +78,7 @@ export class SearchIndexerService {
 
       // Clear existing index
       await index.deleteAllDocuments();
-      console.log('[SearchIndexer] Cleared existing product index');
+      logger.info('[SearchIndexer] Cleared existing product index');
 
       // Fetch all active listings in batches
       while (true) {
@@ -91,7 +92,7 @@ export class SearchIndexerService {
         try {
           await index.addDocuments(documents);
           indexed += documents.length;
-          console.log(`[SearchIndexer] Indexed batch: ${indexed} products`);
+          logger.info(`[SearchIndexer] Indexed batch: ${indexed} products`);
         } catch (error) {
           console.error('[SearchIndexer] Failed to index batch:', error);
           errors += documents.length;
@@ -104,7 +105,7 @@ export class SearchIndexerService {
         if (listings.length < BATCH_SIZE) break;
       }
 
-      console.log(`[SearchIndexer] Full reindex complete: ${indexed} products indexed, ${errors} errors`);
+      logger.info(`[SearchIndexer] Full reindex complete: ${indexed} products indexed, ${errors} errors`);
       
       return { indexed, errors };
     } catch (error) {
@@ -136,7 +137,7 @@ export class SearchIndexerService {
       const index = searchClient.index(INDEXES.PRODUCTS);
       await index.addDocuments(documents);
       
-      console.log(`[SearchIndexer] Updated listing in search: ${listingId}`);
+      logger.info(`[SearchIndexer] Updated listing in search: ${listingId}`);
     } catch (error) {
       console.error(`[SearchIndexer] Failed to update listing ${listingId}:`, error);
       throw error;
@@ -152,7 +153,7 @@ export class SearchIndexerService {
       const index = searchClient.index(INDEXES.PRODUCTS);
       await index.deleteDocument(fsin);
       
-      console.log(`[SearchIndexer] Deleted product from search: ${fsin}`);
+      logger.info(`[SearchIndexer] Deleted product from search: ${fsin}`);
     } catch (error) {
       console.error(`[SearchIndexer] Failed to delete product ${fsin}:`, error);
       throw error;
@@ -163,7 +164,7 @@ export class SearchIndexerService {
    * Full reindex of all sellers
    */
   static async fullReindexSellers(): Promise<{ indexed: number; errors: number }> {
-    console.log('[SearchIndexer] Starting full seller reindex...');
+    logger.info('[SearchIndexer] Starting full seller reindex...');
     
     let indexed = 0;
     let errors = 0;
@@ -174,7 +175,7 @@ export class SearchIndexerService {
 
       // Clear existing index
       await index.deleteAllDocuments();
-      console.log('[SearchIndexer] Cleared existing seller index');
+      logger.info('[SearchIndexer] Cleared existing seller index');
 
       // Fetch all active sellers in batches
       while (true) {
@@ -188,7 +189,7 @@ export class SearchIndexerService {
         try {
           await index.addDocuments(documents);
           indexed += documents.length;
-          console.log(`[SearchIndexer] Indexed batch: ${indexed} sellers`);
+          logger.info(`[SearchIndexer] Indexed batch: ${indexed} sellers`);
         } catch (error) {
           console.error('[SearchIndexer] Failed to index seller batch:', error);
           errors += documents.length;
@@ -200,7 +201,7 @@ export class SearchIndexerService {
         if (sellers.length < BATCH_SIZE) break;
       }
 
-      console.log(`[SearchIndexer] Full seller reindex complete: ${indexed} sellers indexed, ${errors} errors`);
+      logger.info(`[SearchIndexer] Full seller reindex complete: ${indexed} sellers indexed, ${errors} errors`);
       
       return { indexed, errors };
     } catch (error) {
@@ -225,7 +226,7 @@ export class SearchIndexerService {
       const index = searchClient.index(INDEXES.SELLERS);
       await index.addDocuments(documents);
       
-      console.log(`[SearchIndexer] Updated seller in search: ${sellerId}`);
+      logger.info(`[SearchIndexer] Updated seller in search: ${sellerId}`);
     } catch (error) {
       console.error(`[SearchIndexer] Failed to update seller ${sellerId}:`, error);
       throw error;

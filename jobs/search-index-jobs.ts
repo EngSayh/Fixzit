@@ -1,6 +1,7 @@
 import { Queue, Worker, Job } from 'bullmq';
 import { SearchIndexerService } from '@/services/souq/search-indexer-service';
 import Redis from 'ioredis';
+import logger from '@/lib/logger';
 
 // Redis connection for BullMQ
 const connection = new Redis({
@@ -63,7 +64,7 @@ export async function scheduleFullReindex() {
     }
   );
 
-  console.log('[SearchIndex] Scheduled daily full reindex at 2:00 AM');
+  logger.info('[SearchIndex] Scheduled daily full reindex at 2:00 AM');
 }
 
 /**
@@ -81,7 +82,7 @@ export async function triggerFullReindex(target: 'products' | 'sellers' | 'all' 
     }
   );
 
-  console.log(`[SearchIndex] Triggered full reindex: ${job.id}`);
+  logger.info(`[SearchIndex] Triggered full reindex: ${job.id}`);
   return job.id;
 }
 
@@ -109,7 +110,7 @@ export async function triggerIncrementalUpdate(
     }
   );
 
-  console.log(`[SearchIndex] Triggered incremental update: ${target} ${id}`);
+  logger.info(`[SearchIndex] Triggered incremental update: ${target} ${id}`);
   return job.id;
 }
 
@@ -137,7 +138,7 @@ export async function triggerDeleteFromIndex(
     }
   );
 
-  console.log(`[SearchIndex] Triggered delete from index: ${target} ${id}`);
+  logger.info(`[SearchIndex] Triggered delete from index: ${target} ${id}`);
   return job.id;
 }
 
@@ -149,7 +150,7 @@ export async function triggerDeleteFromIndex(
  * Process search indexing jobs
  */
 async function processSearchIndexJob(job: Job<SearchIndexJobData>) {
-  console.log(`[SearchIndex] Processing job: ${job.name} (${job.id})`);
+  logger.info(`[SearchIndex] Processing job: ${job.name} (${job.id})`);
 
   try {
     const { data } = job;
@@ -159,13 +160,13 @@ async function processSearchIndexJob(job: Job<SearchIndexJobData>) {
         if (data.target === 'products' || data.target === 'all') {
           const result = await SearchIndexerService.fullReindexProducts();
           await job.updateProgress(50);
-          console.log(`[SearchIndex] Products reindexed: ${result.indexed}`);
+          logger.info(`[SearchIndex] Products reindexed: ${result.indexed}`);
         }
 
         if (data.target === 'sellers' || data.target === 'all') {
           const result = await SearchIndexerService.fullReindexSellers();
           await job.updateProgress(100);
-          console.log(`[SearchIndex] Sellers reindexed: ${result.indexed}`);
+          logger.info(`[SearchIndex] Sellers reindexed: ${result.indexed}`);
         }
         break;
       }
@@ -190,7 +191,7 @@ async function processSearchIndexJob(job: Job<SearchIndexJobData>) {
         throw new Error(`Unknown job type: ${(data as SearchIndexJobData).type}`);
     }
 
-    console.log(`[SearchIndex] Job completed: ${job.id}`);
+    logger.info(`[SearchIndex] Job completed: ${job.id}`);
   } catch (error) {
     console.error(`[SearchIndex] Job failed: ${job.id}`, error);
     throw error; // Let BullMQ handle retries
@@ -222,7 +223,7 @@ export function startSearchIndexWorker() {
   });
 
   worker.on('completed', (job: Job) => {
-    console.log(`[SearchIndex] Job ${job.id} completed successfully`);
+    logger.info(`[SearchIndex] Job ${job.id} completed successfully`);
   });
 
   worker.on('failed', (job: Job | undefined, error: Error) => {
@@ -233,7 +234,7 @@ export function startSearchIndexWorker() {
     console.error('[SearchIndex] Worker error:', error);
   });
 
-  console.log('[SearchIndex] Worker started');
+  logger.info('[SearchIndex] Worker started');
   
   // Schedule daily reindex
   scheduleFullReindex();
@@ -252,7 +253,7 @@ export async function stopSearchIndexWorker() {
 
   await worker.close();
   worker = null;
-  console.log('[SearchIndex] Worker stopped');
+  logger.info('[SearchIndex] Worker stopped');
 }
 
 // ============================================================================
