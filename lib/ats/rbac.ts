@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
+const ATS_UPGRADE_PATH = '/billing/upgrade?feature=ats';
+const ATS_SEAT_USER_ROLES = ['HR', 'CORPORATE_ADMIN', 'ADMIN', 'FM_MANAGER', 'PROPERTY_MANAGER'];
+const ATS_SEAT_PROFESSIONAL_ROLES = ['HR Manager', 'Recruiter', 'Hiring Manager', 'Corporate Admin', 'Talent Acquisition Lead'];
+const ATS_SEAT_REQUIRED_ROLES: ATSRole[] = ['Corporate Admin', 'HR Manager', 'Recruiter', 'Hiring Manager'];
+
+export type AtsModuleAccess = {
+  enabled: boolean;
+  jobPostLimit: number;
+  seats: number;
+  seatUsage: number;
+};
+
+const DEFAULT_ATS_MODULE: AtsModuleAccess = {
+  enabled: false,
+  jobPostLimit: 0,
+  seats: 0,
+  seatUsage: 0,
+};
+
 /**
  * ATS RBAC Roles (6 roles)
  */
@@ -134,7 +153,7 @@ export async function atsRBAC(
   req: NextRequest,
   requiredPermissions: ATSPermission[]
 ): Promise<
-  | { authorized: true; userId: string; orgId: string; role: ATSRole; isSuperAdmin: boolean }
+  | { authorized: true; userId: string; orgId: string; role: ATSRole; isSuperAdmin: boolean; atsModule: AtsModuleAccess }
   | { authorized: false; response: NextResponse }
 > {
   // Get session
@@ -188,13 +207,105 @@ export async function atsRBAC(
     };
   }
 
+  const { module: atsModule, errorResponse } = await ensureAtsModuleAccess(orgId, role, isSuperAdmin);
+  if (errorResponse) {
+    return { authorized: false, response: errorResponse };
+  }
+
   return { 
     authorized: true, 
     userId, 
     orgId, 
     role,
-    isSuperAdmin
+    isSuperAdmin,
+    atsModule
   };
+}
+
+async function ensureAtsModuleAccess(
+  orgId: string,
+  role: ATSRole,
+  isSuperAdmin: boolean
+): Promise<{ module: AtsModuleAccess; errorResponse?: NextResponse }> {
+  if (isSuperAdmin) {
+    return {
+      module: {
+        enabled: true,
+        jobPostLimit: Number.MAX_SAFE_INTEGER,
+        seats: Number.MAX_SAFE_INTEGER,
+        seatUsage: 0,
+      },
+    };
+  }
+
+  const { Organization } = await import('@/server/models/Organization');
+  const organization = await Organization.findOne({ orgId }).select('modules.ats').lean();
+  const config = organization?.modules?.ats;
+
+  if (!config?.enabled) {
+    return {
+      module: DEFAULT_ATS_MODULE,
+      errorResponse: NextResponse.json(
+        {
+          success: false,
+          error: 'ATS module not enabled for this tenant',
+          feature: 'ats',
+          upgradeUrl: ATS_UPGRADE_PATH,
+        },
+        { status: 402 }
+      ),
+    };
+  }
+
+  const module: AtsModuleAccess = {
+    enabled: true,
+    jobPostLimit:
+      typeof config.jobPostLimit === 'number' && config.jobPostLimit > 0
+        ? config.jobPostLimit
+        : Number.MAX_SAFE_INTEGER,
+    seats:
+      typeof config.seats === 'number' && config.seats > 0
+        ? config.seats
+        : Number.MAX_SAFE_INTEGER,
+    seatUsage: 0,
+  };
+
+  if (module.seats !== Number.MAX_SAFE_INTEGER && ATS_SEAT_REQUIRED_ROLES.includes(role)) {
+    const usage = await countAtsSeatUsage(orgId);
+    module.seatUsage = usage;
+    if (usage > module.seats) {
+      return {
+        module,
+        errorResponse: NextResponse.json(
+          {
+            success: false,
+            error: 'ATS seat limit reached for this subscription',
+            feature: 'ats',
+            upgradeUrl: ATS_UPGRADE_PATH,
+            seats: {
+              limit: module.seats,
+              usage,
+            },
+          },
+          { status: 402 }
+        ),
+      };
+    }
+  }
+
+  return { module };
+}
+
+async function countAtsSeatUsage(orgId: string): Promise<number> {
+  const { User } = await import('@/server/models/User');
+  return User.countDocuments({
+    orgId,
+    status: { $ne: 'INACTIVE' },
+    $or: [
+      { role: { $in: ATS_SEAT_USER_ROLES } },
+      { 'professional.role': { $in: ATS_SEAT_PROFESSIONAL_ROLES } },
+    ],
+  });
 }
 
 /**

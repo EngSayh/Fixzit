@@ -22,6 +22,7 @@ interface ParsedResume {
     email?: string;
     phone?: string;
   };
+  rawText?: string;
 }
 
 /**
@@ -35,7 +36,8 @@ export async function parseResumePDF(pdfBuffer: Buffer): Promise<ParsedResume> {
     // @ts-expect-error - pdf-parse has ESM/CJS export issues
     const parse = pdfParse.default || pdfParse;
     const data = await parse(pdfBuffer);
-    return parsePlainText(data.text);
+    const parsed = parsePlainText(data.text);
+    return { ...parsed, rawText: data.text };
   } catch (_error) {
     console.warn('pdf-parse not installed or failed, using fallback parser');
     return parsePlainText('');
@@ -52,7 +54,8 @@ export function parsePlainText(text: string): ParsedResume {
     skills: extractSkills(text),
     experience: extractExperience(text, normalizedText),
     education: extractEducation(text, normalizedText),
-    contact: extractContact(text)
+    contact: extractContact(text),
+    rawText: text
   };
 }
 
