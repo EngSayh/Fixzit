@@ -180,6 +180,56 @@ export const messages = {
     },
   },
   common: {
+    // Status labels - consolidated from marketplace, hr, properties, workOrders, etc.
+    status: {
+      pending: 'Pending',
+      approved: 'Approved',
+      rejected: 'Rejected',
+      completed: 'Completed',
+      active: 'Active',
+      inactive: 'Inactive',
+      draft: 'Draft',
+      published: 'Published',
+      cancelled: 'Cancelled',
+      inProgress: 'In Progress',
+    },
+    
+    // CRUD actions - consolidated from all modules
+    actions: {
+      create: 'Create',
+      edit: 'Edit',
+      update: 'Update',
+      delete: 'Delete',
+      save: 'Save',
+      cancel: 'Cancel',
+      submit: 'Submit',
+      confirm: 'Confirm',
+    },
+    
+    // Form validation messages - consolidated from login, signup, profile, etc.
+    validation: {
+      required: 'This field is required',
+      emailRequired: 'Email is required',
+      emailInvalid: 'Please enter a valid email address',
+      passwordRequired: 'Password is required',
+      passwordMinLength: 'Password must be at least 8 characters',
+      passwordMismatch: 'Passwords do not match',
+      phoneInvalid: 'Please enter a valid phone number',
+      numberInvalid: 'Please enter a valid number',
+      urlInvalid: 'Please enter a valid URL',
+      dateInvalid: 'Please enter a valid date',
+      minLength: 'Must be at least {{min}} characters',
+      maxLength: 'Must be no more than {{max}} characters',
+    },
+    
+    // Pagination - consolidated from all list views
+    pagination: {
+      showing: 'Showing {{from}} to {{to}} of {{total}} results',
+      previous: 'Previous',
+      next: 'Next',
+      page: 'Page {{page}} of {{total}}',
+    },
+    
     errors: {
       unexpected: 'Unexpected error',
     },

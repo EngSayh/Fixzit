@@ -180,6 +180,56 @@ export const messages = {
     },
   },
   common: {
+    // Status labels - مدمجة من marketplace, hr, properties, workOrders، إلخ
+    status: {
+      pending: 'قيد الانتظار',
+      approved: 'موافق عليه',
+      rejected: 'مرفوض',
+      completed: 'مكتمل',
+      active: 'نشط',
+      inactive: 'غير نشط',
+      draft: 'مسودة',
+      published: 'منشور',
+      cancelled: 'ملغى',
+      inProgress: 'قيد التنفيذ',
+    },
+    
+    // CRUD actions - مدمجة من جميع الوحدات
+    actions: {
+      create: 'إنشاء',
+      edit: 'تعديل',
+      update: 'تحديث',
+      delete: 'حذف',
+      save: 'حفظ',
+      cancel: 'إلغاء',
+      submit: 'إرسال',
+      confirm: 'تأكيد',
+    },
+    
+    // Form validation messages - مدمجة من login, signup, profile، إلخ
+    validation: {
+      required: 'هذا الحقل مطلوب',
+      emailRequired: 'البريد الإلكتروني مطلوب',
+      emailInvalid: 'الرجاء إدخال عنوان بريد إلكتروني صحيح',
+      passwordRequired: 'كلمة المرور مطلوبة',
+      passwordMinLength: 'يجب أن تكون كلمة المرور 8 أحرف على الأقل',
+      passwordMismatch: 'كلمات المرور غير متطابقة',
+      phoneInvalid: 'الرجاء إدخال رقم هاتف صحيح',
+      numberInvalid: 'الرجاء إدخال رقم صحيح',
+      urlInvalid: 'الرجاء إدخال رابط صحيح',
+      dateInvalid: 'الرجاء إدخال تاريخ صحيح',
+      minLength: 'يجب أن يكون {{min}} أحرف على الأقل',
+      maxLength: 'يجب ألا يزيد عن {{max}} حرف',
+    },
+    
+    // Pagination - مدمجة من جميع طرق العرض
+    pagination: {
+      showing: 'عرض {{from}} إلى {{to}} من أصل {{total}} نتيجة',
+      previous: 'السابق',
+      next: 'التالي',
+      page: 'صفحة {{page}} من {{total}}',
+    },
+    
     errors: {
       unexpected: 'خطأ غير متوقع',
     },
