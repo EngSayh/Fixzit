@@ -13,8 +13,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get health summary
-    const summary = await accountHealthService.getHealthSummary(session.user.id);
+    // Extract period parameter (defaults to last_30_days)
+    const { searchParams } = new URL(request.url);
+    const period = (searchParams.get('period') ?? 'last_30_days') as 'last_7_days' | 'last_30_days' | 'last_90_days';
+
+    // Get health summary for specified period
+    const summary = await accountHealthService.getHealthSummary(session.user.id, period);
 
     return NextResponse.json({ 
       success: true,

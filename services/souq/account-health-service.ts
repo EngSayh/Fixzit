@@ -412,14 +412,14 @@ class AccountHealthService {
   /**
    * Get account health summary for dashboard
    */
-  async getHealthSummary(sellerId: string): Promise<{
+  async getHealthSummary(sellerId: string, period: 'last_7_days' | 'last_30_days' | 'last_90_days' = 'last_30_days'): Promise<{
     current: IAccountHealthMetrics;
     trend: 'improving' | 'stable' | 'declining';
     recentViolations: IPolicyViolation[];
     recommendations: string[];
   }> {
-    // Current metrics (30 days)
-    const current = await this.calculateAccountHealth(sellerId, 'last_30_days');
+    // Current metrics for specified period
+    const current = await this.calculateAccountHealth(sellerId, period);
 
     // Previous period for trend
     const previousStart = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);

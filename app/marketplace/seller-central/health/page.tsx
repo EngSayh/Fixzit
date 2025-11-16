@@ -46,8 +46,8 @@ export default function AccountHealthPage() {
       setLoading(true);
       const response = await fetch(`/api/souq/seller-central/health/summary?period=${period}`);
       if (!response.ok) throw new Error('Failed to fetch health summary');
-      const data = await response.json();
-      setSummary(data);
+      const { success, ...payload } = await response.json();
+      setSummary(payload);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
