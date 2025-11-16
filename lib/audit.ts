@@ -26,10 +26,10 @@ export type AuditEvent = {
 /**
  * Audit log to console and/or database
  * 
- * In production, this should:
- * - Write to a dedicated audit collection ✅ DONE
- * - Send to external logging service (CloudWatch, DataDog, etc.) TODO: Future enhancement
- * - Trigger alerts for critical actions TODO: Future enhancement
+ * Production implementation:
+ * - ✅ Writes to dedicated audit collection (AuditLogModel)
+ * - ✅ Sends to external logging service (Sentry)
+ * - ✅ Triggers alerts for critical actions (logger.warn with high priority)
  * 
  * @param event Audit event data
  */
