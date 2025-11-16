@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import { sendOTP } from '@/lib/sms';
-import { isValidSaudiPhone } from '@/lib/sms';
+import { sendOTP, isValidSaudiPhone } from '@/lib/sms';
+import { logCommunication } from '@/lib/communication-logger';
 import {
   otpStore,
   rateLimitStore,
@@ -80,19 +80,6 @@ export async function POST(request: NextRequest) {
 
     const { identifier: identifierRaw, password } = parsed.data;
 
-    // 2. Check rate limit
-    const rateLimitResult = checkRateLimit(identifierRaw);
-    if (!rateLimitResult.allowed) {
-      logger.warn('[OTP] Rate limit exceeded', { identifier: identifierRaw });
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Too many OTP requests. Please try again later.',
-        },
-        { status: 429 }
-      );
-    }
-
     // 3. Determine login type (email or employee number)
     const emailOk = z.string().email().safeParse(identifierRaw).success;
     const empUpper = identifierRaw.toUpperCase();
@@ -117,7 +104,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Connect to database and verify credentials
+    // 4. Check rate limit using normalized identifier
+    const rateLimitResult = checkRateLimit(loginIdentifier);
+    if (!rateLimitResult.allowed) {
+      logger.warn('[OTP] Rate limit exceeded', { identifier: loginIdentifier });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Too many OTP requests. Please try again later.',
+        },
+        { status: 429 }
+      );
+    }
+
+    // 5. Connect to database and verify credentials
     await connectToDatabase();
     const { User } = await import('@/server/models/User');
     const bcrypt = await import('bcryptjs');
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Verify password
+    // 6. Verify password
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
       logger.warn('[OTP] Invalid password', { identifier: loginIdentifier });
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 6. Check if user is active
+    // 7. Check if user is active
     const isUserActive = user.isActive !== undefined ? user.isActive : user.status === 'ACTIVE';
     if (!isUserActive) {
       logger.warn('[OTP] Inactive user attempted login', {
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 7. Get user's phone number
+    // 8. Get user's phone number
     const userPhone = user.contact?.phone || user.personal?.phone || user.phone;
     if (!userPhone) {
       logger.error('[OTP] User has no phone number', { userId: user._id.toString() });
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 8. Validate phone number (Saudi format)
+    // 9. Validate phone number (Saudi format)
     if (!isValidSaudiPhone(userPhone)) {
       logger.error('[OTP] Invalid phone number format', {
         userId: user._id.toString(),
@@ -197,11 +197,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 9. Generate OTP
+    // 10. Generate OTP
     const otp = generateOTP();
     const expiresAt = Date.now() + OTP_EXPIRY_MS;
 
-    // 10. Store OTP (in production, use Redis or database)
+    // 11. Store OTP (in production, use Redis or database)
     otpStore.set(loginIdentifier, {
       otp,
       expiresAt,
@@ -210,10 +210,33 @@ export async function POST(request: NextRequest) {
       phone: userPhone,
     });
 
-    // 11. Send OTP via SMS
+    // 12. Send OTP via SMS
     const smsResult = await sendOTP(userPhone, otp);
 
+    const logResult = await logCommunication({
+      userId: user._id.toString(),
+      channel: 'otp',
+      type: 'otp',
+      recipient: userPhone,
+      subject: 'Login verification OTP',
+      message: `SMS OTP login requested for ${loginIdentifier}`,
+      status: smsResult.success ? 'sent' : 'failed',
+      errorMessage: smsResult.success ? undefined : smsResult.error,
+      metadata: {
+        phone: userPhone,
+        otpExpiresAt: new Date(expiresAt),
+        otpAttempts: MAX_ATTEMPTS,
+        rateLimitRemaining: rateLimitResult.remaining,
+        identifier: loginIdentifier,
+      },
+    });
+
+    if (!logResult.success) {
+      logger.warn('[OTP] Failed to log communication', { error: logResult.error });
+    }
+
     if (!smsResult.success) {
+      otpStore.delete(loginIdentifier);
       logger.error('[OTP] Failed to send SMS', {
         userId: user._id.toString(),
         error: smsResult.error,
@@ -233,7 +256,7 @@ export async function POST(request: NextRequest) {
       phone: userPhone.slice(-4),
     });
 
-    // 12. Return success response (mask phone number)
+    // 13. Return success response (mask phone number)
     const maskedPhone = userPhone.replace(/(\d{3})\d+(\d{4})/, '$1****$2');
 
     return NextResponse.json({

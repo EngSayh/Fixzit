@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -68,11 +68,12 @@ export default function CommunicationDashboard({ t, isRTL }: CommunicationDashbo
   const [selectedLog, setSelectedLog] = useState<CommunicationLog | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const limit = 50;
 
   // Fetch communications
-  const fetchCommunications = async () => {
+  const fetchCommunications = useCallback(async () => {
     setLoading(true);
 
     try {
@@ -89,17 +90,21 @@ export default function CommunicationDashboard({ t, isRTL }: CommunicationDashbo
         params.append('status', statusFilter);
       }
 
-      if (searchQuery) {
-        params.append('search', searchQuery);
+      if (debouncedSearch) {
+        params.append('search', debouncedSearch);
       }
 
       const response = await fetch(`/api/admin/communications?${params}`);
       const data = await response.json();
 
       if (data.success) {
+        const pages = Math.max(1, data.data.pagination.pages || 1);
         setCommunications(data.data.communications);
         setStatistics(data.data.statistics);
-        setTotalPages(data.data.pagination.pages);
+        setTotalPages(pages);
+        if (page > pages) {
+          setPage(pages);
+        }
       } else {
         logger.error('[CommunicationDashboard] Fetch failed', new Error(data.error));
       }
@@ -108,25 +113,25 @@ export default function CommunicationDashboard({ t, isRTL }: CommunicationDashbo
     } finally {
       setLoading(false);
     }
-  };
+  }, [channelFilter, debouncedSearch, limit, page, statusFilter]);
 
   // Initial fetch
   useEffect(() => {
     fetchCommunications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, channelFilter, statusFilter]);
+  }, [fetchCommunications]);
 
-  // Search with debounce
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchQuery !== '' || page !== 1) {
-        fetchCommunications();
-      }
+      setDebouncedSearch(searchQuery);
+      setPage(1);
     }, 500);
 
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [channelFilter, statusFilter]);
 
   // Channel icons
   const getChannelIcon = (channel: string) => {

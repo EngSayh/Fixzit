@@ -49,7 +49,7 @@ Enhanced the login flow with SMS OTP (One-Time Password) verification using Twil
    - POST /api/auth/otp/verify
    - Verifies OTP code
    - Tracks failed attempts (max 3)
-   - Returns temporary auth token
+   - Returns short-lived OTP session token (server-managed)
 
 4. **`components/auth/OTPVerification.tsx`** (280 lines)
    - React component for OTP input
@@ -129,7 +129,7 @@ Enhanced the login flow with SMS OTP (One-Time Password) verification using Twil
   "success": true,
   "message": "OTP verified successfully",
   "data": {
-    "authToken": "base64_encoded_token",  // Temporary token (5 min validity)
+    "otpToken": "d45f8c... (server-managed token)",
     "userId": "507f1f77bcf86cd799439011"
   }
 }
@@ -178,6 +178,12 @@ Your Fixzit verification code is: 123456
 
 This code expires in 5 minutes. Do not share this code with anyone.
 ```
+
+### 7. OTP Session Tokens
+- `otpToken` values never embed the OTP code itself.
+- Tokens are stored server-side in `otpSessionStore` and expire after 5 minutes.
+- Each token can be used exactly once. After NextAuth consumes it, it is deleted immediately.
+- Credentials provider rejects sign-ins that do not include a valid `otpToken` (enforced unless `NEXTAUTH_REQUIRE_SMS_OTP=false`).
 
 ## UI/UX Features
 
@@ -263,6 +269,23 @@ interface RateLimitData {
   resetAt: number;       // Unix timestamp (ms) when limit resets
 }
 ```
+
+### OTP Login Session Store (In-Memory)
+
+```typescript
+// Map<otpToken, OTPLoginSession>
+interface OTPLoginSession {
+  userId: string;
+  identifier: string;
+  expiresAt: number;     // Unix timestamp (ms)
+}
+```
+
+**Usage Notes:**
+- Tokens are random 32-byte hex strings generated after successful OTP verification.
+- Stored only in memory/Redis on the server (never exposed as JWTs or cookies).
+- NextAuth credentials provider requires a valid `otpToken` to complete sign-in.
+- Entries expire after 5 minutes and are cleaned up automatically.
 
 ## Environment Variables
 

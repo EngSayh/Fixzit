@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { Job } from '@/server/models/Job';
-import { getUserFromToken } from '@/lib/auth';
+import { atsRBAC, canAccessResource } from '@/lib/ats/rbac';
 
 import { rateLimit } from '@/server/security/rateLimit';
-import {notFoundError, validationError, rateLimitError, unauthorizedError} from '@/server/utils/errorResponses';
+import {notFoundError, validationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
 
@@ -37,17 +37,21 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   const params = await props.params;
   try {
     await connectToDatabase();
-    const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-    const user = token ? await getUserFromToken(token) : null;
     
-    // Enforce authentication
-    if (!user?.id) {
-      return unauthorizedError('Authentication required to publish jobs');
+    // RBAC: Check permissions
+    const authResult = await atsRBAC(req, ['jobs:publish']);
+    if (!authResult.authorized) {
+      return authResult.response;
     }
+    const { orgId, isSuperAdmin } = authResult;
     
     const job = await (Job as any).findById(params.id);
     if (!job) return notFoundError("Job");
+    
+    // Resource ownership check
+    if (!canAccessResource(orgId, job.orgId, isSuperAdmin)) {
+      return notFoundError("Job");
+    };
     if (job.status === 'published') return validationError("Job is already published");
     
     await job.publish();

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { Application } from '@/server/models/Application';
-import { getUserFromToken } from '@/lib/auth';
+import { atsRBAC, canAccessResource, isValidStageTransition } from '@/lib/ats/rbac';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {notFoundError, rateLimitError} from '@/server/utils/errorResponses';
@@ -36,13 +36,28 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 
   const params = await props.params;
   try {
-  await connectToDatabase();
+    await connectToDatabase();
+    
+    // RBAC: Check permissions
+    const authResult = await atsRBAC(req, ['applications:read']);
+    if (!authResult.authorized) {
+      return authResult.response;
+    }
+    const { orgId, isSuperAdmin } = authResult;
+    
     const application = await (Application as any)
       .findById(params.id)
       .populate('jobId')
       .populate('candidateId')
       .lean();
+    
     if (!application) return notFoundError("Application");
+    
+    // Resource ownership check
+    if (!canAccessResource(orgId, application.orgId, isSuperAdmin)) {
+      return notFoundError("Application");
+    }
+    
     return NextResponse.json({ success: true, data: application });
   } catch (error) {
     logger.error('Application fetch error:', error instanceof Error ? error.message : 'Unknown error');
@@ -53,18 +68,39 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
-  await connectToDatabase();
+    await connectToDatabase();
     const body = await req.json();
-    const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-    const user = token ? await getUserFromToken(token) : null;
-    const userId = user?.id || 'system';
+    
+    // RBAC: Check permissions
+    const authResult = await atsRBAC(req, ['applications:update', 'applications:stage-transition']);
+    if (!authResult.authorized) {
+      return authResult.response;
+    }
+    const { userId, orgId, isSuperAdmin } = authResult;
     
     const application = await (Application as any).findById(params.id);
     if (!application) return notFoundError("Application");
     
+    // Resource ownership check
+    if (!canAccessResource(orgId, application.orgId, isSuperAdmin)) {
+      return notFoundError("Application");
+    }
+    
+    // Stage transition guard (state machine)
     if (body.stage && body.stage !== application.stage) {
       const oldStage = application.stage;
+      
+      if (!isValidStageTransition(oldStage, body.stage)) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: `Invalid stage transition: ${oldStage} → ${body.stage}`,
+            allowedTransitions: isValidStageTransition
+          },
+          { status: 400 }
+        );
+      }
+      
       application.stage = body.stage;
       application.history.push({ action: `stage_change:${oldStage}->${body.stage}`, by: userId, at: new Date(), details: body.reason });
     }

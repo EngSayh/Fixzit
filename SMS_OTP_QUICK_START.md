@@ -36,6 +36,7 @@ npm run dev
 4. **Success!**
    - Redirected to dashboard
    - Session created with NextAuth
+   - The verify API now returns a short-lived `otpToken`, and the UI automatically passes it to the credentials provider so no JWT is exposed during verification
 
 ---
 

@@ -51,11 +51,46 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const channel = searchParams.get('channel') || 'all';
     const status = searchParams.get('status');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    const search = searchParams.get('search');
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
-    const skip = parseInt(searchParams.get('skip') || '0', 10);
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
+    const searchValue = searchParams.get('search')?.trim();
+    const limitParam = Number.parseInt(searchParams.get('limit') || '', 10);
+    const skipParam = Number.parseInt(searchParams.get('skip') || '', 10);
+
+    const limit = Math.min(Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 50, 100);
+    const skip = Number.isFinite(skipParam) && skipParam >= 0 ? skipParam : 0;
+
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
+
+    if (startDateParam) {
+      const parsed = Date.parse(startDateParam);
+      if (Number.isNaN(parsed)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid startDate parameter' },
+          { status: 400 }
+        );
+      }
+      startDate = new Date(parsed);
+    }
+
+    if (endDateParam) {
+      const parsed = Date.parse(endDateParam);
+      if (Number.isNaN(parsed)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid endDate parameter' },
+          { status: 400 }
+        );
+      }
+      endDate = new Date(parsed);
+    }
+
+    if (startDate && endDate && endDate < startDate) {
+      return NextResponse.json(
+        { success: false, error: 'endDate must be greater than or equal to startDate' },
+        { status: 400 }
+      );
+    }
 
     // 3. Connect to database
     await connectToDatabase();
@@ -95,13 +130,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (search) {
+    if (searchValue) {
       matchStage.$or = [
-        { recipient: { $regex: search, $options: 'i' } },
-        { subject: { $regex: search, $options: 'i' } },
-        { message: { $regex: search, $options: 'i' } },
-        { 'metadata.email': { $regex: search, $options: 'i' } },
-        { 'metadata.phone': { $regex: search, $options: 'i' } },
+        { recipient: { $regex: searchValue, $options: 'i' } },
+        { subject: { $regex: searchValue, $options: 'i' } },
+        { message: { $regex: searchValue, $options: 'i' } },
+        { 'metadata.email': { $regex: searchValue, $options: 'i' } },
+        { 'metadata.phone': { $regex: searchValue, $options: 'i' } },
       ];
     }
 

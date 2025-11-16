@@ -3,7 +3,7 @@ import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { Job } from '@/server/models/Job';
 import { generateSlug } from '@/lib/utils';
-import { getUserFromToken } from '@/lib/auth';
+import { atsRBAC } from '@/lib/ats/rbac';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
@@ -36,24 +36,12 @@ export async function GET(req: NextRequest) {
   try {
     await connectToDatabase();
     
-    // SECURITY: Get orgId from authenticated session, NEVER from client input
-    // Historical context: PR reviews flagged tenant isolation bypass where
-    // orgId = searchParams.get('orgId') allowed cross-tenant data access
-    const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-    const user = token ? await getUserFromToken(token) : null;
-    
-    // SECURITY: Consistent authentication enforcement across GET and POST
-    // Fallback to NEXT_PUBLIC_ORG_ID for public job listings (if configured)
-    // Otherwise require authentication to prevent anonymous access
-    if (!user && !process.env.NEXT_PUBLIC_ORG_ID) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    // RBAC: Check permissions for reading jobs
+    const authResult = await atsRBAC(req, ['jobs:read']);
+    if (!authResult.authorized) {
+      return authResult.response;
     }
-    
-    const orgId = user?.orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
+    const { orgId } = authResult;
     
     const { searchParams } = new URL(req.url);
     const q = searchParams.get('q') || '';
@@ -106,22 +94,13 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDatabase();
     const body = await req.json();
-    const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
-    const user = token ? await getUserFromToken(token) : null;
     
-    // SECURITY: Require authentication for job creation
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
-      );
+    // RBAC: Check permissions for creating jobs
+    const authResult = await atsRBAC(req, ['jobs:create']);
+    if (!authResult.authorized) {
+      return authResult.response;
     }
-    
-    const userId = user.id;
-    // SECURITY: Get orgId from authenticated user ONLY, never from request body
-    // Historical context: body.orgId fallback allowed tenant isolation bypass
-    const orgId = user.orgId || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
+    const { userId, orgId } = authResult;
     
     const baseSlug = generateSlug(body.title);
     let slug = baseSlug;

@@ -29,6 +29,10 @@ export interface CommunicationLog {
     ipAddress?: string;
     userAgent?: string;
     triggeredBy?: string;
+    identifier?: string;
+    priority?: string;
+    rateLimitRemaining?: number;
+    triggeredByEmail?: string;
   };
   createdAt: Date;
   updatedAt: Date;

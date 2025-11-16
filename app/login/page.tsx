@@ -260,7 +260,9 @@ export default function LoginPage() {
 
     try {
       // Use NextAuth signIn with credentials provider (skip OTP this time)
-      const identifier = loginMethod === 'personal' ? email.trim() : employeeNumber.trim();
+      const identifier =
+        otpState?.identifier ||
+        (loginMethod === 'personal' ? email.trim() : employeeNumber.trim());
       
       const result = await signIn('credentials', {
         identifier,
@@ -299,7 +301,16 @@ export default function LoginPage() {
   };
 
   const handleOTPResend = async () => {
-    const identifier = loginMethod === 'personal' ? email.trim() : employeeNumber.trim();
+    const identifier = otpState?.identifier;
+
+    if (!identifier) {
+      setShowOTP(false);
+      setOtpState(null);
+      return {
+        success: false,
+        error: t('otp.errors.sessionExpired', 'Your verification session expired. Please sign in again.'),
+      };
+    }
 
     try {
       const response = await fetch('/api/auth/otp/send', {

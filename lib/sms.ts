@@ -113,7 +113,7 @@ export async function sendSMS(to: string, message: string): Promise<SMSResult> {
  * Send OTP (One-Time Password) via SMS
  */
 export async function sendOTP(to: string, code: string): Promise<SMSResult> {
-  const message = `Your Fixzit verification code is: ${code}. Valid for 10 minutes. Do not share this code.`;
+  const message = `Your Fixzit verification code is: ${code}. Valid for 5 minutes. Do not share this code.`;
   return sendSMS(to, message);
 }
 
