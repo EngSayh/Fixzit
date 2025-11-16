@@ -79,11 +79,18 @@ export default function RecruitmentPage() {
     fetcher
   );
   
+  // Fetch settings data (only if user has permission)
+  const { data: settingsData, error: settingsError, isLoading: settingsLoading, mutate: mutateSettings } = useSWR(
+    canViewSettings ? '/api/ats/settings' : null,
+    fetcher
+  );
+  
   // Handle 402 Payment Required - redirect to upgrade page
   if ((jobsError && (jobsError as any)?.status === 402) || 
       (applicationsError && (applicationsError as any)?.status === 402) ||
       (interviewsError && (interviewsError as any)?.status === 402) ||
-      (analyticsError && (analyticsError as any)?.status === 402)) {
+      (analyticsError && (analyticsError as any)?.status === 402) ||
+      (settingsError && (settingsError as any)?.status === 402)) {
     router.push('/billing/upgrade?feature=ats');
     return (
       <div className="flex items-center justify-center h-full">
@@ -103,6 +110,7 @@ export default function RecruitmentPage() {
   const interviews = interviewsData?.data || [];
   const interviewsCount = interviews.length;
   const analytics = analyticsData?.data || null;
+  const settings = settingsData?.data || null;
 
   return (
     <div className="flex flex-col h-full">
@@ -716,16 +724,207 @@ export default function RecruitmentPage() {
         {/* Settings Tab */}
         {canViewSettings && (
           <TabsContent value="settings" className="flex-1 p-6">
-            <div className="bg-card border rounded-lg p-8 text-center">
-              <div className="text-6xl mb-4">⚙️</div>
-              <h2 className="text-xl font-semibold mb-2">ATS Settings</h2>
-              <p className="text-muted-foreground mb-4">
-                Configure screening rules, email templates, and integrations.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Phase 4: Settings forms for workflows and automation
-              </p>
-            </div>
+            {settingsLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading settings...</p>
+                </div>
+              </div>
+            ) : settingsError ? (
+              <div className="bg-destructive/10 border border-destructive rounded-lg p-6 text-center">
+                <div className="text-4xl mb-4">⚠️</div>
+                <h3 className="text-lg font-semibold text-destructive mb-2">Error Loading Settings</h3>
+                <p className="text-sm text-muted-foreground">{settingsError.message}</p>
+              </div>
+            ) : (
+              <div className="space-y-6 max-w-4xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold">ATS Settings</h2>
+                    <p className="text-sm text-muted-foreground">Configure screening rules and scoring weights</p>
+                  </div>
+                </div>
+
+                {/* Scoring Weights */}
+                <div className="bg-card border rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4">Application Scoring Weights</h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Adjust how different factors contribute to candidate scores (must total 100%)
+                  </p>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium block mb-2">
+                          Skills Match ({settings?.scoringWeights?.skills ? Math.round(settings.scoringWeights.skills * 100) : 60}%)
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={settings?.scoringWeights?.skills ? Math.round(settings.scoringWeights.skills * 100) : 60}
+                          className="w-full h-2 bg-accent rounded-lg appearance-none cursor-pointer"
+                          disabled
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium block mb-2">
+                          Experience ({settings?.scoringWeights?.experience ? Math.round(settings.scoringWeights.experience * 100) : 30}%)
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={settings?.scoringWeights?.experience ? Math.round(settings.scoringWeights.experience * 100) : 30}
+                          className="w-full h-2 bg-accent rounded-lg appearance-none cursor-pointer"
+                          disabled
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium block mb-2">
+                          Culture Fit ({settings?.scoringWeights?.culture ? Math.round(settings.scoringWeights.culture * 100) : 5}%)
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={settings?.scoringWeights?.culture ? Math.round(settings.scoringWeights.culture * 100) : 5}
+                          className="w-full h-2 bg-accent rounded-lg appearance-none cursor-pointer"
+                          disabled
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium block mb-2">
+                          Education ({settings?.scoringWeights?.education ? Math.round(settings.scoringWeights.education * 100) : 5}%)
+                        </label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={settings?.scoringWeights?.education ? Math.round(settings.scoringWeights.education * 100) : 5}
+                          className="w-full h-2 bg-accent rounded-lg appearance-none cursor-pointer"
+                          disabled
+                        />
+                      </div>
+                    </div>
+                    <div className="bg-muted p-4 rounded-lg">
+                      <p className="text-sm text-muted-foreground">
+                        <span className="font-medium">Total:</span> {
+                          settings?.scoringWeights 
+                            ? Math.round((settings.scoringWeights.skills + settings.scoringWeights.experience + settings.scoringWeights.culture + settings.scoringWeights.education) * 100)
+                            : 100
+                        }%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Knockout Rules */}
+                <div className="bg-card border rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4">Knockout Rules</h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Automatically reject candidates who don't meet minimum requirements
+                  </p>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
+                      <div>
+                        <div className="font-medium">Minimum Years of Experience</div>
+                        <div className="text-sm text-muted-foreground">
+                          Current: {settings?.knockoutRules?.minYears || 0} years
+                        </div>
+                      </div>
+                      <div className="text-2xl font-bold text-primary">
+                        {settings?.knockoutRules?.minYears || 0}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
+                      <div>
+                        <div className="font-medium">Auto-Reject Missing Experience</div>
+                        <div className="text-sm text-muted-foreground">
+                          Reject if experience field is empty
+                        </div>
+                      </div>
+                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        settings?.knockoutRules?.autoRejectMissingExperience 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+                      }`}>
+                        {settings?.knockoutRules?.autoRejectMissingExperience ? 'Enabled' : 'Disabled'}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
+                      <div>
+                        <div className="font-medium">Auto-Reject Missing Skills</div>
+                        <div className="text-sm text-muted-foreground">
+                          Reject if required skills are missing
+                        </div>
+                      </div>
+                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        settings?.knockoutRules?.autoRejectMissingSkills 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+                      }`}>
+                        {settings?.knockoutRules?.autoRejectMissingSkills ? 'Enabled' : 'Disabled'}
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-accent rounded-lg">
+                      <div className="font-medium mb-2">Required Skills</div>
+                      <div className="flex flex-wrap gap-2">
+                        {settings?.knockoutRules?.requiredSkills && settings.knockoutRules.requiredSkills.length > 0 ? (
+                          settings.knockoutRules.requiredSkills.map((skill: string, idx: number) => (
+                            <span key={idx} className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                              {skill}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-sm text-muted-foreground">No required skills configured</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Email Templates Placeholder */}
+                <div className="bg-card border rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4">Email Templates</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Customize automated email notifications
+                  </p>
+                  <div className="space-y-3">
+                    <div className="p-4 bg-accent rounded-lg flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">Application Received</div>
+                        <div className="text-sm text-muted-foreground">Sent when candidate applies</div>
+                      </div>
+                      <span className="text-sm text-muted-foreground">Default template</span>
+                    </div>
+                    <div className="p-4 bg-accent rounded-lg flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">Interview Scheduled</div>
+                        <div className="text-sm text-muted-foreground">Sent when interview is booked</div>
+                      </div>
+                      <span className="text-sm text-muted-foreground">Default template</span>
+                    </div>
+                    <div className="p-4 bg-accent rounded-lg flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">Offer Extended</div>
+                        <div className="text-sm text-muted-foreground">Sent when offer is made</div>
+                      </div>
+                      <span className="text-sm text-muted-foreground">Default template</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <span className="font-medium">Note:</span> Settings editing UI will be enabled in Phase 3. Currently displaying read-only configuration.
+                  </p>
+                </div>
+              </div>
+            )}
           </TabsContent>
         )}
       </Tabs>

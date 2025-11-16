@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
     const broadcastId = new ObjectId();
 
     const triggeredBy = (session.user as { id?: string }).id || session.user.email || 'unknown';
-    const senderEmail = session.user.email;
+    const senderEmail: string | undefined = session.user.email ?? undefined;
 
     // Fetch recipient contacts based on type
     let targetContacts: Array<{ id: string; name: string; email?: string; phone?: string }> = [];
