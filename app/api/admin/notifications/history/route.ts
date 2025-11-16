@@ -32,8 +32,11 @@ export async function GET(req: NextRequest) {
 
     // Get query parameters
     const searchParams = req.nextUrl.searchParams;
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const skip = parseInt(searchParams.get('skip') || '0');
+    const limitParam = Number.parseInt(searchParams.get('limit') || '', 10);
+    const skipParam = Number.parseInt(searchParams.get('skip') || '', 10);
+
+    const limit = Math.min(Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 50, 100);
+    const skip = Number.isFinite(skipParam) && skipParam >= 0 ? skipParam : 0;
 
     // Get database connection
     const db = await getDatabase();

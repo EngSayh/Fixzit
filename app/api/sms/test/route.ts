@@ -8,9 +8,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendSMS, testSMSConfiguration } from '@/lib/sms';
 import { logger } from '@/lib/logger';
+import { auth } from '@/auth';
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await auth();
+    
+    if (!session?.user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (session.user.role !== 'SUPER_ADMIN') {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden: Super Admin access required' },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { phone, message, testConfig } = body;
 

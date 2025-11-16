@@ -55,15 +55,20 @@ export async function sendEmail(
       `
     });
 
+    const messageId =
+      result?.[0]?.headers?.['x-message-id'] ||
+      result?.[0]?.headers?.['X-Message-Id'] ||
+      undefined;
+
     logger.info('[Email] Message sent successfully', {
       to,
       subject,
-      messageId: result[0].headers['x-message-id']
+      messageId,
     });
 
     return {
       success: true,
-      messageId: result[0].headers['x-message-id']
+      messageId,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
