@@ -85,19 +85,19 @@ export async function GET(request: NextRequest) {
     // Step 2: Batch-fetch all listings and projects in parallel (with tenant isolation)
     const [listings, projects] = await Promise.all([
       listingIds.length > 0 
-        ? AqarListing.find({ _id: { $in: listingIds }, orgId: tenantOrgId }).lean()
+        ? (AqarListing as any).find({ _id: { $in: listingIds }, orgId: tenantOrgId }).lean()
         : [],
       projectIds.length > 0
-        ? AqarProject.find({ _id: { $in: projectIds }, orgId: tenantOrgId }).lean()
+        ? (AqarProject as any).find({ _id: { $in: projectIds }, orgId: tenantOrgId }).lean()
         : []
     ]);
     
     // Step 3: Create lookup maps for O(1) access
-    const listingMap = new Map(listings.map(l => [l._id.toString(), l]));
-    const projectMap = new Map(projects.map(p => [p._id.toString(), p]));
+    const listingMap = new Map(listings.map((l: { _id: { toString: () => string } }) => [l._id.toString(), l]));
+    const projectMap = new Map(projects.map((p: { _id: { toString: () => string } }) => [p._id.toString(), p]));
     
     // Step 4: Attach targets to favorites
-    const favoritesWithTargets = favorites.map(fav => {
+    const favoritesWithTargets = favorites.map((fav: any) => {
       const targetIdStr = fav.targetId.toString();
       
       if (fav.targetType === 'LISTING') {
@@ -183,12 +183,12 @@ export async function POST(request: NextRequest) {
     // Verify referenced target exists within same tenant (prevent cross-tenant favorites)
     const targetObjectId = new mongoose.Types.ObjectId(targetId);
     if (targetType === 'LISTING') {
-      const listingExists = await AqarListing.findOne({ _id: targetObjectId, orgId: tenantOrgId }).lean();
+      const listingExists = await (AqarListing as any).findOne({ _id: targetObjectId, orgId: tenantOrgId }).lean();
       if (!listingExists) {
         return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
       }
     } else if (targetType === 'PROJECT') {
-      const projectExists = await AqarProject.findOne({ _id: targetObjectId, orgId: tenantOrgId }).lean();
+      const projectExists = await (AqarProject as any).findOne({ _id: targetObjectId, orgId: tenantOrgId }).lean();
       if (!projectExists) {
         return NextResponse.json({ error: 'Project not found' }, { status: 404 });
       }
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
     if (targetType === 'LISTING') {
       (async () => {
         try {
-          await AqarListing.findByIdAndUpdate(targetId, { 
+          await (AqarListing as any).findByIdAndUpdate(targetId, { 
             $inc: { 'analytics.favorites': 1 },
             $set: { 'analytics.lastFavoritedAt': new Date() }
           }).exec();
@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
     } else if (targetType === 'PROJECT') {
       (async () => {
         try {
-          await AqarProject.findByIdAndUpdate(targetId, { 
+          await (AqarProject as any).findByIdAndUpdate(targetId, { 
             $inc: { 'analytics.favorites': 1 },
             $set: { 'analytics.lastFavoritedAt': new Date() }
           }).exec();

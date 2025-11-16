@@ -2,6 +2,7 @@
 import { logger } from '@/lib/logger';
 import RFQBoard from '@/components/marketplace/RFQBoard';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
+import { getServerI18n } from '@/lib/i18n/server';
 
 interface Category {
   slug: string;
@@ -18,6 +19,8 @@ interface RFQ {
 }
 
 export default async function RFQPage() {
+  const { t } = await getServerI18n();
+
   try {
     const [_categoriesResponse, rfqResponse] = await Promise.all([
       serverFetchJsonWithTenant<{ data: Category[] }>('/api/marketplace/categories'),
@@ -31,6 +34,7 @@ export default async function RFQPage() {
 
     const rfqs = rfqResponse.data;
 
+>>>>>>> feat/souq-marketplace-advanced
     return (
       <div className="min-h-screen bg-muted flex flex-col">
         
@@ -44,10 +48,12 @@ export default async function RFQPage() {
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center">
-          <p className="text-destructive">Failed to load RFQ data. Please try again later.</p>
+          <p className="text-destructive">
+            {t('marketplace.rfq.error', 'Failed to load RFQ data. Please try again later.')}
+          </p>
+>>>>>>> feat/souq-marketplace-advanced
         </div>
       </div>
     );
   }
 }
-

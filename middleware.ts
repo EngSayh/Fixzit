@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
 
 // ⚡ PERFORMANCE OPTIMIZATION: Lazy-load auth only for protected routes
 // Previously: auth imported eagerly (adds ~30-40 KB to middleware bundle)
@@ -145,8 +146,10 @@ async function getAuthSession(request: NextRequest): Promise<SessionUser | null>
       if (!sess?.user) return null;
       
       return { 
-        ...sess.user, 
         id: sess.user.id || (sess as { sub?: string }).sub || '',
+        email: sess.user.email || null,
+        role: sess.user.role || 'USER',
+        orgId: sess.user.orgId || null,
         isSuperAdmin: sess.user.isSuperAdmin || false,
         permissions: sess.user.permissions || [],
         roles: sess.user.roles || [],
@@ -156,7 +159,7 @@ async function getAuthSession(request: NextRequest): Promise<SessionUser | null>
     const result = await handler(request);
     return result;
   } catch (error) {
-    console.error('Auth session error:', error);
+    logger.error('Auth session error:', { error });
     return null;
   }
 }
@@ -165,6 +168,7 @@ async function getAuthSession(request: NextRequest): Promise<SessionUser | null>
 function hasAnyPermission(user: SessionUser | null, permissions: string[]): boolean {
   if (!user) return false;
   if (user.isSuperAdmin) return true;
+  if (!user.permissions || !Array.isArray(user.permissions)) return false;
   if (user.permissions.includes('*')) return true;
   return permissions.some(p => user.permissions.includes(p));
 }

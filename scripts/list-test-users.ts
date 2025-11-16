@@ -10,7 +10,8 @@ async function listUsers() {
     await db;
     console.log('👥 Listing test users with @test or test- prefix...\n');
     
-    const users = await (User as any).find({ 
+    const users = await User.find({ 
+>>>>>>> feat/souq-marketplace-advanced
       $or: [
         { email: { $regex: /@test/i } },
         { email: { $regex: /test-/i } },

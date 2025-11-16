@@ -5,7 +5,8 @@
  * Broker receives lead, negotiates commission, posts listing
  */
 
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 /* eslint-disable no-unused-vars */
 export enum MarketingRequestStatus {
@@ -212,8 +213,7 @@ MarketingRequestSchema.methods.linkListing = async function (
   Object.assign(this, result.toObject());
 };
 
-const MarketingRequest: Model<IMarketingRequest> =
-  mongoose.models.AqarMarketingRequest ||
-  mongoose.model<IMarketingRequest>('AqarMarketingRequest', MarketingRequestSchema);
+const MarketingRequest =
+  getModel<any>('AqarMarketingRequest', MarketingRequestSchema);
 
 export default MarketingRequest;

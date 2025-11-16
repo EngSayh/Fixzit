@@ -258,7 +258,7 @@ export default function TopBar({ role: _role = 'guest' }: TopBarProps) {
       // Clear client-side storage
       localStorage.removeItem('fixzit-role');
       localStorage.removeItem('fixzit-currency');
-      localStorage.removeItem('fixzit-theme');
+      localStorage.removeItem('fxz.theme');
 
       // Clear any other localStorage items related to the app, BUT preserve language settings
       Object.keys(localStorage).forEach(key => {

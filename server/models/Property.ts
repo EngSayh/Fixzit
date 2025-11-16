@@ -1,4 +1,5 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, Model, InferSchemaType } from "mongoose";
+import { getModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 
@@ -221,4 +222,4 @@ PropertySchema.index({ orgId: 1, code: 1 }, { unique: true });
 
 export type PropertyDoc = InferSchemaType<typeof PropertySchema>;
 
-export const Property = models.Property || model("Property", PropertySchema);
+export const Property: Model<PropertyDoc> = getModel<PropertyDoc>('Property', PropertySchema);

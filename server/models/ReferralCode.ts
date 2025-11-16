@@ -4,8 +4,8 @@ import {
   models,
   Types,
   HydratedDocument,
-  Model,
 } from 'mongoose';
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
@@ -133,17 +133,16 @@ export interface ReferralCodeStaticMethods {
 /* eslint-enable no-unused-vars */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ReferralCodeModelType = Model<IReferralCode, {}, {}, {}, any> & ReferralCodeStaticMethods;
+type ReferralCodeModelType = MModel<IReferralCode> & ReferralCodeStaticMethods;
 
 // ---------------- Schema ----------------
-const ReferralCodeSchema = new Schema<IReferralCode, ReferralCodeModelType>(
+const ReferralCodeSchema = new Schema<IReferralCode>(
   {
     // tenant via plugin, but declare for typing + indices
     // Multi-tenancy: which organization this referral code belongs to
     // Note: index: true removed from orgId to avoid duplicate index warning
     // orgId is indexed via composite indexes below (orgId+code, orgId+referrerId, etc.)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    orgId: { type: Schema.Types.ObjectId, required: true, ref: 'Organization' } as any,
+    orgId: { type: Schema.Types.ObjectId, required: true, ref: 'Organization' },
 
     referrerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     referrerName: { type: String, trim: true },
@@ -184,8 +183,7 @@ const ReferralCodeSchema = new Schema<IReferralCode, ReferralCodeModelType>(
     referrals: [
       {
         referredUserId: { type: Schema.Types.ObjectId, ref: 'User' },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        referredEmail: { type: String, trim: true, lowercase: true } as any,
+        referredEmail: { type: String, trim: true, lowercase: true },
         referredAt: { type: Date, default: Date.now },
         convertedAt: Date,
         rewardEarned: { type: Number, min: 0 },
@@ -203,8 +201,7 @@ const ReferralCodeSchema = new Schema<IReferralCode, ReferralCodeModelType>(
       totalRewardsEarned: { type: Number, default: 0, min: 0 },
       totalRewardsPaid: { type: Number, default: 0, min: 0 },
       conversionRate: { type: Number, default: 0, min: 0, max: 100 },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any,
+    },
 
     status: { type: String, enum: ReferralCodeStatus, default: 'ACTIVE', index: true },
 
@@ -227,9 +224,7 @@ const ReferralCodeSchema = new Schema<IReferralCode, ReferralCodeModelType>(
 );
 
 // Plugins
-// @ts-expect-error - Plugin typing mismatch with strongly-typed schema
 ReferralCodeSchema.plugin(tenantIsolationPlugin);
-// @ts-expect-error - Plugin typing mismatch with strongly-typed schema
 ReferralCodeSchema.plugin(auditPlugin);
 
 // Indices (post-plugin so orgId exists)
@@ -253,7 +248,7 @@ ReferralCodeSchema.methods.isValid = function (this: ReferralCodeDoc) {
   if (this.status !== 'ACTIVE') return false;
   const now = new Date();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const lim = this.limits || ({} as any);
+  const lim = this.limits || {};
   const maxU = typeof lim.maxUses === 'number' ? lim.maxUses : Infinity;
   const cur = typeof lim.currentUses === 'number' ? lim.currentUses : 0;
   if (lim.validFrom && now < lim.validFrom) return false;
@@ -433,5 +428,4 @@ ReferralCodeSchema.pre('save', function (next) {
 });
 
 // Final export
-export const ReferralCodeModel = (models.ReferralCode ||
-  model<IReferralCode, ReferralCodeModelType>('ReferralCode', ReferralCodeSchema)) as ReferralCodeModelType;
+export const ReferralCodeModel = getModel<IReferralCode>('ReferralCode', ReferralCodeSchema) as ReferralCodeModelType;

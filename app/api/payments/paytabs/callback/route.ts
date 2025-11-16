@@ -243,9 +243,17 @@ async function updatePaymentRecord(
       
       logger.info('Payment successful', { order: String(cart_id).slice(0,8) + '...' });
       
-      // TODO: If cart_id refers to an AqarPayment, activate the related package
-      // Import and call: activatePackageAfterPayment(cart_id)
-      // See: lib/aqar/package-activation.ts
+      // Activate AqarPackage if cart_id refers to an AqarPayment
+      try {
+        const { activatePackageAfterPayment } = await import('@/lib/aqar/package-activation');
+        await activatePackageAfterPayment(String(cart_id));
+      } catch (err) {
+        logger.warn('Package activation skipped or failed', { 
+          cart_id: String(cart_id).slice(0,8) + '...', 
+          error: err instanceof Error ? err.message : String(err)
+        });
+        // Don't fail the payment callback if package activation fails
+      }
     }
     
     return createSecureResponse({

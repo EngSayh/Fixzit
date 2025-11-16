@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { SLA } from "@/server/models/SLA";
 import { z, ZodError } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
@@ -136,13 +135,14 @@ export async function POST(req: NextRequest) {
 
     const data = createSLASchema.parse(await req.json());
 
-    const sla = await SLA.create({
+    const { SLA } = await import('@/server/models/SLA');
+    const sla = (await SLA.create({
       tenantId: user.orgId,
       code: `SLA-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
       status: "DRAFT",
       createdBy: user.id
-    });
+    }));
 
     return createSecureResponse(sla, 201, req);
   } catch (error: unknown) {
@@ -197,6 +197,7 @@ export async function GET(req: NextRequest) {
       match.$text = { $search: search };
     }
 
+    const { SLA } = await import('@/server/models/SLA');
     const [items, total] = await Promise.all([
       SLA.find(match)
         .sort({ createdAt: -1 })
@@ -220,5 +221,4 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ error: 'Failed to fetch SLAs' }, 500, req);
   }
 }
-
 

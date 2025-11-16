@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
     
     // Secure response
     return createSecureResponse(
-      { ok: true, data: rfqs.map(rfq => serializeRFQ(rfq)) },
+      { ok: true, data: rfqs.map((rfq: any) => serializeRFQ(rfq)) },
       200,
       request
     );

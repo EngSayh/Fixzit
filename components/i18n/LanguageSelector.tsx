@@ -1,27 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useId } from 'react';
-import { Globe, Search, Check } from 'lucide-react'; // ✅ FIX: Add Check icon
+import { Globe, Search, Check } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
-// ✅ FIX: Import from central config (single source of truth)
 import { LANGUAGE_OPTIONS, type LanguageOption, type LanguageCode } from '@/config/language-options';
 
 interface LanguageSelectorProps {
-  variant?: 'default' | 'compact' | 'dark_minimal'; // ✅ FIX: Add dark variant for TopBar
+  variant?: 'default' | 'compact' | 'dark_minimal';
 }
 
-/**
- * Language selector dropdown for switching the application's locale.
- *
- * ✅ ARCHITECTURE FIXES:
- * 1. Imports LANGUAGE_OPTIONS from config (single source of truth)
- * 2. Uses semantic tokens (bg-primary, text-primary) instead of hardcoded colors
- * 3. Fully accessible (keyboard nav, ARIA)
- * 4. Supports dark_minimal variant for TopBar usage
- *
- * @param variant - UI variant: 'default' | 'compact' | 'dark_minimal'
- * @returns Language selector component
- */
 export default function LanguageSelector({ variant = 'default' }: LanguageSelectorProps) {
   const { language, setLanguage, isRTL, t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -48,7 +35,8 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
         option.iso.toLowerCase().includes(term) ||
         option.native.toLowerCase().includes(term) ||
         option.english.toLowerCase().includes(term) ||
-        option.country.toLowerCase().includes(term)
+        option.country.toLowerCase().includes(term) ||
+        option.keywords?.some(keyword => keyword.toLowerCase().includes(term))
       );
     });
   }, [query]);
@@ -71,7 +59,6 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
       }
     };
 
-    // Focus the search input when opened
     queueMicrotask(() => inputRef.current?.focus());
 
     document.addEventListener('mousedown', handleClick);
@@ -82,7 +69,6 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
     };
   }, [open]);
 
-  // Refocus trigger only when transitioning from open -> closed
   const wasOpenRef = useRef(open);
   useEffect(() => {
     if (wasOpenRef.current && !open) {
@@ -91,21 +77,18 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
     wasOpenRef.current = open;
   }, [open]);
 
-  // Initialize the active option when opening or when the filter changes
   useEffect(() => {
     if (!open) return;
     const idx = filtered.findIndex(o => o.locale === current.locale);
     setActiveIndex(idx >= 0 ? idx : 0);
   }, [open, filtered, current.locale]);
 
-  // ✅ FIX: Use semantic/variant-based classes
   const getButtonClasses = () => {
     const padding = variant === 'compact' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm';
-    let colors = 'bg-background text-foreground hover:bg-muted'; // Default for settings page
-    
+    let colors = 'bg-background text-foreground hover:bg-muted';
+
     if (variant === 'dark_minimal') {
-      // For TopBar or dark backgrounds - semantic tokens
-      colors = 'bg-primary/10 text-primary-foreground hover:bg-primary/20';
+      colors = 'bg-slate-900/40 text-slate-100 hover:bg-slate-800/80 border border-slate-700/70';
     } else if (variant === 'compact') {
       colors = 'bg-muted text-muted-foreground hover:bg-muted/80';
     }
@@ -113,6 +96,8 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
   };
   
   const dropdownWidth = variant === 'compact' ? 'w-64' : 'w-80';
+  const buttonAriaLabel = `${t('i18n.selectLanguageLabel', 'Select language')}: ${current.native} — ${current.country} (${current.iso})`;
+  const showIso = variant === 'compact' || variant === 'dark_minimal';
 
   const toggle = () => setOpen(prev => !prev);
 
@@ -129,7 +114,7 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
         type="button"
         aria-expanded={open}
         aria-haspopup="listbox"
-        aria-label={t('i18n.selectLanguageLabel', 'Select language')}
+        aria-label={buttonAriaLabel}
         aria-controls={open ? listboxId : undefined}
         onClick={toggle}
         ref={buttonRef}
@@ -140,8 +125,8 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
           <span className="text-sm" aria-hidden>
             {current.flag}
           </span>
-          {variant === 'compact' ? (
-            <span className="text-xs font-medium">
+          {showIso ? (
+            <span className="text-xs font-semibold tracking-wide">
               {current.iso}
             </span>
           ) : (
@@ -159,7 +144,6 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
         <div
           className={`absolute z-[100] mt-2 rounded-2xl border border-border bg-card p-3 shadow-2xl ${dropdownWidth} max-w-[calc(100vw-2rem)] start-0 animate-in slide-in-from-top-2 duration-200`}
         >
-          {/* Arrow pointer */}
           <div className={`hidden md:block absolute -top-2 w-3 h-3 bg-card border-l border-t border-border transform rotate-45 ${isRTL ? 'end-8' : 'start-8'}`}></div>
           <div className="relative mb-2">
             <Search className={`pointer-events-none absolute top-2 h-4 w-4 text-muted-foreground ${isRTL ? 'end-2' : 'start-2'}`} aria-hidden="true" focusable="false" />
@@ -228,7 +212,6 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
                       {option.country} · {option.iso}
                     </div>
                   </div>
-                  {/* ✅ FIX: Add Check icon for selected item */}
                   {option.locale === current.locale && (
                     <Check className="w-4 h-4 text-primary flex-shrink-0" aria-hidden="true" />
                   )}
@@ -241,4 +224,3 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
     </div>
   );
 }
-

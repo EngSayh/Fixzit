@@ -65,12 +65,12 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
   // ⚡ FIXED: Add audit fields to schema with ObjectId type (not String)
   schema.add({
     createdBy: { 
-      type: Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: 'User',
       required: true 
     },
     updatedBy: { 
-      type: Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: 'User'
     },
     version: { 
@@ -84,7 +84,7 @@ export function auditPlugin(schema: Schema, options: AuditPluginOptions = {}) {
     schema.add({
       changeHistory: [{
         version: Number,
-        changedBy: { type: Types.ObjectId, ref: 'User' }, // ⚡ FIXED: ObjectId not String
+        changedBy: { type: Schema.Types.ObjectId, ref: 'User' }, // ⚡ FIXED: ObjectId not String
         changedAt: { type: Date, default: Date.now },
         changes: [{
           field: String,

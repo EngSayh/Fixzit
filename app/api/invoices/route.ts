@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
       vatAmount: totalTax.toString()
     });
 
-    const invoice = await Invoice.create({
+    const invoice = (await Invoice.create({
       tenantId: user.orgId,
       number,
       ...data,
@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
         details: "Invoice created"
       }],
       createdBy: user.id
-    });
+    }));
 
     return createSecureResponse(invoice, 201, req);
   } catch (error: unknown) {

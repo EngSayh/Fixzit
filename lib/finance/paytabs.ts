@@ -128,7 +128,8 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
   ) {
   const meta = subscription.metadata.ownerGroup as Record<string, unknown>;
     if (meta?.name) {
-      await OwnerGroup.findOneAndUpdate(
+      const { OwnerGroupModel } = await import('@/server/models/OwnerGroup');
+      await OwnerGroupModel.findOneAndUpdate(
         {
           name: meta.name,
           primary_contact_user_id: meta.primary_contact_user_id || subscription.owner_user_id,

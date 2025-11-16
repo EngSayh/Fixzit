@@ -3,6 +3,8 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import Link from "next/link";
 import { renderMarkdownSanitized } from '@/lib/markdown';
 import { cookies } from 'next/headers';
+import ClientDate from '@/components/ClientDate';
+>>>>>>> feat/souq-marketplace-advanced
 
 export const revalidate = 60;
 
@@ -67,8 +69,9 @@ export default async function CmsPageScreen(props: { params: Promise<{slug:strin
           <div className="mt-8 pt-6 border-t border-border">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <div>
-                Last updated {new Date(page.updatedAt).toLocaleDateString()} 
-                {page.updatedBy && ` by ${page.updatedBy}`}
+                Last updated <ClientDate date={page.updatedAt} format="date-only" />
+                {/* TODO(type-safety): Add updatedBy to Page schema */}
+                {(page as any).updatedBy && ` by ${(page as any).updatedBy}`}
               </div>
               <Link 
                 href="/" 

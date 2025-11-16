@@ -1,6 +1,17 @@
 import mongoose from 'mongoose';
 import { logger } from '@/lib/logger';
 
+// Safe TLS detection function
+function isTlsEnabled(uri: string): boolean {
+  if (!uri) return false;
+  // MongoDB Atlas (srv) always uses TLS
+  if (uri.includes('mongodb+srv://')) return true;
+  // Check for explicit TLS/SSL parameters
+  if (uri.includes('tls=true') || uri.includes('ssl=true')) return true;
+  return false;
+}
+>>>>>>> feat/souq-marketplace-advanced
+
 /**
  * MongoDB Database Abstraction Layer
  * 
@@ -49,8 +60,13 @@ const dbName = process.env.MONGODB_DB || 'fixzit';
 
 // Runtime validation function (called when connection is attempted, not at module load)
 function validateMongoUri(): void {
-  // Only enforce in production AND when not in CI build phase
-  if (process.env.NODE_ENV === 'production' && process.env.CI !== 'true') {
+  // Skip validation during CI builds or when SKIP_ENV_VALIDATION is set
+  if (process.env.CI === 'true' || process.env.SKIP_ENV_VALIDATION === 'true') {
+    return;
+  }
+  
+  // Only enforce in production
+  if (process.env.NODE_ENV === 'production') {
     if (!uri || uri.trim().length === 0) {
       throw new Error('FATAL: MONGODB_URI is required in production environment. Please configure MongoDB connection.');
     }
@@ -89,7 +105,7 @@ if (!conn) {
       connectTimeoutMS: 8000,
       // Production-critical options for MongoDB Atlas
       retryWrites: true,        // Automatic retry for write operations (network failures)
-      tls: true,                // Force TLS/SSL for secure connections (required for Atlas)
+      tls: isTlsEnabled(connectionUri),  // Safe TLS detection
       w: 'majority',            // Write concern for data durability (prevents data loss)
     }).then(m => {
       // Return the native MongoDB database object
@@ -116,7 +132,7 @@ export async function getDatabase(): Promise<DatabaseHandle> {
     }
     
     throw new Error('No database handle available');
-  } catch (error) {
+  } catch (error: unknown) {
     const correlationId = new mongoose.Types.ObjectId().toString();
     const devMessage = `Failed to get database handle: ${error}`;
     const err = new Error(devMessage) as Error & {

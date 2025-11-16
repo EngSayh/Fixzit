@@ -140,35 +140,19 @@
     }
   },
   "admin": {
-    "title": "Administration",
-    "signInRequired": "Sign in required",
-    "accessDenied": "Access denied",
-    "insufficientPerms": "Insufficient permissions",
-    "superAdminRequired": "Super admin access required",
-    "currentRole": "Current Role",
-    "console": "Admin Console",
-    "consoleDesc": "Manage users, roles, and system settings",
-    "tabs": {
-      "overview": "Overview",
-      "users": "Users",
-      "roles": "Roles & Permissions",
-      "audit": "Audit Logs",
-      "features": "Feature Flags"
-    },
-    "overview": {
-      "title": "Admin Overview",
-      "quickLinks": "Quick Links",
-      "manageUsers": "Manage Users",
-      "manageRoles": "Manage Roles",
-      "viewLogs": "View Audit Logs",
-      "featureSettings": "Feature Settings"
+    "administration": {
+      "title": "System Administration",
+      "subtitle": "Manage all aspects of the Fixzit platform"
     },
     "users": {
       "title": "User Management",
       "description": "Manage users, roles, and permissions",
       "totalUsers": "Total Users",
       "activeUsers": "Active Users",
+      "createUser": "Create User",
+      "active": "Active Users",
       "online": "Online Now",
+      "activeUsers": "Active Users",
       "creating": "Creating user...",
       "createFailed": "Failed to create user",
       "createSuccess": "User created successfully",
@@ -177,7 +161,6 @@
       "deleteFailed": "Failed to delete user",
       "deleteSuccess": "User deleted successfully",
       "exportCsv": "Export to CSV",
-      "createUser": "Create User",
       "createNewUser": "Create New User",
       "email": "Email",
       "username": "Username",
@@ -237,6 +220,7 @@
     "features": {
       "title": "Feature Flags",
       "description": "Enable/disable features dynamically",
+      "active": "Active Features",
       "activeFeatures": "Active Features",
       "enabled": "Enabled",
       "disabled": "Disabled",
@@ -273,18 +257,64 @@
       "description": "Generate admin-level reports and analytics",
       "generated": "Generated"
     },
-    "administration": {
-      "title": "System Administration",
-      "subtitle": "Manage all aspects of the Fixzit platform"
-    },
     "system": {
       "status": "System",
       "operational": "Operational",
       "monitor": "System Monitor"
+    },
+    "title": "Administration",
+    "signInRequired": "Sign in required",
+    "accessDenied": "Access denied",
+    "insufficientPerms": "Insufficient permissions",
+    "superAdminRequired": "Super admin access required",
+    "currentRole": "Current Role",
+    "console": "Admin Console",
+    "consoleDesc": "Manage users, roles, and system settings",
+    "tabs": {
+      "overview": "Overview",
+      "users": "Users",
+      "roles": "Roles & Permissions",
+      "audit": "Audit Logs",
+      "features": "Feature Flags"
+    },
+    "overview": {
+      "title": "Admin Overview",
+      "quickLinks": "Quick Links",
+      "manageUsers": "Manage Users",
+      "manageRoles": "Manage Roles",
+      "viewLogs": "View Audit Logs",
+      "featureSettings": "Feature Settings"
     }
   },
   "dashboard": {
     "title": "Dashboard",
+    "welcomeBack": "Welcome back",
+    "notifications": "Notifications",
+    "quickAction": "Quick Action",
+    "quickActions": "Quick Actions",
+    "activeWorkOrders": "Active Work Orders",
+    "totalProperties": "Total Properties",
+    "assetsUnderMaintenance": "Assets Under Maintenance",
+    "overdueInvoices": "Overdue Invoices",
+    "pending": "Pending",
+    "overdue": "Overdue",
+    "occupied": "Occupied",
+    "needAttention": "Need Attention",
+    "manage": "Manage",
+    "criticalAssets": "Critical Assets",
+    "viewAssets": "View Assets",
+    "sarPending": "SAR Pending",
+    "viewInvoices": "View Invoices",
+    "recentWorkOrders": "Recent Work Orders",
+    "viewAll": "View All",
+    "noRecentWorkOrders": "No recent work orders",
+    "propertyAlerts": "Property Alerts",
+    "units": "Units",
+    "noProperties": "No properties",
+    "newWorkOrder": "New Work Order",
+    "addProperty": "Add Property",
+    "newTenant": "New Tenant",
+    "createInvoice": "Create Invoice",
     "welcome": "Welcome back",
     "metrics": {
       "properties": "Properties",
@@ -292,8 +322,7 @@
       "tenants": "Tenants",
       "vendors": "Vendors"
     },
-    "recentActivity": "Recent Activity",
-    "quickActions": "Quick Actions"
+    "recentActivity": "Recent Activity"
   },
   "workOrders": {
     "title": "Work Orders",
@@ -322,6 +351,9 @@
     }
   },
   "properties": {
+    "leases": {
+      "active": "Active"
+    },
     "title": "Properties",
     "create": "Add Property",
     "fields": {
@@ -344,6 +376,29 @@
       "capital": "Capital",
       "utility": "Utility",
       "administrative": "Administrative",
+      "maintenanceRepair": "Maintenance & Repairs",
+      "capital": "Capital",
+      "utility": "Utility",
+      "utilities": "Utilities",
+      "administrative": "Administrative",
+      "officeSupplies": "Office Supplies",
+      "electrical": "Electrical",
+      "hvac": "HVAC",
+      "plumbing": "Plumbing",
+      "travel": "Travel",
+      "salaries": "Salaries",
+      "marketing": "Marketing",
+      "rent": "Rent",
+      "insurance": "Insurance",
+      "equipment": "Equipment",
+      "supplies": "Supplies",
+      "services": "Services",
+      "training": "Training",
+      "consulting": "Consulting",
+      "legal": "Legal",
+      "technology": "Technology",
+      "facilities": "Facilities",
+      "security": "Security",
       "other": "Other"
     },
     "accountType": {
@@ -355,19 +410,11 @@
     }
   },
   "hr": {
-    "title": "Human Resources",
-    "tabs": {
-      "dashboard": "Dashboard",
-      "employees": "Employees",
-      "payroll": "Payroll",
-      "leave": "Leave Management",
-      "attendance": "Attendance"
-    },
     "stats": {
       "totalEmployees": "Total Employees",
       "monthlyPayroll": "Monthly Payroll",
       "pendingLeave": "Pending Leave Requests",
-      "attendance": "Attendance Rate"
+      "attendance": "Today's Attendance"
     },
     "quickActions": "Quick Actions",
     "actions": {
@@ -379,7 +426,15 @@
       "approveLeaveDesc": "Review leave requests"
     },
     "recentActivity": "Recent Activity",
-    "comingSoon": "Coming Soon"
+    "comingSoon": "Recent activity will appear here...",
+    "title": "Human Resources",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "employees": "Employees",
+      "payroll": "Payroll",
+      "leave": "Leave Management",
+      "attendance": "Attendance"
+    }
   },
   "crm": {
     "title": "Customer Relationship Management",
@@ -397,6 +452,7 @@
     "rfq": "Request for Quote"
   },
   "vendors": {
+    "description": "Manage your vendor relationships and service providers",
     "title": "Vendors",
     "add": "Add Vendor",
     "list": "Vendor List",
@@ -413,9 +469,12 @@
     "requests": "Maintenance Requests"
   },
   "maintenance": {
-    "title": "Maintenance",
-    "description": "Manage maintenance tasks and schedules",
+    "description": "Manage equipment maintenance schedules and tasks",
     "tasks": "Maintenance Tasks",
+    "asset": "Asset",
+    "due": "Due",
+    "assigned": "Assigned to",
+    "title": "Maintenance",
     "schedule": "Maintenance Schedule",
     "history": "Maintenance History",
     "preventive": "Preventive Maintenance"
@@ -522,6 +581,14 @@
     }
   },
   "common": {
+    "search": "Search...",
+    "all": "All Status",
+    "export": "Export",
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "user": "User",
     "brand": "FIXZIT",
     "backToHome": "Back to Home",
     "signIn": "Sign In",
@@ -535,14 +602,8 @@
     "preferences": "Preferences",
     "save": "Save",
     "cancel": "Cancel",
-    "delete": "Delete",
-    "edit": "Edit",
-    "view": "View",
-    "search": "Search",
     "filter": "Filter",
-    "export": "Export",
     "import": "Import",
-    "loading": "Loading...",
     "error": "Error",
     "success": "Success",
     "confirm": "Confirm",
@@ -599,6 +660,9 @@
     "searchableEntities": "searchable entities"
   },
   "nav": {
+    "orders": "Orders & Purchase Orders",
+    "maintenance": "Maintenance",
+    "vendors": "Vendors",
     "home": "Home",
     "dashboard": "Dashboard",
     "properties": "Properties",
@@ -606,7 +670,6 @@
     "workOrders": "Work Orders",
     "assets": "Assets",
     "tenants": "Tenants",
-    "vendors": "Vendors",
     "projects": "Projects",
     "rfqs": "RFQs",
     "invoices": "Invoices",
@@ -619,8 +682,6 @@
     "reports": "Reports",
     "system": "System",
     "administration": "Administration",
-    "maintenance": "Maintenance",
-    "orders": "Orders",
     "settings": "Settings",
     "help": "Help",
     "logout": "Logout",
@@ -635,9 +696,9 @@
     "dAgo": "d ago"
   },
   "sidebar": {
+    "role": "Role",
     "mainNav": "Main navigation",
     "accountInfo": "Account info",
-    "role": "Role",
     "planLabel": "Plan",
     "modules": "Modules",
     "noModules": "No modules available for your role/plan",
@@ -760,5 +821,241 @@
     "obj": "Object test",
     "watch-all": "Watch all",
     "welcome": "Welcome"
+  },
+  "fm": {
+    "tenants": {
+      "title": "Tenant Management",
+      "subtitle": "Customer relationship and lease management",
+      "newTenant": "New Tenant",
+      "addTenant": "Add New Tenant",
+      "searchTenants": "Search tenants...",
+      "tenantType": "Tenant Type",
+      "individual": "Individual",
+      "company": "Company",
+      "government": "Government",
+      "noTenants": "No Tenants Found",
+      "noTenantsText": "Get started by adding your first tenant.",
+      "properties": "Properties",
+      "leaseStatus": "Lease Status",
+      "noActiveLeases": "No Active Leases",
+      "outstandingBalance": "Outstanding Balance",
+      "tenantName": "Tenant Name",
+      "primaryContactName": "Primary Contact Name",
+      "email": "Email",
+      "create": "Add Tenant",
+      "view": "View Tenants",
+      "edit": "Edit Tenant",
+      "delete": "Delete Tenant",
+      "name": "Tenant Name",
+      "phone": "Phone",
+      "unit": "Unit",
+      "leaseStart": "Lease Start",
+      "leaseEnd": "Lease End",
+      "rent": "Rent",
+      "deposit": "Deposit",
+      "status": "Status",
+      "all": "All Tenants",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "properties": {
+      "allTypes": "All Types",
+      "type": "Type",
+      "selectType": "Select type",
+      "title": "Properties",
+      "create": "Add Property",
+      "view": "View Properties",
+      "edit": "Edit Property",
+      "delete": "Delete Property",
+      "name": "Property Name",
+      "address": "Address",
+      "units": "Units",
+      "totalUnits": "Total Units",
+      "occupiedUnits": "Occupied Units",
+      "vacantUnits": "Vacant Units",
+      "owner": "Owner",
+      "manager": "Manager",
+      "status": "Status",
+      "all": "All Properties",
+      "residential": "Residential",
+      "commercial": "Commercial",
+      "mixed": "Mixed",
+      "details": "Property Details"
+    },
+    "title": "Facility Management",
+    "dashboard": "Dashboard",
+    "workOrders": {
+      "title": "Work Orders",
+      "create": "Create Work Order",
+      "view": "View Work Orders",
+      "edit": "Edit Work Order",
+      "delete": "Delete Work Order",
+      "status": "Status",
+      "priority": "Priority",
+      "assignedTo": "Assigned To",
+      "dueDate": "Due Date",
+      "description": "Description",
+      "property": "Property",
+      "tenant": "Tenant",
+      "all": "All Work Orders",
+      "open": "Open",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "closed": "Closed",
+      "cancelled": "Cancelled",
+      "board": {
+        "title": "Work Orders Board",
+        "description": "Track and assign work orders across all properties"
+      },
+      "history": {
+        "title": "Work Order History"
+      },
+      "pm": {
+        "title": "Preventive Maintenance"
+      },
+      "sla": {
+        "title": "SLA Monitoring"
+      }
+    },
+    "assets": {
+      "title": "Assets",
+      "create": "Add Asset",
+      "view": "View Assets",
+      "edit": "Edit Asset",
+      "delete": "Delete Asset",
+      "name": "Asset Name",
+      "category": "Category",
+      "serialNumber": "Serial Number",
+      "purchaseDate": "Purchase Date",
+      "warranty": "Warranty",
+      "condition": "Condition",
+      "location": "Location",
+      "all": "All Assets"
+    },
+    "vendors": {
+      "title": "Vendors",
+      "create": "Add Vendor",
+      "view": "View Vendors",
+      "edit": "Edit Vendor",
+      "delete": "Delete Vendor",
+      "name": "Vendor Name",
+      "email": "Email",
+      "phone": "Phone",
+      "category": "Category",
+      "rating": "Rating",
+      "status": "Status",
+      "all": "All Vendors",
+      "approved": "Approved",
+      "pending": "Pending",
+      "rejected": "Rejected"
+    },
+    "projects": {
+      "title": "Projects",
+      "create": "Create Project",
+      "view": "View Projects",
+      "edit": "Edit Project",
+      "delete": "Delete Project",
+      "name": "Project Name",
+      "description": "Description",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "budget": "Budget",
+      "spent": "Spent",
+      "status": "Status",
+      "all": "All Projects"
+    },
+    "rfqs": {
+      "title": "Title",
+      "create": "Create RFQ",
+      "view": "View RFQs",
+      "edit": "Edit RFQ",
+      "delete": "Delete RFQ",
+      "rfqNumber": "RFQ Number",
+      "description": "Description",
+      "deadline": "Deadline",
+      "status": "Status",
+      "bids": "Bids",
+      "all": "All RFQs",
+      "open": "Open",
+      "closed": "Closed",
+      "awarded": "Awarded"
+    },
+    "invoices": {
+      "title": "Invoices",
+      "create": "Create Invoice",
+      "view": "View Invoices",
+      "edit": "Edit Invoice",
+      "delete": "Delete Invoice",
+      "invoiceNumber": "Invoice Number",
+      "date": "Date",
+      "dueDate": "Due Date",
+      "amount": "Amount",
+      "paid": "Paid",
+      "outstanding": "Outstanding",
+      "status": "Status",
+      "all": "All Invoices",
+      "draft": "Draft",
+      "sent": "Sent",
+      "overdue": "Overdue"
+    },
+    "common": {
+      "search": "Search",
+      "filter": "Filter",
+      "export": "Export",
+      "import": "Import",
+      "refresh": "Refresh",
+      "add": "Add",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "submit": "Submit",
+      "back": "Back",
+      "next": "Next",
+      "previous": "Previous",
+      "loading": "Loading...",
+      "noData": "No data",
+      "error": "Error",
+      "success": "Success",
+      "warning": "Warning",
+      "info": "Info",
+      "confirm": "Confirm",
+      "yes": "Yes",
+      "no": "No",
+      "select": "Select",
+      "selectAll": "Select All",
+      "clearAll": "Clear All",
+      "actions": "Actions"
+    }
+  },
+  "orders": {
+    "pageDescription": "Manage purchase orders and service orders",
+    "tabs": {
+      "purchase": "Purchase Orders",
+      "service": "Service Orders"
+    }
+  },
+  "order": {
+    "vendor": "Vendor",
+    "date": "Order Date",
+    "total": "Total",
+    "items": "Items",
+    "delivery": "Delivery",
+    "amount": "Amount"
+  },
+  "vendor": {
+    "type": "Type",
+    "services": "Services",
+    "code": "Code"
+  },
+  "status": {
+    "draft": "Draft",
+    "submitted": "Submitted",
+    "approved": "Approved",
+    "completed": "Completed",
+    "pending": "Pending",
+    "suspended": "Suspended",
+    "rejected": "Rejected"
   }
 }

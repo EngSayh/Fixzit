@@ -56,17 +56,17 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    const invoice = await Invoice.findOne({
+    const invoice = (await Invoice.findOne({
       _id: params.id,
       tenantId: user.tenantId
-    });
+    }));
 
     if (!invoice) {
       return createSecureResponse({ error: "Invoice not found" }, 404, req);
     }
 
     // Add to history if viewed for first time by recipient
-    if (invoice.status === "SENT" && user.id === invoice.recipient.customerId) {
+    if (invoice.status === "SENT" && invoice.recipient?.customerId && user.id === invoice.recipient.customerId) {
       invoice.status = "VIEWED";
       invoice.history.push({
         action: "VIEWED",
@@ -113,11 +113,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       // If sending invoice, generate ZATCA XML and sign
       if (data.status === "SENT") {
         try {
-          // Prepare ZATCA data from invoice with safer field extraction
+          // Prepare ZATCA data from invoice using issuer (seller/from are virtual aliases)
           const zatcaData = {
-            sellerName: invoice.seller?.name || invoice.from?.name || "Unknown Seller",
-            vatNumber: invoice.seller?.vatNumber || invoice.from?.taxId || "000000000000000",
-            timestamp: invoice.issueDate || new Date().toISOString(),
+            sellerName: invoice.issuer?.name || "Unknown Seller",
+            vatNumber: invoice.issuer?.taxId || "000000000000000",
+            timestamp: (invoice.issueDate || new Date()).toISOString(),
             total: invoice.total || 0,
             vatAmount: invoice.tax || 0
           };
@@ -126,16 +126,21 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
           const tlv = await generateZATCATLV(zatcaData);
           const qrCode = await generateZATCAQR(zatcaData);
 
-          // Update invoice ZATCA fields
-          invoice.zatca = invoice.zatca || {};
+          // Update invoice ZATCA fields with proper initialization
+          if (!invoice.zatca) {
+            invoice.zatca = { status: "PENDING" };
+          }
           invoice.zatca.tlv = tlv;
           invoice.zatca.qrCode = qrCode;
           invoice.zatca.generatedAt = new Date();
           invoice.zatca.status = "GENERATED";
         } catch (error) {
           logger.error("ZATCA generation failed:", error instanceof Error ? error.message : 'Unknown error');
-          invoice.zatca = invoice.zatca || {};
-          invoice.zatca.status = "FAILED";
+          if (!invoice.zatca) {
+            invoice.zatca = { status: "FAILED" };
+          } else {
+            invoice.zatca.status = "FAILED";
+          }
           invoice.zatca.error = error instanceof Error ? error.message : String(error);
         }
       }
@@ -150,11 +155,12 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       });
 
       // Update invoice status if fully paid
-      const totalPaid = invoice.payments.reduce((sum: number, p: { status: string; amount: number }) => 
-        p.status === "COMPLETED" ? sum + p.amount : sum, 0
-      );
+      const totalPaid = invoice.payments.reduce((sum: number, p: unknown) => {
+        const payment = p as { status?: string; amount?: number };
+        return payment.status === "COMPLETED" && payment.amount ? sum + payment.amount : sum;
+      }, 0);
 
-      if (totalPaid >= invoice.total) {
+      if (invoice.total && totalPaid >= invoice.total) {
         invoice.status = "PAID";
         invoice.history.push({
           action: "PAID",
@@ -166,8 +172,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     }
 
     // Handle approval
-    if (data.approval) {
-      const level = invoice.approval.levels.find((l: { approver: string; status: string }) => 
+    if (data.approval && invoice.approval) {
+      const level = (invoice.approval.levels as unknown as Array<{ approver: string; status: string; approvedAt?: Date; comments?: string }>).find((l) => 
         l.approver === user.id && l.status === "PENDING"
       );
 
@@ -177,7 +183,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         level.comments = data.approval.comments;
 
         // Check if all levels approved
-        const allApproved = invoice.approval.levels.every((l: { status: string }) => 
+        const allApproved = (invoice.approval.levels as unknown as Array<{ status: string }>).every((l) => 
           l.status === "APPROVED"
         );
 
@@ -225,11 +231,11 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    const invoice = await Invoice.findOne({
+    const invoice = (await Invoice.findOne({
       _id: params.id,
       tenantId: user.tenantId,
       status: "DRAFT"
-    });
+    }));
 
     if (!invoice) {
       return createSecureResponse({ error: "Invoice not found or cannot be deleted" }, 404, req);

@@ -7,11 +7,99 @@ import { logger } from '@/lib/logger';
  */
 
 import { APPROVAL_POLICIES, Role } from '@/domain/fm/fm.behavior';
-// eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
+
+// Lean query result types for type-safe Mongoose operations
+interface LeanUser {
+  _id: string;
+  email: string;
+  professional?: {
+    role?: string;
+    firstName?: string;
+    lastName?: string;
+  };
+}
+
+interface LeanUserBasic {
+  _id: string;
+}
+
+interface LeanUserDetailed {
+  _id: string;
+  email: string;
+  personal?: {
+    firstName?: string;
+    lastName?: string;
+  };
+}
+
+interface DbApprovalStage {
+  stage?: number;
+  approvers?: Array<{ toString(): string } | string>;
+  approverRoles?: Role[];
+  type?: 'sequential' | 'parallel';
+  timeout?: number;
+  status?: ApprovalStage['status'];
+  decisions?: Array<{
+    approverId?: { toString(): string } | string;
+    decision?: ApprovalDecision['decision'];
+    delegateTo?: { toString(): string } | string;
+    note?: string;
+    timestamp?: Date | string;
+  }>;
+}
+
+/**
+ * Helper function to query users by role (DRY pattern)
+ * @param orgId Organization ID to filter users
+ * @param role Role to search for
+ * @param limit Maximum number of users to return (default: 10)
+ * @returns Array of user IDs as strings
+ */
+async function getUsersByRole(
+  orgId: string,
+  role: Role,
+  limit = 10
+): Promise<string[]> {
+  try {
+    const { User } = await import('@/server/models/User');
+    const { connectToDatabase } = await import('@/lib/mongodb-unified');
+    await connectToDatabase();
+    
+    const users = await User.find({
+      'professional.role': role,
+      orgId: orgId,
+      isActive: true,
+    }).select('_id').limit(limit).lean();
+    
+    type UserDoc = { _id: { toString: () => string } };
+    const userIds = users && users.length > 0 
+      ? users.map((u: UserDoc) => u._id.toString())
+      : [];
+    
+    logger.debug('[Approval] Found approvers by role:', { role, orgId, count: userIds.length });
+    return userIds;
+  } catch (error: unknown) {
+    logger.error('[Approval] Failed to query users by role:', { error, role, orgId });
+    return [];
+  }
+}
+
+interface DbApprovalDoc {
+  _id: string | { toString(): string };
+  quotationId: string | { toString(): string };
+  workOrderId: string | { toString(): string };
+  orgId: string | { toString(): string };
+  status: string;
+  currentStage?: number;
+  approverId?: { toString(): string } | string;
+  approverRole?: Role;
+  timeoutMinutes?: number;
+  stages?: DbApprovalStage[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { FMApproval, type FMApprovalDoc } from '@/server/models/FMApproval';
-// eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
-import type { ObjectId } from 'mongodb';
 import type { Schema } from 'mongoose';
 
 export interface ApprovalRequest {
@@ -54,10 +142,157 @@ export interface ApprovalWorkflow {
   updatedAt: Date;
 }
 
+// ---- Helper mapping functions: FMApprovalDoc <-> ApprovalWorkflow ----
+
+type DbStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ESCALATED' | 'DELEGATED' | 'TIMEOUT';
+
+function mapDbStatusToWorkflowStatus(status: DbStatus | string | undefined): ApprovalWorkflow['status'] {
+  switch (status) {
+    case 'APPROVED':
+      return 'approved';
+    case 'REJECTED':
+      return 'rejected';
+    case 'ESCALATED':
+      return 'escalated';
+    default:
+      return 'pending';
+  }
+}
+
+function mapWorkflowStatusToDbStatus(status: ApprovalWorkflow['status']): DbStatus {
+  switch (status) {
+    case 'approved':
+      return 'APPROVED';
+    case 'rejected':
+      return 'REJECTED';
+    case 'escalated':
+      return 'ESCALATED';
+    default:
+      return 'PENDING';
+  }
+}
+
+/**
+ * Convert FMApprovalDoc from DB into ApprovalWorkflow used by the engine.
+ * This supports both:
+ * - New style: doc.stages[] with full data
+ * - Legacy style: single approver/role at root level
+ */
+function docToWorkflow(doc: FMApprovalDoc): ApprovalWorkflow {
+  const dbDoc = doc as unknown as DbApprovalDoc;
+
+  const dbStages: DbApprovalStage[] = dbDoc.stages ?? [];
+
+  const stagesFromDoc: ApprovalStage[] = dbStages.map((s, index: number) => {
+    const decisions: ApprovalDecision[] = (s.decisions ?? []).map((d) => ({
+      approverId: d.approverId?.toString() ?? '',
+      decision: d.decision as ApprovalDecision['decision'],
+      delegateTo: d.delegateTo ? d.delegateTo.toString() : undefined,
+      note: d.note,
+      timestamp: d.timestamp instanceof Date ? d.timestamp : new Date(d.timestamp ?? Date.now()),
+    }));
+
+    return {
+      stage: typeof s.stage === 'number' ? s.stage : index + 1,
+      approvers: (s.approvers ?? []).map((a) => typeof a === 'string' ? a : a.toString()),
+      approverRoles: (s.approverRoles ?? []),
+      type: (s.type as 'sequential' | 'parallel') ?? 'sequential',
+      timeout:
+        typeof s.timeout === 'number'
+          ? s.timeout
+          : (doc.timeoutMinutes ?? 24 * 60) * 60 * 1000,
+      status: (s.status as ApprovalStage['status']) ?? 'pending',
+      decisions,
+    };
+  });
+
+  const stages: ApprovalStage[] =
+    stagesFromDoc.length > 0
+      ? stagesFromDoc
+      : [
+          {
+            stage: doc.currentStage ?? 1,
+            approvers: dbDoc.approverId ? [typeof dbDoc.approverId === 'string' ? dbDoc.approverId : dbDoc.approverId.toString()] : [],
+            approverRoles: dbDoc.approverRole ? [dbDoc.approverRole] : [],
+            type: 'sequential',
+            timeout: (doc.timeoutMinutes ?? 24 * 60) * 60 * 1000,
+            status: mapDbStatusToWorkflowStatus(doc.status),
+            decisions: [],
+          },
+        ];
+
+  return {
+    requestId: doc.workflowId.toString(),
+    quotationId: (dbDoc.quotationId ?? doc.entityId)?.toString() ?? '',
+    workOrderId: (dbDoc.workOrderId ?? doc.entityId)?.toString() ?? '',
+    stages,
+    currentStage: doc.currentStage ?? 1,
+    status: mapDbStatusToWorkflowStatus(doc.status),
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+}
+
+/**
+ * Build a plain object (compatible with FMApproval schema) from an ApprovalWorkflow.
+ * Used when creating a new approval document.
+ */
+function workflowToDocBase(
+  workflow: ApprovalWorkflow,
+  request: ApprovalRequest
+): Record<string, unknown> {
+  const firstStage = workflow.stages[0];
+
+  const timeoutMs =
+    firstStage?.timeout ?? 24 * 60 * 60 * 1000; // fallback 24h
+
+  return {
+    orgId: request.orgId,
+    type: 'QUOTATION',
+    entityType: 'WorkOrder',
+    entityId: request.workOrderId,
+    entityNumber: request.workOrderId,
+    amount: request.amount,
+    currency: 'SAR',
+    thresholdLevel: `L${workflow.stages.length}`,
+    workflowId: workflow.requestId,
+    currentStage: workflow.currentStage,
+    totalStages: workflow.stages.length,
+    approverId: firstStage?.approvers?.[0],
+    approverName: undefined,
+    approverEmail: undefined,
+    approverRole: firstStage?.approverRoles?.[0],
+    status: mapWorkflowStatusToDbStatus(workflow.status),
+    dueDate: new Date(Date.now() + timeoutMs),
+    timeoutMinutes: timeoutMs / 60000,
+    // FULL STAGES PERSISTENCE
+    stages: workflow.stages.map(stage => ({
+      stage: stage.stage,
+      approvers: stage.approvers,
+      approverRoles: stage.approverRoles,
+      type: stage.type,
+      timeout: stage.timeout,
+      status: stage.status,
+      decisions: stage.decisions.map(d => ({
+        approverId: d.approverId,
+        decision: d.decision,
+        delegateTo: d.delegateTo,
+        note: d.note,
+        timestamp: d.timestamp,
+      })),
+    })),
+  };
+}
+
 /**
  * Route a quotation to appropriate approvers based on amount and category
  */
-export function routeApproval(request: ApprovalRequest): ApprovalWorkflow {
+export async function routeApproval(request: ApprovalRequest): Promise<ApprovalWorkflow> {
+  // Validate required fields
+  if (!request.orgId || !request.quotationId || !request.workOrderId) {
+    throw new Error('Missing required fields: orgId, quotationId, or workOrderId');
+  }
+  
   // Find matching policy
   const policy = APPROVAL_POLICIES.find(p => {
     const meetsAmount = request.amount >= (p.when.amountGte || 0);
@@ -72,23 +307,54 @@ export function routeApproval(request: ApprovalRequest): ApprovalWorkflow {
   // Build approval stages
   const stages: ApprovalStage[] = [];
   
-  // Main approval stage (sequential)
+  // Main approval stage (sequential) - Query actual users by role
+  const approverIds: string[] = [];
+  const approverRoles: Role[] = policy.require.map(r => r.role);
+  
+  for (const roleReq of policy.require) {
+    const userIds = await getUsersByRole(request.orgId, roleReq.role);
+    
+    if (userIds.length > 0) {
+      approverIds.push(...userIds);
+    } else {
+      logger.warn(`[Approval] No users found for role ${roleReq.role} in org ${request.orgId}`);
+    }
+  }
+  
+  // If no approvers found, log warning but don't fail workflow creation
+  if (approverIds.length === 0) {
+    logger.warn('[Approval] No approvers found - workflow will need manual assignment', {
+      orgId: request.orgId,
+      roles: approverRoles,
+    });
+  }
+  
   stages.push({
     stage: 1,
-    approvers: [], // TODO: Query users by role in org/property
-    approverRoles: policy.require.map(r => r.role),
+    approvers: approverIds,
+    approverRoles,
     type: 'sequential',
-    timeout: (policy.timeoutHours || 24) * 60 * 60 * 1000, // Convert to milliseconds
+    timeout: (policy.timeoutHours || 24) * 60 * 60 * 1000,
     status: 'pending',
     decisions: []
   });
 
-  // Parallel approval stage if defined
+  // Parallel approval stage if defined - Query actual users
   if (policy.parallelWith && policy.parallelWith.length > 0) {
+    const parallelApproverIds: string[] = [];
+    const parallelRoles: Role[] = policy.parallelWith.map(r => r.role);
+    
+    for (const roleReq of policy.parallelWith) {
+      const userIds = await getUsersByRole(request.orgId, roleReq.role);
+      if (userIds.length > 0) {
+        parallelApproverIds.push(...userIds);
+      }
+    }
+    
     stages.push({
       stage: 2,
-      approvers: [],
-      approverRoles: policy.parallelWith.map(r => r.role),
+      approvers: parallelApproverIds,
+      approverRoles: parallelRoles,
       type: 'parallel',
       timeout: (policy.timeoutHours || 24) * 60 * 60 * 1000,
       status: 'pending',
@@ -97,7 +363,7 @@ export function routeApproval(request: ApprovalRequest): ApprovalWorkflow {
   }
 
   return {
-    requestId: `APR-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+    requestId: `APR-${Date.now()}-${crypto.randomUUID().substring(0, 8)}`,
     quotationId: request.quotationId,
     workOrderId: request.workOrderId,
     stages,
@@ -120,10 +386,24 @@ export function processDecision(
     delegateTo?: string;
   }
 ): ApprovalWorkflow {
+  if (!approverId) {
+    throw new Error('approverId is required for processing decisions');
+  }
+  
   const currentStage = workflow.stages[workflow.currentStage - 1];
 
   if (!currentStage) {
-    throw new Error('Invalid workflow stage');
+    throw new Error(`Invalid workflow stage: ${workflow.currentStage}. Workflow has ${workflow.stages.length} stages.`);
+  }
+
+  // Verify approver is authorized for this stage (unless delegating)
+  if (decision !== 'delegate' && currentStage.approvers.length > 0 && !currentStage.approvers.includes(approverId)) {
+    logger.warn('[Approval] Unauthorized approver attempted decision', {
+      approverId,
+      authorizedApprovers: currentStage.approvers,
+      workflowId: workflow.requestId,
+    });
+    throw new Error('Approver not authorized for this workflow stage');
   }
 
   // Add decision
@@ -193,7 +473,7 @@ export function processDecision(
 /**
  * Check for timeouts and escalate if needed
  */
-export function checkTimeouts(workflow: ApprovalWorkflow): ApprovalWorkflow {
+export async function checkTimeouts(workflow: ApprovalWorkflow, orgId: string): Promise<ApprovalWorkflow> {
   const currentStage = workflow.stages[workflow.currentStage - 1];
 
   if (!currentStage || currentStage.status !== 'pending') {
@@ -203,26 +483,61 @@ export function checkTimeouts(workflow: ApprovalWorkflow): ApprovalWorkflow {
   const elapsedTime = Date.now() - workflow.updatedAt.getTime();
 
   if (elapsedTime > currentStage.timeout) {
-    // Timeout occurred - escalate
+    // Timeout occurred - escalate to higher roles
     const policy = APPROVAL_POLICIES.find(p => p.require.length > 0);
     
-    if (policy?.escalateTo) {
-      // Add escalation approvers
-      policy.escalateTo.forEach(role => {
-        if (!currentStage.approverRoles.includes(role)) {
-          currentStage.approverRoles.push(role);
-          // TODO: Query and add user IDs for escalation roles
+    if (policy?.escalateTo && policy.escalateTo.length > 0) {
+      try {
+        // Query users with escalation roles
+        const { User } = await import('@/server/models/User');
+        await connectToDatabase();
+        
+        // Add escalation roles to the stage
+        for (const escalationRole of policy.escalateTo) {
+          if (!currentStage.approverRoles.includes(escalationRole)) {
+            currentStage.approverRoles.push(escalationRole);
+            
+            // Query and add escalation approvers with orgId filter
+            const escalationUsers = await User.find({
+              'professional.role': escalationRole,
+              orgId: orgId,
+              isActive: true,
+            }).select('_id').limit(5).lean<LeanUserBasic[]>();
+            
+            if (escalationUsers && escalationUsers.length > 0) {
+              const escalationIds = escalationUsers.map((u: LeanUserBasic) => u._id.toString());
+              currentStage.approvers.push(...escalationIds);
+              logger.info(`[Approval] Added ${escalationIds.length} escalation approvers for role ${escalationRole}`);
+            }
+          }
         }
-      });
-      
-      currentStage.status = 'escalated';
-      workflow.status = 'escalated';
-      workflow.updatedAt = new Date();
+        
+        currentStage.status = 'escalated';
+        workflow.status = 'escalated';
+        workflow.updatedAt = new Date();
+        
+        logger.warn('[Approval] Workflow escalated due to timeout', {
+          workflowId: workflow.requestId,
+          elapsedHours: Math.round(elapsedTime / (1000 * 60 * 60)),
+          escalationRoles: policy.escalateTo,
+        });
+      } catch (error: unknown) {
+        logger.error('[Approval] Escalation query failed:', { error });
+        // Fall back to marking as timeout
+        currentStage.status = 'timeout';
+        workflow.status = 'rejected';
+        workflow.updatedAt = new Date();
+      }
     } else {
       // No escalation defined - mark as timeout
       currentStage.status = 'timeout';
       workflow.status = 'rejected'; // Auto-reject on timeout
       workflow.updatedAt = new Date();
+      
+      logger.warn('[Approval] Workflow timed out (no escalation policy)', {
+        workflowId: workflow.requestId,
+        elapsedHours: Math.round(elapsedTime / (1000 * 60 * 60)),
+      });
     }
   }
 
@@ -231,7 +546,7 @@ export function checkTimeouts(workflow: ApprovalWorkflow): ApprovalWorkflow {
 
 /**
  * Save approval workflow to database
- * FIXED: Added proper await, error recovery, and transactional safety
+ * FIXED: Now persists full stages[] array with decisions using workflowToDocBase mapper
  */
 export async function saveApprovalWorkflow(
   workflow: ApprovalWorkflow,
@@ -240,100 +555,70 @@ export async function saveApprovalWorkflow(
   try {
     const firstStage = workflow.stages[0];
     
-    // CRITICAL: Validate stage exists before accessing approvers
     if (!firstStage) {
       throw new Error('Workflow must have at least one approval stage');
     }
     
-    // CRITICAL: Ensure required fields exist (no invalid fallbacks)
-    if (!firstStage.approvers?.[0] || !firstStage.approverRoles?.[0]) {
-      throw new Error('Workflow first stage must have at least one approver and role');
+    // ⚠️ Instead of throwing, log and allow manual assignment later
+    if (!firstStage.approvers?.length || !firstStage.approverRoles?.length) {
+      logger.warn(
+        '[Approval] Saving workflow with unassigned first stage (no approvers / roles)',
+        { workflowId: workflow.requestId, orgId: request.orgId }
+      );
     }
-    
-    const approverId = firstStage.approvers[0];
-    const approverRole = firstStage.approverRoles[0];
 
-    // CRITICAL: Use orgId field name for consistency with database schema
+    const baseDoc = workflowToDocBase(workflow, request);
+
     const savedApproval = await FMApproval.create({
-      orgId: request.orgId, // Fixed: Use orgId (camelCase) as per schema
-      type: 'QUOTATION',
-      entityType: 'WorkOrder',
-      entityId: request.workOrderId,
-      entityNumber: request.workOrderId,
-      amount: request.amount,
-      currency: 'SAR',
-      thresholdLevel: `L${workflow.stages.length}`,
-      workflowId: workflow.requestId,
-      currentStage: workflow.currentStage,
-      totalStages: workflow.stages.length,
-      approverId,
-      approverName: 'TBD', // Will be populated with actual user data
-      approverEmail: 'tbd@example.com',
-      approverRole,
-      status: 'PENDING',
-      dueDate: new Date(Date.now() + firstStage.timeout),
-      timeoutMinutes: firstStage.timeout / 60000,
-      history: [{
-        timestamp: new Date(),
-        action: 'CREATED',
-        actorId: request.requestedBy,
-        actorName: 'System',
-        previousStatus: 'NEW',
-        newStatus: 'PENDING',
-        notes: `Approval workflow created for ${request.category} worth ${request.amount}`
-      }]
+      ...baseDoc,
+      history: [
+        {
+          timestamp: new Date(),
+          action: 'CREATED',
+          actorId: request.requestedBy,
+          actorName: 'System',
+          previousStatus: 'NEW',
+          newStatus: 'PENDING',
+          notes: `Approval workflow created for ${request.category} worth ${request.amount}`,
+        },
+      ],
     });
     
-    // CRITICAL: Verify the workflow was actually saved
-    if (!savedApproval || !savedApproval._id) {
+    if (!savedApproval) {
       throw new Error('Failed to save approval workflow - no document returned');
     }
     
-    logger.info('[Approval] Workflow saved to database', { requestId: workflow.requestId, dbId: savedApproval._id.toString() });
-  } catch (error) {
+    logger.info('[Approval] Workflow saved to database', {
+      requestId: workflow.requestId,
+      dbId: String((savedApproval as { _id?: unknown })._id ?? 'unknown'),
+    });
+  } catch (error: unknown) {
     logger.error('[Approval] Failed to save workflow:', { error });
-    // Re-throw with more context for debugging
+>>>>>>> feat/souq-marketplace-advanced
     const reason = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to persist approval workflow ${workflow.requestId}: ${reason}`);
+    throw new Error(
+      `Failed to persist approval workflow ${workflow.requestId}: ${reason}`
+    );
   }
 }
 
 /**
  * Get workflow by ID
- * FIXED: Use org_id field name for consistency with database schema
+ * FIXED: Now uses docToWorkflow mapper for full multi-stage support
  */
 export async function getWorkflowById(workflowId: string, orgId: string): Promise<ApprovalWorkflow | null> {
   try {
-    const approval = await FMApproval.findOne({ 
-      workflowId, 
-      orgId: orgId // Fixed: Use orgId (camelCase) as per schema
+    const approval = await FMApproval.findOne({
+      workflowId,
+      orgId: orgId
     }).lean<FMApprovalDoc>();
-    
+
     if (!approval) return null;
 
-    // Convert FMApproval to ApprovalWorkflow format
-    return {
-      requestId: workflowId,
-      quotationId: approval.entityId.toString(),
-      workOrderId: approval.entityId.toString(),
-      stages: [{
-        stage: approval.currentStage,
-        approvers: [approval.approverId.toString()],
-        approverRoles: [approval.approverRole as Role],
-        type: 'sequential',
-        timeout: approval.timeoutMinutes * 60000,
-        status: approval.status === 'APPROVED' ? 'approved' : 
-                approval.status === 'REJECTED' ? 'rejected' : 'pending',
-        decisions: []
-      }],
-      currentStage: approval.currentStage,
-      status: approval.status === 'APPROVED' ? 'approved' :
-              approval.status === 'REJECTED' ? 'rejected' : 'pending',
-      createdAt: approval.createdAt,
-      updatedAt: approval.updatedAt
-    };
-  } catch (error) {
-    logger.error('[Approval] Failed to get workflow:', { error });
+    return docToWorkflow(approval);
+  } catch (error: unknown) {
+    logger.error('[Approval] Failed to fetch workflow:', { error, workflowId, orgId });
+>>>>>>> feat/souq-marketplace-advanced
     return null;
   }
 }
@@ -348,10 +633,10 @@ export async function updateApprovalDecision(
   approverId: string,
   decision: 'APPROVE' | 'REJECT' | 'DELEGATE',
   notes?: string,
-  delegateTo?: string
+  delegateTo?: unknown
 ): Promise<void> {
   try {
-    const approval = await FMApproval.findOne({ workflowId, orgId: orgId }); // Fixed: Use orgId (camelCase) as per schema
+    const approval = await FMApproval.findOne({ workflowId, orgId: orgId });
     if (!approval) throw new Error(`Approval workflow ${workflowId} not found`);
 
     // Update status
@@ -362,16 +647,18 @@ export async function updateApprovalDecision(
     approval.notes = notes;
 
     if (decision === 'DELEGATE' && delegateTo) {
-      approval.delegatedTo = delegateTo as unknown as Schema.Types.ObjectId;
+      // Assign directly using unknown intermediate
+      (approval as { delegatedTo?: unknown }).delegatedTo = delegateTo;
       approval.delegationDate = new Date();
       approval.delegationReason = notes;
     }
 
     // Add to history
+    const { Types } = await import('mongoose');
     approval.history.push({
       timestamp: new Date(),
       action: decision,
-      actorId: approverId as unknown as Schema.Types.ObjectId,
+      actorId: new Types.ObjectId(approverId) as unknown as Schema.Types.ObjectId,
       actorName: 'TBD',
       previousStatus: 'PENDING',
       newStatus: approval.status,
@@ -380,7 +667,8 @@ export async function updateApprovalDecision(
 
     await approval.save();
     logger.info('[Approval] Decision recorded', { workflowId, decision });
-  } catch (error) {
+  } catch (error: unknown) {
+>>>>>>> feat/souq-marketplace-advanced
     logger.error('[Approval] Failed to update decision:', { error });
     throw error;
   }
@@ -397,46 +685,30 @@ export async function getPendingApprovalsForUser(
 ): Promise<ApprovalWorkflow[]> {
   try {
     const approvals = await FMApproval.find({
-      orgId: orgId, // Fixed: Use orgId (camelCase) as per schema
-      approverId: userId,
-      status: 'PENDING'
-    }).lean();
+      orgId: orgId,
+      status: 'PENDING',
+      'stages.approvers': userId, // search across all stages
+    }).lean<FMApprovalDoc>() as unknown as FMApprovalDoc[] || [];
 
-    return approvals.map(approval => ({
-      requestId: approval.workflowId.toString(),
-      quotationId: approval.entityId.toString(),
-      workOrderId: approval.entityId.toString(),
-      stages: [{
-        stage: approval.currentStage,
-        approvers: [approval.approverId.toString()],
-        approverRoles: [approval.approverRole as Role],
-        type: 'sequential',
-        timeout: approval.timeoutMinutes * 60000,
-        status: 'pending',
-        decisions: []
-      }],
-      currentStage: approval.currentStage,
-      status: 'pending',
-      createdAt: approval.createdAt as Date,
-      updatedAt: approval.updatedAt as Date
-    }));
-  } catch (error) {
-    logger.error('[Approval] Failed to get pending approvals:', { error });
+    return approvals.map(docToWorkflow);
+  } catch (error: unknown) {
+    logger.error('[Approval] Failed to get pending approvals:', { error, userId, orgId });
+>>>>>>> feat/souq-marketplace-advanced
     return [];
   }
 }
 
 /**
  * Check for approval timeouts and escalate
- * FIXED: Use org_id field name for consistency with database schema
+ * FIXED: Now uses docToWorkflow mapper and defensive stage checking
  */
 export async function checkApprovalTimeouts(orgId: string): Promise<void> {
   try {
     const overdueApprovals = await FMApproval.find({
-      orgId: orgId, // Fixed: Use orgId (camelCase) as per schema
+      orgId: orgId,
       status: 'PENDING',
       dueDate: { $lt: new Date() },
-      escalationSentAt: null
+      escalationSentAt: null,
     });
 
     for (const approval of overdueApprovals) {
@@ -448,33 +720,178 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
       approval.history.push({
         timestamp: new Date(),
         action: 'ESCALATED',
-        actorId: 'system' as unknown as Schema.Types.ObjectId,
+        actorId: null, // system — better than fake ObjectId
         actorName: 'System',
         previousStatus: 'PENDING',
         newStatus: 'ESCALATED',
-        notes: 'Automatically escalated due to timeout'
+        notes: 'Automatically escalated due to timeout',
       });
 
       await approval.save();
-      logger.info('[Approval] Escalated:', approval.approvalNumber);
-      
-      // TODO: Send escalation notifications
+      logger.info('[Approval] Escalated:', { approvalNumber: approval.approvalNumber });
+
+      // ✅ Use policy for escalation (with defensive check)
+      const approvalPolicy = APPROVAL_POLICIES && APPROVAL_POLICIES.length > 0 ? APPROVAL_POLICIES[0] : null;
+
+      type ApprovalWithStages = { stages?: Array<{ approverRoles?: string[] }>; currentStage?: number };
+      const approvalWithStages = approval as unknown as ApprovalWithStages;
+      const stageDoc =
+        (approvalWithStages.stages &&
+          approvalWithStages.stages[approvalWithStages.currentStage ? approvalWithStages.currentStage - 1 : 0]) ||
+        null;
+
+      if (!approvalPolicy || !stageDoc) {
+        logger.warn('[Approval] No policy or stage found for escalation notifications', {
+          approvalId: approval._id.toString(),
+          hasPolicy: !!approvalPolicy,
+          hasStage: !!stageDoc,
+        });
+        continue;
+      }
+
+      if (!approvalPolicy.escalateTo || approvalPolicy.escalateTo.length === 0) {
+        logger.warn('[Approval] Escalation policy has no escalateTo roles', {
+          approvalId: approval._id.toString(),
+        });
+        continue;
+      }
+
+      try {
+        const { User } = await import('@/server/models/User');
+        const { buildNotification, sendNotification } = await import('./fm-notifications');
+
+        const escalationRecipients: Array<{
+          userId: string;
+          name: string;
+          email: string;
+          preferredChannels: ('email' | 'push')[];
+        }> = [];
+        
+        type ApprovalDoc = { orgId?: string; _id: unknown; entityId?: unknown; quotationId?: unknown; workOrderId?: unknown };
+        const approvalDoc = approval as unknown as ApprovalDoc;
+        
+        for (const role of approvalPolicy.escalateTo) {
+          const users = await User.find({
+            'professional.role': role,
+            orgId: approvalDoc.orgId,
+            isActive: true,
+          })
+            .select(
+              '_id email professional.role professional.firstName professional.lastName'
+            )
+            .limit(10)
+            .lean<LeanUser[]>();
+
+          if (users && users.length > 0) {
+            escalationRecipients.push(
+              ...users.map((u: LeanUser) => ({
+                userId: u._id.toString(),
+                name: `${u.professional?.firstName || ''} ${
+                  u.professional?.lastName || ''
+                }`.trim(),
+                email: u.email,
+                preferredChannels: ['email', 'push'] as ('email' | 'push')[],
+              }))
+            );
+          }
+        }
+
+        if (escalationRecipients.length === 0) {
+          logger.warn('[Approval] No escalation recipients found', {
+            approvalId: approval._id.toString(),
+            escalateToRoles: approvalPolicy.escalateTo,
+          });
+          continue;
+        }
+
+        const notification = buildNotification(
+          'onApprovalRequested',
+          {
+            quotationId: String(approvalDoc.quotationId ?? approvalDoc.entityId ?? ''),
+            workOrderId: String(approvalDoc.workOrderId ?? approvalDoc.entityId ?? ''),
+            amount: approval.amount,
+            priority: 'ESCALATED',
+            description: `Approval escalated due to timeout. Original approvers: ${
+              stageDoc.approverRoles?.join(', ') ?? 'N/A'
+            }`,
+          },
+          escalationRecipients
+        );
+
+        await sendNotification(notification);
+
+        logger.info('[Approval] Escalation notification sent', {
+          approvalId: approval._id,
+          recipientCount: escalationRecipients.length,
+          escalateToRoles: approvalPolicy.escalateTo,
+        });
+      } catch (notifyError) {
+        logger.error('[Approval] Failed to send escalation notification', {
+          approvalId: approval._id,
+          error: notifyError,
+        });
+      }
     }
 
     logger.info(`[Approval] Processed ${overdueApprovals.length} timeout escalations`);
-  } catch (error) {
+  } catch (error: unknown) {
+>>>>>>> feat/souq-marketplace-advanced
     logger.error('[Approval] Failed to check timeouts:', { error });
   }
 }
 
 /**
- * Send approval notifications
+ * Send approval notifications to approvers
  */
 export async function notifyApprovers(
   workflow: ApprovalWorkflow,
   stage: ApprovalStage
 ): Promise<void> {
-  // TODO: Implement notification sending
-  // Use NOTIFY config from fm.behavior.ts
-  logger.info('[Approval] Notifying approvers', { stage: stage.stage, requestId: workflow.requestId });
+  try {
+    // Get approver details from User model
+    const { User } = await import('@/server/models/User');
+    const { buildNotification, sendNotification } = await import('./fm-notifications');
+    
+    if (stage.approvers.length === 0) {
+      logger.warn('[Approval] No approvers to notify', { workflowId: workflow.requestId });
+      return;
+    }
+    
+    const approvers = await User.find({
+      _id: { $in: stage.approvers }
+    }).select('_id email personal.firstName personal.lastName').lean<LeanUserDetailed[]>();
+    
+    if (!approvers || approvers.length === 0) {
+      logger.warn('[Approval] Approver details not found', { 
+        approverIds: stage.approvers,
+        workflowId: workflow.requestId 
+      });
+      return;
+    }
+    
+    // Build notification payload
+    const recipients = approvers.map((approver: LeanUserDetailed) => ({
+      userId: approver._id.toString(),
+      name: `${approver.personal?.firstName || ''} ${approver.personal?.lastName || ''}`.trim() || approver.email || 'Approver',
+      email: approver.email,
+      preferredChannels: ['push', 'email'] as ('push' | 'email')[],
+    }));
+    
+    const notification = buildNotification('onApprovalRequested', {
+      quotationId: workflow.quotationId,
+      workOrderId: workflow.workOrderId,
+      description: `Stage ${stage.stage} approval required`,
+    }, recipients);
+    
+    await sendNotification(notification);
+    
+    logger.info('[Approval] Notifications sent', { 
+      workflowId: workflow.requestId,
+      stage: stage.stage,
+      recipientCount: recipients.length 
+    });
+  } catch (error: unknown) {
+    logger.error('[Approval] Failed to send notifications:', { error });
+  }
+>>>>>>> feat/souq-marketplace-advanced
 }

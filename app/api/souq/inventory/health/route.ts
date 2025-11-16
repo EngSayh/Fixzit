@@ -1,0 +1,68 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { inventoryService } from '@/services/souq/inventory-service';
+import { auth } from '@/auth';
+
+/**
+ * GET /api/souq/inventory/health
+ * Get inventory health report for a seller
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const searchParams = request.nextUrl.searchParams;
+    const sellerId = searchParams.get('sellerId') || session.user.id;
+    
+    // Authorization: Can only view own health report unless admin
+    if (sellerId !== session.user.id && !['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    
+    const healthReport = await inventoryService.getInventoryHealthReport(sellerId);
+    
+    // Calculate health score (0-100)
+    const outOfStockRate = healthReport.totalListings > 0 
+      ? (healthReport.outOfStockCount / healthReport.totalListings) * 100 
+      : 0;
+    const strandedRate = healthReport.totalListings > 0 
+      ? (healthReport.strandedCount / healthReport.totalListings) * 100 
+      : 0;
+    const agingRate = healthReport.totalListings > 0 
+      ? (healthReport.agingCount / healthReport.totalListings) * 100 
+      : 0;
+    
+    // Simple health score calculation
+    const healthScore = Math.max(0, Math.min(100, 
+      100 - (outOfStockRate * 0.5) - (strandedRate * 0.3) - (agingRate * 0.2)
+    ));
+    
+    return NextResponse.json({ 
+      success: true,
+      sellerId,
+      report: healthReport,
+      metrics: {
+        outOfStockRate: outOfStockRate.toFixed(2) + '%',
+        strandedRate: strandedRate.toFixed(2) + '%',
+        agingRate: agingRate.toFixed(2) + '%',
+        healthScore: healthScore.toFixed(1)
+      },
+      recommendations: [
+        ...(healthReport.outOfStockCount > 0 ? [`Restock ${healthReport.outOfStockCount} out-of-stock listings`] : []),
+        ...(healthReport.lowStockCount > 0 ? [`Review ${healthReport.lowStockCount} low-stock listings`] : []),
+        ...(healthReport.strandedCount > 0 ? [`Resolve ${healthReport.strandedCount} stranded inventory items`] : []),
+        ...(healthReport.agingCount > 0 ? [`Consider promotions for ${healthReport.agingCount} aging items`] : [])
+      ]
+    });
+    
+  } catch (error) {
+    console.error('GET /api/souq/inventory/health error:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}

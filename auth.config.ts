@@ -2,6 +2,7 @@ import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 // NOTE: Mongoose imports MUST be dynamic inside authorize() to avoid Edge Runtime issues
 // import { User } from '@/server/models/User'; // ❌ Breaks Edge Runtime
 // import { verifyPassword } from '@/lib/auth'; // ❌ Imports User model
@@ -43,9 +44,18 @@ const skipSecretValidation = isCI || process.env.SKIP_ENV_VALIDATION === 'true';
 
 if (!skipSecretValidation) {
   const missingSecrets: string[] = [];
-  if (!GOOGLE_CLIENT_ID) missingSecrets.push('GOOGLE_CLIENT_ID');
-  if (!GOOGLE_CLIENT_SECRET) missingSecrets.push('GOOGLE_CLIENT_SECRET');
+  
+  // NEXTAUTH_SECRET is always required (for session signing)
   if (!NEXTAUTH_SECRET) missingSecrets.push('NEXTAUTH_SECRET');
+  
+  // Google OAuth credentials are optional (can use credentials provider only)
+  if (!GOOGLE_CLIENT_ID && !GOOGLE_CLIENT_SECRET) {
+    logger.warn('⚠️  Google OAuth not configured. Only credentials authentication will be available.');
+  } else if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    // If one is set, both must be set
+    if (!GOOGLE_CLIENT_ID) missingSecrets.push('GOOGLE_CLIENT_ID');
+    if (!GOOGLE_CLIENT_SECRET) missingSecrets.push('GOOGLE_CLIENT_SECRET');
+  }
 
   if (missingSecrets.length > 0) {
     throw new Error(
@@ -53,9 +63,9 @@ if (!skipSecretValidation) {
     );
   }
 } else if (isCI) {
-  console.warn('⚠️  CI=true: Secret validation skipped for CI build. Secrets will be required at runtime.');
+  logger.warn('⚠️  CI=true: Secret validation skipped for CI build. Secrets will be required at runtime.');
 } else {
-  console.warn('⚠️  SKIP_ENV_VALIDATION=true: Secret validation skipped. Secrets will be required at runtime.');
+  logger.warn('⚠️  SKIP_ENV_VALIDATION=true: Secret validation skipped. Secrets will be required at runtime.');
 }
 
 // Helper functions for OAuth provisioning (reserved for future use)
@@ -83,15 +93,16 @@ function _sanitizeImage(image?: string | null): string | undefined {
 }
 
 // Validation schema for credentials login (unified identifier field)
-// NOTE: signIn() from next-auth/react sends all values as strings, so we need to handle string-to-boolean conversion
+// NOTE: signIn() from next-auth/react sends checkbox values as 'on' when checked, undefined when unchecked
 const LoginSchema = z
   .object({
     identifier: z.string().trim().min(1, 'Email or employee number is required'),
     password: z.string().min(1, 'Password is required'),
-    // rememberMe comes as string "true"/"false" from signIn(), coerce to boolean
-    rememberMe: z.union([z.boolean(), z.string()]).transform(val => {
+    // ✅ FIXED: Handle HTML checkbox behavior ('on' when checked, undefined when unchecked)
+    rememberMe: z.union([z.boolean(), z.string(), z.undefined()]).transform(val => {
       if (typeof val === 'boolean') return val;
-      return val === 'true' || val === '1';
+      if (val === 'on' || val === 'true' || val === '1') return true;
+      return false;
     }).optional().default(false),
   })
   .transform((data, ctx) => {
@@ -128,17 +139,22 @@ const LoginSchema = z
 
 export const authConfig = {
   providers: [
-    Google({
-      clientId: GOOGLE_CLIENT_ID,
-      clientSecret: GOOGLE_CLIENT_SECRET,
-      authorization: {
-        params: {
-          prompt: 'consent',
-          access_type: 'offline',
-          response_type: 'code',
-        },
-      },
-    }),
+    // Only add Google provider if both credentials are present
+    ...(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET
+      ? [
+          Google({
+            clientId: GOOGLE_CLIENT_ID,
+            clientSecret: GOOGLE_CLIENT_SECRET,
+            authorization: {
+              params: {
+                prompt: 'consent',
+                access_type: 'offline',
+                response_type: 'code',
+              },
+            },
+          }),
+        ]
+      : []),
     Credentials({
       name: 'Credentials',
       credentials: {
@@ -152,7 +168,11 @@ export const authConfig = {
           // 1. Validate credentials schema
           const parsed = LoginSchema.safeParse(credentials);
           if (!parsed.success) {
-            console.error('[NextAuth] Credentials validation failed:', parsed.error.flatten());
+            // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd for proper Sentry/Datadog integration
+            const validationError = new Error('Credentials validation failed');
+            logger.error('[NextAuth] Credentials validation failed', validationError, { 
+              issues: parsed.error.flatten() 
+            });
             return null;
           }
 
@@ -169,28 +189,39 @@ export const authConfig = {
           // 4. Find user based on login type
           let user;
           if (loginType === 'personal') {
-            user = await User.findOne({ email: loginIdentifier });
+            user = (await User.findOne({ email: loginIdentifier })) as any;
           } else {
             // Corporate login uses employee number (stored in username field)
-            user = await User.findOne({ username: loginIdentifier });
+            user = (await User.findOne({ username: loginIdentifier })) as any;
           }
 
           if (!user) {
-            console.error('[NextAuth] User not found:', loginIdentifier);
+            // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd
+            const notFoundError = new Error(`User not found: ${loginIdentifier}`);
+            logger.error('[NextAuth] User not found', notFoundError, { loginIdentifier, loginType });
             return null;
           }
 
           // 5. Verify password (inline to avoid importing @/lib/auth)
           const isValid = await bcrypt.compare(password, user.password);
           if (!isValid) {
-            console.error('[NextAuth] Invalid password for:', loginIdentifier);
+            // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd
+            const passwordError = new Error(`Invalid password for: ${loginIdentifier}`);
+            logger.error('[NextAuth] Invalid password', passwordError, { loginIdentifier, loginType });
             return null;
           }
 
           // 6. Check if user is active
           const isUserActive = user.isActive !== undefined ? user.isActive : (user.status === 'ACTIVE');
           if (!isUserActive) {
-            console.error('[NextAuth] Inactive user attempted login:', loginIdentifier);
+            // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd
+            const inactiveError = new Error(`Inactive user attempted login: ${loginIdentifier}`);
+            logger.error('[NextAuth] Inactive user attempted login', inactiveError, { 
+              loginIdentifier, 
+              loginType,
+              status: user.status,
+              isActive: user.isActive 
+            });
             return null;
           }
 
@@ -206,14 +237,18 @@ export const authConfig = {
             id: user._id.toString(),
             email: user.email,
             name: `${user.personal?.firstName || ''} ${user.personal?.lastName || ''}`.trim() || user.email,
-            role: user.professional?.role || user.role || 'USER',
+            role: user.professional?.role || user.role || 'GUEST',
+            subscriptionPlan: user.subscriptionPlan || 'FREE',
             orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || null),
             sessionId: null, // NextAuth will generate session ID
             rememberMe, // Pass rememberMe to session callbacks
           };
           return authUser;
         } catch (error) {
-          console.error('[NextAuth] Authorize error:', error);
+          // ✅ FIXED: Pass actual Error as 2nd arg for proper stack traces in Sentry/Datadog
+          logger.error('[NextAuth] Authorize error', error as Error, { 
+            credentials: credentials ? 'present' : 'missing' 
+          });
           return null;
         }
       },
@@ -235,7 +270,7 @@ export const authConfig = {
       // Validate email exists
       if (!_user?.email) {
         if (process.env.LOG_LEVEL === 'debug') {
-          console.debug('OAuth sign-in rejected: No email provided');
+          logger.debug('OAuth sign-in rejected: No email provided');
         }
         return false;
       }
@@ -279,7 +314,7 @@ export const authConfig = {
       // Add user info to token on first sign-in
       if (user) {
         token.id = user.id;
-        token.role = (user as ExtendedUser).role || 'USER';
+        token.role = (user as ExtendedUser).role as 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'VENDOR' | 'OWNER' | 'TENANT' | 'VIEWER' | 'GUEST' || 'GUEST';
         token.orgId = (user as ExtendedUser).orgId || null;
         
         // Handle rememberMe for credentials provider
@@ -290,82 +325,15 @@ export const authConfig = {
         }
       }
 
-      // Load RBAC data from database on every token refresh
-      // This ensures permissions are always up-to-date
-      if (token?.id) {
-        try {
-          // Dynamic imports to avoid Edge Runtime issues
-          const { connectToDatabase } = await import('@/lib/mongodb-unified');
-          const { User } = await import('@/server/models/User');
-          
-          await connectToDatabase();
-          
-          // Load user with populated roles
-          const dbUser = await User.findById(token.id)
-            .populate('roles')
-            .select('isSuperAdmin roles')
-            .lean() as {
-              isSuperAdmin?: boolean;
-              roles?: Array<{
-                slug?: string;
-                name?: string;
-                permissions?: Array<string | { key: string }>;
-                wildcard?: boolean;
-              }>;
-            } | null;
-          
-          if (dbUser) {
-            // Set Super Admin flag
-            token.isSuperAdmin = dbUser.isSuperAdmin || false;
-            
-            // Extract role slugs
-            token.roles = Array.isArray(dbUser.roles)
-              ? dbUser.roles.map((r) => r.slug || r.name).filter((s): s is string => typeof s === 'string')
-              : [];
-            
-            // Extract permissions from roles
-            const permissionSet = new Set<string>();
-            
-            // Super Admin gets wildcard permission
-            if (dbUser.isSuperAdmin) {
-              permissionSet.add('*');
-            }
-            
-            // Collect permissions from all roles
-            if (Array.isArray(dbUser.roles)) {
-              for (const role of dbUser.roles) {
-                if (role && Array.isArray(role.permissions)) {
-                  for (const perm of role.permissions) {
-                    if (typeof perm === 'string') {
-                      permissionSet.add(perm);
-                    } else if (perm && typeof perm === 'object' && 'key' in perm) {
-                      permissionSet.add(perm.key);
-                    }
-                  }
-                }
-                // If role has wildcard flag, add wildcard
-                if (role && role.wildcard) {
-                  permissionSet.add('*');
-                }
-              }
-            }
-            
-            token.permissions = Array.from(permissionSet);
-          } else {
-            // User not found, clear RBAC data
-            token.isSuperAdmin = false;
-            token.roles = [];
-            token.permissions = [];
-          }
-        } catch (error) {
-          console.error('[NextAuth] Failed to load RBAC data:', error);
-          // On error, keep previous RBAC data or set defaults
-          if (token.isSuperAdmin === undefined) {
-            token.isSuperAdmin = false;
-            token.roles = [];
-            token.permissions = [];
-          }
-        }
+      // ⚠️ RBAC data cannot be loaded here - JWT callback runs in Edge Runtime
+      // Edge Runtime does not support Mongoose connections
+      // RBAC data is loaded in API routes (Node.js runtime) using getSessionUser()
+      // Set default empty values for RBAC fields in token
+      if (token?.id && token.isSuperAdmin === undefined) {
+        // Initialize RBAC fields to empty (will be populated by API routes)
+        token.isSuperAdmin = false;
+        token.roles = [];
+        token.permissions = [];
       }
       
       return token;

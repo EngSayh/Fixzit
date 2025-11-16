@@ -86,7 +86,7 @@ AtsSettingsSchema.statics.findOrCreateForOrg = async function(orgId: string) {
 };
 
 // Export model - MongoDB only
-const existingAtsSettings = models.AtsSettings as AtsSettingsModel | undefined;
+const existingAtsSettings = (typeof models !== 'undefined' ? models.AtsSettings : undefined) as AtsSettingsModel | undefined;
 export const AtsSettings: AtsSettingsModel = existingAtsSettings || model<AtsSettingsDoc, AtsSettingsModel>('AtsSettings', AtsSettingsSchema);
 
 export type { AutoRejectOptions, AutoRejectDecision };

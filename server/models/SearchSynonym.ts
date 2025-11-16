@@ -1,5 +1,6 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, InferSchemaType } from "mongoose";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from '@/src/types/mongoose-compat';
 
 const SearchSynonymSchema = new Schema({
   locale: { type: String, enum: ['en','ar'], required: true },
@@ -15,5 +16,5 @@ SearchSynonymSchema.index({ locale: 1, term: 1 }, { unique: true });
 
 export type SearchSynonymDoc = InferSchemaType<typeof SearchSynonymSchema>;
 
-export const SearchSynonym = (models.SearchSynonym || model("SearchSynonym", SearchSynonymSchema));
+export const SearchSynonym = getModel<SearchSynonymDoc>('SearchSynonym', SearchSynonymSchema);
 

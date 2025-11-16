@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from '@/contexts/TranslationContext';
-
+import ClientDate from '@/components/ClientDate';
+import { formatServerDate } from '@/lib/formatServerDate';
 import { logger } from '@/lib/logger';
+
+// Fixzit primary timezone for audit logs (canonical timeline)
+const DEFAULT_TIMEZONE = 'Asia/Riyadh';
 // Constants at module scope
 const LOGS_PER_PAGE = 20;
 const API_ENDPOINT = '/api/admin/audit-logs';
-const DEFAULT_TIMEZONE = 'Asia/Riyadh'; // Fixzit primary timezone
 
 interface AuditLog {
   id: string;
@@ -57,9 +59,6 @@ export default function AuditLogViewer() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalLogs, setTotalLogs] = useState(0);
-  
-    // Extract locale for internationalization support
-  const { locale: userLocale } = useTranslation();
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -152,19 +151,6 @@ export default function AuditLogViewer() {
       case 'LOGOUT': return 'text-muted-foreground bg-muted';
       default: return 'text-muted-foreground bg-muted';
     }
-  };
-
-  // Format date with locale awareness and timezone support
-  const formatDate = (date: Date, locale: string = userLocale || 'en-US') => {
-    return new Date(date).toLocaleString(locale, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      timeZone: DEFAULT_TIMEZONE,
-    });
   };
 
   return (
@@ -267,9 +253,12 @@ export default function AuditLogViewer() {
               id="start-date"
               type="date"
               className="w-full rounded-2xl border-border bg-background text-foreground"
-              value={filters.startDate?.toISOString().split('T')[0] || ''}
-              max={filters.endDate?.toISOString().split('T')[0] || undefined}
-              onChange={(e) => setFilters({ ...filters, startDate: e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined })}
+              value={filters.startDate ? filters.startDate.toISOString().split('T')[0] : ''}
+              max={filters.endDate ? filters.endDate.toISOString().split('T')[0] : undefined}
+              onChange={(e) => {
+                const value = e.target.value ? new Date(e.target.value + 'T00:00:00') : undefined;
+                setFilters({ ...filters, startDate: value });
+              }}
             />
           </div>
 
@@ -281,9 +270,12 @@ export default function AuditLogViewer() {
               id="end-date"
               type="date"
               className="w-full rounded-2xl border-border bg-background text-foreground"
-              value={filters.endDate?.toISOString().split('T')[0] || ''}
-              min={filters.startDate?.toISOString().split('T')[0] || undefined}
-              onChange={(e) => setFilters({ ...filters, endDate: e.target.value ? new Date(e.target.value + 'T23:59:59') : undefined })}
+              value={filters.endDate ? filters.endDate.toISOString().split('T')[0] : ''}
+              min={filters.startDate ? filters.startDate.toISOString().split('T')[0] : undefined}
+              onChange={(e) => {
+                const value = e.target.value ? new Date(e.target.value + 'T23:59:59') : undefined;
+                setFilters({ ...filters, endDate: value });
+              }}
             />
           </div>
         </div>
@@ -341,7 +333,7 @@ export default function AuditLogViewer() {
                 {logs.map((log) => (
                   <tr key={log.id} className="hover:bg-muted">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                      {formatDate(log.timestamp)}
+                      {formatServerDate(log.timestamp, 'medium', undefined, DEFAULT_TIMEZONE)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getActionColor(log.action)}`}>
@@ -473,7 +465,13 @@ export default function AuditLogViewer() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-medium text-muted-foreground">Timestamp</h3>
-                  <p className="mt-1 text-foreground">{formatDate(selectedLog.timestamp)}</p>
+                  <p className="mt-1 text-foreground">
+                    <ClientDate 
+                      date={selectedLog.timestamp} 
+                      format="full"
+                      timeZone={DEFAULT_TIMEZONE}
+                    />
+                  </p>
                 </div>
 
                 <div>
@@ -555,8 +553,8 @@ export default function AuditLogViewer() {
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground">Changes</h3>
                     <div className="mt-1 space-y-2">
-                      {selectedLog.changes.map((change, index) => (
-                        <div key={index} className="p-2 rounded-2xl bg-muted">
+                      {selectedLog.changes.map((change) => (
+                        <div key={change.field} className="p-2 rounded-2xl bg-muted">
                           <div className="flex gap-2">
                             <span className="font-medium">{change.field}:</span>
                             <span className="text-foreground">

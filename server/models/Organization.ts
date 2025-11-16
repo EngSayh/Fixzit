@@ -1,4 +1,5 @@
-import { Schema, model, models, HydratedDocument, Model } from 'mongoose';
+import { Schema, model, models, HydratedDocument } from 'mongoose';
+import { MModel } from '@/src/types/mongoose-compat';
 import { customAlphabet } from 'nanoid';
 import { auditPlugin } from '../plugins/auditPlugin';
 
@@ -59,7 +60,7 @@ type Usage = {
 
 type OrganizationDoc = HydratedDocument<IOrganization>;
 /* eslint-disable no-unused-vars */
-type OrganizationModel = Model<IOrganization> & {
+type OrganizationModel = MModel<IOrganization> & {
   incrementUsage(orgId: string, patch: Partial<Usage>): Promise<OrganizationDoc | null>;
   setSubscriptionStatus(orgId: string, status: TSubscriptionStatus): Promise<OrganizationDoc | null>;
 };
@@ -255,7 +256,7 @@ export interface IOrganization {
 }
 
 // ---------- Schema ----------
-const OrganizationSchema = new Schema<IOrganization, OrganizationModel>(
+const OrganizationSchema = new Schema<IOrganization>(
   {
     orgId: { type: String, required: true, unique: true },
 
@@ -610,6 +611,6 @@ OrganizationSchema.statics.setSubscriptionStatus = async function (
 
 // ---------- Export ----------
 export const Organization =
-  models.Organization ||
+  (typeof models !== 'undefined' && models.Organization) ||
   (model<IOrganization, OrganizationModel>('Organization', OrganizationSchema) as OrganizationModel);
 export type { OrganizationDoc, Features, Usage };

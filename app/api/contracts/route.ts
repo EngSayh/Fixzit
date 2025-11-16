@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
       createdAt: new Date()
     };
 
-    const contract = await ServiceContract.create(contractData);
+    const contract = (await ServiceContract.create(contractData));
     return createSecureResponse(contract, 201, req);
   } catch (error) {
     if (error instanceof z.ZodError) {

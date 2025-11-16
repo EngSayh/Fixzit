@@ -1,6 +1,7 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from '@/src/types/mongoose-compat';
 
 const OwnerType = ["INDIVIDUAL", "COMPANY", "TRUST", "GOVERNMENT"] as const;
 const OwnerStatus = ["ACTIVE", "INACTIVE", "SUSPENDED"] as const;
@@ -188,4 +189,5 @@ OwnerSchema.virtual('displayName').get(function() {
 
 // Export type and model
 export type Owner = InferSchemaType<typeof OwnerSchema>;
-export const OwnerModel = models.Owner || model("Owner", OwnerSchema);
+
+export const OwnerModel = getModel<Owner>('Owner', OwnerSchema);

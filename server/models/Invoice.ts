@@ -1,4 +1,5 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, Model, InferSchemaType } from "mongoose";
+import { getModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
@@ -86,16 +87,19 @@ const InvoiceSchema = new Schema({
     uuid: String, // Unique invoice identifier
     hash: String, // Invoice hash for chaining
     qrCode: String, // Base64 encoded QR code
+    tlv: String, // TLV encoded data for QR code
     status: {
       type: String,
-      enum: ["PENDING", "GENERATED", "SIGNED", "CLEARED", "REPORTED"],
+      enum: ["PENDING", "GENERATED", "SIGNED", "CLEARED", "REPORTED", "FAILED"],
       default: "PENDING"
     },
     phase: Number, // ZATCA phase (1 or 2)
     xml: String, // XML content
     signedXml: String, // Signed XML content
+    generatedAt: Date, // When QR/TLV was generated
     clearedAt: Date,
     reportedAt: Date,
+    error: String, // Error message if FAILED
     clearance: {
       requestId: String,
       responseId: String,
@@ -167,12 +171,30 @@ const InvoiceSchema = new Schema({
     certificateNumber: String
   },
 
+  // Top-level convenience fields
+  tax: Number, // Total tax amount (sum of all taxes)
+  metadata: Schema.Types.Mixed, // Additional key-value data
+  updatedBy: String, // User ID who last updated the invoice
+
   // Metadata
   tags: [String],
   customFields: Schema.Types.Mixed
 }, {
   timestamps: true
 });
+
+// Virtual properties for backward compatibility
+InvoiceSchema.virtual('seller').get(function(this: InvoiceDoc) {
+  return this.issuer;
+});
+
+InvoiceSchema.virtual('from').get(function(this: InvoiceDoc) {
+  return this.issuer;
+});
+
+// Ensure virtuals are included in JSON/Object output
+InvoiceSchema.set('toJSON', { virtuals: true });
+InvoiceSchema.set('toObject', { virtuals: true });
 
 // Apply plugins BEFORE indexes for proper tenant isolation and audit tracking
 InvoiceSchema.plugin(tenantIsolationPlugin);
@@ -189,4 +211,4 @@ InvoiceSchema.index({ orgId: 1, type: 1, status: 1 });
 
 export type InvoiceDoc = InferSchemaType<typeof InvoiceSchema>;
 
-export const Invoice = models.Invoice || model("Invoice", InvoiceSchema);
+export const Invoice: Model<InvoiceDoc> = getModel<InvoiceDoc>('Invoice', InvoiceSchema);

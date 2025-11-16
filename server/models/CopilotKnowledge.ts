@@ -1,6 +1,7 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
+import { getModel } from '@/src/types/mongoose-compat';
 
 const KnowledgeSchema = new Schema({
   roles: { type: [String], default: [] },
@@ -28,4 +29,4 @@ KnowledgeSchema.index({ orgId: 1, roles: 1 });
 
 export type KnowledgeDoc = InferSchemaType<typeof KnowledgeSchema>;
 
-export const CopilotKnowledge = models.CopilotKnowledge || model("CopilotKnowledge", KnowledgeSchema);
+export const CopilotKnowledge = getModel<KnowledgeDoc>('CopilotKnowledge', KnowledgeSchema);

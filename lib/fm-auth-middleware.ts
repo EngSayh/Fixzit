@@ -7,6 +7,8 @@ import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { can, Role, SubmoduleKey, Action, Plan } from '@/domain/fm/fm.behavior';
+import { Organization } from '@/server/models/Organization';
+import { connectDb } from '@/lib/mongo';
 
 export interface FMAuthContext {
   userId: string;
@@ -116,14 +118,71 @@ export async function requireFMAuth(
     };
   }
 
+  // ✅ Get actual subscription plan from organization and verify membership
+  let plan = Plan.STARTER;
+  let isOrgMember = false;
+  
+  try {
+    await connectDb();
+    // Always use ctx.orgId - don't allow callers to query other orgs
+    const { Organization } = await import('@/server/models/Organization');
+    // TODO(type-safety): Verify Organization.findOne type resolution
+    const org = await (Organization as any).findOne({ orgId: ctx.orgId });
+    
+    if (org) {
+      // Map organization plan to FM Plan enum (with fallback chain)
+      const subscriptionPlan = org.subscription?.plan;
+      const orgPlan = subscriptionPlan || (org as { plan?: string }).plan || 'BASIC';
+      const planMap: Record<string, Plan> = {
+        'BASIC': Plan.STARTER,
+        'STARTER': Plan.STARTER,
+        'STANDARD': Plan.STANDARD,
+        'PREMIUM': Plan.PRO,
+        'PRO': Plan.PRO,
+        'ENTERPRISE': Plan.ENTERPRISE,
+      };
+      plan = planMap[orgPlan.toUpperCase()] || Plan.STARTER;
+      
+      // Verify org membership: initialize as false and check if user is in member list
+      isOrgMember = false;
+      
+      // Check if user is in org's member list with proper validation
+      if (org.members && Array.isArray(org.members)) {
+        for (const member of org.members) {
+          // Validate member structure before comparing
+          if (member && typeof member === 'object' && typeof member.userId === 'string') {
+            if (member.userId === ctx.userId) {
+              isOrgMember = true;
+              break;
+            }
+          } else {
+            logger.warn('[FM Auth] Invalid member entry in org.members', { orgId: ctx.orgId, member });
+          }
+        }
+      }
+      
+      logger.debug('[FM Auth] Org lookup successful', { 
+        orgId: ctx.orgId, 
+        plan, 
+        isOrgMember,
+        userId: ctx.userId 
+      });
+      } else {
+      logger.warn('[FM Auth] Organization not found', { orgId: ctx.orgId });
+    }
+  } catch (error) {
+    logger.error('[FM Auth] Subscription lookup failed:', { error });
+    // Fall back to STARTER plan and no org membership on error
+  }
+
   // Check RBAC permission
   const allowed = can(submodule, action, {
     role: ctx.role,
     orgId: options?.orgId || ctx.orgId,
     propertyId: options?.propertyId,
     userId: ctx.userId,
-    plan: Plan.PRO, // TODO: Get from user/org subscription
-    isOrgMember: true // TODO: Verify org membership
+    plan,
+    isOrgMember
   });
 
   if (!allowed) {
@@ -145,6 +204,7 @@ export async function requireFMAuth(
 
 /**
  * Check if user has permission (for UI conditional rendering)
+ * Note: This is synchronous for UI use. For API routes, use requireFMAuth which does async DB lookups.
  */
 export function userCan(
   ctx: FMAuthContext | null,
@@ -153,38 +213,91 @@ export function userCan(
   options?: {
     orgId?: string;
     propertyId?: string;
+    plan?: Plan;
+    isOrgMember?: boolean;
   }
 ): boolean {
   if (!ctx) return false;
   
+  // Use restrictive defaults: STARTER plan and no org membership unless explicitly provided
+  // Callers MUST provide plan and isOrgMember from DB for accurate permission checks
   return can(submodule, action, {
     role: ctx.role,
     orgId: options?.orgId || ctx.orgId,
     propertyId: options?.propertyId,
     userId: ctx.userId,
-    plan: Plan.PRO, // TODO: Get from user/org subscription
-    isOrgMember: true // TODO: Verify org membership
+    plan: options?.plan ?? Plan.STARTER,
+    isOrgMember: options?.isOrgMember ?? false
   });
 }
 
 /**
  * Extract property ownership context for ABAC checks
+ * 
+ * NOTE: FMProperty model not yet implemented. When created, it should have:
+ * - ownerId: string (User ID of property owner)
+ * - orgId: string (Organization ID managing the property)
+ * - propertyId: string (Unique property identifier)
+ * 
+ * Example implementation when model exists:
+ * ```typescript
+ * import { FMProperty } from '@/server/models/FMProperty';
+ * const property = await FMProperty.findOne({ propertyId });
+ * if (property) {
+ *   return { ownerId: property.ownerId, orgId: property.orgId };
+ * }
+ * ```
  */
- 
+>>>>>>> feat/souq-marketplace-advanced
 export async function getPropertyOwnership(_propertyId: string): Promise<{
   ownerId: string;
   orgId: string;
 } | null> {
   try {
-    // TODO: Query FMProperty model for ownership
-    // For now, return placeholder
-    return {
-      ownerId: '',
-      orgId: ''
-    };
-  // eslint-disable-next-line no-unreachable
+    await connectDb();
+    
+    // Try to import FMProperty model (may not exist yet)
+    // @ts-expect-error FMProperty model may not be created yet
+    const FMPropertyModule = await import('@/server/models/FMProperty').catch(() => null);
+    
+    if (FMPropertyModule && FMPropertyModule.FMProperty) {
+      const property = await FMPropertyModule.FMProperty.findOne({ 
+        propertyId: _propertyId 
+      }).select('ownerId orgId').lean();
+      
+      if (property) {
+        logger.debug('[FM Auth] Property ownership found', { 
+          propertyId: _propertyId, 
+          ownerId: property.ownerId, 
+          orgId: property.orgId 
+        });
+        return { 
+          ownerId: property.ownerId?.toString() || '', 
+          orgId: property.orgId?.toString() || '' 
+        };
+      }
+    } else {
+      // Fallback: Try WorkOrder model which may have propertyId reference
+      logger.debug('[FM Auth] FMProperty model not found, checking WorkOrders');
+      // @ts-expect-error FMWorkOrder model may not be created yet
+      const { FMWorkOrder } = await import('@/server/models/FMWorkOrder');
+      const workOrder = await FMWorkOrder.findOne({ propertyId: _propertyId })
+        .select('propertyOwnerId orgId')
+        .lean();
+      
+      if (workOrder && workOrder.propertyOwnerId) {
+        return {
+          ownerId: workOrder.propertyOwnerId.toString(),
+          orgId: workOrder.orgId?.toString() || ''
+        };
+      }
+    }
+    
+    logger.warn('[FM Auth] Property ownership not found', { propertyId: _propertyId });
+    return null;
   } catch (error) {
-    logger.error('[FM Auth] Property ownership query failed:', { error });
+    logger.error('[FM Auth] Property ownership query failed:', { error, propertyId: _propertyId });
+>>>>>>> feat/souq-marketplace-advanced
     return null;
   }
 }

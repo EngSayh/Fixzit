@@ -119,8 +119,8 @@ describe('WorkOrdersView', () => {
     const future = new Date(now + 60 * 60 * 1000).toISOString(); // in 1h
 
     const items = [
-      { _id: '1', code: 'WO-1', title: 'Fix sink', status: 'SUBMITTED', priority: 'HIGH', dueAt: past, slaMinutes: 120, description: 'desc', propertyId: 'P1', assigneeUserId: 'U1', category: 'PLUMBING', createdAt: new Date(now - 5000).toISOString() },
-      { _id: '2', code: 'WO-2', title: 'Check HVAC', status: 'COMPLETED', priority: 'LOW', dueAt: future, slaMinutes: undefined, description: undefined, propertyId: '', assigneeVendorId: 'VND-9', category: undefined, createdAt: undefined },
+      { _id: '1', workOrderNumber: 'WO-1', title: 'Fix sink', status: 'SUBMITTED', priority: 'HIGH', sla: { resolutionDeadline: past, resolutionTimeMinutes: 120 }, description: 'desc', location: { propertyId: 'P1' }, assignment: { assignedTo: { userId: 'U1' } }, category: 'PLUMBING', createdAt: new Date(now - 5000).toISOString() },
+      { _id: '2', workOrderNumber: 'WO-2', title: 'Check HVAC', status: 'COMPLETED', priority: 'LOW', sla: { resolutionDeadline: future }, assignment: { assignedTo: { vendorId: 'VND-9' } } },
     ];
 
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({

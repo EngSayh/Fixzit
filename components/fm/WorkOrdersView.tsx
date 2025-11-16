@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { STORAGE_KEYS } from '@/config/constants';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Plus, RefreshCcw, Search } from 'lucide-react';
 import { WorkOrderPriority } from '@/lib/sla';
+import ClientDate from '@/components/ClientDate';
 
 const fallbackUser = JSON.stringify({ id: 'demo-admin', role: 'SUPER_ADMIN', tenantId: 'demo-tenant' });
 
@@ -72,7 +74,8 @@ function isWorkOrderPriority(value: string): value is WorkOrderPriority {
 
 type WorkOrderRecord = {
   id: string;
-  code: string;
+  code?: string;
+  workOrderNumber?: string;
   title: string;
   description?: string;
   status: keyof typeof statusLabels;
@@ -81,8 +84,17 @@ type WorkOrderRecord = {
   dueAt?: string;
   slaMinutes?: number;
   propertyId?: string;
-  assigneeUserId?: string;
-  assigneeVendorId?: string;
+  location?: { propertyId?: string; unitNumber?: string };
+  sla?: {
+    resolutionDeadline?: string;
+    resolutionTimeMinutes?: number;
+  };
+  assignment?: {
+    assignedTo?: {
+      userId?: string;
+      vendorId?: string;
+    };
+  };
   category?: string;
 };
 
@@ -116,7 +128,10 @@ export type WorkOrdersViewProps = {
   description?: string;
 };
 
-export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage and track work orders across all properties' }: WorkOrdersViewProps) {
+export function WorkOrdersView({ heading, description }: WorkOrdersViewProps) {
+  const { t } = useTranslation();
+  const resolvedHeading = heading ?? t('workOrders.list.heading', 'Work Orders');
+  const resolvedDescription = description ?? t('workOrders.list.description', 'Manage and track work orders across all properties');
   const [clientReady, setClientReady] = useState(false);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
@@ -153,12 +168,34 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
   const workOrders = data?.items ?? [];
   const totalPages = data ? Math.max(1, Math.ceil(data.total / (data.limit || PAGE_SIZE))) : 1;
 
+  const statusPlaceholder = t('workOrders.list.filters.status', 'Status');
+  const statusAllLabel = t('workOrders.list.filters.statusAll', 'All Statuses');
+  const priorityPlaceholder = t('workOrders.list.filters.priority', 'Priority');
+  const priorityAllLabel = t('workOrders.list.filters.priorityAll', 'All Priorities');
+  const refreshLabel = t('workOrders.list.filters.refresh', 'Refresh');
+  const loadingLabel = t('workOrders.list.loading', 'Loading work orders…');
+  const propertyLabel = t('workOrders.list.labels.property', 'Property:');
+  const assignedLabel = t('workOrders.list.labels.assigned', 'Assigned to:');
+  const categoryLabel = t('workOrders.list.labels.category', 'Category:');
+  const createdLabel = t('workOrders.list.labels.created', 'Created:');
+  const priorityLabel = t('workOrders.list.labels.priority', 'Priority:');
+  const codeLabel = t('workOrders.list.labels.code', 'Code:');
+  const slaWindowLabel = t('workOrders.list.labels.slaWindow', 'SLA window:');
+  const dueLabel = t('workOrders.list.labels.due', 'Due');
+  const notLinkedText = t('workOrders.list.values.notLinked', 'Not linked');
+  const unassignedText = t('workOrders.list.values.unassigned', 'Unassigned');
+  const generalText = t('workOrders.list.values.general', 'General');
+  const unknownText = t('workOrders.list.values.unknown', 'Unknown');
+  const emptyTitle = t('workOrders.list.empty.title', 'No work orders match the current filters.');
+  const emptySubtitle = t('workOrders.list.empty.subtitle', 'Adjust filters or create a new work order to get started.');
+  const searchPlaceholder = t('workOrders.list.searchPlaceholder', 'Search by title or description');
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">{heading}</h1>
-          <p className="text-muted-foreground">{description}</p>
+          <h1 className="text-3xl font-bold text-foreground">{resolvedHeading}</h1>
+          <p className="text-muted-foreground">{resolvedDescription}</p>
         </div>
         <WorkOrderCreateDialog onCreated={() => mutate()} />
       </div>
@@ -169,7 +206,7 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
             <div className="relative flex-1">
               <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search by title or description"
+                placeholder={searchPlaceholder}
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 className="ps-9"
@@ -181,12 +218,11 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
                 setStatusFilter(value);
                 setPage(1);
               }}
+              placeholder={statusPlaceholder}
+              className="lg:w-48"
             >
-              <SelectTrigger className="lg:w-48">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="">{statusAllLabel}</SelectItem>
                 {STATUS_OPTIONS.map((status) => (
                   <SelectItem key={status} value={status}>
                     {statusLabels[status]}
@@ -200,12 +236,11 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
                 setPriorityFilter(value);
                 setPage(1);
               }}
+              placeholder={priorityPlaceholder}
+              className="lg:w-40"
             >
-              <SelectTrigger className="lg:w-40">
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Priorities</SelectItem>
+                <SelectItem value="">{priorityAllLabel}</SelectItem>
                 {PRIORITY_OPTIONS.map((priority) => (
                   <SelectItem key={priority} value={priority}>
                     {priority.charAt(0) + priority.slice(1).toLowerCase()}
@@ -220,7 +255,8 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
               disabled={isValidating}
             >
               <RefreshCcw className={`me-2 h-4 w-4 ${isValidating ? 'animate-spin' : ''}`} />
-              Refresh
+              {refreshLabel}
+>>>>>>> feat/souq-marketplace-advanced
             </Button>
           </div>
         </CardContent>
@@ -239,13 +275,19 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
           <Card className="border border-dashed">
             <CardContent className="flex items-center gap-3 py-16 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin" />
-              Loading work orders…
+              {loadingLabel}
             </CardContent>
           </Card>
         ) : null}
 
         {workOrders.map((workOrder) => {
-          const dueMeta = getDueMeta(workOrder.dueAt);
+          const dueAt = workOrder.sla?.resolutionDeadline || workOrder.dueAt;
+          const dueMeta = getDueMeta(dueAt);
+          const slaWindowMinutes = workOrder.sla?.resolutionTimeMinutes ?? workOrder.slaMinutes;
+          const code = workOrder.workOrderNumber || workOrder.code || workOrder.id;
+          const assignedUser = workOrder.assignment?.assignedTo?.userId || (workOrder as any).assigneeUserId;
+          const assignedVendor = workOrder.assignment?.assignedTo?.vendorId || (workOrder as any).assigneeVendorId;
+          const propertyId = workOrder.location?.propertyId || workOrder.propertyId;
           return (
             <Card key={workOrder.id} className="border border-border shadow-sm">
               <CardHeader className="flex flex-col gap-2 pb-4 sm:flex-row sm:items-start sm:justify-between">
@@ -253,17 +295,18 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
                   <div className="flex flex-wrap items-center gap-2">
                     <CardTitle className="text-lg font-semibold text-foreground">{workOrder.title}</CardTitle>
                     <Badge className={priorityStyles[workOrder.priority] || priorityStyles.MEDIUM}>
-                      Priority: {workOrder.priority}
+                      {priorityLabel} {workOrder.priority}
                     </Badge>
                     <Badge className={statusStyles[workOrder.status] || 'bg-muted text-foreground border border-border'}>
                       {statusLabels[workOrder.status] ?? workOrder.status}
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">Code: {workOrder.code}</p>
+                  <p className="text-sm text-muted-foreground">{codeLabel} {code}</p>
                 </div>
                 <div className="text-end text-sm text-muted-foreground">
-                  <p>SLA window: {workOrder.slaMinutes ? `${Math.round(workOrder.slaMinutes / 60)}h` : 'N/A'}</p>
-                  <p className={dueMeta.overdue ? 'text-destructive font-semibold' : ''}>Due {dueMeta.label}</p>
+                  <p>{slaWindowLabel} {slaWindowMinutes ? `${Math.round(slaWindowMinutes / 60)}h` : 'N/A'}</p>
+                  <p className={dueMeta.overdue ? 'text-destructive font-semibold' : ''}>{dueLabel} {dueMeta.label}</p>
+>>>>>>> feat/souq-marketplace-advanced
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -272,20 +315,20 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
                 )}
                 <div className="grid grid-cols-1 gap-3 text-sm text-muted-foreground md:grid-cols-2">
                   <div>
-                    <span className="font-medium text-foreground">Property:</span>{' '}
-                    {workOrder.propertyId || 'Not linked'}
+                    <span className="font-medium text-foreground">{propertyLabel}</span>{' '}
+                    {propertyId || notLinkedText}
                   </div>
                   <div>
-                    <span className="font-medium text-foreground">Assigned to:</span>{' '}
-                    {workOrder.assigneeUserId || workOrder.assigneeVendorId || 'Unassigned'}
+                    <span className="font-medium text-foreground">{assignedLabel}</span>{' '}
+                    {assignedUser || assignedVendor || unassignedText}
                   </div>
                   <div>
-                    <span className="font-medium text-foreground">Category:</span>{' '}
-                    {workOrder.category || 'General'}
+                    <span className="font-medium text-foreground">{categoryLabel}</span>{' '}
+                    {workOrder.category || generalText}
                   </div>
                   <div>
-                    <span className="font-medium text-foreground">Created:</span>{' '}
-                    {workOrder.createdAt ? new Date(workOrder.createdAt).toLocaleString() : 'Unknown'}
+                    <span className="font-medium text-foreground">{createdLabel}</span>{' '}
+                    {workOrder.createdAt ? <ClientDate date={workOrder.createdAt} format="medium" /> : unknownText}
                   </div>
                 </div>
               </CardContent>
@@ -297,15 +340,17 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
       {!isLoading && workOrders.length === 0 && !error && (
         <Card className="border border-border">
           <CardContent className="py-12 text-center text-muted-foreground">
-            <p className="font-medium text-foreground">No work orders match the current filters.</p>
-            <p className="text-sm">Adjust filters or create a new work order to get started.</p>
+            <p className="font-medium text-foreground">{emptyTitle}</p>
+            <p className="text-sm">{emptySubtitle}</p>
           </CardContent>
         </Card>
       )}
 
       <div className="flex flex-col items-center gap-3 border-t pt-4 sm:flex-row sm:justify-between">
         <span className="text-sm text-muted-foreground">
-          Showing {(data ? data.items.length : 0)} of {data?.total ?? 0} work orders
+          {t('workOrders.list.pagination.summary', 'Showing {{count}} of {{total}} work orders')
+            .replace('{{count}}', String(data ? data.items.length : 0))
+            .replace('{{total}}', String(data?.total ?? 0))}
         </span>
         <div className="flex items-center gap-2">
           <Button
@@ -314,7 +359,7 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
             disabled={page <= 1}
             onClick={() => setPage((prev) => Math.max(1, prev - 1))}
           >
-            Previous
+            {t('workOrders.list.pagination.previous', 'Previous')}
           </Button>
           <span className="text-sm text-foreground">
             Page {page} of {totalPages}
@@ -325,7 +370,7 @@ export function WorkOrdersView({ heading = 'Work Orders', description = 'Manage 
             disabled={page >= totalPages}
             onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
           >
-            Next
+            {t('workOrders.list.pagination.next', 'Next')}
           </Button>
         </div>
       </div>
@@ -477,4 +522,3 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
 }
 
 export default WorkOrdersView;
-

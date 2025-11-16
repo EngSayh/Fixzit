@@ -264,7 +264,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
                 <SelectContent>
                   {MODULES.map((m) => (
                     <SelectItem key={m} value={m}>
-                      {t(`support.modules.${m}`, m)}
+                      {t('support.modules.' + m, m)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -283,7 +283,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
                 <SelectContent>
                   {CATEGORIES.map((c) => (
                     <SelectItem key={c} value={c}>
-                      {t(`support.categories.${c}`, c)}
+                      {t('support.categories.' + c, c)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -298,7 +298,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
                 <SelectContent>
                   {(SUB_CATEGORIES[category] || []).map((s) => (
                     <SelectItem key={s} value={s}>
-                      {t(`support.subCategories.${s}`, s)}
+                      {t('support.subCategories.' + s, s)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -317,7 +317,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
                 <SelectContent>
                   {TYPES.map((t_val) => (
                     <SelectItem key={t_val} value={t_val}>
-                      {t(`support.types.${t_val}`, t_val)}
+                      {t('support.types.' + t_val, t_val)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -332,7 +332,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
                 <SelectContent>
                   {PRIORITIES.map((p) => (
                     <SelectItem key={p} value={p}>
-                      {t(`support.priorities.${p}`, p)}
+                      {t('support.priorities.' + p, p)}
                     </SelectItem>
                   ))}
                 </SelectContent>

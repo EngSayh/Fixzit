@@ -1,4 +1,5 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, Model, InferSchemaType } from "mongoose";
+import { getModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 import { auditPlugin } from "@/server/plugins/auditPlugin";
 
@@ -215,4 +216,4 @@ FMPMPlanSchema.methods.recordGeneration = function(
 
 export type FMPMPlanDoc = InferSchemaType<typeof FMPMPlanSchema>;
 
-export const FMPMPlan = models.FMPMPlan || model('FMPMPlan', FMPMPlanSchema);
+export const FMPMPlan: Model<FMPMPlanDoc> = getModel<FMPMPlanDoc>('FMPMPlan', FMPMPlanSchema);

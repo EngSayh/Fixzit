@@ -59,9 +59,9 @@ export async function GET() {
     await connectToDatabase();
 
     // Fetch user by email from session
-    const user = await User.findOne({ email: session.user.email })
+    const user = (await User.findOne({ email: session.user.email })
       .select('-password -__v') // Exclude sensitive fields
-      .lean() as unknown as UserProfileDocument | null;
+      .lean()) as unknown as UserProfileDocument | null;
 
     if (!user) {
       return NextResponse.json(
@@ -134,11 +134,11 @@ export async function PATCH(request: NextRequest) {
     await connectToDatabase();
 
     // Update user
-    const user = await User.findOneAndUpdate(
+    const user = (await User.findOneAndUpdate(
       { email: session.user.email },
       { $set: updates },
       { new: true, select: '-password -__v' }
-    ).lean() as unknown as UserProfileDocument | null;
+    ).lean()) as unknown as UserProfileDocument | null;
 
     if (!user) {
       return NextResponse.json(

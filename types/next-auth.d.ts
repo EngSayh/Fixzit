@@ -11,33 +11,43 @@ declare module 'next-auth' {
       name?: string | null;
       email?: string | null;
       image?: string | null;
-      role: string;
+      role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'VENDOR' | 'OWNER' | 'TENANT' | 'VIEWER' | 'GUEST';
+      subscriptionPlan: 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE' | 'DEFAULT';
+      locale?: string;
       orgId: string | null;
       sessionId: string | null;
       isSuperAdmin: boolean;
       permissions: string[];
       roles: string[];
+      tenantId?: string;
+      userId?: string;
     };
   }
 
   interface User {
     id: string;
-    role: string;
+    role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'VENDOR' | 'OWNER' | 'TENANT' | 'VIEWER' | 'GUEST';
+    subscriptionPlan: 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE' | 'DEFAULT';
+    locale?: string;
     orgId: string | null;
     sessionId: string | null;
     isSuperAdmin?: boolean;
     permissions?: string[];
     roles?: string[];
+    tenantId?: string;
   }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
-    role: string;
+    role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'VENDOR' | 'OWNER' | 'TENANT' | 'VIEWER' | 'GUEST';
+    subscriptionPlan: 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE' | 'DEFAULT';
+    locale?: string;
     orgId: string | null;
     isSuperAdmin?: boolean;
     permissions?: string[];
     roles?: string[];
+    tenantId?: string;
   }
 }

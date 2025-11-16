@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CardGridSkeleton } from '@/components/skeletons';
+import ClientDate from '@/components/ClientDate';
 import {
   Search, Download, Eye, Edit, Trash2,
   ShoppingCart, DollarSign, Calendar, Package
@@ -244,7 +245,7 @@ export default function OrdersPage() {
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
-                            {t('order.date', 'Order Date')}: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
+                            {t('order.date', 'Order Date')}: {order.createdAt ? <ClientDate date={order.createdAt} format="date-only" /> : 'N/A'}
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <DollarSign className="h-4 w-4" />
@@ -257,7 +258,7 @@ export default function OrdersPage() {
                             <h4 className="font-medium text-foreground mb-2">{t('order.items', 'Items')}:</h4>
                             <div className="flex flex-wrap gap-2">
                               {order.items.slice(0, 5).map((item, idx) => (
-                                <Badge key={idx} variant="outline">
+                                <Badge key={`item-${idx}`} variant="outline">
                                   {item.name || `Item ${idx + 1}`} {item.quantity ? `x${item.quantity}` : ''}
                                 </Badge>
                               ))}
@@ -273,7 +274,7 @@ export default function OrdersPage() {
                             {order.deliveryDate && (
                               <>
                                 <Calendar className="h-4 w-4" />
-                                {t('order.delivery', 'Delivery')}: {new Date(order.deliveryDate).toLocaleDateString()}
+                                {t('order.delivery', 'Delivery')}: <ClientDate date={order.deliveryDate} format="date-only" />
                               </>
                             )}
                           </div>
@@ -354,7 +355,7 @@ export default function OrdersPage() {
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
-                            {t('order.date', 'Order Date')}: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
+                            {t('order.date', 'Order Date')}: {order.createdAt ? <ClientDate date={order.createdAt} format="date-only" /> : 'N/A'}
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <DollarSign className="h-4 w-4" />

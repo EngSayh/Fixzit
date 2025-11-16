@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
   for (let i = 0; i < 5; i++) {
     const ticketCode = genCode();
     try {
-      ticket = await SupportTicket.create({
+      ticket = (await SupportTicket.create({
     orgId: sessionUser?.orgId || undefined,
         code: ticketCode,
     subject: `[${code}] ${message}`.slice(0, 140),
@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
     category: 'Technical',
     subCategory: 'Bug Report',
     status: 'New',
-    createdByUserId: sessionUser?.id || undefined,
+    createdBy: sessionUser?.id || undefined,
     requester: !sessionUser && body?.userContext?.email ? {
       name: String(body?.userContext?.email).split('@')[0],
       email: body?.userContext?.email,
@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
         at: now
       }
         ]
-      });
+      }));
       break;
     } catch (_e: unknown) {
       if (_e && typeof _e === 'object' && 'code' in _e && _e.code === 11000) continue; // duplicate code -> retry
@@ -217,5 +217,4 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return new NextResponse(null, { status: 405 });
 }
-
 

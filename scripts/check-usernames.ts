@@ -13,7 +13,8 @@ async function listUsers() {
     const usernames = ['test-admin', 'test-owner', 'test-employee', 'test-technician', 'test-property-manager', 'test-tenant', 'test-vendor', 'test-viewer'];
     
     for (const username of usernames) {
-      const user = await (User as any).findOne({ username }).select('code username email professional.role status').lean();
+      const user = await User.findOne({ username }).select('code username email professional.role status').lean();
+>>>>>>> feat/souq-marketplace-advanced
       if (user) {
         console.log(`✅ ${username.padEnd(25)} ${user.email?.padEnd(40)} ${user.professional?.role || 'NO_ROLE'}`);
       } else {

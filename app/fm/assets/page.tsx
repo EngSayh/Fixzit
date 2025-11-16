@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { CardGridSkeleton } from '@/components/skeletons';
 import { Building2, Plus, Search, Settings, Eye, Edit, Trash2, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import ClientDate from '@/components/ClientDate';
 
 import { logger } from '@/lib/logger';
 interface MaintenanceRecord {
@@ -117,11 +118,8 @@ export default function AssetsPage() {
                 />
               </div>
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Asset Type" />
-              </SelectTrigger>
-              <SelectContent>
+              <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Asset Type" className="w-48">
+                <SelectContent>
                 <SelectItem value="">All Types</SelectItem>
                 <SelectItem value="HVAC">HVAC</SelectItem>
                 <SelectItem value="ELECTRICAL">Electrical</SelectItem>
@@ -135,11 +133,8 @@ export default function AssetsPage() {
                 <SelectItem value="OTHER">Other</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
+              <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-48">
+                <SelectContent>
                 <SelectItem value="">All Status</SelectItem>
                 <SelectItem value="ACTIVE">Active</SelectItem>
                 <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
@@ -304,7 +299,7 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">
             Last Maintenance: {asset.maintenanceHistory && asset.maintenanceHistory.length > 0 && asset.maintenanceHistory[asset.maintenanceHistory.length - 1].date
-              ? new Date(asset.maintenanceHistory[asset.maintenanceHistory.length - 1].date as string).toLocaleDateString()
+              ? <ClientDate date={asset.maintenanceHistory[asset.maintenanceHistory.length - 1].date as string} format="date-only" />
               : 'Never'}
           </span>
           <div className="flex space-x-2">

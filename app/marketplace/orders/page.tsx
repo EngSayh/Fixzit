@@ -1,6 +1,8 @@
 
 import { logger } from '@/lib/logger';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
+import ClientDate from '@/components/ClientDate';
+import { getServerI18n } from '@/lib/i18n/server';
 
 interface OrderLine {
   productId: string;
@@ -35,6 +37,8 @@ const STATUS_BADGES: Record<string, string> = {
 };
 
 export default async function OrdersPage() {
+  const { t } = await getServerI18n();
+>>>>>>> feat/souq-marketplace-advanced
   try {
     const [, ordersResponse] = await Promise.all([
       serverFetchJsonWithTenant<{ data: unknown }>('/api/marketplace/categories'),
@@ -48,33 +52,60 @@ export default async function OrdersPage() {
     <div className="min-h-screen bg-muted flex flex-col">
       
       <main className="mx-auto max-w-7xl px-4 py-8">
-        <h1 className="text-3xl font-semibold text-foreground">Orders & Approvals</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Track procurement across approval, fulfilment, and finance posting.</p>
+        <h1 className="text-3xl font-semibold text-foreground">
+          {t('marketplace.orders.title', 'Orders & Approvals')}
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {t('marketplace.orders.subtitle', 'Track procurement across approval, fulfilment, and finance posting.')}
+        </p>
         <div className="mt-6 space-y-4">
           {orders.length ? (
             orders.map(order => (
               <article key={order.id} className="rounded-2xl bg-card p-6 shadow">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-primary">Order #{order.id.slice(-6).toUpperCase()}</p>
-                    <h2 className="text-lg font-semibold text-foreground">{order.lines.length} item(s)</h2>
-                    <p className="text-sm text-muted-foreground">Submitted {new Date(order.createdAt).toLocaleString()}</p>
+                    <p className="text-xs uppercase tracking-wide text-primary">
+                      {t('marketplace.orders.orderNumber', 'Order #{{id}}').replace(
+                        '{{id}}',
+                        order.id.slice(-6).toUpperCase()
+                      )}
+                    </p>
+                    <h2 className="text-lg font-semibold text-foreground">
+                      {t('marketplace.orders.itemsCount', '{{count}} item(s)').replace(
+                        '{{count}}',
+                        order.lines.length.toString()
+                      )}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      {t('marketplace.orders.submitted', 'Submitted')}{' '}
+                      <ClientDate date={order.createdAt} format="medium" />
+                    </p>
                   </div>
                   <div className="space-y-2 text-end text-sm">
                     <span className={`inline-flex rounded-full px-3 py-1 font-semibold ${STATUS_BADGES[order.status] ?? 'bg-muted text-foreground'}`}>
-                      {order.status}
+                      {t(`marketplace.orders.status.${order.status.toLowerCase()}`, order.status)}
                     </span>
                     <p className="font-semibold text-primary">
                       {order.totals.grand.toFixed(2)} {order.currency}
                     </p>
-                    <p className="text-xs text-muted-foreground">Approval: {order.approvals?.status ?? 'N/A'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t('marketplace.orders.approvalStatus', 'Approval')}:{' '}
+                      {order.approvals?.status
+                        ? t(
+                            `marketplace.orders.status.${order.approvals.status.toLowerCase()}`,
+                            order.approvals.status
+                          )
+                        : t('common.notAvailable', 'N/A')}
+                    </p>
                   </div>
                 </div>
                 <div className="mt-4 grid gap-3 text-sm text-foreground md:grid-cols-2">
                   {order.lines.map((line) => (
                     <div key={line.productId} className="rounded-2xl border border-border bg-muted p-3">
                       <p className="font-semibold text-foreground">{line.productId}</p>
-                      <p className="text-xs text-muted-foreground">{line.qty} × {line.price} {line.currency}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {line.qty} × {line.price} {line.currency}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -82,8 +113,10 @@ export default async function OrdersPage() {
             ))
           ) : (
             <div className="rounded-2xl border border-dashed border-muted-foreground/30 bg-card p-10 text-center text-muted-foreground">
-              <p className="text-lg font-semibold text-foreground">No orders yet</p>
-              <p className="mt-2 text-sm">Place an order via the marketplace to see approval routing.</p>
+              <p className="text-lg font-semibold text-foreground">
+                {t('marketplace.orders.empty.title', 'No orders yet')}
+              </p>
+              <p className="mt-2 text-sm">{t('marketplace.orders.empty.subtitle', 'Place an order via the marketplace to see approval routing.')}</p>
             </div>
           )}
         </div>
@@ -95,7 +128,10 @@ export default async function OrdersPage() {
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center">
-          <p className="text-destructive">Failed to load orders. Please try again later.</p>
+          <p className="text-destructive">
+            {t('marketplace.orders.error.message', 'Failed to load orders. Please try again later.')}
+          </p>
+>>>>>>> feat/souq-marketplace-advanced
         </div>
       </div>
     );

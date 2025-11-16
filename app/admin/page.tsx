@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslation } from '@/contexts/TranslationContext';
 
 /**
  * Admin route canonical redirect
@@ -10,6 +11,7 @@ import { useRouter } from "next/navigation";
  */
 export default function Page() {
   const router = useRouter();
+  const { t } = useTranslation();
   
   useEffect(() => {
     router.replace('/administration');
@@ -17,7 +19,7 @@ export default function Page() {
   
   return (
     <div className="flex items-center justify-center min-h-screen">
-      <p className="text-muted-foreground">Redirecting to administration...</p>
+      <p className="text-muted-foreground">{t('admin.redirecting', 'Redirecting to administration...')}</p>
     </div>
   );
 }

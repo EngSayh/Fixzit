@@ -41,15 +41,15 @@ export async function GET(request: NextRequest) {
     }
     await connectToDatabase();
     const cart = await getOrCreateCart(context.orgId, context.userId);
-    const productIds = cart.lines.map(line => line.productId);
+    const productIds = cart.lines.map((line: any) => line.productId);
     const products = await Product.find({ _id: { $in: productIds } }).lean();
-    const productMap = new Map(products.map(product => [product._id.toString(), serializeProduct(product as Record<string, unknown>)]));
+    const productMap = new Map(products.map((product: any) => [product._id.toString(), serializeProduct(product as Record<string, unknown>)]));
 
     return createSecureResponse({
       ok: true,
       data: {
         ...serializeOrder(cart),
-        lines: cart.lines.map(line => ({
+        lines: cart.lines.map((line: any) => ({
           ...line,
           productId: line.productId.toString(),
           product: productMap.get(line.productId.toString())
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
 
     const cart = await getOrCreateCart(context.orgId, context.userId);
-    const lineIndex = cart.lines.findIndex(line => line.productId.toString() === productId.toString());
+    const lineIndex = cart.lines.findIndex((line: any) => line.productId.toString() === productId.toString());
 
     if (lineIndex >= 0) {
       cart.lines[lineIndex].qty += payload.quantity;

@@ -1,9 +1,14 @@
 {
+  // PowerShell Extension - Disabled (macOS uses zsh/bash)
   "powershell.promptToUpdatePowerShell": false,
   "powershell.startAutomatically": false,
   "powershell.integratedConsole.showOnStartup": false,
   "powershell.sideBar.CommandExplorerVisibility": false,
   "powershell.powerShellDefaultVersion": "PowerShell (disabled)",
+  "powershell.enableProfileLoading": false,
+  "powershell.codeFormatting.autoCorrectAliases": false,
+  "powershell.scriptAnalysis.enable": false,
+  "powershell.developer.waitForSessionFileTimeoutSeconds": 0,
 
   // TypeScript/Node Memory Settings for Large Projects (25K+ files)
   // Root Cause Fix: Exit Code 5 = OOM caused by TS server + extension host + Turbopack cache
@@ -44,20 +49,18 @@
   "git.branchProtectionPrompt": "alwaysPrompt",
 
   // ============================================================================
-  // SECURITY MODEL:
-  // - Global auto-approve is DISABLED (false)
-  // - Specific per-tool rules below explicitly opt-in ONLY safe operations
-  // - File edits: Only docs/tests auto-approved (NOT .vscode, .github, or src)
-  // - Terminal: Only safe read-only + build/test commands auto-approved
-  // - All other operations require manual approval
+  // AGENT ACTIONS REQUIRE CONFIRMATION — No auto-approval
+  // - Auto-approve disabled for security: destructive operations need consent
+  // - Developers can opt-in via User Settings for their workflow preferences
+  // - Workspace enforces safe defaults to protect all team members
   // ============================================================================
 
-  // GitHub Copilot Settings
+  // GitHub Copilot Settings - Full tool access enabled, confirmations required
   "github.copilot.enable": { "*": true },
   "github.copilot.chat.enable": true,
   "github.copilot.chat.codeGeneration.useInstructionFiles": true,
   "github.copilot.chat.agent.runTasks": true,
-  "github.copilot.chat.virtualTools.threshold": 50,
+  "github.copilot.chat.virtualTools.threshold": 0,
   "github.copilot.chat.tools.enabled": {
     "changes": true,
     "edit": true,
@@ -65,73 +68,37 @@
     "new": true,
     "problems": true,
     "runCommands": true,
-    "runNotebooks": false,
+    "runNotebooks": true,
     "runTasks": true,
     "runTests": true,
     "search": true,
     "todos": true,
     "usages": true,
     "vscodeAPI": true,
-    "extensions": false,
-    "openSimpleBrowser": false,
-    "testFailure": false
+    "extensions": true,
+    "openSimpleBrowser": true,
+    "testFailure": true
   },
 
-  // Chat Agent Settings
+  // Chat Agent Settings - REQUIRE CONFIRMATIONS FOR SAFETY
   "chat.agent.enabled": true,
   "chat.agent.maxRequests": 999,
+  
+  // SECURITY: Auto-approve disabled - require explicit confirmation for destructive operations
+  // Developers who want auto-approve should enable it in their personal User Settings
   "chat.tools.global.autoApprove": false,
+  "chat.tools.terminal.autoApprove": false,
+  "chat.tools.edits.autoApprove": false,
+  "chat.tools.edits.confirmWrites": true,
+  
+  // Auto-reply and auto-accept (less risky)
   "chat.tools.terminal.autoReplyToPrompts": true,
-  "chat.notifyWindowOnConfirmation": false,
+  "chat.editing.autoAcceptDelay": 20,
   "chat.checkpoints.enabled": true,
-  "chat.editing.autoAccept": 2,
-
-  // MCP Discovery
-  "chat.mcp.discovery.enabled": {
-    "claude-desktop": false,
-    "windsurf": false,
-    "cursor-global": false,
-    "cursor-workspace": false
-  },
-
-  // SECURITY: File edits require manual approval except for specific trusted patterns
-  // Auto-approved: documentation, tests, config files (non-executable)
-  "chat.tools.edits.autoApprove": {
-    "**/*.md": true,
-    "**/*.test.ts": true,
-    "**/*.test.tsx": true,
-    "**/*.spec.ts": true,
-    "**/*.spec.tsx": true,
-    "**/docs/**/*.ts": true,
-    "**/.vscode/*.json": false,
-    "**/.github/**": false
-  },
-
-  // SECURITY: Terminal commands require manual approval except for safe read-only operations
-  // Auto-approved: package managers (install/build), git (read operations), testing
-  // NOT approved: bash/sh scripts, docker, kubectl, system commands
-  "chat.tools.terminal.autoApprove": {
-    "npm install": true,
-    "npm ci": true,
-    "npm run build": true,
-    "npm run test": true,
-    "pnpm install": true,
-    "pnpm build": true,
-    "pnpm test": true,
-    "yarn install": true,
-    "git status": true,
-    "git log": true,
-    "git diff": true,
-    "git branch": true,
-    "gh pr list": true,
-    "gh pr view": true,
-    "jest": true,
-    "vitest": true,
-    "pytest": true
-  },
-
-  // SECURITY: Workspace trust ENABLED to prevent untrusted code execution
-  "security.workspace.trust.enabled": true,
+  "chat.notifyWindowOnConfirmation": true,
+  
+  // Disable MCP discovery
+  "chat.mcp.discovery.enabled": false,
 
   // Limit CodeRabbit's automatic review scope to avoid token/context exhaustion
   // and reduce extension timeouts on large repositories. These safer defaults

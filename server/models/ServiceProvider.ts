@@ -1,6 +1,7 @@
-import { Schema, model, models, Types, Model } from "mongoose";
+import { Schema, Types, Model, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from '@/src/types/mongoose-compat';
 
 // ----- Enums -----
 const ProviderStatus = ["PENDING", "APPROVED", "ACTIVE", "SUSPENDED", "REJECTED", "BLACKLISTED"] as const;
@@ -395,7 +396,7 @@ ServiceProviderSchema.methods.transitionStatus = async function(
   
   try {
     // Use findByIdAndUpdate for atomic operation
-    const ModelClass = this.constructor as typeof ServiceProviderModel;
+    const ModelClass = (this.constructor as any) as typeof ServiceProviderModel;
     const updated = await ModelClass.findByIdAndUpdate(
       this._id,
       { $set: updateFields },
@@ -444,5 +445,5 @@ ServiceProviderSchema.pre("save", function(next) {
 });
 
 // Export type and model
-export const ServiceProviderModel = models.ServiceProvider || model("ServiceProvider", ServiceProviderSchema);
-export type ServiceProvider = typeof ServiceProviderModel extends Model<infer T> ? T : never;
+export type ServiceProvider = InferSchemaType<typeof ServiceProviderSchema>;
+export const ServiceProviderModel = getModel<ServiceProvider>('ServiceProvider', ServiceProviderSchema);

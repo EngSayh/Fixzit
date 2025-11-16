@@ -3,7 +3,8 @@
  * @module modules/organizations/schema
  */
 
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 export interface IOrganization extends Document {
   _id: mongoose.Types.ObjectId;
@@ -90,4 +91,4 @@ const OrganizationSchema = new Schema<IOrganization>({
 OrganizationSchema.index({ name: 1 }, { unique: true });
 OrganizationSchema.index({ subscriptionPlan: 1, status: 1 });
 
-export default mongoose.models.Organization || mongoose.model<IOrganization>('Organization', OrganizationSchema);
+export default getModel<IOrganization>('Organization', OrganizationSchema);

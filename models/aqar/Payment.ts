@@ -5,7 +5,8 @@
  * Integration with Fixzit Finance module
  */
 
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 /* eslint-disable no-unused-vars */
 export enum PaymentType {
@@ -302,7 +303,7 @@ PaymentSchema.methods.markAsRefunded = async function (
   this.refundedAt = (result as IPayment).refundedAt;
 };
 
-const Payment: Model<IPayment> =
-  mongoose.models.AqarPayment || mongoose.model<IPayment>('AqarPayment', PaymentSchema);
+const Payment =
+  getModel<any>('AqarPayment', PaymentSchema);
 
 export default Payment;

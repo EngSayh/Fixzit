@@ -1,4 +1,5 @@
-import { Schema, model, models, Types } from 'mongoose';
+import { Schema, model, models, Types, Model, Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
@@ -10,7 +11,7 @@ const ServiceAgreementSchema = new Schema(
       required: true 
     },
     subscriber_id: { 
-      type: Types.ObjectId, 
+      type: Schema.Types.ObjectId, 
       required: true,
       refPath: 'subscriber_type'
     },
@@ -72,4 +73,26 @@ ServiceAgreementSchema.pre('save', function(next) {
   next();
 });
 
-export default models.ServiceAgreement || model('ServiceAgreement', ServiceAgreementSchema);
+// TypeScript-safe model export
+interface IServiceAgreement extends Document {
+  subscriber_type: 'Organization' | 'Owner';
+  subscriber_id: Schema.Types.ObjectId;
+  modules: string[];
+  seats: number;
+  term: 'MONTHLY' | 'ANNUAL';
+  start_at: Date;
+  end_at: Date;
+  currency: string;
+  amount: number;
+  status: 'DRAFT' | 'SIGNED' | 'ACTIVE' | 'ENDED' | 'CANCELLED';
+  pdf_url?: string;
+  e_signed_at?: Date;
+  orgId: Schema.Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+}
+
+const ServiceAgreement = getModel<IServiceAgreement>('ServiceAgreement', ServiceAgreementSchema);
+export default ServiceAgreement;

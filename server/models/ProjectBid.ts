@@ -1,6 +1,7 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from '@/src/types/mongoose-compat';
 
 const BidStatus = [
   "DRAFT", "SUBMITTED", "UNDER_REVIEW", "SHORTLISTED",
@@ -264,4 +265,5 @@ ProjectBidSchema.methods.calculateScore = function(weights: { technical: number,
 
 // Export type and model
 export type ProjectBid = InferSchemaType<typeof ProjectBidSchema>;
-export const ProjectBidModel = models.ProjectBid || model("ProjectBid", ProjectBidSchema);
+
+export const ProjectBidModel = getModel<ProjectBid>('ProjectBid', ProjectBidSchema);

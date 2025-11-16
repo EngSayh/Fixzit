@@ -28,7 +28,7 @@ async function updatePasswords() {
     
     // Update by email
     for (const email of emails) {
-      const result = await (User as any).updateOne(
+      const result = await User.updateOne(
         { email },
         { $set: { password: hashedPassword, status: 'ACTIVE' } }
       );
@@ -36,7 +36,7 @@ async function updatePasswords() {
         console.log(`✅ Updated: ${email}`);
         updated++;
       } else {
-        const exists = await (User as any).findOne({ email });
+        const exists = await User.findOne({ email });
         if (exists) {
           console.log(`⏭️  Already set: ${email}`);
         } else {
@@ -47,7 +47,7 @@ async function updatePasswords() {
     
     // Also update by username for corporate users
     for (const username of usernames) {
-      const result = await (User as any).updateOne(
+      const result = await User.updateOne(
         { username },
         { $set: { password: hashedPassword, status: 'ACTIVE' } }
       );

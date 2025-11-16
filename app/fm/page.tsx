@@ -15,6 +15,7 @@ import {
   Search, Download, Eye, Edit, Trash2,
   Star, Phone, Mail, MapPin, Calendar, DollarSign
 } from 'lucide-react';
+import ClientDate from '@/components/ClientDate';
 
 
 interface Vendor {
@@ -420,7 +421,7 @@ export default function FMPage() {
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
-                          {t('rfq.due', 'Due')}: {new Date(rfq.dueDate).toLocaleDateString()}
+                          {t('rfq.due', 'Due')}: <ClientDate date={rfq.dueDate} format="date-only" />
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <DollarSign className="h-4 w-4" />
@@ -479,7 +480,7 @@ export default function FMPage() {
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
-                          {t('order.date', 'Order Date')}: {new Date(order.date).toLocaleDateString()}
+                          {t('order.date', 'Order Date')}: <ClientDate date={order.date} format="date-only" />
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <DollarSign className="h-4 w-4" />
@@ -501,7 +502,7 @@ export default function FMPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
-                          {t('order.delivery', 'Delivery')}: {new Date(order.deliveryDate).toLocaleDateString()}
+                          {t('order.delivery', 'Delivery')}: <ClientDate date={order.deliveryDate} format="date-only" />
                         </div>
                         <div className="flex gap-2">
                           <Button variant="outline" size="sm">

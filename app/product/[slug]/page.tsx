@@ -97,8 +97,8 @@ export default function ProductPage(props: { params: Promise<{ slug: string }> }
           ]
             .filter((a) => a?.value !== undefined && a?.value !== null && String(a.value).trim() !== '')
             .slice(0, 6)
-            .map((a, i: number) => (
-              <li key={i}><b>{a.key}:</b> {String(a.value)}</li>
+            .map((a) => (
+              <li key={a.key}><b>{a.key}:</b> {String(a.value)}</li>
             ))}
         </ul>
         <div className="border rounded p-4">

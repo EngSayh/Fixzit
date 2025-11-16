@@ -4,6 +4,8 @@
  * If your project uses Vitest/Mocha, adapt describe/it/expect/mocking accordingly.
  */
 
+import { vi, describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+
  // We will dynamically import the module under test using a relative path guess.
  // Update the import below to match your actual module path if different.
  // Try common locations in order via require.resolve in a try/catch chain.

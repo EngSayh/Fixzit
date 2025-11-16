@@ -43,7 +43,7 @@ async function run() {
     ];
 
     for (const d of docs) {
-      const { createdAt, ...rest } = d as any;
+      const { createdAt, ...rest } = d;
       await col.updateOne(
         { code: d.code },
         {

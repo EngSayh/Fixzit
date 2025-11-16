@@ -57,17 +57,33 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
   const body = schema.parse(await req.json());
 
-  // MongoDB-only implementation
-  let wo = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId });
+  const wo = await WorkOrder.findOne({ _id: params.id, orgId: user.orgId });
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
 
-  wo.assigneeUserId = body.assigneeUserId;
-  wo.assigneeVendorId = body.assigneeVendorId;
-  if (wo.status === "SUBMITTED") {
-    wo.statusHistory.push({ from: wo.status, to: "DISPATCHED", byUserId: user.id, at: new Date() });
-    wo.status = "DISPATCHED";
-  }
-  await wo.save();
+  const now = new Date();
+  const nextStatus = wo.status === "SUBMITTED" ? "ASSIGNED" : wo.status;
+  const updated = await WorkOrder.findOneAndUpdate(
+    { _id: params.id, orgId: user.orgId },
+    {
+      $set: {
+        'assignment.assignedTo.userId': body.assigneeUserId ?? null,
+        'assignment.assignedTo.vendorId': body.assigneeVendorId ?? null,
+        'assignment.assignedBy': user.id,
+        'assignment.assignedAt': now,
+        status: nextStatus,
+      },
+      $push: {
+        statusHistory: {
+          fromStatus: wo.status,
+          toStatus: nextStatus,
+          changedBy: user.id,
+          changedAt: now,
+          notes: "Assignment updated via API",
+        },
+      },
+    },
+    { new: true }
+  );
 
-  return createSecureResponse(wo, 200, req);
+  return createSecureResponse(updated ?? wo, 200, req);
 }

@@ -10,7 +10,7 @@ export default async function JobDetailPage({ params }: { params: { slug: string
   // Use server-only environment variable (not NEXT_PUBLIC_)
   const orgId = process.env.ORG_ID || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
   
-  const job = await Job.findOne({ orgId, slug: params.slug, status: 'published' }).lean();
+  const job = await (Job as any).findOne({ orgId, slug: params.slug, status: 'published' }).lean();
   
   // Use Next.js notFound() for proper 404 handling
   if (!job) {
@@ -38,7 +38,8 @@ export default async function JobDetailPage({ params }: { params: { slug: string
             <div>
               <h3 className="font-semibold">Requirements</h3>
               <ul className="list-disc ms-6 text-foreground">
-                {job.requirements.map((r: string, i: number) => <li key={i}>{r}</li>)}
+                {job.requirements.map((r: string) => <li key={r}>{r}</li>)}
+>>>>>>> feat/souq-marketplace-advanced
               </ul>
             </div>
           )}
@@ -46,7 +47,8 @@ export default async function JobDetailPage({ params }: { params: { slug: string
             <div>
               <h3 className="font-semibold">Benefits</h3>
               <ul className="list-disc ms-6 text-foreground">
-                {job.benefits.map((b: string, i: number) => <li key={i}>{b}</li>)}
+                {job.benefits.map((b: string) => <li key={b}>{b}</li>)}
+>>>>>>> feat/souq-marketplace-advanced
               </ul>
             </div>
           )}

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import PDPBuyBox from '@/components/marketplace/PDPBuyBox';
 import ProductCard from '@/components/marketplace/ProductCard';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
+import { getServerI18n } from '@/lib/i18n/server';
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
@@ -46,6 +47,8 @@ interface Product {
 }
 
 export default async function ProductDetail(props: ProductPageProps) {
+  const { t, isRTL } = await getServerI18n();
+>>>>>>> feat/souq-marketplace-advanced
   try {
     const params = await props.params;
     const [, productResponse] = await Promise.all([
@@ -67,11 +70,11 @@ export default async function ProductDetail(props: ProductPageProps) {
 
   // [CODE REVIEW]: FIX - DELETE FIXZIT_COLORS object, use Tailwind theme classes
   return (
-    <div className="min-h-screen bg-muted flex flex-col" style={{ direction: 'ltr' }}>
+    <div className="min-h-screen bg-muted flex flex-col" style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
       <main className="mx-auto max-w-7xl px-4 py-8">
         <nav className="text-sm text-primary">
           <a href="/marketplace" className="hover:underline">
-            Marketplace
+            {t('marketplace.product.breadcrumb.home', 'Marketplace')}
           </a>
           <span className="mx-2 text-muted-foreground">/</span>
           {category && (
@@ -115,16 +118,25 @@ export default async function ProductDetail(props: ProductPageProps) {
                   <h1 className="text-3xl font-semibold text-foreground">{product.title.en}</h1>
                   {product.summary && <p className="text-sm text-muted-foreground">{product.summary}</p>}
                   <div className="space-y-2 text-sm text-foreground">
-                    <p><span className="font-semibold">SKU:</span> {product.sku}</p>
-                    {product.brand && <p><span className="font-semibold">Brand:</span> {product.brand}</p>}
+                    <p>
+                      <span className="font-semibold">{t('marketplace.product.sku', 'SKU')}:</span> {product.sku}
+                    </p>
+                    {product.brand && (
+                      <p>
+                        <span className="font-semibold">{t('marketplace.product.brand', 'Brand')}:</span> {product.brand}
+                      </p>
+                    )}
                     {product.standards?.length ? (
                       <p>
-                        <span className="font-semibold">Standards:</span> {product.standards.join(', ')}
+                        <span className="font-semibold">{t('marketplace.product.standards', 'Standards')}:</span>{' '}
+                        {product.standards.join(', ')}
                       </p>
                     ) : null}
                   </div>
                   <div className="rounded-2xl bg-primary/5 p-4">
-                    <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">Key specifications</h2>
+                    <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">
+                      {t('marketplace.product.specs.title', 'Key specifications')}
+                    </h2>
                     <ul className="mt-2 space-y-1 text-sm text-foreground">
                       {Object.entries(product.specs || {}).map(([key, value]) => (
                         <li key={key} className="flex justify-between gap-4">
@@ -136,12 +148,16 @@ export default async function ProductDetail(props: ProductPageProps) {
                   </div>
                   {attachments.length > 0 && (
                     <div className="rounded-2xl border border-primary/30 bg-card p-4">
-                      <h3 className="text-sm font-semibold text-primary">Compliance documents</h3>
+                      <h3 className="text-sm font-semibold text-primary">
+                        {t('marketplace.product.documents.title', 'Compliance documents')}
+                      </h3>
                       <ul className="mt-2 space-y-2 text-sm text-foreground">
                         {attachments.map((file: MediaFile) => (
                           <li key={file.url}>
                             <a href={file.url} className="hover:underline" target="_blank">
-                              {file.role === 'MSDS' ? 'Material Safety Data Sheet' : 'Certificate of Analysis'}
+                              {file.role === 'MSDS'
+                                ? t('marketplace.product.documents.msds', 'Material Safety Data Sheet')
+                                : t('marketplace.product.documents.coa', 'Certificate of Analysis')}
                             </a>
                           </li>
                         ))}
@@ -153,12 +169,16 @@ export default async function ProductDetail(props: ProductPageProps) {
             </div>
 
             <section className="rounded-2xl bg-card p-6 shadow-lg">
-              <h2 className="text-xl font-semibold text-foreground">Related items</h2>
+              <h2 className="text-xl font-semibold text-foreground">
+                {t('marketplace.product.related.title', 'Related items')}
+              </h2>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 {product.related?.length ? (
                   product.related.map((related: Product) => <ProductCard key={related.id} product={related} />)
                 ) : (
-                  <p className="text-sm text-muted-foreground">Additional items will appear as catalogue grows.</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('marketplace.product.related.empty', 'Additional items will appear as catalogue grows.')}
+                  </p>
                 )}
               </div>
             </section>
@@ -174,9 +194,12 @@ export default async function ProductDetail(props: ProductPageProps) {
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center">
-          <p className="text-destructive">Failed to load product details. Please try again later.</p>
+          <p className="text-destructive">
+            {t('marketplace.product.error', 'Failed to load product details. Please try again later.')}
+          </p>
           <Link href="/marketplace" className="mt-4 inline-block text-primary hover:underline">
-            Return to Marketplace
+            {t('marketplace.product.errorCta', 'Return to Marketplace')}
+>>>>>>> feat/souq-marketplace-advanced
           </Link>
         </div>
       </div>

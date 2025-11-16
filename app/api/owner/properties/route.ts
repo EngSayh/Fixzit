@@ -73,18 +73,18 @@ export async function GET(req: NextRequest) {
     }
     
     // Query properties
-    const properties = await Property.find({
+    const properties = (await Property.find({
       'ownerPortal.ownerId': ownerId
     })
     .select(projection)
     .sort({ name: 1 })
-    .lean();
+    .lean());
     
     // Calculate summary statistics
     const summary = {
       totalProperties: properties.length,
-      totalUnits: properties.reduce((sum, p) => sum + (p.units?.length || 0), 0),
-      occupiedUnits: properties.reduce((sum, p) => 
+      totalUnits: properties.reduce((sum: number, p: any) => sum + (p.units?.length || 0), 0),
+      occupiedUnits: properties.reduce((sum: number, p: any) => 
         sum + (p.units?.filter((u: { status: string }) => u.status === 'OCCUPIED').length || 0), 0
       ),
       averageOccupancy: 0

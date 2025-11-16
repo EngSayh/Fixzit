@@ -110,7 +110,50 @@ export async function POST(request: NextRequest) {
         throw new Error('Transaction failed to create package or payment');
       }
       
-      // TODO: Redirect to payment gateway
+      // Redirect to payment gateway (Tap Payments for Saudi market)
+      let paymentGatewayUrl = `/aqar/payments/${payment._id}`;
+      
+      if (process.env.TAP_PAYMENTS_API_KEY && process.env.TAP_PAYMENTS_MERCHANT_ID) {
+        try {
+          // Create Tap Payments checkout session
+          const tapResponse = await fetch('https://api.tap.company/v2/charges', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.TAP_PAYMENTS_API_KEY}`
+            },
+            body: JSON.stringify({
+              amount: payment.amount,
+              currency: 'SAR',
+              customer: {
+                email: payment.buyerEmail,
+                phone: { country_code: '966', number: payment.buyerPhone?.replace(/^\+966/, '') || '' }
+              },
+              source: { id: 'src_all' },
+              redirect: {
+                url: `${process.env.NEXT_PUBLIC_APP_URL}/aqar/payments/${payment._id}/callback`
+              },
+              reference: {
+                transaction: payment._id?.toString(),
+                order: pkg._id?.toString()
+              },
+              metadata: {
+                packageId: pkg._id?.toString(),
+                paymentId: payment._id?.toString()
+              }
+            })
+          });
+          
+          if (tapResponse.ok) {
+            const tapData = await tapResponse.json();
+            paymentGatewayUrl = tapData.transaction?.url || paymentGatewayUrl;
+          }
+        } catch (gatewayError) {
+          logger.error('Payment gateway redirect failed', gatewayError as Error, { paymentId: payment._id });
+          // Fallback to local payment page if gateway fails
+        }
+      }
+>>>>>>> feat/souq-marketplace-advanced
       
       return ok(
         {

@@ -58,6 +58,11 @@ export const FinancePermissions = {
   'finance.ledger.read': [UserRole.ADMIN, UserRole.FINANCE_OFFICER, UserRole.FINANCE_MANAGER, UserRole.MANAGER],
   'finance.ledger.trial-balance': [UserRole.ADMIN, UserRole.FINANCE_OFFICER, UserRole.FINANCE_MANAGER, UserRole.MANAGER],
   'finance.ledger.account-activity': [UserRole.ADMIN, UserRole.FINANCE_OFFICER, UserRole.FINANCE_MANAGER, UserRole.MANAGER],
+
+  // Reporting
+  'finance.reports.income-statement': [UserRole.ADMIN, UserRole.FINANCE_OFFICER, UserRole.FINANCE_MANAGER, UserRole.MANAGER],
+  'finance.reports.balance-sheet': [UserRole.ADMIN, UserRole.FINANCE_OFFICER, UserRole.FINANCE_MANAGER, UserRole.MANAGER],
+  'finance.reports.owner-statement': [UserRole.ADMIN, UserRole.FINANCE_OFFICER, UserRole.FINANCE_MANAGER],
 } as const;
 
 /**

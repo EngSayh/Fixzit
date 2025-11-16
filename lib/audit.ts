@@ -1,4 +1,7 @@
 import { logger } from '@/lib/logger';
+import { AuditLogModel } from '@/server/models/AuditLog';
+
+>>>>>>> feat/souq-marketplace-advanced
 /**
  * Audit Logging System
  * 
@@ -18,15 +21,16 @@ export type AuditEvent = {
   success?: boolean;    // Whether action succeeded
   error?: string;       // Error message if failed
   timestamp?: string;   // ISO timestamp (auto-added)
+  orgId?: string;       // Organization ID for multi-tenancy
 };
 
 /**
  * Audit log to console and/or database
  * 
  * In production, this should:
- * - Write to a dedicated audit collection
- * - Send to external logging service (CloudWatch, DataDog, etc.)
- * - Trigger alerts for critical actions
+ * - Write to a dedicated audit collection ✅ DONE
+ * - Send to external logging service (CloudWatch, DataDog, etc.) TODO: Future enhancement
+ * - Trigger alerts for critical actions TODO: Future enhancement
  * 
  * @param event Audit event data
  */
@@ -36,19 +40,84 @@ export async function audit(event: AuditEvent): Promise<void> {
     timestamp: event.timestamp || new Date().toISOString(),
   };
 
-  // Console logging (replace with structured logger in production)
-  logger.info('[AUDIT] ' + JSON.stringify(entry));
+  // Structured logging
+  logger.info('[AUDIT]', entry);
+>>>>>>> feat/souq-marketplace-advanced
 
-  // TODO: Write to database
-  // await AuditLog.create(entry);
+  // ✅ Write to database
+  try {
+    const entityId = (event.meta?.targetId as string | undefined) || undefined;
+    await AuditLogModel.log({
+      orgId: event.orgId || '',  // TODO(type-safety): orgId should be required
+      action: event.action ? event.action.toUpperCase() : 'CUSTOM',
+      entityType: event.targetType ? event.targetType.toUpperCase() : 'OTHER',
+      entityId,  // TODO(type-safety): Make entityId optional in schema
+      entityName: (event.meta?.targetName as string | undefined) || (event.target ? String(event.target) : undefined),
+      userId: event.actorId,
+      context: {
+        ipAddress: event.ipAddress,
+        userAgent: event.userAgent,
+      },
+      metadata: {
+        ...event.meta,
+        actorEmail: event.actorEmail,
+        source: 'WEB',
+      },
+      result: {
+        success: event.success === true,
+        errorMessage: event.error,
+      },
+    });
+  } catch (dbError: unknown) {
+    // Silent fail - don't break main operation if database write fails
+    logger.error('[AUDIT] Database write failed:', { dbError });
+  }
 
-  // TODO: Send to external service
-  // await sendToDatadog(entry);
+  // Send to external monitoring service (Sentry)
+  try {
+    if (typeof window === 'undefined' && process.env.SENTRY_DSN) {
+      // Server-side Sentry integration
+      const Sentry = await import('@sentry/nextjs').catch(() => null);
+      if (Sentry) {
+        Sentry.captureMessage(`[AUDIT] ${entry.action}`, {
+          level: 'info',
+          extra: entry,
+          tags: {
+            audit_action: entry.action,
+            actor_id: entry.actorId,
+            target_type: entry.targetType || 'unknown',
+          },
+        });
+      }
+    }
+  } catch (error) {
+    logger.error('[AUDIT] Failed to send to Sentry:', { error });
+  }
 
-  // TODO: Trigger alerts for critical actions
-  // if (entry.action.includes('grant') || entry.action.includes('impersonate')) {
-  //   await sendSlackAlert(entry);
-  // }
+  // Trigger alerts for critical actions (Super Admin, Impersonation)
+  if (entry.action.includes('grant') || entry.action.includes('impersonate') || entry.action.includes('revoke')) {
+    try {
+      // Log critical action with high priority
+      logger.warn(`[AUDIT CRITICAL] ${entry.action} by ${entry.actorEmail} on ${entry.target}`, {
+        ...entry,
+        severity: 'critical',
+      });
+      
+      // Future: Send Slack/PagerDuty alert
+      // if (process.env.SLACK_WEBHOOK_URL) {
+      //   await fetch(process.env.SLACK_WEBHOOK_URL, {
+      //     method: 'POST',
+      //     headers: { 'Content-Type': 'application/json' },
+      //     body: JSON.stringify({
+      //       text: `🚨 CRITICAL AUDIT: ${entry.action}`,
+      //       attachments: [{ text: JSON.stringify(entry, null, 2), color: 'danger' }]
+      //     })
+      //   });
+      // }
+    } catch (alertError: unknown) {
+      logger.error('[AUDIT] Failed to send critical action alert:', { alertError });
+    }
+  }
 }
 
 /**

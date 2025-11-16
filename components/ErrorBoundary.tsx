@@ -1,12 +1,18 @@
 'use client';
 
-import React from 'react';
+import React, { type ReactNode } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { STORAGE_KEYS } from '@/config/constants';
 import { logger } from '@/lib/logger';
+
+type ErrorBoundaryProps = {
+  children: ReactNode;
+  fallback?: ReactNode;
+};
+>>>>>>> feat/souq-marketplace-advanced
 
 type ErrorState = {
   hasError: boolean;
@@ -25,8 +31,8 @@ type ErrorState = {
  * 6. ✅ REMOVED all insecure localStorage scraping for PII.
  * 7. ✅ Safely reports the incident.
  */
-export default class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorState> {
-  constructor(props: React.PropsWithChildren) {
+export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, errorId: '' };
   }
@@ -90,7 +96,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
       const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
       navigator.sendBeacon('/api/support/incidents', blob);
 
-    } catch (reportError) {
+    } catch (reportError: unknown) {
       // Use logger for incident reporting failures
       if (typeof window !== 'undefined') {
         import('../lib/logger')

@@ -1,4 +1,5 @@
-import { Schema, model, models, Types, HydratedDocument, Model } from 'mongoose';
+import { Schema, model, models, Types, HydratedDocument } from 'mongoose';
+import { MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from '../server/plugins/tenantIsolation';
 import { auditPlugin } from '../server/plugins/auditPlugin';
 
@@ -202,7 +203,7 @@ export interface IProjectBid {
 
 type ProjectBidDoc = HydratedDocument<IProjectBid>;
 /* eslint-disable no-unused-vars */
-type IProjectBidModel = Model<IProjectBid> & {
+type IProjectBidModel = MModel<IProjectBid> & {
   submit(id: Types.ObjectId, by: Types.ObjectId | string): Promise<ProjectBidDoc | null>;
   withdraw(
     id: Types.ObjectId,
@@ -231,7 +232,7 @@ type IProjectBidModel = Model<IProjectBid> & {
 /* eslint-enable no-unused-vars */
 
 // ---------- Schema ----------
-const ProjectBidSchema = new Schema<IProjectBid, IProjectBidModel>(
+const ProjectBidSchema = new Schema<IProjectBid>(
   {
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     contractorId: { type: Schema.Types.ObjectId, ref: 'Contractor' },
@@ -447,9 +448,9 @@ const ProjectBidSchema = new Schema<IProjectBid, IProjectBidModel>(
 
 // ---------- Plugins (ensure orgId exists for tenant indices) ----------
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-ProjectBidSchema.plugin(tenantIsolationPlugin as any);
+ProjectBidSchema.plugin(tenantIsolationPlugin);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-ProjectBidSchema.plugin(auditPlugin as any);
+ProjectBidSchema.plugin(auditPlugin);
 
 // ---------- Validation: require either contractorId or vendorId ----------
 // eslint-disable-next-line no-unused-vars

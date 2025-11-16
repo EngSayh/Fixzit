@@ -1,11 +1,12 @@
-import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { Schema, InferSchemaType, Types } from "mongoose";
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
+import { getModel } from '@/src/types/mongoose-compat';
 
 const OwnerStatementSchema = new Schema({
   // tenantId will be added by tenantIsolationPlugin
-  ownerId: { type: Types.ObjectId, ref: 'Owner', required: true },
-  propertyId: { type: Types.ObjectId, ref: 'Property' },
+  ownerId: { type: Schema.Types.ObjectId, ref: 'Owner', required: true },
+  propertyId: { type: Schema.Types.ObjectId, ref: 'Property' },
   period: { type: String, required: true },
   year: { type: Number, required: true },
   currency: { type: String, default: "SAR" },
@@ -32,4 +33,4 @@ OwnerStatementSchema.index({ orgId: 1, ownerId: 1, period: 1, year: 1 });
 
 export type OwnerStatementDoc = InferSchemaType<typeof OwnerStatementSchema>;
 
-export const OwnerStatement = models.OwnerStatement || model("OwnerStatement", OwnerStatementSchema);
+export const OwnerStatement = getModel<OwnerStatementDoc>('OwnerStatement', OwnerStatementSchema);

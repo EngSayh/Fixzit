@@ -69,17 +69,18 @@ vi.mock('../topbar/QuickActions', () => ({
 }));
 
 // Mock session
-const mockSession = {
+const mockSession: any = {
   user: {
     id: 'test-user-id',
     email: 'test@example.com',
     name: 'Test User',
-    role: 'USER',
+    role: 'ADMIN',
     orgId: 'test-org-id',
     sessionId: 'test-session-id',
     isSuperAdmin: false,
     permissions: [] as string[],
     roles: [] as string[],
+    subscriptionPlan: 'BASIC',
   },
   expires: '2025-12-31',
 };

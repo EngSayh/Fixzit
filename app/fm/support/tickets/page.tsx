@@ -6,6 +6,7 @@ import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { TableSkeleton } from '@/components/skeletons';
+import ClientDate from '@/components/ClientDate';
 
 import { logger } from '@/lib/logger';
 interface TicketItem {
@@ -177,7 +178,7 @@ export default function SupportTicketsPage() {
                     </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString() : 'N/A'}
+                    {ticket.createdAt ? <ClientDate date={ticket.createdAt} format="date-only" /> : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <Link 

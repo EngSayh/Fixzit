@@ -13,7 +13,8 @@
  */
 
 import { createHash } from 'crypto';
-import type { IPayslip } from '../../models/hr/Payroll';
+import { AttendanceRecord } from '@/server/models/hr.models';
+import type { PayrollLineDoc } from '@/server/models/hr.models';
 
 export interface WPSRecord {
   employeeId: string; // Employee code/ID
@@ -73,7 +74,7 @@ function extractBankCode(iban: string): string {
  * Returns both the file and any errors encountered (for robust error handling)
  */
 export function generateWPSFile(
-  payslips: IPayslip[],
+  lines: PayrollLineDoc[],
   organizationId: string,
   periodMonth: string // Format: YYYY-MM
 ): { file: WPSFile; errors: string[] } {
@@ -81,41 +82,41 @@ export function generateWPSFile(
   const errors: string[] = [];
   let totalNetSalary = 0;
   
-  for (const slip of payslips) {
-    // Validate IBAN before processing
-    if (!slip.iban || !slip.iban.startsWith('SA') || slip.iban.length !== 24) {
-      errors.push(`Invalid IBAN for employee ${slip.employeeCode}: ${slip.iban || 'missing'}`);
-      continue; // Skip this record but continue processing others
-    }
-    
-    const bankCode = extractBankCode(slip.iban);
-    if (bankCode === 'INVALID_IBAN') {
-      errors.push(`Could not extract bank code for employee ${slip.employeeCode}: ${slip.iban}`);
+  for (const line of lines) {
+    if (!line.iban || !line.iban.startsWith('SA') || line.iban.length !== 24) {
+      errors.push(`Invalid IBAN for employee ${line.employeeCode}: ${line.iban || 'missing'}`);
       continue;
     }
     
-    // Extract earnings
-    const basicSalary = slip.earnings.find(e => e.code === 'BASIC')?.amount || 0;
-    const housingAllowance = slip.earnings.find(e => e.code === 'HOUSING')?.amount || 0;
-    const otherAllowances = slip.earnings
-      .filter(e => !['BASIC', 'HOUSING'].includes(e.code))
-      .reduce((sum, e) => sum + e.amount, 0);
+    const bankCode = extractBankCode(line.iban);
+    if (bankCode === 'INVALID_IBAN') {
+      errors.push(`Could not extract bank code for employee ${line.employeeCode}: ${line.iban}`);
+      continue;
+    }
     
-    // Total deductions
-    const totalDeductions = slip.deductions.reduce((sum, d) => sum + d.amount, 0);
+    const housingAllowance = (line.housingAllowance || 0) + (line.transportAllowance || 0);
+    const otherAllowances =
+      line.otherAllowances?.reduce((sum, allowance) => sum + (allowance.amount || 0), 0) || 0;
+    const totalDeductions =
+      (line.deductions || 0) + (line.taxDeduction || 0) + (line.gosiContribution || 0);
+    
+    let workDays = 30;
+    if ((line as any).workDays && typeof (line as any).workDays === 'number') {
+      workDays = (line as any).workDays;
+    }
     
     const record: WPSRecord = {
-      employeeId: slip.employeeCode,
-      employeeName: slip.employeeName,
+      employeeId: line.employeeCode,
+      employeeName: line.employeeName,
       bankCode,
-      iban: slip.iban,
-      basicSalary: Math.round(basicSalary * 100) / 100,
+      iban: line.iban,
+      basicSalary: Math.round((line.baseSalary || 0) * 100) / 100,
       housingAllowance: Math.round(housingAllowance * 100) / 100,
       otherAllowances: Math.round(otherAllowances * 100) / 100,
       totalDeductions: Math.round(totalDeductions * 100) / 100,
-      netSalary: Math.round(slip.netPay * 100) / 100,
+      netSalary: Math.round((line.netPay || 0) * 100) / 100,
       salaryMonth: periodMonth,
-      workDays: 30, // TODO: Calculate actual work days from attendance
+      workDays,
     };
     
     records.push(record);
@@ -242,4 +243,65 @@ export function validateWPSFile(wpsFile: WPSFile): WPSValidation {
     errors,
     warnings,
   };
+}
+
+/**
+ * Calculate actual work days from attendance/timesheet records
+ * 
+ * This function counts the number of days an employee worked in a given month
+ * by querying approved timesheets. Use this before generating payslips to get
+ * accurate work days for WPS file generation.
+ * 
+ * @param employeeId - Employee's unique ID
+ * @param orgId - Organization ID
+ * @param yearMonth - Format: "YYYY-MM" (e.g., "2025-03")
+ * @returns Promise<number> - Number of work days (0-31)
+ * 
+ * @example
+ * const workDays = await calculateWorkDaysFromAttendance(
+ *   employeeId,
+ *   orgId,
+ *   "2025-03"
+ * );
+ * // Use workDays when creating payslip object
+ * const payslip = {
+ *   ...otherFields,
+ *   workDays: workDays,
+ * };
+ */
+export async function calculateWorkDaysFromAttendance(
+  employeeId: string,
+  orgId: string,
+  yearMonth: string
+): Promise<number> {
+  try {
+    // Parse yearMonth to get start and end of month
+    const [year, month] = yearMonth.split('-').map(Number);
+    if (!year || !month || month < 1 || month > 12) {
+      throw new Error(`Invalid yearMonth format: ${yearMonth}. Expected YYYY-MM`);
+    }
+    
+    const monthStart = new Date(year, month - 1, 1); // Month is 0-indexed
+    const monthEnd = new Date(year, month, 0, 23, 59, 59, 999); // Last day of month
+    
+    const records = await AttendanceRecord.find({
+      orgId,
+      employeeId,
+      isDeleted: false,
+      date: { $gte: monthStart, $lte: monthEnd },
+      status: { $in: ['PRESENT', 'LATE'] },
+    }).select('date');
+    
+    const workDaySet = new Set(
+      records.map((record) => record.date.toISOString().slice(0, 10))
+    );
+    
+    const workDays = workDaySet.size;
+    const daysInMonth = monthEnd.getDate();
+    return Math.min(workDays, daysInMonth);
+  } catch (error) {
+    // If calculation fails, return default (caller should handle this)
+    console.error('[WPS] Failed to calculate work days from attendance:', error);
+    return 30; // Default fallback
+  }
 }

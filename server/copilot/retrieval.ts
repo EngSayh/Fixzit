@@ -66,6 +66,7 @@ export async function retrieveKnowledge(session: CopilotSession, query: string, 
 
   const embedding = await callEmbedding(query);
 
+  const { CopilotKnowledge } = await import('@/server/models/CopilotKnowledge') as any;
   const docs = await CopilotKnowledge.find({
     $and: [
       { $or: [{ orgId: session.tenantId }, { orgId: null }] },
@@ -73,7 +74,8 @@ export async function retrieveKnowledge(session: CopilotSession, query: string, 
     ]
   });
 
-  const filtered = (docs as KnowledgeDoc[]).filter(doc => {
+  type KnowledgeDoc = { slug: string; title: string; content: string; embedding?: number[]; roles?: string[] };
+  const filtered = (docs as unknown as KnowledgeDoc[]).filter(doc => {
     if (doc.roles?.length) {
       return doc.roles.includes(session.role);
     }

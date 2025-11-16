@@ -71,8 +71,7 @@ class Logger {
   }
 
   /**
-   * Send log to monitoring service
-   * TODO: Integrate with actual monitoring service (Sentry, DataDog, etc.)
+   * Send log to monitoring service (Sentry integration)
    */
   private async sendToMonitoring(
     level: LogLevel,
@@ -80,10 +79,47 @@ class Logger {
     context?: LogContext
   ): Promise<void> {
     try {
-      // TODO: Replace with actual monitoring service integration
-      // Example: await fetch('/api/logs', { method: 'POST', body: JSON.stringify({ level, message, context }) });
+      // Sentry integration for error tracking
+      if (level === 'error' && process.env.NEXT_PUBLIC_SENTRY_DSN) {
+        const Sentry = await import('@sentry/nextjs').catch(() => null);
+        
+        if (Sentry) {
+          // Pass original Error if available, otherwise create new Error with cause
+          let errorToCapture: Error;
+          if (context?.error instanceof Error) {
+            errorToCapture = context.error;
+          } else {
+            errorToCapture = new Error(message, {
+              cause: context?.error
+            } as ErrorOptions);
+          }
+          
+          Sentry.captureException(errorToCapture, {
+            level: 'error',
+            extra: context,
+            tags: {
+              component: context?.component as string,
+              action: context?.action as string,
+              userId: context?.userId as string,
+            },
+          });
+        }
+      } else if (level === 'warn' && process.env.NEXT_PUBLIC_SENTRY_DSN) {
+        const Sentry = await import('@sentry/nextjs').catch(() => null);
+        
+        if (Sentry) {
+          Sentry.captureMessage(message, {
+            level: 'warning',
+            extra: context,
+          });
+        }
+      }
       
-      // For now, store in session for debugging
+      // ✅ SECURITY FIX: DataDog integration removed from client-accessible logger
+      // Moved to server-only module (/app/api/logs/route.ts) to prevent credential leaks
+      // Client components should call /api/logs endpoint instead of accessing keys directly
+      
+      // Store in session for debugging (browser only)
       if (typeof window !== 'undefined' && window.sessionStorage) {
         const logs = JSON.parse(sessionStorage.getItem('app_logs') || '[]');
         logs.push({

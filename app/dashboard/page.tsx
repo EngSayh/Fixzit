@@ -23,10 +23,10 @@ export default function DashboardPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => {
+          {stats.map((stat) => {
             const Icon = stat.icon;
             return (
-              <div key={index} className="bg-card rounded-2xl shadow p-6">
+              <div key={stat.labelKey} className="bg-card rounded-2xl shadow p-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">{t(stat.labelKey, stat.labelKey)}</p>
@@ -50,8 +50,8 @@ export default function DashboardPage() {
             </div>
             <div className="p-6">
               <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={`task-${i}`} className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">WO-{1000 + i} - {t('dashboard.acMaintenance', 'AC Maintenance')}</p>
                       <p className="text-sm text-muted-foreground">{t('dashboard.propertyTowerA', 'Property Tower A')} - {t('dashboard.unit', 'Unit')} 301</p>
@@ -73,7 +73,7 @@ export default function DashboardPage() {
             <div className="p-6">
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between">
+                  <div key={`payment-${i}`} className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">INV-{2000 + i} - {t('dashboard.monthlyRent', 'Monthly Rent')}</p>
                       <p className="text-sm text-muted-foreground">{t('dashboard.tenant', 'Tenant')}: Acme Corp</p>

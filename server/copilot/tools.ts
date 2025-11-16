@@ -2,11 +2,13 @@ import { randomUUID } from "crypto";
 import path from "path";
 import { promises as fs } from "fs";
 import { db } from "@/lib/mongo";
-import { WorkOrder } from "@/server/models/WorkOrder";
+import { WorkOrder, WorkOrderDoc } from "@/server/models/WorkOrder";
 import { OwnerStatement } from "@/server/models/OwnerStatement";
 import { CopilotSession } from "./session";
 import { getPermittedTools } from "./policy";
 import { logger } from "@/lib/logger";
+import { Types } from "mongoose";
+>>>>>>> feat/souq-marketplace-advanced
 
 export interface ToolExecutionResult {
   success: boolean;
@@ -22,6 +24,11 @@ export interface UploadPayload {
   buffer: Buffer;
 }
 
+const DEFAULT_RESPONSE_MINUTES = 120;
+const DEFAULT_RESOLUTION_MINUTES = 72 * 60;
+
+type RequesterType = "TENANT" | "OWNER" | "STAFF" | "EXTERNAL";
+
 async function ensureToolAllowed(session: CopilotSession, tool: string) {
   const allowed = getPermittedTools(session.role);
   if (!allowed.includes(tool)) {
@@ -31,16 +38,40 @@ async function ensureToolAllowed(session: CopilotSession, tool: string) {
   }
 }
 
+function inferRequesterType(role: CopilotSession["role"]): RequesterType {
+  switch (role) {
+    case "OWNER":
+    case "CUSTOMER":
+      return "OWNER";
+    case "VENDOR":
+      return "EXTERNAL";
+    case "TENANT":
+    case "GUEST":
+      return "TENANT";
+    default:
+      return "STAFF";
+  }
+}
+
 function buildWorkOrderFilter(session: CopilotSession) {
-  const filter: Record<string, unknown> = { tenantId: session.tenantId, deletedAt: { $exists: false } };
+  const filter: Record<string, unknown> = { orgId: session.tenantId, isDeleted: { $ne: true } };
   if (session.role === "TECHNICIAN") {
-    filter.assigneeUserId = session.userId;
+    filter["assignment.assignedTo.userId"] = session.userId;
   } else if (session.role === "VENDOR") {
-    filter.assigneeVendorId = session.userId;
+    filter["assignment.assignedTo.vendorId"] = session.userId;
   } else {
-    filter.createdBy = session.userId;
+    filter["requester.userId"] = session.userId;
   }
   return filter;
+}
+
+function normalizePriority(priority: unknown): WorkOrderDoc["priority"] {
+  if (typeof priority !== "string") {
+    return "MEDIUM";
+  }
+  const upper = priority.toUpperCase();
+  const allowed: WorkOrderDoc["priority"][] = ["LOW", "MEDIUM", "HIGH", "URGENT", "CRITICAL"];
+  return allowed.includes(upper as WorkOrderDoc["priority"]) ? (upper as WorkOrderDoc["priority"]) : "MEDIUM";
 }
 
 async function createWorkOrder(session: CopilotSession, input: Record<string, unknown>): Promise<ToolExecutionResult> {
@@ -52,36 +83,75 @@ async function createWorkOrder(session: CopilotSession, input: Record<string, un
     throw new Error("Title must be at least 3 characters long");
   }
 
-  const seq = Math.floor((Date.now() / 1000) % 100000);
-  const code = `WO-${new Date().getFullYear()}-${seq}`;
+  const propertyId = typeof input.propertyId === "string" ? input.propertyId.trim() : "";
+  if (!propertyId) {
+    throw new Error("propertyId is required to create a work order");
+  }
+
+  const now = new Date();
+  const resolutionMinutes =
+    typeof input.resolutionTimeMinutes === "number" && input.resolutionTimeMinutes > 0
+      ? input.resolutionTimeMinutes
+      : DEFAULT_RESOLUTION_MINUTES;
 
   const doc = await WorkOrder.create({
-    tenantId: session.tenantId,
-    code,
+    orgId: session.tenantId,
     title,
-    description: input.description,
-    priority: input.priority || "MEDIUM",
-    propertyId: input.propertyId,
-    unitId: input.unitId,
+    description: typeof input.description === "string" && input.description.trim().length > 0
+      ? input.description
+      : "No description provided",
+    type: typeof input.type === "string" ? input.type : "MAINTENANCE",
+    category: typeof input.category === "string" ? input.category : "GENERAL",
+    subcategory: typeof input.subcategory === "string" ? input.subcategory : undefined,
+    priority: normalizePriority(input.priority),
+    location: {
+      propertyId,
+      unitNumber: typeof input.unitId === "string" ? input.unitId : undefined
+    },
     requester: {
-      type: input.requesterType || "TENANT",
-      id: session.userId,
-      name: session.name,
-      email: session.email
+      userId: session.userId,
+      type: (typeof input.requesterType === "string"
+        ? input.requesterType.toUpperCase()
+        : inferRequesterType(session.role)) as RequesterType,
+      name: session.name || "Copilot User",
+      contactInfo: {
+        email: session.email
+      }
+    },
+    assignment: {
+      assignedBy: session.userId,
+      assignedAt: input.assigneeUserId || input.assigneeVendorId ? now : undefined,
+      assignedTo: {
+        userId: typeof input.assigneeUserId === "string" ? input.assigneeUserId : undefined,
+        vendorId: typeof input.assigneeVendorId === "string" ? input.assigneeVendorId : undefined
+      }
+    },
+    sla: {
+      responseTimeMinutes: DEFAULT_RESPONSE_MINUTES,
+      resolutionTimeMinutes: resolutionMinutes,
+      responseDeadline: new Date(now.getTime() + DEFAULT_RESPONSE_MINUTES * 60 * 1000),
+      resolutionDeadline: new Date(now.getTime() + resolutionMinutes * 60 * 1000),
+      status: "ON_TIME"
     },
     status: "SUBMITTED",
-    statusHistory: [{ from: "DRAFT", to: "SUBMITTED", byUserId: session.userId, at: new Date() }],
+    statusHistory: [{
+      fromStatus: "DRAFT",
+      toStatus: "SUBMITTED",
+      changedBy: session.userId,
+      changedAt: now,
+      notes: "Created via Copilot assistant"
+    }],
     createdBy: session.userId
   });
 
   return {
     success: true,
     message: session.locale === "ar"
-      ? `تم إنشاء أمر العمل ${doc.code} بنجاح`
-      : `Work order ${doc.code} has been created successfully`,
+      ? `تم إنشاء أمر العمل ${doc.workOrderNumber} بنجاح`
+      : `Work order ${doc.workOrderNumber} has been created successfully`,
     intent: "createWorkOrder",
     data: {
-      code: doc.code,
+      code: doc.workOrderNumber,
       id: doc._id?.toString?.() ?? doc._id,
       priority: doc.priority,
       status: doc.status
@@ -94,30 +164,30 @@ async function listMyWorkOrders(session: CopilotSession): Promise<ToolExecutionR
   await db;
 
   const filter = buildWorkOrderFilter(session);
-  interface WorkOrderResult {
-    _id?: { toString?: () => string } | string;
-    code: string;
-    title: string;
-    status: string;
-    priority: string;
-    updatedAt: Date;
-  }
-  const items = await WorkOrder.find(filter).then((results: WorkOrderResult[]) =>
-    results
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-      .slice(0, 5)
-      .map(item => ({
-        id: item._id?.toString?.() ?? item._id,
-        code: item.code,
-        title: item.title,
-        status: item.status,
-        priority: item.priority,
-        updatedAt: item.updatedAt
-      }))
-  ).catch(error => {
+  type LeanWorkOrder = Pick<WorkOrderDoc, "workOrderNumber" | "title" | "status" | "priority" | "updatedAt"> & {
+    _id: Types.ObjectId;
+  };
+
+  let leanResults: LeanWorkOrder[] = [];
+  try {
+    leanResults = (await WorkOrder.find(filter)
+      .sort({ updatedAt: -1 })
+      .limit(5)
+      .select(["workOrderNumber", "title", "status", "priority", "updatedAt"])
+      .lean()) as LeanWorkOrder[];
+  } catch (error) {
     logger.error('Failed to fetch work orders', error instanceof Error ? error : new Error(String(error)));
-    return []; // Return empty array on error
-  });
+  }
+
+  const items = leanResults.map((item) => ({
+    id: item._id.toString(),
+    code: item.workOrderNumber,
+    title: item.title,
+    status: item.status,
+    priority: item.priority,
+    updatedAt: item.updatedAt
+  }));
+>>>>>>> feat/souq-marketplace-advanced
 
   return {
     success: true,
@@ -138,20 +208,45 @@ async function dispatchWorkOrder(session: CopilotSession, input: Record<string, 
     throw new Error("workOrderId is required");
   }
 
-  const update: Record<string, unknown> = {
-    status: "DISPATCHED"
+  const current = await WorkOrder.findOne({ _id: workOrderId, orgId: session.tenantId });
+  if (!current) {
+    throw new Error("Work order not found");
+  }
+
+  const hasAssignee = typeof input.assigneeUserId === "string" || typeof input.assigneeVendorId === "string";
+  const nextStatus = hasAssignee ? "ASSIGNED" : current.status;
+  const setUpdate: Record<string, unknown> = {
+    status: nextStatus,
+    "assignment.assignedBy": session.userId,
+    "assignment.assignedAt": new Date(),
   };
 
-  if (input.assigneeUserId) {
-    update.assigneeUserId = input.assigneeUserId;
-  }
-  if (input.assigneeVendorId) {
-    update.assigneeVendorId = input.assigneeVendorId;
+  if (typeof input.assigneeUserId === "string") {
+    setUpdate["assignment.assignedTo.userId"] = input.assigneeUserId;
+  } else if (input.assigneeUserId === null) {
+    setUpdate["assignment.assignedTo.userId"] = null;
   }
 
-  const updated = await WorkOrder.findOneAndUpdate(
-    { _id: workOrderId, tenantId: session.tenantId },
-    { $set: update, $push: { statusHistory: { from: "SUBMITTED", to: "DISPATCHED", byUserId: session.userId, at: new Date() } } },
+  if (typeof input.assigneeVendorId === "string") {
+    setUpdate["assignment.assignedTo.vendorId"] = input.assigneeVendorId;
+  } else if (input.assigneeVendorId === null) {
+    setUpdate["assignment.assignedTo.vendorId"] = null;
+  }
+
+  const updated = await WorkOrder.findByIdAndUpdate(
+    current._id,
+    {
+      $set: setUpdate,
+      $push: {
+        statusHistory: {
+          fromStatus: current.status,
+          toStatus: nextStatus,
+          changedBy: session.userId,
+          changedAt: new Date(),
+          notes: "Assigned via Copilot assistant"
+        }
+      }
+    },
     { new: true }
   );
 
@@ -163,13 +258,13 @@ async function dispatchWorkOrder(session: CopilotSession, input: Record<string, 
     success: true,
     intent: "dispatchWorkOrder",
     message: session.locale === "ar"
-      ? `تم إسناد أمر العمل ${updated.code}`
-      : `Work order ${updated.code} has been dispatched`,
+      ? `تم إسناد أمر العمل ${updated.workOrderNumber}`
+      : `Work order ${updated.workOrderNumber} has been dispatched`,
     data: {
-      code: updated.code,
+      code: updated.workOrderNumber,
       status: updated.status,
-      assigneeUserId: updated.assigneeUserId,
-      assigneeVendorId: updated.assigneeVendorId
+      assigneeUserId: updated.assignment?.assignedTo?.userId,
+      assigneeVendorId: updated.assignment?.assignedTo?.vendorId
     }
   };
 }
@@ -185,9 +280,28 @@ async function scheduleVisit(session: CopilotSession, input: Record<string, unkn
     throw new Error("Valid workOrderId and scheduledFor timestamp are required");
   }
 
-  const updated = await WorkOrder.findOneAndUpdate(
-    { _id: workOrderId, tenantId: session.tenantId },
-    { $set: { dueAt: scheduledFor }, $push: { statusHistory: { from: "DISPATCHED", to: "DISPATCHED", note: "Scheduled visit", byUserId: session.userId, at: new Date() } } },
+  const current = await WorkOrder.findOne({ _id: workOrderId, orgId: session.tenantId });
+  if (!current) {
+    throw new Error("Work order not found");
+  }
+
+  const updated = await WorkOrder.findByIdAndUpdate(
+    current._id,
+    {
+      $set: {
+        "assignment.scheduledDate": scheduledFor,
+        "sla.resolutionDeadline": scheduledFor
+      },
+      $push: {
+        statusHistory: {
+          fromStatus: current.status,
+          toStatus: current.status,
+          changedBy: session.userId,
+          changedAt: new Date(),
+          notes: "Visit scheduled via Copilot"
+        }
+      }
+    },
     { new: true }
   );
 
@@ -202,8 +316,8 @@ async function scheduleVisit(session: CopilotSession, input: Record<string, unkn
       ? `تم تحديد موعد الزيارة في ${scheduledFor.toLocaleString('ar-SA')}`
       : `Visit scheduled for ${scheduledFor.toLocaleString()}`,
     data: {
-      code: updated.code,
-      dueAt: updated.dueAt
+      code: updated.workOrderNumber,
+      dueAt: updated.sla?.resolutionDeadline
     }
   };
 }
@@ -231,7 +345,7 @@ async function uploadWorkOrderPhoto(session: CopilotSession, payload: UploadPayl
   };
 
   const updated = await WorkOrder.findOneAndUpdate(
-    { _id: payload.workOrderId, tenantId: session.tenantId },
+    { _id: payload.workOrderId, orgId: session.tenantId },
     { $push: { attachments: attachment } },
     { new: true }
   );
@@ -247,7 +361,7 @@ async function uploadWorkOrderPhoto(session: CopilotSession, payload: UploadPayl
       ? "تم رفع الصورة وربطها بأمر العمل."
       : "Photo uploaded and linked to the work order.",
     data: {
-      code: updated.code,
+      code: updated.workOrderNumber,
       attachment
     }
   };
@@ -262,7 +376,7 @@ async function ownerStatements(session: CopilotSession, input: Record<string, un
   const period = input.period || "YTD";
 
   interface StatementDoc {
-    tenantId: string;
+    orgId: string;
     ownerId: string;
     period: string;
     year: number;
@@ -278,7 +392,7 @@ async function ownerStatements(session: CopilotSession, input: Record<string, un
   }
 
   const statements = await OwnerStatement.find({
-    tenantId: session.tenantId,
+    orgId: session.tenantId,
     ownerId,
     ...(period !== "YTD" ? { period } : {}),
     ...(year ? { year } : {})
@@ -382,4 +496,3 @@ export function detectToolFromMessage(message: string): { name: string; args: Re
 
   return null;
 }
-

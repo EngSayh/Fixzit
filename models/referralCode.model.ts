@@ -6,6 +6,7 @@ import {
   HydratedDocument,
   Model,
 } from 'mongoose';
+import { getModel, MModel } from '@/src/types/mongoose-compat';
  
 import { tenantIsolationPlugin } from '../server/plugins/tenantIsolation';
  
@@ -134,10 +135,10 @@ export interface ReferralCodeStaticMethods {
 }
 /* eslint-enable no-unused-vars */
 
-type ReferralCodeModelType = Model<IReferralCode, Record<string, never>, Record<string, never>, Record<string, never>, HydratedDocument<IReferralCode>> & ReferralCodeStaticMethods;
+type ReferralCodeModelType = MModel<IReferralCode> & ReferralCodeStaticMethods;
 
 // ---------------- Schema ----------------
-const ReferralCodeSchema = new Schema<IReferralCode, ReferralCodeModelType>({
+const ReferralCodeSchema = new Schema<IReferralCode>({
   orgId: { type: Schema.Types.ObjectId, required: true, index: true, ref: 'Organization' },
 
   referrerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -212,9 +213,7 @@ const ReferralCodeSchema = new Schema<IReferralCode, ReferralCodeModelType>({
 });
 
 // ---------------- Plugins ----------------
-// @ts-expect-error - plugin type signatures are too strict for our typed schema
 ReferralCodeSchema.plugin(tenantIsolationPlugin);
-// @ts-expect-error - plugin type signatures are too strict for our typed schema
 ReferralCodeSchema.plugin(auditPlugin);
 
 // ---------------- Indexes ----------------
@@ -453,4 +452,4 @@ ReferralCodeSchema.pre('save', function (next) {
 
 // ---------------- Export ----------------
 export const ReferralCodeModel =
-  (models.ReferralCode || model<IReferralCode, ReferralCodeModelType>('ReferralCode', ReferralCodeSchema)) as ReferralCodeModelType;
+  getModel<IReferralCode>('ReferralCode', ReferralCodeSchema) as ReferralCodeModelType;

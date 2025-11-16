@@ -20,7 +20,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    if (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'super_admin') {
+    if (session.user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Forbidden - Super Admin access required' }, { status: 403 });
     }
     
@@ -37,7 +37,7 @@ export async function DELETE(
     
     const UserModel = models.User || model('User', UserSchema);
     
-    const user = await UserModel.findOne({
+    const user = await (UserModel as any).findOne({
       _id: id,
       orgId: session.user.orgId || 'default',
     });
@@ -74,7 +74,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    if (session.user.role !== 'SUPER_ADMIN' && session.user.role !== 'super_admin') {
+    if (session.user.role !== 'SUPER_ADMIN') {
       return NextResponse.json({ error: 'Forbidden - Super Admin access required' }, { status: 403 });
     }
     
@@ -109,7 +109,7 @@ export async function PATCH(
     
     const UserModel = models.User || model('User', UserSchema);
     
-    const user = await UserModel.findOne({
+    const user = await (UserModel as any).findOne({
       _id: id,
       orgId: session.user.orgId || 'default',
     });
@@ -136,9 +136,9 @@ export async function PATCH(
     if (body.accessLevel) updates['security.accessLevel'] = body.accessLevel;
     if (body.status) updates.status = body.status;
     
-    await UserModel.updateOne({ _id: id }, { $set: updates });
+    await (UserModel as any).updateOne({ _id: id }, { $set: updates });
     
-    const updatedUser = await UserModel.findById(id);
+    const updatedUser = await (UserModel as any).findById(id);
     
     return NextResponse.json({ user: updatedUser });
   } catch (error) {

@@ -1,6 +1,7 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from '@/src/types/mongoose-compat';
 
 const InvitationStatus = ["PENDING", "ACCEPTED", "DECLINED", "EXPIRED"] as const;
 const MemberRole = ["ADMIN", "MEMBER", "VIEWER"] as const;
@@ -108,4 +109,5 @@ FamilyMemberSchema.methods.isInvitationValid = function() {
 
 // Export type and model
 export type FamilyMember = InferSchemaType<typeof FamilyMemberSchema>;
-export const FamilyMemberModel = models.FamilyMember || model("FamilyMember", FamilyMemberSchema);
+
+export const FamilyMemberModel = getModel<FamilyMember>('FamilyMember', FamilyMemberSchema);

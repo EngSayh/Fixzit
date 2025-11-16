@@ -1,4 +1,5 @@
-import { Schema, InferSchemaType, model, models, Types } from 'mongoose';
+import { Schema, InferSchemaType, model, models, Types } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 /**
  * Role Model
@@ -122,5 +123,5 @@ RoleSchema.virtual('isSuperAdmin').get(function () {
 
 export type Role = InferSchemaType<typeof RoleSchema>;
 
-const RoleModel = models.Role || model<Role>('Role', RoleSchema);
+const RoleModel = getModel<Role>('Role', RoleSchema);
 export default RoleModel;

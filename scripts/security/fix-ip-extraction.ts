@@ -70,7 +70,7 @@ function validateTypeScript(content: string): { valid: boolean; errors: string[]
     );
     
     // Check for syntax errors
-    const diagnostics = (sourceFile as any).parseDiagnostics || [];
+    const diagnostics = (sourceFile as ts.SourceFile & { parseDiagnostics?: ts.Diagnostic[] }).parseDiagnostics || [];
     if (diagnostics.length > 0) {
       diagnostics.forEach((diag: ts.Diagnostic) => {
         const message = ts.flattenDiagnosticMessageText(diag.messageText, '\n');

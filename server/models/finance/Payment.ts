@@ -14,9 +14,14 @@
  */
 
 import { Schema, model, models, Types, Document } from 'mongoose';
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import Decimal from 'decimal.js';
-import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
-import { auditPlugin } from '../../plugins/auditPlugin';
+import { ensureMongoConnection } from '@/server/lib/db';
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+import { auditPlugin } from '@/server/plugins/auditPlugin';
+
+ensureMongoConnection();
+>>>>>>> feat/souq-marketplace-advanced
 
 // ============================================================================
 // ENUMS & CONSTANTS
@@ -148,6 +153,11 @@ export interface IPayment extends Document {
   // Audit fields added by auditPlugin
   createdBy: Types.ObjectId;
   updatedBy?: Types.ObjectId;
+  
+  // Instance methods
+  allocateToInvoice(invoiceId: Types.ObjectId | string, invoiceNumber: string, amount: number): void;
+  reconcile(reconciledBy: Types.ObjectId, bankStatementDate: Date, bankStatementReference: string, notes?: string): void;
+  reverse(reversedBy: Types.ObjectId, reason: string): Promise<IPayment>;
   version: number;
 }
 
@@ -538,4 +548,4 @@ PaymentSchema.statics.getCashFlowSummary = async function(
 // MODEL EXPORT
 // ============================================================================
 
-export const Payment = models.Payment || model<IPayment>('Payment', PaymentSchema);
+export const Payment = getModel<IPayment>('Payment', PaymentSchema);

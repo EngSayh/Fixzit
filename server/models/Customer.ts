@@ -1,4 +1,5 @@
 import { Schema, model, models, Document } from 'mongoose';
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
@@ -66,6 +67,6 @@ CustomerSchema.index({ orgId: 1, name: 1 });
 CustomerSchema.index({ orgId: 1, isActive: 1 });
 CustomerSchema.index({ orgId: 1, vatNumber: 1 }, { sparse: true });
 
-const Customer = models.Customer || model<ICustomer>('Customer', CustomerSchema);
+const Customer = getModel<ICustomer>('Customer', CustomerSchema);
 
 export default Customer;

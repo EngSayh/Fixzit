@@ -20,8 +20,12 @@
  */
 
 import { Schema, model, models, Types } from 'mongoose';
-import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
-import { auditPlugin } from '../../plugins/auditPlugin';
+import { getModel, MModel } from '@/src/types/mongoose-compat';
+import { ensureMongoConnection } from '@/server/lib/db';
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+import { auditPlugin } from '@/server/plugins/auditPlugin';
+
+ensureMongoConnection();
 
 export interface IChartAccount {
   _id: Types.ObjectId;
@@ -29,6 +33,10 @@ export interface IChartAccount {
   accountCode: string; // e.g., "1100", "4200", "6300"
   accountName: string; // e.g., "Cash - Operating Account"
   accountType: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
+  // Add aliases for common property names
+  code: string; // Alias for accountCode
+  name: string | { en?: string; ar?: string }; // Alias for accountName
+  type: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE'; // Alias for accountType
   parentId?: Types.ObjectId; // For hierarchical COA (e.g., 1100 under 1000)
   description?: string;
   isActive: boolean;
@@ -55,7 +63,17 @@ const ChartAccountSchema = new Schema<IChartAccount>(
       uppercase: true,
       match: /^[0-9]{4,6}$/ // e.g., "1100", "420001"
     },
+    code: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      match: /^[0-9]{4,6}$/
+    },
     accountName: { type: String, required: true, trim: true },
+    name: {
+      en: { type: String, trim: true },
+      ar: { type: String, trim: true }
+    },
     accountType: { 
       type: String, 
       required: true,
@@ -64,7 +82,7 @@ const ChartAccountSchema = new Schema<IChartAccount>(
     },
     parentId: { type: Schema.Types.ObjectId, ref: 'ChartAccount' },
     description: { type: String, trim: true },
-    isActive: { type: Boolean, default: true, index: true },
+    isActive: { type: Boolean, default: true, index: true, alias: 'active' },
     isSystemAccount: { type: Boolean, default: false },
     normalBalance: { 
       type: String, 
@@ -80,12 +98,36 @@ const ChartAccountSchema = new Schema<IChartAccount>(
   { timestamps: true }
 );
 
+ChartAccountSchema.pre('validate', function(next) {
+  if (!this.code && this.accountCode) {
+    this.code = this.accountCode;
+  }
+  if (!this.accountCode && this.code) {
+    this.accountCode = this.code;
+  }
+
+  if (!this.accountName && this.name?.en) {
+    this.accountName = this.name.en;
+  }
+
+  if (!this.name) {
+    this.name = {} as typeof this.name;
+  }
+
+  if (!this.name.en && this.accountName) {
+    this.name.en = this.accountName;
+  }
+
+  next();
+});
+
 // Apply plugins BEFORE indexes
 ChartAccountSchema.plugin(tenantIsolationPlugin);
 ChartAccountSchema.plugin(auditPlugin);
 
 // All indexes MUST be tenant-scoped
 ChartAccountSchema.index({ orgId: 1, accountCode: 1 }, { unique: true }); // Unique per org
+ChartAccountSchema.index({ orgId: 1, code: 1 }, { unique: true, sparse: true });
 ChartAccountSchema.index({ orgId: 1, accountType: 1, isActive: 1 });
 ChartAccountSchema.index({ orgId: 1, parentId: 1 });
 ChartAccountSchema.index({ orgId: 1, accountName: 'text' }); // For search
@@ -96,14 +138,18 @@ ChartAccountSchema.virtual('isParent').get(function(this: IChartAccount) {
   return !this.parentId;
 });
 
+ChartAccountSchema.virtual('type').get(function(this: IChartAccount) {
+  return this.accountType;
+});
+
 // Method: Get full account path (e.g., "1000 › 1100 › 1110")
 ChartAccountSchema.methods.getAccountPath = async function(): Promise<string> {
   const path: string[] = [this.accountCode];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let current = this as any;
+  type AccountDoc = { accountCode: string; parentId?: unknown };
+  let current = this as unknown as AccountDoc;
   
   while (current.parentId) {
-    const parent = await model('ChartAccount').findById(current.parentId);
+    const parent = await model('ChartAccount').findById(current.parentId) as AccountDoc | null;
     if (!parent) break;
     path.unshift(parent.accountCode);
     current = parent;
@@ -195,6 +241,6 @@ ChartAccountSchema.pre('deleteOne', { document: true, query: false }, async func
   next();
 });
 
-const ChartAccountModel = models.ChartAccount || model<IChartAccount>('ChartAccount', ChartAccountSchema);
+const ChartAccountModel = getModel<IChartAccount>('ChartAccount', ChartAccountSchema);
 
 export default ChartAccountModel;

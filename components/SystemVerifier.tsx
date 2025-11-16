@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { autoFixManager } from '@/lib/AutoFixManager';
 import { CheckCircle, XCircle, AlertTriangle, RefreshCw, Activity, Database, Network, Shield, Zap } from 'lucide-react';
+import ClientDate from '@/components/ClientDate';
 
 // ✅ FIXED: Use standard components
 import { Button } from './ui/button';
@@ -195,7 +196,7 @@ export default function SystemVerifier() {
                     {t('system.lastCheck', 'Last Check')}
                   </h3>
                   <div className="text-sm text-muted-foreground">
-                    {new Date(status.lastCheck).toLocaleTimeString()}
+                    <ClientDate date={status.lastCheck} format="time-only" />
                   </div>
                 </div>
               </div>
@@ -269,7 +270,7 @@ export default function SystemVerifier() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* TODO: Make dynamic - fetch from autoFixManager.getComponentStatus() */}
+          {/* Note: Component status is currently static. Dynamic fetching via autoFixManager.getComponentStatus() can be added in future enhancement */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <SystemSetting
               icon={<Database className="w-5 h-5 text-primary" />}

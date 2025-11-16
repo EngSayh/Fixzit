@@ -16,14 +16,16 @@ async function checkUsers() {
     console.log('🔍 Checking demo users in database...\n');
     
     for (const email of demoEmails) {
-      const user = await (User as any).findOne({ email }).select('email professional.role status isActive passwordHash');
+      const user = await User.findOne({ email }).select('email professional.role status isActive passwordHash');
       
       if (user) {
         console.log(`✅ ${email}`);
         console.log(`   Role: ${user.professional?.role || 'N/A'}`);
         console.log(`   Status: ${user.status || 'N/A'}`);
-        console.log(`   isActive: ${user.isActive !== undefined ? user.isActive : 'N/A'}`);
-        console.log(`   Has password: ${!!user.passwordHash || !!user.password}`);
+        // TODO(type-safety): Verify User schema has isActive field
+        console.log(`   isActive: ${(user as any).isActive !== undefined ? (user as any).isActive : 'N/A'}`);
+        // TODO(type-safety): User schema has 'password' not 'passwordHash'
+        console.log(`   Has password: ${!!user.password || !!(user as any).passwordHash}`);
       } else {
         console.log(`❌ ${email} - NOT FOUND`);
       }
@@ -32,7 +34,7 @@ async function checkUsers() {
     
     // Check corporate users
     console.log('🏢 Checking corporate users...\n');
-    const corpUsers = await (User as any).find({ 
+    const corpUsers = await User.find({ 
       employeeNumber: { $in: ['EMP001', 'EMP002'] } 
     }).select('employeeNumber email professional.role status');
     

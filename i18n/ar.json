@@ -140,35 +140,19 @@
     }
   },
   "admin": {
-    "title": "الإدارة",
-    "signInRequired": "يجب تسجيل الدخول",
-    "accessDenied": "تم رفض الوصول",
-    "insufficientPerms": "صلاحيات غير كافية",
-    "superAdminRequired": "يتطلب صلاحيات مدير عام",
-    "currentRole": "الدور الحالي",
-    "console": "لوحة التحكم الإدارية",
-    "consoleDesc": "إدارة المستخدمين والأدوار وإعدادات النظام",
-    "tabs": {
-      "overview": "نظرة عامة",
-      "users": "المستخدمون",
-      "roles": "الأدوار والصلاحيات",
-      "audit": "سجلات المراجعة",
-      "features": "علامات الميزات"
-    },
-    "overview": {
-      "title": "نظرة عامة إدارية",
-      "quickLinks": "روابط سريعة",
-      "manageUsers": "إدارة المستخدمين",
-      "manageRoles": "إدارة الأدوار",
-      "viewLogs": "عرض سجلات المراجعة",
-      "featureSettings": "إعدادات الميزات"
+    "administration": {
+      "title": "إدارة النظام",
+      "subtitle": "إدارة جميع جوانب منصة فكس إت"
     },
     "users": {
       "title": "إدارة المستخدمين",
       "description": "إدارة المستخدمين والأدوار والصلاحيات",
       "totalUsers": "إجمالي المستخدمين",
       "activeUsers": "المستخدمون النشطون",
+      "createUser": "إنشاء مستخدم",
+      "active": "المستخدمون النشطون",
       "online": "متصل الآن",
+      "activeUsers": "المستخدمون النشطون",
       "creating": "جاري إنشاء المستخدم...",
       "createFailed": "فشل إنشاء المستخدم",
       "createSuccess": "تم إنشاء المستخدم بنجاح",
@@ -177,7 +161,6 @@
       "deleteFailed": "فشل حذف المستخدم",
       "deleteSuccess": "تم حذف المستخدم بنجاح",
       "exportCsv": "تصدير إلى CSV",
-      "createUser": "إنشاء مستخدم",
       "createNewUser": "إنشاء مستخدم جديد",
       "email": "البريد الإلكتروني",
       "username": "اسم المستخدم",
@@ -209,10 +192,10 @@
       "assignedUsers": "المستخدمون المعينون"
     },
     "audit": {
-      "title": "سجلات المراجعة",
+      "title": "سجلات التدقيق",
       "description": "عرض نشاط النظام وسجلات الامتثال",
       "recentEvents": "الأحداث الأخيرة",
-      "viewLogs": "عرض سجلات المراجعة",
+      "viewLogs": "عرض سجلات التدقيق",
       "action": "الإجراء",
       "user": "المستخدم",
       "timestamp": "الوقت",
@@ -237,6 +220,9 @@
     "features": {
       "title": "علامات الميزات",
       "description": "تمكين/تعطيل الميزات ديناميكيًا",
+      "title": "أعلام الميزات",
+      "description": "تمكين / تعطيل الميزات ديناميكيًا",
+      "active": "الميزات النشطة",
       "activeFeatures": "الميزات النشطة",
       "enabled": "مفعّل",
       "disabled": "معطّل",
@@ -244,7 +230,7 @@
     },
     "database": {
       "title": "إدارة قاعدة البيانات",
-      "description": "مراقبة صحة وأداء قاعدة البيانات",
+      "description": "مراقبة صحة قاعدة البيانات والأداء",
       "status": "الحالة",
       "healthy": "سليم"
     },
@@ -269,22 +255,68 @@
       "uptime": "وقت التشغيل"
     },
     "reports": {
-      "title": "تقارير الإدارة",
-      "description": "إنشاء تقارير وتحليلات على مستوى الإدارة",
+      "title": "تقارير المسؤول",
+      "description": "إنشاء تقارير وتحليلات على مستوى المسؤول",
       "generated": "تم الإنشاء"
-    },
-    "administration": {
-      "title": "إدارة النظام",
-      "subtitle": "إدارة جميع جوانب منصة فكس إت"
     },
     "system": {
       "status": "النظام",
-      "operational": "قيد التشغيل",
+      "operational": "تشغيلي",
       "monitor": "مراقب النظام"
+    },
+    "title": "الإدارة",
+    "signInRequired": "يجب تسجيل الدخول",
+    "accessDenied": "تم رفض الوصول",
+    "insufficientPerms": "صلاحيات غير كافية",
+    "superAdminRequired": "يتطلب صلاحيات مدير عام",
+    "currentRole": "الدور الحالي",
+    "console": "لوحة التحكم الإدارية",
+    "consoleDesc": "إدارة المستخدمين والأدوار وإعدادات النظام",
+    "tabs": {
+      "overview": "نظرة عامة",
+      "users": "المستخدمون",
+      "roles": "الأدوار والصلاحيات",
+      "audit": "سجلات المراجعة",
+      "features": "علامات الميزات"
+    },
+    "overview": {
+      "title": "نظرة عامة إدارية",
+      "quickLinks": "روابط سريعة",
+      "manageUsers": "إدارة المستخدمين",
+      "manageRoles": "إدارة الأدوار",
+      "viewLogs": "عرض سجلات المراجعة",
+      "featureSettings": "إعدادات الميزات"
     }
   },
   "dashboard": {
-    "title": "لوحة التحكم",
+    "title": "لوحة القيادة",
+    "welcomeBack": "مرحبًا بعودتك",
+    "notifications": "الإشعارات",
+    "quickAction": "إجراء سريع",
+    "quickActions": "الإجراءات السريعة",
+    "activeWorkOrders": "أوامر العمل النشطة",
+    "totalProperties": "إجمالي العقارات",
+    "assetsUnderMaintenance": "الأصول قيد الصيانة",
+    "overdueInvoices": "الفواتير المتأخرة",
+    "pending": "قيد الانتظار",
+    "overdue": "متأخر",
+    "occupied": "مشغول",
+    "needAttention": "بحاجة إلى انتباه",
+    "manage": "إدارة",
+    "criticalAssets": "الأصول الحرجة",
+    "viewAssets": "عرض الأصول",
+    "sarPending": "ريال قيد الانتظار",
+    "viewInvoices": "عرض الفواتير",
+    "recentWorkOrders": "أوامر العمل الأخيرة",
+    "viewAll": "عرض الكل",
+    "noRecentWorkOrders": "لا توجد أوامر عمل حديثة",
+    "propertyAlerts": "تنبيهات العقار",
+    "units": "وحدات",
+    "noProperties": "لا توجد عقارات",
+    "newWorkOrder": "أمر عمل جديد",
+    "addProperty": "إضافة عقار",
+    "newTenant": "مستأجر جديد",
+    "createInvoice": "إنشاء فاتورة",
     "welcome": "مرحبًا بك مرة أخرى",
     "metrics": {
       "properties": "العقارات",
@@ -292,8 +324,7 @@
       "tenants": "المستأجرون",
       "vendors": "الموردون"
     },
-    "recentActivity": "النشاط الأخير",
-    "quickActions": "إجراءات سريعة"
+    "recentActivity": "النشاط الأخير"
   },
   "workOrders": {
     "title": "أوامر العمل",
@@ -322,6 +353,9 @@
     }
   },
   "properties": {
+    "leases": {
+      "active": "نشط"
+    },
     "title": "العقارات",
     "create": "إضافة عقار",
     "fields": {
@@ -344,6 +378,29 @@
       "capital": "رأسمالي",
       "utility": "مرافق",
       "administrative": "إداري",
+      "maintenanceRepair": "الصيانة والإصلاحات",
+      "capital": "رأسمالي",
+      "utility": "خدمات",
+      "utilities": "المرافق",
+      "administrative": "إداري",
+      "officeSupplies": "مستلزمات المكتب",
+      "electrical": "كهربائي",
+      "hvac": "التكييف والتهوية",
+      "plumbing": "السباكة",
+      "travel": "السفر",
+      "salaries": "الرواتب",
+      "marketing": "التسويق",
+      "rent": "الإيجار",
+      "insurance": "التأمين",
+      "equipment": "المعدات",
+      "supplies": "اللوازم",
+      "services": "الخدمات",
+      "training": "التدريب",
+      "consulting": "الاستشارات",
+      "legal": "القانونية",
+      "technology": "التكنولوجيا",
+      "facilities": "المرافق",
+      "security": "الأمن",
       "other": "أخرى"
     },
     "accountType": {
@@ -355,6 +412,23 @@
     }
   },
   "hr": {
+    "stats": {
+      "totalEmployees": "إجمالي الموظفين",
+      "monthlyPayroll": "كشوف المرتبات الشهرية",
+      "pendingLeave": "طلبات الإجازة المعلقة",
+      "attendance": "الحضور اليوم"
+    },
+    "quickActions": "إجراءات سريعة",
+    "actions": {
+      "addEmployee": "إضافة موظف",
+      "addEmployeeDesc": "تسجيل موظف جديد",
+      "processPayroll": "معالجة كشوف المرتبات",
+      "processPayrollDesc": "تشغيل كشوف المرتبات الشهرية",
+      "approveLeave": "الموافقة على الإجازة",
+      "approveLeaveDesc": "مراجعة طلبات الإجازة"
+    },
+    "recentActivity": "النشاط الأخير",
+    "comingSoon": "سيظهر النشاط الأخير هنا...",
     "title": "الموارد البشرية",
     "tabs": {
       "dashboard": "لوحة التحكم",
@@ -362,24 +436,7 @@
       "payroll": "كشوف المرتبات",
       "leave": "إدارة الإجازات",
       "attendance": "الحضور"
-    },
-    "stats": {
-      "totalEmployees": "إجمالي الموظفين",
-      "monthlyPayroll": "الرواتب الشهرية",
-      "pendingLeave": "طلبات الإجازة المعلقة",
-      "attendance": "معدل الحضور"
-    },
-    "quickActions": "إجراءات سريعة",
-    "actions": {
-      "addEmployee": "إضافة موظف",
-      "addEmployeeDesc": "تسجيل موظف جديد",
-      "processPayroll": "معالجة الرواتب",
-      "processPayrollDesc": "تشغيل الرواتب الشهرية",
-      "approveLeave": "الموافقة على الإجازة",
-      "approveLeaveDesc": "مراجعة طلبات الإجازات"
-    },
-    "recentActivity": "النشاط الأخير",
-    "comingSoon": "قريبًا"
+    }
   },
   "crm": {
     "title": "إدارة علاقات العملاء",
@@ -397,6 +454,7 @@
     "rfq": "طلب عرض سعر"
   },
   "vendors": {
+    "description": "إدارة علاقات الموردين ومقدمي الخدمات",
     "title": "الموردون",
     "add": "إضافة مورد",
     "list": "قائمة الموردين",
@@ -413,9 +471,12 @@
     "requests": "طلبات الصيانة"
   },
   "maintenance": {
-    "title": "الصيانة",
-    "description": "إدارة مهام وجداول الصيانة",
+    "description": "إدارة جداول الصيانة والمهام",
     "tasks": "مهام الصيانة",
+    "asset": "الأصل",
+    "due": "الاستحقاق",
+    "assigned": "مُسند إلى",
+    "title": "الصيانة",
     "schedule": "جدول الصيانة",
     "history": "تاريخ الصيانة",
     "preventive": "الصيانة الوقائية"
@@ -522,6 +583,14 @@
     }
   },
   "common": {
+    "search": "بحث...",
+    "all": "جميع الحالات",
+    "export": "تصدير",
+    "view": "عرض",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "loading": "جارٍ التحميل...",
+    "user": "المستخدم",
     "brand": "فكس إت",
     "backToHome": "العودة للصفحة الرئيسية",
     "signIn": "تسجيل الدخول",
@@ -535,14 +604,8 @@
     "preferences": "التفضيلات",
     "save": "حفظ",
     "cancel": "إلغاء",
-    "delete": "حذف",
-    "edit": "تعديل",
-    "view": "عرض",
-    "search": "بحث",
     "filter": "تصفية",
-    "export": "تصدير",
     "import": "استيراد",
-    "loading": "جاري التحميل...",
     "error": "خطأ",
     "success": "نجح",
     "confirm": "تأكيد",
@@ -599,6 +662,9 @@
     "searchableEntities": "عناصر قابلة للبحث"
   },
   "nav": {
+    "orders": "الطلبات وأوامر الشراء",
+    "maintenance": "الصيانة",
+    "vendors": "الموردون",
     "home": "الرئيسية",
     "dashboard": "لوحة التحكم",
     "properties": "العقارات",
@@ -606,7 +672,6 @@
     "workOrders": "أوامر العمل",
     "assets": "الأصول",
     "tenants": "المستأجرون",
-    "vendors": "الموردون",
     "projects": "المشاريع",
     "rfqs": "طلبات الأسعار",
     "invoices": "الفواتير",
@@ -619,8 +684,6 @@
     "reports": "التقارير",
     "system": "النظام",
     "administration": "الإدارة",
-    "maintenance": "الصيانة",
-    "orders": "الطلبات",
     "settings": "الإعدادات",
     "help": "المساعدة",
     "logout": "تسجيل الخروج",
@@ -635,9 +698,9 @@
     "dAgo": "ي"
   },
   "sidebar": {
+    "role": "الدور",
     "mainNav": "القائمة الرئيسية",
     "accountInfo": "معلومات الحساب",
-    "role": "الدور",
     "planLabel": "الخطة",
     "modules": "الوحدات",
     "noModules": "لا توجد وحدات متاحة لدورك/خطتك",
@@ -760,5 +823,241 @@
     "obj": "اختبار كائن",
     "watch-all": "مشاهدة الكل",
     "welcome": "مرحباً بك"
+  },
+  "fm": {
+    "tenants": {
+      "title": "إدارة المستأجرين",
+      "subtitle": "إدارة علاقات العملاء والعقود",
+      "newTenant": "مستأجر جديد",
+      "addTenant": "إضافة مستأجر جديد",
+      "searchTenants": "البحث عن مستأجرين...",
+      "tenantType": "نوع المستأجر",
+      "individual": "فرد",
+      "company": "شركة",
+      "government": "حكومة",
+      "noTenants": "لم يتم العثور على مستأجرين",
+      "noTenantsText": "ابدأ بإضافة أول مستأجر",
+      "properties": "العقارات",
+      "leaseStatus": "حالة العقد",
+      "noActiveLeases": "لا توجد عقود نشطة",
+      "outstandingBalance": "الرصيد المستحق",
+      "tenantName": "اسم المستأجر",
+      "primaryContactName": "اسم جهة الاتصال الرئيسية",
+      "email": "البريد الإلكتروني",
+      "create": "إضافة مستأجر",
+      "view": "عرض المستأجرين",
+      "edit": "تعديل مستأجر",
+      "delete": "حذف مستأجر",
+      "name": "اسم المستأجر",
+      "phone": "الهاتف",
+      "unit": "الوحدة",
+      "leaseStart": "بداية الإيجار",
+      "leaseEnd": "نهاية الإيجار",
+      "rent": "الإيجار",
+      "deposit": "التأمين",
+      "status": "الحالة",
+      "all": "جميع المستأجرين",
+      "active": "نشط",
+      "inactive": "غير نشط"
+    },
+    "properties": {
+      "allTypes": "جميع الأنواع",
+      "type": "النوع",
+      "selectType": "اختر النوع",
+      "title": "العقارات",
+      "create": "إضافة عقار",
+      "view": "عرض العقارات",
+      "edit": "تعديل عقار",
+      "delete": "حذف عقار",
+      "name": "اسم العقار",
+      "address": "العنوان",
+      "units": "الوحدات",
+      "totalUnits": "إجمالي الوحدات",
+      "occupiedUnits": "الوحدات المشغولة",
+      "vacantUnits": "الوحدات الشاغرة",
+      "owner": "المالك",
+      "manager": "المدير",
+      "status": "الحالة",
+      "all": "جميع العقارات",
+      "residential": "سكني",
+      "commercial": "تجاري",
+      "mixed": "مختلط",
+      "details": "تفاصيل العقار"
+    },
+    "title": "إدارة المرافق",
+    "dashboard": "لوحة التحكم",
+    "workOrders": {
+      "title": "أوامر العمل",
+      "create": "إنشاء أمر عمل",
+      "view": "عرض أوامر العمل",
+      "edit": "تعديل أمر العمل",
+      "delete": "حذف أمر العمل",
+      "status": "الحالة",
+      "priority": "الأولوية",
+      "assignedTo": "مكلف إلى",
+      "dueDate": "تاريخ الاستحقاق",
+      "description": "الوصف",
+      "property": "العقار",
+      "tenant": "المستأجر",
+      "all": "جميع أوامر العمل",
+      "open": "مفتوحة",
+      "pending": "قيد الانتظار",
+      "inProgress": "قيد التنفيذ",
+      "completed": "مكتملة",
+      "closed": "مغلقة",
+      "cancelled": "ملغاة",
+      "board": {
+        "title": "لوحة أوامر العمل",
+        "description": "تتبع وتعيين أوامر العمل عبر جميع العقارات"
+      },
+      "history": {
+        "title": "سجل أوامر العمل"
+      },
+      "pm": {
+        "title": "الصيانة الوقائية"
+      },
+      "sla": {
+        "title": "مراقبة اتفاقية مستوى الخدمة"
+      }
+    },
+    "assets": {
+      "title": "الأصول",
+      "create": "إضافة أصل",
+      "view": "عرض الأصول",
+      "edit": "تعديل أصل",
+      "delete": "حذف أصل",
+      "name": "اسم الأصل",
+      "category": "الفئة",
+      "serialNumber": "الرقم التسلسلي",
+      "purchaseDate": "تاريخ الشراء",
+      "warranty": "الضمان",
+      "condition": "الحالة",
+      "location": "الموقع",
+      "all": "جميع الأصول"
+    },
+    "vendors": {
+      "title": "الموردون",
+      "create": "إضافة مورد",
+      "view": "عرض الموردين",
+      "edit": "تعديل مورد",
+      "delete": "حذف مورد",
+      "name": "اسم المورد",
+      "email": "البريد الإلكتروني",
+      "phone": "الهاتف",
+      "category": "الفئة",
+      "rating": "التقييم",
+      "status": "الحالة",
+      "all": "جميع الموردين",
+      "approved": "معتمد",
+      "pending": "قيد المراجعة",
+      "rejected": "مرفوض"
+    },
+    "projects": {
+      "title": "المشاريع",
+      "create": "إنشاء مشروع",
+      "view": "عرض المشاريع",
+      "edit": "تعديل مشروع",
+      "delete": "حذف مشروع",
+      "name": "اسم المشروع",
+      "description": "الوصف",
+      "startDate": "تاريخ البدء",
+      "endDate": "تاريخ الانتهاء",
+      "budget": "الميزانية",
+      "spent": "المصروف",
+      "status": "الحالة",
+      "all": "جميع المشاريع"
+    },
+    "rfqs": {
+      "title": "العنوان",
+      "create": "إنشاء طلب عرض سعر",
+      "view": "عرض طلبات عروض الأسعار",
+      "edit": "تعديل طلب عرض سعر",
+      "delete": "حذف طلب عرض سعر",
+      "rfqNumber": "رقم الطلب",
+      "description": "الوصف",
+      "deadline": "الموعد النهائي",
+      "status": "الحالة",
+      "bids": "العروض",
+      "all": "جميع الطلبات",
+      "open": "مفتوح",
+      "closed": "مغلق",
+      "awarded": "تم الإرساء"
+    },
+    "invoices": {
+      "title": "الفواتير",
+      "create": "إنشاء فاتورة",
+      "view": "عرض الفواتير",
+      "edit": "تعديل فاتورة",
+      "delete": "حذف فاتورة",
+      "invoiceNumber": "رقم الفاتورة",
+      "date": "التاريخ",
+      "dueDate": "تاريخ الاستحقاق",
+      "amount": "المبلغ",
+      "paid": "مدفوع",
+      "outstanding": "مستحق",
+      "status": "الحالة",
+      "all": "جميع الفواتير",
+      "draft": "مسودة",
+      "sent": "مرسلة",
+      "overdue": "متأخرة"
+    },
+    "common": {
+      "search": "بحث",
+      "filter": "تصفية",
+      "export": "تصدير",
+      "import": "استيراد",
+      "refresh": "تحديث",
+      "add": "إضافة",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "submit": "إرسال",
+      "back": "رجوع",
+      "next": "التالي",
+      "previous": "السابق",
+      "loading": "جاري التحميل...",
+      "noData": "لا توجد بيانات",
+      "error": "خطأ",
+      "success": "نجاح",
+      "warning": "تحذير",
+      "info": "معلومات",
+      "confirm": "تأكيد",
+      "yes": "نعم",
+      "no": "لا",
+      "select": "اختر",
+      "selectAll": "تحديد الكل",
+      "clearAll": "مسح الكل",
+      "actions": "الإجراءات"
+    }
+  },
+  "orders": {
+    "pageDescription": "إدارة أوامر الشراء وطلبات الخدمة",
+    "tabs": {
+      "purchase": "أوامر الشراء",
+      "service": "طلبات الخدمة"
+    }
+  },
+  "order": {
+    "vendor": "المورد",
+    "date": "تاريخ الطلب",
+    "total": "الإجمالي",
+    "items": "العناصر",
+    "delivery": "التسليم",
+    "amount": "المبلغ"
+  },
+  "vendor": {
+    "type": "النوع",
+    "services": "الخدمات",
+    "code": "الرمز"
+  },
+  "status": {
+    "draft": "مسودة",
+    "submitted": "مُقدَّم",
+    "approved": "موافق عليه",
+    "completed": "مكتمل",
+    "pending": "قيد الانتظار",
+    "suspended": "معلق",
+    "rejected": "مرفوض"
   }
 }

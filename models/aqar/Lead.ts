@@ -5,7 +5,8 @@
  * Links to Fixzit CRM module
  */
 
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 /* eslint-disable no-unused-vars */
 export enum LeadStatus {
@@ -247,7 +248,7 @@ LeadSchema.methods.markAsSpam = async function (this: ILead) {
   await this.save();
 };
 
-const Lead: Model<ILead> =
-  mongoose.models.AqarLead || mongoose.model<ILead>('AqarLead', LeadSchema);
+const Lead =
+  getModel<any>('AqarLead', LeadSchema);
 
 export default Lead;

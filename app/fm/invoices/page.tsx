@@ -19,6 +19,7 @@ import {
   QrCode, Send, Eye, Download, Mail, CheckCircle,
   AlertCircle, Clock} from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import ClientDate from '@/components/ClientDate';
 
 interface InvoiceItem {
   description: string;
@@ -218,11 +219,8 @@ export default function InvoicesPage() {
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder={t('fm.properties.status', 'Status')} />
-              </SelectTrigger>
-              <SelectContent>
+              <Select value={statusFilter} onValueChange={setStatusFilter} placeholder={t('fm.properties.status', 'Status')} className="w-48">
+                <SelectContent>
                 <SelectItem value="">{t('common.all', 'All Status')}</SelectItem>
                 <SelectItem value="DRAFT">{t('fm.invoices.draft', 'Draft')}</SelectItem>
                 <SelectItem value="SENT">{t('fm.invoices.sent', 'Sent')}</SelectItem>
@@ -233,11 +231,8 @@ export default function InvoicesPage() {
                 <SelectItem value="CANCELLED">{t('fm.invoices.cancelled', 'Cancelled')}</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder={t('fm.properties.type', 'Type')} />
-              </SelectTrigger>
-              <SelectContent>
+              <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t('fm.properties.type', 'Type')} className="w-48">
+                <SelectContent>
                 <SelectItem value="">{t('fm.properties.allTypes', 'All Types')}</SelectItem>
                 <SelectItem value="SALES">{t('fm.invoices.sales', 'Sales')}</SelectItem>
                 <SelectItem value="PURCHASE">{t('fm.invoices.purchase', 'Purchase')}</SelectItem>
@@ -392,13 +387,13 @@ function InvoiceCard({ invoice, onUpdated, orgId }: { invoice: Invoice; onUpdate
           <div>
             <p className="text-muted-foreground">{t('fm.invoices.issueDate', 'Issue Date')}</p>
             <p className="font-medium">
-              {new Date(invoice.issueDate).toLocaleDateString()}
+              <ClientDate date={invoice.issueDate} format="date-only" />
             </p>
           </div>
           <div>
             <p className="text-muted-foreground">{t('fm.invoices.dueDate', 'Due Date')}</p>
             <p className={`font-medium ${daysOverdue > 0 ? 'text-destructive' : ''}`}>
-              {new Date(invoice.dueDate).toLocaleDateString()}
+              <ClientDate date={invoice.dueDate} format="date-only" />
               {daysOverdue > 0 && ` (${daysOverdue}${t('fm.invoices.overdueDays', 'd overdue')})`}
             </p>
           </div>
@@ -641,7 +636,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
         <h3 className="font-medium mb-2">{t('fm.invoices.lineItems', 'Line Items')}</h3>
         <div className="space-y-2">
           {formData.items.map((item, index) => (
-            <div key={index} className="grid grid-cols-12 gap-2 items-center">
+            <div key={`item-${index}`} className="grid grid-cols-12 gap-2 items-center">
               <div className="col-span-4">
                 <Input
                   placeholder={t('fm.invoices.description', 'Description')}

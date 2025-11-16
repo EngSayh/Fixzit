@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { connectDb } from '@/lib/mongo';
-import { Employee } from '@/models/hr/Employee';
-
+import { connectToDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
+import { EmployeeService } from '@/server/services/hr/employee.service';
 // GET /api/hr/employees - List all employees for the organization
 export async function GET(req: NextRequest) {
   try {
@@ -12,7 +11,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await connectDb();
+    await connectToDatabase();
 
     // Parse query parameters
     const { searchParams } = new URL(req.url);
@@ -23,32 +22,18 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search');
 
     // Build query
-    const query: Record<string, unknown> = { orgId: session.user.orgId };
-    if (status) query.status = status;
-    if (department) query['employment.department'] = department;
-    if (search) {
-      query.$or = [
-        { firstName: { $regex: search, $options: 'i' } },
-        { lastName: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { employeeCode: { $regex: search, $options: 'i' } },
-      ];
-    }
-
-    // Execute query with pagination
-    const skip = (page - 1) * limit;
-    const [employees, total] = await Promise.all([
-      Employee.find(query)
-        .select('-bank.iban -documents') // Exclude sensitive data by default
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Employee.countDocuments(query),
-    ]);
+    const { items, total } = await EmployeeService.searchWithPagination(
+      {
+        orgId: session.user.orgId,
+        employmentStatus: (status as any) || undefined,
+        departmentId: department || undefined,
+        text: search || undefined,
+      },
+      { page, limit }
+    );
 
     return NextResponse.json({
-      employees,
+      employees: items,
       pagination: {
         page,
         limit,
@@ -73,24 +58,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await connectDb();
+    await connectToDatabase();
 
     const body = await req.json();
 
     // Validate required fields
-    if (!body.employeeCode || !body.firstName || !body.lastName || !body.email) {
+    if (!body.employeeCode || !body.firstName || !body.lastName || !body.email || !body.jobTitle || !body.hireDate) {
       return NextResponse.json(
-        { error: 'Missing required fields: employeeCode, firstName, lastName, email' },
+        { error: 'Missing required fields: employeeCode, firstName, lastName, email, jobTitle, hireDate' },
         { status: 400 }
       );
     }
-
-    // Check for duplicate employee code within org
-    const existing = await Employee.findOne({
-      orgId: session.user.orgId,
-      employeeCode: body.employeeCode,
-    });
-
+    const existing = await EmployeeService.getByCode(session.user.orgId, body.employeeCode);
     if (existing) {
       return NextResponse.json(
         { error: `Employee code ${body.employeeCode} already exists` },
@@ -98,11 +77,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create employee
-    const employee = await Employee.create({
-      ...body,
+    const employee = await EmployeeService.upsert({
       orgId: session.user.orgId,
-      status: body.status || 'ONBOARDING',
+      employeeCode: body.employeeCode,
+      firstName: body.firstName,
+      lastName: body.lastName,
+      email: body.email,
+      phone: body.phone,
+      jobTitle: body.jobTitle,
+      departmentId: body.departmentId,
+      managerId: body.managerId,
+      employmentType: body.employmentType || 'FULL_TIME',
+      employmentStatus: body.employmentStatus || 'ACTIVE',
+      hireDate: new Date(body.hireDate),
+      technicianProfile: body.technicianProfile,
+      compensation: body.compensation,
+      bankDetails: body.bankDetails,
     });
 
     return NextResponse.json(employee, { status: 201 });

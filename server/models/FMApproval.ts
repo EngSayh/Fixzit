@@ -1,4 +1,5 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, Model, InferSchemaType } from "mongoose";
+import { getModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "@/server/plugins/tenantIsolation";
 import { auditPlugin } from "@/server/plugins/auditPlugin";
 
@@ -191,4 +192,4 @@ FMApprovalSchema.virtual('daysUntilDue').get(function() {
 
 export type FMApprovalDoc = InferSchemaType<typeof FMApprovalSchema>;
 
-export const FMApproval = models.FMApproval || model('FMApproval', FMApprovalSchema);
+export const FMApproval: Model<FMApprovalDoc> = getModel<FMApprovalDoc>('FMApproval', FMApprovalSchema);

@@ -59,9 +59,9 @@ export async function GET() {
 
   try {
     await connectToDatabase();
-    const jobs = await Job.find({ status: 'published', visibility: 'public' })
+    const jobs = await (Job as any).find({ status: 'published', visibility: 'public' })
       .sort({ publishedAt: -1 })
-      .lean<JobFeedDoc[]>();
+      .lean() as JobFeedDoc[];
 
     const items = (jobs as JobFeedDoc[]).map((j) => `
     <job>

@@ -126,7 +126,7 @@ async function createUsers() {
     let created = 0;
     
     for (const userData of newUsers) {
-      const exists = await (User as any).findOne({ email: userData.email });
+      const exists = await User.findOne({ email: userData.email });
       if (exists) {
         console.log(`⏭️  Skip: ${userData.email} (already exists)`);
         continue;
@@ -134,7 +134,7 @@ async function createUsers() {
       
       try {
         // Use insertOne to bypass validation plugins
-        const result = await (User as any).collection.insertOne({
+        const result = await User.collection.insertOne({
           ...userData,
           password: hashedPassword,
           createdAt: new Date(),

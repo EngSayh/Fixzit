@@ -1,4 +1,5 @@
-import { Schema, model, models, InferSchemaType } from 'mongoose';
+import { Schema, InferSchemaType } from 'mongoose';
+import { getModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
@@ -20,5 +21,4 @@ CmsPageSchema.index({ orgId: 1, slug: 1 }, { unique: true });
 
 export type CmsPageDoc = InferSchemaType<typeof CmsPageSchema>;
 
-// Check if we're using mock database
-export const CmsPage = models.CmsPage || model("CmsPage", CmsPageSchema);
+export const CmsPage = getModel<CmsPageDoc>('CmsPage', CmsPageSchema);

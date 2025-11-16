@@ -106,10 +106,9 @@ export async function POST(
           const data = ReconcileSchema.parse(body);
 
           await payment.reconcile(
+            new Types.ObjectId(user.userId),
             data.bankStatementDate,
             data.bankStatementReference,
-            data.clearedAmount,
-            user.userId,
             data.notes
           );
 
@@ -122,7 +121,7 @@ export async function POST(
 
         if (action === 'clear') {
           payment.status = 'CLEARED';
-          payment.updatedBy = user.userId;
+          payment.updatedBy = new Types.ObjectId(user.userId);
           await payment.save();
 
           return NextResponse.json({
@@ -144,7 +143,7 @@ export async function POST(
           const data = BounceSchema.parse(body);
 
           payment.status = 'BOUNCED';
-          payment.updatedBy = user.userId;
+          payment.updatedBy = new Types.ObjectId(user.userId);
           payment.notes = `${payment.notes || ''}\nBounced: ${data.bounceReason} (${data.bounceDate.toISOString().split('T')[0]})`;
           await payment.save();
 

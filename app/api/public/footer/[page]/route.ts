@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { FooterContent } from '@/server/models/FooterContent';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 
@@ -26,7 +25,8 @@ export async function GET(
     }
 
     // Find footer content for this page
-    const footerContent = await FooterContent.findOne({ page }).lean().exec() as {
+    const { FooterContent } = await import('@/server/models/FooterContent');
+    const footerContent = (await FooterContent.findOne({ page }).lean().exec()) as {
       page: string;
       contentEn: string;
       contentAr: string;

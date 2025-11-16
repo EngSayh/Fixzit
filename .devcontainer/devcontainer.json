@@ -20,38 +20,44 @@
         "esbenp.prettier-vscode"
       ],
       "settings": {
+        // — Agent: Security-conscious configuration for shared devcontainer —
         "chat.agent.enabled": true,
         "chat.agent.maxRequests": 999,
-        "chat.tools.global.autoApprove": true,
+        
+        // SECURITY: Auto-approve disabled in shared environment.
+        // Developers who want auto-approve should configure it in their personal User Settings.
+        // Do not re-enable these in the shared devcontainer configuration.
+
+        // Stop interactive CLI pauses (y/n, prompts)
         "chat.tools.terminal.autoReplyToPrompts": true,
-        "github.copilot.chat.agent.runTasks": true,
-        "chat.notifyWindowOnConfirmation": true,
+
+        // Auto-accept edits DISABLED for security (developers can enable in User Settings)
+        // "chat.editing.autoAcceptDelay": 3,
+
+        // Checkpoints for rollback
         "chat.checkpoints.enabled": true,
-        "chat.editing.autoAccept": 2,
-        "github.copilot.chat.virtualTools.threshold": 1,
-        "chat.mcp.discovery.enabled": true,
-        "chat.tools.edits.autoApprove": {
-          "**/*": true
-        },
-        "chat.tools.terminal.autoApprove": {
-          "npm": true,
-          "pnpm": true,
-          "yarn": true,
-          "bun": true,
-          "node": true,
-          "npx": true,
-          "git": true,
-          "gh": true,
-          "bash": true,
-          "sh": true,
-          "python": true,
-          "pytest": true,
-          "docker": true,
-          "make": true
-        },
-        "security.workspace.trust.enabled": true,
+        
+        // Disable notification balloons
+        "chat.notifyWindowOnConfirmation": false,
+
+        // Disable MCP discovery (boolean, not object)
+        "chat.mcp.discovery.enabled": false,
+
+        // SECURITY: Workspace trust ENABLED (critical security boundary).
+        // Do not disable workspace trust in shared devcontainer - users must be warned about untrusted code.
+        // The startup prompt is intentional and required for security.
+        // Lines below are commented out to use VS Code defaults (trust enabled):
+        // "security.workspace.trust.enabled": true,
+        // "security.workspace.trust.untrustedFiles": "prompt",
+        // "security.workspace.trust.startupPrompt": "default",
+
+        // Agent can run tasks silently
+        "github.copilot.chat.agent.runTasks": true,
+        "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+
+        // Editor QoL
         "git.branchProtection": ["main", "master"],
-        "github.copilot.chat.codeGeneration.useInstructionFiles": true
+        "git.branchProtectionPrompt": "alwaysPrompt"
       }
     }
   },

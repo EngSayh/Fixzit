@@ -1,4 +1,5 @@
 // AutoFixManager for system health monitoring - MongoDB only
+import { logger } from '@/lib/logger';
 import { STORAGE_KEYS } from '@/config/constants';
 
 export interface SystemCheck {
@@ -252,7 +253,7 @@ export class AutoFixManager {
               
               // Log for development/debugging (not in production)
               if (process.env.NODE_ENV !== 'production') {
-                console.debug(`[AutoFix] ${check.id} fix failed:`, err);
+                logger.debug(`[AutoFix] ${check.id} fix failed:`, err);
               }
             }
           }

@@ -68,10 +68,10 @@ export async function GET(
     const { UtilityBillModel: UtilityBill } = await import('@/server/models/owner/UtilityBill');
     
     // Find property and unit using Mongoose
-    const property = await Property.findOne({
+    const property = (await Property.findOne({
       'ownerPortal.ownerId': ownerId,
       'units.unitNumber': params.unitId
-    }).lean();
+    }).lean());
     
     if (!property || Array.isArray(property)) {
       return NextResponse.json(
@@ -80,7 +80,9 @@ export async function GET(
       );
     }
     
-    const unit = property.units?.find((u: { unitNumber: string }) => u.unitNumber === params.unitId);
+    type PropertyUnit = { unitNumber: string; type: string; area?: number; bedrooms?: number; bathrooms?: number; status?: string; [key: string]: unknown };
+    // TODO(type-safety): Verify Property.units schema structure
+    const unit = ((property as any).units as PropertyUnit[] | undefined)?.find((u: PropertyUnit) => u.unitNumber === params.unitId);
     
     if (!unit) {
       return NextResponse.json(
@@ -105,12 +107,13 @@ export async function GET(
     if (includeOptions.includes('tenants')) {
       // In production, this would query a Tenant/Lease collection
       // For now, using data from property model
-      historyData.tenants = unit.tenant ? [{
-        name: unit.tenant.name,
-        contact: unit.tenant.contact,
-        leaseStart: unit.tenant.leaseStart,
-        leaseEnd: unit.tenant.leaseEnd,
-        monthlyRent: unit.tenant.monthlyRent,
+      const tenant = unit.tenant as { name?: string; contact?: string; leaseStart?: Date; leaseEnd?: Date; monthlyRent?: number } | undefined;
+      historyData.tenants = tenant ? [{
+        name: tenant.name,
+        contact: tenant.contact,
+        leaseStart: tenant.leaseStart,
+        leaseEnd: tenant.leaseEnd,
+        monthlyRent: tenant.monthlyRent,
         status: unit.status === 'OCCUPIED' ? 'CURRENT' : 'PAST'
       }] : [];
     }
@@ -118,28 +121,28 @@ export async function GET(
     // Maintenance History (using Mongoose model)
     if (includeOptions.includes('maintenance')) {
       const maintenanceMatch: Record<string, unknown> = {
-        'property.propertyId': property._id,
-        'property.unitNumber': params.unitId,
+        'location.propertyId': property._id,
+        'location.unitNumber': params.unitId,
         status: 'COMPLETED'
       };
       
       if (dateFilter.$gte || dateFilter.$lte) {
-        maintenanceMatch.completedDate = dateFilter;
+        maintenanceMatch['work.actualEndTime'] = dateFilter;
       }
       
       const workOrders = await WorkOrder.find(maintenanceMatch)
-        .sort({ completedDate: -1 })
+        .sort({ 'work.actualEndTime': -1 })
         .limit(50)
         .lean();
       
-      historyData.maintenance = workOrders.map(wo => ({
+      historyData.maintenance = workOrders.map((wo: any) => ({
         workOrderNumber: wo.workOrderNumber,
         title: wo.title,
         category: wo.category,
         priority: wo.priority,
-        cost: wo.cost?.total,
-        completedDate: wo.completedDate,
-        vendor: wo.vendor?.name
+        cost: wo.financial?.costBreakdown?.total ?? wo.financial?.actualCost,
+        completedDate: wo.work?.actualEndTime ?? wo.updatedAt,
+        vendor: wo.assignment?.assignedTo?.name
       }));
     }
     
@@ -153,7 +156,7 @@ export async function GET(
       
       if (dateFilter.$gte || dateFilter.$lte) {
         inspectionMatch.actualDate = dateFilter;
-      }
+      };
       
       const inspections = await MoveInOutInspection.find(inspectionMatch)
         .sort({ actualDate: -1 })
@@ -187,18 +190,18 @@ export async function GET(
       
       if (dateFilter.$gte || dateFilter.$lte) {
         paymentMatch.paymentDate = dateFilter;
-      }
+      };
       
       const payments = await Payment.find(paymentMatch)
         .sort({ paymentDate: -1 })
         .limit(50)
         .lean();
       
-      const totalRevenue = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const totalRevenue = payments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
       
       historyData.revenue = {
         total: totalRevenue,
-        payments: payments.map(p => ({
+        payments: payments.map((p: any) => ({
           amount: p.amount,
           date: p.paymentDate,
           method: p.method,
@@ -217,7 +220,7 @@ export async function GET(
       
       if (dateFilter.$gte || dateFilter.$lte) {
         billMatch['period.endDate'] = dateFilter;
-      }
+      };
       
       const utilityBills = await UtilityBill.find(billMatch)
         .sort({ 'period.endDate': -1 })

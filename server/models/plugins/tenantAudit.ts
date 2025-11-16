@@ -101,12 +101,9 @@ export function tenantAuditPlugin(schema: Schema): void {
   // Enforce tenant isolation on queries
   schema.pre(/^find/, function (next) {
     const context = getRequestContext();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const hookThis = this as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const query = hookThis.getQuery() as Record<string, any>;
+    const query = (this as any).getQuery() as Record<string, unknown>;
     if (context?.orgId && !query.orgId) {
-      hookThis.where({ orgId: context.orgId });
+      (this as any).where({ orgId: context.orgId });
     }
     next();
   });
@@ -114,15 +111,17 @@ export function tenantAuditPlugin(schema: Schema): void {
   // Enforce tenant isolation on updates
   schema.pre(/^update/, function (next) {
     const context = getRequestContext();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const hookThis = this as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const query = hookThis.getQuery() as Record<string, any>;
+    const query = (this as any).getQuery() as Record<string, unknown>;
     if (context?.orgId && !query.orgId) {
-      hookThis.where({ orgId: context.orgId });
+      (this as any).where({ orgId: context.orgId });
     }
     if (context?.userId) {
-      hookThis.set({ updatedBy: context.userId });
+      const update = (this as any).getUpdate() as { $set?: Record<string, unknown> };
+      if (!update.$set) {
+        (this as any).set({ updatedBy: context.userId });
+      } else {
+        update.$set.updatedBy = context.userId;
+      }
     }
     next();
   });

@@ -18,9 +18,14 @@
  */
 
 import { Schema, model, models, Types } from 'mongoose';
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import Decimal from 'decimal.js';
-import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
-import { auditPlugin } from '../../plugins/auditPlugin';
+import { ensureMongoConnection } from '@/server/lib/db';
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+import { auditPlugin } from '@/server/plugins/auditPlugin';
+
+ensureMongoConnection();
+>>>>>>> feat/souq-marketplace-advanced
 
 export interface IJournalLine {
   lineNumber: number;
@@ -37,11 +42,23 @@ export interface IJournalLine {
   vendorId?: Types.ObjectId;
 }
 
+export interface IJournalPosting {
+  accountId: Types.ObjectId;
+  debitMinor?: Types.Decimal128;
+  creditMinor?: Types.Decimal128;
+  currency: string;
+  fxRate?: number;
+  memo?: string;
+  dimensions?: Record<string, unknown>;
+}
+
 export interface IJournal {
   _id: Types.ObjectId;
   orgId: Types.ObjectId;
   journalNumber: string; // e.g., "JE-2025-001"
+  number?: string; // Alias for journalNumber (finance pack)
   journalDate: Date;
+  date?: Date; // Alias for journalDate
   postingDate?: Date;
   description: string;
   sourceType: 'WORK_ORDER' | 'INVOICE' | 'PAYMENT' | 'RENT' | 'EXPENSE' | 'ADJUSTMENT' | 'MANUAL';
@@ -49,12 +66,18 @@ export interface IJournal {
   sourceNumber?: string; // Denormalized for reporting
   status: 'DRAFT' | 'POSTED' | 'VOID';
   lines: IJournalLine[];
+  postings?: IJournalPosting[];
   totalDebit: number;
   totalCredit: number;
   isBalanced: boolean;
   voidedAt?: Date;
   voidedBy?: Types.ObjectId;
   voidReason?: string;
+  type?: 'STANDARD' | 'ADJUSTMENT' | 'REVERSAL' | 'CLOSING';
+  postedBy?: Types.ObjectId;
+  postedAt?: Date;
+  reversalOf?: Types.ObjectId;
+  reversedBy?: Types.ObjectId;
   fiscalYear: number;
   fiscalPeriod: number; // 1-12 for months
   createdBy: Types.ObjectId;
@@ -81,6 +104,19 @@ const JournalLineSchema = new Schema<IJournalLine>(
   { _id: false }
 );
 
+const JournalPostingSchema = new Schema<IJournalPosting>(
+  {
+    accountId: { type: Schema.Types.ObjectId, ref: 'ChartAccount', required: true },
+    debitMinor: { type: Schema.Types.Decimal128, default: () => Types.Decimal128.fromString('0') },
+    creditMinor: { type: Schema.Types.Decimal128, default: () => Types.Decimal128.fromString('0') },
+    currency: { type: String, required: true },
+    fxRate: { type: Number, default: 1 },
+    memo: { type: String },
+    dimensions: { type: Schema.Types.Mixed }
+  },
+  { _id: false }
+);
+
 const JournalSchema = new Schema<IJournal>(
   {
     // orgId will be added by tenantIsolationPlugin
@@ -88,11 +124,17 @@ const JournalSchema = new Schema<IJournal>(
       type: String, 
       required: true,
       trim: true,
-      uppercase: true
+      uppercase: true,
+      alias: 'number'
       // Unique per org - see compound index below
     },
-    journalDate: { type: Date, required: true, index: true },
+    journalDate: { type: Date, required: true, index: true, alias: 'date' },
     postingDate: { type: Date },
+    type: {
+      type: String,
+      enum: ['STANDARD', 'ADJUSTMENT', 'REVERSAL', 'CLOSING'],
+      default: 'STANDARD'
+    },
     description: { type: String, required: true, trim: true },
     sourceType: { 
       type: String, 
@@ -109,11 +151,14 @@ const JournalSchema = new Schema<IJournal>(
       default: 'DRAFT',
       index: true
     },
+    postings: { type: [JournalPostingSchema], default: [] },
     lines: { 
       type: [JournalLineSchema], 
-      required: true,
+      required: false,
+      default: [],
       validate: {
         validator: function(lines: IJournalLine[]) {
+          if (!lines || lines.length === 0) return true;
           return lines.length >= 2; // Minimum 2 lines (debit + credit)
         },
         message: 'Journal entry must have at least 2 lines'
@@ -125,6 +170,10 @@ const JournalSchema = new Schema<IJournal>(
     voidedAt: { type: Date },
     voidedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     voidReason: { type: String, trim: true },
+    reversalOf: { type: Schema.Types.ObjectId, ref: 'Journal' },
+    reversedBy: { type: Schema.Types.ObjectId, ref: 'Journal' },
+    postedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    postedAt: { type: Date },
     fiscalYear: { type: Number, required: true, index: true },
     fiscalPeriod: { type: Number, required: true, min: 1, max: 12, index: true }
   },
@@ -141,6 +190,7 @@ JournalSchema.index({ orgId: 1, journalDate: -1, status: 1 });
 JournalSchema.index({ orgId: 1, sourceType: 1, sourceId: 1 });
 JournalSchema.index({ orgId: 1, fiscalYear: 1, fiscalPeriod: 1, status: 1 });
 JournalSchema.index({ orgId: 1, status: 1, isBalanced: 1 });
+JournalSchema.index({ orgId: 1, reversalOf: 1 });
 
 // Pre-save: Calculate totals and validate balance
 JournalSchema.pre('save', function(next) {
@@ -160,8 +210,11 @@ JournalSchema.pre('save', function(next) {
    */
   
   // Calculate totals with Decimal.js (exact precision)
-  const totalDebit = Decimal.sum(...this.lines.map((l: { debit?: number; credit?: number }) => l.debit || 0));
-  const totalCredit = Decimal.sum(...this.lines.map((l: { debit?: number; credit?: number }) => l.credit || 0));
+  const debitValues = this.lines.length ? this.lines.map((l: { debit?: number }) => l.debit || 0) : [0];
+  const creditValues = this.lines.length ? this.lines.map((l: { credit?: number }) => l.credit || 0) : [0];
+  const totalDebit = Decimal.sum(...debitValues);
+  const totalCredit = Decimal.sum(...creditValues);
+>>>>>>> feat/souq-marketplace-advanced
   
   // Convert to number for storage (rounded to 2 decimal places)
   this.totalDebit = totalDebit.toDP(2).toNumber();
@@ -212,10 +265,14 @@ JournalSchema.pre('save', async function(next) {
 });
 
 // Pre-save: Prevent modification of posted journals
-JournalSchema.pre('save', function(next) {
-  if (!this.isNew && this.isModified('lines') && this.status === 'POSTED') {
-    return next(new Error('Cannot modify posted journal entry. Use void and create new entry.'));
+JournalSchema.pre('save', async function(next) {
+  if (this.isNew) return next();
+
+  const existing = await (this as any).constructor.findById(this._id).select('status').lean();
+  if (existing?.status === 'POSTED' && this.isModified()) {
+    return next(new Error('Posted records are immutable'));
   }
+
   next();
 });
 
@@ -234,7 +291,9 @@ JournalSchema.methods.post = async function(): Promise<IJournal> {
   
   await this.save();
   
-  // TODO: Update ChartAccount balances via LedgerEntry model
+  // FUTURE: Update ChartAccount balances via LedgerEntry model
+  // This will be implemented when the full double-entry accounting system is activated.
+  // Currently handled by postingService.ts which creates LedgerEntry records.
   
   return this as unknown as IJournal;
 };
@@ -276,6 +335,6 @@ JournalSchema.statics.getForPeriod = async function(
   }).sort({ journalDate: -1 });
 };
 
-const JournalModel = models.Journal || model<IJournal>('Journal', JournalSchema);
+const JournalModel = getModel<IJournal>('Journal', JournalSchema);
 
 export default JournalModel;

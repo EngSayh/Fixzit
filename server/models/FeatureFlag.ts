@@ -1,7 +1,9 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, InferSchemaType } from "mongoose";
+>>>>>>> feat/souq-marketplace-advanced
 import { logger } from '@/lib/logger';
 import { tenantIsolationPlugin, withoutTenantFilter } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from '@/src/types/mongoose-compat';
 
 const FeatureStatus = ["ENABLED", "DISABLED", "BETA", "DEPRECATED"] as const;
 const FeatureCategory = [
@@ -389,4 +391,4 @@ export interface FeatureFlagStaticMethods {
 // Type the model with statics
 export type FeatureFlagModelType = import('mongoose').Model<FeatureFlag> & FeatureFlagStaticMethods;
 
-export const FeatureFlagModel = (models.FeatureFlag || model("FeatureFlag", FeatureFlagSchema)) as FeatureFlagModelType;
+export const FeatureFlagModel: FeatureFlagModelType = getModel<FeatureFlag>('FeatureFlag', FeatureFlagSchema) as FeatureFlagModelType;

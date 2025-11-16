@@ -39,13 +39,17 @@ export async function GET(request: NextRequest) {
       });
     }
     
+    const referralDoc = typeof referralCode.toObject === 'function'
+      ? referralCode.toObject()
+      : (referralCode as unknown as { referrals?: unknown[] });
+
     // Paginate referrals array
-    const total = referralCode.referrals.length;
+    const total = Array.isArray(referralDoc.referrals) ? referralDoc.referrals.length : 0;
     const totalPages = Math.ceil(total / limit);
-    const paginatedReferrals = referralCode.referrals.slice(offset, offset + limit);
+    const paginatedReferrals = (referralDoc.referrals || []).slice(offset, offset + limit);
     
     return NextResponse.json({
-      code: referralCode,
+      code: referralDoc,
       referrals: paginatedReferrals,
       pagination: {
         total,

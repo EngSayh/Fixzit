@@ -1,6 +1,7 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
-import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
-import { auditPlugin } from "../plugins/auditPlugin";
+import { Schema, Model, models, InferSchemaType } from 'mongoose';
+import { getModel } from '@/src/types/mongoose-compat';
+import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { auditPlugin } from '../plugins/auditPlugin';
 
 // Work Order Status - State Machine as per specification
 const WorkOrderStatus = [
@@ -488,4 +489,13 @@ WorkOrderSchema.methods.updateSLAStatus = function() {
 
 export type WorkOrderDoc = InferSchemaType<typeof WorkOrderSchema>;
 
-export const WorkOrder = models.WorkOrder || model("WorkOrder", WorkOrderSchema);
+// Virtual property for 'code' as alias to 'workOrderNumber'
+WorkOrderSchema.virtual('code').get(function(this: WorkOrderDoc) {
+  return this.workOrderNumber;
+});
+
+// Ensure virtuals are included in JSON/Object output
+WorkOrderSchema.set('toJSON', { virtuals: true });
+WorkOrderSchema.set('toObject', { virtuals: true });
+
+export const WorkOrder: Model<WorkOrderDoc> = getModel<WorkOrderDoc>("WorkOrder", WorkOrderSchema);

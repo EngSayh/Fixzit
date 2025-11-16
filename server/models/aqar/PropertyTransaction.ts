@@ -1,4 +1,5 @@
-import { Schema, model, models, Types } from 'mongoose';
+import { Schema, model, models, Types } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
 import { auditPlugin } from '../../plugins/auditPlugin';
 
@@ -234,6 +235,6 @@ PropertyTransactionSchema.index({ orgId: 1, 'seller.userId': 1 });
 PropertyTransactionSchema.index({ orgId: 1, 'tenant.userId': 1 });
 PropertyTransactionSchema.index({ orgId: 1, 'landlord.userId': 1 });
 
-const PropertyTransactionModel = models.PropertyTransaction || model<PropertyTransaction>('PropertyTransaction', PropertyTransactionSchema);
+const PropertyTransactionModel = getModel<PropertyTransaction>('PropertyTransaction', PropertyTransactionSchema);
 
 export default PropertyTransactionModel;

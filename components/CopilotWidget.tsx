@@ -107,7 +107,7 @@ type ToolFormState = Record<string, any>;
 
 const initialForms: Record<string, ToolFormState> = {
   createWorkOrder: { title: '', description: '', priority: 'MEDIUM' },
-  dispatchWorkOrder: { workOrderId: '', assigneeUserId: '' },
+  dispatchWorkOrder: { workOrderId: '', assigneeUserId: '', assigneeVendorId: '' },
   scheduleVisit: { workOrderId: '', scheduledFor: '' },
   uploadWorkOrderPhoto: { workOrderId: '', file: undefined as File | undefined },
   ownerStatements: { ownerId: '', period: 'YTD', year: String(new Date().getFullYear()) }
@@ -441,7 +441,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
     }
 
     const requiredMissing = Object.entries(values).some(([key, val]) => {
-      if (['description', 'assigneeUserId', 'ownerId'].includes(key)) return false;
+          if (['description', 'assigneeUserId', 'ownerId', 'assigneeVendorId'].includes(key)) return false;
       return !val;
     });
     if (requiredMissing) {
@@ -472,6 +472,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
           <div className="space-y-3">
             <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
             <input value={values.assigneeUserId} onChange={(e) => updateForm(tool, 'assigneeUserId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف الفني (اختياري)' : 'Technician ID (optional)'} />
+            <input value={values.assigneeVendorId} onChange={(e) => updateForm(tool, 'assigneeVendorId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف المورد (اختياري)' : 'Vendor ID (optional)'} />
           </div>
         );
       case 'scheduleVisit':

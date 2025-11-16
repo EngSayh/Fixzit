@@ -259,6 +259,8 @@ export interface AuditLogStaticMethods {
 /* eslint-enable no-unused-vars */
 
 import type { Model } from 'mongoose';
+import { getModel } from '@/src/types/mongoose-compat';
+
 export type AuditLogModelType = Model<AuditLog> & AuditLogStaticMethods;
 
-export const AuditLogModel = (models.AuditLog || model("AuditLog", AuditLogSchema)) as AuditLogModelType;
+export const AuditLogModel: AuditLogModelType = getModel<AuditLog>('AuditLog', AuditLogSchema) as AuditLogModelType;

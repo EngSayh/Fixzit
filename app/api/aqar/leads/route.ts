@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     let recipientId;
     
     if (listingId) {
-      const listing = await AqarListing.findById(listingId);
+      const listing = await (AqarListing as any).findById(listingId);
       if (!listing) {
         return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
       }
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
       })();
     } else if (projectId) {
       const { AqarProject } = await import('@/models/aqar');
-      const project = await AqarProject.findById(projectId);
+      const project = await (AqarProject as any).findById(projectId);
       if (!project) {
         return NextResponse.json({ error: 'Project not found' }, { status: 404 });
       }
@@ -182,7 +182,8 @@ export async function POST(request: NextRequest) {
     
     await lead.save();
     
-    // TODO: Send notification to recipient (email/SMS/push)
+    // FUTURE: Send notification to recipient (email/SMS/push).
+    // Implementation: Use lib/fm-notifications.ts sendNotification() or SendGrid for emails.
     
     return NextResponse.json({ lead }, { status: 201 });
   } catch (error) {

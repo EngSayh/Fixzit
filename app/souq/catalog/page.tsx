@@ -5,6 +5,7 @@ import { Search, Filter, ShoppingCart, Heart, Star, User, LogIn } from 'lucide-r
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface Product {
   id: string;
@@ -101,6 +102,7 @@ const SAMPLE_PRODUCTS: Product[] = [
 
 export default function CatalogPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('relevance');
@@ -133,24 +135,32 @@ export default function CatalogPage() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <Link href="/souq" className="text-2xl font-bold text-success">
-                Fixzit Souq
+                {t('souq.brand.title', 'Fixzit Souq')}
               </Link>
               <div className="hidden md:flex items-center gap-6 text-sm">
-                <Link href="/souq/catalog" className="text-muted-foreground hover:text-success">Catalog</Link>
-                <Link href="/souq/vendors" className="text-muted-foreground hover:text-success">Vendors</Link>
-                <Link href="/souq/rfqs" className="text-muted-foreground hover:text-success">RFQs</Link>
-                <Link href="/souq/orders" className="text-muted-foreground hover:text-success">Orders</Link>
+                <Link href="/souq/catalog" className="text-muted-foreground hover:text-success">
+                  {t('souq.nav.catalog', 'Catalog')}
+                </Link>
+                <Link href="/souq/vendors" className="text-muted-foreground hover:text-success">
+                  {t('souq.nav.vendors', 'Vendors')}
+                </Link>
+                <Link href="/souq/rfqs" className="text-muted-foreground hover:text-success">
+                  {t('souq.nav.rfqs', 'RFQs')}
+                </Link>
+                <Link href="/souq/orders" className="text-muted-foreground hover:text-success">
+                  {t('souq.nav.orders', 'Orders')}
+                </Link>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
               <Link href="/login" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground hover:text-success">
                 <User className="w-4 h-4" />
-                Sign In
+                {t('common.signIn', 'Sign In')}
               </Link>
               <Link href="/login" className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-success text-white rounded-2xl hover:bg-success/90">
                 <LogIn className="w-4 h-4" />
-                Sign Up
+                {t('common.signUp', 'Sign Up')}
               </Link>
             </div>
           </div>
@@ -165,11 +175,12 @@ export default function CatalogPage() {
               <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" aria-hidden="true" />
               <input
                 type="text"
-                placeholder="Search products, categories, or vendors..."
+                placeholder={t('souq.catalog.searchPlaceholder', 'Search products, categories, or vendors...')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full ps-10 pe-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
-                aria-label="Search products, categories, or vendors"
+                aria-label={t('souq.catalog.searchAriaLabel', 'Search products, categories, or vendors')}
+>>>>>>> feat/souq-marketplace-advanced
               />
             </div>
 
@@ -178,11 +189,12 @@ export default function CatalogPage() {
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
-                aria-label="Filter by category"
+                aria-label={t('souq.catalog.filterByCategory', 'Filter by category')}
+>>>>>>> feat/souq-marketplace-advanced
               >
                 {categories.map(category => (
                   <option key={category} value={category}>
-                    {category === 'all' ? 'All Categories' : category}
+                    {category === 'all' ? t('souq.catalog.categoryAll', 'All Categories') : category}
                   </option>
                 ))}
               </select>
@@ -191,22 +203,25 @@ export default function CatalogPage() {
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
-                aria-label="Sort products by"
+                aria-label={t('souq.catalog.sortBy', 'Sort products by')}
+>>>>>>> feat/souq-marketplace-advanced
               >
-                <option value="relevance">Relevance</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="rating">Highest Rated</option>
-                <option value="newest">Newest First</option>
+                <option value="relevance">{t('souq.catalog.sort.relevance', 'Relevance')}</option>
+                <option value="price-low">{t('souq.catalog.sort.priceLow', 'Price: Low to High')}</option>
+                <option value="price-high">{t('souq.catalog.sort.priceHigh', 'Price: High to Low')}</option>
+                <option value="rating">{t('souq.catalog.sort.rating', 'Highest Rated')}</option>
+                <option value="newest">{t('souq.catalog.sort.newest', 'Newest First')}</option>
               </select>
             </div>
           </div>
 
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>{filteredProducts.length} results found</span>
+            <span>
+              {filteredProducts.length} {t('souq.catalog.resultsFound', 'results found')}
+            </span>
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4" />
-              <span>Filters applied</span>
+              <span>{t('souq.catalog.filtersApplied', 'Filters applied')}</span>
             </div>
           </div>
         </div>
@@ -226,7 +241,9 @@ export default function CatalogPage() {
                 {/* Badges */}
                 <div className="absolute top-2 start-2 flex flex-col gap-1">
                   {product.isNew && (
-                    <span className="bg-primary/20 text-white text-xs px-2 py-1 rounded">New</span>
+                    <span className="bg-primary/20 text-white text-xs px-2 py-1 rounded">
+                      {t('souq.catalog.badge.new', 'New')}
+                    </span>
                   )}
                   {product.discount && (
                     <span className="bg-destructive/20 text-white text-xs px-2 py-1 rounded">
@@ -264,7 +281,9 @@ export default function CatalogPage() {
                       ? 'bg-success/10 text-success-foreground'
                       : 'bg-destructive/10 text-destructive-foreground'
                   }`}>
-                    {product.inStock ? 'In Stock' : 'Out of Stock'}
+                    {product.inStock
+                      ? t('souq.catalog.stock.in', 'In Stock')
+                      : t('souq.catalog.stock.out', 'Out of Stock')}
                   </span>
                 </div>
 
@@ -273,7 +292,7 @@ export default function CatalogPage() {
                     onClick={() => handleViewDetails(product.id)}
                     className="flex-1 px-3 py-2 bg-muted text-foreground rounded-2xl hover:bg-muted transition-colors text-sm"
                   >
-                    View Details
+                    {t('souq.catalog.actions.viewDetails', 'View Details')}
                   </button>
                   <button
                     onClick={() => handleAddToCart(product.id)}
@@ -285,12 +304,13 @@ export default function CatalogPage() {
                     }`}
                   >
                     <ShoppingCart className="w-4 h-4 inline me-1" />
-                    Add to Cart
+                    {t('souq.catalog.actions.addToCart', 'Add to Cart')}
+>>>>>>> feat/souq-marketplace-advanced
                   </button>
                 </div>
 
                 <div className="mt-2 text-xs text-muted-foreground">
-                  Sold by: {product.vendor}
+                  {t('souq.catalog.soldBy', 'Sold by:')} {product.vendor}
                 </div>
               </div>
             </div>
@@ -303,8 +323,12 @@ export default function CatalogPage() {
             <div className="text-muted-foreground mb-4">
               <Search className="w-12 h-12 mx-auto" />
             </div>
-            <h3 className="text-lg font-medium text-foreground mb-2">No products found</h3>
-            <p className="text-muted-foreground">Try adjusting your search criteria or browse all categories</p>
+            <h3 className="text-lg font-medium text-foreground mb-2">
+              {t('souq.catalog.noResults.title', 'No products found')}
+            </h3>
+            <p className="text-muted-foreground">
+              {t('souq.catalog.noResults.description', 'Try adjusting your search criteria or browse all categories')}
+            </p>
           </div>
         )}
       </div>
@@ -313,11 +337,10 @@ export default function CatalogPage() {
       <div className="bg-card border-t mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="text-center text-sm text-muted-foreground">
-            <p>Browse our catalog freely. Sign in to add to cart, place orders, and access exclusive deals.</p>
+            <p>{t('souq.catalog.footer.cta', 'Browse our catalog freely. Sign in to add to cart, place orders, and access exclusive deals.')}</p>
           </div>
         </div>
       </div>
     </div>
   );
 }
-

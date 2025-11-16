@@ -79,7 +79,8 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
         const data = await response.json();
         setResults(data.results || []);
         setOpen(true);
-      } catch (err) {
+      } catch (err: unknown) {
+>>>>>>> feat/souq-marketplace-advanced
         import('../../lib/logger')
           .then(({ logError }) => {
             logError('Search failed', err as Error, {

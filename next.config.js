@@ -6,34 +6,10 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 });
 
+
 const nextConfig = {
   // App Router is enabled by default in Next.js 14
   // No need for experimental.appDir anymore
-  
-  // Fix CORS warnings from error report
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: process.env.NODE_ENV === 'development' 
-              ? '*' 
-              : 'https://fixzit.co'
-          },
-          {
-            key: 'Access-Control-Allow-Methods',
-            value: 'GET, POST, PUT, DELETE, OPTIONS'
-          },
-          {
-            key: 'Access-Control-Allow-Headers',
-            value: 'Content-Type, Authorization, Cookie'
-          },
-        ],
-      },
-    ]
-  },
 
   // Image optimization for marketplace and property images
   images: {
@@ -77,7 +53,7 @@ const nextConfig = {
   // Performance optimizations
   compress: true,
   poweredByHeader: false,
-  // Note: swcMinify is enabled by default in Next.js 15+
+  // Note: SWC is the default compiler in Next.js 15+
   
   // Enable production browser sourcemaps for Sentry error tracking
   productionBrowserSourceMaps: true,
@@ -144,6 +120,14 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: false, // ✅ ENFORCE: Build fails if ESLint errors exist
   },
+
+  serverExternalPackages: [
+    'mongoose', 
+    'bcryptjs',
+    // OpenTelemetry instrumentation packages (fixes version mismatch warnings)
+    'import-in-the-middle',
+    'require-in-the-middle',
+  ],
 
   // ✅ FIXED: Turbopack configuration added above to silence warning
   // 
@@ -252,53 +236,50 @@ const nextConfig = {
     ]
   },
 
-  // API Rewrites to backend server
+  // UI + API rewrites
   async rewrites() {
-    if (!isDevelopment) {
-      // Avoid rewriting API requests to localhost when running in production
-      // (e.g. on Vercel) where the backend is not available.
-      return [];
-    }
+    const apiRewrites = isDevelopment
+      ? [
+          {
+            source: '/api/auth/:path*',
+            destination: '/api/auth/:path*',
+          },
+          {
+            source: '/api/marketplace/:path*',
+            destination: 'http://localhost:5000/api/marketplace/:path*',
+          },
+          {
+            source: '/api/properties/:path*',
+            destination: 'http://localhost:5000/api/properties/:path*',
+          },
+          {
+            source: '/api/workorders/:path*',
+            destination: 'http://localhost:5000/api/workorders/:path*',
+          },
+          {
+            source: '/api/finance/:path*',
+            destination: 'http://localhost:5000/api/finance/:path*',
+          },
+          {
+            source: '/api/hr/:path*',
+            destination: 'http://localhost:5000/api/hr/:path*',
+          },
+          {
+            source: '/api/crm/:path*',
+            destination: 'http://localhost:5000/api/crm/:path*',
+          },
+          {
+            source: '/api/compliance/:path*',
+            destination: 'http://localhost:5000/api/compliance/:path*',
+          },
+          {
+            source: '/api/analytics/:path*',
+            destination: 'http://localhost:5000/api/analytics/:path*',
+          },
+        ]
+      : [];
 
-    return [
-      // Ensure auth API routes are handled first
-      {
-        source: '/api/auth/:path*',
-        destination: '/api/auth/:path*',
-      },
-      {
-        source: '/api/marketplace/:path*',
-        destination: 'http://localhost:5000/api/marketplace/:path*',
-      },
-      {
-        source: '/api/properties/:path*',
-        destination: 'http://localhost:5000/api/properties/:path*',
-      },
-      {
-        source: '/api/workorders/:path*',
-        destination: 'http://localhost:5000/api/workorders/:path*',
-      },
-      {
-        source: '/api/finance/:path*',
-        destination: 'http://localhost:5000/api/finance/:path*',
-      },
-      {
-        source: '/api/hr/:path*',
-        destination: 'http://localhost:5000/api/hr/:path*',
-      },
-      {
-        source: '/api/crm/:path*',
-        destination: 'http://localhost:5000/api/crm/:path*',
-      },
-      {
-        source: '/api/compliance/:path*',
-        destination: 'http://localhost:5000/api/compliance/:path*',
-      },
-      {
-        source: '/api/analytics/:path*',
-        destination: 'http://localhost:5000/api/analytics/:path*',
-      },
-    ]
+    return apiRewrites;
   },
 
   // Output configuration for deployment

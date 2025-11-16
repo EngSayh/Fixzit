@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { RFQ } from "@/server/models/RFQ";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
@@ -74,6 +73,21 @@ const createRFQSchema = z.object({
   tags: z.array(z.string()).optional()
 });
 
+function isUnauthenticatedError(error: unknown): boolean {
+  return error instanceof Error && error.message.toLowerCase().includes('unauthenticated');
+}
+
+async function resolveSessionUser(req: NextRequest) {
+  try {
+    return await getSessionUser(req);
+  } catch (error) {
+    if (isUnauthenticatedError(error)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
 /**
  * Create a new RFQ (Request for Quotation) from the incoming JSON payload.
  *
@@ -113,18 +127,22 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const user = await getSessionUser(req);
-  if (!user?.orgId) {
-    return NextResponse.json(
-      { error: 'Unauthorized', message: 'Missing tenant context' },
-      { status: 401 }
-    );
-  }
+    const user = await resolveSessionUser(req);
+    if (!user) {
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
+    }
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
     await connectToDatabase();
 
     const data = createRFQSchema.parse(await req.json());
 
-    const rfq = await RFQ.create({
+    const { RFQ } = await import('@/server/models/RFQ');
+    const rfq = (await RFQ.create({
       tenantId: user.orgId,
       code: `RFQ-${crypto.randomUUID().replace(/-/g, '').slice(0, 12).toUpperCase()}`,
       ...data,
@@ -134,7 +152,7 @@ export async function POST(req: NextRequest) {
         createdBy: user.id
       },
       createdBy: user.id
-    });
+    }));
 
     return createSecureResponse(rfq, 201, req);
   } catch (error: unknown) {
@@ -154,13 +172,16 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const user = await getSessionUser(req);
-  if (!user?.orgId) {
-    return NextResponse.json(
-      { error: 'Unauthorized', message: 'Missing tenant context' },
-      { status: 401 }
-    );
-  }
+    const user = await resolveSessionUser(req);
+    if (!user) {
+      return createSecureResponse({ error: 'Authentication required' }, 401, req);
+    }
+    if (!user?.orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized', message: 'Missing tenant context' },
+        { status: 401 }
+      );
+    }
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
@@ -180,6 +201,7 @@ export async function GET(req: NextRequest) {
       match.$text = { $search: search };
     }
 
+    const { RFQ } = await import('@/server/models/RFQ');
     const [items, total] = await Promise.all([
       RFQ.find(match)
         .sort({ createdAt: -1 })
@@ -199,5 +221,3 @@ export async function GET(req: NextRequest) {
     return handleApiError(error);
   }
 }
-
-

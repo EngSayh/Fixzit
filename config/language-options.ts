@@ -5,7 +5,7 @@
  * Used by: LanguageSelector, TranslationProvider, SignupPage, etc.
  */
 
-export type LanguageCode = 'ar' | 'en';
+export type LanguageCode = 'ar' | 'en' | 'fr' | 'pt' | 'ru' | 'es' | 'ur' | 'hi' | 'zh';
 
 export interface LanguageOption {
   language: LanguageCode;
@@ -17,6 +17,7 @@ export interface LanguageOption {
   iso: string;         // ISO code (AR-SA, EN-GB)
   locale: string;      // Full locale (ar-SA, en-GB)
   country: string;     // Country name
+  keywords?: string[]; // Additional search keywords for type-ahead
 }
 
 export const LANGUAGE_OPTIONS: LanguageOption[] = [
@@ -29,7 +30,8 @@ export const LANGUAGE_OPTIONS: LanguageOption[] = [
     dir: 'rtl',
     iso: 'AR-SA',
     locale: 'ar-SA',
-    country: 'Saudi Arabia'
+    country: 'Saudi Arabia',
+    keywords: ['ksa', 'arabic'],
   },
   {
     language: 'en',
@@ -40,7 +42,92 @@ export const LANGUAGE_OPTIONS: LanguageOption[] = [
     dir: 'ltr',
     iso: 'EN-GB',
     locale: 'en-GB',
-    country: 'United Kingdom'
+    country: 'United Kingdom',
+    keywords: ['english', 'uk', 'us'],
+  },
+  {
+    language: 'fr',
+    code: 'fr',
+    native: 'Français',
+    english: 'French',
+    flag: '🇫🇷',
+    dir: 'ltr',
+    iso: 'FR-FR',
+    locale: 'fr-FR',
+    country: 'France',
+    keywords: ['french', 'france'],
+  },
+  {
+    language: 'pt',
+    code: 'pt',
+    native: 'Português',
+    english: 'Portuguese',
+    flag: '🇵🇹',
+    dir: 'ltr',
+    iso: 'PT-PT',
+    locale: 'pt-PT',
+    country: 'Portugal',
+    keywords: ['portuguese', 'brazil', 'portugal'],
+  },
+  {
+    language: 'ru',
+    code: 'ru',
+    native: 'Русский',
+    english: 'Russian',
+    flag: '🇷🇺',
+    dir: 'ltr',
+    iso: 'RU-RU',
+    locale: 'ru-RU',
+    country: 'Russia',
+    keywords: ['russian', 'russia'],
+  },
+  {
+    language: 'es',
+    code: 'es',
+    native: 'Español',
+    english: 'Spanish',
+    flag: '🇪🇸',
+    dir: 'ltr',
+    iso: 'ES-ES',
+    locale: 'es-ES',
+    country: 'Spain',
+    keywords: ['spanish', 'latam'],
+  },
+  {
+    language: 'ur',
+    code: 'ur',
+    native: 'اردو',
+    english: 'Urdu',
+    flag: '🇵🇰',
+    dir: 'rtl',
+    iso: 'UR-PK',
+    locale: 'ur-PK',
+    country: 'Pakistan',
+    keywords: ['urdu', 'pk'],
+  },
+  {
+    language: 'hi',
+    code: 'hi',
+    native: 'हिन्दी',
+    english: 'Hindi',
+    flag: '🇮🇳',
+    dir: 'ltr',
+    iso: 'HI-IN',
+    locale: 'hi-IN',
+    country: 'India',
+    keywords: ['hindi', 'india'],
+  },
+  {
+    language: 'zh',
+    code: 'zh',
+    native: '中文',
+    english: 'Chinese',
+    flag: '🇨🇳',
+    dir: 'ltr',
+    iso: 'ZH-CN',
+    locale: 'zh-CN',
+    country: 'China',
+    keywords: ['chinese', 'mandarin'],
   },
 ];
 

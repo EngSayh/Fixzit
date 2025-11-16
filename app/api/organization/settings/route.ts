@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongodb-unified';
-import { Organization } from '@/server/models/Organization';
-
 import { logger } from '@/lib/logger';
 /**
  * @openapi
@@ -35,7 +33,10 @@ export async function GET() {
     await connectDb();
 
     // Get the first active organization (or you can get by orgId from session)
-    const org = await Organization.findOne({ /* isActive: true */ }).select('name logo branding').lean();
+    const { Organization } = await import('@/server/models/Organization');
+    type OrgDoc = { name?: string; logo?: string; branding?: { primaryColor?: string; secondaryColor?: string; accentColor?: string } };
+    // TODO(type-safety): Verify Organization.findOne return type
+    const org = (await (Organization as any).findOne({ /* isActive: true */ }).select('name logo branding').lean()) as OrgDoc | null;
 
     if (!org) {
       // Return default settings if no organization found
@@ -47,7 +48,7 @@ export async function GET() {
       });
     }
 
-    const orgDoc = org as { name?: string; logo?: string; branding?: { primaryColor?: string; secondaryColor?: string } } | null;
+    const orgDoc = org as { name?: string; logo?: string; branding?: { primaryColor?: string; secondaryColor?: string } };
 
     return NextResponse.json({
       name: orgDoc?.name || 'FIXZIT ENTERPRISE',

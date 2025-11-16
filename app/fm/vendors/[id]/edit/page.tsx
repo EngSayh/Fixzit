@@ -15,8 +15,8 @@ import {
   Select,
   SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue,
+
+
 } from '@/components/ui/select';
 import { CardGridSkeleton } from '@/components/skeletons';
 import { ChevronLeft, Save } from 'lucide-react';
@@ -263,10 +263,7 @@ export default function EditVendorPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="status">Status *</Label>
-                <Select name="status" defaultValue={vendor.status}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
+                <Select name="status" defaultValue={vendor.status} placeholder="Select status">
                   <SelectContent>
                     <SelectItem value="PENDING">Pending</SelectItem>
                     <SelectItem value="APPROVED">Approved</SelectItem>

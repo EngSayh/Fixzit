@@ -1,126 +1,327 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import Link from 'next/link';
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight, Headphones as HeadphonesIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
-import { type UserRoleType } from '@/types/user';
-import { Headphones } from 'lucide-react';
-
-// ✅ FIX: Import configuration from centralized config file (Governance V5 compliance)
+import { STORAGE_KEYS } from '@/config/constants';
+import { type UserRoleType, ALL_ROLES } from '@/types/user';
 import {
   MODULES,
+  MODULE_SUB_VIEWS,
   USER_LINKS,
   ROLE_PERMISSIONS,
   SUBSCRIPTION_PLANS,
-  CATEGORY_FALLBACKS,
-  type ModuleItem
+  type ModuleItem,
+  type UserLinkItem,
+  type ModuleId,
+  type BadgeCounts,
 } from '@/config/navigation';
 
-// ✅ FIX: Remove props - role and subscription derived from session (single source of truth)
 interface SidebarProps {
-  tenantId?: string; // Optional, kept for potential future use
+  className?: string;
+  onNavigate?: () => void;
+  badgeCounts?: BadgeCounts;
 }
 
- 
-export default function Sidebar({ tenantId: _tenantId }: SidebarProps) {
-  const pathname = usePathname();
-   
-  const { responsiveClasses: _responsiveClasses, screenInfo } = useResponsiveLayout();
+type GovernanceGroup = 'core' | 'business' | 'system';
 
-  // hooks must be top-level
-  const { t, isRTL: translationIsRTL } = useTranslation();
+type SubModuleItem = {
+  id: string;
+  name: string;
+  fallbackLabel: string;
+  path: string;
+};
+
+const COLLAPSE_KEY = STORAGE_KEYS.sidebarCollapsed;
+
+const GOVERNANCE_GROUPS: Record<GovernanceGroup, ModuleId[]> = {
+  core: ['dashboard', 'work_orders', 'properties', 'finance', 'hr'],
+  business: ['crm', 'marketplace', 'support', 'compliance', 'reports'],
+  system: ['system', 'administration'],
+};
+
+const GOVERNANCE_FALLBACKS: Record<GovernanceGroup, string> = {
+  core: 'Core',
+  business: 'Business',
+  system: 'System Management',
+};
+
+const modulePathMap = MODULES.reduce<Record<ModuleId, string>>((acc, module) => {
+  acc[module.id] = module.path;
+  return acc;
+}, {} as Record<ModuleId, string>);
+
+const buildSubModuleMap = (): Record<string, SubModuleItem[]> => {
+  const map: Record<string, SubModuleItem[]> = {};
+  Object.entries(MODULE_SUB_VIEWS).forEach(([moduleId, subItems]) => {
+    const basePath = modulePathMap[moduleId as ModuleId];
+    if (!basePath || !subItems?.length) return;
+    const items = subItems.map((item) => ({
+      id: item.id,
+      name: item.name,
+      fallbackLabel: item.fallbackLabel,
+      path: item.kind === 'path' ? `${basePath}${item.value}` : `${basePath}?view=${encodeURIComponent(item.value)}`,
+    }));
+    if (items.length) {
+      map[basePath] = items;
+    }
+  });
+  return map;
+};
+
+const SUB_MODULES_BY_PATH = buildSubModuleMap();
+
+const normalizeRole = (value?: string): UserRoleType | 'guest' => {
+  if (!value) return 'guest';
+  const normalized = value.toUpperCase().trim() as UserRoleType;
+  return (ALL_ROLES as readonly string[]).includes(normalized) ? normalized : 'guest';
+};
+
+const normalizePlan = (value?: string): string => {
+  if (!value) return 'DEFAULT';
+  const normalized = value.toUpperCase().replace(/[\s-]+/g, '_');
+  return SUBSCRIPTION_PLANS[normalized] ? normalized : 'DEFAULT';
+};
+
+const formatLabel = (value?: string) => value?.replace(/_/g, ' ') ?? '';
+
+export default function Sidebar({ className, onNavigate, badgeCounts }: SidebarProps) {
+  const pathname = usePathname() || '';
   const { data: session, status } = useSession();
+  const sessionUser = session?.user as { role?: string; subscriptionPlan?: string; plan?: string } | undefined;
 
-  // ✅ FIX: Derive role and subscription directly from session (single source of truth)
-  const isAuthenticated = status === 'authenticated' && session != null;
-  
-  // Extract role from session - ensure it's a valid UserRoleType or 'guest'
-  // @ts-expect-error: NextAuth session.user may have custom properties
-  const role: UserRoleType | 'guest' = isAuthenticated ? (session.user?.role || 'VIEWER') : 'guest';
-  
-  // Extract subscription plan from session - default to 'DEFAULT' for unknown plans
-  // @ts-expect-error: NextAuth session.user may have custom properties
-  const subscription: string = isAuthenticated ? (session.user?.subscriptionPlan || 'DEFAULT') : 'DEFAULT';
+  const { t, isRTL } = useTranslation();
+  const { screenInfo } = useResponsiveLayout();
 
-  const active = useMemo(() => pathname || '', [pathname]);
+  const isAuthenticated = status === 'authenticated' && !!sessionUser;
+  const role = normalizeRole(sessionUser?.role);
+  const subscription = normalizePlan(sessionUser?.subscriptionPlan ?? sessionUser?.plan);
+
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = window.localStorage.getItem(COLLAPSE_KEY);
+      if (stored) {
+        setIsCollapsed(Boolean(JSON.parse(stored)));
+      }
+    } catch {
+      // ignore corrupted state
+    }
+  }, []);
+
+  const toggleCollapse = useCallback(() => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem(COLLAPSE_KEY, JSON.stringify(next));
+        } catch {
+          // ignore storage issues
+        }
+      }
+      return next;
+    });
+  }, []);
 
   const allowedModules = useMemo(() => {
-    const roleModules = ROLE_PERMISSIONS[role as keyof typeof ROLE_PERMISSIONS] ?? [];
-    const subscriptionModules = SUBSCRIPTION_PLANS[subscription as keyof typeof SUBSCRIPTION_PLANS] ?? [];
-    const allowedIds = new Set<string>(subscriptionModules.filter(id => (roleModules as readonly string[]).includes(id)));
-    return MODULES.filter(m => allowedIds.has(m.id));
+    const roleModules = ROLE_PERMISSIONS[role] ?? ROLE_PERMISSIONS.guest;
+    const planModules = SUBSCRIPTION_PLANS[subscription] ?? SUBSCRIPTION_PLANS.DEFAULT;
+    const allowedIds = planModules.filter((id) => roleModules.includes(id));
+
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      roleModules.length > 0 &&
+      planModules.length > 0 &&
+      allowedIds.length === 0
+    ) {
+      console.warn(`[Sidebar] RBAC mismatch for role ${role} and plan ${subscription}.`);
+    }
+
+    const allowedSet = new Set(allowedIds);
+    return MODULES.filter((module) => allowedSet.has(module.id));
   }, [role, subscription]);
 
   const groupedModules = useMemo(() => {
-    return allowedModules.reduce((acc, m) => {
-      (acc[m.category] ||= []).push(m);
-      return acc;
-    }, {} as Record<string, ModuleItem[]>);
+    const allowedById = new Map(allowedModules.map((module) => [module.id, module]));
+    return (Object.entries(GOVERNANCE_GROUPS) as [GovernanceGroup, ModuleId[]][])
+      .map(([group, ids]) => {
+        const modules = ids
+          .map((id) => allowedById.get(id))
+          .filter((module): module is ModuleItem => Boolean(module));
+        return modules.length ? [group, modules] : null;
+      })
+      .filter(Boolean) as Array<[GovernanceGroup, ModuleItem[]]>;
   }, [allowedModules]);
 
-  const getCategoryName = (category: string) => t(`sidebar.category.${category}`, CATEGORY_FALLBACKS[category as keyof typeof CATEGORY_FALLBACKS] || category);
+  const getCategoryName = useCallback(
+    (group: GovernanceGroup) => t(`sidebar.category.${group}`, GOVERNANCE_FALLBACKS[group]),
+    [t]
+  );
 
-  const asideBase =
-    screenInfo.isMobile || screenInfo.isTablet
-      ? `fixed inset-y-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${translationIsRTL ? 'end-0' : 'start-0'}`
-      : 'sticky top-14 w-64 h-[calc(100vh-3.5rem)]';
+  const isMobile = screenInfo.isMobile || screenInfo.isTablet;
+  const asideWidth = isCollapsed ? 'w-16' : 'w-64';
+  const logicalEdge = isRTL ? 'right-0' : 'left-0';
+  const hoverShiftClass = isRTL ? 'hover:-translate-x-1' : 'hover:translate-x-1';
+  const alignAutoClass = isRTL ? 'mr-auto' : 'ml-auto';
+  const CollapseIcon = isCollapsed ? (isRTL ? ChevronLeft : ChevronRight) : (isRTL ? ChevronRight : ChevronLeft);
+
+  const asideBase = isMobile
+    ? `fixed inset-y-0 z-50 ${asideWidth} transform transition-transform duration-300 ease-in-out ${logicalEdge}`
+    : `sticky top-14 ${asideWidth} h-[calc(100vh-3.5rem)] transition-[width] duration-300 ease-in-out`;
+
+  const handleNavigate = useCallback(() => {
+    if (isMobile && onNavigate) {
+      onNavigate();
+    }
+  }, [isMobile, onNavigate]);
+
+  const renderBadge = (module: ModuleItem) => {
+    if (!module.badgeKey || !badgeCounts) return null;
+    const value = badgeCounts[module.badgeKey];
+    if (typeof value !== 'number' || value <= 0) return null;
+    return (
+      <span
+        className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary-foreground/80"
+        aria-label={`${value} ${module.fallbackLabel}`}
+      >
+        {value}
+      </span>
+    );
+  };
 
   return (
     <aside
-      className={`${asideBase} bg-primary text-primary-foreground overflow-y-auto shadow-lg border-primary/20 ${translationIsRTL ? 'border-l' : 'border-r'}`}
+      className={cn(
+        asideBase,
+        'bg-background text-foreground border-border shadow-lg overflow-y-auto flex flex-col',
+        isRTL ? 'border-l' : 'border-r',
+        className
+      )}
       aria-label={t('sidebar.mainNav', 'Main navigation')}
+      dir={isRTL ? 'rtl' : 'ltr'}
       data-testid="sidebar"
     >
-      <div className={`${screenInfo.isMobile ? 'p-3' : 'p-4'}`}>
-        <div className={`font-bold text-lg mb-6 ${translationIsRTL ? 'text-right' : ''}`}>
-          {t('common.brand', 'Fixzit Enterprise')}
-        </div>
+      <div className={cn(isMobile ? 'p-3' : 'p-4', 'flex flex-col h-full')}>
+        {!isMobile && (
+          <button
+            onClick={toggleCollapse}
+            className={cn(
+              'mb-4 p-2 rounded-full border border-border hover:bg-muted transition-all duration-200',
+              isRTL ? 'ml-auto' : 'mr-auto'
+            )}
+            aria-label={isCollapsed ? t('sidebar.expand', 'Expand sidebar') : t('sidebar.collapse', 'Collapse sidebar')}
+          >
+            <CollapseIcon className="h-4 w-4" aria-hidden />
+          </button>
+        )}
 
-        {/* Role & Plan */}
-        {role !== 'guest' && (
-          <section aria-label={t('sidebar.accountInfo', 'Account info')} className="mb-4 p-3 bg-primary/20 rounded-2xl border border-primary/30">
-            <div className={`text-xs opacity-80 mb-1 ${translationIsRTL ? 'text-right' : ''}`}>{t('sidebar.role', 'Role')}</div>
-            <div className={`text-sm font-medium ${translationIsRTL ? 'text-right' : ''}`}>{String(role).replace(/_/g, ' ')}</div>
-            <div className={`text-xs opacity-80 mt-1 ${translationIsRTL ? 'text-right' : ''}`}>
-              {t('sidebar.planLabel', 'Plan')}: {subscription}
+        {!isCollapsed && (
+          <div className={cn('font-bold text-lg mb-6', isRTL && 'text-right')}>
+            {t('common.brand', 'Fixzit Enterprise')}
+          </div>
+        )}
+
+        {isAuthenticated && !isCollapsed && (
+          <section
+            aria-label={t('sidebar.accountInfo', 'Account info')}
+            className="mb-4 rounded-2xl border border-border bg-muted/30 p-3"
+          >
+            <div className={cn('text-xs opacity-80 mb-1', isRTL && 'text-right')}>{t('sidebar.role', 'Role')}</div>
+            <div className={cn('text-sm font-medium capitalize', isRTL && 'text-right')}>{formatLabel(role)}</div>
+            <div className={cn('text-xs opacity-80 mt-1', isRTL && 'text-right')}>
+              {t('sidebar.planLabel', 'Plan')}: {formatLabel(subscription)}
             </div>
           </section>
         )}
 
-        {/* Modules */}
-        <nav className="space-y-6 mb-8" aria-label={t('sidebar.modules', 'Modules')}>
-          {Object.entries(groupedModules).map(([category, modules]) => (
-            <section key={category} aria-label={getCategoryName(category)}>
-              <div className="text-xs font-medium opacity-80 mb-2 px-3 uppercase tracking-wider">
-                {getCategoryName(category)}
-              </div>
+        <nav className="flex-1 space-y-6" aria-label={t('sidebar.modules', 'Modules')}>
+          {groupedModules.map(([group, modules]) => (
+            <section key={group} aria-label={getCategoryName(group)}>
+              {!isCollapsed && (
+                <div className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                  {getCategoryName(group)}
+                </div>
+              )}
+
               <ul className="space-y-1">
-                {modules.map(m => {
-                  const Icon = m.icon;
-                  const isActive = active === m.path || active.startsWith(m.path + '/');
+                {modules.map((module) => {
+                  const Icon = module.icon;
+                  const isActive = pathname === module.path || pathname.startsWith(`${module.path}/`);
+                  const subModules = SUB_MODULES_BY_PATH[module.path] || [];
+                  const badge = renderBadge(module);
+
                   return (
-                    <li key={m.id}>
+                    <li key={module.id}>
                       <Link
-                        href={m.path}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl transition-all duration-200
-                          ${isActive ? 'bg-primary-foreground/10 shadow-md' : 'opacity-80 hover:bg-primary-foreground/10 hover:opacity-100 hover:translate-x-1'}
-                          ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+                        href={module.path}
+                        className={cn(
+                          'flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium transition-all duration-200',
+                          isActive
+                            ? 'bg-accent text-accent-foreground shadow-md'
+                            : `opacity-80 hover:bg-muted ${hoverShiftClass}`,
+                          isRTL ? 'flex-row-reverse text-right' : '',
+                          isCollapsed && 'justify-center'
+                        )}
                         aria-current={isActive ? 'page' : undefined}
-                        data-testid={`nav-${m.id}`}
+                        data-testid={`nav-${module.id}`}
                         prefetch={false}
+                        onClick={handleNavigate}
                       >
-                        <Icon className="w-5 h-5 flex-shrink-0" aria-hidden />
-                        <span className="text-sm font-medium">{t(m.name, m.name.replace('nav.', ''))}</span>
-                        {isActive && (
-                          <span
-                            className={`${translationIsRTL ? 'mr-auto' : 'ml-auto'} inline-block w-2 h-2 bg-card rounded-full`}
-                            aria-hidden
-                          />
+                        <Icon className="h-5 w-5 flex-shrink-0" aria-hidden />
+                        {!isCollapsed && (
+                          <>
+                            <span className="flex-1">
+                              {t(module.name, module.fallbackLabel || module.name.replace('nav.', ''))}
+                            </span>
+                            {badge}
+                            {isActive && (
+                              <span className={cn('inline-block h-2 w-2 rounded-full bg-primary', alignAutoClass)} aria-hidden />
+                            )}
+                          </>
                         )}
                       </Link>
+
+                      {!isCollapsed && subModules.length > 0 && (
+                        <ul className="mt-1 space-y-1">
+                          {subModules.map((sub) => {
+                            const isSubActive = pathname === sub.path || pathname.startsWith(`${sub.path}/`);
+                            return (
+                              <li key={sub.id}>
+                                <Link
+                                  href={sub.path}
+                                  className={cn(
+                                    'flex items-center gap-2 rounded-2xl px-4 py-1.5 text-xs transition-all duration-200',
+                                    isSubActive
+                                      ? 'bg-muted text-foreground shadow-sm'
+                                      : `opacity-70 hover:bg-muted ${hoverShiftClass}`,
+                                    isRTL ? 'flex-row-reverse text-right' : ''
+                                  )}
+                                  aria-current={isSubActive ? 'page' : undefined}
+                                  data-testid={`nav-${sub.id}`}
+                                  prefetch={false}
+                                  onClick={handleNavigate}
+                                >
+                                  <span
+                                    className={cn(
+                                      'inline-block h-1.5 w-1.5 rounded-full bg-border flex-shrink-0',
+                                      isRTL ? 'ml-2' : 'mr-2'
+                                    )}
+                                    aria-hidden
+                                  />
+                                  <span className="truncate">{t(sub.name, sub.fallbackLabel)}</span>
+                                </Link>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
                     </li>
                   );
                 })}
@@ -128,60 +329,72 @@ export default function Sidebar({ tenantId: _tenantId }: SidebarProps) {
             </section>
           ))}
 
-          {/* Empty state if nothing is allowed */}
-          {Object.keys(groupedModules).length === 0 && (
+          {groupedModules.length === 0 && !isCollapsed && (
             <p className="px-3 text-xs opacity-80" data-testid="sidebar-empty">
               {t('sidebar.noModules', 'No modules available for your role/plan.')}
             </p>
           )}
         </nav>
 
-        {/* User Account Links */}
-        <div className="border-t border-primary-foreground/20 pt-4">
-          <div className={`text-xs font-medium opacity-80 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>
-            {t('sidebar.account', 'Account')}
+        {!isCollapsed && (
+          <div className="border-t border-border pt-4 mt-4">
+            <div className={cn('px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3', isRTL && 'text-right')}>
+              {t('sidebar.account', 'Account')}
+            </div>
+            <ul className="space-y-1" aria-label={t('sidebar.account', 'Account')}>
+              {USER_LINKS.map((link: UserLinkItem) => {
+                if (!isAuthenticated && link.requiresAuth) {
+                  return null;
+                }
+                const Icon = link.icon;
+                const isActive = pathname === link.path || pathname.startsWith(`${link.path}/`);
+                return (
+                  <li key={link.id}>
+                    <Link
+                      href={link.path}
+                      className={cn(
+                        'flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium transition-all duration-200',
+                        isActive
+                          ? 'bg-accent text-accent-foreground shadow-md'
+                          : `opacity-80 hover:bg-muted ${hoverShiftClass}`,
+                        isRTL ? 'flex-row-reverse text-right' : ''
+                      )}
+                      aria-current={isActive ? 'page' : undefined}
+                      data-testid={`account-${link.id}`}
+                      prefetch={false}
+                      onClick={handleNavigate}
+                    >
+                      <Icon className="h-4 w-4 flex-shrink-0" aria-hidden />
+                      <span className="text-sm font-medium">
+                        {t(link.name, link.fallbackLabel || link.name.replace('sidebar.', ''))}
+                      </span>
+                      {isActive && <span className={cn('inline-block h-2 w-2 rounded-full bg-primary', alignAutoClass)} aria-hidden />}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-          <ul className="space-y-1" aria-label={t('sidebar.account', 'Account')}>
-            {USER_LINKS.map(link => {
-              const Icon = link.icon;
-              const isActive = active === link.path || active.startsWith(link.path + '/');
-              return (
-                <li key={link.id}>
-                  <Link
-                    href={link.path}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl transition-all duration-200
-                      ${isActive ? 'bg-primary-foreground/10 shadow-md' : 'opacity-80 hover:bg-primary-foreground/10 hover:opacity-100 hover:translate-x-1'}
-                      ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
-                    aria-current={isActive ? 'page' : undefined}
-                    data-testid={`account-${link.id}`}
-                    prefetch={false}
-                  >
-                    <Icon className="w-5 h-5 flex-shrink-0" aria-hidden />
-                    <span className="text-sm font-medium">{t(link.name, link.name.replace('nav.', ''))}</span>
-                    {isActive && (
-                      <span className={`${translationIsRTL ? 'mr-auto' : 'ml-auto'} inline-block w-2 h-2 bg-card rounded-full`} aria-hidden />
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+        )}
 
-        {/* Help & Support (auth only) */}
-        {isAuthenticated && (
-          <div className="border-t border-primary-foreground/20 pt-4 mt-4">
-            <div className={`text-xs font-medium opacity-80 mb-3 px-3 uppercase tracking-wider ${translationIsRTL ? 'text-right' : ''}`}>
+        {isAuthenticated && !isCollapsed && (
+          <div className="border-t border-border pt-4 mt-4">
+            <div className={cn('px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3', isRTL && 'text-right')}>
               {t('sidebar.help', 'Help')}
             </div>
             <Link
               href="/help"
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-2xl transition-all duration-200 opacity-80 hover:bg-primary-foreground/10 hover:opacity-100 hover:translate-x-1 ${translationIsRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+              className={cn(
+                'flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium opacity-80 transition-all duration-200 hover:bg-muted',
+                isRTL ? 'flex-row-reverse text-right' : '',
+                hoverShiftClass
+              )}
               data-testid="nav-help"
               prefetch={false}
+              onClick={handleNavigate}
             >
-              <Headphones className="w-5 h-5 flex-shrink-0" aria-hidden />
-              <span className="text-sm font-medium">{t('sidebar.helpCenter', 'Help Center')}</span>
+              <HeadphonesIcon className="h-5 w-5 flex-shrink-0" aria-hidden />
+              <span>{t('sidebar.helpCenter', 'Help Center')}</span>
             </Link>
           </div>
         )}

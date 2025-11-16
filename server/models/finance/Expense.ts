@@ -15,8 +15,12 @@
  */
 
 import { Schema, model, models, Types, Document } from 'mongoose';
-import { tenantIsolationPlugin } from '../../plugins/tenantIsolation';
-import { auditPlugin } from '../../plugins/auditPlugin';
+import { getModel, MModel } from '@/src/types/mongoose-compat';
+import { ensureMongoConnection } from '@/server/lib/db';
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
+import { auditPlugin } from '@/server/plugins/auditPlugin';
+
+ensureMongoConnection();
 
 // ============================================================================
 // ENUMS & CONSTANTS
@@ -183,6 +187,12 @@ export interface IExpense extends Document {
   createdBy: Types.ObjectId;
   updatedBy?: Types.ObjectId;
   version: number;
+  
+  // Methods
+  submit(): Promise<void>;
+  approve(approverId: Types.ObjectId, comments?: string): Promise<void>;
+  reject(approverId: Types.ObjectId, reason: string): Promise<void>;
+  markAsPaid(paymentId: Types.ObjectId): Promise<void>;
 }
 
 // ============================================================================
@@ -672,4 +682,4 @@ ExpenseSchema.statics.getSummary = async function(
 // MODEL EXPORT
 // ============================================================================
 
-export const Expense = models.Expense || model<IExpense>('Expense', ExpenseSchema);
+export const Expense = getModel<IExpense>('Expense', ExpenseSchema);

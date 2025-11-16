@@ -66,9 +66,9 @@ export async function GET(request: NextRequest) {
     if (city) query.city = city;
     if (neighborhoods && neighborhoods.length > 0) query.neighborhood = { $in: neighborhoods };
     if (minPrice !== undefined || maxPrice !== undefined) {
-      query.price = {};
-      if (minPrice !== undefined) (query.price as Record<string, number>).$gte = minPrice;
-      if (maxPrice !== undefined) (query.price as Record<string, number>).$lte = maxPrice;
+      query['price.amount'] = {};
+      if (minPrice !== undefined) (query['price.amount'] as Record<string, number>).$gte = minPrice;
+      if (maxPrice !== undefined) (query['price.amount'] as Record<string, number>).$lte = maxPrice;
     }
     if (minBeds !== undefined || maxBeds !== undefined) {
       query.beds = {};
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     
     // Geo search
     if (lat !== undefined && lng !== undefined && radiusKm !== undefined) {
-      query.geo = {
+      query['location.geo'] = {
         $near: {
           $geometry: {
             type: 'Point',
@@ -95,15 +95,23 @@ export async function GET(request: NextRequest) {
         },
       };
     }
+
+    if (searchParams.get('isAuction') === 'true') {
+      query['auction.isAuction'] = true;
+    }
+
+    if (searchParams.get('rnplEligible') === 'true') {
+      query.rnplEligible = true;
+    }
     
     // Build sort
     let sortQuery: Record<string, 1 | -1> = {};
     switch (sort) {
       case 'price-asc':
-        sortQuery = { price: 1 };
+        sortQuery = { 'price.amount': 1 };
         break;
       case 'price-desc':
-        sortQuery = { price: -1 };
+        sortQuery = { 'price.amount': -1 };
         break;
       case 'date-desc':
         sortQuery = { publishedAt: -1 };
@@ -117,12 +125,13 @@ export async function GET(request: NextRequest) {
     
     // Execute query with field projection for performance
     const countQuery = { ...query };
-    delete (countQuery as { geo?: unknown }).geo;
+    delete (countQuery as { 'location.geo'?: unknown })['location.geo'];
     
-    const select = '_id title price areaSqm city status media.coverImage analytics.views publishedAt';
+    const select =
+      '_id title price areaSqm city status media analytics.views publishedAt rnplEligible auction location';
     const [listings, total] = await Promise.all([
-      AqarListing.find(query).select(select).sort(sortQuery).skip(skip).limit(limit).lean(),
-      AqarListing.countDocuments(countQuery),
+      (AqarListing as any).find(query).select(select).sort(sortQuery).skip(skip).limit(limit).lean(),
+      (AqarListing as any).countDocuments(countQuery),
     ]);
     
     // Calculate facets - $near cannot be used in $match within $facet
@@ -142,7 +151,7 @@ export async function GET(request: NextRequest) {
           priceRanges: [
             {
               $bucket: {
-                groupBy: '$price',
+                groupBy: '$price.amount',
                 boundaries: [0, 100000, 250000, 500000, 1000000, 2000000, 5000000, 10000000],
                 default: '10M+',
                 output: { count: { $sum: 1 } },

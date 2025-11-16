@@ -25,7 +25,7 @@ export async function activatePackageAfterPayment(paymentId: string | mongoose.T
     const payment = await AqarPayment.findById(paymentId);
     
     if (!payment) {
-      console.error('activatePackageAfterPayment: Payment not found', { paymentId });
+      logger.error('activatePackageAfterPayment: Payment not found', { paymentId });
       return false;
     }
     
@@ -52,7 +52,7 @@ export async function activatePackageAfterPayment(paymentId: string | mongoose.T
     const pkg = await AqarPackage.findById(payment.relatedId);
     
     if (!pkg) {
-      console.error('activatePackageAfterPayment: Package not found', { 
+      logger.error('activatePackageAfterPayment: Package not found', { 
         paymentId, 
         packageId: payment.relatedId 
       });
@@ -78,7 +78,7 @@ export async function activatePackageAfterPayment(paymentId: string | mongoose.T
     
     return true;
   } catch (error) {
-    console.error('activatePackageAfterPayment: Error activating package', { 
+    logger.error('activatePackageAfterPayment: Error activating package', { 
       paymentId, 
       error: String((error as Error)?.message || error) 
     });

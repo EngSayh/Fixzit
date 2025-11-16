@@ -1,4 +1,5 @@
-import { Schema, model, models, Types } from 'mongoose';
+import { Schema, model, models, Model, Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 import { auditPlugin } from '../plugins/auditPlugin';
 import { MODULE_KEYS } from './Module';
 
@@ -32,8 +33,8 @@ const BillingHistorySchema = new Schema(
 
 const SubscriptionSchema = new Schema(
   {
-    tenant_id: { type: Types.ObjectId, ref: 'Organization', required: false },
-    owner_user_id: { type: Types.ObjectId, ref: 'User', required: false },
+    tenant_id: { type: Schema.Types.ObjectId, ref: 'Organization', required: false },
+    owner_user_id: { type: Schema.Types.ObjectId, ref: 'User', required: false },
     subscriber_type: { 
       type: String, 
       enum: ['CORPORATE', 'OWNER'], 
@@ -60,7 +61,7 @@ const SubscriptionSchema = new Schema(
       default: 'USD' 
     },
     price_book_id: { 
-      type: Types.ObjectId, 
+      type: Schema.Types.ObjectId, 
       ref: 'PriceBook', 
       required: true 
     },
@@ -116,4 +117,45 @@ SubscriptionSchema.index({ status: 1 });
 // Index for recurring billing query (billing_cycle + status + next_billing_date)
 SubscriptionSchema.index({ billing_cycle: 1, status: 1, next_billing_date: 1 });
 
-export default models.Subscription || model('Subscription', SubscriptionSchema);
+// TypeScript-safe model export
+interface IPayTabsInfo {
+  profile_id?: string;
+  token?: string;
+  customer_email?: string;
+  last_tran_ref?: string;
+  agreement_id?: string;
+  cart_id?: string;
+}
+
+interface IBillingHistory {
+  date: Date;
+  amount: number;
+  currency: string;
+  tran_ref?: string;
+  status: 'SUCCESS' | 'FAILED' | 'PENDING';
+  error?: string;
+}
+
+interface ISubscription extends Document {
+  tenant_id?: Schema.Types.ObjectId;
+  owner_user_id?: Schema.Types.ObjectId;
+  subscriber_type: 'CORPORATE' | 'OWNER';
+  modules: string[];
+  seats: number;
+  billing_cycle: 'MONTHLY' | 'ANNUAL';
+  currency: 'USD' | 'SAR';
+  price_book_id: Schema.Types.ObjectId;
+  amount: number;
+  status: 'INCOMPLETE' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+  paytabs?: IPayTabsInfo;
+  next_billing_date?: Date;
+  billing_history: IBillingHistory[];
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+}
+
+const Subscription = getModel<any>('Subscription', SubscriptionSchema) as any;
+export default Subscription;

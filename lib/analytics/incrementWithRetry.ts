@@ -5,10 +5,12 @@
  * across different models. Helps prevent duplicate retry logic across API routes.
  */
 
-import type { Model, Types, UpdateQuery, Document } from 'mongoose';
+import { logger } from '@/lib/logger';
+import type { Types, UpdateQuery, Document } from 'mongoose';
+import type { MModel } from '@/src/types/mongoose-compat';
 
 interface IncrementOptions<T = unknown> {
-  model: Model<T>;
+  model: MModel<T>;
   id: Types.ObjectId;
   updateOp: UpdateQuery<T>;
   entityType: string;
@@ -44,7 +46,7 @@ export async function incrementAnalyticsWithRetry<T extends Document>({
       
       if (retries === 0) {
         // Final failure - log error
-        console.error(`Failed to increment ${entityType} analytics after ${maxRetries} retries`, {
+        logger.error(`Failed to increment ${entityType} analytics after ${maxRetries} retries`, {
           id: id.toString(),
           message: error instanceof Error ? error.message : 'Unknown error',
           type: error instanceof Error ? error.constructor.name : typeof error,

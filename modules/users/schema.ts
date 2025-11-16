@@ -1,4 +1,5 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
 import { auditPlugin } from '@/server/plugins/auditPlugin';
 import { Role } from '@/domain/fm/fm.behavior';
@@ -56,7 +57,7 @@ UserSchema.index({ orgId: 1, email: 1 }, { unique: true });
 UserSchema.index({ orgId: 1, employeeId: 1 }, { unique: true, sparse: true });
 UserSchema.index({ orgId: 1, role: 1, isActive: 1 }); // Tenant-scoped index
 
-const UserModel = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
+const UserModel = getModel<IUser>('User', UserSchema);
 
 export { UserModel as User };
 export default UserModel;

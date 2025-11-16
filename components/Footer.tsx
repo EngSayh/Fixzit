@@ -83,12 +83,18 @@ export default function Footer() {
             </ul>
           </div>
         </div>
-  {/* Bottom bar with copyright and quick links 
-      Note: Privacy/Terms/Support links duplicated here for user convenience 
-      (mobile users may prefer bottom bar, desktop users may use main grid) */}
-  <div className="flex flex-col gap-2 border-t border-border pt-4 text-xs opacity-60 md:flex-row md:items-center md:justify-between">
-          <div>© {currentYear || '...'} {t('footer.copyright', 'Fixzit. All rights reserved.')}</div>
-          <div className="flex gap-4">
+        <div className="flex flex-col gap-3 border-t border-border pt-4 text-xs opacity-80 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <div>© {currentYear || '...'} {t('footer.copyright', 'Fixzit. All rights reserved.')}</div>
+            <nav aria-label={t('footer.breadcrumbLabel', 'Fixzit trail')} className={`flex flex-wrap items-center gap-2 text-[11px] ${translationIsRTL ? 'flex-row-reverse' : ''}`}>
+              <span>{t('footer.crumb.fixzit', 'Fixzit')}</span>
+              <span aria-hidden>›</span>
+              <span>{t('footer.crumb.platform', 'Design System')}</span>
+              <span aria-hidden>›</span>
+              <span>{t('footer.crumb.version', 'v2')}</span>
+            </nav>
+          </div>
+          <div className={`flex gap-4 ${translationIsRTL ? 'flex-row-reverse' : ''}`}>
             <Link href="/privacy" className="hover:underline">{t('footer.privacy', 'Privacy')}</Link>
             <Link href="/terms" className="hover:underline">{t('footer.terms', 'Terms')}</Link>
             <Link href="/support" className="hover:underline">{t('footer.support', 'Support')}</Link>

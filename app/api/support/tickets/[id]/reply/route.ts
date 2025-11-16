@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/mongodb-unified";
 import { SupportTicket } from "@/server/models/SupportTicket";
 import { z } from "zod";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
+import { Types } from 'mongoose';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
@@ -44,24 +45,37 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   if (!/^[a-fA-F0-9]{24}$/.test(params.id)) {
     return createSecureResponse({ error: "Invalid id" }, 400, req);
   }
+  const creatorMatch = user?.id ? [{ createdBy: Types.ObjectId.isValid(user.id) ? new Types.ObjectId(user.id) : user.id }] : [];
+  const adminMatch = user && ["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role) ? [{}] : [];
   const t = await SupportTicket.findOne({ 
     _id: params.id, 
     $or: [
       { orgId: user?.orgId },
-      { createdByUserId: user?.id },
-      // Allow admins to reply to any ticket
-      ...(user && ["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role) ? [{}] : [])
+      ...creatorMatch,
+      ...adminMatch,
     ]
   });
   if (!t) return createSecureResponse({ error: "Not found" }, 404, req);
 
   // End user may reply only to own ticket; admins can reply to any
   const isAdmin = !!user && ["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role);
-  const isOwner = !!user && t.createdByUserId === user.id;
+  const isOwner = !!user && (t as any).createdBy?.toString?.() === user.id;
   if (!isAdmin && !isOwner) return createSecureResponse({ error: "Forbidden"}, 403, req);
 
-  t.messages.push({ byUserId: user?.id, byRole: isAdmin ? "ADMIN" : "USER", text: body.text, at: new Date() });
-  if (t.status === "Waiting") t.status = "Open";
+  const ticketDoc = t as unknown as {
+    messages: Array<{ byUserId?: string; byRole: string; text: string; at: Date }>;
+    status?: string;
+  };
+  ticketDoc.messages ??= [];
+  ticketDoc.messages.push({
+    byUserId: user?.id,
+    byRole: isAdmin ? "ADMIN" : "USER",
+    text: body.text,
+    at: new Date()
+  });
+  if (ticketDoc.status === "Waiting") {
+    ticketDoc.status = "Open";
+  }
   await t.save();
   return createSecureResponse({ ok: true }, 200, req);
 }

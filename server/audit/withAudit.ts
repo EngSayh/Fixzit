@@ -166,7 +166,7 @@ export function withAudit<
         };
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (AuditLogModel as any).log(auditData);
+        await AuditLogModel.log(auditData);
       } catch (err) {
         // never break the API
         logger.error('Failed to log audit entry', { error: err });

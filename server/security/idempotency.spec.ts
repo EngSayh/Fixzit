@@ -3,7 +3,7 @@
  * Framework: Vitest
  */
 
-import { vi, describe, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, expect, beforeEach, afterEach, test } from 'vitest';
 import { createHash } from 'crypto';
 
 // Import from the module under test.
@@ -108,7 +108,7 @@ describe('withIdempotency', () => {
   test('on exec rejection, entry is removed and subsequent call retries', async () => {
     const key = 'K5';
     const err = new Error('boom');
-    const exec = jest
+    const exec = vi
       .fn()
       .mockRejectedValueOnce(err)
       .mockResolvedValueOnce('ok-after');

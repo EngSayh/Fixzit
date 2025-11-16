@@ -149,7 +149,7 @@ export async function PUT(req: NextRequest, context: RouteContext<{ id: string }
 
         // Update expense
         Object.assign(expense, data);
-        expense.updatedBy = user.userId;
+        expense.updatedBy = new Types.ObjectId(user.userId);
         await expense.save();
 
         return NextResponse.json({
@@ -233,7 +233,7 @@ export async function DELETE(req: NextRequest, context: RouteContext<{ id: strin
         }
 
         expense.status = 'CANCELLED';
-        expense.updatedBy = user.userId;
+        expense.updatedBy = new Types.ObjectId(user.userId);
         await expense.save();
 
         return NextResponse.json({

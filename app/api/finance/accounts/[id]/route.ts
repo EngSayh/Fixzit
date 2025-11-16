@@ -26,7 +26,7 @@ const UpdateAccountSchema = z.object({
   accountName: z.string().min(1).max(200).optional(),
   description: z.string().optional(),
   taxable: z.boolean().optional(),
-  taxRate: z.number().min(0).max(1).optional(),
+  vatRate: z.number().min(0).max(100).optional(), // 0-100 percentage
   isActive: z.boolean().optional()
 });
 
@@ -93,10 +93,13 @@ export async function GET(
           return NextResponse.json({ error: 'Account not found' }, { status: 404 });
         }
         
-        // Get parent account if exists
+        // Get parent account if exists (with tenant isolation)
         let parent = null;
         if (account.parentId) {
-          parent = await ChartAccount.findById(account.parentId).lean();
+          parent = await ChartAccount.findOne({
+            _id: account.parentId,
+            orgId: new Types.ObjectId(user.orgId)
+          }).lean();
         }
         
         // Get child accounts
@@ -106,7 +109,7 @@ export async function GET(
         }).lean();
         
         // Get current balance from most recent ledger entry
-        const latestEntry = await LedgerEntry.findOne({
+        const latestEntry = await (LedgerEntry as any).findOne({
           orgId: new Types.ObjectId(user.orgId),
           accountId: account._id
         }).sort({ date: -1, createdAt: -1 }).lean();
@@ -188,8 +191,40 @@ export async function PUT(
         if (validated.accountName !== undefined) account.accountName = validated.accountName;
         if (validated.description !== undefined) account.description = validated.description;
         if (validated.taxable !== undefined) account.taxable = validated.taxable;
-        if (validated.taxRate !== undefined) account.taxRate = validated.taxRate;
-        if (validated.isActive !== undefined) account.isActive = validated.isActive;
+        if (validated.vatRate !== undefined) account.vatRate = validated.vatRate;
+        
+        // Apply same safeguards as DELETE when deactivating
+        if (validated.isActive !== undefined && !validated.isActive && account.isActive) {
+          // Check for ledger entries
+          const hasEntries = await (LedgerEntry as any).exists({
+            orgId: new Types.ObjectId(user.orgId),
+            accountId: account._id
+          });
+          
+          if (hasEntries) {
+            return NextResponse.json(
+              { error: 'Cannot deactivate account with ledger entries' },
+              { status: 400 }
+            );
+          }
+          
+          // Check for child accounts
+          const hasChildren = await ChartAccount.exists({
+            orgId: new Types.ObjectId(user.orgId),
+            parentId: account._id
+          });
+          
+          if (hasChildren) {
+            return NextResponse.json(
+              { error: 'Cannot deactivate account with child accounts' },
+              { status: 400 }
+            );
+          }
+          
+          account.isActive = false;
+        } else if (validated.isActive !== undefined) {
+          account.isActive = validated.isActive;
+        }
         
         await account.save();
         
@@ -262,8 +297,8 @@ export async function DELETE(
           return NextResponse.json({ error: 'Account not found' }, { status: 404 });
         }
         
-        // Check if account has ledger entries
-        const hasEntries = await LedgerEntry.exists({
+        // Prevent deletion if ledger entries exist for this account
+        const hasEntries = await (LedgerEntry as any).exists({
           orgId: new Types.ObjectId(user.orgId),
           accountId: account._id
         });

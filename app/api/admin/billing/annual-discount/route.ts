@@ -43,7 +43,7 @@ export async function PATCH(req: NextRequest) {
     { upsert: true, new: true }
   );
 
-  return NextResponse.json({ ok: true, discount: doc.percentage });
+  return NextResponse.json({ ok: true, discount: doc?.percentage });
 }
 
 

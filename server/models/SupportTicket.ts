@@ -1,4 +1,5 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, Model, models, InferSchemaType } from "mongoose";
+import { getModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 
@@ -21,11 +22,18 @@ const SupportTicketSchema = new Schema({
   subCategory: { type: String, enum: ["Bug Report","Performance Issue","UI Error","API Error","Database Error","New Feature","Enhancement","Integration","Customization","Mobile App","Invoice Issue","Payment Error","Subscription","Refund","Pricing","Login Issue","Password Reset","Profile Update","Permissions","Access Denied","Documentation","Training","Support","Feedback","Other","Critical Bug","Minor Bug","Cosmetic Issue","Data Error","Security Issue"], default: "Other" },
   status: { type: String, enum: ["New","Open","Waiting","Resolved","Closed"], default: "New" },
   
-  // createdByUserId will be added by auditPlugin as 'createdBy'
+  // createdBy will be added by auditPlugin
   
   requester: { name:String, email:String, phone:String },
   messages: { type: [Message], default: [] },
-  assigneeUserId: { type: Schema.Types.ObjectId, ref: 'User' },
+  assignment: {
+    assignedTo: {
+      userId: { type: Schema.Types.ObjectId, ref: 'User' },
+      teamId: { type: Schema.Types.ObjectId, ref: 'Team' }
+    },
+    assignedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    assignedAt: Date
+  },
   firstResponseAt: { type: Date },
   resolvedAt: { type: Date }
 }, { timestamps: true });
@@ -38,8 +46,8 @@ SupportTicketSchema.plugin(auditPlugin);
 SupportTicketSchema.index({ orgId: 1, code: 1 }, { unique: true }); // Tenant-scoped unique code
 SupportTicketSchema.index({ orgId: 1, status: 1, module: 1, priority: 1 });
 SupportTicketSchema.index({ orgId: 1, 'requester.email': 1 });
-SupportTicketSchema.index({ orgId: 1, assigneeUserId: 1 });
+SupportTicketSchema.index({ orgId: 1, 'assignment.assignedTo.userId': 1 });
 
 export type SupportTicketDoc = InferSchemaType<typeof SupportTicketSchema>;
 
-export const SupportTicket = models.SupportTicket || model("SupportTicket", SupportTicketSchema);
+export const SupportTicket: Model<SupportTicketDoc> = getModel<SupportTicketDoc>('SupportTicket', SupportTicketSchema);

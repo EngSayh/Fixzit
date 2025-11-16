@@ -1,4 +1,5 @@
-import { Schema, InferSchemaType, model, models } from 'mongoose';
+import { Schema, InferSchemaType, model, models } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
 /**
  * Permission Model
@@ -81,5 +82,5 @@ PermissionSchema.methods.toSafeObject = function () {
 
 export type Permission = InferSchemaType<typeof PermissionSchema>;
 
-const PermissionModel = models.Permission || model<Permission>('Permission', PermissionSchema);
+const PermissionModel = getModel<Permission>('Permission', PermissionSchema);
 export default PermissionModel;

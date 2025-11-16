@@ -1,4 +1,5 @@
-import { Schema, model, models } from 'mongoose';
+import { Schema, model, models, Model, Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 import { auditPlugin } from '../plugins/auditPlugin';
 
 export type ModuleKey =
@@ -41,5 +42,18 @@ const ModuleSchema = new Schema(
 // Apply auditPlugin for change tracking (Module is global, so NO tenantIsolationPlugin)
 ModuleSchema.plugin(auditPlugin);
 
-export default models.Module || model('Module', ModuleSchema);
+// TypeScript-safe model export
+interface IModule extends Document {
+  key: ModuleKey;
+  name: string;
+  description?: string;
+  enabledByDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+}
+
+const Module = getModel<IModule>('Module', ModuleSchema);
+export default Module;
 export { MODULE_KEYS };

@@ -1,37 +1,90 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, DollarSign, Calendar, Clock } from 'lucide-react';
+import { logger } from '@/lib/logger';
+
+interface HrStats {
+  totalEmployees: number;
+  activeEmployees: number;
+  latestPayroll: number;
+  pendingLeave: number;
+}
 
 export default function HRDashboard() {
   const { t } = useTranslation();
+  const [stats, setStats] = useState<HrStats>({
+    totalEmployees: 0,
+    activeEmployees: 0,
+    latestPayroll: 0,
+    pendingLeave: 0,
+  });
 
-  const stats = [
+  useEffect(() => {
+    void fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const [employeesRes, payrollRes, leaveRes] = await Promise.all([
+        fetch('/api/hr/employees?limit=200'),
+        fetch('/api/hr/payroll/runs'),
+        fetch('/api/hr/leaves?status=PENDING'),
+      ]);
+
+      const [employeesData, payrollData, leaveData] = await Promise.all([
+        employeesRes.ok ? employeesRes.json() : Promise.resolve({ employees: [] }),
+        payrollRes.ok ? payrollRes.json() : Promise.resolve({ runs: [] }),
+        leaveRes.ok ? leaveRes.json() : Promise.resolve({ requests: [] }),
+      ]);
+
+      const employees = employeesData.employees || [];
+      const activeEmployees = employees.filter((emp: any) => emp.employmentStatus === 'ACTIVE').length;
+      const latestRun = (payrollData.runs || [])[0];
+      const pendingLeave = (leaveData.requests || []).length;
+
+      setStats({
+        totalEmployees: employees.length,
+        activeEmployees,
+        latestPayroll: latestRun?.totals?.net || 0,
+        pendingLeave,
+      });
+    } catch (error) {
+      logger.error('Failed to load HR dashboard stats:', error);
+    }
+  };
+
+  const statCards = [
     {
+      key: 'totalEmployees',
       title: t('hr.stats.totalEmployees', 'Total Employees'),
-      value: '142',
+      value: stats.totalEmployees.toString(),
       icon: Users,
       color: 'text-primary',
       bgColor: 'bg-primary/10'
     },
     {
+      key: 'monthlyPayroll',
       title: t('hr.stats.monthlyPayroll', 'Monthly Payroll'),
-      value: 'SAR 1.2M',
+      value: new Intl.NumberFormat('en-SA', { style: 'currency', currency: 'SAR', maximumFractionDigits: 0 }).format(stats.latestPayroll),
       icon: DollarSign,
       color: 'text-success',
       bgColor: 'bg-success/10'
     },
     {
+      key: 'pendingLeave',
       title: t('hr.stats.pendingLeave', 'Pending Leave Requests'),
-      value: '8',
+      value: stats.pendingLeave.toString(),
       icon: Calendar,
       color: 'text-warning',
       bgColor: 'bg-warning/10'
     },
     {
+      key: 'attendance',
       title: t('hr.stats.attendance', 'Today\'s Attendance'),
-      value: '138/142',
+      value: `${stats.activeEmployees}/${stats.totalEmployees}`,
       icon: Clock,
       color: 'text-secondary',
       bgColor: 'bg-secondary/10'
@@ -42,8 +95,8 @@ export default function HRDashboard() {
     <div className="space-y-6">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index}>
+        {statCards.map((stat) => (
+          <Card key={stat.key}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>

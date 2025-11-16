@@ -575,8 +575,8 @@ Continue to learn about tenant relations!
                 <div className="mt-8 p-4 bg-primary/10 rounded-2xl">
                   <h4 className="font-semibold text-primary mb-2">💡 Tips</h4>
                   <ul className="space-y-1">
-                    {currentStepData.tips.map((tip, index) => (
-                      <li key={index} className="text-primary text-sm flex items-start gap-2">
+                    {currentStepData.tips.map((tip, i) => (
+                      <li key={i} className="text-primary text-sm flex items-start gap-2">
                         <span className="text-primary mt-1">•</span>
                         {tip}
                       </li>

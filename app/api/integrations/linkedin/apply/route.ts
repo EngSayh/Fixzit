@@ -45,12 +45,12 @@ export async function POST(req: NextRequest) {
     const { jobSlug, profile, answers } = await req.json();
     if (!jobSlug || !profile?.email) return validationError('Missing fields');
 
-    const job = await Job.findOne({ slug: jobSlug, status: 'published' }).lean();
+    const job = await (Job as any).findOne({ slug: jobSlug, status: 'published' }).lean();
     if (!job) return notFoundError("Job");
 
     let candidate = await Candidate.findByEmail(job.orgId, profile.email);
     if (!candidate) {
-      candidate = await Candidate.create({
+      candidate = await (Candidate as any).create({
         orgId: job.orgId,
         firstName: profile.firstName,
         lastName: profile.lastName || 'NA',
@@ -62,13 +62,17 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    if (!candidate) {
+      return NextResponse.json({ success: false, error: 'Failed to create candidate' }, { status: 500 });
+    }
+
     const orgId = job.orgId;
     const jobId = job._id;
     
-    const dup = await Application.findOne({ orgId, jobId, candidateId: candidate._id });
+    const dup = await (Application as any).findOne({ orgId, jobId, candidateId: candidate._id });
     if (dup) return NextResponse.json({ success: true, data: { applicationId: dup._id, message: 'Already applied' } });
 
-    const app = await Application.create({
+    const app = await (Application as any).create({
       orgId,
       jobId,
       candidateId: candidate._id,

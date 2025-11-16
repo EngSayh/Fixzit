@@ -141,7 +141,9 @@ describe('seed-marketplace script', () => {
       expect(updated.term).toBe('ac filter') // unchanged
       expect(updated.locale).toBe('en')
     } finally {
-      (Date.now as any).mockRestore?.()
+      if (typeof (Date.now as unknown as { mockRestore?: () => void }).mockRestore === 'function') {
+        (Date.now as unknown as { mockRestore: () => void }).mockRestore();
+      }
       // ensure Date.now restored in all environments
       Date.now = originalNow
     }

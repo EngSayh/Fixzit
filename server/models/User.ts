@@ -1,4 +1,5 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, Model, models, InferSchemaType } from "mongoose";
+import { getModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
 import { UserRole, UserStatus } from "@/types/user";
@@ -145,7 +146,7 @@ const UserSchema = new Schema({
     },
     language: { type: String, default: "ar" },
     timezone: { type: String, default: "Asia/Riyadh" },
-    theme: { type: String, enum: ["LIGHT", "DARK", "AUTO"] }
+    theme: { type: String, enum: ["LIGHT", "DARK", "AUTO", "SYSTEM"], default: "SYSTEM" }
   },
 
   // Employment
@@ -211,4 +212,4 @@ UserSchema.index({ orgId: 1, isSuperAdmin: 1 }); // RBAC index
 
 export type UserDoc = InferSchemaType<typeof UserSchema>;
 
-export const User = models.User || model("User", UserSchema);
+export const User: Model<UserDoc> = getModel<UserDoc>('User', UserSchema);

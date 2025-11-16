@@ -6,6 +6,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import toast from 'react-hot-toast';
 
 import { logger } from '@/lib/logger';
+import ClientDate from '@/components/ClientDate';
 interface ReferralCode {
   id: string;
   code: string;
@@ -31,6 +32,7 @@ interface ReferralCode {
 }
 
 interface Referral {
+  _id?: string;  // MongoDB ID for stable keys
   referredEmail: string;
   referredAt: Date;
   convertedAt?: Date;
@@ -306,21 +308,6 @@ export default function ReferralProgramPage() {
     }
   };
 
-  // Date formatter using Intl with dynamic locale
-  const formatDate = (date: Date | string): string => {
-    try {
-      // Use current language locale for consistent date formatting
-      const locale = language === 'ar' ? 'ar-SA' : 'en-US';
-      return new Intl.DateTimeFormat(locale, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      }).format(new Date(date));
-    } catch {
-      return new Date(date).toLocaleDateString();
-    }
-  };
-
   if (error) {
     return (
       <div className="max-w-7xl mx-auto p-6" data-testid="referral-error-page">
@@ -578,12 +565,12 @@ export default function ReferralProgramPage() {
                   </thead>
                   <tbody className="divide-y divide-border dark:divide-gray-700">
                     {referrals.map((referral, index) => (
-                      <tr key={index} data-testid={`referral-row-${index}`}>
+                      <tr key={referral._id || `${referral.referredEmail}-${index}`} data-testid={`referral-row-${index}`}>
                         <td className="px-6 py-4 text-sm text-foreground dark:text-white">
                           {maskEmail(referral.referredEmail)}
                         </td>
                         <td className="px-6 py-4 text-sm text-muted-foreground dark:text-muted-foreground">
-                          {formatDate(referral.referredAt)}
+                          <ClientDate date={referral.referredAt} format="medium" locale={language === 'ar' ? 'ar-SA' : 'en-US'} />
                         </td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 text-xs font-medium rounded-full ${

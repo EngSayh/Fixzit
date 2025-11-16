@@ -1,6 +1,7 @@
-import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { Schema, InferSchemaType, Types } from "mongoose";
 import { tenantIsolationPlugin } from "../plugins/tenantIsolation";
 import { auditPlugin } from "../plugins/auditPlugin";
+import { getModel } from '@/src/types/mongoose-compat';
 
 const RFQStatus = ["DRAFT", "PUBLISHED", "BIDDING", "CLOSED", "AWARDED", "CANCELLED"] as const;
 
@@ -92,7 +93,7 @@ const RFQSchema = new Schema({
 
   // Bids - CRITICAL FIX: References instead of embedded documents
   bids: [{
-    type: Types.ObjectId,
+    type: Schema.Types.ObjectId,
     ref: 'ProjectBid'
   }],
 
@@ -162,5 +163,4 @@ RFQSchema.index({ orgId: 1, 'location.city': 1 });
 
 export type RFQDoc = InferSchemaType<typeof RFQSchema>;
 
-// Check if we're using mock database
-export const RFQ = models.RFQ || model("RFQ", RFQSchema);
+export const RFQ = getModel<RFQDoc>('RFQ', RFQSchema);

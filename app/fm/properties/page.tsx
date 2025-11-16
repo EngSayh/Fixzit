@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { CardGridSkeleton } from '@/components/skeletons';
@@ -18,6 +18,7 @@ import { Building2, Plus, Search, MapPin, Eye, Edit, Trash2, Home, Building, Fac
 import { useTranslation } from '@/contexts/TranslationContext';
 
 import { logger } from '@/lib/logger';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 interface PropertyUnit {
   status?: string;
 }
@@ -81,6 +82,7 @@ export default function PropertiesPage() {
 
   return (
     <div className="space-y-6">
+      <ModuleViewTabs moduleId="properties" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -118,10 +120,7 @@ export default function PropertiesPage() {
                 />
               </div>
             </div>
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder={t('fm.properties.propertyType', 'Property Type')} />
-              </SelectTrigger>
+            <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t('fm.properties.propertyType', 'Property Type')} className="w-48">
               <SelectContent>
                 <SelectItem value="">{t('fm.properties.allTypes', 'All Types')}</SelectItem>
                 <SelectItem value="RESIDENTIAL">{t('fm.properties.residential', 'Residential')}</SelectItem>
@@ -433,10 +432,7 @@ function CreatePropertyForm({ onCreated, orgId }: { onCreated: () => void; orgId
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">{t('fm.properties.type', 'Type')} *</label>
-          <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('fm.properties.selectType', 'Select type')} />
-            </SelectTrigger>
+          <Select value={formData.type} onValueChange={(val) => setFormData({ ...formData, type: val })} placeholder={t('fm.properties.selectType', 'Select type')}>
             <SelectContent>
               <SelectItem value="RESIDENTIAL">{t('fm.properties.residential', 'Residential')}</SelectItem>
               <SelectItem value="COMMERCIAL">{t('fm.properties.commercial', 'Commercial')}</SelectItem>

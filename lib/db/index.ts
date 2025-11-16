@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
  */
 
 import { connectToDatabase } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
 import mongoose from 'mongoose';
 
 /**
@@ -34,15 +35,16 @@ export async function ensureCoreIndexes(): Promise<void> {
     {
       collection: 'workorders',
       indexes: [
-        { key: { code: 1 }, unique: true },
-        { key: { tenantId: 1 } },
+        { key: { workOrderNumber: 1 }, unique: true },
+        { key: { orgId: 1 } },
         { key: { status: 1 } },
         { key: { priority: 1 } },
-        { key: { propertyId: 1 } },
-        { key: { assigneeUserId: 1 } },
+        { key: { 'location.propertyId': 1 } },
+        { key: { 'assignment.assignedTo.userId': 1 } },
+        { key: { 'assignment.assignedTo.vendorId': 1 } },
         { key: { createdAt: -1 } },
-        { key: { dueAt: 1 } },
-        { key: { tenantId: 1, status: 1, createdAt: -1 } }
+        { key: { 'sla.resolutionDeadline': 1 } },
+        { key: { orgId: 1, status: 1, createdAt: -1 } }
       ]
     },
     // Properties
@@ -120,7 +122,7 @@ export async function ensureCoreIndexes(): Promise<void> {
             continue;
           }
           // Log all other errors for observability
-          console.error(`Failed to create index on ${collection}:`, {
+          logger.error(`Failed to create index on ${collection}:`, {
             index: JSON.stringify(indexSpec.key),
             error: mongoError.message || 'Unknown error',
             code: mongoError.code
@@ -133,7 +135,7 @@ export async function ensureCoreIndexes(): Promise<void> {
       // Log collection-level errors with context
       const error = err as Error;
       failures.push({ collection, error });
-      console.error(`Failed to create indexes for collection ${collection}:`, {
+      logger.error(`Failed to create indexes for collection ${collection}:`, {
         message: error.message,
         stack: error.stack
       });

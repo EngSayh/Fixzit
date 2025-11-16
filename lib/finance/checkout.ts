@@ -72,7 +72,7 @@ export async function createSubscriptionCheckout(
     return { requiresQuote: true, quote };
   }
 
-  const subscription = await Subscription.create({
+  const subscription = (await Subscription.create({
     tenant_id: input.subscriberType === 'CORPORATE' ? input.tenantId : undefined,
     owner_user_id: input.subscriberType === 'OWNER' ? input.ownerUserId : undefined,
     subscriber_type: input.subscriberType,
@@ -88,7 +88,7 @@ export async function createSubscriptionCheckout(
       customer_email: input.customer.email,
     },
     metadata: input.metadata,
-  });
+  }));
 
   const cartId = `SUB-${subscription._id.toString()}`;
   const payload: Record<string, unknown> = {

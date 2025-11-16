@@ -1,6 +1,16 @@
 import { logger } from '@/lib/logger';
 import mongoose from 'mongoose';
 
+// Safe TLS detection function
+function isTlsEnabled(uri: string): boolean {
+  if (!uri) return false;
+  // MongoDB Atlas (srv) always uses TLS
+  if (uri.includes('mongodb+srv://')) return true;
+  // Check for explicit TLS/SSL parameters
+  if (uri.includes('tls=true') || uri.includes('ssl=true')) return true;
+  return false;
+}
+
 declare global {
    
   var _mongooseConnection: typeof mongoose | undefined;
@@ -55,8 +65,8 @@ function validateMongoUri(): string {
  */
 
 export async function connectToDatabase(): Promise<typeof mongoose> {
-  if (global._mongooseConnection && mongoose.connection.readyState === 1) {
-    return global._mongooseConnection;
+  if (globalThis._mongooseConnection && mongoose.connection.readyState === 1) {
+    return globalThis._mongooseConnection;
   }
 
   // Validate URI at runtime (not at module load)
@@ -71,18 +81,19 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
       socketTimeoutMS: 45000,
       // Production-critical options for MongoDB Atlas
       retryWrites: true,        // Automatic retry for write operations (network failures)
-      tls: true,                // Force TLS/SSL for secure connections (required for Atlas)
+      tls: isTlsEnabled(mongoUri),  // Safe TLS detection
       w: 'majority',            // Write concern for data durability (prevents data loss)
     });
 
     if (process.env.NODE_ENV === 'development') {
-      global._mongooseConnection = connection;
+      globalThis._mongooseConnection = connection;
     }
 
     logger.info('✅ MongoDB connected successfully');
     return connection;
-  } catch (error) {
-    logger.error('❌ MongoDB connection error:', { error });
+  } catch (error: unknown) {
+    logger.error('[MongoDB] Connection failed:', { error });
+>>>>>>> feat/souq-marketplace-advanced
     throw error;
   }
 }
@@ -90,7 +101,7 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
 export async function disconnectFromDatabase(): Promise<void> {
   if (mongoose.connection.readyState !== 0) {
     await mongoose.disconnect();
-    global._mongooseConnection = undefined;
+    globalThis._mongooseConnection = undefined;
   }
 }
 
@@ -107,7 +118,8 @@ export async function checkDatabaseHealth(): Promise<boolean> {
     
     await mongoose.connection.db.admin().ping();
     return true;
-  } catch (error) {
+  } catch (error: unknown) {
+>>>>>>> feat/souq-marketplace-advanced
     logger.error('Database health check failed:', { error });
     return false;
   }

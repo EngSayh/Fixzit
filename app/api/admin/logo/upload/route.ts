@@ -78,8 +78,8 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, buffer);
 
     // Update or create platform settings
-    const settings = await PlatformSettings.findOneAndUpdate(
-      { orgId: user.orgId }, // Filter by orgId (from tenant isolation)
+    const settings = await (PlatformSettings as any).findOneAndUpdate(
+      { orgId: user.orgId },
       {
         logoUrl: publicUrl,
         logoStorageKey: filePath,
@@ -90,8 +90,8 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date()
       },
       {
-        upsert: true, // Create if doesn't exist
-        new: true,     // Return updated document
+        upsert: true,
+        new: true,
         runValidators: true
       }
     );
@@ -143,15 +143,17 @@ export async function GET(request: NextRequest) {
 
     await connectToDatabase();
 
-    const settings = await PlatformSettings.findOne({ orgId: user.orgId }).lean() as {
-      logoUrl?: string;
-      logoFileName?: string;
-      logoFileSize?: number;
-      logoMimeType?: string;
-      updatedAt?: Date;
-    } | null;
+    const settings: any = await PlatformSettings.findOne({ orgId: user.orgId });
+    
+    const logoData = settings ? {
+      logoUrl: settings.logoUrl,
+      logoFileName: settings.logoFileName,
+      logoFileSize: settings.logoFileSize,
+      logoMimeType: settings.logoMimeType,
+      updatedAt: settings.updatedAt
+    } : null;
 
-    if (!settings || !settings.logoUrl) {
+    if (!logoData || !logoData.logoUrl) {
       return NextResponse.json({
         logoUrl: null,
         fileName: null,
@@ -162,11 +164,11 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      logoUrl: settings.logoUrl,
-      fileName: settings.logoFileName,
-      fileSize: settings.logoFileSize,
-      mimeType: settings.logoMimeType,
-      updatedAt: settings.updatedAt
+      logoUrl: logoData.logoUrl,
+      fileName: logoData.logoFileName,
+      fileSize: logoData.logoFileSize,
+      mimeType: logoData.logoMimeType,
+      updatedAt: logoData.updatedAt
     });
 
   } catch (error) {

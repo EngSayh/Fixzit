@@ -25,14 +25,16 @@
  * ```
  */
 
+import { logger } from '@/lib/logger';
 import { NextRequest } from 'next/server';
 import { z, ZodSchema } from 'zod';
-import { Model, SortOrder } from 'mongoose';
+import { SortOrder } from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { createSecureResponse, getClientIP } from '@/server/security/headers';
+import type { MModel } from '@/src/types/mongoose-compat';
 
 /**
  * Escapes special regex characters to prevent ReDoS (Regular Expression Denial of Service) attacks
@@ -45,7 +47,7 @@ function escapeRegex(str: string): string {
 
 export interface CrudFactoryOptions<T = unknown> {
   /** Mongoose Model */
-  Model: Model<T>;
+  Model: MModel<T>;
   /** Zod schema for POST/create validation */
   createSchema?: ZodSchema;
   /** Zod schema for PUT/update validation (if different from create) */
@@ -88,7 +90,18 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
    */
   async function GET(req: NextRequest) {
     // Authentication (MUST be outside try block to properly return 401)
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (_error) {
+      const correlationId = crypto.randomUUID();
+      logger.warn('Unauthenticated request to GET endpoint', { path: req.url, correlationId });
+      return createSecureResponse(
+        { error: 'Unauthorized', message: 'Authentication required', correlationId },
+        401,
+        req
+      );
+    }
     
     // Tenant context check
     if (!user?.orgId) {
@@ -127,7 +140,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
 
       // RBAC: Super Admin can access all tenants, others are scoped to their org_id
       if (user.role !== 'SUPER_ADMIN') {
-        match.org_id = user.orgId;
+        match.orgId = user.orgId;
       }
 
       // Implement search functionality
@@ -152,10 +165,11 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
 
       // Execute query with pagination
       const [items, total] = await Promise.all([
-        Model.find(match)
+        (Model.find(match)
           .sort(defaultSort)
           .skip((page - 1) * limit)
-          .limit(limit)
+          .limit(limit) as any)
+>>>>>>> feat/souq-marketplace-advanced
           .lean(), // Already using .lean() for 5-10x faster queries
         Model.countDocuments(match),
       ]);
@@ -178,7 +192,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
       );
     } catch (error: unknown) {
       const correlationId = crypto.randomUUID();
-      console.error(`[GET /api/${entityName}] Error:`, {
+      logger.error(`[DELETE /api/${entityName}/:id] Error:`, {
         correlationId,
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
@@ -199,7 +213,18 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
    */
   async function POST(req: NextRequest) {
     // Authentication (MUST be outside try block to properly return 401)
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (_error) {
+      const correlationId = crypto.randomUUID();
+      logger.warn('Unauthenticated request to POST endpoint', { path: req.url, correlationId });
+      return createSecureResponse(
+        { error: 'Unauthorized', message: 'Authentication required', correlationId },
+        401,
+        req
+      );
+    }
     
     // Tenant context check
     if (!user?.orgId) {
@@ -238,7 +263,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
 
       // Prepare entity data
       let entityData = {
-        org_id: user.orgId,
+        orgId: user.orgId,
         ...(generateCode && { code: generateCode() }),
         ...data,
         createdBy: user.id,
@@ -250,7 +275,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
           entityData = await onCreate(entityData, user);
         } catch (hookError: unknown) {
           const correlationId = crypto.randomUUID();
-          console.error(`[POST /api/${entityName}] onCreate hook error:`, {
+          logger.error(`[POST /api/${entityName}] onCreate hook error:`, {
             correlationId,
             userId: user.id,
             orgId: user.orgId,
@@ -270,7 +295,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
       return createSecureResponse(entity, 201, req);
     } catch (error: unknown) {
       const correlationId = crypto.randomUUID();
-      console.error(`[POST /api/${entityName}] Error:`, {
+      logger.error(`[POST /api/${entityName}] Error:`, {
         correlationId,
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
@@ -308,7 +333,18 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
    */
   async function GET(req: NextRequest, context: { params: { id: string } }) {
     // Authentication (MUST be outside try block to properly return 401)
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (_error) {
+      const correlationId = crypto.randomUUID();
+      logger.warn('Unauthenticated request to GET by ID endpoint', { path: req.url, correlationId });
+      return createSecureResponse(
+        { error: 'Unauthorized', message: 'Authentication required', correlationId },
+        401,
+        req
+      );
+    }
     
     // Tenant context check
     if (!user?.orgId) {
@@ -340,7 +376,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
         query.org_id = user.orgId;
       }
 
-      const entity = await Model.findOne(query).lean();
+      const entity = await (Model.findOne(query) as any).lean();
 
       if (!entity) {
         const correlationId = crypto.randomUUID();
@@ -354,7 +390,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
       return createSecureResponse(entity, 200, req);
     } catch (error: unknown) {
       const correlationId = crypto.randomUUID();
-      console.error(`[GET /api/${entityName}/:id] Error:`, {
+      logger.error(`[GET /api/${entityName}/:id] Error:`, {
         correlationId,
         id: context.params.id,
         error: error instanceof Error ? error.message : String(error),
@@ -375,7 +411,18 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
    */
   async function PUT(req: NextRequest, context: { params: { id: string } }) {
     // Authentication (MUST be outside try block to properly return 401)
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (_error) {
+      const correlationId = crypto.randomUUID();
+      logger.warn('Unauthenticated request to PUT endpoint', { path: req.url, correlationId });
+      return createSecureResponse(
+        { error: 'Unauthorized', message: 'Authentication required', correlationId },
+        401,
+        req
+      );
+    }
     
     // Tenant context check
     if (!user?.orgId) {
@@ -417,7 +464,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
         query.org_id = user.orgId;
       }
 
-      const entity = await Model.findOneAndUpdate(
+      const entity = await (Model.findOneAndUpdate(
         query,
         {
           $set: {
@@ -427,7 +474,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
           },
         },
         { new: true, runValidators: true }
-      ).lean();
+      ) as any).lean();
 
       if (!entity) {
         const correlationId = crypto.randomUUID();
@@ -441,7 +488,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
       return createSecureResponse(entity, 200, req);
     } catch (error: unknown) {
       const correlationId = crypto.randomUUID();
-      console.error(`[PUT /api/${entityName}/:id] Error:`, {
+      logger.error(`[PUT /api/${entityName}/:id] Error:`, {
         correlationId,
         id: context.params.id,
         error: error instanceof Error ? error.message : String(error),
@@ -465,7 +512,18 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
    */
   async function DELETE(req: NextRequest, context: { params: { id: string } }) {
     // Authentication (MUST be outside try block to properly return 401)
-    const user = await getSessionUser(req);
+    let user;
+    try {
+      user = await getSessionUser(req);
+    } catch (_error) {
+      const correlationId = crypto.randomUUID();
+      logger.warn('Unauthenticated request to DELETE endpoint', { path: req.url, correlationId });
+      return createSecureResponse(
+        { error: 'Unauthorized', message: 'Authentication required', correlationId },
+        401,
+        req
+      );
+    }
     
     // Tenant context check
     if (!user?.orgId) {
@@ -497,7 +555,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
         query.org_id = user.orgId;
       }
 
-      const entity = await Model.findOneAndDelete(query).lean();
+      const entity = await (Model.findOneAndDelete(query) as any).lean();
 
       if (!entity) {
         const correlationId = crypto.randomUUID();
@@ -515,7 +573,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
       );
     } catch (error: unknown) {
       const correlationId = crypto.randomUUID();
-      console.error(`[DELETE /api/${entityName}/:id] Error:`, {
+      logger.error(`[DELETE /api/${entityName}/:id] Error:`, {
         correlationId,
         id: context.params.id,
         error: error instanceof Error ? error.message : String(error),

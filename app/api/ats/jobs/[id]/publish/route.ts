@@ -46,7 +46,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       return unauthorizedError('Authentication required to publish jobs');
     }
     
-    const job = await Job.findById(params.id);
+    const job = await (Job as any).findById(params.id);
     if (!job) return notFoundError("Job");
     if (job.status === 'published') return validationError("Job is already published");
     

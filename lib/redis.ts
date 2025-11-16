@@ -101,7 +101,7 @@ export function getRedisClient(): Redis | null {
     });
 
     return redis;
-  } catch (error) {
+  } catch (error: unknown) {
     isConnecting = false;
     logger.error('[Redis] Failed to create connection:', { error });
     return null;

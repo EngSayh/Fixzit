@@ -74,7 +74,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     }
     
     // Get the job
-    const job = await Job.findById(params.id);
+    const job = await (Job as any).findById(params.id);
     
     if (!job) {
       return NextResponse.json(
@@ -135,7 +135,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     
     if (!candidate) {
       // Create new candidate
-      candidate = await Candidate.create({
+      candidate = await (Candidate as any).create({
         orgId: job.orgId,
         firstName: firstName!,
         lastName: lastName || 'NA',
@@ -163,8 +163,15 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       await candidate.save();
     }
     
+    if (!candidate) {
+      return NextResponse.json(
+        { success: false, error: 'Failed to create or find candidate' },
+        { status: 500 }
+      );
+    }
+    
     // Check for duplicate application
-    const existingApplication = await Application.findOne({
+    const existingApplication = await (Application as any).findOne({
       orgId: job.orgId,
       jobId: job._id,
       candidateId: candidate._id
@@ -196,7 +203,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     });
     
     // Create application
-    const application = await Application.create({
+    const application = await (Application as any).create({
       orgId: job.orgId,
       jobId: job._id,
       candidateId: candidate._id,
@@ -222,7 +229,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     });
     
     // Update job application count
-    await Job.findByIdAndUpdate(job._id, { $inc: { applicationCount: 1 } });
+    await (Job as any).findByIdAndUpdate(job._id, { $inc: { applicationCount: 1 } });
     
     return NextResponse.json({ 
       success: true,

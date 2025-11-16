@@ -4,8 +4,8 @@ import {
   models,
   Types,
   HydratedDocument,
-  Model,
 } from 'mongoose';
+import { MModel } from '@/src/types/mongoose-compat';
 
 // ---------- Enums ----------
 const ProjectStatus = ['PLANNING', 'APPROVED', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED', 'CLOSED'] as const;
@@ -215,14 +215,14 @@ export interface IProject {
 
 type ProjectDoc = HydratedDocument<IProject>;
 /* eslint-disable no-unused-vars */
-type ProjectModel = Model<IProject> & {
+type ProjectModel = MModel<IProject> & {
   setStatus(projectId: Types.ObjectId, next: TProjectStatus, who: Types.ObjectId | string): Promise<ProjectDoc | null>;
   recomputeBudget(projectId: Types.ObjectId): Promise<ProjectDoc | null>;
 };
 /* eslint-enable no-unused-vars */
 
 // ---------- Schema ----------
-const ProjectSchema = new Schema<IProject, ProjectModel>(
+const ProjectSchema = new Schema<IProject>(
   {
     tenantId: { type: String, required: true, index: true },
 
@@ -522,7 +522,8 @@ const ALLOWED: Record<TProjectStatus, TProjectStatus[]> = {
   CLOSED: [],
 };
 
-ProjectSchema.statics.setStatus = async function (
+// TODO(type-safety): Resolve ProjectModel static method type compatibility
+ProjectSchema.statics.setStatus = (async function (
   this: ProjectModel,
   projectId: Types.ObjectId,
   next: TProjectStatus,
@@ -539,9 +540,10 @@ ProjectSchema.statics.setStatus = async function (
     { $set: { status: next, updatedBy: who } },
     { new: true },
   );
-};
+}) as ProjectModel['setStatus'];
 
-ProjectSchema.statics.recomputeBudget = async function (
+// TODO(type-safety): Resolve ProjectModel static method type compatibility
+ProjectSchema.statics.recomputeBudget = (async function (
   this: ProjectModel,
   projectId: Types.ObjectId,
 ) {
@@ -558,7 +560,7 @@ ProjectSchema.statics.recomputeBudget = async function (
   });
   await doc.save();
   return doc;
-};
+}) as ProjectModel['recomputeBudget'];
 
 // ---------- Export ----------
 export const Project = models.Project || (model<IProject, ProjectModel>('Project', ProjectSchema) as ProjectModel);

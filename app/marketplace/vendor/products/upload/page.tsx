@@ -10,7 +10,10 @@ import toast, { Toaster } from 'react-hot-toast';
 import { FormWithNavigation } from '@/components/ui/navigation-buttons';
 
 import { logger } from '@/lib/logger';
+import { nanoid } from 'nanoid';
+
 interface ProductImage {
+  id: string;
   file: File;
   preview: string;
   role: 'GALLERY' | 'THUMBNAIL';
@@ -44,6 +47,7 @@ export default function VendorProductUploadPage() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const newImages: ProductImage[] = files.map((file, index) => ({
+      id: nanoid(),
       file,
       preview: URL.createObjectURL(file),
       role: index === 0 ? 'THUMBNAIL' : 'GALLERY'
@@ -278,7 +282,7 @@ export default function VendorProductUploadPage() {
             
             <div className="grid gap-4 grid-cols-2 md:grid-cols-4 mb-4">
               {images.map((img, index) => (
-                <div key={index} className="relative aspect-square rounded-2xl border border-border overflow-hidden">
+                <div key={img.id} className="relative aspect-square rounded-2xl border border-border overflow-hidden">
                   <Image src={img.preview} alt="Product" fill className="object-cover" />
                   <button
                     type="button"

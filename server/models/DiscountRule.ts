@@ -1,8 +1,20 @@
-import { Schema, model, models } from 'mongoose';
+import { Schema, model, models, Model, Document } from 'mongoose'
+import { getModel, MModel } from '@/src/types/mongoose-compat';;
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
-const DiscountRuleSchema = new Schema(
+interface IDiscountRule extends Document {
+  key: string;
+  percentage: number;
+  editableBySuperAdminOnly: boolean;
+  orgId: Schema.Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: Schema.Types.ObjectId;
+  updatedBy?: Schema.Types.ObjectId;
+}
+
+const DiscountRuleSchema = new Schema<IDiscountRule>(
   {
     key: { 
       type: String, 
@@ -29,5 +41,7 @@ DiscountRuleSchema.plugin(auditPlugin);
 // Ensures 'key' (e.g., "VAT") is unique within an organization
 DiscountRuleSchema.index({ orgId: 1, key: 1 }, { unique: true });
 
-export default models.DiscountRule || model('DiscountRule', DiscountRuleSchema);
+// TypeScript-safe model export
+const DiscountRule = getModel<IDiscountRule>('DiscountRule', DiscountRuleSchema);
+export default DiscountRule;
 

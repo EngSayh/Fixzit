@@ -83,11 +83,11 @@ export async function POST(req: NextRequest) {
     const body = subscriptionSchema.parse(await req.json());
 
     // 1) Upsert customer - ensure tenant isolation
-    const customer = await Customer.findOneAndUpdate(
+    const customer = (await Customer.findOneAndUpdate(
       { type: body.customer.type, billingEmail: body.customer.billingEmail, orgId: user.orgId },
       { ...body.customer, orgId: user.orgId }, 
       { upsert: true, new: true }
-    );
+    ));
 
     // 2) Quote
     const quote = await computeQuote({
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3) Create Subscription snapshot (status pending until paid)
-    const sub = await Subscription.create({
+    const sub = (await Subscription.create({
       customerId: customer._id,
       orgId: user.orgId,
       planType: body.planType,
@@ -115,11 +115,12 @@ export async function POST(req: NextRequest) {
       startedAt: new Date(),
       nextInvoiceAt: new Date(),
       createdBy: user.id
-    });
+    }));
 
     // 4) First invoice amount:
     const amount = body.billingCycle === 'annual' ? quote.annualTotal : quote.monthly;
 
+    // @ts-expect-error - Mongoose 8.x type resolution issue with create overloads
     const inv = await SubscriptionInvoice.create({
       subscriptionId: sub._id,
       orgId: user.orgId,
@@ -140,7 +141,9 @@ export async function POST(req: NextRequest) {
       cart_currency: quote.currency,
       return: body.returnUrl, callback: body.callbackUrl,
       customer_details: {
-        name: customer.name, email: customer.billingEmail, country: customer.country || 'SA'
+        name: customer.name, 
+        email: body.customer.billingEmail, // Use email from request body, not DB model
+        country: customer.address?.country || 'SA'
       }
     } as Record<string, unknown>;
 

@@ -1,0 +1,385 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  FileText,
+  Filter,
+  MessageSquare,
+  Search,
+  XCircle,
+} from 'lucide-react';
+interface Claim {
+  claimId: string;
+  claimNumber: string;
+  orderId: string;
+  claimType: string;
+  status: string;
+  claimAmount: number;
+  buyerName?: string;
+  sellerName?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ClaimListProps {
+  view: 'buyer' | 'seller' | 'admin';
+  onSelectClaim?: (_claimId: string) => void;
+}
+
+const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ComponentType<{ className?: string }> }> = {
+  filed: { label: 'تم التقديم', variant: 'default', icon: FileText },
+  'seller-notified': { label: 'تم إشعار البائع', variant: 'secondary', icon: MessageSquare },
+  'under-investigation': { label: 'قيد التحقيق', variant: 'secondary', icon: Clock },
+  'pending-seller-response': { label: 'بانتظار رد البائع', variant: 'secondary', icon: Clock },
+  'seller-responded': { label: 'رد البائع', variant: 'default', icon: MessageSquare },
+  'pending-decision': { label: 'بانتظار القرار', variant: 'secondary', icon: Clock },
+  approved: { label: 'تمت الموافقة', variant: 'default', icon: CheckCircle2 },
+  'partially-approved': { label: 'موافقة جزئية', variant: 'default', icon: CheckCircle2 },
+  rejected: { label: 'مرفوض', variant: 'destructive', icon: XCircle },
+  'under-appeal': { label: 'قيد الاستئناف', variant: 'secondary', icon: AlertCircle },
+  closed: { label: 'مغلق', variant: 'outline', icon: CheckCircle2 },
+};
+
+const CLAIM_TYPE_LABELS: Record<string, string> = {
+  'item-not-received': 'لم أستلم السلعة',
+  'defective': 'السلعة معيبة',
+  'not-as-described': 'لا تطابق الوصف',
+  'wrong-item': 'سلعة خاطئة',
+  'missing-parts': 'أجزاء ناقصة',
+  'counterfeit': 'سلعة مزيفة',
+};
+
+export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
+  const [claims, setClaims] = useState<Claim[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 10;
+
+  useEffect(() => {
+    fetchClaims();
+  }, [currentPage, statusFilter, typeFilter, searchQuery]);
+
+  const fetchClaims = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageSize.toString(),
+      });
+
+      if (statusFilter !== 'all') {
+        params.append('status', statusFilter);
+      }
+      if (typeFilter !== 'all') {
+        params.append('claimType', typeFilter);
+      }
+      if (searchQuery) {
+        params.append('search', searchQuery);
+      }
+
+      const response = await fetch(`/api/souq/claims?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setClaims(data.claims);
+        setTotalPages(data.totalPages);
+      }
+    } catch (error) {
+      console.error('Failed to fetch claims:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const config = STATUS_CONFIG[status] || STATUS_CONFIG.filed;
+    const Icon = config.icon;
+    return (
+      <Badge variant={config.variant} className="flex items-center gap-1 w-fit">
+        <Icon className="w-3 h-3" />
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const getTitle = () => {
+    if (view === 'buyer') return 'مطالباتي (My Claims)';
+    if (view === 'seller') return 'المطالبات المقدمة ضدي (Claims Against Me)';
+    return 'جميع المطالبات (All Claims)';
+  };
+
+  const getDescription = () => {
+    if (view === 'buyer') return 'عرض وإدارة جميع مطالبات حماية المشتري الخاصة بك';
+    if (view === 'seller') return 'عرض والرد على المطالبات المقدمة ضد منتجاتك';
+    return 'إدارة جميع مطالبات A-to-Z في المنصة';
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusFilter = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleTypeFilter = (value: string) => {
+    setTypeFilter(value);
+    setCurrentPage(1);
+  };
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle>{getTitle()}</CardTitle>
+            <CardDescription>{getDescription()}</CardDescription>
+          </div>
+          {view === 'buyer' && (
+            <Button onClick={() => {/* Navigate to new claim form */}}>
+              تقديم مطالبة جديدة
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {/* Filters */}
+        <div className="flex flex-col md:flex-row gap-4">
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="بحث برقم المطالبة أو الطلب... (Search by claim or order number...)"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <Select value={statusFilter} onValueChange={handleStatusFilter}>
+            <SelectTrigger className="w-full md:w-[200px]">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                <SelectValue placeholder="الحالة (Status)" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">جميع الحالات (All)</SelectItem>
+              <SelectItem value="filed">تم التقديم</SelectItem>
+              <SelectItem value="under-investigation">قيد التحقيق</SelectItem>
+              <SelectItem value="pending-seller-response">بانتظار رد البائع</SelectItem>
+              <SelectItem value="seller-responded">رد البائع</SelectItem>
+              <SelectItem value="approved">تمت الموافقة</SelectItem>
+              <SelectItem value="rejected">مرفوض</SelectItem>
+              <SelectItem value="under-appeal">قيد الاستئناف</SelectItem>
+              <SelectItem value="closed">مغلق</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Type Filter */}
+          <Select value={typeFilter} onValueChange={handleTypeFilter}>
+            <SelectTrigger className="w-full md:w-[200px]">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4" />
+                <SelectValue placeholder="النوع (Type)" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">جميع الأنواع (All)</SelectItem>
+              <SelectItem value="item-not-received">لم أستلم السلعة</SelectItem>
+              <SelectItem value="defective">السلعة معيبة</SelectItem>
+              <SelectItem value="not-as-described">لا تطابق الوصف</SelectItem>
+              <SelectItem value="wrong-item">سلعة خاطئة</SelectItem>
+              <SelectItem value="missing-parts">أجزاء ناقصة</SelectItem>
+              <SelectItem value="counterfeit">سلعة مزيفة</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Claims Table */}
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <Clock className="w-8 h-8 animate-spin mx-auto mb-2 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">جاري التحميل... (Loading...)</p>
+            </div>
+          </div>
+        ) : claims.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 text-center">
+            <FileText className="w-12 h-12 text-muted-foreground mb-2" />
+            <p className="text-sm font-medium">لا توجد مطالبات</p>
+            <p className="text-sm text-muted-foreground">
+              {view === 'buyer' 
+                ? 'لم تقدم أي مطالبات بعد (You haven\'t filed any claims yet)'
+                : 'لا توجد مطالبات مقدمة ضدك (No claims filed against you)'}
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>رقم المطالبة</TableHead>
+                    <TableHead>رقم الطلب</TableHead>
+                    <TableHead>النوع</TableHead>
+                    <TableHead>الحالة</TableHead>
+                    {view === 'buyer' && <TableHead>البائع</TableHead>}
+                    {view === 'seller' && <TableHead>المشتري</TableHead>}
+                    {view === 'admin' && (
+                      <>
+                        <TableHead>المشتري</TableHead>
+                        <TableHead>البائع</TableHead>
+                      </>
+                    )}
+                    <TableHead className="text-right">المبلغ</TableHead>
+                    <TableHead>التاريخ</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {claims.map((claim) => (
+                    <TableRow
+                      key={claim.claimId}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => onSelectClaim?.(claim.claimId)}
+                    >
+                      <TableCell className="font-medium">{claim.claimNumber}</TableCell>
+                      <TableCell>{claim.orderId}</TableCell>
+                      <TableCell>
+                        <span className="text-sm">{CLAIM_TYPE_LABELS[claim.claimType]}</span>
+                      </TableCell>
+                      <TableCell>{getStatusBadge(claim.status)}</TableCell>
+                      {view === 'buyer' && <TableCell>{claim.sellerName}</TableCell>}
+                      {view === 'seller' && <TableCell>{claim.buyerName}</TableCell>}
+                      {view === 'admin' && (
+                        <>
+                          <TableCell>{claim.buyerName}</TableCell>
+                          <TableCell>{claim.sellerName}</TableCell>
+                        </>
+                      )}
+                      <TableCell className="text-right font-medium">
+                        {claim.claimAmount} SAR
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(claim.createdAt).toLocaleDateString('ar-SA')}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectClaim?.(claim.claimId);
+                          }}
+                        >
+                          عرض
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+              {claims.map((claim) => (
+                <Card
+                  key={claim.claimId}
+                  className="cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => onSelectClaim?.(claim.claimId)}
+                >
+                  <CardContent className="pt-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">#{claim.claimNumber}</p>
+                        <p className="text-sm text-muted-foreground">Order #{claim.orderId}</p>
+                      </div>
+                      {getStatusBadge(claim.status)}
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm">{CLAIM_TYPE_LABELS[claim.claimType]}</p>
+                      <p className="text-sm font-medium">{claim.claimAmount} SAR</p>
+                    </div>
+                    {view === 'buyer' && claim.sellerName && (
+                      <p className="text-sm text-muted-foreground">البائع: {claim.sellerName}</p>
+                    )}
+                    {view === 'seller' && claim.buyerName && (
+                      <p className="text-sm text-muted-foreground">المشتري: {claim.buyerName}</p>
+                    )}
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(claim.createdAt).toLocaleDateString('ar-SA')}
+                      </p>
+                      <Button variant="ghost" size="sm">
+                        عرض التفاصيل
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  صفحة {currentPage} من {totalPages}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    السابق
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    التالي
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

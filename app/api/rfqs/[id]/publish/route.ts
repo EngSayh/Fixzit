@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb-unified";
-import { RFQ } from "@/server/models/RFQ";
 import { getSessionUser } from "@/server/middleware/withAuthRbac";
 
 import { rateLimit } from '@/server/security/rateLimit';
@@ -51,7 +50,8 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    const rfq = await RFQ.findOneAndUpdate(
+    const { RFQ } = await import('@/server/models/RFQ');
+    const rfq = (await RFQ.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId, status: "DRAFT" },
       {
         $set: {
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
           "workflow.publishedAt": new Date(),
           "timeline.publishDate": new Date()}},
       { new: true }
-    );
+    ));
 
     if (!rfq) {
       return createSecureResponse({ error: "RFQ not found or already published" }, 404, req);
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
         id: rfq._id,
         code: rfq.code,
         status: rfq.status,
-        publishedAt: rfq?.workflow?.publishedAt || null
+        publishedAt: (rfq as any)?.workflow?.publishedAt || null  // TODO(type-safety): Add workflow to RFQ schema
       }
     });
   } catch (error: unknown) {

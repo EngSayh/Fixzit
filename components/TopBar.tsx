@@ -761,7 +761,7 @@ function UserMenuPopup({
             {t('common.preferences')}
           </div>
           <div className="px-4 py-2 space-y-2" role="none">
-            <LanguageSelector variant="default" />
+            <LanguageSelector variant="dark_minimal" />
             <CurrencySelector variant="default" />
           </div>
           

@@ -16,7 +16,7 @@ export async function checkDatabaseHealth(): Promise<{
   // Check MongoDB
   try {
     mongodb = await mongoHealthCheck();
-  } catch (error) {
+  } catch (error: unknown) {
     errors.push(`MongoDB: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 
@@ -46,15 +46,15 @@ process.on('SIGINT', async () => {
 });
 
 process.on('uncaughtException', async (err) => {
-  console.error('💥 Uncaught exception:', err);
-  console.error('Stack:', err.stack);
+  logger.error('💥 Uncaught exception:', err);
+  logger.error('Stack:', err.stack);
   await cleanup();
   process.exit(1);
 });
 
 process.on('unhandledRejection', async (reason, promise) => {
-  console.error('💥 Unhandled rejection at:', promise);
-  console.error('Reason:', reason);
+  logger.error('💥 Unhandled rejection at:', promise);
+  logger.error('Reason:', reason);
   await cleanup();
   process.exit(1);
 });

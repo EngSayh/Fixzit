@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PlatformSettings } from '@/server/models/PlatformSettings';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 
@@ -15,7 +14,8 @@ export async function GET(request: NextRequest) {
     // Get orgId from header (set by middleware) or use default
     const orgId = request.headers.get('x-org-id') || process.env.NEXT_PUBLIC_ORG_ID || 'fixzit-platform';
 
-    const settings = await PlatformSettings.findOne({ orgId }).lean().exec() as {
+    const { PlatformSettings } = await import('@/server/models/PlatformSettings');
+    const settings = (await PlatformSettings.findOne({ orgId }).lean().exec()) as {
       logoUrl: string;
       brandName: string;
       brandColor: string;

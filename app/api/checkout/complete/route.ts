@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
 
   const subscription = subscriptionId
     ? await Subscription.findById(subscriptionId)
-    : await Subscription.findOne({ 'paytabs.cart_id': cartId });
+    : (await Subscription.findOne({ 'paytabs.cart_id': cartId }));
 
   if (!subscription) {
     return createSecureResponse({ error: 'SUBSCRIPTION_NOT_FOUND' }, 404, req);

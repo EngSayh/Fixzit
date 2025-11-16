@@ -28,25 +28,28 @@ export function clearTenantContext() {
 export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?: string[] } = {}) {
   const excludeModels = options.excludeModels || ['Organization'];
 
-  // Add orgId field to schema (if not already present)
-  // ⚡ FIXED: Removed index: true to avoid duplicate index warnings
-  // Individual schemas should define their own compound indexes with orgId
-  if (!schema.paths.orgId) {
+  const orgFieldName = schema.path('orgId')
+    ? 'orgId'
+    : schema.path('org_id')
+    ? 'org_id'
+    : 'orgId';
+
+  if (!schema.path(orgFieldName)) {
     schema.add({
-      orgId: { 
-        type: Types.ObjectId,
+      [orgFieldName]: {
+        type: Schema.Types.ObjectId,
         ref: 'Organization',
-        required: true
-      }
+        required: true,
+      },
     });
   }
 
   // Pre-save middleware to ensure orgId is set
   schema.pre('save', function(next) {
-    if (this.isNew && !this.orgId) {
+    if (this.isNew && !(this as Record<string, unknown>)[orgFieldName]) {
       const context = getTenantContext();
       if (context.orgId) {
-        this.orgId = context.orgId;
+        (this as Record<string, unknown>)[orgFieldName] = context.orgId;
       } else {
         const modelName = (this.constructor as { modelName?: string }).modelName;
         if (modelName && !excludeModels.includes(modelName)) {
@@ -59,10 +62,10 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
 
   // Pre-validate middleware to ensure orgId is set
   schema.pre('validate', function(next) {
-    if (this.isNew && !this.orgId) {
+    if (this.isNew && !(this as Record<string, unknown>)[orgFieldName]) {
       const context = getTenantContext();
       if (context.orgId) {
-        this.orgId = context.orgId;
+        (this as Record<string, unknown>)[orgFieldName] = context.orgId;
       }
     }
     next();
@@ -80,7 +83,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
 
     // Apply orgId filter if context is available
     if (context.orgId) {
-      this.where({ orgId: context.orgId });
+      this.where({ [orgFieldName]: context.orgId });
     }
   });
 
@@ -94,7 +97,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
     }
 
     if (context.orgId) {
-      this.where({ orgId: context.orgId });
+      this.where({ [orgFieldName]: context.orgId });
     }
   });
 
@@ -108,7 +111,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
     }
 
     if (context.orgId) {
-      this.where({ orgId: context.orgId });
+      this.where({ [orgFieldName]: context.orgId });
     }
   });
 
@@ -122,7 +125,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
     }
 
     if (context.orgId) {
-      this.where({ orgId: context.orgId });
+      this.where({ [orgFieldName]: context.orgId });
     }
   });
 
@@ -136,7 +139,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
     }
 
     if (context.orgId) {
-      this.where({ orgId: context.orgId });
+      this.where({ [orgFieldName]: context.orgId });
     }
   });
 
@@ -146,7 +149,7 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
   // Instance method to check if document belongs to current tenant
   schema.methods.belongsToCurrentTenant = function() {
     const context = getTenantContext();
-    return context.orgId ? this.orgId === context.orgId : true;
+    return context.orgId ? (this as Record<string, unknown>)[orgFieldName] === context.orgId : true;
   };
 }
 

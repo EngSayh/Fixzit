@@ -1,6 +1,5 @@
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
-import { OwnerGroupModel as OwnerGroup } from '@/server/models/OwnerGroup';
 import { NextRequest} from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { z } from 'zod';
@@ -62,7 +61,8 @@ export async function POST(req: NextRequest) {
     const body = assignPrimarySchema.parse(await req.json());
     
     // Tenant isolation - ensure group belongs to user's org
-    const g = await OwnerGroup.findOneAndUpdate(
+    const { OwnerGroupModel } = await import('@/server/models/OwnerGroup');
+    const g = await OwnerGroupModel.findOneAndUpdate(
       { buildingId: body.buildingId, orgId: user.orgId }, 
       { 
         buildingId: body.buildingId, 
@@ -83,6 +83,5 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ error: 'Failed to assign owner group' }, 500, req);
   }
 }
-
 
 

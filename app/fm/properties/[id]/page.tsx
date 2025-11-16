@@ -16,6 +16,7 @@ import {
   Wrench, Shield, ChevronLeft, Edit, Trash2, CheckCircle, AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
+import ClientDate from '@/components/ClientDate';
 
 interface MaintenanceIssue {
   resolved?: boolean;
@@ -223,8 +224,8 @@ export default function PropertyDetailsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {(property.units as PropertyUnit[]).map((unit, index: number) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-2xl">
+                  {(property.units as PropertyUnit[]).map((unit, idx) => (
+                    <div key={unit.unitNumber || `unit-${idx}`} className="flex items-center justify-between p-3 bg-muted rounded-2xl">
                       <div>
                         <p className="font-medium">{unit.unitNumber}</p>
                         <p className="text-sm text-muted-foreground">
@@ -357,7 +358,7 @@ export default function PropertyDetailsPage() {
                 <p className="text-sm text-muted-foreground">Last Inspection</p>
                 <p className="font-medium">
                   {property.maintenance?.lastInspection 
-                    ? new Date(property.maintenance.lastInspection).toLocaleDateString()
+                    ? <ClientDate date={property.maintenance.lastInspection} format="date-only" />
                     : 'N/A'}
                 </p>
               </div>
@@ -365,7 +366,7 @@ export default function PropertyDetailsPage() {
                 <p className="text-sm text-muted-foreground">Next Inspection</p>
                 <p className="font-medium">
                   {property.maintenance?.nextInspection 
-                    ? new Date(property.maintenance.nextInspection).toLocaleDateString()
+                    ? <ClientDate date={property.maintenance.nextInspection} format="date-only" />
                     : 'N/A'}
                 </p>
               </div>
@@ -374,8 +375,8 @@ export default function PropertyDetailsPage() {
                   <p className="text-sm text-muted-foreground mb-2">Open Issues</p>
                   {(property.maintenance.issues as MaintenanceIssue[])
                     .filter((issue) => !issue.resolved)
-                    .map((issue, index: number) => (
-                      <div key={index} className="flex items-center space-x-2 text-sm">
+                    .map((issue, idx) => (
+                      <div key={`issue-${property.id}-${idx}`} className="flex items-center space-x-2 text-sm">
                         <AlertCircle className={`w-4 h-4 ${
                           issue.severity === 'HIGH' ? 'text-destructive' :
                           issue.severity === 'MEDIUM' ? 'text-warning' :

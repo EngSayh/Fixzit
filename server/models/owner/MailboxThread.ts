@@ -1,4 +1,5 @@
 import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";
 
@@ -8,7 +9,7 @@ const ThreadCategory = ["MAINTENANCE", "FINANCIAL", "TENANT_ISSUE", "CONTRACT", 
 
 const MailboxThreadSchema = new Schema({
   // Multi-tenancy - added by plugin
-  // orgId: { type: Types.ObjectId, ref: "Organization", required: true, index: true },
+  // orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
 
   // Thread Number (auto-generated with counter)
   threadNumber: { type: String, required: true, index: true },
@@ -21,17 +22,17 @@ const MailboxThreadSchema = new Schema({
   
   // Parties
   owner: {
-    ownerId: { type: Types.ObjectId, ref: "Owner", required: true, index: true },
+    ownerId: { type: Schema.Types.ObjectId, ref: "Owner", required: true, index: true },
     ownerName: String,
-    userId: { type: Types.ObjectId, ref: "User" },
+    userId: { type: Schema.Types.ObjectId, ref: "User" },
     email: String,
     phone: String
   },
   
   recipient: {
     type: { type: String, enum: ["AGENT", "SERVICE_PROVIDER", "PROPERTY_MANAGER", "SUPPORT"], required: true },
-    userId: { type: Types.ObjectId, ref: "User" },
-    vendorId: { type: Types.ObjectId, ref: "Vendor" },
+    userId: { type: Schema.Types.ObjectId, ref: "User" },
+    vendorId: { type: Schema.Types.ObjectId, ref: "Vendor" },
     name: String,
     email: String,
     phone: String
@@ -39,36 +40,36 @@ const MailboxThreadSchema = new Schema({
   
   // Related Records
   references: {
-    propertyId: { type: Types.ObjectId, ref: "Property" },
+    propertyId: { type: Schema.Types.ObjectId, ref: "Property" },
     propertyName: String,
     unitNumber: String,
-    workOrderId: { type: Types.ObjectId, ref: "WorkOrder" },
+    workOrderId: { type: Schema.Types.ObjectId, ref: "WorkOrder" },
     workOrderNumber: String,
-    contractId: { type: Types.ObjectId, ref: "ServiceContract" },
+    contractId: { type: Schema.Types.ObjectId, ref: "ServiceContract" },
     contractNumber: String,
-    invoiceId: { type: Types.ObjectId, ref: "Invoice" },
+    invoiceId: { type: Schema.Types.ObjectId, ref: "Invoice" },
     invoiceNumber: String,
-    warrantyId: { type: Types.ObjectId, ref: "Warranty" },
+    warrantyId: { type: Schema.Types.ObjectId, ref: "Warranty" },
     warrantyNumber: String,
-    agentContractId: { type: Types.ObjectId, ref: "AgentContract" }
+    agentContractId: { type: Schema.Types.ObjectId, ref: "AgentContract" }
   },
 
   // Messages
   messages: [{
     messageId: { type: String, required: true },
     from: {
-      userId: { type: Types.ObjectId, ref: "User", required: true },
+      userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
       name: String,
       role: String, // OWNER, AGENT, SERVICE_PROVIDER, SUPPORT
       email: String
     },
     to: [{
-      userId: { type: Types.ObjectId, ref: "User" },
+      userId: { type: Schema.Types.ObjectId, ref: "User" },
       name: String,
       email: String
     }],
     cc: [{
-      userId: { type: Types.ObjectId, ref: "User" },
+      userId: { type: Schema.Types.ObjectId, ref: "User" },
       name: String,
       email: String
     }],
@@ -87,7 +88,7 @@ const MailboxThreadSchema = new Schema({
     
     // Read Status
     readBy: [{
-      userId: { type: Types.ObjectId, ref: "User" },
+      userId: { type: Schema.Types.ObjectId, ref: "User" },
       readAt: Date,
       ipAddress: String
     }],
@@ -105,16 +106,16 @@ const MailboxThreadSchema = new Schema({
   statusHistory: [{
     status: { type: String, enum: ThreadStatus },
     changedAt: { type: Date, default: Date.now },
-    changedBy: { type: Types.ObjectId, ref: "User" },
+    changedBy: { type: Schema.Types.ObjectId, ref: "User" },
     reason: String
   }],
 
   // Assignment
   assignedTo: {
-    userId: { type: Types.ObjectId, ref: "User", index: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User", index: true },
     name: String,
     assignedAt: Date,
-    assignedBy: { type: Types.ObjectId, ref: "User" }
+    assignedBy: { type: Schema.Types.ObjectId, ref: "User" }
   },
 
   // Service Level Agreement (SLA)
@@ -132,7 +133,7 @@ const MailboxThreadSchema = new Schema({
   // Resolution
   resolution: {
     resolvedAt: Date,
-    resolvedBy: { type: Types.ObjectId, ref: "User" },
+    resolvedBy: { type: Schema.Types.ObjectId, ref: "User" },
     resolutionNotes: String,
     resolutionType: String, // FIXED, WORKAROUND, NOT_AN_ISSUE, DUPLICATE, etc.
     satisfactionRating: Number, // 1-5
@@ -144,8 +145,8 @@ const MailboxThreadSchema = new Schema({
   escalation: {
     escalated: { type: Boolean, default: false },
     escalatedAt: Date,
-    escalatedBy: { type: Types.ObjectId, ref: "User" },
-    escalatedTo: { type: Types.ObjectId, ref: "User" },
+    escalatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    escalatedTo: { type: Schema.Types.ObjectId, ref: "User" },
     escalationReason: String,
     escalationLevel: Number // 1, 2, 3, etc.
   },
@@ -154,11 +155,11 @@ const MailboxThreadSchema = new Schema({
   integrations: {
     // Auto-create work order from maintenance request
     workOrderCreated: { type: Boolean, default: false },
-    workOrderId: { type: Types.ObjectId, ref: "WorkOrder" },
+    workOrderId: { type: Schema.Types.ObjectId, ref: "WorkOrder" },
     workOrderCreatedAt: Date,
     
     // Link to support ticket
-    supportTicketId: { type: Types.ObjectId, ref: "SupportTicket" },
+    supportTicketId: { type: Schema.Types.ObjectId, ref: "SupportTicket" },
     
     // Financial transaction if involves payment
     paymentRequired: Boolean,
@@ -183,7 +184,7 @@ const MailboxThreadSchema = new Schema({
   
   // Metadata
   closedAt: Date,
-  closedBy: { type: Types.ObjectId, ref: "User" },
+  closedBy: { type: Schema.Types.ObjectId, ref: "User" },
   closureReason: String,
   reopenedCount: { type: Number, default: 0 },
   lastActivityAt: { type: Date, default: Date.now, index: true },
@@ -307,4 +308,4 @@ MailboxThreadSchema.methods.markAsRead = function(messageId: string, userId: Typ
 
 // Export type and model
 export type MailboxThread = InferSchemaType<typeof MailboxThreadSchema>;
-export const MailboxThreadModel = models.MailboxThread || model("MailboxThread", MailboxThreadSchema);
+export const MailboxThreadModel = getModel<any>("MailboxThread", MailboxThreadSchema);

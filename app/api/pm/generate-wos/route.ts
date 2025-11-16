@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { FMPMPlan } from '@/server/models/FMPMPlan';
 
@@ -13,10 +14,10 @@ export async function POST() {
   try {
     
     // Find all ACTIVE PM plans that should generate WOs now
-    const plans = await FMPMPlan.find({
+    const plans = (await FMPMPlan.find({
       status: 'ACTIVE',
       nextScheduledDate: { $exists: true }
-    });
+    }));
     
     const results = {
       checked: plans.length,
@@ -28,7 +29,8 @@ export async function POST() {
     
     for (const plan of plans) {
       // Check if plan should generate WO now (considering lead time)
-      if (!plan.shouldGenerateNow()) {
+      const shouldGenerate = (plan as unknown as { shouldGenerateNow?: () => boolean }).shouldGenerateNow?.();
+      if (!shouldGenerate) {
         results.skipped++;
         continue;
       }
@@ -60,7 +62,8 @@ export async function POST() {
         logger.info(`[PM] WO Data:`, { workOrderData });
         
         // Record generation in plan
-        await plan.recordGeneration(
+        // TODO(type-safety): Add recordGeneration method to PMPlan model
+        await (plan as any).recordGeneration(
           plan._id, // In real impl, this would be the actual WorkOrder._id
           woNumber,
           'SUCCESS'
@@ -106,14 +109,14 @@ export async function GET() {
       nextScheduledDate: { $exists: true }
     }).lean();
     
-    const preview = plans.filter(plan => {
+    const preview = plans.filter((plan: any) => {
       // Manually check shouldGenerateNow logic
       const now = new Date();
       const leadTime = plan.woLeadTimeDays * 24 * 60 * 60 * 1000;
       const generateByDate = new Date(plan.nextScheduledDate.getTime() - leadTime);
       
       return now >= generateByDate && (!plan.lastGeneratedDate || plan.lastGeneratedDate < generateByDate);
-    }).map(plan => ({
+    }).map((plan: any) => ({
       planId: plan._id,
       planNumber: plan.planNumber,
       title: plan.title,

@@ -1,6 +1,9 @@
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+
 export default function CompliancePage() {
   return (
     <div className="space-y-6">
+      <ModuleViewTabs moduleId="compliance" />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Compliance</h1>

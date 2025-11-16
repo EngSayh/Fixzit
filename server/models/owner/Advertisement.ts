@@ -1,4 +1,5 @@
 import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";
 
@@ -6,20 +7,20 @@ const AdvertisementStatus = ["PENDING", "APPROVED", "ACTIVE", "EXPIRED", "SUSPEN
 
 const AdvertisementSchema = new Schema({
   // Multi-tenancy - added by plugin
-  // orgId: { type: Types.ObjectId, ref: "Organization", required: true, index: true },
+  // orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
 
   // Advertisement Identification
   advertisementNumber: { type: String, required: true }, // Government-issued number
   internalNumber: String, // Internal tracking number
   
   // Property Information
-  propertyId: { type: Types.ObjectId, ref: "Property", required: true, index: true },
+  propertyId: { type: Schema.Types.ObjectId, ref: "Property", required: true, index: true },
   propertyName: String,
   propertyCode: String,
   unitNumber: String, // If advertising specific unit
   
   // Owner Information
-  ownerId: { type: Types.ObjectId, ref: "Owner", required: true, index: true },
+  ownerId: { type: Schema.Types.ObjectId, ref: "Owner", required: true, index: true },
   ownerName: String,
   
   // Government/Authority Details
@@ -65,10 +66,10 @@ const AdvertisementSchema = new Schema({
   // Agent Information (if applicable)
   agent: {
     assigned: Boolean,
-    agentId: { type: Types.ObjectId, ref: "User" },
+    agentId: { type: Schema.Types.ObjectId, ref: "User" },
     agentName: String,
     agentLicenseNumber: String,
-    agentContractId: { type: Types.ObjectId, ref: "AgentContract" },
+    agentContractId: { type: Schema.Types.ObjectId, ref: "AgentContract" },
     commission: {
       type: String, // PERCENTAGE, FIXED
       value: Number
@@ -158,15 +159,15 @@ const AdvertisementSchema = new Schema({
   statusHistory: [{
     status: { type: String, enum: AdvertisementStatus },
     changedAt: { type: Date, default: Date.now },
-    changedBy: { type: Types.ObjectId, ref: "User" },
+    changedBy: { type: Schema.Types.ObjectId, ref: "User" },
     reason: String,
     notes: String
   }],
 
   // Renewal Information
   renewal: {
-    renewedFrom: { type: Types.ObjectId, ref: "Advertisement" }, // Previous advertisement
-    renewedTo: { type: Types.ObjectId, ref: "Advertisement" }, // New advertisement
+    renewedFrom: { type: Schema.Types.ObjectId, ref: "Advertisement" }, // Previous advertisement
+    renewedTo: { type: Schema.Types.ObjectId, ref: "Advertisement" }, // New advertisement
     renewalDate: Date,
     renewalCost: Number,
     autoRenewed: Boolean
@@ -175,14 +176,14 @@ const AdvertisementSchema = new Schema({
   // Suspension/Cancellation
   suspension: {
     suspendedAt: Date,
-    suspendedBy: { type: Types.ObjectId, ref: "User" },
+    suspendedBy: { type: Schema.Types.ObjectId, ref: "User" },
     suspensionReason: String,
     resumedAt: Date,
-    resumedBy: { type: Types.ObjectId, ref: "User" }
+    resumedBy: { type: Schema.Types.ObjectId, ref: "User" }
   },
   cancellation: {
     cancelledAt: Date,
-    cancelledBy: { type: Types.ObjectId, ref: "User" },
+    cancelledBy: { type: Schema.Types.ObjectId, ref: "User" },
     cancellationReason: String,
     refundAmount: Number,
     refundProcessed: Boolean
@@ -200,8 +201,8 @@ const AdvertisementSchema = new Schema({
   // Integration with Finance
   finance: {
     expenseRecorded: { type: Boolean, default: false },
-    journalEntryId: { type: Types.ObjectId, ref: "Journal" },
-    invoiceId: { type: Types.ObjectId, ref: "Invoice" },
+    journalEntryId: { type: Schema.Types.ObjectId, ref: "Journal" },
+    invoiceId: { type: Schema.Types.ObjectId, ref: "Invoice" },
     postedDate: Date
   },
 
@@ -211,7 +212,7 @@ const AdvertisementSchema = new Schema({
     name: String,
     url: { type: String, required: true },
     uploadedAt: { type: Date, default: Date.now },
-    uploadedBy: { type: Types.ObjectId, ref: "User" },
+    uploadedBy: { type: Schema.Types.ObjectId, ref: "User" },
     verified: Boolean,
     expiresAt: Date
   }],
@@ -295,4 +296,4 @@ AdvertisementSchema.virtual('isActive').get(function() {
 
 // Export type and model
 export type Advertisement = InferSchemaType<typeof AdvertisementSchema>;
-export const AdvertisementModel = models.Advertisement || model("Advertisement", AdvertisementSchema);
+export const AdvertisementModel = getModel<any>("Advertisement", AdvertisementSchema);

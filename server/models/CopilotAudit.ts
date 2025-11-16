@@ -1,5 +1,6 @@
-import { Schema, model, models, InferSchemaType } from "mongoose";
+import { Schema, InferSchemaType } from "mongoose";
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
+import { getModel } from '@/src/types/mongoose-compat';
 
 const AuditSchema = new Schema({
   userId: { type: String },
@@ -23,4 +24,4 @@ AuditSchema.index({ orgId: 1, userId: 1, role: 1, createdAt: -1 });
 
 export type CopilotAuditDoc = InferSchemaType<typeof AuditSchema>;
 
-export const CopilotAudit = models.CopilotAudit || model("CopilotAudit", AuditSchema);
+export const CopilotAudit = getModel<CopilotAuditDoc>('CopilotAudit', AuditSchema);

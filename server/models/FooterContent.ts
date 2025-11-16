@@ -1,6 +1,7 @@
-import { Schema, model, models, InferSchemaType } from 'mongoose';
+import { Schema, InferSchemaType } from 'mongoose';
 import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
+import { getModel } from '@/src/types/mongoose-compat';
 
 /**
  * FooterContent Model
@@ -47,4 +48,4 @@ export type FooterContentDoc = InferSchemaType<typeof FooterContentSchema> & {
   getContent(_locale: string): string;
 };
 
-export const FooterContent = models.FooterContent || model("FooterContent", FooterContentSchema);
+export const FooterContent = getModel<FooterContentDoc>('FooterContent', FooterContentSchema);

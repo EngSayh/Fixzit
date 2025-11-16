@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     
     // Authorization: must be admin or subscribing for self
-    const isAdmin = ['super_admin', 'corporate_admin'].includes(user.role);
+    const isAdmin = ['SUPER_ADMIN', 'ADMIN'].includes(user.role);
     const isSelf = body.ownerUserId === user.id;
     
     if (!isAdmin && !isSelf) {

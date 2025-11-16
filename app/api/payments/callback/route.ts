@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     const verification = await verifyPayment(tran_ref) as { payment_result?: { response_status?: string } } | null;
 
     await connectToDatabase();
-    const invoice = await Invoice.findById(cart_id);
+    const invoice = (await Invoice.findById(cart_id));
 
     if (!invoice) {
       logger.error('Invoice not found for payment callback:', { cart_id });
@@ -94,9 +94,36 @@ export async function POST(req: NextRequest) {
         details: `Payment completed via PayTabs. Transaction: ${tran_ref}`
       });
       
-      // TODO: If this is an AqarPackage payment, activate the package
-      // Import and call: activatePackageAfterPayment(relatedPaymentId)
-      // See: lib/aqar/package-activation.ts
+      // Activate AqarPackage if this payment is for a package purchase
+      if (invoice.metadata?.aqarPaymentId) {
+        // Track activation attempt on invoice
+        invoice.metadata.activationAttempted = true;
+        invoice.metadata.activationStatus = 'pending';
+        await invoice.save();
+        
+        try {
+          const { activatePackageAfterPayment } = await import('@/lib/aqar/package-activation');
+          await activatePackageAfterPayment(invoice.metadata.aqarPaymentId);
+          
+          invoice.metadata.activationStatus = 'completed';
+          await invoice.save();
+          logger.info('Package activated after payment', { paymentId: invoice.metadata.aqarPaymentId });
+        } catch (err) {
+          // Record failure and enqueue retry
+          invoice.metadata.activationStatus = 'failed';
+          invoice.metadata.lastActivationError = err instanceof Error ? err.message : String(err);
+          await invoice.save();
+          
+          logger.error('Failed to activate package after payment - will retry', { 
+            paymentId: invoice.metadata.aqarPaymentId, 
+            error: err,
+            invoiceId: invoice._id 
+          });
+          
+          // Enqueue background retry job (TODO: implement retry queue)
+          // await enqueueActivationRetry(invoice.metadata.aqarPaymentId, invoice._id);
+        }
+      }
     } else {
       // Payment failed
       invoice.payments.push({

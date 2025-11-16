@@ -1,4 +1,5 @@
 import { Schema, model, models, InferSchemaType, Types } from "mongoose";
+import { getModel, MModel } from '@/src/types/mongoose-compat';
 import { tenantIsolationPlugin } from "../../plugins/tenantIsolation";
 import { auditPlugin } from "../../plugins/auditPlugin";
 
@@ -7,15 +8,15 @@ const PaymentStatus = ["UNPAID", "PARTIALLY_PAID", "PAID", "OVERPAID"] as const;
 
 const UtilityBillSchema = new Schema({
   // Multi-tenancy - added by plugin
-  // orgId: { type: Types.ObjectId, ref: "Organization", required: true, index: true },
+  // orgId: { type: Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
 
   // Bill Identification
   billNumber: { type: String, required: true },
   providerBillNumber: String, // Bill number from utility provider
   
   // Related Meter
-  meterId: { type: Types.ObjectId, ref: "UtilityMeter", required: true, index: true },
-  propertyId: { type: Types.ObjectId, ref: "Property", required: true, index: true },
+  meterId: { type: Schema.Types.ObjectId, ref: "UtilityMeter", required: true, index: true },
+  propertyId: { type: Schema.Types.ObjectId, ref: "Property", required: true, index: true },
   unitNumber: String,
   
   // Bill Period
@@ -71,7 +72,7 @@ const UtilityBillSchema = new Schema({
     dueDate: { type: Date, required: true, index: true },
     paidAmount: { type: Number, default: 0 },
     paidDate: Date,
-    paidBy: { type: Types.ObjectId, ref: "User" },
+    paidBy: { type: Schema.Types.ObjectId, ref: "User" },
     paymentMethod: String, // BANK_TRANSFER, CREDIT_CARD, SADAD, etc.
     transactionReference: String,
     latePaymentFee: Number,
@@ -81,8 +82,8 @@ const UtilityBillSchema = new Schema({
   // Responsible Party (who should pay)
   responsibility: {
     type: { type: String, enum: ["OWNER", "TENANT", "SHARED"], required: true },
-    ownerId: { type: Types.ObjectId, ref: "Owner" },
-    tenantId: { type: Types.ObjectId, ref: "Tenant" },
+    ownerId: { type: Schema.Types.ObjectId, ref: "Owner" },
+    tenantId: { type: Schema.Types.ObjectId, ref: "Tenant" },
     ownerPercentage: { type: Number, min: 0, max: 100 },
     tenantPercentage: { type: Number, min: 0, max: 100 },
     splitReason: String // E.g., "Vacant during period", "Shared facilities"
@@ -97,13 +98,13 @@ const UtilityBillSchema = new Schema({
     originalFileUrl: String,
     extractedData: Schema.Types.Mixed,
     manuallyVerified: { type: Boolean, default: false },
-    verifiedBy: { type: Types.ObjectId, ref: "User" },
+    verifiedBy: { type: Schema.Types.ObjectId, ref: "User" },
     verifiedDate: Date,
     corrections: [{
       field: String,
       ocrValue: Schema.Types.Mixed,
       correctedValue: Schema.Types.Mixed,
-      correctedBy: { type: Types.ObjectId, ref: "User" },
+      correctedBy: { type: Schema.Types.ObjectId, ref: "User" },
       correctedDate: Date
     }]
   },
@@ -133,7 +134,7 @@ const UtilityBillSchema = new Schema({
     name: String,
     url: { type: String, required: true },
     uploadedAt: { type: Date, default: Date.now },
-    uploadedBy: { type: Types.ObjectId, ref: "User" }
+    uploadedBy: { type: Schema.Types.ObjectId, ref: "User" }
   }],
 
   // Status
@@ -141,7 +142,7 @@ const UtilityBillSchema = new Schema({
   statusHistory: [{
     status: { type: String, enum: BillStatus },
     changedAt: { type: Date, default: Date.now },
-    changedBy: { type: Types.ObjectId, ref: "User" },
+    changedBy: { type: Schema.Types.ObjectId, ref: "User" },
     reason: String,
     notes: String
   }],
@@ -155,7 +156,7 @@ const UtilityBillSchema = new Schema({
     disputeStatus: String, // PENDING, RESOLVED, REJECTED
     resolution: String,
     resolvedDate: Date,
-    resolvedBy: { type: Types.ObjectId, ref: "User" }
+    resolvedBy: { type: Schema.Types.ObjectId, ref: "User" }
   },
 
   // Notifications
@@ -170,10 +171,10 @@ const UtilityBillSchema = new Schema({
   // Integration with Finance Module
   finance: {
     posted: { type: Boolean, default: false },
-    journalEntryId: { type: Types.ObjectId, ref: "Journal" },
-    invoiceId: { type: Types.ObjectId, ref: "Invoice" },
+    journalEntryId: { type: Schema.Types.ObjectId, ref: "Journal" },
+    invoiceId: { type: Schema.Types.ObjectId, ref: "Invoice" },
     postedDate: Date,
-    postedBy: { type: Types.ObjectId, ref: "User" }
+    postedBy: { type: Schema.Types.ObjectId, ref: "User" }
   },
 
   // Metadata
@@ -275,4 +276,4 @@ UtilityBillSchema.methods.recordPayment = function(
 
 // Export type and model
 export type UtilityBill = InferSchemaType<typeof UtilityBillSchema>;
-export const UtilityBillModel = models.UtilityBill || model("UtilityBill", UtilityBillSchema);
+export const UtilityBillModel = getModel<any>("UtilityBill", UtilityBillSchema);

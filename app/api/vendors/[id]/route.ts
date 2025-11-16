@@ -82,10 +82,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    const vendor = await Vendor.findOne({
+    const vendor = (await Vendor.findOne({
       _id: params.id,
       tenantId: user.tenantId
-    });
+    }));
 
     if (!vendor) {
       return createSecureResponse({ error: "Vendor not found" }, 404, req);
@@ -105,11 +105,11 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     const data = updateVendorSchema.parse(await req.json());
 
-    const vendor = await Vendor.findOneAndUpdate(
+    const vendor = (await Vendor.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },
       { $set: { ...data, updatedBy: user.id } },
       { new: true }
-    );
+    ));
 
     if (!vendor) {
       return createSecureResponse({ error: "Vendor not found" }, 404, req);
@@ -134,11 +134,11 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     const user = await getSessionUser(req);
     await connectToDatabase();
 
-    const vendor = await Vendor.findOneAndUpdate(
+    const vendor = (await Vendor.findOneAndUpdate(
       { _id: params.id, tenantId: user.tenantId },
       { $set: { status: "BLACKLISTED", updatedBy: user.id } },
       { new: true }
-    );
+    ));
 
     if (!vendor) {
       return createSecureResponse({ error: "Vendor not found" }, 404, req);
