@@ -12,6 +12,9 @@
 import { SouqSeller } from '@/server/models/souq/Seller';
 import { SouqOrder } from '@/server/models/souq/Order';
 import { SouqRMA } from '@/server/models/souq/RMA';
+import { SouqListing } from '@/server/models/souq/Listing';
+import { SouqReview } from '@/server/models/souq/Review';
+import { SouqTransaction } from '@/server/models/souq/Transaction';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
 import mongoose from 'mongoose';
 
@@ -59,8 +62,10 @@ class AccountHealthService {
     const startDate = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
 
     // Get orders in period
+    const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
+
     const orders = await SouqOrder.find({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      'items.sellerId': sellerObjectId,
       createdAt: { $gte: startDate },
       status: { $nin: ['pending', 'payment_failed'] } // Exclude incomplete orders
     });
@@ -132,8 +137,10 @@ class AccountHealthService {
    * Target: < 1%
    */
   private async calculateODR(sellerId: string, startDate: Date): Promise<number> {
+    const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
+
     const totalOrders = await SouqOrder.countDocuments({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      'items.sellerId': sellerObjectId,
       createdAt: { $gte: startDate },
       status: { $nin: ['pending', 'payment_failed'] }
     });
@@ -141,26 +148,32 @@ class AccountHealthService {
     if (totalOrders === 0) return 0;
 
     // Count negative feedback (1-2 stars)
-    const negativeFeedback = await SouqOrder.countDocuments({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
-      createdAt: { $gte: startDate },
-      'feedback.rating': { $lte: 2 }
-    });
+    const sellerProductIds = (await SouqListing.distinct('productId', {
+      sellerId: sellerObjectId
+    })) as mongoose.Types.ObjectId[];
+
+    const negativeFeedback = sellerProductIds.length === 0
+      ? 0
+      : await SouqReview.countDocuments({
+        productId: { $in: sellerProductIds },
+        createdAt: { $gte: startDate },
+        rating: { $lte: 2 }
+      });
 
     // Count A-to-Z claims approved against seller
     const { SouqClaim } = await import('@/server/models/souq/Claim');
     const approvedClaims = await SouqClaim.countDocuments({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      sellerId,
       createdAt: { $gte: startDate },
       status: 'resolved',
       'decision.outcome': { $in: ['approved', 'partial_refund'] }
     });
 
     // Count chargebacks (if tracked in orders)
-    const chargebacks = await SouqOrder.countDocuments({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
-      createdAt: { $gte: startDate },
-      'payment.chargeback': true
+    const chargebacks = await SouqTransaction.countDocuments({
+      sellerId: sellerObjectId,
+      type: 'chargeback',
+      createdAt: { $gte: startDate }
     });
 
     const totalDefects = negativeFeedback + approvedClaims + chargebacks;
@@ -175,8 +188,10 @@ class AccountHealthService {
    * Target: < 4%
    */
   private async calculateLateShipmentRate(sellerId: string, startDate: Date): Promise<number> {
+    const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
+
     const shippedOrders = await SouqOrder.find({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      'items.sellerId': sellerObjectId,
       createdAt: { $gte: startDate },
       status: { $in: ['shipped', 'delivered'] }
     });
@@ -214,8 +229,10 @@ class AccountHealthService {
    * Target: < 2.5%
    */
   private async calculateCancellationRate(sellerId: string, startDate: Date): Promise<number> {
+    const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
+
     const totalOrders = await SouqOrder.countDocuments({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      'items.sellerId': sellerObjectId,
       createdAt: { $gte: startDate },
       status: { $nin: ['pending', 'payment_failed'] }
     });
@@ -223,10 +240,9 @@ class AccountHealthService {
     if (totalOrders === 0) return 0;
 
     const cancelledOrders = await SouqOrder.countDocuments({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      'items.sellerId': sellerObjectId,
       createdAt: { $gte: startDate },
-      status: 'cancelled',
-      'cancellation.cancelledBy': 'seller' // Only seller cancellations
+      status: 'cancelled'
     });
 
     const cr = (cancelledOrders / totalOrders) * 100;
@@ -239,8 +255,10 @@ class AccountHealthService {
    * Target: < 10%
    */
   private async calculateReturnRate(sellerId: string, startDate: Date): Promise<number> {
+    const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
+
     const deliveredOrders = await SouqOrder.countDocuments({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      'items.sellerId': sellerObjectId,
       createdAt: { $gte: startDate },
       status: 'delivered'
     });
@@ -248,7 +266,7 @@ class AccountHealthService {
     if (deliveredOrders === 0) return 0;
 
     const returns = await SouqRMA.countDocuments({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      sellerId,
       createdAt: { $gte: startDate }
     });
 

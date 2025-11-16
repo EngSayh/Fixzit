@@ -1,9 +1,6 @@
 import { logger } from '@/lib/logger';
 import mongoose from 'mongoose';
 
-// Ensure the HR schema pack registers with mongoose when connection is established
-import '@/server/models/hr.models';
-
 // Safe TLS detection function
 function isTlsEnabled(uri: string): boolean {
   if (!uri) return false;

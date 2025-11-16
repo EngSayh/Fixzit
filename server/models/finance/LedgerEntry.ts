@@ -25,6 +25,7 @@ export interface ILedgerEntry {
   journalId: Types.ObjectId;
   journalNumber: string;
   journalDate: Date;
+  date?: Date;
   postingDate: Date;
   accountId: Types.ObjectId;
   accountCode: string;
@@ -33,7 +34,17 @@ export interface ILedgerEntry {
   description: string;
   debit: number;
   credit: number;
+  debitMinor?: Types.Decimal128;
+  creditMinor?: Types.Decimal128;
+  baseDebitMinor?: Types.Decimal128;
+  baseCreditMinor?: Types.Decimal128;
+  baseCurrency?: string;
+  currency?: string;
+  fxRate?: number;
+  balanceMinor?: Types.Decimal128;
   balance: number; // Running balance for this account
+  dimensions?: Record<string, unknown>;
+  isReversal?: boolean;
   propertyId?: Types.ObjectId;
   unitId?: Types.ObjectId;
   ownerId?: Types.ObjectId;
@@ -97,6 +108,7 @@ const LedgerEntrySchema = new Schema<ILedgerEntry>(
     journalId: { type: Schema.Types.ObjectId, required: true, ref: 'Journal', index: true },
     journalNumber: { type: String, required: true, trim: true },
     journalDate: { type: Date, required: true, index: true },
+    date: { type: Date, required: true, index: true },
     postingDate: { type: Date, required: true, index: true },
     accountId: { type: Schema.Types.ObjectId, required: true, ref: 'ChartAccount', index: true },
     accountCode: { type: String, required: true, trim: true, uppercase: true },
@@ -110,7 +122,17 @@ const LedgerEntrySchema = new Schema<ILedgerEntry>(
     description: { type: String, required: true, trim: true },
     debit: { type: Number, required: true, default: 0, min: 0 },
     credit: { type: Number, required: true, default: 0, min: 0 },
+    debitMinor: { type: Schema.Types.Decimal128, default: () => Types.Decimal128.fromString('0') },
+    creditMinor: { type: Schema.Types.Decimal128, default: () => Types.Decimal128.fromString('0') },
+    baseDebitMinor: { type: Schema.Types.Decimal128, default: () => Types.Decimal128.fromString('0') },
+    baseCreditMinor: { type: Schema.Types.Decimal128, default: () => Types.Decimal128.fromString('0') },
+    baseCurrency: { type: String, default: 'SAR' },
+    currency: { type: String, default: 'SAR' },
+    fxRate: { type: Number, default: 1 },
+    balanceMinor: { type: Schema.Types.Decimal128, default: () => Types.Decimal128.fromString('0') },
     balance: { type: Number, required: true, default: 0 },
+    dimensions: { type: Schema.Types.Mixed },
+    isReversal: { type: Boolean, default: false },
     propertyId: { type: Schema.Types.ObjectId, ref: 'Property', index: true },
     unitId: { type: Schema.Types.ObjectId, ref: 'Unit' },
     ownerId: { type: Schema.Types.ObjectId, ref: 'Owner', index: true },
@@ -121,6 +143,13 @@ const LedgerEntrySchema = new Schema<ILedgerEntry>(
   },
   { timestamps: true }
 );
+
+LedgerEntrySchema.pre('validate', function(next) {
+  if (!this.date) {
+    this.date = this.journalDate || this.postingDate || new Date();
+  }
+  next();
+});
 
 // Apply plugins BEFORE indexes
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -135,6 +164,9 @@ LedgerEntrySchema.index({ orgId: 1, journalId: 1 }); // journal lookup
 LedgerEntrySchema.index({ orgId: 1, propertyId: 1, postingDate: -1 }); // property reports
 LedgerEntrySchema.index({ orgId: 1, ownerId: 1, postingDate: -1 }); // owner statements
 LedgerEntrySchema.index({ orgId: 1, fiscalYear: 1, fiscalPeriod: 1, accountType: 1 }); // statements
+LedgerEntrySchema.index({ orgId: 1, accountId: 1, date: 1 });
+LedgerEntrySchema.index({ orgId: 1, 'dimensions.propertyId': 1, date: -1 });
+LedgerEntrySchema.index({ orgId: 1, 'dimensions.ownerId': 1, date: -1 });
 
 // Pre-save: Validate debit/credit exclusivity
 LedgerEntrySchema.pre('save', function (this: HydratedDocument<ILedgerEntry>, next) {

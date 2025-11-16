@@ -32,7 +32,7 @@ export interface IChartAccount {
   accountType: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
   // Add aliases for common property names
   code: string; // Alias for accountCode
-  name: string; // Alias for accountName
+  name: string | { en?: string; ar?: string }; // Alias for accountName
   type: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE'; // Alias for accountType
   parentId?: Types.ObjectId; // For hierarchical COA (e.g., 1100 under 1000)
   description?: string;
@@ -60,7 +60,17 @@ const ChartAccountSchema = new Schema<IChartAccount>(
       uppercase: true,
       match: /^[0-9]{4,6}$/ // e.g., "1100", "420001"
     },
+    code: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      match: /^[0-9]{4,6}$/
+    },
     accountName: { type: String, required: true, trim: true },
+    name: {
+      en: { type: String, trim: true },
+      ar: { type: String, trim: true }
+    },
     accountType: { 
       type: String, 
       required: true,
@@ -69,7 +79,7 @@ const ChartAccountSchema = new Schema<IChartAccount>(
     },
     parentId: { type: Schema.Types.ObjectId, ref: 'ChartAccount' },
     description: { type: String, trim: true },
-    isActive: { type: Boolean, default: true, index: true },
+    isActive: { type: Boolean, default: true, index: true, alias: 'active' },
     isSystemAccount: { type: Boolean, default: false },
     normalBalance: { 
       type: String, 
@@ -85,12 +95,36 @@ const ChartAccountSchema = new Schema<IChartAccount>(
   { timestamps: true }
 );
 
+ChartAccountSchema.pre('validate', function(next) {
+  if (!this.code && this.accountCode) {
+    this.code = this.accountCode;
+  }
+  if (!this.accountCode && this.code) {
+    this.accountCode = this.code;
+  }
+
+  if (!this.accountName && this.name?.en) {
+    this.accountName = this.name.en;
+  }
+
+  if (!this.name) {
+    this.name = {} as typeof this.name;
+  }
+
+  if (!this.name.en && this.accountName) {
+    this.name.en = this.accountName;
+  }
+
+  next();
+});
+
 // Apply plugins BEFORE indexes
 ChartAccountSchema.plugin(tenantIsolationPlugin);
 ChartAccountSchema.plugin(auditPlugin);
 
 // All indexes MUST be tenant-scoped
 ChartAccountSchema.index({ orgId: 1, accountCode: 1 }, { unique: true }); // Unique per org
+ChartAccountSchema.index({ orgId: 1, code: 1 }, { unique: true, sparse: true });
 ChartAccountSchema.index({ orgId: 1, accountType: 1, isActive: 1 });
 ChartAccountSchema.index({ orgId: 1, parentId: 1 });
 ChartAccountSchema.index({ orgId: 1, accountName: 'text' }); // For search
@@ -99,15 +133,6 @@ ChartAccountSchema.index({ orgId: 1, accountName: 'text' }); // For search
 // eslint-disable-next-line no-unused-vars
 ChartAccountSchema.virtual('isParent').get(function(this: IChartAccount) {
   return !this.parentId;
-});
-
-// Virtual aliases for backward compatibility
-ChartAccountSchema.virtual('code').get(function(this: IChartAccount) {
-  return this.accountCode;
-});
-
-ChartAccountSchema.virtual('name').get(function(this: IChartAccount) {
-  return this.accountName;
 });
 
 ChartAccountSchema.virtual('type').get(function(this: IChartAccount) {

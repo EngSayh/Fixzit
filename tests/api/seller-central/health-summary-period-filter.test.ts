@@ -35,13 +35,44 @@ describe('GET /api/souq/seller-central/health/summary - Period Filter', () => {
     // Create test seller
     const seller = await SouqSeller.create({
       sellerId: `TEST_SELLER_${Date.now()}`,
-      userId: new mongoose.Types.ObjectId(),
-      businessInfo: {
-        businessName: 'Test Business',
-        businessType: 'individual',
-        crNumber: '1234567890'
+      legalName: 'Test Business',
+      tradeName: 'Test Business',
+      registrationType: 'company',
+      registrationNumber: `CR-${Date.now()}`,
+      country: 'SA',
+      city: 'Riyadh',
+      address: 'King Fahd Road, Riyadh',
+      contactEmail: `seller_${Date.now()}@example.com`,
+      contactPhone: '+966500000000',
+      kycStatus: 'approved',
+      accountHealth: {
+        orderDefectRate: 0,
+        lateShipmentRate: 0,
+        cancellationRate: 0,
+        validTrackingRate: 100,
+        onTimeDeliveryRate: 100,
+        score: 100,
+        status: 'excellent',
+        lastCalculated: new Date()
       },
-      status: 'active'
+      fulfillmentMethod: {
+        fbf: false,
+        fbm: true
+      },
+      features: {
+        sponsored_ads: false,
+        auto_repricer: false,
+        bulk_upload: true,
+        api_access: false,
+        dedicated_support: false
+      },
+      tierEffectiveFrom: new Date(),
+      tier: 'individual',
+      settlementCycle: 14,
+      holdPeriod: 7,
+      isActive: true,
+      isSuspended: false,
+      userId: new mongoose.Types.ObjectId()
     });
     testSellerId = seller._id.toString();
 
@@ -51,80 +82,69 @@ describe('GET /api/souq/seller-central/health/summary - Period Filter', () => {
     const fifteenDaysAgo = new Date(now - 15 * 24 * 60 * 60 * 1000);
     const sixtyDaysAgo = new Date(now - 60 * 24 * 60 * 60 * 1000);
 
-    // Order 1: 3 days ago (should appear in all periods)
-    const order1 = await SouqOrder.create({
-      orderId: `TEST_ORD_${Date.now()}_1`,
-      buyerId: new mongoose.Types.ObjectId(),
-      sellerId: new mongoose.Types.ObjectId(testSellerId),
-      items: [{
-        productId: new mongoose.Types.ObjectId(),
-        variantId: new mongoose.Types.ObjectId(),
-        quantity: 1,
-        price: 100,
-        sellerId: new mongoose.Types.ObjectId(testSellerId)
-      }],
-      totals: {
-        subtotal: 100,
-        shipping: 10,
-        tax: 15,
-        total: 125
-      },
-      status: 'delivered',
-      createdAt: threeDaysAgo,
-      shippedAt: threeDaysAgo,
-      deliveredAt: threeDaysAgo
-    });
-    orderIds.push(order1._id.toString());
+    const createOrder = async (label: string, createdAt: Date, quantity: number, pricePerUnit: number, shippingFee = 10) => {
+      const subtotal = quantity * pricePerUnit;
+      const tax = Math.round(subtotal * 0.15);
+      const total = subtotal + tax + shippingFee;
 
-    // Order 2: 15 days ago (should appear in 30-day and 90-day periods)
-    const order2 = await SouqOrder.create({
-      orderId: `TEST_ORD_${Date.now()}_2`,
-      buyerId: new mongoose.Types.ObjectId(),
-      sellerId: new mongoose.Types.ObjectId(testSellerId),
-      items: [{
-        productId: new mongoose.Types.ObjectId(),
-        variantId: new mongoose.Types.ObjectId(),
-        quantity: 2,
-        price: 50,
-        sellerId: new mongoose.Types.ObjectId(testSellerId)
-      }],
-      totals: {
-        subtotal: 100,
-        shipping: 10,
-        tax: 15,
-        total: 125
-      },
-      status: 'delivered',
-      createdAt: fifteenDaysAgo,
-      shippedAt: fifteenDaysAgo,
-      deliveredAt: fifteenDaysAgo
-    });
-    orderIds.push(order2._id.toString());
+      const buildAddress = () => ({
+        name: 'Test Buyer',
+        phone: '+966500000001',
+        addressLine1: '123 Test Street',
+        city: 'Riyadh',
+        state: 'Riyadh',
+        country: 'SA',
+        postalCode: '12345'
+      });
 
-    // Order 3: 60 days ago (should appear only in 90-day period)
-    const order3 = await SouqOrder.create({
-      orderId: `TEST_ORD_${Date.now()}_3`,
-      buyerId: new mongoose.Types.ObjectId(),
-      sellerId: new mongoose.Types.ObjectId(testSellerId),
-      items: [{
-        productId: new mongoose.Types.ObjectId(),
-        variantId: new mongoose.Types.ObjectId(),
-        quantity: 1,
-        price: 200,
-        sellerId: new mongoose.Types.ObjectId(testSellerId)
-      }],
-      totals: {
-        subtotal: 200,
-        shipping: 20,
-        tax: 30,
-        total: 250
-      },
-      status: 'delivered',
-      createdAt: sixtyDaysAgo,
-      shippedAt: sixtyDaysAgo,
-      deliveredAt: sixtyDaysAgo
-    });
-    orderIds.push(order3._id.toString());
+      const order = new SouqOrder({
+        orderId: `TEST_ORD_${label}_${Date.now()}`,
+        customerId: new mongoose.Types.ObjectId(),
+        customerEmail: `${label.toLowerCase()}@example.com`,
+        customerPhone: '+966500000001',
+        items: [{
+          listingId: new mongoose.Types.ObjectId(),
+          productId: new mongoose.Types.ObjectId(),
+          fsin: `FSIN_${label}`,
+          sellerId: seller._id,
+          title: `Test Product ${label}`,
+          quantity,
+          pricePerUnit,
+          subtotal,
+          fulfillmentMethod: 'fbm',
+          status: 'delivered',
+          shippedAt: createdAt,
+          deliveredAt: createdAt
+        }],
+        shippingAddress: buildAddress(),
+        billingAddress: buildAddress(),
+        pricing: {
+          subtotal,
+          shippingFee,
+          tax,
+          discount: 0,
+          total,
+          currency: 'SAR'
+        },
+        payment: {
+          method: 'card',
+          status: 'captured',
+          paidAt: createdAt
+        },
+        status: 'delivered',
+        deliveredAt: createdAt
+      });
+
+      order.createdAt = createdAt;
+      order.updatedAt = createdAt;
+      await order.save({ timestamps: false });
+
+      orderIds.push(order._id.toString());
+    };
+
+    await createOrder('RECENT', threeDaysAgo, 1, 100);
+    await createOrder('MID', fifteenDaysAgo, 2, 50);
+    await createOrder('OLD', sixtyDaysAgo, 1, 200, 20);
   });
 
   afterAll(async () => {

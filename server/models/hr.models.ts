@@ -27,11 +27,12 @@
  */
 
 import mongoose, { Schema, model, models, Types, Document, Model } from 'mongoose';
+import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
 
 export type ObjectId = Types.ObjectId;
 
 interface BaseOrgDoc extends Document {
-  orgId: Types.ObjectId;
+  orgId: Types.ObjectId | string;
   isDeleted: boolean;
   createdBy?: ObjectId;
   updatedBy?: ObjectId;
@@ -87,6 +88,7 @@ const DepartmentSchema = new Schema<DepartmentDoc>({
 }, { timestamps: true });
 
 DepartmentSchema.index({ orgId: 1, name: 1, isDeleted: 1 }, { unique: true });
+DepartmentSchema.plugin(tenantIsolationPlugin);
 
 export const Department: Model<DepartmentDoc> = models.Department || model<DepartmentDoc>('Department', DepartmentSchema);
 
@@ -230,6 +232,7 @@ EmployeeSchema.index({ orgId: 1, employeeCode: 1, isDeleted: 1 }, { unique: true
 EmployeeSchema.index({ orgId: 1, email: 1, isDeleted: 1 });
 EmployeeSchema.index({ orgId: 1, departmentId: 1, employmentStatus: 1 });
 EmployeeSchema.index({ orgId: 1, 'technicianProfile.skills': 1, employmentStatus: 1 });
+EmployeeSchema.plugin(tenantIsolationPlugin);
 
 export const Employee: Model<EmployeeDoc> = models.Employee || model<EmployeeDoc>('Employee', EmployeeSchema);
 
@@ -255,6 +258,7 @@ const ShiftTemplateSchema = new Schema<ShiftTemplateDoc>({
 }, { timestamps: true });
 
 ShiftTemplateSchema.index({ orgId: 1, name: 1, isDeleted: 1 }, { unique: true });
+ShiftTemplateSchema.plugin(tenantIsolationPlugin);
 
 export const ShiftTemplate: Model<ShiftTemplateDoc> = models.ShiftTemplate || model<ShiftTemplateDoc>('ShiftTemplate', ShiftTemplateSchema);
 
@@ -288,6 +292,7 @@ const AttendanceRecordSchema = new Schema<AttendanceRecordDoc>({
 }, { timestamps: true });
 
 AttendanceRecordSchema.index({ orgId: 1, employeeId: 1, date: 1 }, { unique: true });
+AttendanceRecordSchema.plugin(tenantIsolationPlugin);
 
 AttendanceRecordSchema.virtual('calculatedOvertime').get(function(this: AttendanceRecordDoc) {
   if (this.clockIn && this.clockOut) {
@@ -330,6 +335,7 @@ const LeaveTypeSchema = new Schema<LeaveTypeDoc>({
 }, { timestamps: true });
 
 LeaveTypeSchema.index({ orgId: 1, code: 1, isDeleted: 1 }, { unique: true });
+LeaveTypeSchema.plugin(tenantIsolationPlugin);
 
 export const LeaveType: Model<LeaveTypeDoc> = models.LeaveType || model<LeaveTypeDoc>('LeaveType', LeaveTypeSchema);
 
@@ -359,6 +365,7 @@ const LeaveBalanceSchema = new Schema<LeaveBalanceDoc>({
 }, { timestamps: true });
 
 LeaveBalanceSchema.index({ orgId: 1, employeeId: 1, leaveTypeId: 1, year: 1, isDeleted: 1 }, { unique: true });
+LeaveBalanceSchema.plugin(tenantIsolationPlugin);
 
 LeaveBalanceSchema.virtual('calculatedRemaining').get(function(this: LeaveBalanceDoc) {
   return (this.openingBalance || 0) + (this.accrued || 0) - (this.taken || 0);
@@ -411,6 +418,7 @@ const LeaveRequestSchema = new Schema<LeaveRequestDoc>({
 }, { timestamps: true });
 
 LeaveRequestSchema.index({ orgId: 1, employeeId: 1, startDate: 1 });
+LeaveRequestSchema.plugin(tenantIsolationPlugin);
 
 LeaveRequestSchema.pre('save', function(next) {
   if (this.endDate <= this.startDate) {
@@ -557,6 +565,7 @@ const PayrollRunSchema = new Schema<PayrollRunDoc>({
 }, { timestamps: true });
 
 PayrollRunSchema.index({ orgId: 1, periodStart: 1, periodEnd: 1 });
+PayrollRunSchema.plugin(tenantIsolationPlugin);
 
 PayrollRunSchema.pre('save', function(next) {
   const normalizedLines = (this.lines || []).map((line) => ({
@@ -622,6 +631,7 @@ const JobPostingSchema = new Schema<JobPostingDoc>({
 }, { timestamps: true });
 
 JobPostingSchema.index({ orgId: 1, status: 1 });
+JobPostingSchema.plugin(tenantIsolationPlugin);
 
 export const JobPosting: Model<JobPostingDoc> = models.JobPosting || model<JobPostingDoc>('JobPosting', JobPostingSchema);
 
@@ -659,6 +669,7 @@ const CandidateSchema = new Schema<CandidateDoc>({
 }, { timestamps: true });
 
 CandidateSchema.index({ orgId: 1, jobId: 1, stage: 1 });
+CandidateSchema.plugin(tenantIsolationPlugin);
 
 export const Candidate: Model<CandidateDoc> = models.Candidate || model<CandidateDoc>('Candidate', CandidateSchema);
 
@@ -684,6 +695,7 @@ const TrainingCourseSchema = new Schema<TrainingCourseDoc>({
 }, { timestamps: true });
 
 TrainingCourseSchema.index({ orgId: 1, code: 1, isDeleted: 1 }, { unique: true });
+TrainingCourseSchema.plugin(tenantIsolationPlugin);
 
 export const TrainingCourse: Model<TrainingCourseDoc> = models.TrainingCourse || model<TrainingCourseDoc>('TrainingCourse', TrainingCourseSchema);
 
@@ -714,6 +726,7 @@ const TrainingSessionSchema = new Schema<TrainingSessionDoc>({
 }, { timestamps: true });
 
 TrainingSessionSchema.index({ orgId: 1, courseId: 1, startDate: 1 });
+TrainingSessionSchema.plugin(tenantIsolationPlugin);
 
 export const TrainingSession: Model<TrainingSessionDoc> = models.TrainingSession || model<TrainingSessionDoc>('TrainingSession', TrainingSessionSchema);
 
@@ -743,6 +756,7 @@ const CertificationSchema = new Schema<CertificationDoc>({
 }, { timestamps: true });
 
 CertificationSchema.index({ orgId: 1, employeeId: 1, name: 1, issueDate: 1 });
+CertificationSchema.plugin(tenantIsolationPlugin);
 
 CertificationSchema.virtual('isExpired').get(function(this: CertificationDoc) {
   return this.expiryDate ? this.expiryDate < new Date() : false;
@@ -808,5 +822,6 @@ const PerformanceReviewSchema = new Schema<PerformanceReviewDoc>({
 }, { timestamps: true });
 
 PerformanceReviewSchema.index({ orgId: 1, employeeId: 1, periodStart: 1, periodEnd: 1 });
+PerformanceReviewSchema.plugin(tenantIsolationPlugin);
 
 export const PerformanceReview: Model<PerformanceReviewDoc> = models.PerformanceReview || model<PerformanceReviewDoc>('PerformanceReview', PerformanceReviewSchema);
