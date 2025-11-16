@@ -25,6 +25,14 @@ const GoogleSignInButton = dynamic(() => import('@/components/auth/GoogleSignInB
   ssr: false // OAuth buttons don't need SSR
 });
 
+// ⚡ PERFORMANCE OPTIMIZATION: Lazy-load OTP verification component
+const OTPVerification = dynamic(() => import('@/components/auth/OTPVerification'), {
+  loading: () => (
+    <div className="w-full p-8 bg-muted rounded-2xl animate-pulse h-96" />
+  ),
+  ssr: false
+});
+
 // ⚡ PERFORMANCE OPTIMIZATION: Lazy-load demo credentials section (only needed in dev)
  
 const DemoCredentialsSection = dynamic<{
@@ -49,6 +57,13 @@ interface FormErrors {
   general?: string;
 }
 
+// OTP state interface
+interface OTPState {
+  identifier: string;
+  maskedPhone: string;
+  expiresIn: number;
+}
+
 // ⚡ PERFORMANCE: Demo credentials moved to lazy-loaded component
 interface DemoCredential {
   role: string;
@@ -71,6 +86,10 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
+  
+  // OTP state
+  const [showOTP, setShowOTP] = useState(false);
+  const [otpState, setOtpState] = useState<OTPState | null>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -182,43 +201,48 @@ export default function LoginPage() {
     setErrors({});
 
     try {
-      // Use NextAuth signIn with credentials provider
       const identifier = loginMethod === 'personal' ? email.trim() : employeeNumber.trim();
       
-      const result = await signIn('credentials', {
-        identifier,
-        password,
-        rememberMe,
-        redirect: false, // Handle redirect manually
+      // Step 1: Send OTP to user's phone
+      const otpResponse = await fetch('/api/auth/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, password }),
       });
 
-      if (result?.error) {
-        // Handle login errors from NextAuth
-        if (result.error === 'CredentialsSignin') {
+      const otpData = await otpResponse.json();
+
+      if (!otpResponse.ok) {
+        // Handle OTP send errors
+        if (otpResponse.status === 401) {
           setErrors({
             general: t('login.errors.invalidCredentials', 'Invalid email/employee number or password')
           });
+        } else if (otpResponse.status === 429) {
+          setErrors({
+            general: t('login.errors.rateLimited', 'Too many attempts. Please try again later.')
+          });
+        } else if (otpResponse.status === 400 && otpData.error?.includes('phone')) {
+          setErrors({
+            general: t('login.errors.noPhone', 'No phone number registered. Please contact support.')
+          });
         } else {
           setErrors({
-            general: t('login.errors.loginFailed', 'Login failed. Please try again.')
+            general: t('login.errors.otpFailed', 'Failed to send verification code. Please try again.')
           });
         }
         setLoading(false);
         return;
       }
 
-      if (result?.ok) {
-        setSuccess(true);
-
-        // Determine redirect target (default to /fm/dashboard)
-        const redirectTo = postLoginRedirect();
-
-        // Small delay to ensure session is established
-        setTimeout(() => {
-          // Use router.replace to maintain SPA navigation
-          router.replace(redirectTo);
-        }, 500);
-      }
+      // Step 2: Show OTP verification screen
+      setOtpState({
+        identifier,
+        maskedPhone: otpData.data.phone,
+        expiresIn: otpData.data.expiresIn,
+      });
+      setShowOTP(true);
+      setLoading(false);
     } catch (err) {
       logger.error(
         'Login error',
@@ -229,6 +253,56 @@ export default function LoginPage() {
       setLoading(false);
     }
   }
+
+  // Handle OTP verification success
+  const handleOTPVerified = async (_authToken: string) => {
+    setLoading(true);
+
+    try {
+      // Use NextAuth signIn with credentials provider (skip OTP this time)
+      const identifier = loginMethod === 'personal' ? email.trim() : employeeNumber.trim();
+      
+      const result = await signIn('credentials', {
+        identifier,
+        password,
+        rememberMe,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setErrors({
+          general: t('login.errors.loginFailed', 'Login failed. Please try again.')
+        });
+        setLoading(false);
+        setShowOTP(false);
+        return;
+      }
+
+      if (result?.ok) {
+        setSuccess(true);
+        const redirectTo = postLoginRedirect();
+
+        setTimeout(() => {
+          router.replace(redirectTo);
+        }, 500);
+      }
+    } catch (err) {
+      logger.error(
+        'Post-OTP login error',
+        err instanceof Error ? err : new Error(String(err))
+      );
+      setErrors({ general: t('login.errors.networkError', 'Network error. Please check your connection.') });
+      setLoading(false);
+      setShowOTP(false);
+    }
+  };
+
+  // Handle back from OTP screen
+  const handleOTPBack = () => {
+    setShowOTP(false);
+    setOtpState(null);
+    setPassword('');
+  };
 
   // Success state
   if (success) {
@@ -263,18 +337,31 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-card rounded-2xl shadow-xl p-8">
-          {/* Logo */}
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4">
-              <span className="text-primary-foreground text-2xl font-bold">F</span>
-            </div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              {t('login.welcome', 'Welcome Back')}
-            </h1>
-            <p className="text-muted-foreground">
-              {t('login.subtitle', 'Sign in to your Fixzit account')}
-            </p>
-          </div>
+          {/* Show OTP verification or login form */}
+          {showOTP && otpState ? (
+            <OTPVerification
+              identifier={otpState.identifier}
+              maskedPhone={otpState.maskedPhone}
+              expiresIn={otpState.expiresIn}
+              onVerified={handleOTPVerified}
+              onBack={handleOTPBack}
+              t={t}
+              isRTL={isRTL}
+            />
+          ) : (
+            <>
+              {/* Logo */}
+              <div className="text-center mb-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-4">
+                  <span className="text-primary-foreground text-2xl font-bold">F</span>
+                </div>
+                <h1 className="text-3xl font-bold text-foreground mb-2">
+                  {t('login.welcome', 'Welcome Back')}
+                </h1>
+                <p className="text-muted-foreground">
+                  {t('login.subtitle', 'Sign in to your Fixzit account')}
+                </p>
+              </div>
 
           {/* Login Method Tabs */}
           <div className={`flex bg-muted rounded-2xl p-1 mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -512,9 +599,11 @@ export default function LoginPage() {
               </button>
             </div>
           )}
+          </>
+          )}
 
           {/* Demo Credentials - Lazy loaded for better performance */}
-          {showDemoCredentials && loginMethod !== 'sso' && (
+          {showDemoCredentials && loginMethod !== 'sso' && !showOTP && (
             <DemoCredentialsSection 
               isRTL={isRTL}
               loginMethod={loginMethod}
