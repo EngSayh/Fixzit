@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calculator, Download, Eye, Plus } from 'lucide-react';
+import { Calculator, Download, Eye, Plus, FileText } from 'lucide-react';
 import ClientDate from '@/components/ClientDate';
 import { logger } from '@/lib/logger';
 
@@ -29,12 +29,31 @@ interface PayrollRun {
   employeeCount: number;
   totals: Totals;
   calculatedAt?: string;
+  lines?: PayrollLine[];
+  exportReference?: string;
+}
+
+interface PayrollLine {
+  employeeId: string;
+  employeeCode: string;
+  employeeName: string;
+  iban?: string;
+  baseSalary: number;
+  allowances: number;
+  overtimeHours?: number;
+  overtimeAmount?: number;
+  deductions: number;
+  gosiContribution?: number;
+  netPay: number;
+  currency?: string;
+  notes?: string;
 }
 
 export default function PayrollPage() {
   const { t } = useTranslation();
   const [payrollRuns, setPayrollRuns] = useState<PayrollRun[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 
   useEffect(() => {
     void fetchPayrollRuns();
@@ -43,10 +62,9 @@ export default function PayrollPage() {
   const fetchPayrollRuns = async () => {
     try {
       const response = await fetch('/api/hr/payroll/runs');
-      if (response.ok) {
-        const data = await response.json();
-        setPayrollRuns(data.runs || []);
-      }
+      if (!response.ok) return;
+      const data = await response.json();
+      setPayrollRuns(data.runs || []);
     } catch (error) {
       logger.error('Error fetching payroll runs:', error);
     } finally {
@@ -121,6 +139,31 @@ export default function PayrollPage() {
       .replace(/\b\w/g, (l) => l.toUpperCase());
     return t(key, fallback);
   };
+
+  useEffect(() => {
+    if (payrollRuns.length === 0) {
+      setSelectedRunId(null);
+      return;
+    }
+    if (!selectedRunId) {
+      setSelectedRunId(payrollRuns[0]._id);
+    } else if (!payrollRuns.some((run) => run._id === selectedRunId)) {
+      setSelectedRunId(payrollRuns[0]._id);
+    }
+  }, [payrollRuns, selectedRunId]);
+
+  const selectedRun = useMemo(() => {
+    if (!payrollRuns.length) return null;
+    const match = payrollRuns.find((run) => run._id === selectedRunId);
+    return match || payrollRuns[0];
+  }, [payrollRuns, selectedRunId]);
+
+  const earningsTotals = useMemo(() => {
+    if (!selectedRun?.totals) return { earnings: 0, deductions: 0 };
+    const earnings = (selectedRun.totals.baseSalary || 0) + (selectedRun.totals.allowances || 0) + (selectedRun.totals.overtime || 0);
+    const deductions = (selectedRun.totals.deductions || 0) + (selectedRun.totals.gosi || 0);
+    return { earnings, deductions };
+  }, [selectedRun]);
 
   if (loading) {
     return (
@@ -217,28 +260,32 @@ export default function PayrollPage() {
                   </div>
                 )}
 
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={run.status !== 'DRAFT'}
                     onClick={() => handleCalculate(run._id)}
                   >
                     <Calculator className="h-4 w-4 me-2" />
-                    {t('hr.payroll.actions.calculate', 'Calculate')}
+                    {t('hr.payroll.actions.recalculate', 'Recalculate')}
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={run.status === 'DRAFT'}
                     onClick={() => handleExportWPS(run._id)}
                   >
                     <Download className="h-4 w-4 me-2" />
-                    {t('hr.payroll.actions.exportWps', 'Export WPS')}
+                    {t('hr.payroll.actions.export', 'Export WPS')}
                   </Button>
-                  <Button variant="ghost" size="sm">
+                  <Button
+                    variant={selectedRun?._id === run._id ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setSelectedRunId(run._id)}
+                  >
                     <Eye className="h-4 w-4 me-2" />
-                    {t('common.view', 'View')}
+                    {selectedRun?._id === run._id
+                      ? t('hr.payroll.actions.viewing', 'Viewing')
+                      : t('hr.payroll.actions.viewDetails', 'View details')}
                   </Button>
                 </div>
               </CardContent>
@@ -246,6 +293,146 @@ export default function PayrollPage() {
           ))
         )}
       </div>
+
+      {selectedRun && (
+        <Card className="border-primary/30 shadow-sm">
+          <CardHeader>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <p className="text-sm uppercase tracking-wide text-muted-foreground">
+                  {t('hr.payroll.detail.title', 'Run Details')}
+                </p>
+                <CardTitle className="text-2xl mt-1 text-primary">{selectedRun.name}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  <ClientDate date={selectedRun.periodStart} format="date-only" /> —{' '}
+                  <ClientDate date={selectedRun.periodEnd} format="date-only" />
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={() => handleCalculate(selectedRun._id)}>
+                  <Calculator className="h-4 w-4 me-2" />
+                  {t('hr.payroll.actions.recalculate', 'Recalculate')}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => handleExportWPS(selectedRun._id)}>
+                  <Download className="h-4 w-4 me-2" />
+                  {t('hr.payroll.actions.export', 'Export WPS')}
+                </Button>
+                <Button variant="outline" size="sm" disabled>
+                  <FileText className="h-4 w-4 me-2" />
+                  {t('hr.payroll.actions.postFinance', 'Post to finance')}
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="rounded-xl border border-border/60 p-4">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  {t('hr.payroll.detail.totalEarnings', 'Gross earnings')}
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-foreground">
+                  {formatCurrency(earningsTotals.earnings)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/60 p-4">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  {t('hr.payroll.detail.totalDeductions', 'Total deductions')}
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-destructive">
+                  -{formatCurrency(earningsTotals.deductions)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/60 p-4">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  {t('hr.payroll.detail.netPay', 'Net payable')}
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-primary">
+                  {formatCurrency(selectedRun.totals?.net)}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/60 p-4">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                  {t('hr.payroll.detail.calculatedAt', 'Calculated at')}
+                </p>
+                <p className="mt-2 text-base font-medium">
+                  {selectedRun.calculatedAt ? (
+                    <ClientDate date={selectedRun.calculatedAt} format="medium" />
+                  ) : (
+                    t('common.notAvailable', 'N/A')
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-foreground">
+                  {t('hr.payroll.detail.linesTitle', 'Employee payouts')}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedRun.employeeCount}{' '}
+                  {t('hr.payroll.detail.linesCount', 'employees in this run')}
+                </p>
+              </div>
+              <div className="overflow-x-auto rounded-xl border border-border/60">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/40">
+                    <tr>
+                      <th className="px-4 py-3 text-left">{t('hr.payroll.detail.table.employee', 'Employee')}</th>
+                      <th className="px-4 py-3 text-left">{t('hr.payroll.detail.table.iban', 'IBAN')}</th>
+                      <th className="px-4 py-3 text-left">{t('hr.payroll.detail.table.earnings', 'Earnings')}</th>
+                      <th className="px-4 py-3 text-left">{t('hr.payroll.detail.table.deductions', 'Deductions')}</th>
+                      <th className="px-4 py-3 text-left">{t('hr.payroll.detail.table.net', 'Net pay')}</th>
+                      <th className="px-4 py-3 text-left">{t('hr.payroll.detail.table.notes', 'Notes')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(selectedRun.lines || []).map((line) => (
+                      <tr key={line.employeeId} className="border-b border-border/40">
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-foreground">{line.employeeName}</p>
+                          <p className="text-xs text-muted-foreground">{line.employeeCode}</p>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{line.iban || t('common.notAvailable', 'N/A')}</td>
+                        <td className="px-4 py-3 font-medium">
+                          {formatCurrency(
+                            (line.baseSalary || 0) + (line.allowances || 0) + (line.overtimeAmount || 0)
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-destructive">
+                          -{formatCurrency((line.deductions || 0) + (line.gosiContribution || 0))}
+                        </td>
+                        <td className="px-4 py-3 font-semibold text-primary">
+                          {formatCurrency(line.netPay)}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {line.notes?.trim() || '—'}
+                        </td>
+                      </tr>
+                    ))}
+                    {(!selectedRun.lines || selectedRun.lines.length === 0) && (
+                      <tr>
+                        <td className="px-4 py-6 text-center text-muted-foreground" colSpan={6}>
+                          {t('hr.payroll.detail.noLines', 'Run has no calculated employees yet.')}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {selectedRun.exportReference && (
+              <div className="rounded-xl border border-border/60 p-4 bg-muted/40 text-sm">
+                <p className="font-semibold text-foreground">
+                  {t('hr.payroll.detail.exportRef', 'Finance export reference')}
+                </p>
+                <p className="text-muted-foreground mt-1">{selectedRun.exportReference}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

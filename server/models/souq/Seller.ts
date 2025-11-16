@@ -6,6 +6,25 @@
 import mongoose, { Schema, type Document } from 'mongoose'
 import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
+export interface ISellerPolicyViolation {
+  type: 'restricted_product' | 'fake_review' | 'price_gouging' | 'counterfeit' | 'late_shipment' | 'high_odr' | 'other';
+  severity: 'warning' | 'minor' | 'major' | 'critical';
+  description: string;
+  occurredAt: Date;
+  resolved: boolean;
+  resolvedAt?: Date;
+  action: 'warning' | 'listing_suppression' | 'account_suspension' | 'permanent_deactivation' | 'none';
+}
+
+export interface IAutoRepricerRule {
+  enabled: boolean;
+  minPrice: number;
+  maxPrice: number;
+  targetPosition: 'win' | 'competitive';
+  undercut: number;
+  protectMargin: boolean;
+}
+
 export interface ISeller extends Document {
   _id: mongoose.Types.ObjectId;
   sellerId: string; // SEL-{UUID}
@@ -70,6 +89,7 @@ export interface ISeller extends Document {
     resolvedAt?: Date;
     action: 'warning' | 'fee' | 'suspension' | 'removal';
   }[];
+  policyViolations?: ISellerPolicyViolation[];
   
   // Seller Tier (for fee schedules)
   tier: 'individual' | 'professional' | 'enterprise';
@@ -107,6 +127,12 @@ export interface ISeller extends Document {
     api_access: boolean;
     dedicated_support: boolean;
   };
+  
+  autoRepricerSettings?: {
+    enabled: boolean;
+    rules: Record<string, IAutoRepricerRule>;
+    defaultRule?: IAutoRepricerRule;
+  } | null;
   
   // Performance Stats (cached)
   stats?: {
@@ -297,6 +323,38 @@ const SellerSchema = new Schema<ISeller>(
         },
       },
     ],
+    policyViolations: [
+      {
+        type: {
+          type: String,
+          enum: ['restricted_product', 'fake_review', 'price_gouging', 'counterfeit', 'late_shipment', 'high_odr', 'other'],
+          required: true,
+        },
+        severity: {
+          type: String,
+          enum: ['warning', 'minor', 'major', 'critical'],
+          default: 'warning',
+        },
+        description: {
+          type: String,
+          required: true,
+        },
+        occurredAt: {
+          type: Date,
+          default: Date.now,
+        },
+        resolved: {
+          type: Boolean,
+          default: false,
+        },
+        resolvedAt: Date,
+        action: {
+          type: String,
+          enum: ['warning', 'listing_suppression', 'account_suspension', 'permanent_deactivation', 'none'],
+          default: 'warning',
+        },
+      },
+    ],
     tier: {
       type: String,
       enum: ['individual', 'professional', 'enterprise'],
@@ -379,6 +437,10 @@ const SellerSchema = new Schema<ISeller>(
         type: Boolean,
         default: false,
       },
+    },
+    autoRepricerSettings: {
+      type: Schema.Types.Mixed,
+      default: null,
     },
     stats: {
       totalProducts: {

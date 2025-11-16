@@ -2,12 +2,12 @@
 **Date:** November 15, 2025  
 **Scope:** All `app/**/page.tsx` files in workspace  
 **Total Pages Found:** 120 pages  
-**Completed:** 59 pages (49.2%)  
-**Pending:** 61 pages (50.8%)  
+**Completed:** 72 pages (60.0%)  
+**Pending:** 48 pages (40.0%)  
 
 ---
 
-## ✅ Pages WITH Translation Support (59 pages)
+## ✅ Pages WITH Translation Support (72 pages)
 
 ### Already Internationalized - Using `useTranslation()` Hook
 1. ✅ `app/page.tsx` - Landing page
@@ -15,7 +15,9 @@
 1. ✅ `app/signup/page.tsx` - Signup page
 1. ✅ `app/logout/page.tsx` - Logout page
 1. ✅ `app/dashboard/page.tsx` - Main dashboard
+1. ✅ `app/dashboard/reports/page.tsx` - Reports dashboard (Phase 3 kickoff)
 1. ✅ `app/profile/page.tsx` - User profile
+1. ✅ `app/settings/page.tsx` - User settings preferences
 1. ✅ `app/terms/page.tsx` - Terms of service
 1. ✅ `app/help/page.tsx` - Help center
 1. ✅ `app/support/page.tsx` - Support portal (✅ COMPLETED IN LAST SESSION)
@@ -54,12 +56,17 @@
 1. ✅ `app/admin/cms/footer/page.tsx` - CMS footer
 1. ✅ `app/marketplace/vendor/portal/page.tsx` - Vendor portal
 1. ✅ `app/marketplace/vendor/products/upload/page.tsx` - Product upload
+1. ✅ `app/marketplace/product/[slug]/page.tsx` - Marketplace product detail
+1. ✅ `app/marketplace/seller/onboarding/page.tsx` - Seller onboarding wizard
 1. ✅ `app/fm/page.tsx` - FM dashboard
 1. ✅ `app/fm/orders/page.tsx` - FM orders
 1. ✅ `app/fm/maintenance/page.tsx` - FM maintenance
 1. ✅ `app/fm/administration/page.tsx` - FM administration
 1. ✅ `app/fm/properties/page.tsx` - FM properties
 1. ✅ `app/aqar/filters/page.tsx` - Aqar filters
+1. ✅ `app/aqar/page.tsx` - Aqar landing experience
+1. ✅ `app/aqar/properties/page.tsx` - Aqar listings & filters
+1. ✅ `app/aqar/map/page.tsx` - Aqar interactive map
 1. ✅ `app/about/page.tsx` - About page (✅ SERVER-SIDE i18n with getServerI18n)
 1. ✅ `app/careers/page.tsx` - Careers page (⚠️ NO i18n - hardcoded strings, comprehensive job listing)
 1. ✅ `app/reports/page.tsx` - Reports hub (migrated from legacy translations to `useTranslation()`)
@@ -69,34 +76,26 @@
 1. ✅ `app/administration/page.tsx` - Administration control center
 1. ✅ `app/notifications/page.tsx` - Notifications center (Phase 2 start)
 1. ✅ `app/marketplace/page.tsx` - Marketplace landing (hero + featured + KPIs)
+1. ✅ `app/marketplace/cart/page.tsx` - Shopping cart (order summary, policy)
+1. ✅ `app/marketplace/checkout/page.tsx` - Checkout & approvals (finance automation)
+1. ✅ `app/marketplace/search/page.tsx` - Product search grid
+1. ✅ `app/marketplace/orders/page.tsx` - Orders & approvals list
+1. ✅ `app/marketplace/rfq/page.tsx` - RFQ board (error fallbacks localized)
+1. ✅ `app/marketplace/admin/page.tsx` - Marketplace admin dashboard
 
 ---
 
-## ❌ Pages WITHOUT Translation Support (61 pages)
+## ❌ Pages WITHOUT Translation Support (49 pages)
 
-### Priority 1: High Traffic / User-Facing Pages (12 pages)
-**Estimated:** 12-15 hours for all Priority 1 pages
+### Priority 1: High Traffic / User-Facing Pages (0 pages)
+**Status:** ✅ Completed in this pass (settings, marketplace SMP, and all Aqar entry points now localized)
 
-1. ❌ `app/settings/page.tsx` - **HIGH** - User settings page
-1. ❌ `app/marketplace/cart/page.tsx` - Shopping cart
-1. ❌ `app/marketplace/checkout/page.tsx` - Checkout process
-1. ❌ `app/marketplace/search/page.tsx` - Product search
-1. ❌ `app/marketplace/orders/page.tsx` - Order history
-1. ❌ `app/marketplace/admin/page.tsx` - Marketplace admin
-1. ❌ `app/marketplace/seller/onboarding/page.tsx` - Seller onboarding
-1. ❌ `app/marketplace/rfq/page.tsx` - RFQ management
-1. ❌ `app/marketplace/product/[slug]/page.tsx` - Product detail page
-1. ❌ `app/aqar/page.tsx` - Aqar real estate portal
-1. ❌ `app/aqar/properties/page.tsx` - Aqar properties listing
-1. ❌ `app/aqar/map/page.tsx` - Aqar map view
-
-### Priority 2: Admin & Management Pages (20 pages)
+### Priority 2: Admin & Management Pages (19 pages)
 **Estimated:** 8-12 hours for all Priority 2 pages
 
 1. ❌ `app/admin/feature-settings/page.tsx` - Feature flags
 1. ❌ `app/admin/logo/page.tsx` - Logo upload
 1. ❌ `app/admin/audit-logs/page.tsx` - Audit log viewer
-1. ❌ `app/dashboard/reports/page.tsx` - Dashboard reports
 1. ❌ `app/dashboard/finance/page.tsx` - Finance dashboard view
 1. ❌ `app/dashboard/hr/page.tsx` - HR dashboard view
 1. ❌ `app/dashboard/properties/page.tsx` - Properties dashboard view
@@ -152,11 +151,11 @@
 | Category | Count | Percentage |
 |----------|-------|------------|
 | **Total Pages** | 120 | 100% |
-| **With i18n** | 59 | 49.2% |
-| **Without i18n** | 61 | 50.8% |
-| **Priority 1** | 12 | 10.0% |
-| **Priority 2** | 20 | 16.7% |
-| **Priority 3** | 25 | 20.8% |
+| **With i18n** | 72 | 60.0% |
+| **Without i18n** | 48 | 40.0% |
+| **Priority 1** | 0 | 0% |
+| **Priority 2** | 19 | 15.8% |
+| **Priority 3** | 29 | 24.2% |
 | **Priority 4** | 0 | 0% |
 
 ---
@@ -164,23 +163,24 @@
 ## 🔍 Key Findings
 
 ### Critical Issues
-1. **`app/settings/page.tsx`** - High-traffic account page with no translation coverage
-1. **`app/careers/page.tsx`** - Comprehensive job board with NO i18n, 780+ lines of hardcoded strings
-1. **`app/marketplace/*`** - Checkout, cart, search, and seller onboarding all remain hardcoded
-1. **`app/aqar/*`** - Map/search flows still rely on English-only copy
+1. **`app/careers/page.tsx`** - Comprehensive job board still hardcoded (~780 lines)
+1. **`app/dashboard/*`** - 13 dashboard surfaces remain untranslated (finance, HR, support, etc.)
+1. **`app/fm/*`** - 25-page Facility Management suite pending (tenants, vendors, projects, work orders)
+1. **`app/help/*` + `app/cms/[slug]`** - Dynamic help/CMS pages still English-only, blocking localized support content
 
 ### Patterns Identified
 1. **Custom Translation Objects:** Some pages use local `translations = { en: {...}, ar: {...} }` pattern
 1. **Server Components:** `app/about/page.tsx` uses `getServerI18n()` for SSR
 1. **Mixed Implementations:** Some pages use `useTranslation()` but only for `isRTL` detection
 1. **Inconsistent Coverage:** Dashboard pages mostly lack i18n, while core pages have it
+1. **Translation Source Hygiene:** Duplicate keys inside `contexts/TranslationContext.tsx` (admin + marketplace blocks) caused build noise—cleaned during this pass to keep Vitest quiet and avoid runtime collisions.
 
 ### Estimated Total Effort
-- **Priority 1:** 12-15 hours (high-impact pages)
+- **Priority 1:** ✅ Completed in this pass
 - **Priority 2:** 8-12 hours (admin pages)
-- **Priority 3:** 10-14 hours (FM module)
+- **Priority 3:** 12-16 hours (FM module + dynamic CMS/help)
 - **Priority 4:** Complete (no remaining pages)
-- **TOTAL:** 32-44 hours remaining
+- **TOTAL:** ~20-28 hours remaining
 
 ---
 
@@ -191,13 +191,13 @@
 - ✅ `app/reports/page.tsx` – removed legacy translation object, now on `useTranslation()`
 - ✅ `app/test/page.tsx` & `app/test-cms/page.tsx` – stub/test pages fully localized
 - ✅ `app/dev/login-helpers/page.tsx` – developer helper fully localized
-- ⏭️ Remaining quick win: `app/administration/page.tsx` (large but still hardcoded)
+- ✅ `app/administration/page.tsx` – finished localization cleanup
 
-### Phase 2: High-Impact Pages (8-10 hours)
+### Phase 2: High-Impact Pages (✅ Completed)
 - `app/notifications/page.tsx` - Critical notification center
-- `app/marketplace/*` - 9 marketplace pages
 - `app/settings/page.tsx` - User settings
-- `app/aqar/*` - 3 Aqar real estate pages
+- `app/marketplace/*` - Landing, cart, checkout, search, orders, admin, RFQ, seller onboarding, product detail
+- `app/aqar/*` - Landing, listings, filters, interactive map
 
 ### Phase 3: Dashboard Suite (6-8 hours)
 - All `app/dashboard/*` pages (13 pages)
@@ -240,22 +240,22 @@ const { t, isRTL } = useTranslation();
 ## 📝 Next Steps
 
 1. ✅ **COMPLETED:** Phase 1 quick wins (reports, souq catalog, test pages, dev login helpers, administration)
-1. 🔄 **IN PROGRESS:** Phase 2 high-impact pages (`app/notifications`, `app/settings`, `app/marketplace/*`, `app/aqar/*`)
-1. ⏭️ **NEXT:** Phase 3 dashboard suite after Phase 2 wraps
-1. ⏳ **FUTURE:** Phases 3-5 (dashboards, FM module, remaining help/CMS pages) – est. 30-40 hours
+1. ✅ **COMPLETED:** Phase 2 high-impact pages (notifications, settings, marketplace stack, Aqar entry points)
+1. 🔄 **IN PROGRESS NEXT:** Phase 3 dashboard suite (12 pages remaining after reports) + marketplace vendor management
+1. ⏳ **FUTURE:** Phases 4-5 (FM module, help/CMS pages) – est. 20-28 hours remaining
 
 ---
 
 ## 🎯 Updated Task Priority Order
 
 **Immediate Priority:**
-- Execute Phase 2 high-impact pages (`app/notifications`, `app/settings`, `app/marketplace/*`, `app/aqar/*`)
+- Phase 3 dashboard suite + admin detail pages (`app/dashboard/*`, `app/admin/*`, `app/system/page.tsx`, `app/hr/ats/jobs/new`).
 
 **Deferred (after translation baseline improves):**
-- SelectValue warning cleanup (Task 12) and `lib/fm-notifications.ts` (Task 11)
+- Phase 4 FM module + work-order suite, Phase 5 help/CMS/test cleanup, then SelectValue warning cleanup (Task 12) and `lib/fm-notifications.ts` (Task 11)
 
 ---
 
 **Report Generated:** November 15, 2025  
 **Audit Performed By:** GitHub Copilot  
-**Status:** READY FOR TASKS 11-12, TASK 8 DEFERRED
+**Status:** Phase 2 complete – proceed with Phase 3 dashboard suite before Tasks 11-12

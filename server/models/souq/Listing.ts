@@ -44,6 +44,8 @@ export interface IListing extends Document {
   buyBoxEligible: boolean;
   buyBoxScore?: number;
   lastBuyBoxWin?: Date;
+  badges: string[];
+  lastPriceChange?: Date;
   
   status: 'draft' | 'active' | 'inactive' | 'out_of_stock' | 'suppressed';
   suppressionReasons?: string[];
@@ -194,6 +196,11 @@ const ListingSchema = new Schema<IListing>(
       max: 100,
     },
     lastBuyBoxWin: Date,
+    badges: {
+      type: [String],
+      default: [],
+    },
+    lastPriceChange: Date,
     status: {
       type: String,
       enum: ['draft', 'active', 'inactive', 'out_of_stock', 'suppressed'],

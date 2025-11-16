@@ -2,391 +2,209 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base styles to ensure no gaps or white space issues */
+/* Tokens from Fixzit_Master_Design_System.pdf */
+:root {
+  --primary: #0061A8; /* Facility Mgmt */
+  --secondary: #00A859; /* Marketplace */
+  --accent: #FFB400; /* Yellow */
+
+  --light-bg: #F9FAFB;
+  --light-surface: #FFFFFF;
+  --light-border: #E5E7EB;
+  --light-text-primary: #111827;
+  --light-text-secondary: #6B7280;
+
+  --dark-bg: #111827;
+  --dark-surface: #1F2937;
+  --dark-border: #374151;
+  --dark-text-primary: #F9FAFB;
+  --dark-text-secondary: #9CA3AF;
+
+  --success: #16A34A;
+  --warning: #FACC15;
+  --error: #DC2626;
+  --info: #2563EB;
+  --neutral: #6B7280;
+
+  --background: var(--light-bg);
+  --surface: var(--light-surface);
+  --text-primary: var(--light-text-primary);
+  --text-secondary: var(--light-text-secondary);
+  --card: #FFFFFF;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: 'Inter', 'Nunito Sans', sans-serif;
+}
+
 @layer base {
-  html {
-    @apply h-full;
-  }
-  
   body {
-    @apply h-full min-h-screen;
+    background-color: var(--background);
+    color: var(--text-primary);
+    @apply antialiased;
   }
-  
-  /* Ensure root div takes full height */
-  #__next {
-    @apply h-full min-h-screen;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  [dir="rtl"] .rtl-flip {
+    transform: scaleX(-1);
   }
 }
 
-/* RTL Support */
-[dir="rtl"] {
-  font-family: 'Segoe UI', 'Noto Sans Arabic', 'Arial Unicode MS', sans-serif;
+@layer components {
+  .card {
+    background-color: var(--card);
+    border-color: var(--light-border);
+    @apply rounded-xl shadow-md border;
+  }
+
+  .btn {
+    @apply px-4 py-2 rounded-md border hover:opacity-90;
+  }
+
+  .btn-primary {
+    background-color: var(--primary);
+    @apply text-white border-transparent;
+  }
+
+  .btn-secondary {
+    background-color: var(--light-surface);
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .btn-success {
+    background-color: var(--success);
+    @apply text-white border-transparent;
+  }
+
+  .btn-danger {
+    background-color: var(--error);
+    @apply text-white border-transparent;
+  }
+
+  .kanban-open {
+    background-color: var(--primary);
+    @apply text-white;
+  }
+
+  .kanban-progress {
+    background-color: var(--warning);
+    @apply text-black;
+  }
+
+  .kanban-complete {
+    background-color: var(--success);
+    @apply text-white;
+  }
+
+  .kanban-overdue {
+    background-color: var(--error);
+    @apply text-white;
+  }
+
+  .invoice-paid {
+    background-color: var(--success);
+    @apply text-white;
+  }
+
+  .invoice-unpaid {
+    background-color: var(--warning);
+    @apply text-black;
+  }
+
+  .invoice-overdue {
+    background-color: var(--error);
+    @apply text-white;
+  }
+
+  .hr-profile-active {
+    border-color: var(--primary);
+  }
+
+  .hr-profile-terminated {
+    border-color: var(--error);
+  }
+
+  .crm-stage-new {
+    background-color: var(--info);
+    @apply text-white;
+  }
+
+  .crm-stage-contacted {
+    background-color: var(--warning);
+    @apply text-black;
+  }
+
+  .crm-stage-won {
+    background-color: var(--success);
+    @apply text-white;
+  }
+
+  .crm-stage-lost {
+    background-color: var(--error);
+    @apply text-white;
+  }
+
+  .marketplace-category {
+    background-color: var(--secondary);
+    @apply text-white;
+  }
+
+  .marketplace-rating {
+    color: var(--accent);
+  }
+
+  .marketplace-verified {
+    background-color: var(--success);
+    @apply text-white;
+  }
+
+  .support-ticket-sla {
+    background: linear-gradient(
+      to right,
+      var(--success),
+      var(--warning),
+      var(--error)
+    );
+  }
+
+  .admin-user-active {
+    color: var(--primary);
+  }
+
+  .admin-user-suspended {
+    color: var(--error);
+  }
+
+  .space-24 {
+    @apply space-y-6;
+  }
+
+  .space-32 {
+    @apply space-y-8;
+  }
 }
 
-[dir="rtl"] .text-left {
-  text-align: right;
-}
-
-[dir="rtl"] .text-right {
-  text-align: left;
-}
-
-[dir="rtl"] .float-left {
-  float: right;
-}
-
-[dir="rtl"] .float-right {
-  float: left;
-}
-
-[dir="rtl"] .ml-auto {
-  margin-left: 0;
-  margin-right: auto;
-}
-
-[dir="rtl"] .mr-auto {
-  margin-right: 0;
-  margin-left: auto;
-}
-
-[dir="rtl"] .pl-3 {
-  padding-left: 0;
-  padding-right: 1rem;
-}
-
-[dir="rtl"] .pr-3 {
-  padding-right: 0;
-  padding-left: 1rem;
-}
-
-[dir="rtl"] .flex-row-reverse {
-  flex-direction: row-reverse;
-}
-
-/* RTL Dropdown positioning */
-[dir="rtl"] .dropdown-menu {
-  left: 0;
-  right: auto;
-}
-
-[dir="rtl"] .dropdown-menu-right {
-  left: auto;
-  right: 0;
-}
-
-/* RTL Modal positioning */
-[dir="rtl"] .modal-content {
-  text-align: right;
-}
-
-/* RTL Input padding for icons */
-[dir="rtl"] input[style*="pl-10"] {
-  padding-left: 0.625rem;
-  padding-right: 2.5rem;
-}
-
-[dir="rtl"] input[style*="pr-10"] {
-  padding-right: 0.625rem;
-  padding-left: 2.5rem;
-}
-
-/* RTL Search input */
-[dir="rtl"] input[style*="pl-10"] {
-  padding-left: 0.625rem;
-  padding-right: 2.5rem;
-}
-
-/* RTL Notification dropdown */
-[dir="rtl"] .notification-container {
-  left: 0;
-  right: auto;
-}
-
-/* RTL Sidebar */
-[dir="rtl"] .sidebar {
-  border-left: none;
-  border-right: 1px solid rgba(0, 97, 168, 0.2);
-}
-
-[dir="rtl"] .sidebar .nav-item {
-  text-align: right;
-}
-
-[dir="rtl"] .sidebar .nav-item .icon {
-  margin-left: 0.75rem;
-  margin-right: 0;
-}
-
-/* RTL TopBar */
-[dir="rtl"] .topbar {
-  direction: rtl;
-}
-
-[dir="rtl"] .topbar .brand {
-  text-align: right;
-}
-
-[dir="rtl"] .topbar .search-input {
-  text-align: right;
-}
-
-[dir="rtl"] .topbar .user-menu {
-  text-align: right;
-}
-
-/* RTL Language selector */
-[dir="rtl"] .language-selector {
-  direction: rtl;
-}
-
-[dir="rtl"] .language-selector .dropdown {
-  left: 0;
-  right: auto;
-}
-
-/* FIXZIT MASTER BRANDING TOKENS - DO NOT MODIFY */
-:root{
-  /* Primary Colors */
-  --fixzit-blue: #0061A8;
-  --fixzit-green: #00A859;
-  --fixzit-yellow: #FFB400;
-
-  /* Secondary Colors */
-  --fixzit-dark: #0061A8;  /* FIXED: was #023047 (banned) */
-  --fixzit-orange: #FFB400;  /* FIXED: was #F6851F (banned) */
-
-  /* UI States */
-  --fixzit-bg: #F9FAFB;
-  --fixzit-surface: #FFFFFF;
-  --fixzit-text: #111827;
-  --fixzit-text-secondary: #6B7280;
-  --fixzit-border: #E5E7EB;
-
-  /* Status Colors */
-  --fixzit-success: #16A34A;
-  --fixzit-success-light: #86EFAC;
-  --fixzit-success-lighter: #BBF7D0;
-  --fixzit-success-lightest: #DCFCE7;
-  --fixzit-success-dark: #15803D;
-  --fixzit-success-darker: #166534;
-  
-  --fixzit-warning: #FACC15;
-  --fixzit-warning-light: #FDE047;
-  --fixzit-warning-lighter: #FEF08A;
-  --fixzit-warning-lightest: #FEF9C3;
-  --fixzit-warning-dark: #CA8A04;
-  --fixzit-warning-darker: #A16207;
-  
-  --fixzit-error: #DC2626;
-  --fixzit-danger: #DC2626;
-  --fixzit-danger-light: #FCA5A5;
-  --fixzit-danger-lighter: #FECACA;
-  --fixzit-danger-lightest: #FEE2E2;
-  --fixzit-danger-dark: #B91C1C;
-  --fixzit-danger-darker: #991B1B;
-  
-  --fixzit-info: #2563EB;
-  --fixzit-primary: #0061A8;
-  --fixzit-primary-light: #60A5FA;
-  --fixzit-primary-lighter: #93C5FD;
-  --fixzit-primary-lightest: #DBEAFE;
-  --fixzit-primary-dark: #1E40AF;
-  --fixzit-primary-darker: #1E3A8A;
-  
-  --fixzit-accent: #FFB400;
-  --fixzit-accent-light: #FCD34D;
-  --fixzit-accent-lighter: #FDE68A;
-  --fixzit-accent-lightest: #FEF3C7;
-  --fixzit-accent-dark: #D97706;
-  --fixzit-accent-darker: #B45309;
-
-  /* ShadCN/UI Required Variables */
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 222.2 47.4% 11.2%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222.2 84% 4.9%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96%;
-  --accent-foreground: 222.2 84% 4.9%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 222.2 84% 4.9%;
-  --chart-1: 12 76% 61%;
-  --chart-2: 173 58% 39%;
-  --chart-3: 197 37% 24%;
-  --chart-4: 43 74% 66%;
-  --chart-5: 27 87% 67%;
-  --radius: 0.5rem;
-  --brand-500: #0061A8;
-  --accent-500: #00A859;
-}
-
+/* Dark mode */
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 210 40% 98%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 212.7 26.8% 83.9%;
-  --chart-1: 220 70% 50%;
-  --chart-2: 160 60% 45%;
-  --chart-3: 30 80% 55%;
-  --chart-4: 280 65% 60%;
-  --chart-5: 340 75% 55%;
+  --background: var(--dark-bg);
+  --surface: var(--dark-surface);
+  --text-primary: var(--dark-text-primary);
+  --text-secondary: var(--dark-text-secondary);
+  --card: var(--dark-surface);
 }
 
-@layer components{
-  .btn-primary{@apply inline-flex items-center justify-center px-4 h-10 rounded-xl bg-[#0061A8] text-white font-semibold shadow-md hover:opacity-90 transition;}
-  .btn-ghost{@apply inline-flex items-center justify-center px-3 h-10 rounded-xl border border-slate-300/70 hover:bg-slate-100 transition;}
-
-  .nav-link{@apply text-slate-700 hover:text-[#0061A8] transition;}
-  .nav-link.active{@apply text-[#0061A8];}
-
-  .side-link{@apply flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100;}
-  .side-link.active{@apply bg-slate-100 text-[#0061A8] font-medium;}
-
-  .tab{@apply inline-flex px-3 py-1.5 rounded-xl border border-slate-300/70 text-sm bg-white hover:bg-slate-50;}
-  .tab.active{@apply border-[#0061A8] text-[#0061A8] bg-white;}
-
-  .pill{@apply inline-flex items-center justify-center h-10 rounded-xl border border-slate-300 bg-white px-4 hover:bg-slate-50;}
-
-  .table-wrap{@apply bg-white border border-slate-200 rounded-xl overflow-hidden;}
-  .fxz-table{@apply w-full border-collapse;}
-  .fxz-table thead th{@apply bg-slate-50 text-left text-sm font-semibold text-slate-700 border-b border-slate-200 px-4 py-3;}
-  .fxz-table tbody td{@apply text-sm text-slate-700 px-4 py-3 border-b border-slate-100;}
-  .badge{@apply inline-flex items-center rounded-full px-2.5 h-7 text-xs font-medium border;}
-  .badge.green{@apply border-emerald-300 text-emerald-700 bg-emerald-50;}
-  .badge.gray{@apply border-slate-300 text-slate-700 bg-slate-50;}
-  .badge.amber{@apply border-amber-300 text-amber-700 bg-amber-50;}
-
-  .menu-item{@apply block px-4 py-2 hover:bg-slate-50;}
-
-  /* Cards */
-  .card{@apply p-6 rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition;}
-  .card-title{@apply text-lg font-semibold text-[#0061A8];}
-  .card-body{@apply mt-2 text-slate-600;}
-
-  /* Footer */
-  .footer-title{@apply font-semibold text-[#0061A8];}
-  .footer-links li{@apply mt-2;}
-  .footer-links a{@apply text-slate-600 hover:text-[#0061A8] transition;}
-}
-
-html[dir="rtl"] body{font-family:"Noto Sans Arabic",system-ui,sans-serif;}
-
-
-
-@layer base {
-  :root {
-    --background:0 0% 100%;
-    --foreground:0 0% 3.9%;
-    --card:0 0% 100%;
-    --card-foreground:0 0% 3.9%;
-    --popover:0 0% 100%;
-    --popover-foreground:0 0% 3.9%;
-    --primary:0 0% 9%;
-    --primary-foreground:0 0% 98%;
-    --secondary:0 0% 96.1%;
-    --secondary-foreground:0 0% 9%;
-    --muted:0 0% 96.1%;
-    --muted-foreground:0 0% 45.1%;
-    --accent:0 0% 96.1%;
-    --accent-foreground:0 0% 9%;
-    --destructive:0 84.2% 60.2%;
-    --destructive-foreground:0 0% 98%;
-    --border:0 0% 89.8%;
-    --input:0 0% 89.8%;
-    --ring:0 0% 3.9%;
-    --chart-1:12 76% 61%;
-    --chart-2:173 58% 39%;
-    --chart-3:197 37% 24%;
-    --chart-4:43 74% 66%;
-    --chart-5:27 87% 67%;
-    --radius:0.5rem;
-  }
-  .dark {
-    --background:0 0% 3.9%;
-    --foreground:0 0% 98%;
-    --card:0 0% 3.9%;
-    --card-foreground:0 0% 98%;
-    --popover:0 0% 3.9%;
-    --popover-foreground:0 0% 98%;
-    --primary:0 0% 98%;
-    --primary-foreground:0 0% 9%;
-    --secondary:0 0% 14.9%;
-    --secondary-foreground:0 0% 98%;
-    --muted:0 0% 14.9%;
-    --muted-foreground:0 0% 63.9%;
-    --accent:0 0% 14.9%;
-    --accent-foreground:0 0% 98%;
-    --destructive:0 62.8% 30.6%;
-    --destructive-foreground:0 0% 98%;
-    --border:0 0% 14.9%;
-    --input:0 0% 14.9%;
-    --ring:0 0% 83.1%;
-    --chart-1:220 70% 50%;
-    --chart-2:160 60% 45%;
-    --chart-3:30 80% 55%;
-    --chart-4:280 65% 60%;
-    --chart-5:340 75% 55%;
-  }
-}
-
-
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
-/* Dark mode component overrides - properly flattened CSS (no nesting) */
 .dark .card {
-  background-color: hsl(var(--muted));
-  border-color: hsl(var(--border));
+  background-color: var(--card);
+  border-color: var(--dark-border);
 }
 
 .dark .kanban-open {
   background-color: #004085;
-  color: white;
-}
-
-.dark .kanban-progress {
-  background-color: #856404;
-  color: white;
-}
-
-.dark .kanban-complete {
-  background-color: #155724;
-  color: white;
-}
-
-.dark .kanban-overdue {
-  background-color: #721c24;
-  color: white;
 }

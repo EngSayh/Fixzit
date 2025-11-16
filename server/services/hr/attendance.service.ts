@@ -1,4 +1,5 @@
 import { AttendanceRecord, type AttendanceRecordDoc, type AttendanceStatus } from '@/server/models/hr.models';
+import { HrNotificationService } from '@/server/services/hr/hr-notification.service';
 
 export interface LogAttendancePayload {
   orgId: string;
@@ -14,7 +15,7 @@ export interface LogAttendancePayload {
 
 export class AttendanceService {
   static async logEntry(payload: LogAttendancePayload) {
-    return AttendanceRecord.findOneAndUpdate(
+    const entry = await AttendanceRecord.findOneAndUpdate(
       { orgId: payload.orgId, employeeId: payload.employeeId, date: payload.date },
       {
         ...payload,
@@ -23,6 +24,20 @@ export class AttendanceService {
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     ).exec();
+
+    if (entry && (entry.status === 'ABSENT' || entry.status === 'LATE')) {
+      await HrNotificationService.queueAttendanceAlert({
+        orgId: payload.orgId,
+        employeeId: entry.employeeId.toString(),
+        status: entry.status,
+        date: entry.date,
+        shiftTemplateId: entry.shiftTemplateId?.toString(),
+        notes: entry.notes,
+        overtimeMinutes: entry.overtimeMinutes,
+      });
+    }
+
+    return entry;
   }
 
   static async list(orgId: string, employeeId: string, from?: Date, to?: Date) {

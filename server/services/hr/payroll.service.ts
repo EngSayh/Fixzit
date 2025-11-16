@@ -1,4 +1,6 @@
 import { PayrollRun, type PayrollRunDoc } from '@/server/models/hr.models';
+import { logger } from '@/lib/logger';
+import { PayrollFinanceIntegration } from '@/server/services/hr/payroll-finance.integration';
 
 export interface PayrollRunFilters {
   orgId: string;
@@ -90,10 +92,23 @@ export class PayrollService {
   }
 
   static async updateStatus(orgId: string, runId: string, status: PayrollRunDoc['status']) {
-    return PayrollRun.findOneAndUpdate(
+    const run = await PayrollRun.findOneAndUpdate(
       { orgId, _id: runId, isDeleted: false },
       { status },
       { new: true }
     ).exec();
+
+    if (run && status === 'LOCKED' && !run.financePosted) {
+      try {
+        await PayrollFinanceIntegration.postRun(run);
+      } catch (error) {
+        logger.error('Failed to post payroll run to finance', {
+          runId,
+          error,
+        });
+      }
+    }
+
+    return run;
   }
 }

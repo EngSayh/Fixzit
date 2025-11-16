@@ -52,6 +52,7 @@ export interface IOrder extends Document {
     country: string;
     postalCode: string;
   };
+  shippingSpeed?: 'standard' | 'express' | 'same_day';
   
   pricing: {
     subtotal: number;
@@ -70,6 +71,12 @@ export interface IOrder extends Document {
   };
   
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'returned';
+  fulfillmentStatus?: 'pending' | 'pending_seller' | 'shipped' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'delivery_failed';
+  shippingCarrier?: string;
+  trackingNumber?: string;
+  shippingLabelUrl?: string;
+  estimatedDeliveryDate?: Date;
+  deliveredAt?: Date;
   
   cancelledAt?: Date;
   cancellationReason?: string;
@@ -209,6 +216,11 @@ const OrderSchema = new Schema<IOrder>(
       country: String,
       postalCode: String,
     },
+    shippingSpeed: {
+      type: String,
+      enum: ['standard', 'express', 'same_day'],
+      default: 'standard',
+    },
     pricing: {
       subtotal: {
         type: Number,
@@ -262,6 +274,20 @@ const OrderSchema = new Schema<IOrder>(
       default: 'pending',
       index: true,
     },
+    fulfillmentStatus: {
+      type: String,
+      enum: ['pending', 'pending_seller', 'shipped', 'in_transit', 'out_for_delivery', 'delivered', 'delivery_failed'],
+      default: 'pending',
+      index: true,
+    },
+    shippingCarrier: String,
+    trackingNumber: {
+      type: String,
+      index: true,
+    },
+    shippingLabelUrl: String,
+    estimatedDeliveryDate: Date,
+    deliveredAt: Date,
     cancelledAt: Date,
     cancellationReason: String,
     returnRequest: {

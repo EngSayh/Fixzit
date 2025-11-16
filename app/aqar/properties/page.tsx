@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, MapPin, Bed, Bath, Square } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 type ApiProperty = {
   id: string;
@@ -17,6 +18,7 @@ type ApiProperty = {
 };
 
 export default function AqarPropertiesPage() {
+  const { t } = useTranslation();
   const [items, setItems] = useState<ApiProperty[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
@@ -34,7 +36,7 @@ export default function AqarPropertiesPage() {
         if (!cancelled) setItems(Array.isArray(data.items) ? data.items : []);
       } catch {
         if (!cancelled) {
-          setError('Could not load properties');
+          setError(t('aqar.properties.error', 'Could not load properties'));
           setItems([]);
         }
       } finally {
@@ -42,7 +44,7 @@ export default function AqarPropertiesPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [t]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -62,21 +64,27 @@ export default function AqarPropertiesPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="mb-6 flex flex-col md:flex-row gap-4 md:items-center">
-        <h1 className="text-2xl font-bold text-foreground">Property Listings</h1>
+        <h1 className="text-2xl font-bold text-foreground">
+          {t('aqar.propertyListings', 'Property Listings')}
+        </h1>
         <div className="flex-1 relative">
           <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by city, district, or title"
+            placeholder={t('aqar.properties.searchPlaceholder', 'Search by city, district, or title')}
             className="w-full ps-10 pe-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-warning focus:border-transparent"
           />
         </div>
-        <div className="text-sm text-muted-foreground">{filtered.length} properties</div>
+        <div className="text-sm text-muted-foreground">
+          {t('aqar.properties.count', '{{count}} properties').replace('{{count}}', filtered.length.toString())}
+        </div>
       </div>
 
       {loading && (
-        <div className="text-muted-foreground">Loading…</div>
+        <div className="text-muted-foreground">
+          {t('aqar.properties.loading', 'Loading properties...')}
+        </div>
       )}
       {!loading && error && (
         <div className="text-destructive">{error}</div>
@@ -92,7 +100,7 @@ export default function AqarPropertiesPage() {
             const baths = p.details?.bathrooms || 0;
             const area = p.details?.totalArea || 0;
             const price = p.market?.listingPrice || 0;
-            const badge = p.subtype || p.type || 'Property';
+            const badge = p.subtype || p.type || t('aqar.properties.badge.fallback', 'Property');
             return (
               <article key={p.id} className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
                 <div className="relative w-full h-48">
@@ -138,11 +146,14 @@ export default function AqarPropertiesPage() {
           <div className="text-muted-foreground mb-4">
             <Search className="w-12 h-12 mx-auto" />
           </div>
-          <h3 className="text-lg font-medium text-foreground mb-2">No properties found</h3>
-          <p className="text-muted-foreground">Try adjusting your search criteria or browse all categories</p>
+          <h3 className="text-lg font-medium text-foreground mb-2">
+            {t('aqar.properties.empty.title', 'No properties found')}
+          </h3>
+          <p className="text-muted-foreground">
+            {t('aqar.properties.empty.description', 'Try adjusting your search criteria or browse all categories')}
+          </p>
         </div>
       )}
     </div>
   );
 }
-

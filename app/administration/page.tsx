@@ -120,6 +120,96 @@ const AdminModule: React.FC = () => {
   const [editedSettings, setEditedSettings] = useState<Map<string, string>>(new Map());
   const [orgSettings, setOrgSettings] = useState<OrgSettings | null>(null);
 
+  const mapAdminUser = (adminUser: AdminUser): User => ({
+    id: adminUser.id,
+    name: adminUser.name || adminUser.email || adminUser.username || t('admin.users.table.unknownUser', 'Unknown user'),
+    email: adminUser.email || adminUser.username || '—',
+    role: adminUser.role || adminUser.roles?.[0] || (adminUser.isSuperAdmin ? 'Super Admin' : t('admin.users.table.roleFallback', 'User')),
+    status: adminUser.isActive ? 'Active' : 'Inactive',
+    lastLogin: adminUser.updatedAt || adminUser.createdAt || t('admin.users.table.noActivity', 'No activity recorded'),
+    department: adminUser.orgId || t('admin.users.table.departmentFallback', 'General'),
+    phone: adminUser.username,
+    createdAt: adminUser.createdAt || new Date().toISOString(),
+    org_id: adminUser.orgId || 'platform'
+  });
+
+  const mapAdminRole = (role: AdminRole): Role => ({
+    id: role.id,
+    name: role.name,
+    description: role.description || '',
+    permissions: role.permissions || [],
+    userCount: role.permissions ? role.permissions.length : 0,
+    createdAt: role.createdAt || ''
+  });
+
+  const mapAuditLogEntry = (entry: AuditLogEntry): AuditLog => ({
+    id: entry.id,
+    timestamp: entry.timestamp,
+    user: entry.actorEmail || entry.actorId,
+    action: entry.action,
+    resource: entry.resourceType ? `${entry.resourceType}/${entry.resourceId ?? ''}` : entry.action,
+    status: entry.success ? 'Success' : 'Failed',
+    ip: entry.ipAddress || '—',
+    details: entry.errorMessage || (entry.meta ? JSON.stringify(entry.meta) : undefined)
+  });
+
+  const formatUserStatus = (status: User['status']): string => {
+    switch (status) {
+      case 'Active':
+        return t('admin.users.status.active', 'Active');
+      case 'Inactive':
+        return t('admin.users.status.inactive', 'Inactive');
+      case 'Locked':
+        return t('admin.users.status.locked', 'Locked');
+      default:
+        return status;
+    }
+  };
+
+  const formatAuditStatus = (status: AuditLog['status']): string => {
+    return status === 'Success'
+      ? t('admin.audit.status.success', 'Success')
+      : t('admin.audit.status.failed', 'Failed');
+  };
+
+  const normalizeSettingsFromOrg = (payload: OrgSettings): SystemSetting[] => {
+    const rows: SystemSetting[] = [
+      {
+        key: 'org.name',
+        value: payload.name || '',
+        category: 'General',
+        description: t('admin.settings.fields.orgName', 'Organization display name'),
+        type: 'string'
+      },
+      {
+        key: 'org.timezone',
+        value: payload.timezone || '',
+        category: 'General',
+        description: t('admin.settings.fields.timezone', 'Default timezone'),
+        type: 'string'
+      },
+      {
+        key: 'org.language',
+        value: payload.language || 'en',
+        category: 'Localization',
+        description: t('admin.settings.fields.language', 'Default language'),
+        type: 'string'
+      }
+    ];
+
+    Object.entries(payload.features || {}).forEach(([featureKey, enabled]) => {
+      rows.push({
+        key: `feature.${featureKey}`,
+        value: String(enabled),
+        category: 'Features',
+        description: t('admin.settings.fields.featureToggle', 'Feature availability'),
+        type: 'boolean'
+      });
+    });
+
+    return rows;
+  };
+
   // RBAC Check
   useEffect(() => {
     if (authLoading) return;
@@ -172,189 +262,48 @@ const AdminModule: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      // FUTURE: Replace with actual API call to /api/org/users
-      // const response = await fetch('/api/org/users');
-      // const data: ApiResponse<User[]> = await response.json();
-      // if (data.error) throw new Error(data.error);
-      // setUsers(data.data);
-
-      // Mock data for development
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const mockUsers: User[] = [
-        {
-          id: '1',
-          name: 'Ahmed Al-Rashid',
-          email: 'ahmed@fixzit.sa',
-          role: 'Super Admin',
-          status: 'Active',
-          lastLogin: '2025-11-06 09:30',
-          department: 'Management',
-          phone: '+966 50 123 4567',
-          createdAt: '2025-01-15',
-          org_id: 'org_1'
-        },
-        {
-          id: '2',
-          name: 'Fatima Al-Zahrani',
-          email: 'fatima@fixzit.sa',
-          role: 'Corporate Admin',
-          status: 'Active',
-          lastLogin: '2025-11-06 08:15',
-          department: 'Administration',
-          phone: '+966 50 234 5678',
-          createdAt: '2025-02-01',
-          org_id: 'org_1'
-        },
-        {
-          id: '3',
-          name: 'Mohammed Al-Qahtani',
-          email: 'mohammed@fixzit.sa',
-          role: 'Technician',
-          status: 'Active',
-          lastLogin: '2025-11-05 16:45',
-          department: 'Operations',
-          phone: '+966 50 345 6789',
-          createdAt: '2025-03-10',
-          org_id: 'org_1'
-        }
-      ];
-      setUsers(mockUsers);
-      logger.info('Users fetched successfully', { count: mockUsers.length });
-    } catch {
+      const response = await adminApi.listUsers({ limit: 100, search: searchQuery || undefined });
+      const normalized = response.data.map(mapAdminUser);
+      setUsers(normalized);
+      logger.info('Users fetched successfully', { count: normalized.length });
+    } catch (apiError) {
+      logger.error('Failed to fetch users', apiError);
       throw new Error(t('admin.users.errors.fetch', 'Failed to fetch users'));
     }
   };
 
   const fetchRoles = async () => {
     try {
-      // FUTURE: Replace with actual API call to /api/org/roles
-      // const response = await fetch('/api/org/roles');
-      // const data: ApiResponse<Role[]> = await response.json();
-      // if (data.error) throw new Error(data.error);
-      // setRoles(data.data);
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const mockRoles: Role[] = [
-        {
-          id: '1',
-          name: 'Super Admin',
-          description: 'Full system access with all permissions',
-          permissions: ['*'],
-          userCount: 2,
-          createdAt: '2025-01-01'
-        },
-        {
-          id: '2',
-          name: 'Corporate Admin',
-          description: 'Organization-wide administrative access',
-          permissions: ['users.manage', 'roles.manage', 'settings.manage', 'reports.view'],
-          userCount: 5,
-          createdAt: '2025-01-01'
-        },
-        {
-          id: '3',
-          name: 'Property Manager',
-          description: 'Property and unit management',
-          permissions: ['properties.manage', 'units.manage', 'tenants.view', 'maintenance.view'],
-          userCount: 12,
-          createdAt: '2025-01-15'
-        }
-      ];
-      setRoles(mockRoles);
-      logger.info('Roles fetched successfully', { count: mockRoles.length });
-    } catch {
+      const response = await adminApi.listRoles({ limit: 100 });
+      const normalized = response.data.map(mapAdminRole);
+      setRoles(normalized);
+      logger.info('Roles fetched successfully', { count: normalized.length });
+    } catch (apiError) {
+      logger.error('Failed to fetch roles', apiError);
       throw new Error(t('admin.roles.errors.fetch', 'Failed to fetch roles'));
     }
   };
 
   const fetchAuditLogs = async () => {
     try {
-      // FUTURE: Replace with actual API call to /api/audit/logs
-      // const response = await fetch('/api/audit/logs');
-      // const data: ApiResponse<AuditLog[]> = await response.json();
-      // if (data.error) throw new Error(data.error);
-      // setAuditLogs(data.data);
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const mockLogs: AuditLog[] = [
-        {
-          id: '1',
-          timestamp: '2025-11-06 10:30:15',
-          user: 'Ahmed Al-Rashid',
-          action: 'User Created',
-          resource: 'users/new-tech-001',
-          status: 'Success',
-          ip: '192.168.1.105'
-        },
-        {
-          id: '2',
-          timestamp: '2025-11-06 09:45:30',
-          user: 'Fatima Al-Zahrani',
-          action: 'Role Updated',
-          resource: 'roles/technician',
-          status: 'Success',
-          ip: '192.168.1.110'
-        },
-        {
-          id: '3',
-          timestamp: '2025-11-06 08:20:00',
-          user: 'System',
-          action: 'Login Failed',
-          resource: 'auth/login',
-          status: 'Failed',
-          ip: '203.45.67.89',
-          details: 'Invalid credentials (3rd attempt)'
-        }
-      ];
-      setAuditLogs(mockLogs);
-      logger.info('Audit logs fetched successfully', { count: mockLogs.length });
-    } catch {
+      const response = await adminApi.listAuditLogs({ limit: 100 });
+      const normalized = response.data.map(mapAuditLogEntry);
+      setAuditLogs(normalized);
+      logger.info('Audit logs fetched successfully', { count: normalized.length });
+    } catch (apiError) {
+      logger.error('Failed to fetch audit logs', apiError);
       throw new Error(t('admin.audit.errors.fetch', 'Failed to fetch audit logs'));
     }
   };
 
   const fetchSettings = async () => {
     try {
-      // FUTURE: Replace with actual API call to /api/system/settings
-      // const response = await fetch('/api/system/settings');
-      // const data: ApiResponse<SystemSetting[]> = await response.json();
-      // if (data.error) throw new Error(data.error);
-      // setSettings(data.data);
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const mockSettings: SystemSetting[] = [
-        {
-          key: 'company.name',
-          value: 'Fixzit Arabia',
-          category: 'General',
-          description: 'Company display name',
-          type: 'string'
-        },
-        {
-          key: 'maintenance.auto_assign',
-          value: 'true',
-          category: 'Maintenance',
-          description: 'Automatically assign work orders to available technicians',
-          type: 'boolean'
-        },
-        {
-          key: 'notifications.email_enabled',
-          value: 'true',
-          category: 'Notifications',
-          description: 'Enable email notifications',
-          type: 'boolean'
-        },
-        {
-          key: 'session.timeout',
-          value: '3600',
-          category: 'Security',
-          description: 'Session timeout in seconds',
-          type: 'number'
-        }
-      ];
-      setSettings(mockSettings);
-      logger.info('Settings fetched successfully', { count: mockSettings.length });
-    } catch {
+      const payload = await adminApi.getOrgSettings(activeOrgId);
+      setOrgSettings(payload);
+      setSettings(normalizeSettingsFromOrg(payload));
+      logger.info('Settings fetched successfully');
+    } catch (apiError) {
+      logger.error('Failed to fetch settings', apiError);
       throw new Error(t('admin.settings.errors.fetch', 'Failed to fetch settings'));
     }
   };
@@ -373,37 +322,25 @@ const AdminModule: React.FC = () => {
   const handleSaveUser = async (userData: Partial<User>) => {
     try {
       if (editingUser) {
-        // Update existing user
-        // const response = await fetch(`/api/org/users/${editingUser.id}`, {
-        //   method: 'PUT',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify(userData)
-        // });
-        // const data = await response.json();
-        // if (data.error) throw new Error(data.error);
-        
-      setUsers(users.map(u => u.id === editingUser.id ? { ...u, ...userData } : u));
-      setSuccessMessage(t('admin.users.toast.updated', 'User updated successfully'));
+        await adminApi.updateUser(editingUser.id, {
+          name: userData.name,
+          email: userData.email,
+          role: userData.role,
+          isActive: userData.status ? userData.status !== 'Inactive' : undefined,
+        });
+        await fetchUsers();
+        setSuccessMessage(t('admin.users.toast.updated', 'User updated successfully'));
         logger.info('User updated', { userId: editingUser.id });
       } else {
-        // Create new user
-        // const response = await fetch('/api/org/users', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify(userData)
-        // });
-        // const data = await response.json();
-        // if (data.error) throw new Error(data.error);
-        
-        const newUser: User = {
-          ...userData as User,
-          id: Date.now().toString(),
-          createdAt: new Date().toISOString(),
-          org_id: 'org_1'
-        };
-        setUsers([...users, newUser]);
+        const created = await adminApi.createUser({
+          name: userData.name,
+          email: userData.email,
+          role: userData.role,
+          orgId: activeOrgId,
+        });
+        setUsers(prev => [mapAdminUser(created), ...prev]);
         setSuccessMessage(t('admin.users.toast.created', 'User created successfully'));
-        logger.info('User created', { userId: newUser.id });
+        logger.info('User created', { userId: created.id });
       }
       setUserModalOpen(false);
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -420,13 +357,8 @@ const AdminModule: React.FC = () => {
   const handleToggleUserStatus = async (userId: string, currentStatus: string) => {
     try {
       const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
-      // await fetch(`/api/org/users/${userId}/status`, {
-      //   method: 'PATCH',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ status: newStatus })
-      // });
-
-      setUsers(users.map(u => u.id === userId ? { ...u, status: (newStatus.charAt(0).toUpperCase() + newStatus.slice(1)) as 'Active' | 'Inactive' | 'Locked' } : u));
+      await adminApi.updateUser(userId, { isActive: newStatus === 'Active' });
+      setUsers(prev => prev.map(u => (u.id === userId ? { ...u, status: newStatus as User['status'] } : u)));
       setSuccessMessage(
         newStatus === 'Active'
           ? t('admin.users.toast.activated', 'User activated successfully')
@@ -444,8 +376,8 @@ const AdminModule: React.FC = () => {
     if (!confirm(t('admin.users.confirmDelete', 'Are you sure you want to delete this user?'))) return;
 
     try {
-      // await fetch(`/api/org/users/${userId}`, { method: 'DELETE' });
-      setUsers(users.filter(u => u.id !== userId));
+      await adminApi.deleteUser(userId);
+      setUsers(prev => prev.filter(u => u.id !== userId));
       setSuccessMessage(t('admin.users.toast.deleted', 'User deleted successfully'));
       logger.info('User deleted', { userId });
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -464,20 +396,36 @@ const AdminModule: React.FC = () => {
 
   const handleSaveSettings = async () => {
     try {
-      const updates = Array.from(editedSettings.entries()).map(([key, value]) => ({ key, value }));
-      // await fetch('/api/system/settings', {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ updates })
-      // });
+      if (!orgSettings) return;
 
-      setSettings(settings.map(s => {
-        const newValue = editedSettings.get(s.key);
-        return newValue !== undefined ? { ...s, value: newValue } : s;
-      }));
+      const updates: Partial<OrgSettings> = {};
+      const featureUpdates: Record<string, boolean> = {};
+
+      editedSettings.forEach((value, key) => {
+        if (key === 'org.name') {
+          updates.name = value;
+        } else if (key === 'org.timezone') {
+          updates.timezone = value;
+        } else if (key === 'org.language') {
+          updates.language = value;
+        } else if (key.startsWith('feature.')) {
+          featureUpdates[key.replace('feature.', '')] = value === 'true';
+        }
+      });
+
+      if (Object.keys(featureUpdates).length) {
+        updates.features = {
+          ...(orgSettings.features || {}),
+          ...featureUpdates,
+        };
+      }
+
+      const updated = await adminApi.updateOrgSettings(activeOrgId, updates);
+      setOrgSettings(updated);
+      setSettings(normalizeSettingsFromOrg(updated));
       setEditedSettings(new Map());
       setSuccessMessage(t('admin.settings.toast.saved', 'Settings saved successfully'));
-      logger.info('Settings updated', { count: updates.length });
+      logger.info('Settings updated', { count: editedSettings.size });
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
       setError(t('admin.settings.errors.save', 'Failed to save settings'));
@@ -490,7 +438,7 @@ const AdminModule: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent mb-4"></div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#0061A8] border-t-transparent mb-4"></div>
           <p className="text-gray-600">{t('admin.common.loadingSession', 'Loading session...')}</p>
         </div>
       </div>
@@ -539,7 +487,7 @@ const AdminModule: React.FC = () => {
           </button>
           <button
             onClick={handleAddUser}
-            className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 flex items-center gap-2"
+            className="px-4 py-2 bg-[#0061A8] text-white rounded-lg hover:bg-[#004a82] flex items-center gap-2"
             aria-label={t('admin.users.actions.addAria', 'Add new user')}
           >
             <UserPlus size={20} />
@@ -557,7 +505,7 @@ const AdminModule: React.FC = () => {
             placeholder={t('admin.users.searchPlaceholder', 'Search users...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full ps-10 pe-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            className="w-full ps-10 pe-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8] focus:border-transparent"
             aria-label={t('admin.users.searchAria', 'Search users')}
           />
         </div>
@@ -599,7 +547,7 @@ const AdminModule: React.FC = () => {
             {isLoadingData ? (
               <tr>
                 <td colSpan={6} className="text-center p-6">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-emerald-500 border-t-transparent"></div>
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-[#0061A8] border-t-transparent"></div>
                 </td>
               </tr>
             ) : error ? (
@@ -685,7 +633,7 @@ const AdminModule: React.FC = () => {
           <p className="text-gray-600 mt-1">{t('admin.roles.subtitle', 'Define roles and permissions')}</p>
         </div>
         <button
-          className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 flex items-center gap-2"
+          className="px-4 py-2 bg-[#0061A8] text-white rounded-lg hover:bg-[#004a82] flex items-center gap-2"
           aria-label={t('admin.roles.actions.addAria', 'Add new role')}
         >
           <Shield size={20} />
@@ -696,7 +644,7 @@ const AdminModule: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoadingData ? (
           <div className="col-span-full text-center p-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-emerald-500 border-t-transparent"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-[#0061A8] border-t-transparent"></div>
           </div>
         ) : roles.map(role => (
           <div key={role.id} className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
@@ -745,7 +693,7 @@ const AdminModule: React.FC = () => {
       {/* Filters */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <select
-          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
           aria-label={t('admin.audit.filters.actionAria', 'Filter by action')}
         >
           <option value="">{t('admin.audit.filters.allActions', 'All Actions')}</option>
@@ -755,7 +703,7 @@ const AdminModule: React.FC = () => {
           <option>{t('admin.audit.filters.logout', 'Logout')}</option>
         </select>
         <select
-          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
           aria-label={t('admin.audit.filters.statusAria', 'Filter by status')}
         >
           <option value="">{t('admin.audit.filters.allStatus', 'All Status')}</option>
@@ -764,12 +712,12 @@ const AdminModule: React.FC = () => {
         </select>
         <input
           type="date"
-          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
           aria-label={t('admin.audit.filters.fromDate', 'From date')}
         />
         <input
           type="date"
-          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
           aria-label={t('admin.audit.filters.toDate', 'To date')}
         />
       </div>
@@ -806,7 +754,7 @@ const AdminModule: React.FC = () => {
             {isLoadingData ? (
               <tr>
                 <td colSpan={7} className="text-center p-6">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-emerald-500 border-t-transparent"></div>
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-[#0061A8] border-t-transparent"></div>
                 </td>
               </tr>
             ) : auditLogs.map(log => (
@@ -865,7 +813,7 @@ const AdminModule: React.FC = () => {
               </button>
               <button
                 onClick={handleSaveSettings}
-                className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 flex items-center gap-2"
+                className="px-4 py-2 bg-[#0061A8] text-white rounded-lg hover:bg-[#004a82] flex items-center gap-2"
                 aria-label={t('admin.settings.buttons.saveAria', 'Save settings')}
               >
                 <Save size={20} />
@@ -877,7 +825,7 @@ const AdminModule: React.FC = () => {
 
         {isLoadingData ? (
           <div className="text-center p-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-emerald-500 border-t-transparent"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-[#0061A8] border-t-transparent"></div>
           </div>
         ) : (
           categories.map(category => (
@@ -896,7 +844,7 @@ const AdminModule: React.FC = () => {
                       <div className="flex-1">
                         <label htmlFor={setting.key} className="block font-medium text-gray-900">
                           {setting.key.split('.')[1].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                          {hasChanged && <span className="ms-2 text-emerald-600 text-sm">●</span>}
+                          {hasChanged && <span className="ms-2 text-[#0061A8] text-sm">●</span>}
                         </label>
                         <p className="text-sm text-gray-500 mt-1">{setting.description}</p>
                       </div>
@@ -906,7 +854,7 @@ const AdminModule: React.FC = () => {
                             id={setting.key}
                             value={currentValue}
                             onChange={(e) => handleSettingChange(setting.key, e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
                           >
                             <option value="true">{t('admin.settings.options.enabled', 'Enabled')}</option>
                             <option value="false">{t('admin.settings.options.disabled', 'Disabled')}</option>
@@ -917,7 +865,7 @@ const AdminModule: React.FC = () => {
                             type="number"
                             value={currentValue}
                             onChange={(e) => handleSettingChange(setting.key, e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
                           />
                         ) : (
                           <input
@@ -925,7 +873,7 @@ const AdminModule: React.FC = () => {
                             type="text"
                             value={currentValue}
                             onChange={(e) => handleSettingChange(setting.key, e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
                           />
                         )}
                       </div>
@@ -1015,7 +963,7 @@ const AdminModule: React.FC = () => {
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition-colors whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'border-emerald-500 text-emerald-600'
+                    ? 'border-[#0061A8] text-[#0061A8]'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
                 aria-current={activeTab === tab.id ? 'page' : undefined}

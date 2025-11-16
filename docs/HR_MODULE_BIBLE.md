@@ -1144,6 +1144,22 @@ Body: {
 }
 ```
 
+### 4. Automation Hooks (Phase 3)
+
+**Leave & Attendance Notifications**
+- Every leave status transition (`APPROVED`, `REJECTED`, `CANCELLED`) queues a job on the shared notifications worker (`souq:notifications`) via `HrNotificationService`.
+- Attendance entries flagged as `ABSENT` or `LATE` automatically emit alerts so FM/HR supervisors see exceptions without polling the grid.
+- Consumers (push/email/SMS) enrich the payload (employee, approver, dates, shift info) using the same translation keys referenced in `contexts/TranslationContext.tsx`.
+
+**Payroll → Finance Posting**
+- When a payroll run moves to `LOCKED`, `PayrollFinanceIntegration` builds a balanced journal entry and posts it through `postingService`.
+- Default Chart of Accounts mapping (configurable per org):
+  - Debit `5200` Salaries Expense (base + allowances + employer GOSI)
+  - Credit `2100` GOSI Employee Payable, `2101` GOSI Employer Payable
+  - Credit `2105` Other Deductions (loans, advances, etc.)
+  - Credit `1010` Payroll Bank for net pay
+- Once the journal is posted, the run is stamped with `financePosted`, `financeJournalId`, and `financeReference` to prevent duplicates and aid audits.
+
 ### 3. Compliance Module
 **Use Case**: Document expiry alerts
 
@@ -1161,7 +1177,7 @@ Assigned To: HR Group
 Due Date: 2025-11-08 (7 days SLA)
 ```
 
-### 4. Marketplace Module
+### 5. Marketplace Module
 **Use Case**: Third-party payroll services (e.g., payroll outsourcing)
 
 **Integration:**

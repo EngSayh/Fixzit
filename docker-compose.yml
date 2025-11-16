@@ -22,6 +22,28 @@ services:
       retries: 5
       start_period: 40s
 
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: fixzit-meilisearch
+    restart: unless-stopped
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-fixzit_search_master_key_2025_secure}
+      MEILI_ENV: production
+      MEILI_NO_ANALYTICS: true
+      MEILI_HTTP_PAYLOAD_SIZE_LIMIT: 104857600  # 100MB for bulk indexing
+    volumes:
+      - meilisearch_data:/meili_data
+    networks:
+      - fixzit-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   fixzit-app:
     build:
       context: .
@@ -44,11 +66,15 @@ services:
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}  # ✅ ADDED: Required for payments
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       NEXT_PUBLIC_API_URL: http://localhost:3000
+      MEILI_HOST: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-fixzit_search_master_key_2025_secure}
       PORT: 3000
     volumes:
       - ./uploads:/app/uploads  # ✅ ADDED: Persistent uploads directory
     depends_on:
       mongodb:
+        condition: service_healthy
+      meilisearch:
         condition: service_healthy
     networks:
       - fixzit-network
@@ -63,6 +89,8 @@ volumes:
   mongodb_data:
     driver: local
   mongodb_config:
+    driver: local
+  meilisearch_data:
     driver: local
 
 networks:

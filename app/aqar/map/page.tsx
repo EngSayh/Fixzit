@@ -3,6 +3,7 @@ import { logger } from '@/lib/logger';
 
 import { useMemo, useState } from 'react';
 import GoogleMap from '@/components/GoogleMap';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const DEFAULT_CENTER = { lat: 24.7136, lng: 46.6753 };
 const DEFAULT_ZOOM = 11;
@@ -16,6 +17,7 @@ interface Cluster {
 }
 
 export default function MapPage() {
+  const { t } = useTranslation();
   const center = useMemo(() => DEFAULT_CENTER, []);
   const [markers, setMarkers] = useState<{ position: { lat: number; lng: number }; title?: string; info?: string }[]>([]);
 
@@ -29,7 +31,14 @@ export default function MapPage() {
         clusters.map((c: Cluster) => ({
           position: { lat: c.lat, lng: c.lng },
           title: String(c.count),
-          info: `Avg SAR ${c.avgPrice?.toLocaleString ? c.avgPrice.toLocaleString() : (typeof c.avgPrice === 'number' ? c.avgPrice.toString() : '-')}`,
+          info: t('aqar.map.avgPrice', 'Avg SAR {{price}}').replace(
+            '{{price}}',
+            c.avgPrice?.toLocaleString
+              ? c.avgPrice.toLocaleString()
+              : typeof c.avgPrice === 'number'
+                ? c.avgPrice.toString()
+                : '-'
+          ),
         }))
       );
     } catch (error) {
@@ -42,8 +51,12 @@ export default function MapPage() {
     <div className="h-screen flex flex-col">
       <div className="bg-card border-b border-border px-6 py-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Interactive Property Map</h1>
-          <p className="text-muted-foreground">Explore properties on the map</p>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t('aqar.interactiveMap', 'Interactive Property Map')}
+          </h1>
+          <p className="text-muted-foreground">
+            {t('aqar.interactiveMap.desc', 'Explore properties on the map')}
+          </p>
         </div>
       </div>
 
@@ -62,5 +75,4 @@ export default function MapPage() {
     </div>
   );
 }
-
 

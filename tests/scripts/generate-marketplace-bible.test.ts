@@ -124,6 +124,16 @@ const expectedContentIncludes = [
   "Fixzit_Marketplace_Bible_v1.md", // ensure name alignment if echoed or referenced
 ];
 
+type LegacyTestUtils = { restoreAllMocks?: () => void } | undefined;
+
+const getLegacyJest = (): LegacyTestUtils => {
+  const globalAny = globalThis as Record<string, unknown>;
+  const candidate = globalAny.jest;
+  return typeof candidate === "object" && candidate !== null
+    ? (candidate as { restoreAllMocks?: () => void })
+    : undefined;
+};
+
 (usingVitest ? require("vitest") : globalThis).describe("scripts/generate-marketplace-bible", () => {
   (usingVitest ? require("vitest") : globalThis).beforeEach(() => {
     cleanArtifacts();
@@ -136,14 +146,13 @@ const expectedContentIncludes = [
     const testUtils = usingVitest
       ? (() => {
           try {
-             
             const v = require("vitest");
             return v.vi;
           } catch (_) {
             return undefined;
           }
         })()
-      : (typeof jest !== "undefined" ? jest : undefined);
+      : getLegacyJest();
     if (testUtils && typeof testUtils.restoreAllMocks === "function") {
       testUtils.restoreAllMocks();
     }

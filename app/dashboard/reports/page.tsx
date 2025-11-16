@@ -3,25 +3,39 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/TranslationContext';
+
+type ReportTab = {
+  id: string;
+  labelKey: string;
+  fallback: string;
+};
+
+const TABS: ReportTab[] = [
+  { id: 'standard', labelKey: 'dashboard.reports.tabs.standard', fallback: 'Standard Reports' },
+  { id: 'custom', labelKey: 'dashboard.reports.tabs.custom', fallback: 'Custom Reports' },
+  { id: 'dashboards', labelKey: 'dashboard.reports.tabs.dashboards', fallback: 'Dashboards' }
+];
 
 export default function ReportsDashboard() {
-  const [activeTab, setActiveTab] = useState('standard');
+  const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState(TABS[0]?.id ?? 'standard');
 
-  const tabs = [
-    { id: 'standard', label: 'Standard Reports' },
-    { id: 'custom', label: 'Custom Reports' },
-    { id: 'dashboards', label: 'Dashboards' },
-  ];
+  const activeTabLabel = TABS.find((tab) => tab.id === activeTab);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Reports</h1>
-        <p className="text-muted-foreground">Generate and view business reports</p>
+        <h1 className="text-3xl font-bold text-foreground">
+          {t('dashboard.reports.title', 'Reports')}
+        </h1>
+        <p className="text-muted-foreground">
+          {t('dashboard.reports.subtitle', 'Generate and view business reports')}
+        </p>
       </div>
 
       <div className="flex items-center gap-2 border-b">
-        {tabs.map((tab) => (
+        {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -32,7 +46,7 @@ export default function ReportsDashboard() {
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
-            {tab.label}
+            {t(tab.labelKey, tab.fallback)}
           </button>
         ))}
       </div>
@@ -40,8 +54,12 @@ export default function ReportsDashboard() {
       <Card>
         <CardContent className="py-8">
           <div className="text-center text-muted-foreground">
-            <p className="font-medium">{tabs.find(t => t.id === activeTab)?.label}</p>
-            <p className="text-sm mt-2">Content will be implemented here</p>
+            <p className="font-medium">
+              {activeTabLabel ? t(activeTabLabel.labelKey, activeTabLabel.fallback) : ''}
+            </p>
+            <p className="text-sm mt-2">
+              {t('dashboard.reports.comingSoon', 'Content will be implemented here')}
+            </p>
           </div>
         </CardContent>
       </Card>

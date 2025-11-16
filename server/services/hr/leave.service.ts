@@ -1,4 +1,5 @@
 import { LeaveRequest, LeaveBalance, type LeaveRequestDoc } from '@/server/models/hr.models';
+import { HrNotificationService } from '@/server/services/hr/hr-notification.service';
 
 export class LeaveService {
   static async request(payload: Omit<LeaveRequestDoc, 'createdAt' | 'updatedAt' | 'isDeleted'>) {
@@ -6,7 +7,7 @@ export class LeaveService {
   }
 
   static async updateStatus(orgId: string, leaveRequestId: string, status: LeaveRequestDoc['status'], approverId: string, comment?: string) {
-    return LeaveRequest.findOneAndUpdate(
+    const updated = await LeaveRequest.findOneAndUpdate(
       { orgId, _id: leaveRequestId },
       {
         status,
@@ -22,6 +23,21 @@ export class LeaveService {
       },
       { new: true }
     ).exec();
+
+    if (updated) {
+      await HrNotificationService.queueLeaveStatusChange({
+        orgId,
+        leaveRequestId,
+        employeeId: updated.employeeId.toString(),
+        status,
+        approverId,
+        reason: updated.reason,
+        startDate: updated.startDate,
+        endDate: updated.endDate,
+      });
+    }
+
+    return updated;
   }
 
   static async adjustBalance(orgId: string, employeeId: string, leaveTypeId: string, year: number, diff: { accrued?: number; taken?: number }) {

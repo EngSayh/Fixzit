@@ -479,6 +479,10 @@ export interface PayrollRunDoc extends BaseOrgDoc {
     net: number;
   };
   calculatedAt?: Date;
+  financePosted?: boolean;
+  financeJournalId?: ObjectId;
+  financeReference?: string;
+  financePostedAt?: Date;
 }
 
 const PayrollLineSchema = new Schema<PayrollLine>({
@@ -543,6 +547,10 @@ const PayrollRunSchema = new Schema<PayrollRunDoc>({
     net: { type: Number, default: 0 }
   },
   calculatedAt: { type: Date },
+  financePosted: { type: Boolean, default: false, index: true },
+  financeJournalId: { type: Schema.Types.ObjectId, ref: 'Journal' },
+  financeReference: { type: String },
+  financePostedAt: { type: Date },
   isDeleted: { type: Boolean, default: false, index: true },
   createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   updatedBy: { type: Schema.Types.ObjectId, ref: 'User' }

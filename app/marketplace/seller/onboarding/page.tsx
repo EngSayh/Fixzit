@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { CheckCircle, Upload, FileText, CreditCard, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface FileUpload {
   file: File | null;
@@ -13,6 +14,7 @@ interface FileUpload {
 
 export default function SellerOnboarding() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -67,7 +69,14 @@ export default function SellerOnboarding() {
     if (!validTypes.includes(file.type)) {
       setDocuments(prev => ({
         ...prev,
-        [type]: { file: null, preview: null, error: 'Invalid file type. Please upload PDF, JPG, or PNG.' }
+        [type]: {
+          file: null,
+          preview: null,
+          error: t(
+            'marketplace.sellerOnboarding.errors.fileType',
+            'Invalid file type. Please upload PDF, JPG, or PNG.'
+          )
+        }
       }));
       return;
     }
@@ -77,7 +86,11 @@ export default function SellerOnboarding() {
     if (file.size > maxSize) {
       setDocuments(prev => ({
         ...prev,
-        [type]: { file: null, preview: null, error: 'File too large. Maximum size is 5MB.' }
+        [type]: {
+          file: null,
+          preview: null,
+          error: t('marketplace.sellerOnboarding.errors.fileSize', 'File too large. Maximum size is 5MB.')
+        }
       }));
       return;
     }
@@ -92,7 +105,9 @@ export default function SellerOnboarding() {
 
   const handleNext = () => {
     if (!validateStep(step)) {
-      setSubmitError('Please fill in all required fields before proceeding.');
+      setSubmitError(
+        t('marketplace.sellerOnboarding.errors.stepRequired', 'Please fill in all required fields before proceeding.')
+      );
       return;
     }
     setSubmitError(null);
@@ -105,7 +120,7 @@ export default function SellerOnboarding() {
 
   const handleSubmit = async () => {
     if (!validateStep(4)) {
-      setSubmitError('Please fill in all required fields.');
+      setSubmitError(t('marketplace.sellerOnboarding.errors.required', 'Please fill in all required fields.'));
       return;
     }
 
@@ -134,7 +149,11 @@ export default function SellerOnboarding() {
       router.push('/marketplace/vendor/portal');
     } catch (error) {
       console.error('Onboarding error:', error);
-      setSubmitError(error instanceof Error ? error.message : 'Failed to complete onboarding. Please try again.');
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : t('marketplace.sellerOnboarding.errors.submitFailed', 'Failed to complete onboarding. Please try again.')
+      );
     } finally {
       setSubmitting(false);
     }
@@ -171,20 +190,28 @@ export default function SellerOnboarding() {
             ))}
           </div>
           <div className="flex justify-between text-sm">
-            <span className={step === 1 ? 'font-semibold' : 'text-muted-foreground'}>Business Info</span>
-            <span className={step === 2 ? 'font-semibold' : 'text-muted-foreground'}>Contact Details</span>
-            <span className={step === 3 ? 'font-semibold' : 'text-muted-foreground'}>KYC Documents</span>
-            <span className={step === 4 ? 'font-semibold' : 'text-muted-foreground'}>Banking</span>
+            <span className={step === 1 ? 'font-semibold' : 'text-muted-foreground'}>
+              {t('marketplace.sellerOnboarding.progress.business', 'Business Info')}
+            </span>
+            <span className={step === 2 ? 'font-semibold' : 'text-muted-foreground'}>
+              {t('marketplace.sellerOnboarding.progress.contact', 'Contact Details')}
+            </span>
+            <span className={step === 3 ? 'font-semibold' : 'text-muted-foreground'}>
+              {t('marketplace.sellerOnboarding.progress.kyc', 'KYC Documents')}
+            </span>
+            <span className={step === 4 ? 'font-semibold' : 'text-muted-foreground'}>
+              {t('marketplace.sellerOnboarding.progress.banking', 'Banking')}
+            </span>
           </div>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">
-              {step === 1 && 'Business Information'}
-              {step === 2 && 'Contact Details'}
-              {step === 3 && 'KYC Documents'}
-              {step === 4 && 'Banking Information'}
+              {step === 1 && t('marketplace.sellerOnboarding.headings.business', 'Business Information')}
+              {step === 2 && t('marketplace.sellerOnboarding.headings.contact', 'Contact Details')}
+              {step === 3 && t('marketplace.sellerOnboarding.headings.kyc', 'KYC Documents')}
+              {step === 4 && t('marketplace.sellerOnboarding.headings.banking', 'Banking Information')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -192,7 +219,9 @@ export default function SellerOnboarding() {
             {step === 1 && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Business Name *</label>
+                  <label className="block text-sm font-medium mb-2">
+                    {t('marketplace.sellerOnboarding.fields.businessName', 'Business Name *')}
+                  </label>
                   <input
                     type="text"
                     name="businessName"
@@ -203,7 +232,9 @@ export default function SellerOnboarding() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Business Type *</label>
+                  <label className="block text-sm font-medium mb-2">
+                    {t('marketplace.sellerOnboarding.fields.businessType', 'Business Type *')}
+                  </label>
                   <select
                     name="businessType"
                     value={formData.businessType}
@@ -211,14 +242,20 @@ export default function SellerOnboarding() {
                     required
                     className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <option value="">Select type</option>
-                    <option value="sole_proprietor">Sole Proprietor</option>
-                    <option value="llc">LLC</option>
-                    <option value="corporation">Corporation</option>
+                    <option value="">{t('marketplace.sellerOnboarding.options.selectType', 'Select type')}</option>
+                    <option value="sole_proprietor">
+                      {t('marketplace.sellerOnboarding.options.soleProprietor', 'Sole Proprietor')}
+                    </option>
+                    <option value="llc">{t('marketplace.sellerOnboarding.options.llc', 'LLC')}</option>
+                    <option value="corporation">
+                      {t('marketplace.sellerOnboarding.options.corporation', 'Corporation')}
+                    </option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Tax ID / Commercial Registration *</label>
+                  <label className="block text-sm font-medium mb-2">
+                    {t('marketplace.sellerOnboarding.fields.taxId', 'Tax ID / Commercial Registration *')}
+                  </label>
                   <input
                     type="text"
                     name="taxId"
@@ -235,7 +272,9 @@ export default function SellerOnboarding() {
             {step === 2 && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Contact Name *</label>
+                  <label className="block text-sm,font-medium mb-2">
+                    {t('marketplace.sellerOnboarding.fields.contactName', 'Contact Name *')}
+                  </label>
                   <input
                     type="text"
                     name="contactName"
@@ -246,7 +285,9 @@ export default function SellerOnboarding() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Email *</label>
+                  <label className="block text-sm font-medium mb-2">
+                    {t('marketplace.sellerOnboarding.fields.email', 'Email *')}
+                  </label>
                   <input
                     type="email"
                     name="email"
@@ -257,7 +298,9 @@ export default function SellerOnboarding() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Phone *</label>
+                  <label className="block text-sm font-medium mb-2">
+                    {t('marketplace.sellerOnboarding.fields.phone', 'Phone *')}
+                  </label>
                   <input
                     type="tel"
                     name="phone"
@@ -268,7 +311,9 @@ export default function SellerOnboarding() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Business Address *</label>
+                  <label className="block text-sm font-medium mb-2">
+                    {t('marketplace.sellerOnboarding.fields.address', 'Business Address *')}
+                  </label>
                   <input
                     type="text"
                     name="address"
@@ -286,8 +331,12 @@ export default function SellerOnboarding() {
               <div className="space-y-6">
                 <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
                   <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-sm font-medium mb-2">Upload Commercial Registration</p>
-                  <p className="text-xs text-muted-foreground mb-4">PDF, JPG, PNG (Max 5MB)</p>
+                  <p className="text-sm font-medium mb-2">
+                    {t('marketplace.sellerOnboarding.documents.commercial', 'Upload Commercial Registration')}
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    {t('marketplace.sellerOnboarding.documents.hint', 'PDF, JPG, PNG (Max 5MB)')}
+                  </p>
                   <input
                     ref={commercialRegRef}
                     type="file"
@@ -300,7 +349,7 @@ export default function SellerOnboarding() {
                     onClick={() => commercialRegRef.current?.click()}
                     className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
                   >
-                    Choose File
+                    {t('marketplace.sellerOnboarding.documents.chooseFile', 'Choose File')}
                   </button>
                   {documents.commercialRegistration.file && (
                     <p className="text-sm text-green-600 mt-2">✓ {documents.commercialRegistration.file.name}</p>
@@ -311,8 +360,12 @@ export default function SellerOnboarding() {
                 </div>
                 <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
                   <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-sm font-medium mb-2">Upload Tax Certificate</p>
-                  <p className="text-xs text-muted-foreground mb-4">PDF, JPG, PNG (Max 5MB)</p>
+                  <p className="text-sm font-medium mb-2">
+                    {t('marketplace.sellerOnboarding.documents.tax', 'Upload Tax Certificate')}
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    {t('marketplace.sellerOnboarding.documents.hint', 'PDF, JPG, PNG (Max 5MB)')}
+                  </p>
                   <input
                     ref={taxCertRef}
                     type="file"
@@ -325,7 +378,7 @@ export default function SellerOnboarding() {
                     onClick={() => taxCertRef.current?.click()}
                     className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
                   >
-                    Choose File
+                    {t('marketplace.sellerOnboarding.documents.chooseFile', 'Choose File')}
                   </button>
                   {documents.taxCertificate.file && (
                     <p className="text-sm text-green-600 mt-2">✓ {documents.taxCertificate.file.name}</p>
@@ -342,10 +395,17 @@ export default function SellerOnboarding() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <CreditCard className="w-5 h-5 text-blue-600" />
-                  <p className="text-sm text-blue-600">Secure banking information for settlement payments</p>
+                  <p className="text-sm text-blue-600">
+                    {t(
+                      'marketplace.sellerOnboarding.banking.info',
+                      'Secure banking information for settlement payments'
+                    )}
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Bank Name *</label>
+                  <label className="block text-sm font-medium mb-2">
+                    {t('marketplace.sellerOnboarding.fields.bankName', 'Bank Name *')}
+                  </label>
                   <input
                     type="text"
                     name="bankName"
@@ -356,7 +416,9 @@ export default function SellerOnboarding() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Account Number *</label>
+                  <label className="block text-sm font-medium mb-2">
+                    {t('marketplace.sellerOnboarding.fields.accountNumber', 'Account Number *')}
+                  </label>
                   <input
                     type="text"
                     name="accountNumber"
@@ -367,7 +429,9 @@ export default function SellerOnboarding() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">IBAN *</label>
+                  <label className="block text-sm font-medium mb-2">
+                    {t('marketplace.sellerOnboarding.fields.iban', 'IBAN *')}
+                  </label>
                   <input
                     type="text"
                     name="iban"
@@ -394,7 +458,7 @@ export default function SellerOnboarding() {
                 disabled={step === 1 || submitting}
                 className="px-6 py-2 border border-border rounded-lg hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Previous
+                {t('marketplace.sellerOnboarding.buttons.previous', 'Previous')}
               </button>
               {step < 4 ? (
                 <button
@@ -402,7 +466,7 @@ export default function SellerOnboarding() {
                   disabled={submitting}
                   className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Next
+                  {t('marketplace.sellerOnboarding.buttons.next', 'Next')}
                 </button>
               ) : (
                 <button
@@ -411,7 +475,9 @@ export default function SellerOnboarding() {
                   className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {submitting ? 'Submitting...' : 'Submit Application'}
+                  {submitting
+                    ? t('marketplace.sellerOnboarding.buttons.submitting', 'Submitting...')
+                    : t('marketplace.sellerOnboarding.buttons.submit', 'Submit Application')}
                 </button>
               )}
             </div>
