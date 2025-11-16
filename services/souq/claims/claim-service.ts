@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { getDatabase } from '@/lib/mongodb-unified';
 import { ObjectId } from 'mongodb';
+import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
 
 // Claim Types
 export type ClaimType =
@@ -217,8 +218,13 @@ export class ClaimService {
     
     await db.collection(this.COLLECTION).insertOne(claim);
     
-    // TODO: Send notification to seller
-    // TODO: Send confirmation email to buyer
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'souq-claim-filed', {
+      claimId,
+      sellerId: input.sellerId,
+      buyerId: input.buyerId,
+      orderId: input.orderId,
+      priority,
+    });
     
     return claim;
   }
@@ -397,9 +403,14 @@ export class ClaimService {
       }
     );
     
-    // TODO: Notify buyer and seller
-    // TODO: Process refund if applicable
-  }
+      await addJob(QUEUE_NAMES.NOTIFICATIONS, 'souq-claim-decision', {
+        claimId: input.claimId,
+        buyerId: claim.buyerId,
+        sellerId: claim.sellerId,
+        outcome: input.outcome,
+        refundAmount: input.refundAmount,
+      });
+    }
 
   /**
    * File an appeal

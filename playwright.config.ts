@@ -5,8 +5,8 @@ import { defineConfig, devices } from '@playwright/test';
  */
 // MongoDB-only configuration
 export default defineConfig({
-  testDir: './qa/tests',
-  testMatch: ['**/*.spec.ts', '**/*.spec.tsx', '**/*.e2e.ts'],
+  testDir: './',
+  testMatch: ['**/tests/**/*.spec.ts', '**/qa/tests/**/*.spec.ts', '**/*.e2e.ts'],
   testIgnore: ['**/*.test.ts', '**/*.test.tsx', '**/node_modules/**', '**/i18n-en.unit.spec.ts'],
   /* Run tests in files in parallel */
   fullyParallel: true,

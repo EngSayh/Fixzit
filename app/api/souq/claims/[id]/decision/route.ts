@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { ClaimService } from '@/services/souq/claims/claim-service';
 import { RefundProcessor } from '@/services/souq/claims/refund-processor';
+import { SouqOrder } from '@/server/models/souq/Order';
 
 /**
  * POST /api/souq/claims/[id]/decision
@@ -17,11 +18,9 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // TODO: Check if user has admin role
-    // For now, allow any authenticated user (replace with proper role check)
-    const isAdmin = true; // session.user.role === 'admin' || session.user.role === 'superadmin'
-
-    if (!isAdmin) {
+    const role = session.user.role ?? '';
+    const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'CLAIMS_ADMIN'];
+    if (!allowedRoles.includes(role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -52,6 +51,11 @@ export async function POST(
       return NextResponse.json({ error: 'Claim not found' }, { status: 404 });
     }
 
+    const order = await SouqOrder.findOne({ orderId: claim.orderId }).lean();
+    if (!order) {
+      return NextResponse.json({ error: 'Order not found for claim' }, { status: 400 });
+    }
+
     // Make decision
     await ClaimService.makeDecision({
       claimId: params.id,
@@ -64,6 +68,23 @@ export async function POST(
 
     // Process refund if applicable
     if ((outcome === 'refund_full' || outcome === 'refund_partial') && refundAmount) {
+      const paymentMethod = order.payment?.method || 'card';
+      const transactionId = order.payment?.transactionId;
+
+      if (!transactionId && paymentMethod === 'card') {
+        return NextResponse.json(
+          { error: 'Original transaction reference missing; refund cannot be processed' },
+          { status: 400 }
+        );
+      }
+
+      if (paymentMethod !== 'card') {
+        return NextResponse.json(
+          { error: `Refunds are only supported for card payments. Payment method: ${paymentMethod}` },
+          { status: 400 }
+        );
+      }
+
       try {
         await RefundProcessor.processRefund({
           claimId: params.id,
@@ -72,7 +93,8 @@ export async function POST(
           sellerId: claim.sellerId,
           amount: parseFloat(refundAmount),
           reason: `Claim ${params.id}: ${reason}`,
-          originalPaymentMethod: 'card', // TODO: Get from order
+          originalPaymentMethod: paymentMethod,
+          originalTransactionId: transactionId ?? undefined,
         });
       } catch (error) {
         console.error('[Claims API] Refund processing failed:', error);

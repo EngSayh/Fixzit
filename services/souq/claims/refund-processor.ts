@@ -1,5 +1,7 @@
 // @ts-nocheck
 import { getDatabase } from '@/lib/mongodb-unified';
+import { tapPayments } from '@/lib/finance/tap-payments';
+import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
 import { ClaimService } from './claim-service';
 
 export interface RefundRequest {
@@ -152,35 +154,35 @@ export class RefundProcessor {
     transactionId: string;
     status: string;
   }> {
-    // TODO: Replace with actual payment gateway integration
-    // Example for PayTabs:
-    /*
-    const paytabs = new PayTabsAPI(process.env.PAYTABS_SERVER_KEY!);
-    
-    const result = await paytabs.refund({
-      tran_ref: refund.originalTransactionId,
-      amount: refund.amount,
-      reason: refund.reason,
-    });
-    
-    return {
-      transactionId: result.tran_ref,
-      status: result.payment_result.response_status,
-    };
-    */
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Simulate 95% success rate
-    if (Math.random() < 0.95) {
-      return {
-        transactionId: `TXN-${Date.now()}`,
-        status: 'success',
-      };
-    } else {
-      throw new Error('Payment gateway error: Connection timeout');
+    if (!refund.originalTransactionId) {
+      throw new Error('Missing original transaction reference for refund');
     }
+
+    if (!process.env.TAP_SECRET_KEY) {
+      throw new Error('Tap Payments credentials not configured');
+    }
+
+    const tapRefund = await tapPayments.createRefund({
+      charge_id: refund.originalTransactionId,
+      amount: tapPayments.sarToHalalas(refund.amount),
+      currency: 'SAR',
+      reason: refund.reason,
+      metadata: {
+        claimId: refund.claimId,
+        orderId: refund.orderId,
+        buyerId: refund.buyerId,
+        sellerId: refund.sellerId,
+      },
+    });
+
+    if (tapRefund.status !== 'SUCCEEDED' && tapRefund.status !== 'PENDING') {
+      throw new Error(`Tap refund failed with status ${tapRefund.status}`);
+    }
+
+    return {
+      transactionId: tapRefund.id,
+      status: tapRefund.status,
+    };
   }
 
   /**
@@ -252,9 +254,10 @@ export class RefundProcessor {
       { orderId },
       {
         $set: {
-          orderStatus: status,
+          status,
           refundedAt: new Date(),
           updatedAt: new Date(),
+          'payment.status': 'refunded',
         },
       }
     );
@@ -268,17 +271,16 @@ export class RefundProcessor {
     sellerId: string,
     result: RefundResult
   ): Promise<void> {
-    // TODO: Send email/SMS notifications
-    
-    if (result.status === 'completed') {
-      console.log(`Refund completed for buyer ${buyerId}: ${result.amount} SAR`);
-      // await sendEmail(buyerId, 'refund_completed', { ...result });
-      // await sendNotification(sellerId, 'refund_processed', { ...result });
-    } else if (result.status === 'failed') {
-      console.log(`Refund failed for buyer ${buyerId}: ${result.failureReason}`);
-      // await sendEmail(buyerId, 'refund_failed', { ...result });
-      // await notifyAdmin('refund_failure', { ...result });
-    }
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'souq-claim-refund-status', {
+      buyerId,
+      sellerId,
+      refundId: result.refundId,
+      status: result.status,
+      amount: result.amount,
+      failureReason: result.failureReason,
+      transactionId: result.transactionId,
+      completedAt: result.completedAt,
+    });
   }
 
   /**

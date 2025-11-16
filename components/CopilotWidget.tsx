@@ -6,16 +6,6 @@ import { AlertTriangle, Bot, Calendar, CheckCircle2, ClipboardList, FileText, Lo
 import { useTranslation } from '@/contexts/TranslationContext';
 import { logger } from '@/lib/logger';
 
-// Declare global for deduplication tracking
-declare global {
-  interface Window {
-    __copilotLastRequest?: number;
-    SpeechRecognition?: unknown;
-    webkitSpeechRecognition?: unknown;
-  }
-}
-
-// Speech Recognition types
 type SpeechRecognitionResult = {
   [index: number]: {
     [index: number]: { transcript: string };
@@ -24,6 +14,37 @@ type SpeechRecognitionResult = {
 
 type SpeechRecognitionEvent = {
   results: SpeechRecognitionResult;
+};
+
+type SpeechRecognitionInstance = {
+  start: () => void;
+  stop: () => void;
+  lang: string;
+  onresult: (e: SpeechRecognitionEvent) => void;
+  onerror: () => void;
+  onend: () => void;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
+
+// Declare global for deduplication tracking
+declare global {
+  interface Window {
+    __copilotLastRequest?: number;
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  }
+}
+
+const getSpeechRecognitionConstructor = (): SpeechRecognitionConstructor | undefined => {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+  const speechWindow = window as Window & {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  };
+  return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
 };
 
 // Type-safe discriminated unions for message data
@@ -190,7 +211,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
   const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const recognitionRef = useRef<{ start: () => void; stop: () => void; lang: string } | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
   // Sync with global language - use TranslationContext instead of API locale
   const locale: 'en' | 'ar' = globalLocale === 'ar' ? 'ar' : 'en';
@@ -214,13 +235,13 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
 
   // Setup voice recognition (Web Speech API)
   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
+    const SpeechRecognitionCtor = getSpeechRecognitionConstructor();
+    if (!SpeechRecognitionCtor) {
       recognitionRef.current = null;
       return;
     }
 
-    const recognition = new (SpeechRecognition as never)() as { start: () => void; stop: () => void; lang: string; onresult: (e: SpeechRecognitionEvent) => void; onerror: () => void; onend: () => void };
+    const recognition = new SpeechRecognitionCtor();
     recognition.lang = locale === 'ar' ? 'ar-SA' : 'en-US';
     
     recognition.onresult = (event: SpeechRecognitionEvent) => {

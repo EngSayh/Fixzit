@@ -13,15 +13,18 @@
  *   pnpm tsx scripts/ai/systemScan.ts --daemon  # Run as daemon with cron
  */
 
-import fs from 'fs';
-import path from 'path';
-import crypto from 'crypto';
-import pdf from 'pdf-parse';
-import cron from 'node-cron';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as crypto from 'crypto';
+import * as cron from 'node-cron';
 import { db } from '@/lib/mongo';
 import { logger } from '@/lib/logger';
 
+// Use require for pdf-parse (CommonJS module with PDFParse class)
+const { PDFParse } = require('pdf-parse');
+
 // Documents to scan (from your Blueprint/Design System PDFs)
+// Note: Only .pdf files are supported. .docx files will be skipped.
 const DOCUMENTS = [
   'Monday options and workflow and system structure.pdf',
   'Fixizit Blue Print.pdf',
@@ -29,12 +32,19 @@ const DOCUMENTS = [
   'Fixizit Blueprint Bible – vFinal.pdf',
   'Fixizit Facility Management Platform_ Complete Implementation Guide.pdf',
   'Fixzit_Master_Design_System.pdf',
-  'Fixizit Blueprint Bible – vFinal.docx', // Note: pdf-parse won't handle .docx, skip or convert
-  'Fixizit_Comprehensive_Blueprint_with_Diagrams By ChatGPT.docx',
-  'Collected service list.docx',
+  // Fallback: Use existing PDFs if Blueprints not available
+  'public/docs/msds/nitrile-gloves.pdf',
+  'public/docs/msds/merv13.pdf',
 ];
 
-const DOCS_DIR = path.resolve(process.cwd(), 'docs');
+// Try multiple possible document locations
+const DOCS_DIRS = [
+  path.resolve(process.cwd(), 'docs'),
+  path.resolve(process.cwd(), '.'),
+  path.resolve(process.cwd(), 'public/docs'),
+];
+
+const DOCS_DIR = DOCS_DIRS.find(dir => fs.existsSync(dir)) || DOCS_DIRS[0];
 const CHUNK_SIZE = 1000; // Characters per chunk for RAG
 const CHUNK_OVERLAP = 200; // Overlap between chunks to preserve context
 
@@ -79,10 +89,30 @@ function chunkText(text: string): string[] {
  * Scans a single PDF document and upserts to ai_kb collection
  */
 async function scanDocument(filename: string): Promise<number> {
-  const fullPath = path.join(DOCS_DIR, filename);
+  // Try multiple locations for the file
+  let fullPath: string | null = null;
+  
+  // Check if filename already includes path (e.g., public/docs/msds/...)
+  if (filename.includes('/')) {
+    const candidatePath = path.resolve(process.cwd(), filename);
+    if (fs.existsSync(candidatePath)) {
+      fullPath = candidatePath;
+    }
+  }
+  
+  // Otherwise try each docs directory
+  if (!fullPath) {
+    for (const dir of DOCS_DIRS) {
+      const candidatePath = path.join(dir, filename);
+      if (fs.existsSync(candidatePath)) {
+        fullPath = candidatePath;
+        break;
+      }
+    }
+  }
 
-  // Skip if file doesn't exist
-  if (!fs.existsSync(fullPath)) {
+  // Skip if file doesn't exist anywhere
+  if (!fullPath) {
     logger.info(`[systemScan] Skipped missing file: ${filename}`);
     return 0;
   }
@@ -96,7 +126,7 @@ async function scanDocument(filename: string): Promise<number> {
   try {
     const fileHash = calculateFileHash(fullPath);
     const database = await db;
-    const collection = database.collection<KnowledgeBaseEntry>('ai_kb');
+    const collection = database.collection('ai_kb');
 
     // Check if document already processed with same hash
     const existing = await collection.findOne({ source: filename, hash: fileHash });
@@ -107,8 +137,10 @@ async function scanDocument(filename: string): Promise<number> {
 
     // Parse PDF
     const dataBuffer = fs.readFileSync(fullPath);
-    const pdfData = await pdf(dataBuffer);
+    const parser = new PDFParse({ data: dataBuffer });
+    const pdfData = await parser.getText();
     const text = pdfData.text;
+    await parser.destroy();
 
     if (!text || text.trim().length === 0) {
       logger.warn(`[systemScan] Empty PDF: ${filename}`);
@@ -135,7 +167,7 @@ async function scanDocument(filename: string): Promise<number> {
       updatedAt: new Date(),
     }));
 
-    await collection.insertMany(entries);
+    await collection.insertMany(entries as unknown as Record<string, unknown>[]);
 
     logger.info(`[systemScan] Processed ${filename}: ${chunks.length} chunks, ${text.length} chars`);
     return chunks.length;

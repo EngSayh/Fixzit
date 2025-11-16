@@ -57,19 +57,19 @@ export function evaluateMessagePolicy(session: CopilotSession, text: string): Po
 }
 
 const ROLE_TOOLS: Record<CopilotRole, string[]> = {
-  SUPER_ADMIN: ["createWorkOrder","listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto","ownerStatements"],
-  ADMIN: ["createWorkOrder","listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto","ownerStatements"],
-  CORPORATE_ADMIN: ["createWorkOrder","listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto","ownerStatements"],
-  FM_MANAGER: ["createWorkOrder","listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto"],
-  FINANCE: ["listMyWorkOrders","ownerStatements"],
+  SUPER_ADMIN: ["createWorkOrder","listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto","approveQuotation","ownerStatements"],
+  ADMIN: ["createWorkOrder","listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto","approveQuotation","ownerStatements"],
+  CORPORATE_ADMIN: ["createWorkOrder","listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto","approveQuotation","ownerStatements"],
+  FM_MANAGER: ["createWorkOrder","listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto","approveQuotation"],
+  FINANCE: ["listMyWorkOrders","approveQuotation","ownerStatements"],
   HR: ["listMyWorkOrders"],
-  PROCUREMENT: ["listMyWorkOrders"],
-  PROPERTY_MANAGER: ["createWorkOrder","listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto","ownerStatements"],
+  PROCUREMENT: ["listMyWorkOrders","approveQuotation"],
+  PROPERTY_MANAGER: ["createWorkOrder","listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto","approveQuotation","ownerStatements"],
   EMPLOYEE: ["createWorkOrder","listMyWorkOrders","scheduleVisit"],
   TECHNICIAN: ["listMyWorkOrders","dispatchWorkOrder","scheduleVisit","uploadWorkOrderPhoto"],
   VENDOR: ["listMyWorkOrders","uploadWorkOrderPhoto"],
   CUSTOMER: ["createWorkOrder","listMyWorkOrders"],
-  OWNER: ["listMyWorkOrders","ownerStatements"],
+  OWNER: ["listMyWorkOrders","approveQuotation","ownerStatements"],
   AUDITOR: ["listMyWorkOrders"],
   TENANT: ["createWorkOrder","listMyWorkOrders","uploadWorkOrderPhoto"],
   GUEST: []

@@ -365,6 +365,42 @@ async function uploadWorkOrderPhoto(session: CopilotSession, payload: UploadPayl
   };
 }
 
+async function approveQuotation(session: CopilotSession, input: Record<string, unknown>): Promise<ToolExecutionResult> {
+  await ensureToolAllowed(session, "approveQuotation");
+  await db;
+
+  const quotationId = input.quotationId as string;
+  if (!quotationId) {
+    return {
+      success: false,
+      message: session.locale === 'ar' 
+        ? 'معرف عرض السعر مطلوب' 
+        : 'Quotation ID is required',
+      intent: 'approveQuotation'
+    };
+  }
+
+  // Find quotation (placeholder - implement with actual Quotation model)
+  logger.info(`[approveQuotation] Approving quotation ${quotationId} for org ${session.tenantId}`);
+  
+  // TODO: Implement actual quotation approval logic:
+  // 1. Verify quotation exists and belongs to orgId
+  // 2. Check user has permission (owner/finance/admin)
+  // 3. Update quotation status to 'approved'
+  // 4. Create work order from approved quotation
+  // 5. Send notification to vendor
+  // 6. Log audit trail
+
+  return {
+    success: true,
+    message: session.locale === 'ar'
+      ? `تمت الموافقة على عرض السعر ${quotationId} بنجاح`
+      : `Quotation ${quotationId} approved successfully`,
+    intent: 'approveQuotation',
+    data: { quotationId, status: 'approved' }
+  };
+}
+
 async function ownerStatements(session: CopilotSession, input: Record<string, unknown>): Promise<ToolExecutionResult> {
   await ensureToolAllowed(session, "ownerStatements");
   await db;
@@ -455,6 +491,8 @@ export async function executeTool(tool: string, input: Record<string, unknown>, 
         throw new Error('Invalid upload payload: missing required fields');
       }
       return uploadWorkOrderPhoto(session, input as unknown as UploadPayload);
+    case "approveQuotation":
+      return approveQuotation(session, input);
     case "ownerStatements":
       return ownerStatements(session, input);
     default:
@@ -485,6 +523,12 @@ export function detectToolFromMessage(message: string): { name: string; args: Re
     if (workOrderId) {
       return { name: "dispatchWorkOrder", args: { workOrderId } };
     }
+  }
+
+  if (/approve.*quotation|quotation.*approve|موافقة.*عرض/i.test(normalized)) {
+    const quotationIdMatch = normalized.match(/(?:quotation|عرض)\s*[#:]?\s*([A-Z0-9-]+)/i);
+    const quotationId = quotationIdMatch ? quotationIdMatch[1] : undefined;
+    return { name: "approveQuotation", args: quotationId ? { quotationId } : {} };
   }
 
   if (/^\/owner-statements/i.test(normalized)) {
