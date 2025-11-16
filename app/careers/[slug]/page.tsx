@@ -3,6 +3,7 @@ import { Job } from '@/server/models/Job';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { JobApplicationForm } from '@/components/careers/JobApplicationForm';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 
 export default async function JobDetailPage({ params }: { params: { slug: string } }) {
   await connectToDatabase();
@@ -32,7 +33,10 @@ export default async function JobDetailPage({ params }: { params: { slug: string
         <div className="mt-6 space-y-4">
           <div>
             <h3 className="font-semibold">Description</h3>
-            <p className="text-foreground whitespace-pre-line">{job.description}</p>
+            <div
+              className="prose dark:prose-invert"
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(job.descriptionHtml || job.description || '') }}
+            />
           </div>
           {Array.isArray(job.requirements) && job.requirements.length > 0 && (
             <div>
@@ -58,5 +62,4 @@ export default async function JobDetailPage({ params }: { params: { slug: string
     </div>
   );
 }
-
 

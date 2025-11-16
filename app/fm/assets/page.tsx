@@ -409,7 +409,9 @@ function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
           <label className="block text-sm font-medium mb-1">Type *</label>
           <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
             <SelectTrigger>
-              <SelectValue placeholder="Select type" />
+              <SelectValue>
+                {formData.type || "Select type"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="HVAC">HVAC</SelectItem>

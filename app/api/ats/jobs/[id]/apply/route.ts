@@ -59,6 +59,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
           buffer: Buffer.from(await resumeFile.arrayBuffer()),
           filename: resumeFile.name,
           mimeType: resumeFile.type,
+          size: resumeFile.size,
         }
       : undefined;
 

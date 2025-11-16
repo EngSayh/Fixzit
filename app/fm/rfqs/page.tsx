@@ -469,7 +469,9 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
           <label className="block text-sm font-medium mb-1">Category *</label>
           <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
             <SelectTrigger>
-              <SelectValue placeholder="Select category" />
+              <SelectValue>
+                {categoryFilter || "Select category"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Construction">Construction</SelectItem>

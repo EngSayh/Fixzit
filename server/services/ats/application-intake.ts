@@ -13,6 +13,7 @@ export interface ResumeFileInput {
   buffer: Buffer;
   filename: string;
   mimeType?: string;
+  size?: number;
 }
 
 export interface ApplicationFields {
@@ -28,6 +29,13 @@ export interface ApplicationFields {
   linkedin?: string;
   consent?: boolean;
 }
+
+const ALLOWED_RESUME_MIME_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
+const MAX_RESUME_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 interface ApplicationSubmissionParams {
   job: any;
@@ -236,6 +244,8 @@ async function extractResumeDetails(resumeFile?: ResumeFileInput): Promise<{
     return { skills: [], experienceYears: 0, rawText: '' };
   }
 
+  ensureValidResumeFile(resumeFile);
+
   let resumeUrl: string | undefined;
   try {
     resumeUrl = await persistResumeFile(resumeFile);
@@ -266,6 +276,7 @@ async function persistResumeFile(file: ResumeFileInput): Promise<string> {
   const fileName = `${Date.now()}-${safeName}`;
   const filePath = path.join(uploadDir, fileName);
   await fs.writeFile(filePath, file.buffer);
+  // TODO: replace with pre-signed S3 upload flow once storage service is ready
   return `/uploads/resumes/${fileName}`;
 }
 
@@ -281,4 +292,15 @@ function normalizeOrgId(value: unknown): string | null {
     }
   }
   return null;
+}
+
+function ensureValidResumeFile(file: ResumeFileInput) {
+  if (file.size && file.size > MAX_RESUME_FILE_SIZE) {
+    throw new ApplicationSubmissionError('Resume file exceeds 10MB limit', 400);
+  }
+
+  const mime = file.mimeType?.toLowerCase();
+  if (mime && !ALLOWED_RESUME_MIME_TYPES.includes(mime)) {
+    throw new ApplicationSubmissionError('Resume must be a PDF or Word document', 400);
+  }
 }

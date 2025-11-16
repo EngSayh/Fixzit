@@ -189,7 +189,9 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
             <SelectTrigger className="w-full md:w-[200px]">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4" />
-                <SelectValue placeholder="الحالة (Status)" />
+                <SelectValue>
+                  {statusFilter === 'all' ? 'الحالة (Status)' : statusFilter}
+                </SelectValue>
               </div>
             </SelectTrigger>
             <SelectContent>
@@ -210,7 +212,9 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
             <SelectTrigger className="w-full md:w-[200px]">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4" />
-                <SelectValue placeholder="النوع (Type)" />
+                <SelectValue>
+                  {typeFilter === 'all' ? 'النوع (Type)' : typeFilter}
+                </SelectValue>
               </div>
             </SelectTrigger>
             <SelectContent>

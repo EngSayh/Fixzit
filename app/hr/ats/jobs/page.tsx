@@ -207,7 +207,9 @@ export default function AtsJobsPage() {
             </label>
             <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
               <SelectTrigger>
-                <SelectValue placeholder={t('hr.ats.jobs.filters.statusLabel', 'Status')} />
+                <SelectValue>
+                  {statusOptions.find(o => o.value === statusFilter)?.label || t('hr.ats.jobs.filters.statusLabel', 'Status')}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {statusOptions.map((option) => (
@@ -224,7 +226,9 @@ export default function AtsJobsPage() {
             </label>
             <Select value={jobTypeFilter} onValueChange={(value) => setJobTypeFilter(value)}>
               <SelectTrigger>
-                <SelectValue placeholder={t('hr.ats.jobs.filters.jobTypeLabel', 'Job type')} />
+                <SelectValue>
+                  {jobTypeOptions.find(o => o.value === jobTypeFilter)?.label || t('hr.ats.jobs.filters.jobTypeLabel', 'Job type')}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {jobTypeOptions.map((option) => (
