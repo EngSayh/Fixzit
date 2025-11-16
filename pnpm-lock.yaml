@@ -177,6 +177,9 @@ importers:
       '@eslint/js':
         specifier: ^9.39.0
         version: 9.39.1
+      '@faker-js/faker':
+        specifier: ^10.1.0
+        version: 10.1.0
       '@next/bundle-analyzer':
         specifier: ^16.0.1
         version: 16.0.3
@@ -201,9 +204,6 @@ importers:
       '@types/bcryptjs':
         specifier: ^2.4.6
         version: 2.4.6
-      '@types/dompurify':
-        specifier: ^3.2.0
-        version: 3.2.0
       '@types/google.maps':
         specifier: ^3.58.1
         version: 3.58.1
@@ -213,9 +213,6 @@ importers:
       '@types/jsonwebtoken':
         specifier: ^9.0.10
         version: 9.0.10
-      '@types/marked':
-        specifier: ^6.0.0
-        version: 6.0.0
       '@types/node':
         specifier: ^24.9.2
         version: 24.10.1
@@ -291,6 +288,9 @@ importers:
       recast:
         specifier: ^0.23.11
         version: 0.23.11
+      redis:
+        specifier: ^5.9.0
+        version: 5.9.0
       tailwindcss:
         specifier: ^3.4.0
         version: 3.4.18(tsx@4.20.6)(yaml@1.10.2)
@@ -834,6 +834,10 @@ packages:
   '@eslint/plugin-kit@0.4.1':
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@faker-js/faker@10.1.0':
+    resolution: {integrity: sha512-C3mrr3b5dRVlKPJdfrAXS8+dq+rq8Qm5SNRazca0JKgw1HQERFmrVb0towvMmw5uu8hHKNiQasMaR/tydf3Zsg==}
+    engines: {node: ^20.19.0 || ^22.13.0 || ^23.5.0 || >=24.0.0, npm: '>=10'}
 
   '@fastify/busboy@3.2.0':
     resolution: {integrity: sha512-m9FVDXU3GT2ITSe0UaMA5rU3QkfC/UXtCU8y0gSN/GugTqtVldOBWIB5V6V3sbmenVZUIpU6f+mPEO2+m5iTaA==}
@@ -1781,6 +1785,34 @@ packages:
   '@radix-ui/rect@1.1.1':
     resolution: {integrity: sha512-HPwpGIzkl28mWyZqG52jiqDJ12waP11Pa1lGoiyUkIEuMLBP0oeK/C89esbXrxsky5we7dfd8U58nm0SgAWpVw==}
 
+  '@redis/bloom@5.9.0':
+    resolution: {integrity: sha512-W9D8yfKTWl4tP8lkC3MRYkMz4OfbuzE/W8iObe0jFgoRmgMfkBV+Vj38gvIqZPImtY0WB34YZkX3amYuQebvRQ==}
+    engines: {node: '>= 18'}
+    peerDependencies:
+      '@redis/client': ^5.9.0
+
+  '@redis/client@5.9.0':
+    resolution: {integrity: sha512-EI0Ti5pojD2p7TmcS7RRa+AJVahdQvP/urpcSbK/K9Rlk6+dwMJTQ354pCNGCwfke8x4yKr5+iH85wcERSkwLQ==}
+    engines: {node: '>= 18'}
+
+  '@redis/json@5.9.0':
+    resolution: {integrity: sha512-Bm2jjLYaXdUWPb9RaEywxnjmzw7dWKDZI4MS79mTWPV16R982jVWBj6lY2ZGelJbwxHtEVg4/FSVgYDkuO/MxA==}
+    engines: {node: '>= 18'}
+    peerDependencies:
+      '@redis/client': ^5.9.0
+
+  '@redis/search@5.9.0':
+    resolution: {integrity: sha512-jdk2csmJ29DlpvCIb2ySjix2co14/0iwIT3C0I+7ZaToXgPbgBMB+zfEilSuncI2F9JcVxHki0YtLA0xX3VdpA==}
+    engines: {node: '>= 18'}
+    peerDependencies:
+      '@redis/client': ^5.9.0
+
+  '@redis/time-series@5.9.0':
+    resolution: {integrity: sha512-W6ILxcyOqhnI7ELKjJXOktIg3w4+aBHugDbVpgVLPZ+YDjObis1M0v7ZzwlpXhlpwsfePfipeSK+KWNuymk52w==}
+    engines: {node: '>= 18'}
+    peerDependencies:
+      '@redis/client': ^5.9.0
+
   '@reduxjs/toolkit@2.10.1':
     resolution: {integrity: sha512-/U17EXQ9Do9Yx4DlNGU6eVNfZvFJfYpUtRRdLf19PbPjdWBxNlxGZXywQZ1p1Nz8nMkWplTI7iD/23m07nolDA==}
     peerDependencies:
@@ -2395,10 +2427,6 @@ packages:
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
 
-  '@types/dompurify@3.2.0':
-    resolution: {integrity: sha512-Fgg31wv9QbLDA0SpTOXO3MaxySc4DKGLi8sna4/Utjo4r3ZRPdCt4UQee8BWr+Q5z21yifghREPJGYaEOEIACg==}
-    deprecated: This is a stub types definition. dompurify provides its own type definitions, so you do not need this installed.
-
   '@types/eslint-scope@3.7.7':
     resolution: {integrity: sha512-MzMFlSLBqNF2gcHWO0G1vP/YQyfvrxZ0bF+u7mzUdZ1/xK4A4sru+nraZz5i3iEIk1l1uyicaDVTB4QbbEkAYg==}
 
@@ -2437,10 +2465,6 @@ packages:
 
   '@types/long@4.0.2':
     resolution: {integrity: sha512-MqTGEo5bj5t157U6fA/BiDynNkn0YknVdh48CMPkTSpFTVmvao5UQmm7uEF6xBEo7qIMAlY/JSleYaE6VOdpaA==}
-
-  '@types/marked@6.0.0':
-    resolution: {integrity: sha512-jmjpa4BwUsmhxcfsgUit/7A9KbrC48Q0q8KvnY107ogcjGgTFDlIL3RpihNpx2Mu1hM4mdFQjoVc4O6JoGKHsA==}
-    deprecated: This is a stub types definition. marked provides its own type definitions, so you do not need this installed.
 
   '@types/mdast@4.0.4':
     resolution: {integrity: sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==}
@@ -4163,11 +4187,6 @@ packages:
     resolution: {integrity: sha512-xaSxkaU7wY/0852zGApM8LdlIfGCW8ETZ0Rr62IQtAnUMlMuifsg09vWJcNYeL4f0anvr8Vo4ZQar8jGpV0btQ==}
     engines: {node: '>=20'}
 
-  marked@17.0.0:
-    resolution: {integrity: sha512-KkDYEWEEiYJw/KC+DVm1zzlpMQSMIu6YRltkcCvwheCp8HWPXCk9JwOmHJKBlGfzcpzcIt6x3sMnTsRm/51oDg==}
-    engines: {node: '>= 20'}
-    hasBin: true
-
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
@@ -4980,6 +4999,10 @@ packages:
   redis-parser@3.0.0:
     resolution: {integrity: sha512-DJnGAeenTdpMEH6uAJRK/uiyEIH9WVsUmoLwzudwGJUwZPp80PDBWPHXSAGNPwNvIXAbe7MSUB1zQFugFml66A==}
     engines: {node: '>=4'}
+
+  redis@5.9.0:
+    resolution: {integrity: sha512-E8dQVLSyH6UE/C9darFuwq4usOPrqfZ1864kI4RFbr5Oj9ioB9qPF0oJMwX7s8mf6sPYrz84x/Dx1PGF3/0EaQ==}
+    engines: {node: '>= 18'}
 
   redux-thunk@3.1.0:
     resolution: {integrity: sha512-NW2r5T6ksUKXCabzhL9z+h206HQw/NJkcLm1GPImRQ8IzfXwRGqjVhKJGauHirT0DAuyy6hjdnMZaRoAcy0Klw==}
@@ -6724,6 +6747,8 @@ snapshots:
       '@eslint/core': 0.17.0
       levn: 0.4.1
 
+  '@faker-js/faker@10.1.0': {}
+
   '@fastify/busboy@3.2.0': {}
 
   '@firebase/app-check-interop-types@0.3.3': {}
@@ -7687,6 +7712,26 @@ snapshots:
 
   '@radix-ui/rect@1.1.1': {}
 
+  '@redis/bloom@5.9.0(@redis/client@5.9.0)':
+    dependencies:
+      '@redis/client': 5.9.0
+
+  '@redis/client@5.9.0':
+    dependencies:
+      cluster-key-slot: 1.1.2
+
+  '@redis/json@5.9.0(@redis/client@5.9.0)':
+    dependencies:
+      '@redis/client': 5.9.0
+
+  '@redis/search@5.9.0(@redis/client@5.9.0)':
+    dependencies:
+      '@redis/client': 5.9.0
+
+  '@redis/time-series@5.9.0(@redis/client@5.9.0)':
+    dependencies:
+      '@redis/client': 5.9.0
+
   '@reduxjs/toolkit@2.10.1(react-redux@9.2.0(@types/react@18.3.26)(react@18.3.1)(redux@5.0.1))(react@18.3.1)':
     dependencies:
       '@standard-schema/spec': 1.0.0
@@ -8459,10 +8504,6 @@ snapshots:
 
   '@types/deep-eql@4.0.2': {}
 
-  '@types/dompurify@3.2.0':
-    dependencies:
-      dompurify: 3.3.0
-
   '@types/eslint-scope@3.7.7':
     dependencies:
       '@types/eslint': 9.6.1
@@ -8510,10 +8551,6 @@ snapshots:
 
   '@types/long@4.0.2':
     optional: true
-
-  '@types/marked@6.0.0':
-    dependencies:
-      marked: 17.0.0
 
   '@types/mdast@4.0.4':
     dependencies:
@@ -10400,8 +10437,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  marked@17.0.0: {}
-
   math-intrinsics@1.1.0: {}
 
   mdast-util-from-markdown@2.0.2:
@@ -11343,6 +11378,14 @@ snapshots:
   redis-parser@3.0.0:
     dependencies:
       redis-errors: 1.2.0
+
+  redis@5.9.0:
+    dependencies:
+      '@redis/bloom': 5.9.0(@redis/client@5.9.0)
+      '@redis/client': 5.9.0
+      '@redis/json': 5.9.0(@redis/client@5.9.0)
+      '@redis/search': 5.9.0(@redis/client@5.9.0)
+      '@redis/time-series': 5.9.0(@redis/client@5.9.0)
 
   redux-thunk@3.1.0(redux@5.0.1):
     dependencies:
