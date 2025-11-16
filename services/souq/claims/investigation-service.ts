@@ -419,7 +419,7 @@ export class InvestigationService {
           resolvedCount++;
         }
       } catch (error) {
-        console.error(`Failed to auto-resolve claim ${claim.claimId}:`, error);
+        logger.error(`Failed to auto-resolve claim ${claim.claimId}:`, error);
       }
     }
 

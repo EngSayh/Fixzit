@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { hasPermission } from '@/lib/ats/rbac';
 import type { ATSRole } from '@/lib/ats/rbac';
 import ApplicationsKanban from '@/components/ats/ApplicationsKanban';
+import { AnalyticsOverview } from '@/components/ats/AnalyticsOverview';
 
 /**
  * ATS Recruitment Dashboard (Monday.com-style)
@@ -124,6 +125,29 @@ export default function RecruitmentPage() {
   const analytics = analyticsData?.data || null;
   const settings = settingsData?.data || null;
 
+  const candidateRows = useMemo(() => {
+    const map = new Map<string, any>();
+    applications.forEach((app: any) => {
+      const candidate = app.candidateId;
+      if (!candidate?._id || map.has(candidate._id)) return;
+      map.set(candidate._id, {
+        id: candidate._id,
+        name: `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim(),
+        email: candidate.email,
+        phone: candidate.phone,
+        experience: candidate.experience,
+        stage: app.stage,
+        jobTitle: app.jobId?.title,
+      });
+    });
+    return Array.from(map.values());
+  }, [applications]);
+
+  const offerRows = useMemo(
+    () => applications.filter((app: any) => ['offer', 'hired'].includes(app.stage)),
+    [applications]
+  );
+
   return (
     <div className="flex flex-col h-full">
       {/* Page Header */}
@@ -146,29 +170,47 @@ export default function RecruitmentPage() {
 
       {/* Tabs Navigation (Monday-style) */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="w-full justify-start rounded-none border-b bg-background px-6 h-12">
+        <TabsList className="w-full justify-start rounded-none border-b bg-background px-6 h-12 overflow-x-auto">
           <TabsTrigger value="jobs" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
             📋 Jobs
           </TabsTrigger>
-          
+
           {canViewApplications && (
             <TabsTrigger value="applications" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
               📝 Applications
             </TabsTrigger>
           )}
-          
+
+          {canViewApplications && (
+            <TabsTrigger value="pipeline" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
+              🌀 Pipeline
+            </TabsTrigger>
+          )}
+
+          {canViewApplications && (
+            <TabsTrigger value="candidates" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
+              👥 Candidates
+            </TabsTrigger>
+          )}
+
           {canScheduleInterviews && (
             <TabsTrigger value="interviews" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
               🗓️ Interviews
             </TabsTrigger>
           )}
-          
+
           {canViewApplications && (
-            <TabsTrigger value="pipeline" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
-              📊 Pipeline
+            <TabsTrigger value="offers" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
+              📄 Offers
             </TabsTrigger>
           )}
-          
+
+          {canViewApplications && (
+            <TabsTrigger value="analytics" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
+              📈 Analytics
+            </TabsTrigger>
+          )}
+
           {canViewSettings && (
             <TabsTrigger value="settings" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
               ⚙️ Settings
@@ -612,6 +654,60 @@ export default function RecruitmentPage() {
         {/* Pipeline Tab */}
         {canViewApplications && (
           <TabsContent value="pipeline" className="flex-1 p-6">
+            <ApplicationsKanban />
+          </TabsContent>
+        )}
+
+        {canViewApplications && (
+          <TabsContent value="candidates" className="flex-1 p-6">
+            {candidateRows.length === 0 ? (
+              <div className="bg-card border rounded-lg p-8 text-center">
+                <div className="text-6xl mb-4">👥</div>
+                <h2 className="text-xl font-semibold mb-2">No Candidates Yet</h2>
+                <p className="text-muted-foreground">New applicants will appear here for quick review.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto border rounded-xl">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-muted/60">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Candidate</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Role</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Stage</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Experience</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border bg-background">
+                    {candidateRows.map((candidate) => (
+                      <tr key={candidate.id}>
+                        <td className="px-4 py-3">
+                          <div className="font-medium">{candidate.name || 'Candidate'}</div>
+                          <div className="text-sm text-muted-foreground">{candidate.email}</div>
+                        </td>
+                        <td className="px-4 py-3 text-sm">{candidate.jobTitle || '—'}</td>
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-1 text-xs rounded-full bg-accent">{candidate.stage}</span>
+                        </td>
+                        <td className="px-4 py-3 text-sm">{candidate.experience ? `${candidate.experience} yrs` : '—'}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex gap-2">
+                            <button className="px-3 py-1 border rounded-md text-xs">Profile</button>
+                            <button className="px-3 py-1 border rounded-md text-xs">Notes</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </TabsContent>
+        )}
+
+        {/* Analytics Tab */}
+        {canViewApplications && (
+          <TabsContent value="analytics" className="flex-1 p-6">
             {analyticsLoading ? (
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
@@ -634,130 +730,60 @@ export default function RecruitmentPage() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">Pipeline Analytics</h2>
-                  <div className="text-sm text-muted-foreground">
-                    Last {analytics.period} days
-                  </div>
-                </div>
+              <AnalyticsOverview data={analytics} />
+            )}
+          </TabsContent>
+        )}
 
-                {/* Summary Cards */}
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="bg-card border rounded-lg p-4">
-                    <div className="text-sm text-muted-foreground mb-1">Total Applications</div>
-                    <div className="text-3xl font-bold text-primary">{analytics.summary.totalApplications}</div>
-                  </div>
-                  <div className="bg-card border rounded-lg p-4">
-                    <div className="text-sm text-muted-foreground mb-1">Active Jobs</div>
-                    <div className="text-3xl font-bold text-primary">{analytics.summary.activeJobs}</div>
-                  </div>
-                  <div className="bg-card border rounded-lg p-4">
-                    <div className="text-sm text-muted-foreground mb-1">Interviews</div>
-                    <div className="text-3xl font-bold text-secondary-foreground">{analytics.summary.totalInterviews}</div>
-                  </div>
-                  <div className="bg-card border rounded-lg p-4">
-                    <div className="text-sm text-muted-foreground mb-1">Hired</div>
-                    <div className="text-3xl font-bold text-success">{analytics.summary.hiredCount}</div>
-                  </div>
-                </div>
-
-                {/* Applications by Stage */}
-                <div className="bg-card border rounded-lg p-6">
-                  <h3 className="text-lg font-semibold mb-4">Applications by Stage</h3>
-                  <div className="space-y-3">
-                    {analytics.applicationsByStage.map((item: { stage: string; count: number }) => {
-                      const total = analytics.summary.totalApplications;
-                      const percentage = total > 0 ? ((item.count / total) * 100).toFixed(1) : '0';
-                      return (
-                        <div key={item.stage} className="flex items-center gap-4">
-                          <div className="w-32 text-sm font-medium capitalize">{item.stage}</div>
-                          <div className="flex-1">
-                            <div className="w-full bg-accent rounded-full h-6 relative">
-                              <div
-                                className="bg-primary h-6 rounded-full flex items-center justify-center text-xs text-primary-foreground font-medium"
-                                style={{ width: `${percentage}%`, minWidth: '40px' }}
-                              >
-                                {item.count}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="w-16 text-sm text-muted-foreground text-right">{percentage}%</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Conversion Rates */}
-                <div className="bg-card border rounded-lg p-6">
-                  <h3 className="text-lg font-semibold mb-4">Conversion Rates</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
-                      <span className="text-sm">Applied → Screening</span>
-                      <span className="text-lg font-bold text-primary">{analytics.conversionRates.appliedToScreening}%</span>
-                    </div>
-                    <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
-                      <span className="text-sm">Screening → Interview</span>
-                      <span className="text-lg font-bold text-primary">{analytics.conversionRates.screeningToInterview}%</span>
-                    </div>
-                    <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
-                      <span className="text-sm">Interview → Offer</span>
-                      <span className="text-lg font-bold text-primary">{analytics.conversionRates.interviewToOffer}%</span>
-                    </div>
-                    <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
-                      <span className="text-sm">Offer → Hired</span>
-                      <span className="text-lg font-bold text-primary">{analytics.conversionRates.offerToHired}%</span>
-                    </div>
-                  </div>
-                  <div className="mt-4 p-4 bg-success/5 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Overall Conversion Rate</span>
-                      <span className="text-2xl font-bold text-success">{analytics.conversionRates.overallConversion}%</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Average Time in Stage */}
-                {analytics.avgTimeInStage && analytics.avgTimeInStage.length > 0 && (
-                  <div className="bg-card border rounded-lg p-6">
-                    <h3 className="text-lg font-semibold mb-4">Average Time in Stage</h3>
-                    <div className="grid grid-cols-3 gap-4">
-                      {analytics.avgTimeInStage.map((item: { stage: string; avgDays: number }) => (
-                        <div key={item.stage} className="p-4 bg-accent rounded-lg">
-                          <div className="text-sm text-muted-foreground mb-1 capitalize">{item.stage}</div>
-                          <div className="text-2xl font-bold">{item.avgDays} <span className="text-sm font-normal">days</span></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Top Performing Jobs */}
-                {analytics.topJobs && analytics.topJobs.length > 0 && (
-                  <div className="bg-card border rounded-lg p-6">
-                    <h3 className="text-lg font-semibold mb-4">Top Performing Jobs</h3>
-                    <div className="space-y-3">
-                      {analytics.topJobs.map((job: { _id: string; jobTitle: string; applicationsCount: number; avgScore: number }, idx: number) => (
-                        <div key={job._id} className="flex items-center gap-4 p-3 bg-accent rounded-lg">
-                          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-                            {idx + 1}
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-medium">{job.jobTitle}</div>
-                            <div className="text-sm text-muted-foreground">{job.applicationsCount} applications</div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm text-muted-foreground">Avg Score</div>
-                            <div className="text-lg font-bold text-primary">{job.avgScore}%</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+        {canViewApplications && (
+          <TabsContent value="offers" className="flex-1 p-6 space-y-4">
+            {offerRows.length === 0 ? (
+              <div className="bg-card border rounded-lg p-8 text-center">
+                <div className="text-6xl mb-4">📄</div>
+                <h2 className="text-xl font-semibold mb-2">No Offers Yet</h2>
+                <p className="text-muted-foreground">Candidates moved to the offer stage will show up here.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto border rounded-xl">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-muted/60">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Candidate</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Role</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Stage</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">PDF</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border bg-background">
+                    {offerRows.map((app: any) => (
+                      <tr key={app._id}>
+                        <td className="px-4 py-3">
+                          <div className="font-medium">{`${app.candidateId?.firstName || ''} ${app.candidateId?.lastName || ''}`.trim()}</div>
+                          <div className="text-sm text-muted-foreground">{app.candidateId?.email}</div>
+                        </td>
+                        <td className="px-4 py-3 text-sm">{app.jobId?.title || '—'}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <span className="px-2 py-1 text-xs rounded-full bg-accent">{app.stage}</span>
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <a
+                            className="px-3 py-1 border rounded-md text-xs hover:bg-muted transition-colors"
+                            href={`/api/ats/offers/${app._id}/pdf`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Download
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
+            <p className="text-xs text-muted-foreground">
+              Offer PDFs are generated on demand using our in-house pdfkit templating so Finance and HR stay aligned.
+            </p>
           </TabsContent>
         )}
 

@@ -383,10 +383,10 @@ export async function POST(req: NextRequest) {
                   phone: contact.phone,
                   name: contact.name,
                   priority: priority || 'normal',
-              broadcastId: broadcastId.toString(),
-              triggeredBy,
-            },
-          });
+                  broadcastId: broadcastId.toString(),
+                  triggeredBy,
+                },
+              });
         } catch (error) {
           logger.error('[Admin Notification] WhatsApp failed', { error, phone: contact.phone });
           results.whatsapp.failed++;
