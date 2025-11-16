@@ -73,10 +73,17 @@ export default function RecruitmentPage() {
     fetcher
   );
   
+  // Fetch analytics data (only if user has permission)
+  const { data: analyticsData, error: analyticsError, isLoading: analyticsLoading } = useSWR(
+    canViewApplications ? '/api/ats/analytics?period=30' : null,
+    fetcher
+  );
+  
   // Handle 402 Payment Required - redirect to upgrade page
   if ((jobsError && (jobsError as any)?.status === 402) || 
       (applicationsError && (applicationsError as any)?.status === 402) ||
-      (interviewsError && (interviewsError as any)?.status === 402)) {
+      (interviewsError && (interviewsError as any)?.status === 402) ||
+      (analyticsError && (analyticsError as any)?.status === 402)) {
     router.push('/billing/upgrade?feature=ats');
     return (
       <div className="flex items-center justify-center h-full">
@@ -95,6 +102,7 @@ export default function RecruitmentPage() {
   const applicationsCount = applications.length;
   const interviews = interviewsData?.data || [];
   const interviewsCount = interviews.length;
+  const analytics = analyticsData?.data || null;
 
   return (
     <div className="flex flex-col h-full">
@@ -556,16 +564,152 @@ export default function RecruitmentPage() {
         {/* Pipeline Tab */}
         {canViewApplications && (
           <TabsContent value="pipeline" className="flex-1 p-6">
-            <div className="bg-card border rounded-lg p-8 text-center">
-              <div className="text-6xl mb-4">📊</div>
-              <h2 className="text-xl font-semibold mb-2">Recruitment Pipeline</h2>
-              <p className="text-muted-foreground mb-4">
-                Visualize candidate flow, conversion rates, and bottlenecks.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Phase 3: Analytics dashboard with charts and metrics
-              </p>
-            </div>
+            {analyticsLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading analytics...</p>
+                </div>
+              </div>
+            ) : analyticsError ? (
+              <div className="bg-destructive/10 border border-destructive rounded-lg p-6 text-center">
+                <div className="text-4xl mb-4">⚠️</div>
+                <h3 className="text-lg font-semibold text-destructive mb-2">Error Loading Analytics</h3>
+                <p className="text-sm text-muted-foreground">{analyticsError.message}</p>
+              </div>
+            ) : !analytics ? (
+              <div className="bg-card border rounded-lg p-8 text-center">
+                <div className="text-6xl mb-4">📊</div>
+                <h2 className="text-xl font-semibold mb-2">No Data Yet</h2>
+                <p className="text-muted-foreground">
+                  Analytics will appear once you have applications in your pipeline.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">Pipeline Analytics</h2>
+                  <div className="text-sm text-muted-foreground">
+                    Last {analytics.period} days
+                  </div>
+                </div>
+
+                {/* Summary Cards */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="bg-card border rounded-lg p-4">
+                    <div className="text-sm text-muted-foreground mb-1">Total Applications</div>
+                    <div className="text-3xl font-bold text-primary">{analytics.summary.totalApplications}</div>
+                  </div>
+                  <div className="bg-card border rounded-lg p-4">
+                    <div className="text-sm text-muted-foreground mb-1">Active Jobs</div>
+                    <div className="text-3xl font-bold text-blue-600">{analytics.summary.activeJobs}</div>
+                  </div>
+                  <div className="bg-card border rounded-lg p-4">
+                    <div className="text-sm text-muted-foreground mb-1">Interviews</div>
+                    <div className="text-3xl font-bold text-purple-600">{analytics.summary.totalInterviews}</div>
+                  </div>
+                  <div className="bg-card border rounded-lg p-4">
+                    <div className="text-sm text-muted-foreground mb-1">Hired</div>
+                    <div className="text-3xl font-bold text-green-600">{analytics.summary.hiredCount}</div>
+                  </div>
+                </div>
+
+                {/* Applications by Stage */}
+                <div className="bg-card border rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4">Applications by Stage</h3>
+                  <div className="space-y-3">
+                    {analytics.applicationsByStage.map((item: { stage: string; count: number }) => {
+                      const total = analytics.summary.totalApplications;
+                      const percentage = total > 0 ? ((item.count / total) * 100).toFixed(1) : '0';
+                      return (
+                        <div key={item.stage} className="flex items-center gap-4">
+                          <div className="w-32 text-sm font-medium capitalize">{item.stage}</div>
+                          <div className="flex-1">
+                            <div className="w-full bg-accent rounded-full h-6 relative">
+                              <div
+                                className="bg-primary h-6 rounded-full flex items-center justify-center text-xs text-primary-foreground font-medium"
+                                style={{ width: `${percentage}%`, minWidth: '40px' }}
+                              >
+                                {item.count}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="w-16 text-sm text-muted-foreground text-right">{percentage}%</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Conversion Rates */}
+                <div className="bg-card border rounded-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4">Conversion Rates</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
+                      <span className="text-sm">Applied → Screening</span>
+                      <span className="text-lg font-bold text-primary">{analytics.conversionRates.appliedToScreening}%</span>
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
+                      <span className="text-sm">Screening → Interview</span>
+                      <span className="text-lg font-bold text-primary">{analytics.conversionRates.screeningToInterview}%</span>
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
+                      <span className="text-sm">Interview → Offer</span>
+                      <span className="text-lg font-bold text-primary">{analytics.conversionRates.interviewToOffer}%</span>
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
+                      <span className="text-sm">Offer → Hired</span>
+                      <span className="text-lg font-bold text-primary">{analytics.conversionRates.offerToHired}%</span>
+                    </div>
+                  </div>
+                  <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Overall Conversion Rate</span>
+                      <span className="text-2xl font-bold text-green-600">{analytics.conversionRates.overallConversion}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Average Time in Stage */}
+                {analytics.avgTimeInStage && analytics.avgTimeInStage.length > 0 && (
+                  <div className="bg-card border rounded-lg p-6">
+                    <h3 className="text-lg font-semibold mb-4">Average Time in Stage</h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      {analytics.avgTimeInStage.map((item: { stage: string; avgDays: number }) => (
+                        <div key={item.stage} className="p-4 bg-accent rounded-lg">
+                          <div className="text-sm text-muted-foreground mb-1 capitalize">{item.stage}</div>
+                          <div className="text-2xl font-bold">{item.avgDays} <span className="text-sm font-normal">days</span></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Top Performing Jobs */}
+                {analytics.topJobs && analytics.topJobs.length > 0 && (
+                  <div className="bg-card border rounded-lg p-6">
+                    <h3 className="text-lg font-semibold mb-4">Top Performing Jobs</h3>
+                    <div className="space-y-3">
+                      {analytics.topJobs.map((job: { _id: string; jobTitle: string; applicationsCount: number; avgScore: number }, idx: number) => (
+                        <div key={job._id} className="flex items-center gap-4 p-3 bg-accent rounded-lg">
+                          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                            {idx + 1}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium">{job.jobTitle}</div>
+                            <div className="text-sm text-muted-foreground">{job.applicationsCount} applications</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm text-muted-foreground">Avg Score</div>
+                            <div className="text-lg font-bold text-primary">{job.avgScore}%</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </TabsContent>
         )}
 
