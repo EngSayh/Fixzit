@@ -6,6 +6,7 @@ import ClaimDetails from '@/components/souq/claims/ClaimDetails';
 import ResponseForm from '@/components/souq/claims/ResponseForm';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 type ViewMode = 'list' | 'details' | 'respond';
 
 export default function SellerClaimsPage() {
+  const { t } = useI18n();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
   const [showResponseDialog, setShowResponseDialog] = useState(false);
@@ -68,10 +70,10 @@ export default function SellerClaimsPage() {
           )}
           <div>
             <h1 className="text-3xl font-bold">
-              المطالبات المقدمة ضدي
+              {t('marketplace.claims.seller.title')}
             </h1>
             <p className="text-muted-foreground">
-              Claims Against My Products
+              {t('marketplace.claims.seller.subtitle')}
             </p>
           </div>
         </div>
@@ -81,13 +83,7 @@ export default function SellerClaimsPage() {
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          <span className="font-semibold">تنبيه هام:</span> يجب الرد على المطالبات خلال 48 ساعة من استلام الإشعار. 
-          عدم الرد قد يؤدي إلى قرار تلقائي لصالح المشتري.
-          <br />
-          <span className="text-xs">
-            <strong>Important:</strong> You must respond to claims within 48 hours of notification. 
-            Failure to respond may result in an automatic decision in favor of the buyer.
-          </span>
+          <span className="font-semibold">{t('marketplace.claims.seller.importantNotice')}</span> {t('marketplace.claims.seller.responseDeadline')}
         </AlertDescription>
       </Alert>
 
@@ -111,9 +107,9 @@ export default function SellerClaimsPage() {
       <Dialog open={showResponseDialog} onOpenChange={setShowResponseDialog}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>الرد على المطالبة</DialogTitle>
+            <DialogTitle>{t('marketplace.claims.seller.respondToClaim')}</DialogTitle>
             <DialogDescription>
-              Submit Your Response to the Claim
+              {t('marketplace.claims.seller.respondToClaimSubtitle')}
             </DialogDescription>
           </DialogHeader>
           {claimForResponse && (

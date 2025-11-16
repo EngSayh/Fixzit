@@ -900,6 +900,38 @@ const ar = {
         submitting: 'جاري الإرسال...',
       },
     },
+    settlements: {
+      title: 'التسويات والمدفوعات',
+      subtitle: 'إدارة أرباحك وعمليات السحب',
+      loading: 'جاري التحميل...',
+      pleaseLogin: 'يرجى تسجيل الدخول',
+      mustBeSeller: 'يجب أن تكون بائعاً للوصول إلى هذه الصفحة',
+      withdrawalSuccess: 'تم إرسال طلب السحب بنجاح!',
+      tabs: {
+        transactions: 'المعاملات',
+        statements: 'كشوف الحساب',
+      },
+      comingSoon: 'قريباً: سجل كشوف الحساب',
+    },
+    claims: {
+      seller: {
+        title: 'المطالبات المقدمة ضدي',
+        subtitle: 'إدارة المطالبات ضد منتجاتك',
+        importantNotice: 'تنبيه هام:',
+        responseDeadline: 'يجب الرد على المطالبات خلال 48 ساعة من استلام الإشعار. عدم الرد قد يؤدي إلى قرار تلقائي لصالح المشتري.',
+        respondToClaim: 'الرد على المطالبة',
+        respondToClaimSubtitle: 'قدم ردك على المطالبة',
+      },
+      buyer: {
+        title: 'مطالباتي',
+        subtitle: 'تتبع وإدارة مطالباتك',
+        newClaim: 'تقديم مطالبة جديدة',
+      },
+      admin: {
+        title: 'إدارة المطالبات',
+        subtitle: 'إدارة جميع مطالبات النظام',
+      },
+    },
   },
   hr: {
     title: 'الموارد البشرية',

@@ -7,6 +7,7 @@ import ClaimDetails from '@/components/souq/claims/ClaimDetails';
 import ClaimForm from '@/components/souq/claims/ClaimForm';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, FileText } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,7 @@ import {
 type ViewMode = 'list' | 'details' | 'new';
 
 export default function BuyerClaimsPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
@@ -62,17 +64,17 @@ export default function BuyerClaimsPage() {
           )}
           <div>
             <h1 className="text-3xl font-bold">
-              مطالباتي
+              {t('marketplace.claims.buyer.title')}
             </h1>
             <p className="text-muted-foreground">
-              My A-to-Z Guarantee Claims
+              {t('marketplace.claims.buyer.subtitle')}
             </p>
           </div>
         </div>
         {viewMode === 'list' && (
           <Button onClick={handleNewClaim}>
             <FileText className="w-4 h-4 mr-2" />
-            تقديم مطالبة جديدة
+            {t('marketplace.claims.buyer.newClaim', 'تقديم مطالبة جديدة')}
           </Button>
         )}
       </div>

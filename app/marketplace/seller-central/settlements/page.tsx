@@ -11,8 +11,10 @@ import { TransactionHistory } from '@/components/seller/settlements/TransactionH
 import { WithdrawalForm } from '@/components/seller/settlements/WithdrawalForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthSession } from '@/hooks/useAuthSession';
+import { useI18n } from '@/i18n/useI18n';
 
 export default function SellerSettlementsPage() {
+  const { t } = useI18n();
   const session = useAuthSession();
   const [balance, setBalance] = useState({
     available: 0,
@@ -47,7 +49,7 @@ export default function SellerSettlementsPage() {
   const handleWithdrawalSuccess = () => {
     setShowWithdrawalForm(false);
     fetchBalance();
-    alert('تم إرسال طلب السحب بنجاح! (Withdrawal request submitted successfully!)');
+    alert(t('marketplace.settlements.withdrawalSuccess'));
   };
 
   // Check authentication and seller role
@@ -55,7 +57,7 @@ export default function SellerSettlementsPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center py-12">
-          <p className="text-red-500">يرجى تسجيل الدخول (Please log in)</p>
+          <p className="text-red-500">{t('marketplace.settlements.pleaseLogin')}</p>
         </div>
       </div>
     );
@@ -66,7 +68,7 @@ export default function SellerSettlementsPage() {
       <div className="container mx-auto p-6">
         <div className="text-center py-12">
           <p className="text-red-500">
-            يجب أن تكون بائعاً للوصول إلى هذه الصفحة (You must be a seller to access this page)
+            {t('marketplace.settlements.mustBeSeller')}
           </p>
         </div>
       </div>
@@ -77,7 +79,7 @@ export default function SellerSettlementsPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center py-12">
-          <p className="text-gray-500">جاري التحميل... (Loading...)</p>
+          <p className="text-gray-500">{t('marketplace.settlements.loading')}</p>
         </div>
       </div>
     );
@@ -86,7 +88,7 @@ export default function SellerSettlementsPage() {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">
-        التسويات والمدفوعات (Settlements & Payouts)
+        {t('marketplace.settlements.title')}
       </h1>
 
       {/* Balance Overview */}
@@ -113,10 +115,10 @@ export default function SellerSettlementsPage() {
       <Tabs defaultValue="transactions" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="transactions">
-            المعاملات (Transactions)
+            {t('marketplace.settlements.tabs.transactions')}
           </TabsTrigger>
           <TabsTrigger value="statements">
-            كشوف الحساب (Statements)
+            {t('marketplace.settlements.tabs.statements')}
           </TabsTrigger>
         </TabsList>
 
@@ -126,7 +128,7 @@ export default function SellerSettlementsPage() {
 
         <TabsContent value="statements" className="mt-6">
           <div className="text-center py-12 text-gray-500">
-            <p>قريباً: سجل كشوف الحساب (Coming soon: Settlement statements history)</p>
+            <p>{t('marketplace.settlements.comingSoon')}</p>
           </div>
         </TabsContent>
       </Tabs>
