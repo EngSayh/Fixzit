@@ -93,6 +93,38 @@ export class AutoRepricerService {
           // Trigger Buy Box recalculation
           await BuyBoxService.recalculateBuyBoxForProduct(listing.fsin);
 
+          // Track price history
+          const PriceHistory = (await import('@/server/models/souq/PriceHistory')).default;
+          const change = newPrice - oldPrice;
+          const changePercent = (change / oldPrice) * 100;
+          
+          // Calculate 7-day average sales before change
+          const SouqOrder = (await import('@/server/models/souq/Order')).default;
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          
+          const recentOrders = await SouqOrder.countDocuments({
+            listingId: listing._id.toString(),
+            createdAt: { $gte: sevenDaysAgo },
+            status: { $in: ['completed', 'shipped', 'delivered'] }
+          });
+          
+          await PriceHistory.create({
+            listingId: listing._id.toString(),
+            sellerId,
+            productId: listing.fsin,
+            oldPrice,
+            newPrice,
+            change,
+            changePercent,
+            reason: 'auto_repricer',
+            competitorPrice: buyBoxListing?.price,
+            competitorListingId: buyBoxListing?._id?.toString(),
+            autoRepricerRule: `${rule.targetPosition}-${rule.undercut}`,
+            salesBefore: recentOrders / 7, // Average per day
+            createdAt: new Date()
+          });
+
           // Log price change
           await addJob(
             QUEUE_NAMES.NOTIFICATIONS,
@@ -293,9 +325,21 @@ export class AutoRepricerService {
     listingId: string,
     days: number = 30
   ): Promise<Array<{ date: Date; price: number; reason: string }>> {
-    // TODO: Implement price history tracking in a separate collection
-    // For now, return empty array
-    return [];
+    const PriceHistory = (await import('@/server/models/souq/PriceHistory')).default;
+    
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    
+    const history = await PriceHistory.find({
+      listingId,
+      createdAt: { $gte: startDate }
+    }).sort({ createdAt: 1 }).select('createdAt newPrice reason');
+    
+    return history.map((entry: any) => ({
+      date: entry.createdAt,
+      price: entry.newPrice,
+      reason: entry.reason
+    }));
   }
 
   /**

@@ -47,6 +47,17 @@ export interface IProduct extends Document {
   searchKeywords?: string[]; // For search optimization
   bulletPoints?: Record<string, string[]>; // Key features
   
+  // Reviews & Ratings
+  averageRating: number; // 0-5 star rating
+  reviewCount: number; // Total number of reviews
+  ratingDistribution: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
+  
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -142,6 +153,29 @@ const ProductSchema = new Schema<IProduct>(
     bulletPoints: {
       type: Map,
       of: [String],
+    },
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+      index: true,
+    },
+    reviewCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+      index: true,
+    },
+    ratingDistribution: {
+      type: {
+        1: { type: Number, default: 0 },
+        2: { type: Number, default: 0 },
+        3: { type: Number, default: 0 },
+        4: { type: Number, default: 0 },
+        5: { type: Number, default: 0 },
+      },
+      default: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
     },
   },
   {

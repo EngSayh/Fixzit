@@ -267,12 +267,12 @@ class AnalyticsService {
         unitsSold: stats.unitsSold,
         views,
         conversionRate,
-        averageRating: 0, // TODO: Add rating field to Product model
-        reviewCount: 0 // TODO: Add review count to Product model
+        averageRating: product.averageRating || 0,
+        reviewCount: product.reviewCount || 0
       };
     }).sort((a, b) => b.revenue - a.revenue).slice(0, 10);
 
-    // Low stock alerts (simplified - would query Listing model for actual stock)
+    // Low stock alerts - Query SouqListing model for actual stock levels
     const lowStock: Array<{
       productId: string;
       title: string;
@@ -281,8 +281,32 @@ class AnalyticsService {
       daysUntilStockout: number;
     }> = [];
 
-    // TODO: Query SouqListing model for actual stock levels
-    // For now, return empty array as stock is tracked per listing, not product
+    // Query listings for stock data
+    const SouqListing = (await import('@/server/models/souq/Listing')).default;
+    const listings = await SouqListing.find({
+      sellerId,
+      status: 'active',
+      stock: { $lte: 10 } // Low stock threshold
+    }).select('productId stock');
+
+    for (const listing of listings) {
+      const product = products.find(p => p._id.toString() === listing.productId);
+      if (product) {
+        const stats = productStats.get(product._id.toString()) || { revenue: 0, unitsSold: 0, orders: 0 };
+        const averageDailySales = stats.unitsSold / Math.max(dateRange, 1);
+        const daysUntilStockout = averageDailySales > 0 ? Math.floor(listing.stock / averageDailySales) : 999;
+        
+        if (daysUntilStockout <= 7) { // Alert if < 7 days of stock
+          lowStock.push({
+            productId: product._id.toString(),
+            title: product.title.en || product.title.ar || 'Unknown',
+            currentStock: listing.stock,
+            averageDailySales,
+            daysUntilStockout
+          });
+        }
+      }
+    }
 
     // Identify underperforming products (low conversion)
     const underperforming = products.map(product => {

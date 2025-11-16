@@ -134,8 +134,8 @@ export class BuyBoxService {
       return;
     }
 
-    // TODO(type-safety): Add canCompeteInBuyBox method to Seller model
-    const canCompete = (seller as any).canCompeteInBuyBox();
+    // Check if seller can compete in Buy Box (uses type-safe method)
+    const canCompete = seller.canCompeteInBuyBox();
 
     const listings = await SouqListing.find({
       sellerId,
@@ -144,8 +144,8 @@ export class BuyBoxService {
 
     for (const listing of listings) {
       if (canCompete) {
-        // TODO(type-safety): Add checkBuyBoxEligibility method to Listing model
-        await (listing as any).checkBuyBoxEligibility();
+        // Check listing eligibility (uses type-safe method)
+        await listing.checkBuyBoxEligibility();
       } else {
         listing.buyBoxEligible = false;
         listing.buyBoxScore = 0;
@@ -165,8 +165,8 @@ export class BuyBoxService {
     }).populate('sellerId');
 
     for (const listing of listings) {
-      // TODO(type-safety): Add checkBuyBoxEligibility method to Listing model
-      await (listing as any).checkBuyBoxEligibility();
+      // Check listing eligibility (uses type-safe method)
+      await listing.checkBuyBoxEligibility();
       await listing.save();
     }
   }
