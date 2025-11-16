@@ -466,7 +466,7 @@ export function buildTapCustomer(user: {
 export function buildRedirectUrls(
   baseUrl: string,
   successPath: string = '/payments/success',
-  errorPath: string = '/payments/error'
+  _errorPath: string = '/payments/error'
 ): TapRedirect {
   // Tap requires a single redirect URL - we'll handle success/error via query params
   return {

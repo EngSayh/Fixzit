@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
         {
           package: pkg.toObject?.() ?? pkg,
           payment: payment.toObject?.() ?? payment,
-          redirectUrl: `/aqar/payments/${payment._id}`,
+          redirectUrl: paymentGatewayUrl,
         },
         { correlationId },
         201

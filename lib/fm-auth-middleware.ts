@@ -7,7 +7,6 @@ import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { can, Role, SubmoduleKey, Action, Plan } from '@/domain/fm/fm.behavior';
-import { Organization } from '@/server/models/Organization';
 import { connectDb } from '@/lib/mongo';
 
 export interface FMAuthContext {

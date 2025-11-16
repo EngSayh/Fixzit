@@ -82,7 +82,7 @@ type WorkOrderRecord = {
   workOrderNumber?: string;
   title: string;
   description?: string;
-  status: keyof typeof statusLabels;
+  status: 'SUBMITTED' | 'DISPATCHED' | 'IN_PROGRESS' | 'ON_HOLD' | 'COMPLETED' | 'VERIFIED' | 'CLOSED' | 'CANCELLED';
   priority: WorkOrderPriority;
   createdAt?: string;
   dueAt?: string;
