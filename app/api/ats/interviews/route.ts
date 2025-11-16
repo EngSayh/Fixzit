@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
     
     const interviews = await (Interview as any)
       .find(filter)
+      .select('jobId candidateId applicationId scheduledAt duration stage status feedback interviewers location notes createdAt updatedAt')
       .populate('jobId', 'title department')
       .populate('candidateId', 'firstName lastName email phone')
       .populate('applicationId', 'stage score')

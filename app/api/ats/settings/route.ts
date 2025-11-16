@@ -27,7 +27,14 @@ export async function GET(req: NextRequest) {
     }
 
     const { orgId } = authResult;
-    const settings = await AtsSettings.findOrCreateForOrg(orgId);
+    let settings = await AtsSettings.findOne({ orgId })
+      .select('scoringWeights knockoutRules alerts createdAt updatedAt')
+      .lean();
+    
+    if (!settings) {
+      // Create default settings if not found
+      settings = await AtsSettings.findOrCreateForOrg(orgId);
+    }
 
     return NextResponse.json({
       success: true,

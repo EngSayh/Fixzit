@@ -184,4 +184,9 @@ export const messages = {
       unexpected: 'خطأ غير متوقع',
     },
   },
+  fonts: {
+    formats: {
+      woff2: 'woff2',
+    },
+  },
 };
