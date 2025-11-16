@@ -10,8 +10,10 @@ import { BalanceOverview } from '@/components/seller/settlements/BalanceOverview
 import { TransactionHistory } from '@/components/seller/settlements/TransactionHistory';
 import { WithdrawalForm } from '@/components/seller/settlements/WithdrawalForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuthSession } from '@/hooks/useAuthSession';
 
 export default function SellerSettlementsPage() {
+  const session = useAuthSession();
   const [balance, setBalance] = useState({
     available: 0,
     reserved: 0,
@@ -48,6 +50,29 @@ export default function SellerSettlementsPage() {
     alert('تم إرسال طلب السحب بنجاح! (Withdrawal request submitted successfully!)');
   };
 
+  // Check authentication and seller role
+  if (!session?.isAuthenticated) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center py-12">
+          <p className="text-red-500">يرجى تسجيل الدخول (Please log in)</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session.sellerId) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center py-12">
+          <p className="text-red-500">
+            يجب أن تكون بائعاً للوصول إلى هذه الصفحة (You must be a seller to access this page)
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto p-6">
@@ -76,7 +101,7 @@ export default function SellerSettlementsPage() {
       {showWithdrawalForm && (
         <div className="mb-6">
           <WithdrawalForm
-            sellerId="current-seller-id" // TODO: Get from session
+            sellerId={session.sellerId}
             availableBalance={balance.available}
             statementId={`STMT-${Date.now()}`}
             onSuccess={handleWithdrawalSuccess}
@@ -96,7 +121,7 @@ export default function SellerSettlementsPage() {
         </TabsList>
 
         <TabsContent value="transactions" className="mt-6">
-          <TransactionHistory sellerId="current-seller-id" />
+          <TransactionHistory sellerId={session.sellerId} />
         </TabsContent>
 
         <TabsContent value="statements" className="mt-6">

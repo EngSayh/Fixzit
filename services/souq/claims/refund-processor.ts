@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { getDatabase } from '@/lib/mongodb-unified';
-import { tapPayments } from '@/lib/finance/tap-payments';
+import * as paytabs from '@/lib/paytabs';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
 import { ClaimService } from './claim-service';
 
@@ -108,15 +108,14 @@ export class RefundProcessor {
   }
 
   /**
-   * Execute refund with payment gateway
+   * Execute refund with payment gateway (PayTabs)
    */
   private static async executeRefund(refund: Refund): Promise<RefundResult> {
     // Update to processing
     await this.updateRefundStatus(refund.refundId, 'processing');
 
     try {
-      // TODO: Integrate with actual payment gateway (PayTabs, Stripe, etc.)
-      // For now, simulate payment gateway call
+      // Call PayTabs refund API
       const gatewayResult = await this.callPaymentGateway(refund);
 
       return {
@@ -148,7 +147,7 @@ export class RefundProcessor {
   }
 
   /**
-   * Call payment gateway API
+   * Call payment gateway API - Using PayTabs for Saudi market
    */
   private static async callPaymentGateway(refund: Refund): Promise<{
     transactionId: string;
@@ -158,13 +157,15 @@ export class RefundProcessor {
       throw new Error('Missing original transaction reference for refund');
     }
 
-    if (!process.env.TAP_SECRET_KEY) {
-      throw new Error('Tap Payments credentials not configured');
+    if (!process.env.PAYTABS_SERVER_KEY) {
+      throw new Error('PayTabs credentials not configured. Set PAYTABS_SERVER_KEY and PAYTABS_PROFILE_ID.');
     }
 
-    const tapRefund = await tapPayments.createRefund({
-      charge_id: refund.originalTransactionId,
-      amount: tapPayments.sarToHalalas(refund.amount),
+    // Use PayTabs refund API
+    const paytabsRefund = await paytabs.createRefund({
+      originalTransactionId: refund.originalTransactionId,
+      refundId: refund.refundId,
+      amount: refund.amount, // PayTabs uses decimal SAR, not halalas
       currency: 'SAR',
       reason: refund.reason,
       metadata: {
@@ -175,13 +176,22 @@ export class RefundProcessor {
       },
     });
 
-    if (tapRefund.status !== 'SUCCEEDED' && tapRefund.status !== 'PENDING') {
-      throw new Error(`Tap refund failed with status ${tapRefund.status}`);
+    if (!paytabsRefund.success) {
+      throw new Error(paytabsRefund.error || 'PayTabs refund failed');
+    }
+
+    // Map PayTabs status codes to internal status
+    // A = Approved, P = Pending, D = Declined
+    const status = paytabsRefund.status === 'A' ? 'SUCCEEDED' : 
+                   paytabsRefund.status === 'P' ? 'PENDING' : 'FAILED';
+
+    if (status === 'FAILED') {
+      throw new Error(`PayTabs refund declined: ${paytabsRefund.message}`);
     }
 
     return {
-      transactionId: tapRefund.id,
-      status: tapRefund.status,
+      transactionId: paytabsRefund.refundId!,
+      status: status,
     };
   }
 

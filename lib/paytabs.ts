@@ -261,3 +261,166 @@ export const getAvailablePaymentMethods = (): PaymentMethod[] => {
     }
   ];
 };
+
+/**
+ * Refund Request Parameters
+ */
+export interface RefundRequest {
+  /** Original transaction reference from PayTabs */
+  originalTransactionId: string;
+  /** Unique refund identifier for tracking */
+  refundId: string;
+  /** Amount to refund in major currency units (e.g., SAR not halalas) */
+  amount: number;
+  /** Currency code (SAR, AED, etc.) */
+  currency: string;
+  /** Reason for refund */
+  reason?: string;
+  /** Additional metadata for tracking */
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Refund Response
+ */
+export interface RefundResponse {
+  /** Whether the refund was successful */
+  success: boolean;
+  /** PayTabs refund transaction reference */
+  refundId?: string;
+  /** Refund status: A = Approved, P = Pending, D = Declined */
+  status?: string;
+  /** Human-readable message */
+  message?: string;
+  /** Error message if failed */
+  error?: string;
+}
+
+/**
+ * Refund Status Query Response
+ */
+export interface RefundStatusResponse {
+  /** Transaction reference */
+  tran_ref: string;
+  /** Payment result details */
+  payment_result: {
+    /** Response status: A = Approved, D = Declined, P = Pending */
+    response_status: string;
+    /** Numeric response code */
+    response_code: string;
+    /** Human-readable message */
+    response_message: string;
+  };
+  /** Cart/Order ID */
+  cart_id: string;
+  /** Refund amount */
+  cart_amount: string;
+  /** Currency code */
+  cart_currency: string;
+  /** Transaction type */
+  tran_type: string;
+}
+
+/**
+ * Create a refund for a previous transaction
+ * @param request - Refund request parameters
+ * @returns Refund response with status
+ */
+export async function createRefund(request: RefundRequest): Promise<RefundResponse> {
+  validatePayTabsConfig();
+  
+  try {
+    const payload = {
+      profile_id: PAYTABS_CONFIG.profileId,
+      tran_ref: request.originalTransactionId,
+      tran_type: 'refund',
+      tran_class: 'ecom',
+      cart_id: request.refundId,
+      cart_currency: request.currency,
+      cart_amount: request.amount.toFixed(2),
+      cart_description: request.reason || 'Refund',
+      // Include metadata if provided
+      ...(request.metadata && Object.keys(request.metadata).length > 0 ? {
+        udf1: JSON.stringify(request.metadata)
+      } : {})
+    };
+
+    logger.info('[PayTabs] Creating refund', {
+      refundId: request.refundId,
+      originalTxn: request.originalTransactionId,
+      amount: request.amount,
+      currency: request.currency
+    });
+
+    const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/request`, {
+      method: 'POST',
+      headers: {
+        'Authorization': PAYTABS_CONFIG.serverKey!,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+
+    logger.info('[PayTabs] Refund response', { data });
+
+    if (data.tran_ref) {
+      const status = data.payment_result?.response_status || 'P';
+      const message = data.payment_result?.response_message || 'Refund initiated';
+      
+      return {
+        success: status === 'A' || status === 'P', // Approved or Pending
+        refundId: data.tran_ref,
+        status,
+        message
+      };
+    } else {
+      return {
+        success: false,
+        error: data.result || data.message || 'Refund failed'
+      };
+    }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Refund processing error';
+    logger.error('[PayTabs] Refund error', { error, request });
+    return {
+      success: false,
+      error: errorMessage
+    };
+  }
+}
+
+/**
+ * Query the status of a refund transaction
+ * @param tranRef - Transaction reference from PayTabs
+ * @returns Refund status details
+ */
+export async function queryRefundStatus(tranRef: string): Promise<RefundStatusResponse> {
+  validatePayTabsConfig();
+  
+  try {
+    logger.info('[PayTabs] Querying refund status', { tranRef });
+
+    const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/query`, {
+      method: 'POST',
+      headers: {
+        'Authorization': PAYTABS_CONFIG.serverKey!,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        profile_id: PAYTABS_CONFIG.profileId,
+        tran_ref: tranRef
+      })
+    });
+
+    const data = await response.json();
+    
+    logger.info('[PayTabs] Refund status response', { data });
+
+    return data;
+  } catch (error) {
+    logger.error('[PayTabs] Refund status query error', { error, tranRef });
+    throw error;
+  }
+}

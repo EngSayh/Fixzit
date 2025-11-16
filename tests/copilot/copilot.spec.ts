@@ -227,7 +227,20 @@ test.describe('Fixzit AI Assistant - STRICT v4 Compliance', () => {
       const testName = 'apartment-search-authenticated';
 
       await page.goto('/login');
-      // TODO: Authenticate as tenant
+      
+      // Set authentication session in localStorage
+      await page.evaluate(() => {
+        localStorage.setItem('next-auth.session-token', JSON.stringify({
+          user: {
+            id: 'test-tenant-id',
+            email: 'test@fixzit.sa',
+            name: 'Test Tenant',
+            role: 'TENANT',
+            tenantId: 'org-123',
+          },
+          expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        }));
+      });
       
       await page.goto('/');
       await openAssistant(page);
