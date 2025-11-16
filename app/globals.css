@@ -2,48 +2,92 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tokens from Fixzit_Master_Design_System.pdf */
 :root {
-  --primary: #0061A8; /* Facility Mgmt */
-  --secondary: #00A859; /* Marketplace */
-  --accent: #FFB400; /* Yellow */
+  /* Brand tokens */
+  --fxz-primary: #0061A8;
+  --fxz-secondary: #00A859;
+  --fxz-accent: #FFB400;
+  --fxz-status-success: #16A34A;
+  --fxz-status-warning: #FACC15;
+  --fxz-status-error: #DC2626;
+  --fxz-status-info: #2563EB;
+  --fxz-status-neutral: #6B7280;
+  --fxz-bg: #F9FAFB;
+  --fxz-surface: #FFFFFF;
+  --fxz-border: #E5E7EB;
+  --fxz-text-primary: #111827;
+  --fxz-text-muted: #6B7280;
+  --fxz-spacing-lg: 1.5rem; /* 24px */
+  --fxz-spacing-xl: 2rem;   /* 32px */
 
-  --light-bg: #F9FAFB;
-  --light-surface: #FFFFFF;
-  --light-border: #E5E7EB;
-  --light-text-primary: #111827;
-  --light-text-secondary: #6B7280;
+  /* Tailwind HSL tokens */
+  --background: 210 20% 98%;
+  --foreground: 221 39% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 221 39% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 221 39% 11%;
+  --muted: 220 16% 90%;
+  --muted-foreground: 220 9% 46%;
+  --accent: 42 100% 50%;
+  --accent-foreground: 221 39% 11%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --primary: 205 100% 33%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 152 100% 33%;
+  --secondary-foreground: 0 0% 100%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 210 20% 98%;
+  --ring: 205 100% 33%;
+  --radius: 1rem;
+  --chart-1: 205 100% 33%;
+  --chart-2: 152 100% 33%;
+  --chart-3: 42 100% 50%;
+  --chart-4: 221 83% 53%;
+  --chart-5: 142 76% 36%;
+  --brand-500: #0061A8;
+  --accent-500: #00A859;
 
-  --dark-bg: #111827;
-  --dark-surface: #1F2937;
-  --dark-border: #374151;
-  --dark-text-primary: #F9FAFB;
-  --dark-text-secondary: #9CA3AF;
-
-  --success: #16A34A;
-  --warning: #FACC15;
-  --error: #DC2626;
-  --info: #2563EB;
-  --neutral: #6B7280;
-
-  --background: var(--light-bg);
-  --surface: var(--light-surface);
-  --text-primary: var(--light-text-primary);
-  --text-secondary: var(--light-text-secondary);
-  --card: #FFFFFF;
+  color-scheme: light;
 }
 
-html,
-body {
-  height: 100%;
-  font-family: 'Inter', 'Nunito Sans', sans-serif;
+html.dark {
+  color-scheme: dark;
+  --fxz-bg: #111827;
+  --fxz-surface: #1F2937;
+  --fxz-border: #374151;
+  --fxz-text-primary: #F9FAFB;
+  --fxz-text-muted: #9CA3AF;
+  --background: 221 39% 11%;
+  --foreground: 210 20% 98%;
+  --card: 215 28% 17%;
+  --card-foreground: 210 20% 98%;
+  --popover: 215 28% 17%;
+  --popover-foreground: 210 20% 98%;
+  --muted: 217 19% 27%;
+  --muted-foreground: 218 11% 65%;
+  --border: 217 19% 27%;
+  --input: 217 19% 27%;
+  --ring: 205 100% 70%;
 }
 
 @layer base {
+  * {
+    @apply border-border;
+  }
+
   body {
-    background-color: var(--background);
-    color: var(--text-primary);
+    font-family: var(--font-inter), var(--font-noto-sans-arabic), 'Inter', 'Noto Sans Arabic', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    background-color: var(--fxz-bg);
+    color: var(--fxz-text-primary);
     @apply antialiased;
+  }
+
+  html[dir='rtl'] body {
+    font-family: var(--font-noto-sans-arabic), var(--font-inter), 'Noto Sans Arabic', 'Inter', system-ui, sans-serif;
   }
 
   a {
@@ -51,160 +95,151 @@ body {
     text-decoration: none;
   }
 
-  [dir="rtl"] .rtl-flip {
-    transform: scaleX(-1);
+  ::selection {
+    background-color: color-mix(in srgb, var(--fxz-primary) 30%, transparent);
+    color: var(--fxz-surface);
   }
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--fxz-bg);
+}
+
+.app-main-row {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.app-sidebar {
+  width: 256px;
+  background-color: #0f172a;
+  color: #E2E8F0;
+  border-inline-end: 1px solid rgba(226, 232, 240, 0.08);
+}
+
+.app-content {
+  flex: 1;
+  background-color: var(--fxz-bg);
 }
 
 @layer components {
   .card {
-    background-color: var(--card);
-    border-color: var(--light-border);
-    @apply rounded-xl shadow-md border;
-  }
-
-  .btn {
-    @apply px-4 py-2 rounded-md border hover:opacity-90;
+    background-color: var(--fxz-surface);
+    border: 1px solid var(--fxz-border);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    @apply shadow-card hover:shadow-card-hover transition;
   }
 
   .btn-primary {
-    background-color: var(--primary);
-    @apply text-white border-transparent;
+    @apply inline-flex h-10 items-center justify-center rounded-xl px-4 font-semibold text-white shadow-card;
+    background-color: var(--fxz-primary);
   }
 
-  .btn-secondary {
-    background-color: var(--light-surface);
-    border-color: var(--primary);
-    color: var(--primary);
+  .btn-ghost {
+    @apply inline-flex h-10 items-center justify-center rounded-xl border px-3 text-sm;
+    background-color: transparent;
+    border-color: rgba(148, 163, 184, 0.4);
+    color: var(--fxz-text-primary);
   }
 
-  .btn-success {
-    background-color: var(--success);
-    @apply text-white border-transparent;
+  .nav-link {
+    @apply text-sm text-slate-100/80 hover:text-white transition-colors;
   }
 
-  .btn-danger {
-    background-color: var(--error);
-    @apply text-white border-transparent;
+  .side-link {
+    @apply flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 transition;
   }
 
-  .kanban-open {
-    background-color: var(--primary);
-    @apply text-white;
+  .side-link-active {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+    font-weight: 600;
   }
 
-  .kanban-progress {
-    background-color: var(--warning);
-    @apply text-black;
+  .pill {
+    @apply inline-flex h-9 items-center rounded-full border px-3 text-sm font-medium;
+    border-color: var(--fxz-border);
+    background-color: var(--fxz-surface);
   }
 
-  .kanban-complete {
-    background-color: var(--success);
-    @apply text-white;
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-tight;
+    background-color: rgba(15, 23, 42, 0.04);
+    color: var(--fxz-text-primary);
   }
 
-  .kanban-overdue {
-    background-color: var(--error);
-    @apply text-white;
+  .badge-success {
+    background-color: color-mix(in srgb, var(--fxz-status-success) 15%, transparent);
+    color: var(--fxz-status-success);
   }
 
-  .invoice-paid {
-    background-color: var(--success);
-    @apply text-white;
+  .badge-warning {
+    background-color: color-mix(in srgb, var(--fxz-status-warning) 25%, transparent);
+    color: #b45309;
   }
 
-  .invoice-unpaid {
-    background-color: var(--warning);
-    @apply text-black;
+  .badge-error {
+    background-color: color-mix(in srgb, var(--fxz-status-error) 20%, transparent);
+    color: var(--fxz-status-error);
   }
 
-  .invoice-overdue {
-    background-color: var(--error);
-    @apply text-white;
+  .status-chip {
+    @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-tight;
   }
 
-  .hr-profile-active {
-    border-color: var(--primary);
+  /* Work Orders */
+  .wo-status-open { background-color: var(--fxz-primary); color: #fff; }
+  .wo-status-progress { background-color: var(--fxz-status-warning); color: #1f2937; }
+  .wo-status-complete { background-color: var(--fxz-status-success); color: #fff; }
+  .wo-status-overdue { background-color: var(--fxz-status-error); color: #fff; }
+
+  /* Properties */
+  .properties-status-active { color: var(--fxz-primary); }
+  .properties-status-occupied { color: var(--fxz-status-success); }
+  .properties-status-expired { color: var(--fxz-status-error); }
+
+  /* Finance */
+  .finance-status-paid { background-color: var(--fxz-status-success); color: #fff; }
+  .finance-status-unpaid { background-color: var(--fxz-status-warning); color: #1f2937; }
+  .finance-status-overdue { background-color: var(--fxz-status-error); color: #fff; }
+
+  /* HR */
+  .hr-profile-active { border-color: var(--fxz-primary); }
+  .hr-profile-terminated { border-color: var(--fxz-status-error); }
+
+  /* CRM */
+  .crm-stage-new { background-color: var(--fxz-primary); color: #fff; }
+  .crm-stage-contacted { background-color: var(--fxz-status-warning); color: #1f2937; }
+  .crm-stage-won { background-color: var(--fxz-status-success); color: #fff; }
+  .crm-stage-lost { background-color: var(--fxz-status-error); color: #fff; }
+
+  /* Marketplace */
+  .marketplace-tab { background-color: color-mix(in srgb, var(--fxz-secondary) 15%, transparent); color: var(--fxz-secondary); }
+  .marketplace-rating { color: var(--fxz-accent); }
+  .marketplace-verified { background-color: var(--fxz-secondary); color: #fff; }
+
+  /* Support */
+  .support-sla-bar {
+    background-image: linear-gradient(90deg, var(--fxz-status-success), var(--fxz-status-warning), var(--fxz-status-error));
   }
 
-  .hr-profile-terminated {
-    border-color: var(--error);
-  }
-
-  .crm-stage-new {
-    background-color: var(--info);
-    @apply text-white;
-  }
-
-  .crm-stage-contacted {
-    background-color: var(--warning);
-    @apply text-black;
-  }
-
-  .crm-stage-won {
-    background-color: var(--success);
-    @apply text-white;
-  }
-
-  .crm-stage-lost {
-    background-color: var(--error);
-    @apply text-white;
-  }
-
-  .marketplace-category {
-    background-color: var(--secondary);
-    @apply text-white;
-  }
-
-  .marketplace-rating {
-    color: var(--accent);
-  }
-
-  .marketplace-verified {
-    background-color: var(--success);
-    @apply text-white;
-  }
-
-  .support-ticket-sla {
-    background: linear-gradient(
-      to right,
-      var(--success),
-      var(--warning),
-      var(--error)
-    );
-  }
-
-  .admin-user-active {
-    color: var(--primary);
-  }
-
-  .admin-user-suspended {
-    color: var(--error);
-  }
-
-  .space-24 {
-    @apply space-y-6;
-  }
-
-  .space-32 {
-    @apply space-y-8;
-  }
+  /* Admin / Reports */
+  .admin-status-active { color: var(--fxz-primary); }
+  .admin-status-suspended { color: var(--fxz-status-error); }
 }
 
-/* Dark mode */
-.dark {
-  --background: var(--dark-bg);
-  --surface: var(--dark-surface);
-  --text-primary: var(--dark-text-primary);
-  --text-secondary: var(--dark-text-secondary);
-  --card: var(--dark-surface);
-}
+.space-24 { gap: var(--fxz-spacing-lg); }
+.space-32 { gap: var(--fxz-spacing-xl); }
 
 .dark .card {
-  background-color: var(--card);
-  border-color: var(--dark-border);
+  background-color: var(--fxz-surface);
+  border-color: var(--fxz-border);
 }
 
-.dark .kanban-open {
-  background-color: #004085;
-}
+.dark .side-link { color: rgba(226, 232, 240, 0.8); }
+.dark .side-link:hover { color: #fff; }
