@@ -67,9 +67,10 @@ Successfully implemented PayTabs payment gateway integration and resolved critic
 ```
 
 **Environment Variables Used:**
-- `PAYTABS_PROFILE_ID` - ✅ Configured in GitHub
-- `PAYTABS_SERVER_KEY` - ✅ Configured in GitHub
+- `PAYTABS_PROFILE_ID` - ✅ Configured in GitHub (secret: PAYTABS)
+- `PAYTABS_SERVER_KEY` - ✅ Configured in GitHub (secret: PAYTABS)
 - `PAYTABS_BASE_URL` - Defaults to https://secure.paytabs.sa
+- `SENDGRID_API_KEY` - ✅ Configured in GitHub (secret: SEND_GRID)
 
 **Status Mapping:**
 | PayTabs Code | Internal Status | Meaning |
@@ -222,10 +223,10 @@ await sendSellerNotification(refund.sellerId, 'REFUND_PROCESSED', {
 - [x] Error handling with retries
 
 ### Environment Variables (CONFIGURED ✅)
-- [x] PAYTABS_PROFILE_ID
-- [x] PAYTABS_SERVER_KEY
+- [x] PAYTABS_PROFILE_ID (GitHub secret: PAYTABS)
+- [x] PAYTABS_SERVER_KEY (GitHub secret: PAYTABS)
 - [x] PAYTABS_BASE_URL (optional, has default)
-- [x] SENDGRID_API_KEY (optional, for notifications)
+- [x] SENDGRID_API_KEY (GitHub secret: SEND_GRID) ✅ **VERIFIED**
 
 ### Database Collections (READY ✅)
 - [x] souq_refunds - Refund tracking
@@ -339,9 +340,9 @@ FILES CREATED:
 - services/notifications/seller-notification-service.ts: Notifications
 
 ENVIRONMENT VARIABLES:
-- PAYTABS_PROFILE_ID (configured ✅)
-- PAYTABS_SERVER_KEY (configured ✅)
-- SENDGRID_API_KEY (optional)
+- PAYTABS_PROFILE_ID (configured ✅ - GitHub secret: PAYTABS)
+- PAYTABS_SERVER_KEY (configured ✅ - GitHub secret: PAYTABS)
+- SENDGRID_API_KEY (configured ✅ - GitHub secret: SEND_GRID)
 
 SECURITY:
 ✅ IBAN checksum validation (ISO 7064 MOD-97)
