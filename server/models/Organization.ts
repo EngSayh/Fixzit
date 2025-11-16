@@ -58,7 +58,7 @@ type Usage = {
   storageUsed: number; // MB
 };
 
-type ModulesConfig = {
+export type ModulesConfig = {
   ats?: {
     enabled: boolean;
     jobPostLimit: number;

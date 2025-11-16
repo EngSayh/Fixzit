@@ -128,7 +128,7 @@ async function checkTestUsersSeeded() {
     }).toArray();
     
     const requiredRoles = ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'TECHNICIAN', 'TENANT', 'VENDOR'];
-    const existingRoles = users.map(u => u.role);
+    const existingRoles = users.map(u => u.role || (u as any).professional?.role);
     const missingRoles = requiredRoles.filter(role => !existingRoles.includes(role));
     
     if (missingRoles.length > 0) {

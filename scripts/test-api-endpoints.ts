@@ -361,32 +361,27 @@ async function testWhatsAppEndpoints() {
 async function testFinanceEndpoints() {
   log('\n📊 Testing Finance Endpoints...', 'INFO');
 
+  // Balance sheet - GET request with query params
+  const asOf = new Date().toISOString();
   const balanceSheetResult = await testEndpoint(
     'Finance - Balance Sheet Report',
-    'POST',
-    '/api/finance/reports/balance-sheet',
+    'GET',
+    `/api/finance/reports/balance-sheet?asOf=${encodeURIComponent(asOf)}`,
     {
-      body: {
-        orgId: TEST_ORG_ID,
-        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        endDate: new Date().toISOString(),
-      },
       requiresAuth: true,
       skipOnFilter: true,
     }
   );
   results.push(balanceSheetResult);
 
+  // Income statement - GET request with query params
+  const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const endDate = new Date().toISOString();
   const incomeStatementResult = await testEndpoint(
     'Finance - Income Statement',
-    'POST',
-    '/api/finance/reports/income-statement',
+    'GET',
+    `/api/finance/reports/income-statement?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`,
     {
-      body: {
-        orgId: TEST_ORG_ID,
-        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        endDate: new Date().toISOString(),
-      },
       requiresAuth: true,
       skipOnFilter: true,
     }
