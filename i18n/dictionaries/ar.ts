@@ -936,7 +936,62 @@ const ar = {
     outOfStock: 'غير متوفر',
     deliveryTime: 'وقت التسليم',
     returnPolicy: 'سياسة الإرجاع',
-    sellerOnboarding: {
+  },
+  souq: {
+    hero: {
+      title: 'سوق فيكزت',
+      subtitle: 'سوقك الشامل لمواد ومعدات وخدمات إدارة المنشآت',
+      browseCatalog: 'تصفح الكتالوج',
+      viewVendors: 'عرض الموردين',
+    },
+    features: {
+      title: 'ميزات السوق',
+      catalog: {
+        title: 'إدارة الكتالوج',
+        description: 'تصفح وإدارة كتالوج منتجاتك مع خيارات تصفية متقدمة',
+      },
+      vendors: {
+        title: 'بوابة الموردين',
+        description: 'التواصل مع الموردين والمزودين الموثوقين',
+      },
+      rfqs: {
+        title: 'طلبات العروض والمناقصات',
+        description: 'طلب عروض أسعار وإدارة عمليات المناقصة',
+      },
+      orders: {
+        title: 'إدارة الطلبات',
+        description: 'تتبع الطلبات وأوامر الشراء وحالة التسليم',
+      },
+      shipping: {
+        title: 'الشحن واللوجستيات',
+        description: 'إدارة الشحن والتتبع وشركاء اللوجستيات',
+      },
+      reviews: {
+        title: 'المراجعات والتقييمات',
+        description: 'عرض وإدارة مراجعات المنتجات وتقييمات الموردين',
+      },
+    },
+  },
+  marketplace: {
+    title: 'السوق',
+    subtitle: 'سوق فيكزت',
+    browseProducts: 'تصفح المنتجات',
+    browseServices: 'تصفح الخدمات',
+    categories: 'الفئات',
+    vendors: 'الموردون',
+    myOrders: 'طلباتي',
+    addToCart: 'أضف إلى السلة',
+    buyNow: 'اشتر الآن',
+    requestQuote: 'طلب عرض سعر',
+    compareProducts: 'قارن المنتجات',
+    productDetails: 'تفاصيل المنتج',
+    specifications: 'المواصفات',
+    reviews: 'المراجعات',
+    rating: 'التقييم',
+    inStock: 'متوفر',
+    outOfStock: 'غير متوفر',
+    deliveryTime: 'وقت التسليم',
+    returnPolicy: 'سياسة الإرجاع',
       progress: {
         business: 'بيانات العمل',
         contact: 'معلومات الاتصال',

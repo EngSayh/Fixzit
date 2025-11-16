@@ -7,6 +7,19 @@
 
 import { logger } from '@/lib/logger';
 
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const SMS_DEV_MODE_ENABLED =
+  process.env.SMS_DEV_MODE === 'true' ||
+  (NODE_ENV !== 'production' && process.env.SMS_DEV_MODE !== 'false');
+
+function hasTwilioConfiguration(): boolean {
+  return Boolean(
+    process.env.TWILIO_ACCOUNT_SID &&
+      process.env.TWILIO_AUTH_TOKEN &&
+      process.env.TWILIO_PHONE_NUMBER
+  );
+}
+
 interface SMSResult {
   success: boolean;
   messageSid?: string;
@@ -54,57 +67,65 @@ function isValidSaudiPhone(phone: string): boolean {
 }
 
 /**
- * Send SMS via Twilio
+ * Send SMS via Twilio (or mocked console output in dev mode)
  */
 export async function sendSMS(to: string, message: string): Promise<SMSResult> {
-  // Validate configuration
-  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
-    const error = 'Twilio not configured. Missing TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, or TWILIO_PHONE_NUMBER';
-    logger.warn('[SMS] Configuration missing', { to });
+  const twilioConfigured = hasTwilioConfiguration();
+  const formattedPhone = formatSaudiPhoneNumber(to);
+
+  if (!isValidSaudiPhone(formattedPhone)) {
+    const error = `Invalid Saudi phone number format: ${to}`;
+    logger.warn('[SMS] Invalid phone number', { to, formattedPhone });
     return { success: false, error };
   }
 
+  if (!twilioConfigured && !SMS_DEV_MODE_ENABLED) {
+    const error = 'Twilio not configured. Missing TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, or TWILIO_PHONE_NUMBER';
+    logger.warn('[SMS] Configuration missing', { to: formattedPhone });
+    return { success: false, error };
+  }
+
+  if (SMS_DEV_MODE_ENABLED) {
+    const messageSid = `dev-${Date.now()}`;
+    logger.info('[SMS] Dev mode enabled - SMS not sent via Twilio', {
+      to: formattedPhone,
+      preview: message,
+      messageSid,
+      twilioConfigured,
+    });
+    return { success: true, messageSid };
+  }
+
   try {
-    // Format and validate phone number
-    const formattedPhone = formatSaudiPhoneNumber(to);
-    
-    if (!isValidSaudiPhone(formattedPhone)) {
-      const error = `Invalid Saudi phone number format: ${to}`;
-      logger.warn('[SMS] Invalid phone number', { to, formattedPhone });
-      return { success: false, error };
-    }
-
-    // Import Twilio client
     const { default: twilio } = await import('twilio');
-    const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
 
-    // Send SMS
     const result = await client.messages.create({
       body: message,
       from: process.env.TWILIO_PHONE_NUMBER,
-      to: formattedPhone
+      to: formattedPhone,
     });
 
     logger.info('[SMS] Message sent successfully', {
       to: formattedPhone,
       messageSid: result.sid,
-      status: result.status
+      status: result.status,
     });
 
     return {
       success: true,
-      messageSid: result.sid
+      messageSid: result.sid,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error('[SMS] Send failed', {
       error: errorMessage,
-      to
+      to: formattedPhone,
     });
 
     return {
       success: false,
-      error: errorMessage
+      error: errorMessage,
     };
   }
 }
@@ -189,7 +210,7 @@ export async function getSMSStatus(messageSid: string): Promise<{
  * Test SMS configuration
  */
 export async function testSMSConfiguration(): Promise<boolean> {
-  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
+  if (!hasTwilioConfiguration()) {
     logger.error('[SMS] Configuration test failed - missing credentials');
     return false;
   }
@@ -207,6 +228,10 @@ export async function testSMSConfiguration(): Promise<boolean> {
     logger.error('[SMS] Configuration test failed', { error });
     return false;
   }
+}
+
+export function isSMSDevModeEnabled(): boolean {
+  return SMS_DEV_MODE_ENABLED;
 }
 
 export { formatSaudiPhoneNumber, isValidSaudiPhone };

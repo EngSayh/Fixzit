@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import { sendOTP, isValidSaudiPhone } from '@/lib/sms';
+import { sendOTP, isValidSaudiPhone, isSMSDevModeEnabled } from '@/lib/sms';
 import { logCommunication } from '@/lib/communication-logger';
 import {
   otpStore,
@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { identifier: identifierRaw, password } = parsed.data;
+    const smsDevMode = isSMSDevModeEnabled();
 
     // 3. Determine login type (email or employee number)
     const emailOk = z.string().email().safeParse(identifierRaw).success;

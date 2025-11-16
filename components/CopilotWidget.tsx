@@ -20,7 +20,7 @@ type SpeechRecognitionInstance = {
   start: () => void;
   stop: () => void;
   lang: string;
-  onresult: (e: SpeechRecognitionEvent) => void;
+  onresult: (_event: SpeechRecognitionEvent) => void;
   onerror: () => void;
   onend: () => void;
 };

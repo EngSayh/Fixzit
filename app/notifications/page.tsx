@@ -12,7 +12,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { logger } from '@/lib/logger';
 
 const formatCountMessage = (
-  formatter: (count: string) => string,
+  formatter: (value: string) => string,
   count: number
 ) => formatter(String(count));
 
