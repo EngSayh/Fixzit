@@ -273,7 +273,7 @@ async function ensureAtsModuleAccess(
   if (module.seats !== Number.MAX_SAFE_INTEGER && ATS_SEAT_REQUIRED_ROLES.includes(role)) {
     const usage = await countAtsSeatUsage(orgId);
     module.seatUsage = usage;
-    if (usage > module.seats) {
+    if (usage >= module.seats) {
       return {
         module,
         errorResponse: NextResponse.json(

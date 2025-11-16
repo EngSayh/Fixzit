@@ -15,7 +15,7 @@ const CreateJobSchema = z.object({
   department: z.string().min(1, 'Department is required'),
   description: z.string().optional(),
   jobType: z.enum(['full-time', 'part-time', 'contract', 'temporary', 'internship', 'remote', 'hybrid']).default('full-time'),
-  status: z.enum(['draft', 'pending', 'published', 'closed', 'archived']).optional(),
+  status: z.enum(['draft', 'pending', 'published', 'closed', 'archived']).default('pending'),
   visibility: z.enum(['internal', 'public']).default('public'),
   location: z
     .object({
@@ -214,7 +214,6 @@ export async function POST(req: NextRequest) {
       orgId,
       slug,
       postedBy: userId,
-      status: normalized.status || 'pending'
     });
     return NextResponse.json({ success: true, data: job }, { status: 201 });
   } catch (error) {
