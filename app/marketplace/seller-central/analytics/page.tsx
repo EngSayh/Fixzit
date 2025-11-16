@@ -151,13 +151,61 @@ export default function AnalyticsPage() {
   }, [period]);
 
   const handleExportCSV = () => {
-    // TODO: Implement CSV export
-    logger.info('Exporting to CSV...');
+    try {
+      const { exportToCSV } = require('@/lib/export-utils');
+      
+      // Prepare export data from current analytics
+      const exportData = [
+        { metric: 'Total Revenue', value: `${data.revenue.total.toFixed(2)} SAR`, trend: `${data.revenue.trend > 0 ? '+' : ''}${data.revenue.trend}%` },
+        { metric: 'Total Orders', value: data.orders.total, trend: `${data.orders.trend > 0 ? '+' : ''}${data.orders.trend}%` },
+        { metric: 'Average Order Value', value: `${data.orders.averageValue.toFixed(2)} SAR`, trend: `${data.orders.trend > 0 ? '+' : ''}${data.orders.trend}%` },
+        { metric: 'Total Customers', value: data.customers.total, trend: `${data.customers.trend > 0 ? '+' : ''}${data.customers.trend}%` },
+        { metric: 'Conversion Rate', value: `${data.conversion.rate}%`, trend: `${data.conversion.trend > 0 ? '+' : ''}${data.conversion.trend}%` },
+      ];
+      
+      const filename = `analytics-${period}-${new Date().toISOString().split('T')[0]}.csv`;
+      exportToCSV(exportData, filename, [
+        { key: 'metric', label: 'Metric' },
+        { key: 'value', label: 'Value' },
+        { key: 'trend', label: 'Trend' },
+      ]);
+      
+      logger.info('Analytics exported to CSV', { period, filename });
+    } catch (error) {
+      logger.error('Failed to export CSV', { error });
+      alert('Failed to export data. Please try again.');
+    }
   };
 
-  const handleExportPDF = () => {
-    // TODO: Implement PDF export
-    logger.info('Exporting to PDF...');
+  const handleExportPDF = async () => {
+    try {
+      const { exportToPDF } = await import('@/lib/export-utils');
+      
+      // Prepare export data
+      const exportData = [
+        { metric: 'Total Revenue', value: `${data.revenue.total.toFixed(2)} SAR`, trend: `${data.revenue.trend > 0 ? '+' : ''}${data.revenue.trend}%` },
+        { metric: 'Total Orders', value: String(data.orders.total), trend: `${data.orders.trend > 0 ? '+' : ''}${data.orders.trend}%` },
+        { metric: 'Average Order Value', value: `${data.orders.averageValue.toFixed(2)} SAR`, trend: `${data.orders.trend > 0 ? '+' : ''}${data.orders.trend}%` },
+        { metric: 'Total Customers', value: String(data.customers.total), trend: `${data.customers.trend > 0 ? '+' : ''}${data.customers.trend}%` },
+        { metric: 'Conversion Rate', value: `${data.conversion.rate}%`, trend: `${data.conversion.trend > 0 ? '+' : ''}${data.conversion.trend}%` },
+      ];
+      
+      const filename = `analytics-${period}-${new Date().toISOString().split('T')[0]}.pdf`;
+      await exportToPDF(exportData, [
+        { key: 'metric', label: 'Metric' },
+        { key: 'value', label: 'Value' },
+        { key: 'trend', label: 'Trend' },
+      ], filename, {
+        title: 'Analytics Dashboard Export',
+        subtitle: `Period: ${period.replace('_', ' ')}`,
+        orientation: 'portrait',
+      });
+      
+      logger.info('Analytics exported to PDF', { period, filename });
+    } catch (error) {
+      logger.error('Failed to export PDF', { error });
+      alert('Failed to export data. Please try again.');
+    }
   };
 
   return (

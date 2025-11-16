@@ -100,7 +100,34 @@ export async function POST(req: NextRequest) {
     if (!authResult.authorized) {
       return authResult.response;
     }
-    const { userId, orgId } = authResult;
+    const { userId, orgId, atsModule } = authResult;
+
+    if (!body?.title) {
+      return NextResponse.json(
+        { success: false, error: 'Job title is required' },
+        { status: 400 }
+      );
+    }
+
+    const jobPostLimit = atsModule?.jobPostLimit ?? Number.MAX_SAFE_INTEGER;
+    const shouldEnforceLimit = Number.isFinite(jobPostLimit) && jobPostLimit !== Number.MAX_SAFE_INTEGER;
+    if (shouldEnforceLimit) {
+      const activeJobCount = await (Job as any).countDocuments({
+        orgId,
+        status: { $in: ['pending', 'published'] },
+      });
+
+      if (activeJobCount >= jobPostLimit) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Job post limit reached for your ATS plan',
+            limit: jobPostLimit,
+          },
+          { status: 403 }
+        );
+      }
+    }
     
     const baseSlug = generateSlug(body.title);
     let slug = baseSlug;
@@ -125,7 +152,6 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
 
 
 

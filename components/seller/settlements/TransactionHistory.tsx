@@ -127,8 +127,45 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
   };
 
   const exportToCSV = () => {
-    // TODO: Implement CSV export
-    logger.info('Exporting transactions to CSV...');
+    try {
+      const { exportToCSV: doExport } = require('@/lib/export-utils');
+      
+      // Filter transactions based on current filters
+      let filtered = transactions;
+      if (typeFilter !== 'all') {
+        filtered = filtered.filter(t => t.type === typeFilter);
+      }
+      if (statusFilter !== 'all') {
+        filtered = filtered.filter(t => t.status === statusFilter);
+      }
+      
+      // Prepare export data
+      const exportData = filtered.map(txn => ({
+        date: new Date(txn.date).toLocaleDateString(),
+        type: getTypeLabel(txn.type),
+        description: txn.description,
+        amount: `${txn.amount >= 0 ? '+' : ''}${txn.amount.toFixed(2)} SAR`,
+        status: txn.status,
+        orderId: txn.orderId || 'N/A',
+        reference: txn.reference || 'N/A',
+      }));
+      
+      const filename = `transactions-${new Date().toISOString().split('T')[0]}.csv`;
+      doExport(exportData, filename, [
+        { key: 'date', label: 'Date' },
+        { key: 'type', label: 'Type' },
+        { key: 'description', label: 'Description' },
+        { key: 'amount', label: 'Amount' },
+        { key: 'status', label: 'Status' },
+        { key: 'orderId', label: 'Order ID' },
+        { key: 'reference', label: 'Reference' },
+      ]);
+      
+      logger.info('Transactions exported to CSV', { count: exportData.length, filename });
+    } catch (error) {
+      logger.error('Failed to export transactions', { error });
+      alert('Failed to export data. Please try again.');
+    }
   };
 
   return (

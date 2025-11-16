@@ -55,8 +55,34 @@ export function SettlementStatementView({ statement }: SettlementStatementViewPr
     }).format(new Date(date));
   };
 
-  const downloadPDF = () => {
-    logger.info('Downloading PDF for', statement.statementId);
+  const downloadPDF = async () => {
+    try {
+      const { exportToPDF } = await import('@/lib/export-utils');
+      
+      // Prepare statement data for PDF
+      const summaryData = [
+        { item: 'Gross Sales', amount: `${statement.summary.grossSales.toFixed(2)} SAR` },
+        { item: 'Commission', amount: `-${statement.summary.commission.toFixed(2)} SAR` },
+        { item: 'Refunds', amount: `-${statement.summary.refunds.toFixed(2)} SAR` },
+        { item: 'Adjustments', amount: `${statement.summary.adjustments.toFixed(2)} SAR` },
+        { item: 'Net Amount', amount: `${statement.summary.netAmount.toFixed(2)} SAR` },
+      ];
+      
+      const filename = `statement-${statement.statementId}.pdf`;
+      await exportToPDF(summaryData, [
+        { key: 'item', label: 'Item' },
+        { key: 'amount', label: 'Amount' },
+      ], filename, {
+        title: 'Settlement Statement',
+        subtitle: `Statement ID: ${statement.statementId} | Period: ${new Date(statement.period.start).toLocaleDateString()} - ${new Date(statement.period.end).toLocaleDateString()}`,
+        orientation: 'portrait',
+      });
+      
+      logger.info('Settlement statement downloaded', { statementId: statement.statementId, filename });
+    } catch (error) {
+      logger.error('Failed to download statement', { error, statementId: statement.statementId });
+      alert('Failed to download statement. Please try again.');
+    }
   };
 
   return (
