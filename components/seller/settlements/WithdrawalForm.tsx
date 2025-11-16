@@ -14,9 +14,10 @@ interface WithdrawalFormProps {
   sellerId: string;
   availableBalance: number;
   onSuccess: () => void;
+  statementId: string;
 }
 
-export function WithdrawalForm({ sellerId: _sellerId, availableBalance, onSuccess }: WithdrawalFormProps) {
+export function WithdrawalForm({ sellerId: _sellerId, availableBalance, onSuccess, statementId }: WithdrawalFormProps) {
   const [formData, setFormData] = useState({
     amount: '',
     iban: '',
@@ -56,7 +57,7 @@ export function WithdrawalForm({ sellerId: _sellerId, availableBalance, onSucces
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount,
-          statementId: `STMT-${Date.now()}`,
+          statementId,
           bankAccount: {
             iban: formData.iban,
             accountHolderName: formData.accountHolderName,

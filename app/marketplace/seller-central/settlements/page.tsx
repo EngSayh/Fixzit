@@ -78,6 +78,7 @@ export default function SellerSettlementsPage() {
           <WithdrawalForm
             sellerId="current-seller-id" // TODO: Get from session
             availableBalance={balance.available}
+            statementId={`STMT-${Date.now()}`}
             onSuccess={handleWithdrawalSuccess}
           />
         </div>
