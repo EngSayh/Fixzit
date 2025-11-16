@@ -36,8 +36,9 @@ const results: TestResult[] = [];
 let authToken: string | null = null;
 let testUserId: string | null = null;
 let sessionCookie: string | null = null;
+let allCookies: string[] = []; // Store all cookies for cookie jar
 
-// Login helper to get auth token
+// Login helper to get auth token and session cookie
 async function authenticateTestUser() {
   try {
     // Use the test admin user
@@ -46,7 +47,9 @@ async function authenticateTestUser() {
       password: 'Test@1234',
     };
     
-    // First, send OTP
+    log('Step 1: Sending OTP...', 'INFO');
+    
+    // Step 1: Send OTP
     const otpResponse = await fetch(`${BASE_URL}/api/auth/otp/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -76,8 +79,9 @@ async function authenticateTestUser() {
     }
     
     log(`Got OTP: ${otp}`, 'INFO');
+    log('Step 2: Verifying OTP...', 'INFO');
     
-    // Verify OTP to get session
+    // Step 2: Verify OTP to get otpToken
     const verifyResponse = await fetch(`${BASE_URL}/api/auth/otp/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -101,14 +105,89 @@ async function authenticateTestUser() {
       return false;
     }
     
-    // Extract session cookie
-    const setCookieHeader = verifyResponse.headers.get('set-cookie');
-    if (setCookieHeader) {
-      sessionCookie = setCookieHeader;
+    const otpToken = verifyResult.data?.otpToken;
+    if (!otpToken) {
+      log('OTP token not received from verification', 'ERROR');
+      return false;
+    }
+    
+    log('Step 3: Creating NextAuth session...', 'INFO');
+    
+    // Step 3a: Get CSRF token (and receive CSRF cookie)
+    const csrfResponse = await fetch(`${BASE_URL}/api/auth/csrf`, {
+      method: 'GET',
+    });
+    
+    const csrfData = await csrfResponse.json();
+    const csrfToken = csrfData.csrfToken;
+    
+    // Store CSRF cookie
+    const csrfSetCookies = csrfResponse.headers.getSetCookie?.() || [csrfResponse.headers.get('set-cookie')].filter(Boolean);
+    if (csrfSetCookies.length > 0) {
+      allCookies.push(...csrfSetCookies);
+    }
+    
+    if (!csrfToken) {
+      log('Failed to get CSRF token', 'ERROR');
+      return false;
+    }
+    
+    if (VERBOSE) {
+      log(`Got CSRF token: ${csrfToken.substring(0, 20)}...`, 'INFO');
+      if (csrfSetCookies.length > 0) {
+        log(`Got ${csrfSetCookies.length} CSRF cookie(s)`, 'INFO');
+      }
+    }
+    
+    // Step 3b: Call NextAuth credentials provider to create session
+    // Include the CSRF cookie in the request
+    const signInResponse = await fetch(`${BASE_URL}/api/auth/callback/credentials`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': allCookies.join('; '),
+      },
+      body: new URLSearchParams({
+        identifier: loginData.identifier,
+        password: loginData.password,
+        otpToken: otpToken,
+        csrfToken: csrfToken,
+        redirect: 'false',
+        callbackUrl: `${BASE_URL}/`,
+      }).toString(),
+      redirect: 'manual', // Don't follow redirects
+    });
+    
+    // Debug: log response status and headers
+    if (VERBOSE) {
+      log(`NextAuth response status: ${signInResponse.status}`, 'INFO');
+      log(`NextAuth response headers:`, 'INFO');
+      signInResponse.headers.forEach((value, key) => {
+        log(`  ${key}: ${value}`, 'INFO');
+      });
+    }
+    
+    // Extract session cookie from Set-Cookie header
+    const signInSetCookies = signInResponse.headers.getSetCookie?.() || [signInResponse.headers.get('set-cookie')].filter(Boolean);
+    if (signInSetCookies.length === 0) {
+      log('No session cookie received from NextAuth', 'ERROR');
+      const responseText = await signInResponse.text();
+      log(`Response status: ${signInResponse.status}`, 'ERROR');
+      log(`Response body: ${responseText}`, 'ERROR');
+      return false;
+    }
+    
+    // Store all cookies (session + CSRF)
+    allCookies.push(...signInSetCookies);
+    sessionCookie = allCookies.map(c => c.split(';')[0]).join('; '); // Extract just the cookie values
+    
+    // Check if we got the session token
+    if (signInSetCookies.some(c => c.includes('authjs.session-token'))) {
       log('Successfully authenticated test user', 'SUCCESS');
       return true;
     }
     
+    log('Got cookies but no session token found', 'WARN');
     return false;
   } catch (error) {
     log(`Authentication error: ${error instanceof Error ? error.message : String(error)}`, 'ERROR');
