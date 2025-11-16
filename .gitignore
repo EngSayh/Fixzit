@@ -40,9 +40,13 @@ Thumbs.db
 *.tgz
 *.gz
 *.bak
+*.bak3
 *.backup
 *.tmp
 *.log
+*.final
+*.final3
+*.emergency-bak
 
 # Temp directory (prevent tracking large patch files)
 /tmp/
