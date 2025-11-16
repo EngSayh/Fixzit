@@ -8,8 +8,8 @@ import { ForbiddenError } from '../lib/errors';
 import { RequestContext } from '../lib/authContext';
 import { log } from '../lib/logger';
 
-export async function postJournal(ctx: RequestContext, journalId: string) {
-  if (!['Finance', 'Admin'].includes(ctx.role)) {
+export async function postJournal(ctx: RequestContext, data: any) {
+  if (!['FINANCE', 'ADMIN', 'SUPER_ADMIN'].includes(ctx.role)) {
     throw new ForbiddenError('Only Finance/Admin can post journals');
   }
 
