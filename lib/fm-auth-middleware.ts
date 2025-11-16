@@ -248,7 +248,6 @@ export function userCan(
  * }
  * ```
  */
->>>>>>> feat/souq-marketplace-advanced
 export async function getPropertyOwnership(_propertyId: string): Promise<{
   ownerId: string;
   orgId: string;
@@ -297,7 +296,6 @@ export async function getPropertyOwnership(_propertyId: string): Promise<{
     return null;
   } catch (error) {
     logger.error('[FM Auth] Property ownership query failed:', { error, propertyId: _propertyId });
->>>>>>> feat/souq-marketplace-advanced
     return null;
   }
 }

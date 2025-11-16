@@ -234,7 +234,6 @@ export async function generateOwnerStatement(
 
   // Convert to interface format
   const transactions: FinancialTransaction[] = dbTransactions.map((t: any) => {
->>>>>>> feat/souq-marketplace-advanced
     const doc = t as unknown as { _id: { toString(): string } };
     return {
       id: doc._id.toString(),
@@ -290,7 +289,6 @@ export async function getTenantPendingInvoices(
 
   // Convert to interface format
   return dbInvoices.map((t: any) => {
->>>>>>> feat/souq-marketplace-advanced
     const doc = t as unknown as { _id: { toString(): string } };
     return {
       id: doc._id.toString(),

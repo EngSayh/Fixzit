@@ -52,7 +52,6 @@ export default async function MarketplaceAdminPage() {
       serverFetchJsonWithTenant<{ data: RFQ[] }>('/api/marketplace/rfq')
     ]);
 
->>>>>>> feat/souq-marketplace-advanced
     const products = productsResponse.data.items;
     const orders = ordersResponse.data;
     const rfqs = rfqResponse.data;
@@ -124,7 +123,6 @@ export default async function MarketplaceAdminPage() {
           <h2 className="text-lg font-semibold text-foreground">
             {t('marketplace.admin.approvals.title', 'Approval queue')}
           </h2>
->>>>>>> feat/souq-marketplace-advanced
           <table className="mt-4 w-full table-fixed text-start text-sm text-foreground">
             <thead>
               <tr className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -163,7 +161,6 @@ export default async function MarketplaceAdminPage() {
           <p className="text-destructive">
             {t('marketplace.admin.error', 'Failed to load marketplace admin data. Please try again later.')}
           </p>
->>>>>>> feat/souq-marketplace-advanced
         </div>
       </div>
     );

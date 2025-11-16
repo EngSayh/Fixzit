@@ -136,7 +136,6 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       };
       checkAuth().catch(err => {
         logger.debug('Unhandled auth check error:', err);
->>>>>>> feat/souq-marketplace-advanced
       });
     }
     return () => { abort = true; };

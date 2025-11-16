@@ -38,7 +38,6 @@ const STATUS_BADGES: Record<string, string> = {
 
 export default async function OrdersPage() {
   const { t } = await getServerI18n();
->>>>>>> feat/souq-marketplace-advanced
   try {
     const [, ordersResponse] = await Promise.all([
       serverFetchJsonWithTenant<{ data: unknown }>('/api/marketplace/categories'),
@@ -131,7 +130,6 @@ export default async function OrdersPage() {
           <p className="text-destructive">
             {t('marketplace.orders.error.message', 'Failed to load orders. Please try again later.')}
           </p>
->>>>>>> feat/souq-marketplace-advanced
         </div>
       </div>
     );

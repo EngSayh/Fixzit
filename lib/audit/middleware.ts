@@ -268,7 +268,6 @@ export async function logAudit(auditData: Parameters<typeof AuditLogModel.log>[0
     // Asynchronously log without awaiting to not block response
     // Use catch to handle any DB errors
     AuditLogModel.log(auditData).catch((dbError: any) => {
->>>>>>> feat/souq-marketplace-advanced
       logger.error('Failed to write audit log to database', {
         error: dbError,
         action: auditData.action,

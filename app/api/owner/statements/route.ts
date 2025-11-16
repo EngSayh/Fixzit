@@ -40,7 +40,6 @@ interface PropertyLean {
   code: string;
 }
 
->>>>>>> feat/souq-marketplace-advanced
 // Type definitions for Mongoose query results
 interface PaymentResponse {
   propertyId?: { toString(): string };
@@ -244,7 +243,6 @@ export async function GET(req: NextRequest) {
         amount: b.payment?.amount || 0,
         reference: b.reference || 'N/A',
         propertyName: property?.name,
->>>>>>> feat/souq-marketplace-advanced
       });
     });    // 4. EXPENSES - Agent Commissions (using Mongoose model aggregate)
     const agentPayments = await AgentContract.aggregate([

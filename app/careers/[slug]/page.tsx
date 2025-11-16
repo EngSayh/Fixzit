@@ -39,7 +39,6 @@ export default async function JobDetailPage({ params }: { params: { slug: string
               <h3 className="font-semibold">Requirements</h3>
               <ul className="list-disc ms-6 text-foreground">
                 {job.requirements.map((r: string) => <li key={r}>{r}</li>)}
->>>>>>> feat/souq-marketplace-advanced
               </ul>
             </div>
           )}
@@ -48,7 +47,6 @@ export default async function JobDetailPage({ params }: { params: { slug: string
               <h3 className="font-semibold">Benefits</h3>
               <ul className="list-disc ms-6 text-foreground">
                 {job.benefits.map((b: string) => <li key={b}>{b}</li>)}
->>>>>>> feat/souq-marketplace-advanced
               </ul>
             </div>
           )}

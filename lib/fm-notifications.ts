@@ -231,7 +231,6 @@ async function sendPushNotifications(
   } else {
     logger.debug('[Notifications] FCM not configured (FCM_SERVER_KEY or FCM_SENDER_ID missing)');
   }
->>>>>>> feat/souq-marketplace-advanced
 }
 
 /**
@@ -307,7 +306,6 @@ async function sendEmailNotifications(
   } else {
     logger.debug('[Notifications] SendGrid not configured (SENDGRID_API_KEY missing)');
   }
->>>>>>> feat/souq-marketplace-advanced
 }
 
 /**
@@ -355,7 +353,6 @@ async function sendSMSNotifications(
   } else {
     logger.debug('[Notifications] Twilio not configured (TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN missing)');
   }
->>>>>>> feat/souq-marketplace-advanced
 }
 
 /**
@@ -403,7 +400,6 @@ async function sendWhatsAppNotifications(
   } else {
     logger.debug('[Notifications] WhatsApp not configured (TWILIO_WHATSAPP_NUMBER or TWILIO_ACCOUNT_SID missing)');
   }
->>>>>>> feat/souq-marketplace-advanced
 }
 
 /**

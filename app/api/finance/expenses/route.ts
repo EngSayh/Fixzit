@@ -194,7 +194,6 @@ export async function POST(req: NextRequest) {
     if (error instanceof Error && error.message.includes('Unauthorized')) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
->>>>>>> feat/souq-marketplace-advanced
 
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });
@@ -314,7 +313,6 @@ export async function GET(req: NextRequest) {
     if (error instanceof Error && error.message.includes('Unauthorized')) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
->>>>>>> feat/souq-marketplace-advanced
     
     if (error instanceof Error && error.message.includes('Forbidden')) {
       return NextResponse.json({ success: false, error: error.message }, { status: 403 });

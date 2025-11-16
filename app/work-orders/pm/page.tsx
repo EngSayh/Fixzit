@@ -4,7 +4,6 @@ import React from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import useSWR from 'swr';
 import ClientDate from '@/components/ClientDate';
->>>>>>> feat/souq-marketplace-advanced
 import { logger } from '@/lib/logger';
 
 const fetcher = (url: string) => fetch(url)

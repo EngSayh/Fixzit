@@ -8,7 +8,6 @@ import { CopilotSession } from "./session";
 import { getPermittedTools } from "./policy";
 import { logger } from "@/lib/logger";
 import { Types } from "mongoose";
->>>>>>> feat/souq-marketplace-advanced
 
 export interface ToolExecutionResult {
   success: boolean;
@@ -187,7 +186,6 @@ async function listMyWorkOrders(session: CopilotSession): Promise<ToolExecutionR
     priority: item.priority,
     updatedAt: item.updatedAt
   }));
->>>>>>> feat/souq-marketplace-advanced
 
   return {
     success: true,

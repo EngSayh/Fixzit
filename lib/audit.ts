@@ -1,7 +1,6 @@
 import { logger } from '@/lib/logger';
 import { AuditLogModel } from '@/server/models/AuditLog';
 
->>>>>>> feat/souq-marketplace-advanced
 /**
  * Audit Logging System
  * 
@@ -42,7 +41,6 @@ export async function audit(event: AuditEvent): Promise<void> {
 
   // Structured logging
   logger.info('[AUDIT]', entry);
->>>>>>> feat/souq-marketplace-advanced
 
   // ✅ Write to database
   try {

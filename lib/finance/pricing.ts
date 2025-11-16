@@ -1,7 +1,6 @@
 import PriceBook from '@/server/models/PriceBook';
 import DiscountRule from '@/server/models/DiscountRule';
 import { z } from 'zod';
->>>>>>> feat/souq-marketplace-advanced
 
 export type BillingCycle = 'MONTHLY' | 'ANNUAL';
 
@@ -64,7 +63,6 @@ const quotePriceSchema = z.object({
   billingCycle: z.enum(['MONTHLY', 'ANNUAL']),
 });
 
->>>>>>> feat/souq-marketplace-advanced
 export async function quotePrice(opts: {
   priceBookCurrency: 'USD' | 'SAR';
   seats: number;
@@ -84,7 +82,6 @@ export async function quotePrice(opts: {
   const { priceBookCurrency, seats, modules, billingCycle } = opts;
 
   // Handle enterprise quotes
->>>>>>> feat/souq-marketplace-advanced
   if (seats > 200) {
     return { requiresQuote: true, total: 0, lines: [], annualDiscount: 0 };
   }
@@ -127,7 +124,6 @@ export async function quotePrice(opts: {
       );
     }
     
->>>>>>> feat/souq-marketplace-advanced
     const perSeatMonthly = priceBookCurrency === 'USD' ? priceRow.monthly_usd : priceRow.monthly_sar;
     const discountedPerSeatMonthly = perSeatMonthly * (1 - tier.discount_pct);
 
@@ -139,7 +135,6 @@ export async function quotePrice(opts: {
 
   // Calculate annual pricing with discount
   if (billingCycle === 'ANNUAL') {
->>>>>>> feat/souq-marketplace-advanced
     const annualDisc = rule?.percentage ?? 0;
     const total = Math.round(subtotalMonthly * 12 * (1 - annualDisc) * 100) / 100;
 
@@ -150,4 +145,3 @@ export async function quotePrice(opts: {
   const total = Math.round(subtotalMonthly * 100) / 100;
   return { requiresQuote: false, total, lines };
 }
->>>>>>> feat/souq-marketplace-advanced

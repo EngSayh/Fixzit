@@ -74,7 +74,6 @@ export async function POST(req: NextRequest) {
         })
       });
 
->>>>>>> feat/souq-marketplace-advanced
       if (!response.ok) {
         throw new Error(`PayTabs HTTP ${response.status}: ${await response.text().catch(() => 'Unknown error')}`);
       }

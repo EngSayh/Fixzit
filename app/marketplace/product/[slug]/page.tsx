@@ -48,7 +48,6 @@ interface Product {
 
 export default async function ProductDetail(props: ProductPageProps) {
   const { t, isRTL } = await getServerI18n();
->>>>>>> feat/souq-marketplace-advanced
   try {
     const params = await props.params;
     const [, productResponse] = await Promise.all([
@@ -199,7 +198,6 @@ export default async function ProductDetail(props: ProductPageProps) {
           </p>
           <Link href="/marketplace" className="mt-4 inline-block text-primary hover:underline">
             {t('marketplace.product.errorCta', 'Return to Marketplace')}
->>>>>>> feat/souq-marketplace-advanced
           </Link>
         </div>
       </div>

@@ -256,7 +256,6 @@ export function WorkOrdersView({ heading, description }: WorkOrdersViewProps) {
             >
               <RefreshCcw className={`me-2 h-4 w-4 ${isValidating ? 'animate-spin' : ''}`} />
               {refreshLabel}
->>>>>>> feat/souq-marketplace-advanced
             </Button>
           </div>
         </CardContent>
@@ -306,7 +305,6 @@ export function WorkOrdersView({ heading, description }: WorkOrdersViewProps) {
                 <div className="text-end text-sm text-muted-foreground">
                   <p>{slaWindowLabel} {slaWindowMinutes ? `${Math.round(slaWindowMinutes / 60)}h` : 'N/A'}</p>
                   <p className={dueMeta.overdue ? 'text-destructive font-semibold' : ''}>{dueLabel} {dueMeta.label}</p>
->>>>>>> feat/souq-marketplace-advanced
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">

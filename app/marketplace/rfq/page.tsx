@@ -34,7 +34,6 @@ export default async function RFQPage() {
 
     const rfqs = rfqResponse.data;
 
->>>>>>> feat/souq-marketplace-advanced
     return (
       <div className="min-h-screen bg-muted flex flex-col">
         
@@ -51,7 +50,6 @@ export default async function RFQPage() {
           <p className="text-destructive">
             {t('marketplace.rfq.error', 'Failed to load RFQ data. Please try again later.')}
           </p>
->>>>>>> feat/souq-marketplace-advanced
         </div>
       </div>
     );

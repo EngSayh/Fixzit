@@ -46,7 +46,6 @@ export default function MapPage() {
             info: `${priceText} • ${extra}`,
           };
         })
->>>>>>> feat/souq-marketplace-advanced
       );
     } catch (error) {
       logger.error('Aqar map cluster load error', { error });

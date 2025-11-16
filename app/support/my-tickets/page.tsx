@@ -185,7 +185,6 @@ export default function MyTicketsPage() {
               <div className="p-4 max-h-96 overflow-y-auto">
                 {selectedTicket.messages?.map((msg, index: number) => (
                   <div key={`msg-${index}`} className={`mb-4 ${
->>>>>>> feat/souq-marketplace-advanced
                     msg.byRole === 'ADMIN' ? 'ms-8' : ''
                   }`}>
                     <div className={`p-3 rounded-2xl ${

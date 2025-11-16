@@ -70,7 +70,6 @@ export async function GET(request: NextRequest) {
     try {
       const categoryDocs = await Category.find({ _id: { $in: facets.categories }, orgId: context.orgId }).lean();
       facetCategories = categoryDocs.map((doc: any) => serializeCategory(doc));
->>>>>>> feat/souq-marketplace-advanced
     } catch (error) {
       logger.error('Error fetching marketplace categories', { error });
       // Continue with empty categories rather than failing entire request

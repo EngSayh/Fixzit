@@ -180,7 +180,6 @@ export default function CatalogPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full ps-10 pe-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
                 aria-label={t('souq.catalog.searchAriaLabel', 'Search products, categories, or vendors')}
->>>>>>> feat/souq-marketplace-advanced
               />
             </div>
 
@@ -190,7 +189,6 @@ export default function CatalogPage() {
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
                 aria-label={t('souq.catalog.filterByCategory', 'Filter by category')}
->>>>>>> feat/souq-marketplace-advanced
               >
                 {categories.map(category => (
                   <option key={category} value={category}>
@@ -204,7 +202,6 @@ export default function CatalogPage() {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-success focus:border-transparent"
                 aria-label={t('souq.catalog.sortBy', 'Sort products by')}
->>>>>>> feat/souq-marketplace-advanced
               >
                 <option value="relevance">{t('souq.catalog.sort.relevance', 'Relevance')}</option>
                 <option value="price-low">{t('souq.catalog.sort.priceLow', 'Price: Low to High')}</option>
@@ -305,7 +302,6 @@ export default function CatalogPage() {
                   >
                     <ShoppingCart className="w-4 h-4 inline me-1" />
                     {t('souq.catalog.actions.addToCart', 'Add to Cart')}
->>>>>>> feat/souq-marketplace-advanced
                   </button>
                 </div>
 

@@ -1,4 +1,3 @@
->>>>>>> feat/souq-marketplace-advanced
 import { logger } from '@/lib/logger';
 import CheckoutForm from '@/components/marketplace/CheckoutForm';
 import Link from 'next/link';
@@ -82,7 +81,6 @@ export default async function CheckoutPage() {
                       'marketplace.checkout.finance.point1',
                       'Finance posting triggered automatically on delivery.'
                     )}
->>>>>>> feat/souq-marketplace-advanced
                   </li>
                   <li>
                     {t(
@@ -115,7 +113,6 @@ export default async function CheckoutPage() {
             {t('marketplace.checkout.error.cta', 'Return to Cart')}
           </Link>
         </div>
->>>>>>> feat/souq-marketplace-advanced
       </div>
     );
   }

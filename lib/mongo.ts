@@ -10,7 +10,6 @@ function isTlsEnabled(uri: string): boolean {
   if (uri.includes('tls=true') || uri.includes('ssl=true')) return true;
   return false;
 }
->>>>>>> feat/souq-marketplace-advanced
 
 /**
  * MongoDB Database Abstraction Layer

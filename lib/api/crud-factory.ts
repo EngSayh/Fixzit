@@ -169,7 +169,6 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
           .sort(defaultSort)
           .skip((page - 1) * limit)
           .limit(limit) as any)
->>>>>>> feat/souq-marketplace-advanced
           .lean(), // Already using .lean() for 5-10x faster queries
         Model.countDocuments(match),
       ]);

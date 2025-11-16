@@ -4,7 +4,6 @@ import { auth } from "@/auth";
 import { logger } from '@/lib/logger';
 import { verifyToken } from '@/lib/auth';
 import { ALL_ROLES, type UserRoleType } from '@/types/user';
->>>>>>> feat/souq-marketplace-advanced
 
 export type SessionUser = {
   id: string;
@@ -176,7 +175,6 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
       } catch (e) {
         logger.error('Failed to parse x-user header', { error: e });
       }
->>>>>>> feat/souq-marketplace-advanced
     }
   }
   

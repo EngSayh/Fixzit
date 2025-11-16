@@ -144,7 +144,6 @@ export async function GET(request: NextRequest) {
     const pages = ['about', 'privacy', 'terms'];
     const result = pages.map((p: string) => {
       const existing = allContent.find((c: any) => c.page === p);
->>>>>>> feat/souq-marketplace-advanced
       return existing || {
         page: p,
         contentEn: '',

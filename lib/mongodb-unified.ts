@@ -93,7 +93,6 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
     return connection;
   } catch (error: unknown) {
     logger.error('[MongoDB] Connection failed:', { error });
->>>>>>> feat/souq-marketplace-advanced
     throw error;
   }
 }
@@ -119,7 +118,6 @@ export async function checkDatabaseHealth(): Promise<boolean> {
     await mongoose.connection.db.admin().ping();
     return true;
   } catch (error: unknown) {
->>>>>>> feat/souq-marketplace-advanced
     logger.error('Database health check failed:', { error });
     return false;
   }

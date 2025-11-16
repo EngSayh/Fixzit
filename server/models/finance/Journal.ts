@@ -25,7 +25,6 @@ import { tenantIsolationPlugin } from '@/server/plugins/tenantIsolation';
 import { auditPlugin } from '@/server/plugins/auditPlugin';
 
 ensureMongoConnection();
->>>>>>> feat/souq-marketplace-advanced
 
 export interface IJournalLine {
   lineNumber: number;
@@ -214,7 +213,6 @@ JournalSchema.pre('save', function(next) {
   const creditValues = this.lines.length ? this.lines.map((l: { credit?: number }) => l.credit || 0) : [0];
   const totalDebit = Decimal.sum(...debitValues);
   const totalCredit = Decimal.sum(...creditValues);
->>>>>>> feat/souq-marketplace-advanced
   
   // Convert to number for storage (rounded to 2 decimal places)
   this.totalDebit = totalDebit.toDP(2).toNumber();

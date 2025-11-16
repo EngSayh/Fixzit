@@ -113,7 +113,6 @@ export async function create(data: WorkOrderInput, actorId: string, ip?: string)
   });
   
   logger.info(`Work order created: ${(wo as any).workOrderNumber || (wo as any).code} by ${actorId} from ${ip || 'unknown'}`);
->>>>>>> feat/souq-marketplace-advanced
   return wo;
 }
 
@@ -216,7 +215,6 @@ export async function update(id: string, patch: Partial<WorkOrderInput>, orgId: 
   const updated = await WorkOrder.findByIdAndUpdate(id, updatePayload, { new: true });
   
   logger.info(`Work order updated: ${(updated as any)?.workOrderNumber || (updated as any)?.code} by ${actorId} from ${ip || 'unknown'}`);
->>>>>>> feat/souq-marketplace-advanced
   return updated;
 }
 

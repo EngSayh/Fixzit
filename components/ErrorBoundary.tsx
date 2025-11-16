@@ -12,7 +12,6 @@ type ErrorBoundaryProps = {
   children: ReactNode;
   fallback?: ReactNode;
 };
->>>>>>> feat/souq-marketplace-advanced
 
 type ErrorState = {
   hasError: boolean;

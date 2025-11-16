@@ -112,7 +112,6 @@ export default function PayrollPage() {
     return `${new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(
       new Date(run.periodStart)
     )}`;
->>>>>>> feat/souq-marketplace-advanced
   };
 
   const getStatusBadge = (status: PayrollStatus) => {
@@ -288,7 +287,6 @@ export default function PayrollPage() {
                       ? t('hr.payroll.actions.viewing', 'Viewing')
                       : t('hr.payroll.actions.viewDetails', 'View details')}
                   </Button>
->>>>>>> feat/souq-marketplace-advanced
                 </div>
               </CardContent>
             </Card>

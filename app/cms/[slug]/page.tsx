@@ -4,7 +4,6 @@ import Link from "next/link";
 import { renderMarkdownSanitized } from '@/lib/markdown';
 import { cookies } from 'next/headers';
 import ClientDate from '@/components/ClientDate';
->>>>>>> feat/souq-marketplace-advanced
 
 export const revalidate = 60;
 

@@ -202,13 +202,11 @@ export default function EmployeesPage() {
                       <div>
                         <span className="text-muted-foreground">{t('hr.employees.position', 'Position')}:</span>
                         <span className="ms-2 font-medium">{employee.jobTitle}</span>
->>>>>>> feat/souq-marketplace-advanced
                       </div>
                       <div>
                         <span className="text-muted-foreground">{t('hr.employees.joinDate', 'Join Date')}:</span>
                         <span className="ms-2 font-medium">
                           <ClientDate date={employee.hireDate} format="date-only" />
->>>>>>> feat/souq-marketplace-advanced
                         </span>
                       </div>
                       <div>
@@ -221,7 +219,6 @@ export default function EmployeesPage() {
                     <Eye className="h-4 w-4 me-2" />
                     {t('common.view', 'View')}
                   </Button>
->>>>>>> feat/souq-marketplace-advanced
                 </div>
               </CardContent>
             </Card>

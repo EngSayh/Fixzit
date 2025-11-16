@@ -27,7 +27,6 @@ export default function NotificationsPage() {
   const [selectAll, setSelectAll] = useState(false);
   const [todayDateString, setTodayDateString] = useState('');
 
->>>>>>> feat/souq-marketplace-advanced
   useEffect(() => {
     setTodayDateString(new Date().toDateString());
   }, []);
@@ -216,7 +215,6 @@ export default function NotificationsPage() {
     } catch (error) {
       logger.error('Error marking notification as read:', error);
       toast.error(t('notifications.toast.markReadFailed', 'Failed to mark notification as read'));
->>>>>>> feat/souq-marketplace-advanced
     }
   };
 
@@ -259,7 +257,6 @@ export default function NotificationsPage() {
       } catch (error) {
         logger.error('Error marking notifications as read:', error);
         toast.error(t('notifications.toast.markReadFailed', 'Failed to mark notifications as read'), { id: toastId });
->>>>>>> feat/souq-marketplace-advanced
       }
     }
   };
@@ -305,7 +302,6 @@ export default function NotificationsPage() {
       } catch (error) {
         logger.error('Error marking notifications as read:', error);
         toast.error(t('notifications.toast.markReadFailed', 'Failed to mark notifications as read'), { id: toastId });
->>>>>>> feat/souq-marketplace-advanced
       }
     }
   };
@@ -471,7 +467,6 @@ export default function NotificationsPage() {
           <button className="btn-primary" onClick={handleSettings}>
             <Filter size={16} className="me-2" />
             {t('notifications.actions.openSettings', 'Settings')}
->>>>>>> feat/souq-marketplace-advanced
           </button>
         </div>
       </div>
@@ -525,7 +520,6 @@ export default function NotificationsPage() {
                       (n: NotificationDoc) => new Date(n.timestamp).toDateString() === todayDateString
                     ).length
                   : 0}
->>>>>>> feat/souq-marketplace-advanced
               </p>
             </div>
             <div className="text-success">📅</div>

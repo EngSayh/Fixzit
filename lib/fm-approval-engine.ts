@@ -594,7 +594,6 @@ export async function saveApprovalWorkflow(
     });
   } catch (error: unknown) {
     logger.error('[Approval] Failed to save workflow:', { error });
->>>>>>> feat/souq-marketplace-advanced
     const reason = error instanceof Error ? error.message : String(error);
     throw new Error(
       `Failed to persist approval workflow ${workflow.requestId}: ${reason}`
@@ -618,7 +617,6 @@ export async function getWorkflowById(workflowId: string, orgId: string): Promis
     return docToWorkflow(approval);
   } catch (error: unknown) {
     logger.error('[Approval] Failed to fetch workflow:', { error, workflowId, orgId });
->>>>>>> feat/souq-marketplace-advanced
     return null;
   }
 }
@@ -668,7 +666,6 @@ export async function updateApprovalDecision(
     await approval.save();
     logger.info('[Approval] Decision recorded', { workflowId, decision });
   } catch (error: unknown) {
->>>>>>> feat/souq-marketplace-advanced
     logger.error('[Approval] Failed to update decision:', { error });
     throw error;
   }
@@ -693,7 +690,6 @@ export async function getPendingApprovalsForUser(
     return approvals.map(docToWorkflow);
   } catch (error: unknown) {
     logger.error('[Approval] Failed to get pending approvals:', { error, userId, orgId });
->>>>>>> feat/souq-marketplace-advanced
     return [];
   }
 }
@@ -835,7 +831,6 @@ export async function checkApprovalTimeouts(orgId: string): Promise<void> {
 
     logger.info(`[Approval] Processed ${overdueApprovals.length} timeout escalations`);
   } catch (error: unknown) {
->>>>>>> feat/souq-marketplace-advanced
     logger.error('[Approval] Failed to check timeouts:', { error });
   }
 }
@@ -893,5 +888,4 @@ export async function notifyApprovers(
   } catch (error: unknown) {
     logger.error('[Approval] Failed to send notifications:', { error });
   }
->>>>>>> feat/souq-marketplace-advanced
 }

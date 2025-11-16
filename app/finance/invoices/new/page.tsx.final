@@ -729,7 +729,6 @@ export default function NewInvoicePage() {
                     <div>
                       <span className="font-medium">{t('finance.vat', 'VAT')} {rate}</span>
                       <span className="text-sm text-muted-foreground ms-2">({t('finance.invoice.on', 'on')} {currency} {Money.toString(data.base)})</span>
->>>>>>> feat/souq-marketplace-advanced
                     </div>
                     <span className="font-medium">{currency} {Money.toString(data.amount)}</span>
                   </div>

@@ -132,7 +132,6 @@ export async function postFinanceOnClose(
     // Check if finance already posted for this work order
     // TODO(schema-migration): Add financePosted, journalEntryId, journalNumber to WorkOrder schema
     if ((workOrder as any).financePosted) {
->>>>>>> feat/souq-marketplace-advanced
       logger.info('Finance already posted for work order', {
         workOrderNumber: input.workOrderNumber,
         workOrderId: input.workOrderId.toString()

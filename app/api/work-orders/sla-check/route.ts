@@ -35,7 +35,6 @@ export async function POST() {
     for (const wo of workOrders) {
       // TODO(schema-migration): Schema has responseDeadline/resolutionDeadline, not deadline
       const deadline = new Date((wo.sla as any)?.resolutionDeadline || Date.now());
->>>>>>> feat/souq-marketplace-advanced
       const diff = deadline.getTime() - now.getTime();
       
       if (diff <= 0) {
@@ -103,7 +102,6 @@ export async function GET() {
       breached: 0,
       workOrders: allWorkOrders.map((wo: any) => {
         const deadline = new Date(wo.sla?.resolutionDeadline || Date.now());
->>>>>>> feat/souq-marketplace-advanced
         const diff = deadline.getTime() - now.getTime();
         const hours = Math.floor(Math.abs(diff) / (1000 * 60 * 60));
         
