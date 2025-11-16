@@ -2,8 +2,60 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { User } from '@/server/models/User';
 import { connectDb } from '@/lib/mongo';
-
+import { APP_DEFAULTS } from '@/config/constants';
 import { logger } from '@/lib/logger';
+
+type ThemePreference = 'light' | 'dark' | 'system';
+
+const DEFAULT_NOTIFICATIONS = {
+  email: true,
+  push: true,
+  sms: false,
+};
+
+const DEFAULT_PREFERENCES = {
+  language: APP_DEFAULTS.language,
+  theme: APP_DEFAULTS.theme,
+  notifications: DEFAULT_NOTIFICATIONS,
+};
+
+const normalizeThemePreference = (value?: unknown): ThemePreference | null => {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'light') return 'light';
+  if (normalized === 'dark') return 'dark';
+  if (normalized === 'system' || normalized === 'auto') return 'system';
+  return null;
+};
+
+const mapThemeFromStorage = (value?: unknown): ThemePreference =>
+  normalizeThemePreference(value) ?? APP_DEFAULTS.theme;
+
+const mapThemeToStorage = (value: ThemePreference): string => {
+  switch (value) {
+    case 'dark':
+      return 'DARK';
+    case 'system':
+      return 'SYSTEM';
+    default:
+      return 'LIGHT';
+  }
+};
+
+const normalizePreferencesResponse = (prefs?: Record<string, unknown>) => {
+  const language = typeof prefs?.language === 'string' ? prefs.language : DEFAULT_PREFERENCES.language;
+  const notificationsObject =
+    prefs?.notifications && typeof prefs.notifications === 'object' && !Array.isArray(prefs.notifications)
+      ? { ...DEFAULT_NOTIFICATIONS, ...(prefs.notifications as Record<string, unknown>) }
+      : { ...DEFAULT_NOTIFICATIONS };
+
+  return {
+    ...prefs,
+    language,
+    notifications: notificationsObject,
+    theme: mapThemeFromStorage(prefs?.theme),
+  };
+};
 /**
  * Deep merge utility to recursively merge nested objects.
  * Non-mutating: call with an empty object as first arg to avoid mutating inputs.
@@ -46,28 +98,22 @@ function deepMerge(...objects: Array<Record<string, unknown> | undefined>) {
  */
 export async function GET() {
   try {
-    const session = await auth();    if (!session?.user) {
+    const session = await auth();
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-  await connectDb();
 
-  const user = (await User.findById(session.user.id).select('preferences'));
-    
+    await connectDb();
+    const user = await User.findById(session.user.id).select('preferences');
+
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    
+
+    const normalized = normalizePreferencesResponse(user.preferences ?? DEFAULT_PREFERENCES);
+
     return NextResponse.json({
-      preferences: user.preferences || {
-        language: 'en',
-        theme: 'light',
-        notifications: {
-          email: true,
-          push: true,
-          sms: false,
-        },
-      },
+      preferences: normalized,
     });
   } catch (error) {
     logger.error('Failed to fetch user preferences:', error);
@@ -119,27 +165,77 @@ export async function PUT(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const sanitizedUpdates: Record<string, unknown> = {};
+
+    if (Object.prototype.hasOwnProperty.call(body, 'language')) {
+      if (typeof body.language !== 'string') {
+        return NextResponse.json({ error: 'Language must be a string' }, { status: 400 });
+      }
+      sanitizedUpdates.language = body.language.trim();
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, 'timezone')) {
+      if (typeof body.timezone !== 'string') {
+        return NextResponse.json({ error: 'Timezone must be a string' }, { status: 400 });
+      }
+      sanitizedUpdates.timezone = body.timezone.trim();
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, 'currency')) {
+      if (typeof body.currency !== 'string') {
+        return NextResponse.json({ error: 'Currency must be a string' }, { status: 400 });
+      }
+      sanitizedUpdates.currency = body.currency.trim();
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, 'dateFormat')) {
+      if (typeof body.dateFormat !== 'string') {
+        return NextResponse.json({ error: 'dateFormat must be a string' }, { status: 400 });
+      }
+      sanitizedUpdates.dateFormat = body.dateFormat.trim();
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, 'notifications')) {
+      if (
+        typeof body.notifications !== 'object' ||
+        body.notifications === null ||
+        Array.isArray(body.notifications)
+      ) {
+        return NextResponse.json({ error: 'Notifications must be an object' }, { status: 400 });
+      }
+      sanitizedUpdates.notifications = body.notifications;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, 'theme')) {
+      const normalizedTheme = normalizeThemePreference(body.theme);
+      if (!normalizedTheme) {
+        return NextResponse.json(
+          { error: 'Invalid theme value', allowedValues: ['light', 'dark', 'system'] },
+          { status: 400 }
+        );
+      }
+      sanitizedUpdates.theme = mapThemeToStorage(normalizedTheme);
+    }
     
     await connectDb();
 
-  const user = (await User.findById(session.user.id));
+    const user = await User.findById(session.user.id);
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-  // Deep merge new preferences with existing ones to preserve nested properties.
-  // Use an empty object as the first param to avoid mutating stored preferences.
-  // Example: updating { notifications: { email: false } } won't delete { notifications: { push: true, sms: false } }
-  const currentPreferences = user.preferences || {};
-  // TODO(type-safety): Verify deepMerge returns correct UserPreferences type
-  user.preferences = deepMerge({}, currentPreferences, body) as any;
+    const currentPreferences = user.preferences || {};
+    user.preferences = deepMerge({}, currentPreferences, sanitizedUpdates) as any;
     
     await user.save();
+
+    const normalized = normalizePreferencesResponse(user.preferences);
     
     return NextResponse.json({
       success: true,
-      preferences: user.preferences,
+      preferences: normalized,
     });
   } catch (error) {
     logger.error('Failed to update user preferences:', error);

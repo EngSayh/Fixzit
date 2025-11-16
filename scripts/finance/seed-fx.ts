@@ -1,5 +1,10 @@
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load environment variables BEFORE any other imports
+config({ path: resolve(process.cwd(), '.env.local') });
+
 import { connectToDatabase, disconnectFromDatabase } from '../../lib/mongodb-unified';
-import FxRate from '../../server/models/finance/FxRate';
 
 interface SeedRate {
   baseCurrency: string;
@@ -19,6 +24,9 @@ async function seedFxRates(orgIds: string[]) {
   }
 
   await connectToDatabase();
+  
+  // Dynamic import to ensure env vars are loaded first
+  const { default: FxRate } = await import('../../server/models/finance/FxRate');
 
   const seedDate = new Date('2000-01-01T00:00:00.000Z');
   let total = 0;

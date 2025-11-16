@@ -15,6 +15,8 @@ type ApiProperty = {
   details?: { totalArea?: number; bedrooms?: number; bathrooms?: number };
   market?: { listingPrice?: number };
   photos?: string[];
+  rnplEligible?: boolean;
+  auction?: { isAuction?: boolean; endAt?: string };
 };
 
 export default function AqarPropertiesPage() {
@@ -134,6 +136,18 @@ export default function AqarPropertiesPage() {
                     )}
                   </div>
                   <div className="text-2xl font-bold text-foreground">{price ? `${price.toLocaleString()} SAR` : ''}</div>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {p.rnplEligible && (
+                      <span className="inline-flex items-center text-xs font-medium bg-success/10 text-success px-2 py-1 rounded-full">
+                        {t('aqar.properties.badge.rnpl', 'RNPL Ready')}
+                      </span>
+                    )}
+                    {p.auction?.isAuction && (
+                      <span className="inline-flex items-center text-xs font-medium bg-warning/10 text-warning px-2 py-1 rounded-full">
+                        {t('aqar.properties.badge.auction', 'Auction')}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </article>
             );

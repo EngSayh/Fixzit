@@ -14,6 +14,8 @@ interface Cluster {
   lng: number;
   count: number;
   avgPrice?: number;
+  auctions?: number;
+  rnpl?: number;
 }
 
 export default function MapPage() {
@@ -28,18 +30,22 @@ export default function MapPage() {
       const data = await res.json();
       const clusters = Array.isArray(data?.clusters) ? data.clusters : [];
       setMarkers(
-        clusters.map((c: Cluster) => ({
-          position: { lat: c.lat, lng: c.lng },
-          title: String(c.count),
-          info: t('aqar.map.avgPrice', 'Avg SAR {{price}}').replace(
+        clusters.map((c: Cluster) => {
+          const priceText = t('aqar.map.avgPrice', 'Avg SAR {{price}}').replace(
             '{{price}}',
             c.avgPrice?.toLocaleString
               ? c.avgPrice.toLocaleString()
               : typeof c.avgPrice === 'number'
                 ? c.avgPrice.toString()
                 : '-'
-          ),
-        }))
+          );
+          const extra = `${c.auctions || 0} ${t('aqar.map.auctions', 'auctions')} • ${c.rnpl || 0} ${t('aqar.map.rnpl', 'RNPL-ready')}`;
+          return {
+            position: { lat: c.lat, lng: c.lng },
+            title: String(c.count),
+            info: `${priceText} • ${extra}`,
+          };
+        })
       );
     } catch (error) {
       logger.error('Aqar map cluster load error', { error });
@@ -56,6 +62,9 @@ export default function MapPage() {
           </h1>
           <p className="text-muted-foreground">
             {t('aqar.interactiveMap.desc', 'Explore properties on the map')}
+          </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            {t('aqar.map.legend', 'Cluster tooltip shows avg price • auction-ready listings • RNPL-ready listings.')}
           </p>
         </div>
       </div>
@@ -75,4 +84,3 @@ export default function MapPage() {
     </div>
   );
 }
-

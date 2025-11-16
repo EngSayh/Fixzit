@@ -14,6 +14,9 @@ import Decimal from 'decimal.js';
 
 import { logger } from '@/lib/logger';
 import ClientDate from '@/components/ClientDate';
+import IncomeStatementWidget from '@/components/finance/IncomeStatementWidget';
+import BalanceSheetWidget from '@/components/finance/BalanceSheetWidget';
+import OwnerStatementWidget from '@/components/finance/OwnerStatementWidget';
 
 export default function FinancePage() {
   const { t } = useTranslation();
@@ -104,6 +107,20 @@ export default function FinancePage() {
           ))}
         </div>
       )}
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">{t('finance.reports.title', 'Financial Reports')}</h2>
+          <p className="text-sm text-muted-foreground">
+            {t('finance.reports.subtitle', 'Trial balance, P&L, and owner statements at a glance')}
+          </p>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <IncomeStatementWidget />
+          <BalanceSheetWidget />
+          <OwnerStatementWidget />
+        </div>
+      </section>
     </div>
   );
 }

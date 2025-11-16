@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Map, Building2, Home, Search, Filter, Heart, TrendingUp, Star } from "lucide-react";
+import { Map, Building2, Home, Search, Filter, Heart, TrendingUp, Star, Gavel, ShieldCheck, BadgeDollarSign, PlaySquare } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
+import VRTour from "@/components/aqar/VRTour";
 
 type FeatureConfig = {
   titleKey: string;
@@ -69,6 +70,30 @@ const AQAR_FEATURES: FeatureConfig[] = [
     link: '/aqar/trends',
     fallbackTitle: 'Market Trends',
     fallbackDescription: 'View market analysis and property value trends'
+  },
+  {
+    titleKey: 'aqar.auctions',
+    descriptionKey: 'aqar.auctions.desc',
+    icon: Gavel,
+    link: '/aqar/filters?intent=AUCTION',
+    fallbackTitle: 'Auctions & Deposits',
+    fallbackDescription: 'Bid-ready listings with reserve prices, deposits, and REGA compliance'
+  },
+  {
+    titleKey: 'aqar.rnpl',
+    descriptionKey: 'aqar.rnpl.desc',
+    icon: BadgeDollarSign,
+    link: '/aqar/filters?rnplEligible=true',
+    fallbackTitle: 'RNPL Financing',
+    fallbackDescription: 'Calculate Rent-Now-Pay-Later plans powered by Rize / Ejari partners'
+  },
+  {
+    titleKey: 'aqar.vrTours',
+    descriptionKey: 'aqar.vrTours.desc',
+    icon: PlaySquare,
+    link: '/aqar/properties',
+    fallbackTitle: 'VR / 3D Tours',
+    fallbackDescription: 'Walk through properties with immersive VR embeds'
   },
   {
     titleKey: 'aqar.premiumListings',
@@ -143,6 +168,69 @@ export default function AqarPage() {
               );
             })}
           </div>
+        </div>
+      </section>
+
+      {/* Compliance & Finance */}
+      <section className="py-12 px-4 sm:px-6 lg:px-8 bg-muted/50 border-t border-border">
+        <div className="max-w-6xl mx-auto space-y-8">
+          <div className="text-center">
+            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Compliance & Finance</p>
+            <h3 className="text-3xl font-bold text-foreground mt-2">{t('aqar.compliance.title', 'Enterprise-grade trust')}</h3>
+            <p className="text-muted-foreground mt-3 max-w-3xl mx-auto">
+              {t('aqar.compliance.desc', 'Mandatory Nafath, FAL, foreign ownership checks and RNPL financing baked into every listing.')}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-card rounded-2xl border border-border p-5 space-y-2">
+              <ShieldCheck className="w-8 h-8 text-primary" />
+              <h4 className="font-semibold text-foreground">{t('aqar.compliance.nafath', 'Nafath & FAL')}</h4>
+              <p className="text-sm text-muted-foreground">
+                {t('aqar.compliance.nafath.desc', 'Agents must pass Nafath identity checks plus FAL/ad permit validation before publishing.')}
+              </p>
+            </div>
+            <div className="bg-card rounded-2xl border border-border p-5 space-y-2">
+              <Gavel className="w-8 h-8 text-warning" />
+              <h4 className="font-semibold text-foreground">{t('aqar.compliance.foreign', 'Foreign ownership')}</h4>
+              <p className="text-sm text-muted-foreground">
+                {t('aqar.compliance.foreign.desc', 'Foreign-owner flag, REGA zone controls, and audit history for every listing.')}
+              </p>
+            </div>
+            <div className="bg-card rounded-2xl border border-border p-5 space-y-2">
+              <BadgeDollarSign className="w-8 h-8 text-success" />
+              <h4 className="font-semibold text-foreground">{t('aqar.compliance.rnpl', 'RNPL journeys')}</h4>
+              <p className="text-sm text-muted-foreground">
+                {t('aqar.compliance.rnpl.desc', 'Instant Rent-Now-Pay-Later eligibility, installment calculators, and lead routing to fintech partners.')}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link href="/aqar/filters?intent=AUCTION" className="px-5 py-2 rounded-full border border-border text-sm hover:bg-card">
+              {t('aqar.compliance.auctionCta', 'Browse auctions')}
+            </Link>
+            <Link href="/aqar/filters?rnplEligible=true" className="px-5 py-2 rounded-full bg-primary text-white text-sm hover:bg-primary/90">
+              {t('aqar.compliance.rnplCta', 'Check RNPL eligibility')}
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* VR Tour Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-background">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">{t('aqar.vr.tag', 'Immersive')}</p>
+            <h3 className="text-3xl font-bold text-foreground mt-2">{t('aqar.vr.title', 'VR + 3D walkthroughs')}</h3>
+            <p className="text-muted-foreground mt-4 leading-relaxed">
+              {t('aqar.vr.desc', 'Invite buyers to explore every floor, balcony, and amenity using Matterport / 3D tours directly inside the Fixzit shell.')}
+            </p>
+            <ul className="mt-6 space-y-3 text-sm text-muted-foreground">
+              <li>• {t('aqar.vr.point1', 'Supports Matterport, Kuula, and custom WebXR sources')}</li>
+              <li>• {t('aqar.vr.point2', 'Auto-fallback to photo carousel if device does not support VR')}</li>
+              <li>• {t('aqar.vr.point3', 'Audited for accessibility and performance')}</li>
+            </ul>
+          </div>
+          <VRTour url="https://my.matterport.com/show/?m=Hgd2w8iu8xv" title={t('aqar.vr.demo', 'Sedra Show Home')} />
         </div>
       </section>
     </div>

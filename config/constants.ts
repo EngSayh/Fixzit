@@ -6,7 +6,7 @@
  */
 
 // --- Base Keys (Define once, use everywhere) ---
-const THEME_KEY = 'fixzit-theme';
+const THEME_KEY = 'fxz.theme';
 const LANGUAGE_KEY = 'fxz.lang';
 const LOCALE_KEY = 'fxz.locale';
 const CURRENCY_KEY = 'fixzit-currency';
@@ -70,8 +70,8 @@ export const APP_DEFAULTS = {
   language: 'ar' as const,
   locale: 'ar-SA',
   currency: 'SAR',
-  // ✅ FIX: Default to 'auto' to match ThemeProvider
-  theme: 'auto' as const,
+  // ✅ Theme defaults to 'system' (matches Fixzit Design System v2 brief)
+  theme: 'system' as const,
   timezone: 'Asia/Riyadh',
 } as const;
 

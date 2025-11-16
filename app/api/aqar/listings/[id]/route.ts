@@ -37,7 +37,7 @@ export async function GET(
       }
       
       const listing = await (AqarListing as any).findById(id)
-        .select('_id title price areaSqm city status media amenities geo analytics')
+        .select('_id title price areaSqm city status media amenities location analytics rnplEligible auction')
         .lean();
       
       if (!listing) {

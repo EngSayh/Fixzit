@@ -146,7 +146,7 @@ const UserSchema = new Schema({
     },
     language: { type: String, default: "ar" },
     timezone: { type: String, default: "Asia/Riyadh" },
-    theme: { type: String, enum: ["LIGHT", "DARK", "AUTO"] }
+    theme: { type: String, enum: ["LIGHT", "DARK", "AUTO", "SYSTEM"], default: "SYSTEM" }
   },
 
   // Employment

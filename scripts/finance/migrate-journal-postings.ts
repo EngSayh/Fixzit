@@ -1,5 +1,10 @@
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load environment variables BEFORE any other imports
+config({ path: resolve(process.cwd(), '.env.local') });
+
 import { connectToDatabase, disconnectFromDatabase } from '../../lib/mongodb-unified';
-import Journal from '../../server/models/finance/Journal';
 import { minorToDecimal128 } from '../../server/lib/money';
 
 function toMinorDecimal(value?: number) {
@@ -9,6 +14,9 @@ function toMinorDecimal(value?: number) {
 
 async function migrateDraftJournals() {
   await connectToDatabase();
+  
+  // Dynamic import to ensure env vars are loaded first
+  const { default: Journal } = await import('../../server/models/finance/Journal');
 
   const journals = await Journal.find({
     status: 'DRAFT',
