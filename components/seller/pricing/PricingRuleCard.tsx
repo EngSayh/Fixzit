@@ -60,7 +60,7 @@ export default function PricingRuleCard({ settings, onUpdate }: Props) {
 
       onUpdate(newSettings);
       setEditing(false);
-    } catch (error) {
+    } catch (_error) {
       alert('Failed to save pricing rules');
     }
   };

@@ -62,6 +62,7 @@ interface OTPState {
   identifier: string;
   maskedPhone: string;
   expiresIn: number;
+  devCode?: string | null;
 }
 
 // ⚡ PERFORMANCE: Demo credentials moved to lazy-loaded component
@@ -240,6 +241,7 @@ export default function LoginPage() {
         identifier,
         maskedPhone: otpData.data.phone,
         expiresIn: otpData.data.expiresIn,
+        devCode: otpData.data.devCode ?? null,
       });
       setShowOTP(true);
       setLoading(false);
@@ -348,6 +350,7 @@ export default function LoginPage() {
               ...prev,
               maskedPhone: data.data.phone || prev.maskedPhone,
               expiresIn: data.data.expiresIn,
+              devCode: data.data.devCode ?? prev.devCode,
             }
           : null
       );
@@ -411,6 +414,7 @@ export default function LoginPage() {
               identifier={otpState.identifier}
               maskedPhone={otpState.maskedPhone}
               expiresIn={otpState.expiresIn}
+              devCode={otpState.devCode || undefined}
               onVerified={handleOTPVerified}
               onResend={handleOTPResend}
               onBack={handleOTPBack}

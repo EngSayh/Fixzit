@@ -132,22 +132,27 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
       
       // Filter transactions based on current filters
       let filtered = transactions;
-      if (typeFilter !== 'all') {
-        filtered = filtered.filter(t => t.type === typeFilter);
+      if (filters.type !== 'all') {
+        filtered = filtered.filter((t) => t.type === filters.type);
       }
-      if (statusFilter !== 'all') {
-        filtered = filtered.filter(t => t.status === statusFilter);
+      if (filters.startDate) {
+        const start = new Date(filters.startDate).getTime();
+        filtered = filtered.filter((t) => new Date(t.createdAt).getTime() >= start);
+      }
+      if (filters.endDate) {
+        const end = new Date(filters.endDate).getTime();
+        filtered = filtered.filter((t) => new Date(t.createdAt).getTime() <= end);
       }
       
       // Prepare export data
-      const exportData = filtered.map(txn => ({
-        date: new Date(txn.date).toLocaleDateString(),
+      const exportData = filtered.map((txn) => ({
+        date: new Date(txn.createdAt).toLocaleDateString(),
         type: getTypeLabel(txn.type),
         description: txn.description,
         amount: `${txn.amount >= 0 ? '+' : ''}${txn.amount.toFixed(2)} SAR`,
-        status: txn.status,
         orderId: txn.orderId || 'N/A',
-        reference: txn.reference || 'N/A',
+        balanceBefore: txn.balanceBefore.toFixed(2),
+        balanceAfter: txn.balanceAfter.toFixed(2),
       }));
       
       const filename = `transactions-${new Date().toISOString().split('T')[0]}.csv`;
@@ -156,9 +161,9 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
         { key: 'type', label: 'Type' },
         { key: 'description', label: 'Description' },
         { key: 'amount', label: 'Amount' },
-        { key: 'status', label: 'Status' },
         { key: 'orderId', label: 'Order ID' },
-        { key: 'reference', label: 'Reference' },
+        { key: 'balanceBefore', label: 'Balance Before' },
+        { key: 'balanceAfter', label: 'Balance After' },
       ]);
       
       logger.info('Transactions exported to CSV', { count: exportData.length, filename });

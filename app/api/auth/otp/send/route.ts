@@ -280,14 +280,25 @@ export async function POST(request: NextRequest) {
     // 13. Return success response (mask phone number)
     const maskedPhone = userPhone.replace(/(\d{3})\d+(\d{4})/, '$1****$2');
 
+    const responseData: {
+      phone: string;
+      expiresIn: number;
+      attemptsRemaining: number;
+      devCode?: string;
+    } = {
+      phone: maskedPhone,
+      expiresIn: OTP_EXPIRY_MS / 1000, // seconds
+      attemptsRemaining: MAX_ATTEMPTS,
+    };
+
+    if (smsDevMode) {
+      responseData.devCode = otp;
+    }
+
     return NextResponse.json({
       success: true,
       message: 'OTP sent successfully',
-      data: {
-        phone: maskedPhone,
-        expiresIn: OTP_EXPIRY_MS / 1000, // seconds
-        attemptsRemaining: MAX_ATTEMPTS,
-      },
+      data: responseData,
     });
   } catch (error) {
     logger.error('[OTP] Send OTP error', error as Error);

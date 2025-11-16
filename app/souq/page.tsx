@@ -4,45 +4,6 @@ import Link from "next/link";
 import { Package, Users, FileText, ClipboardList, Truck, Star} from "lucide-react";
 import { useTranslation } from '@/contexts/TranslationContext';
 
-const SOUQ_FEATURES = [
-  {
-    title: 'Catalog Management',
-    icon: Package,
-    description: 'Browse and manage your product catalog with advanced filtering',
-    link: '/souq/catalog'
-  },
-  {
-    title: 'Vendor Portal',
-    icon: Users,
-    description: 'Connect with verified vendors and suppliers',
-    link: '/souq/vendors'
-  },
-  {
-    title: 'RFQs & Bids',
-    icon: FileText,
-    description: 'Request for quotations and manage bidding processes',
-    link: '/souq/rfqs'
-  },
-  {
-    title: 'Order Management',
-    icon: ClipboardList,
-    description: 'Track orders, purchase orders, and delivery status',
-    link: '/souq/orders'
-  },
-  {
-    title: 'Shipping & Logistics',
-    icon: Truck,
-    description: 'Manage shipping, tracking, and logistics partners',
-    link: '/souq/shipping'
-  },
-  {
-    title: 'Reviews & Ratings',
-    icon: Star,
-    description: 'View and manage product reviews and vendor ratings',
-    link: '/souq/reviews'
-  }
-];
-
 export default function SouqPage() {
   const { isRTL, t } = useTranslation();
   

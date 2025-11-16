@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { getDatabase } from '@/lib/mongodb-unified';
-import { ClaimService, Claim, ClaimType, DecisionOutcome } from './claim-service';
+import { ClaimService, Claim, DecisionOutcome } from './claim-service';
+import { logger } from '@/lib/logger';
 
 export interface InvestigationResult {
   claimId: string;

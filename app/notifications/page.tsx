@@ -152,12 +152,12 @@ export default function NotificationsPage() {
     setSelectAll(!selectAll);
   };
 
-  const handleSelectNotification = (id: string) => {
+  const handleSelectNotification = (notifId: string) => {
     const newSelected = new Set(selectedNotifications);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
+    if (newSelected.has(notifId)) {
+      newSelected.delete(notifId);
     } else {
-      newSelected.add(id);
+      newSelected.add(notifId);
     }
     setSelectedNotifications(newSelected);
     setSelectAll(newSelected.size === filteredNotifications.length);

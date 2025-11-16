@@ -54,7 +54,7 @@ const priorityStyles: Record<string, string> = {
 };
 
 // Status labels will use translation keys
-function getStatusLabel(t: (key: string, fallback?: string) => string, status: string): string {
+function getStatusLabel(t: (_key: string, _fallback?: string) => string, status: string): string {
   const statusMap: Record<string, string> = {
     SUBMITTED: t('status.submitted', 'Submitted'),
     DISPATCHED: t('status.dispatched', 'Dispatched'),

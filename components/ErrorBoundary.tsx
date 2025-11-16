@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { STORAGE_KEYS } from '@/config/constants';
 import { logger } from '@/lib/logger';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 type ErrorBoundaryProps = {
   children: ReactNode;
@@ -139,28 +140,7 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
  * We wrap it in its own try/catch in case the TranslationProvider crashed.
  */
 const ErrorFallbackUI = ({ errorId, onRefresh }: { errorId: string, onRefresh: () => void }) => {
-  // Use dynamic import to avoid crash if TranslationContext is broken
-  let t = (key: string, fallback: string) => fallback;
-  
-  try {
-    const { useTranslation } = require('@/contexts/TranslationContext');
-    const { t: translationHook } = useTranslation();
-    t = translationHook;
-  } catch {
-    // Use logger for translation context failures
-    if (typeof window !== 'undefined') {
-      import('../lib/logger')
-        .then(({ logWarn }) => {
-          logWarn('Translation context failed in ErrorBoundary, using fallbacks', {
-            component: 'ErrorBoundary',
-            action: 'loadTranslations'
-          });
-        })
-        .catch((err) => {
-          logger.error('Failed to import logger:', { error: err });
-        });
-    }
-  }
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">

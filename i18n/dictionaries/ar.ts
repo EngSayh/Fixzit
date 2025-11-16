@@ -992,6 +992,7 @@ const ar = {
     outOfStock: 'غير متوفر',
     deliveryTime: 'وقت التسليم',
     returnPolicy: 'سياسة الإرجاع',
+    sellerOnboarding: {
       progress: {
         business: 'بيانات العمل',
         contact: 'معلومات الاتصال',

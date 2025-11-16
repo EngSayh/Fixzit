@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import useSWR, { mutate } from 'swr';
 import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DroppableStateSnapshot, DraggableProvided, DraggableStateSnapshot } from '@hello-pangea/dnd';
-import { User, Mail, Phone, Star, Calendar, ChevronRight } from 'lucide-react';
+import { Mail, Phone, Star, Calendar, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 const fetcher = async (url: string) => {

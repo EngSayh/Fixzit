@@ -175,7 +175,7 @@ class ReviewService {
   /**
    * Mark review as helpful
    */
-  async markHelpful(reviewId: string, customerId: string): Promise<IReview> {
+  async markHelpful(reviewId: string, _customerId: string): Promise<IReview> {
     const review = await SouqReview.findOne({ reviewId });
 
     if (!review) {
@@ -192,7 +192,7 @@ class ReviewService {
   /**
    * Mark review as not helpful
    */
-  async markNotHelpful(reviewId: string, customerId: string): Promise<IReview> {
+  async markNotHelpful(reviewId: string, _customerId: string): Promise<IReview> {
     const review = await SouqReview.findOne({ reviewId });
 
     if (!review) {
@@ -387,7 +387,7 @@ class ReviewService {
   /**
    * Approve review (moderator)
    */
-  async approveReview(reviewId: string, moderatorId: string): Promise<IReview> {
+  async approveReview(reviewId: string, _moderatorId: string): Promise<IReview> {
     const review = await SouqReview.findOne({ reviewId });
 
     if (!review) {
@@ -406,7 +406,7 @@ class ReviewService {
    */
   async rejectReview(
     reviewId: string,
-    moderatorId: string,
+    _moderatorId: string,
     notes: string
   ): Promise<IReview> {
     const review = await SouqReview.findOne({ reviewId });

@@ -10,6 +10,7 @@ interface OTPVerificationProps {
   identifier: string;
   maskedPhone: string;
   expiresIn: number;
+  devCode?: string;
   // eslint-disable-next-line no-unused-vars
   onVerified: (otpToken: string) => void;
   onResend: () => Promise<{ success: boolean; expiresIn?: number; error?: string }>;
@@ -23,6 +24,7 @@ export default function OTPVerification({
   identifier,
   maskedPhone,
   expiresIn: initialExpiresIn,
+  devCode,
   onVerified,
   onResend,
   onBack,
@@ -155,9 +157,33 @@ export default function OTPVerification({
         <p className="text-muted-foreground text-sm">
           {t('otp.subtitle', 'We sent a 6-digit code to')}
           <br />
-          <span className="font-medium text-foreground">{maskedPhone}</span>
-        </p>
+      <span className="font-medium text-foreground">{maskedPhone}</span>
+    </p>
+  </div>
+
+  {devCode && (
+    <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4 space-y-2 text-sm">
+      <p className="font-semibold text-primary">
+        {t('otp.devModeTitle', 'Developer mode active')}
+      </p>
+      <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <span className="font-mono text-2xl tracking-widest text-primary">
+          {devCode}
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setOtp(devCode)}
+        >
+          {t('otp.useDevCode', 'Auto-fill code')}
+        </Button>
       </div>
+      <p className="text-xs text-muted-foreground">
+        {t('otp.devModeDescription', 'Shown only in local development to speed up testing.')}
+      </p>
+    </div>
+  )}
 
       {/* Form */}
       <form onSubmit={handleVerify} className="space-y-5">

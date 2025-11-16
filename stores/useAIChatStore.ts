@@ -4,7 +4,6 @@
  */
 
 import { create } from 'zustand';
-import { logger } from '@/lib/logger';
 import { persist } from 'zustand/middleware';
 import { STORAGE_KEYS } from '@/config/constants';
 

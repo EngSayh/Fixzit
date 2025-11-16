@@ -16,7 +16,7 @@ export interface PayTabsChargeResult {
 }
 
 export interface PayTabsClient {
-  chargeRecurring(input: {
+  chargeRecurring(_payload: {
     profileId: string;
     token: string;
     customerEmail: string;
@@ -51,7 +51,6 @@ export async function createSubscriptionFromCheckout(input: CreateSubscriptionIn
   const priceBook = await PriceBook.findById(input.priceBookId);
   if (!priceBook) throw new Error('Invalid price_book_id');
   
-  const now = new Date();
   const sub = await Subscription.create({
     subscriber_type: input.subscriberType,
     tenant_id: input.subscriberType === 'CORPORATE' ? input.tenantId : undefined,

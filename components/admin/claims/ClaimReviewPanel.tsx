@@ -30,7 +30,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   AlertCircle,
@@ -41,7 +40,6 @@ import {
   Search,
   Shield,
   TrendingUp,
-  XCircle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -176,7 +174,7 @@ export default function ClaimReviewPanel() {
     }
   };
 
-  const handleBulkAction = async (action: 'approve' | 'reject') => {
+  const handleBulkAction = async (_action: 'approve' | 'reject') => {
     if (selectedClaims.size === 0) {
       toast({
         variant: 'destructive',

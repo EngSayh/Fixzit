@@ -11,7 +11,6 @@
 
 import { SouqSeller } from '@/server/models/souq/Seller';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
-import mongoose from 'mongoose';
 
 export interface IKYCCompanyInfo {
   businessName: string;

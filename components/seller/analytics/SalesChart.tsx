@@ -48,7 +48,7 @@ interface SalesChartProps {
   period: string;
 }
 
-export function SalesChart({ data, isLoading, period }: SalesChartProps) {
+export function SalesChart({ data, isLoading, period: _period }: SalesChartProps) {
   const chartData = useMemo(() => {
     if (!data?.revenue.daily) return [];
     
