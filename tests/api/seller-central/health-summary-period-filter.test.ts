@@ -17,7 +17,7 @@
  * - Verifies different periods produce different metric counts
  */
 
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { SouqOrder } from '@/server/models/souq/Order';
 import { SouqSeller } from '@/server/models/souq/Seller';
 import mongoose from 'mongoose';

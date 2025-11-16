@@ -47,12 +47,12 @@ export async function submitBudgetForApproval(
       updatedBy: ctx.userId,
     } as unknown as Parameters<typeof FMApproval.create>[0]);
 
-    log('Budget submitted for approval', {
+    log('Budget submitted for approval', 'info', {
       budgetId: payload.budgetId,
       orgId: ctx.orgId,
     });
   } catch (error) {
-    log('Budget DoA submission failed', 'error', error);
+    log('Budget DoA submission failed', 'error', { error });
     throw error;
   }
 }

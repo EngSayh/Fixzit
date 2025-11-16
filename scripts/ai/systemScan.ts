@@ -1,0 +1,198 @@
+/**
+ * System Scan Script for Fixzit AI Knowledge Base
+ * Automatically scans Blueprint PDFs and populates ai_kb MongoDB collection
+ * 
+ * Features:
+ * - PDF parsing with pdf-parse
+ * - Text chunking for RAG optimization
+ * - Scheduled via node-cron (nightly at 2 AM)
+ * - Incremental updates (detects file changes via hash)
+ * 
+ * Usage:
+ *   pnpm tsx scripts/ai/systemScan.ts           # One-time scan
+ *   pnpm tsx scripts/ai/systemScan.ts --daemon  # Run as daemon with cron
+ */
+
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import pdf from 'pdf-parse';
+import cron from 'node-cron';
+import { db } from '@/lib/mongo';
+import { logger } from '@/lib/logger';
+
+// Documents to scan (from your Blueprint/Design System PDFs)
+const DOCUMENTS = [
+  'Monday options and workflow and system structure.pdf',
+  'Fixizit Blue Print.pdf',
+  'Targeted software layout for FM moduel.pdf',
+  'Fixizit Blueprint Bible – vFinal.pdf',
+  'Fixizit Facility Management Platform_ Complete Implementation Guide.pdf',
+  'Fixzit_Master_Design_System.pdf',
+  'Fixizit Blueprint Bible – vFinal.docx', // Note: pdf-parse won't handle .docx, skip or convert
+  'Fixizit_Comprehensive_Blueprint_with_Diagrams By ChatGPT.docx',
+  'Collected service list.docx',
+];
+
+const DOCS_DIR = path.resolve(process.cwd(), 'docs');
+const CHUNK_SIZE = 1000; // Characters per chunk for RAG
+const CHUNK_OVERLAP = 200; // Overlap between chunks to preserve context
+
+interface KnowledgeBaseEntry {
+  title: string;
+  source: string;
+  text: string;
+  hash: string;
+  chunk: number;
+  totalChunks: number;
+  roles: string[] | null; // null = public
+  orgId: string | null; // null = public
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Calculates MD5 hash of file content for change detection
+ */
+function calculateFileHash(filePath: string): string {
+  const content = fs.readFileSync(filePath);
+  return crypto.createHash('md5').update(content).digest('hex');
+}
+
+/**
+ * Splits text into overlapping chunks for RAG
+ */
+function chunkText(text: string): string[] {
+  const chunks: string[] = [];
+  let start = 0;
+
+  while (start < text.length) {
+    const end = Math.min(start + CHUNK_SIZE, text.length);
+    chunks.push(text.slice(start, end));
+    start += CHUNK_SIZE - CHUNK_OVERLAP;
+  }
+
+  return chunks;
+}
+
+/**
+ * Scans a single PDF document and upserts to ai_kb collection
+ */
+async function scanDocument(filename: string): Promise<number> {
+  const fullPath = path.join(DOCS_DIR, filename);
+
+  // Skip if file doesn't exist
+  if (!fs.existsSync(fullPath)) {
+    logger.info(`[systemScan] Skipped missing file: ${filename}`);
+    return 0;
+  }
+
+  // Skip non-PDF files (pdf-parse only handles PDFs)
+  if (!filename.toLowerCase().endsWith('.pdf')) {
+    logger.info(`[systemScan] Skipped non-PDF file: ${filename}`);
+    return 0;
+  }
+
+  try {
+    const fileHash = calculateFileHash(fullPath);
+    const database = await db;
+    const collection = database.collection<KnowledgeBaseEntry>('ai_kb');
+
+    // Check if document already processed with same hash
+    const existing = await collection.findOne({ source: filename, hash: fileHash });
+    if (existing) {
+      logger.info(`[systemScan] Skipped unchanged file: ${filename}`);
+      return 0;
+    }
+
+    // Parse PDF
+    const dataBuffer = fs.readFileSync(fullPath);
+    const pdfData = await pdf(dataBuffer);
+    const text = pdfData.text;
+
+    if (!text || text.trim().length === 0) {
+      logger.warn(`[systemScan] Empty PDF: ${filename}`);
+      return 0;
+    }
+
+    // Delete old chunks for this document
+    await collection.deleteMany({ source: filename });
+
+    // Chunk text
+    const chunks = chunkText(text);
+
+    // Insert chunks
+    const entries: KnowledgeBaseEntry[] = chunks.map((chunk, idx) => ({
+      title: filename.replace('.pdf', ''),
+      source: filename,
+      text: chunk,
+      hash: fileHash,
+      chunk: idx + 1,
+      totalChunks: chunks.length,
+      roles: null, // Public knowledge (all roles can access)
+      orgId: null, // Public knowledge (not tenant-scoped)
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
+
+    await collection.insertMany(entries);
+
+    logger.info(`[systemScan] Processed ${filename}: ${chunks.length} chunks, ${text.length} chars`);
+    return chunks.length;
+  } catch (error) {
+    logger.error(`[systemScan] Error processing ${filename}:`, error);
+    return 0;
+  }
+}
+
+/**
+ * Scans all documents in DOCUMENTS array
+ */
+async function scanAll(): Promise<void> {
+  logger.info('[systemScan] Starting document scan...');
+
+  let totalChunks = 0;
+  for (const doc of DOCUMENTS) {
+    const count = await scanDocument(doc);
+    totalChunks += count;
+  }
+
+  logger.info(`[systemScan] Scan complete: ${totalChunks} chunks across ${DOCUMENTS.length} documents`);
+}
+
+/**
+ * Main entry point
+ */
+async function main() {
+  const isDaemon = process.argv.includes('--daemon');
+
+  if (isDaemon) {
+    logger.info('[systemScan] Running in daemon mode with cron schedule: 0 2 * * * (2 AM daily)');
+
+    // Schedule nightly scan at 2 AM
+    cron.schedule('0 2 * * *', async () => {
+      logger.info('[systemScan] Cron triggered scan');
+      await scanAll();
+    });
+
+    // Initial scan on startup
+    await scanAll();
+
+    // Keep process alive
+    logger.info('[systemScan] Daemon started, waiting for scheduled tasks...');
+  } else {
+    // One-time scan
+    await scanAll();
+    process.exit(0);
+  }
+}
+
+// Run if executed directly
+if (require.main === module) {
+  main().catch((error) => {
+    logger.error('[systemScan] Fatal error:', error);
+    process.exit(1);
+  });
+}
+
+export { scanAll, scanDocument };

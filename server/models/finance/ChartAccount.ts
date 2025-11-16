@@ -27,6 +27,8 @@ import { auditPlugin } from '@/server/plugins/auditPlugin';
 
 ensureMongoConnection();
 
+type LocalizedName = { en?: string; ar?: string };
+
 export interface IChartAccount {
   _id: Types.ObjectId;
   orgId: Types.ObjectId; // Added by tenantIsolationPlugin
@@ -35,7 +37,7 @@ export interface IChartAccount {
   accountType: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
   // Add aliases for common property names
   code: string; // Alias for accountCode
-  name: string | { en?: string; ar?: string }; // Alias for accountName
+  name?: string | LocalizedName; // Alias for accountName
   type: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE'; // Alias for accountType
   parentId?: Types.ObjectId; // For hierarchical COA (e.g., 1100 under 1000)
   description?: string;
@@ -106,17 +108,25 @@ ChartAccountSchema.pre('validate', function(next) {
     this.accountCode = this.code;
   }
 
-  if (!this.accountName && this.name?.en) {
-    this.accountName = this.name.en;
+  const normalizeName = (): LocalizedName => {
+    if (!this.name) return {};
+    if (typeof this.name === 'string') {
+      return { en: this.name };
+    }
+    return this.name;
+  };
+
+  const name = normalizeName();
+
+  if (!this.accountName && name.en) {
+    this.accountName = name.en;
   }
 
-  if (!this.name) {
-    this.name = {} as typeof this.name;
+  if (!name.en && this.accountName) {
+    name.en = this.accountName;
   }
 
-  if (!this.name.en && this.accountName) {
-    this.name.en = this.accountName;
-  }
+  this.name = name;
 
   next();
 });

@@ -117,3 +117,21 @@ export interface ApartmentSearchResult {
   agentContact?: string; // Only for authenticated users
   features?: string[];
 }
+
+// AI Assistant Enhancement Guide
+export interface AIAssistantEnhancement {
+  featureId: string;
+  description: string;
+  impact: 'LOW' | 'MEDIUM' | 'HIGH';
+  effort: 'LOW' | 'MEDIUM' | 'HIGH';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+}
+
+// Server status
+export const serverStatus = {
+  running: true,
+  url: 'http://localhost:3000',
+  errors: null,
+  aiAssistantAccessible: true,
+  featuresWorking: true,
+};

@@ -7,6 +7,8 @@ import { detectToolFromMessage, executeTool } from "@/server/copilot/tools";
 import { retrieveKnowledge } from "@/server/copilot/retrieval";
 import { generateCopilotResponse } from "@/server/copilot/llm";
 import { recordAudit } from "@/server/copilot/audit";
+import { classifyIntent, detectSentiment } from "@/server/copilot/classifier";
+import { searchAvailableUnits, formatApartmentResults } from "@/server/copilot/apartmentSearch";
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
@@ -139,6 +141,29 @@ export async function POST(req: NextRequest) {
     const message = body.message?.trim();
     if (!message) {
       return createSecureResponse({ error: "Message is required" }, 400, req);
+    }
+
+    // Classify intent and detect sentiment for routing and escalation
+    const intent = classifyIntent(message, locale);
+    const sentiment = detectSentiment(message);
+
+    // Log analytics for sentiment tracking
+    if (sentiment === 'negative') {
+      logger.warn('[copilot] Negative sentiment detected', { userId: session.userId, message: message.slice(0, 100) });
+      // TODO: Trigger escalation workflow if needed
+    }
+
+    // Handle apartment search intent via dedicated module
+    if (intent === 'APARTMENT_SEARCH') {
+      const units = await searchAvailableUnits(message, {
+        userId: session.userId,
+        orgId: session.tenantId,
+        role: session.role as never,
+        locale,
+      });
+      const reply = formatApartmentResults(units, locale);
+      await recordAudit({ session, intent: 'apartment_search', status: 'SUCCESS', message: reply, prompt: message, metadata: { unitCount: units.length } });
+      return NextResponse.json({ reply, intent, data: { units } });
     }
 
     const toolFromMessage = detectToolFromMessage(message);

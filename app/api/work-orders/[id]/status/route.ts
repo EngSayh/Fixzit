@@ -137,13 +137,13 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   const doc = wo as { statusHistory?: StatusHistoryEntry[] };
   doc.statusHistory ??= [];
   doc.statusHistory.push({
-    fromStatus: wo.status,
+    fromStatus: currentStatus,
     toStatus: body.to as unknown as typeof wo.status,
     changedBy: user.id,
     changedAt: new Date(),
     notes: body.note
   });
-  const shouldPostToFinance = body.to === 'FINANCIAL_POSTING' && wo.status !== body.to;
+  const shouldPostToFinance = body.to === 'FINANCIAL_POSTING' && currentStatus !== body.to;
 
   wo.set('status', body.to as unknown as typeof wo.status);
   await wo.save();

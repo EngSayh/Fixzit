@@ -13,7 +13,7 @@
  */
 
 import { ObjectId } from 'mongodb';
-import connectDB from '@/lib/mongodb';
+import { connectDb } from '@/lib/mongodb-unified';
 import { createClient } from 'redis';
 
 /**

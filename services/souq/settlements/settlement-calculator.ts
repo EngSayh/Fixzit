@@ -234,19 +234,27 @@ export class SettlementCalculatorService {
       .toArray();
 
     // Convert to settlement orders
-    const settlementOrders: SettlementOrder[] = orders.map(order => ({
-      orderId: order._id.toString(),
-      listingId: order.listingId,
-      sellerId: order.sellerId.toString(),
-      orderValue: order.totalAmount,
-      itemPrice: order.itemPrice,
-      shippingFee: order.shippingFee || 0,
-      deliveredAt: order.deliveredAt,
-      status: this.isOrderEligible(order as SettlementOrder) ? 'eligible' : 'pending',
-      hasDispute: order.hasDispute || false,
-      refundAmount: order.refundAmount || 0,
-      chargebackAmount: order.chargebackAmount || 0,
-    }));
+    const settlementOrders: SettlementOrder[] = orders.map(order => {
+      const baseOrder: SettlementOrder = {
+        orderId: order._id.toString(),
+        listingId: order.listingId,
+        sellerId: order.sellerId.toString(),
+        orderValue: order.totalAmount,
+        itemPrice: order.itemPrice,
+        shippingFee: order.shippingFee || 0,
+        deliveredAt: order.deliveredAt,
+        status: 'pending',
+        hasDispute: order.hasDispute || false,
+        refundAmount: order.refundAmount || 0,
+        chargebackAmount: order.chargebackAmount || 0,
+      };
+
+      const eligible = this.isOrderEligible({ ...baseOrder, status: 'eligible' });
+      return {
+        ...baseOrder,
+        status: eligible ? 'eligible' : 'pending',
+      };
+    });
 
     // Calculate totals
     let totalSales = 0;
@@ -293,7 +301,7 @@ export class SettlementCalculatorService {
     const period = await this.calculatePeriodSettlement(sellerId, startDate, endDate);
     await connectDb();
     const db = (await connectDb()).connection.db!;
-    const statementsCollection = db.collection('souq_settlements');
+    const statementsCollection = db.collection<SettlementStatement>('souq_settlements');
 
     // Generate statement ID
     const statementId = `STMT-${Date.now()}-${sellerId.slice(-6).toUpperCase()}`;
@@ -420,7 +428,7 @@ export class SettlementCalculatorService {
   ): Promise<void> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
-    const statementsCollection = db.collection('souq_settlements');
+    const statementsCollection = db.collection<SettlementStatement>('souq_settlements');
 
     // Find statement
     const statement = await statementsCollection.findOne({ statementId });
@@ -518,7 +526,7 @@ export class SettlementCalculatorService {
     await connectDb();
     const db = (await connectDb()).connection.db!;
     const ordersCollection = db.collection('souq_orders');
-    const statementsCollection = db.collection('souq_settlements');
+    const statementsCollection = db.collection<SettlementStatement>('souq_settlements');
 
     // Calculate available balance (orders past hold period)
     const availableOrders = await ordersCollection
@@ -605,7 +613,7 @@ export class SettlementCalculatorService {
       .toArray();
 
     const totalEarnings = paidStatements.reduce(
-      (sum: number, stmt: unknown) => sum + (stmt.summary?.netPayout || 0),
+      (sum, stmt) => sum + (stmt.summary?.netPayout ?? 0),
       0
     );
 

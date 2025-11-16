@@ -1,15 +1,19 @@
 import { Types } from 'mongoose';
 import LedgerEntry from '../models/finance/LedgerEntry';
 import { decimal128ToMinor } from '../lib/money';
-import { normalizeBalance } from '../lib/accounting';
+import { normalizeBalance, type AccountType } from '../lib/accounting';
 import { RequestContext } from '../lib/authContext';
 import { ForbiddenError } from '../lib/errors';
 
+type AccountName = string | { en?: string; ar?: string };
+
 type TrialBalanceRow = {
   accountId: Types.ObjectId;
-  code: string;
-  name: string;
-  type: string;
+  code?: string;
+  accountCode?: string;
+  name?: AccountName;
+  accountName?: AccountName;
+  type: AccountType;
   debit: Types.Decimal128;
   credit: Types.Decimal128;
 };
@@ -50,8 +54,10 @@ export async function trialBalance(ctx: RequestContext, from: Date, to: Date) {
       $project: {
         accountId: '$_id',
         code: '$acc.code',
+        accountCode: '$acc.accountCode',
         name: '$acc.name',
-        type: '$acc.type',
+        accountName: '$acc.accountName',
+        type: '$acc.accountType',
         debit: '$debit',
         credit: '$credit',
       },
@@ -132,8 +138,10 @@ export async function ownerStatement(ctx: RequestContext, propertyId: string, fr
       $project: {
         accountId: '$_id',
         code: '$acc.code',
+        accountCode: '$acc.accountCode',
         name: '$acc.name',
-        type: '$acc.type',
+        accountName: '$acc.accountName',
+        type: '$acc.accountType',
         debit: '$debit',
         credit: '$credit',
       },

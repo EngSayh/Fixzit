@@ -231,7 +231,7 @@ export async function PUT(request: NextRequest) {
     
     await user.save();
 
-    const normalized = normalizePreferencesResponse(user.preferences);
+    const normalized = normalizePreferencesResponse(user.preferences ?? undefined);
     
     return NextResponse.json({
       success: true,

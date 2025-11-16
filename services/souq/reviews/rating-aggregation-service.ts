@@ -37,27 +37,31 @@ class RatingAggregationService {
   private cache = new Map<string, { data: RatingAggregate; timestamp: number }>();
   private cacheTTL = 5 * 60 * 1000; // 5 minutes
 
-  private getCacheKey(orgId: string, productId: string): string {
-    return `${orgId}:${productId}`;
+  private getCacheKey(productId: string, orgId?: string): string {
+    return `${orgId ?? 'global'}:${productId}`;
   }
 
   /**
    * Calculate product rating with caching
    */
-  async calculateProductRating(orgId: string, productId: string): Promise<RatingAggregate> {
+  async calculateProductRating(productId: string, orgId?: string): Promise<RatingAggregate> {
     // Check cache first
-    const cacheKey = this.getCacheKey(orgId, productId);
+    const cacheKey = this.getCacheKey(productId, orgId);
     const cached = this.cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
       return cached.data;
     }
 
     // Fetch published reviews
-    const reviews = await SouqReview.find({
-      org_id: orgId,
+    const reviewFilter: Record<string, unknown> = {
       productId,
       status: 'published',
-    })
+    };
+    if (orgId) {
+      reviewFilter.org_id = orgId;
+    }
+
+    const reviews = await SouqReview.find(reviewFilter)
       .select('rating isVerifiedPurchase')
       .lean();
 
@@ -171,19 +175,19 @@ class RatingAggregationService {
   /**
    * Update product rating cache (called after new review)
    */
-  async updateProductRatingCache(orgId: string, productId: string): Promise<void> {
+  async updateProductRatingCache(productId: string, orgId?: string): Promise<void> {
     // Invalidate cache
-    this.cache.delete(this.getCacheKey(orgId, productId));
+    this.cache.delete(this.getCacheKey(productId, orgId));
 
     // Recalculate
-    await this.calculateProductRating(orgId, productId);
+    await this.calculateProductRating(productId, orgId);
   }
 
   /**
    * Get rating distribution with percentages
    */
-  async getRatingDistribution(orgId: string, productId: string): Promise<RatingDistribution> {
-    const aggregate = await this.calculateProductRating(orgId, productId);
+  async getRatingDistribution(productId: string, orgId?: string): Promise<RatingDistribution> {
+    const aggregate = await this.calculateProductRating(productId, orgId);
     const total = aggregate.totalReviews;
 
     const distribution: RatingDistribution = {

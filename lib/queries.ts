@@ -6,10 +6,10 @@
 
 import { getDatabase } from './mongodb-unified';
 import { logger } from './logger';
-import type { Db } from 'mongodb';
 
 // Alias for consistency
 const getDb = getDatabase;
+type MongoDb = Awaited<ReturnType<typeof getDb>>;
 
 // ==========================================
 // WORK ORDERS MODULE
@@ -315,7 +315,7 @@ export async function getMarketplaceCountersForOrg(orgId: string) {
   return { listings, orders, reviews };
 }
 
-async function getSellerProductIds(sellerId: string, db: Db): Promise<string[]> {
+async function getSellerProductIds(sellerId: string, db: MongoDb): Promise<string[]> {
   const listings = await db
     .collection('souq_listings')
     .find({ sellerId })

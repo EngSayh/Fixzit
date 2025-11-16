@@ -10,8 +10,21 @@ import { logger } from '@/lib/logger';
 declare global {
   interface Window {
     __copilotLastRequest?: number;
+    SpeechRecognition?: unknown;
+    webkitSpeechRecognition?: unknown;
   }
 }
+
+// Speech Recognition types
+type SpeechRecognitionResult = {
+  [index: number]: {
+    [index: number]: { transcript: string };
+  };
+};
+
+type SpeechRecognitionEvent = {
+  results: SpeechRecognitionResult;
+};
 
 // Type-safe discriminated unions for message data
 type MessageData = 
@@ -174,8 +187,10 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
   const [forms, setForms] = useState<Record<string, ToolFormState>>(initialForms);
   const [error, setError] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(true);
+  const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const recognitionRef = useRef<{ start: () => void; stop: () => void; lang: string } | null>(null);
 
   // Sync with global language - use TranslationContext instead of API locale
   const locale: 'en' | 'ar' = globalLocale === 'ar' ? 'ar' : 'en';
@@ -196,6 +211,34 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  // Setup voice recognition (Web Speech API)
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      recognitionRef.current = null;
+      return;
+    }
+
+    const recognition = new (SpeechRecognition as never)() as { start: () => void; stop: () => void; lang: string; onresult: (e: SpeechRecognitionEvent) => void; onerror: () => void; onend: () => void };
+    recognition.lang = locale === 'ar' ? 'ar-SA' : 'en-US';
+    
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+      setIsListening(false);
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+  }, [locale]);
 
   useEffect(() => {
     async function bootstrap() {
@@ -243,6 +286,17 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
 
   const quickActions = useMemo(() => profile?.quickActions || [], [profile]);
 
+  const startListening = useCallback(() => {
+    if (!recognitionRef.current) return;
+    try {
+      setIsListening(true);
+      recognitionRef.current.start();
+    } catch (err) {
+      logger.error('Voice recognition error:', err);
+      setIsListening(false);
+    }
+  }, []);
+
   const appendAssistantMessage = useCallback((content: string, data?: ChatMessage['data'], intent?: string, sources?: ChatMessage['sources']) => {
     setMessages(prev => [...prev, { id: `a-${Date.now()}`, role: 'assistant', content, data, intent, sources }]);
   }, []);
@@ -269,6 +323,17 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
     setInput('');
     setError(null);
     setLoading(true);
+
+    // Simple sentiment detection for escalation hints
+    const negativePhrases = /(frustrated|angry|problem|issue|bad|worst|not working|broken|terrible)/i;
+    if (negativePhrases.test(input)) {
+      const escalationHint = locale === 'ar' 
+        ? 'يبدو أنك تواجه مشكلة. يمكنني مساعدتك بإنشاء تذكرة دعم عاجلة أو توجيهك إلى خدمة العملاء.'
+        : 'You seem frustrated. I can help create a priority support ticket or direct you to customer care.';
+      setTimeout(() => {
+        appendAssistantMessage(escalationHint, undefined, 'escalation_hint');
+      }, 500);
+    }
 
     // Cancel any pending request
     if (abortControllerRef.current) {
@@ -631,6 +696,24 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
 
       <div className="border-t border-border bg-card px-4 py-3">
         <div className="flex items-center gap-2">
+          {recognitionRef.current && (
+            <button
+              type="button"
+              onClick={startListening}
+              disabled={isListening || loading || !isOnline}
+              className={`flex h-10 w-10 items-center justify-center rounded-full shadow transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                isListening 
+                  ? 'animate-pulse bg-amber-500 text-white' 
+                  : 'bg-muted text-muted-foreground hover:bg-muted-dark hover:text-foreground'
+              }`}
+              aria-label={locale === 'ar' ? 'إدخال صوتي' : 'Voice input'}
+              title={isListening ? (locale === 'ar' ? 'جارٍ الاستماع...' : 'Listening...') : (locale === 'ar' ? 'إدخال صوتي' : 'Voice input')}
+            >
+              <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
+              </svg>
+            </button>
+          )}
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
