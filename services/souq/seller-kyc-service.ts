@@ -534,8 +534,32 @@ class SellerKYCService {
       return false;
     }
 
-    // TODO: Implement MOD-97 checksum validation
-    return true;
+    // MOD-97 checksum validation
+    // 1. Move first 4 chars to end: SA22 1234... → 1234...SA22
+    const rearranged = cleanIBAN.slice(4) + cleanIBAN.slice(0, 4);
+    
+    // 2. Replace letters with numbers (A=10, B=11, ..., Z=35)
+    const numericString = rearranged
+      .split('')
+      .map(char => {
+        const code = char.charCodeAt(0);
+        // A-Z: convert to 10-35
+        if (code >= 65 && code <= 90) {
+          return (code - 55).toString();
+        }
+        // 0-9: keep as is
+        return char;
+      })
+      .join('');
+    
+    // 3. Calculate MOD 97 (handle large numbers by processing in chunks)
+    let remainder = 0;
+    for (let i = 0; i < numericString.length; i++) {
+      remainder = (remainder * 10 + parseInt(numericString[i], 10)) % 97;
+    }
+    
+    // Valid IBAN has remainder of 1
+    return remainder === 1;
   }
 
   /**

@@ -594,26 +594,48 @@ export class PayoutProcessorService {
     type: 'success' | 'failed',
     errorMessage?: string
   ): Promise<void> {
-    // TODO: Implement email/SMS notification
-    logger.info(`Sending ${type} notification for payout ${payout.payoutId}`);
+    try {
+      const { sendWhatsAppTextMessage, isWhatsAppEnabled } = await import('@/lib/integrations/whatsapp');
+      
+      // Get seller details for phone number
+      const db = await connectDb();
+      const seller = await db.collection('souq_sellers').findOne({ 
+        _id: new ObjectId(payout.sellerId) 
+      });
 
-    if (type === 'success') {
-      logger.info(`Payout of ${payout.amount} SAR completed successfully. Transaction ID: ${payout.transactionReference}`);
-    } else {
-      logger.info(`Payout of ${payout.amount} SAR failed. Error: ${errorMessage}`);
+      if (!seller?.contactInfo?.phone) {
+        logger.warn(`No phone number for seller ${payout.sellerId}, skipping notification`);
+        return;
+      }
+
+      const message = type === 'success'
+        ? `تم تحويل مبلغ ${payout.amount.toFixed(2)} ريال سعودي إلى حسابك البنكي بنجاح.\n\nرقم المرجع: ${payout.transactionReference}\n\nسيصل المبلغ خلال 1-2 يوم عمل.`
+        : `فشل تحويل مبلغ ${payout.amount.toFixed(2)} ريال سعودي.\n\nالسبب: ${errorMessage}\n\nسيتم إعادة المحاولة تلقائياً.`;
+
+      if (isWhatsAppEnabled()) {
+        const result = await sendWhatsAppTextMessage({
+          to: seller.contactInfo.phone,
+          message,
+        });
+
+        if (result.success) {
+          logger.info(`Payout notification sent via WhatsApp for ${payout.payoutId}`, {
+            messageId: result.messageId,
+          });
+        } else {
+          logger.error(`Failed to send WhatsApp notification for ${payout.payoutId}`, {
+            error: result.error,
+          });
+        }
+      } else {
+        logger.info(`WhatsApp disabled, logging ${type} notification for payout ${payout.payoutId}`, {
+          phone: seller.contactInfo.phone,
+          message,
+        });
+      }
+    } catch (error) {
+      logger.error(`Error sending payout notification for ${payout.payoutId}`, error);
     }
-
-    // Real implementation:
-    // await EmailService.send({
-    //   to: seller.email,
-    //   template: type === 'success' ? 'payout-success' : 'payout-failed',
-    //   data: {
-    //     amount: payout.amount,
-    //     currency: payout.currency,
-    //     transactionReference: payout.transactionReference,
-    //     errorMessage,
-    //   },
-    // });
   }
 
   /**
