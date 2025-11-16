@@ -49,14 +49,27 @@ export default function RecruitmentPage() {
   
   const userRole = (session?.user?.role || 'Candidate') as ATSRole;
   
+  // RBAC checks (must be before hooks)
+  const canManageJobs = hasPermission(userRole, 'jobs:create');
+  const canViewApplications = hasPermission(userRole, 'applications:read');
+  const canScheduleInterviews = hasPermission(userRole, 'interviews:create');
+  const canViewSettings = hasPermission(userRole, 'settings:read');
+  
   // Fetch jobs data
   const { data: jobsData, error: jobsError, isLoading: jobsLoading } = useSWR(
     '/api/ats/jobs?status=all',
     fetcher
   );
   
+  // Fetch applications data (only if user has permission)
+  const { data: applicationsData, error: applicationsError, isLoading: applicationsLoading } = useSWR(
+    canViewApplications ? '/api/ats/applications' : null,
+    fetcher
+  );
+  
   // Handle 402 Payment Required - redirect to upgrade page
-  if (jobsError && (jobsError as any)?.status === 402) {
+  if ((jobsError && (jobsError as any)?.status === 402) || 
+      (applicationsError && (applicationsError as any)?.status === 402)) {
     router.push('/billing/upgrade?feature=ats');
     return (
       <div className="flex items-center justify-center h-full">
@@ -69,14 +82,10 @@ export default function RecruitmentPage() {
     );
   }
   
-  // RBAC checks
-  const canManageJobs = hasPermission(userRole, 'jobs:create');
-  const canViewApplications = hasPermission(userRole, 'applications:read');
-  const canScheduleInterviews = hasPermission(userRole, 'interviews:create');
-  const canViewSettings = hasPermission(userRole, 'settings:read');
-  
   const jobs = jobsData?.data || [];
   const jobsCount = jobs.length;
+  const applications = applicationsData?.data || [];
+  const applicationsCount = applications.length;
 
   return (
     <div className="flex flex-col h-full">
@@ -225,16 +234,113 @@ export default function RecruitmentPage() {
         {/* Applications Tab */}
         {canViewApplications && (
           <TabsContent value="applications" className="flex-1 p-6">
-            <div className="bg-card border rounded-lg p-8 text-center">
-              <div className="text-6xl mb-4">📝</div>
-              <h2 className="text-xl font-semibold mb-2">Applications</h2>
-              <p className="text-muted-foreground mb-4">
-                Review candidate applications, update stages, and add notes.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Phase 2: Kanban board with drag-drop stage transitions
-              </p>
-            </div>
+            {applicationsLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading applications...</p>
+                </div>
+              </div>
+            ) : applicationsError ? (
+              <div className="bg-destructive/10 border border-destructive rounded-lg p-6 text-center">
+                <div className="text-4xl mb-4">⚠️</div>
+                <h3 className="text-lg font-semibold text-destructive mb-2">Error Loading Applications</h3>
+                <p className="text-sm text-muted-foreground">{applicationsError.message}</p>
+              </div>
+            ) : applications.length === 0 ? (
+              <div className="bg-card border rounded-lg p-8 text-center">
+                <div className="text-6xl mb-4">📝</div>
+                <h2 className="text-xl font-semibold mb-2">No Applications Yet</h2>
+                <p className="text-muted-foreground mb-4">
+                  Applications will appear here once candidates apply to your published jobs.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold">All Applications ({applicationsCount})</h2>
+                  <div className="flex gap-2">
+                    <select className="px-3 py-2 border rounded-md text-sm">
+                      <option value="all">All Stages</option>
+                      <option value="applied">Applied</option>
+                      <option value="screening">Screening</option>
+                      <option value="interview">Interview</option>
+                      <option value="offer">Offer</option>
+                      <option value="hired">Hired</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="grid gap-4">
+                  {applications.map((app: any) => (
+                    <div key={app._id} className="bg-card border rounded-lg p-6 hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-semibold text-foreground">
+                              {app.candidateId?.firstName} {app.candidateId?.lastName}
+                            </h3>
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              app.stage === 'hired' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                              app.stage === 'offer' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                              app.stage === 'interview' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                              app.stage === 'screening' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                              app.stage === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                              'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+                            }`}>
+                              {app.stage}
+                            </span>
+                            {app.score && (
+                              <span className="text-sm font-medium text-primary">
+                                Score: {app.score}%
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                            <span>💼 {app.jobId?.title}</span>
+                            <span>📧 {app.candidateId?.email}</span>
+                            {app.candidateId?.phone && <span>📱 {app.candidateId?.phone}</span>}
+                          </div>
+                          {app.candidateId?.skills && app.candidateId.skills.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              {app.candidateId.skills.slice(0, 5).map((skill: string, idx: number) => (
+                                <span key={idx} className="px-2 py-1 bg-accent text-accent-foreground text-xs rounded">
+                                  {skill}
+                                </span>
+                              ))}
+                              {app.candidateId.skills.length > 5 && (
+                                <span className="px-2 py-1 text-xs text-muted-foreground">
+                                  +{app.candidateId.skills.length - 5} more
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="text-muted-foreground">
+                              📅 Applied {new Date(app.createdAt).toLocaleDateString()}
+                            </span>
+                            {app.candidateId?.experience && (
+                              <span className="text-muted-foreground">
+                                🎯 {app.candidateId.experience} years exp.
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-2 ml-4">
+                          <button className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
+                            View
+                          </button>
+                          <button className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                            Review
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </TabsContent>
         )}
 
