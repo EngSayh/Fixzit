@@ -408,9 +408,7 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
           <label className="block text-sm font-medium mb-1">Type *</label>
           <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
             <SelectTrigger>
-              <SelectValue>
-                {typeFilter || "Select type"}
-              </SelectValue>
+              <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="NEW_CONSTRUCTION">New Construction</SelectItem>

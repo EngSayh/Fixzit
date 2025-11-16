@@ -8,7 +8,6 @@ import { Metadata } from 'next';
 import { ReviewList } from '@/components/seller/reviews/ReviewList';
 import { RatingSummary } from '@/components/seller/reviews/RatingSummary';
 import { reviewService } from '@/services/souq/reviews/review-service';
-import { ratingAggregationService } from '@/services/souq/reviews/rating-aggregation-service';
 import Link from 'next/link';
 
 export const metadata: Metadata = {

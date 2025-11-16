@@ -1,16 +1,5 @@
-/**
-import logger from '@/lib/logger';
-
- * Redis Caching Layer
- * 
- * Provides a centralized caching mechanism using Redis for:
- * - Analytics data (5min TTL)
- * - Public jobs listings (15min TTL)
- * - ATS settings (60min TTL)
- * - Other frequently accessed data
- */
-
 import { createClient, RedisClientType } from 'redis';
+import { logger } from '@/lib/logger';
 
 let client: RedisClientType | null = null;
 let isConnecting = false;

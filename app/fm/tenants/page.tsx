@@ -391,9 +391,7 @@ function CreateTenantForm({ onCreated, orgId }: { onCreated: () => void; orgId: 
           <label className="block text-sm font-medium mb-1">{t('fm.properties.type', 'Type')} *</label>
           <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
             <SelectTrigger>
-              <SelectValue>
-                {typeFilter || t('fm.properties.selectType', 'Select type')}
-              </SelectValue>
+              <SelectValue placeholder={t('fm.properties.selectType', 'Select type')} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="INDIVIDUAL">{t('fm.tenants.individual', 'Individual')}</SelectItem>

@@ -387,6 +387,8 @@ export async function POST(req: NextRequest) {
                   triggeredBy,
                 },
               });
+            }
+          }
         } catch (error) {
           logger.error('[Admin Notification] WhatsApp failed', { error, phone: contact.phone });
           results.whatsapp.failed++;

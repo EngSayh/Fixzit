@@ -53,19 +53,23 @@ const priorityStyles: Record<string, string> = {
   CRITICAL: 'bg-destructive/10 text-destructive border border-destructive/20',
 };
 
-const statusLabels: Record<string, string> = {
-  SUBMITTED: 'Submitted',
-  DISPATCHED: 'Dispatched',
-  IN_PROGRESS: 'In Progress',
-  ON_HOLD: 'On Hold',
-  COMPLETED: 'Completed',
-  VERIFIED: 'Verified',
-  CLOSED: 'Closed',
-  CANCELLED: 'Cancelled',
-};
+// Status labels will use translation keys
+function getStatusLabel(t: (key: string, fallback?: string) => string, status: string): string {
+  const statusMap: Record<string, string> = {
+    SUBMITTED: t('status.submitted', 'Submitted'),
+    DISPATCHED: t('status.dispatched', 'Dispatched'),
+    IN_PROGRESS: t('status.inProgress', 'In Progress'),
+    ON_HOLD: t('status.onHold', 'On Hold'),
+    COMPLETED: t('status.completed', 'Completed'),
+    VERIFIED: t('status.verified', 'Verified'),
+    CLOSED: t('status.closed', 'Closed'),
+    CANCELLED: t('status.cancelled', 'Cancelled'),
+  };
+  return statusMap[status] ?? status;
+}
 
 const PRIORITY_OPTIONS: WorkOrderPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
-const STATUS_OPTIONS = Object.keys(statusLabels);
+const STATUS_OPTIONS = ['SUBMITTED', 'DISPATCHED', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'VERIFIED', 'CLOSED', 'CANCELLED'];
 const PAGE_SIZE = 10;
 
 function isWorkOrderPriority(value: string): value is WorkOrderPriority {
@@ -225,7 +229,7 @@ export function WorkOrdersView({ heading, description }: WorkOrdersViewProps) {
                 <SelectItem value="">{statusAllLabel}</SelectItem>
                 {STATUS_OPTIONS.map((status) => (
                   <SelectItem key={status} value={status}>
-                    {statusLabels[status]}
+                    {getStatusLabel(t, status)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -297,7 +301,7 @@ export function WorkOrdersView({ heading, description }: WorkOrdersViewProps) {
                       {priorityLabel} {workOrder.priority}
                     </Badge>
                     <Badge className={statusStyles[workOrder.status] || 'bg-muted text-foreground border border-border'}>
-                      {statusLabels[workOrder.status] ?? workOrder.status}
+                      {getStatusLabel(t, workOrder.status)}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">{codeLabel} {code}</p>
@@ -385,6 +389,7 @@ type WorkOrderFormState = {
 };
 
 function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState<WorkOrderFormState>({
@@ -441,16 +446,18 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
       <DialogTrigger asChild>
         <Button className="bg-success hover:bg-success-dark">
           <Plus className="me-2 h-4 w-4" />
-          New Work Order
+          {t('workOrders.create.button', 'New Work Order')}
         </Button>
       </DialogTrigger>
     <DialogContent className="max-w-4xl w-full">
         <DialogHeader>
-          <DialogTitle>Create work order</DialogTitle>
+          <DialogTitle>{t('workOrders.create.title', 'Create work order')}</DialogTitle>
         </DialogHeader>
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">Title *</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t('workOrders.create.form.titleLabel', 'Title *')}
+            </label>
             <Input
               required
               value={form.title}
@@ -458,7 +465,9 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">Description</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t('workOrders.create.form.descriptionLabel', 'Description')}
+            </label>
             <Textarea
               rows={4}
               value={form.description}
@@ -467,7 +476,9 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">Priority</label>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                {t('workOrders.create.form.priorityLabel', 'Priority')}
+              </label>
               <Select
                 value={form.priority}
                 onValueChange={(value) => {
@@ -489,7 +500,9 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
               </Select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">Category</label>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                {t('workOrders.create.form.categoryLabel', 'Category')}
+              </label>
               <Input
                 value={form.category}
                 onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}
@@ -497,20 +510,22 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">Property ID</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t('workOrders.create.form.propertyIdLabel', 'Property ID')}
+            </label>
             <Input
-              placeholder="Optional — link to a property"
+              placeholder={t('workOrders.create.form.propertyIdPlaceholder', 'Optional — link to a property')}
               value={form.propertyId}
               onChange={(event) => setForm((prev) => ({ ...prev, propertyId: event.target.value }))}
             />
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => { reset(); setOpen(false); }} disabled={submitting}>
-              Cancel
+              {t('workOrders.create.form.cancelButton', 'Cancel')}
             </Button>
             <Button type="submit" disabled={submitting}>
               {submitting && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
-              Create
+              {t('workOrders.create.form.submitButton', 'Create')}
             </Button>
           </div>
         </form>

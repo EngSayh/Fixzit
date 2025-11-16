@@ -126,7 +126,6 @@ export default function AdvertisingPage() {
     let totalImpressions = 0;
     let totalClicks = 0;
     let totalRevenue = 0;
-    let activeCampaigns = 0;
 
     campaigns.forEach((campaign) => {
       const stat = stats[campaign.campaignId];
@@ -135,7 +134,6 @@ export default function AdvertisingPage() {
         totalImpressions += stat.impressions;
         totalClicks += stat.clicks;
         totalRevenue += stat.revenue;
-        activeCampaigns++;
       }
     });
 

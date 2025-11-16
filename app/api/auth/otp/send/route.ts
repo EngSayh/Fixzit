@@ -172,10 +172,12 @@ export async function POST(request: NextRequest) {
     // 8. Get user's phone number
     let userPhone = user.contact?.phone || user.personal?.phone || user.phone;
 
-    if (
-      !userPhone &&
-      (user.role === 'SUPER_ADMIN' || user.roles?.includes?.('SUPER_ADMIN'))
-    ) {
+    const isSuperAdmin =
+      user.role === 'SUPER_ADMIN' ||
+      user.professional?.role === 'SUPER_ADMIN' ||
+      user.roles?.includes?.('SUPER_ADMIN');
+
+    if (!userPhone && isSuperAdmin) {
       const fallbackPhone =
         process.env.NEXTAUTH_SUPERADMIN_FALLBACK_PHONE ||
         process.env.SUPER_ADMIN_FALLBACK_PHONE ||

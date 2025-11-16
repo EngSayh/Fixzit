@@ -98,24 +98,6 @@ export default function RecruitmentPage() {
     );
   }, [jobsError, applicationsError, interviewsError, analyticsError, settingsError]);
 
-  useEffect(() => {
-    if (requiresUpgrade) {
-      router.push('/billing/upgrade?feature=ats');
-    }
-  }, [requiresUpgrade, router]);
-
-  if (requiresUpgrade) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <div className="text-6xl mb-4">🔒</div>
-          <h2 className="text-xl font-bold mb-2">ATS Not Enabled</h2>
-          <p className="text-muted-foreground mb-4">Redirecting to upgrade page...</p>
-        </div>
-      </div>
-    );
-  }
-  
   const jobs = jobsData?.data || [];
   const jobsCount = jobs.length;
   const applications = applicationsData?.data || [];
@@ -147,6 +129,24 @@ export default function RecruitmentPage() {
     () => applications.filter((app: any) => ['offer', 'hired'].includes(app.stage)),
     [applications]
   );
+
+  useEffect(() => {
+    if (requiresUpgrade) {
+      router.push('/billing/upgrade?feature=ats');
+    }
+  }, [requiresUpgrade, router]);
+
+  if (requiresUpgrade) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔒</div>
+          <h2 className="text-xl font-bold mb-2">ATS Not Enabled</h2>
+          <p className="text-muted-foreground mb-4">Redirecting to upgrade page...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">

@@ -407,6 +407,11 @@ const ar = {
     published: 'منشور',
     open: 'مفتوح',
     closed: 'مغلق',
+    // Work order specific statuses
+    submitted: 'مقدم',
+    dispatched: 'تم الإرسال',
+    onHold: 'معلق',
+    verified: 'تم التحقق',
   },
   rfq: {
     title: 'طلبات العروض والمناقصات',
@@ -1124,15 +1129,24 @@ const ar = {
     emailNotifications: 'إشعارات البريد الإلكتروني',
     pushNotifications: 'الإشعارات المنبثقة',
     smsNotifications: 'إشعارات الرسائل النصية',
+    // Page-level translations
+    page: {
+      title: 'الإشعارات',
+      subtitle: 'ابقَ على اطلاع بجميع إشعارات وتنبيهات النظام',
+    },
+    // Statistics section
     stats: {
       total: 'إجمالي الإشعارات',
       unread: 'غير مقروء',
       highPriority: 'عالية الأولوية',
       today: 'اليوم',
     },
+    // Filter options
     filters: {
       all: 'جميع الإشعارات',
+      unread: 'غير مقروء فقط',
       unreadOnly: 'غير مقروء فقط',
+      high: 'عالية الأولوية',
       highPriority: 'عالية الأولوية',
       maintenance: 'الصيانة',
       vendor: 'الموردون',
@@ -1140,15 +1154,32 @@ const ar = {
       system: 'النظام',
       search: 'البحث في الإشعارات...',
     },
+    // Search functionality
+    search: {
+      placeholder: 'البحث في الإشعارات...',
+    },
+    // Tab labels
     tabs: {
       all: 'الكل',
       unread: 'غير مقروء',
       urgent: 'عاجل',
     },
+    // Priority levels
     priority: {
       high: 'عالية',
       medium: 'متوسطة',
       low: 'منخفضة',
+    },
+    // Notification categories
+    category: {
+      maintenance: 'الصيانة',
+      vendor: 'الموردون',
+      finance: 'المالية',
+      system: 'النظام',
+      workorder: 'أمر عمل',
+      payment: 'دفع',
+      tenant: 'مستأجر',
+      alert: 'تنبيه',
     },
     categories: {
       maintenance: 'الصيانة',
@@ -1160,9 +1191,50 @@ const ar = {
       tenant: 'مستأجر',
       alert: 'تنبيه',
     },
+    // Status labels
+    status: {
+      read: 'مقروء',
+      unread: 'غير مقروء',
+    },
+    // State messages
+    state: {
+      loading: 'جاري تحميل الإشعارات...',
+      emptyTitle: 'لم يتم العثور على إشعارات',
+      emptySubtitle: 'أنت مطّلع على كل شيء!',
+    },
+    // Individual notification item actions
+    item: {
+      markAsRead: 'وضع علامة كمقروء',
+      moreActions: 'المزيد من الإجراءات',
+    },
+    // Bulk operations
+    bulk: {
+      selectAll: 'تحديد الكل',
+      selected: '{{selected}} من {{total}} محدد',
+      count: '{{count}} إشعارات',
+      countSingle: 'إشعار واحد',
+      markRead: 'وضع علامة كمقروء',
+      markImportant: 'وضع علامة كهام',
+      export: 'تصدير',
+      archive: 'أرشفة',
+      delete: 'حذف',
+    },
+    // Quick actions panel
+    quickActions: {
+      title: 'إجراءات سريعة',
+      email: 'إعدادات البريد الإلكتروني',
+      push: 'الإشعارات المنبثقة',
+      mute: 'كتم الفئات',
+      report: 'تقرير الإشعارات',
+      settings: 'الإعدادات',
+      clearAll: 'مسح الكل',
+    },
+    // Action messages
     actions: {
       markRead: 'وضع علامة كمقروء',
       markUnread: 'وضع علامة كغير مقروء',
+      markAllRead: 'وضع علامة على الكل كمقروء',
+      openSettings: 'الإعدادات',
       delete: 'حذف',
       archive: 'أرشفة',
       mute: 'كتم',
@@ -1170,6 +1242,28 @@ const ar = {
       clearAll: 'مسح الكل',
       selectAll: 'تحديد الكل',
     },
+    // Toast notifications
+    toast: {
+      noOrgId: 'لم يتم العثور على معرف المنظمة',
+      markReadFailed: 'فشل وضع علامة على الإشعار كمقروء',
+      markingCount: 'جاري وضع علامة على {{count}} إشعار كمقروء...',
+      markedCount: 'تم وضع علامة على {{count}} إشعار كمقروء',
+      archived: 'تمت أرشفة {{count}} إشعار',
+      deleted: 'تم حذف {{count}} إشعار',
+      markedImportant: 'تم وضع علامة على {{count}} إشعار كهام',
+      mutedCategory: 'تم كتم إشعارات الفئة: {{category}}',
+      muteSelectCategory: 'يرجى تحديد فئة معينة أولاً لكتمها',
+      clearedAll: 'تم مسح جميع الإشعارات',
+    },
+    // Report export
+    report: {
+      filenamePrefix: 'تقرير-الإشعارات-',
+    },
+    // Accessibility labels
+    accessibility: {
+      selectNotification: 'تحديد الإشعار',
+    },
+    // Legacy keys (for backwards compatibility)
     messages: {
       noNotificationsFound: 'لم يتم العثور على إشعارات',
       allMarkedAsRead: 'تم وضع علامة على جميع الإشعارات كمقروءة',
@@ -2072,6 +2166,60 @@ const ar = {
     attachments: 'المرفقات',
     beforePhotos: 'صور قبل',
     afterPhotos: 'صور بعد',
+    // List view translations
+    list: {
+      heading: 'أوامر العمل',
+      description: 'إدارة وتتبع أوامر العمل عبر جميع العقارات',
+      searchPlaceholder: 'البحث بالعنوان أو الوصف',
+      loading: 'جاري تحميل أوامر العمل...',
+      filters: {
+        status: 'الحالة',
+        statusAll: 'جميع الحالات',
+        priority: 'الأولوية',
+        priorityAll: 'جميع الأولويات',
+        refresh: 'تحديث',
+      },
+      labels: {
+        property: 'العقار:',
+        assigned: 'مسند إلى:',
+        category: 'الفئة:',
+        created: 'تاريخ الإنشاء:',
+        priority: 'الأولوية:',
+        code: 'الرمز:',
+        slaWindow: 'نافذة SLA:',
+        due: 'الاستحقاق',
+      },
+      values: {
+        notLinked: 'غير مرتبط',
+        unassigned: 'غير مسند',
+        general: 'عام',
+        unknown: 'غير معروف',
+      },
+      empty: {
+        title: 'لا توجد أوامر عمل تطابق المرشحات الحالية.',
+        subtitle: 'اضبط المرشحات أو أنشئ أمر عمل جديد للبدء.',
+      },
+      pagination: {
+        summary: 'عرض {{count}} من {{total}} أمر عمل',
+        previous: 'السابق',
+        next: 'التالي',
+      },
+    },
+    // Create dialog translations
+    create: {
+      title: 'إنشاء أمر عمل',
+      button: 'أمر عمل جديد',
+      form: {
+        titleLabel: 'العنوان *',
+        descriptionLabel: 'الوصف',
+        priorityLabel: 'الأولوية',
+        categoryLabel: 'الفئة',
+        propertyIdLabel: 'معرف العقار',
+        propertyIdPlaceholder: 'اختياري — ربط بعقار',
+        submitButton: 'إنشاء',
+        cancelButton: 'إلغاء',
+      },
+    },
   },
   tenants: {
     tenant: 'مستأجر',
