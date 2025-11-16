@@ -355,7 +355,7 @@ export const WORK_ORDER_FSM: {
     WORK_COMPLETE: ['AFTER'],
   },
   transitions: [
-    { from: 'NEW', to: 'ASSESSMENT', by: [Role.EMPLOYEE, Role.CORPORATE_ADMIN, Role.MANAGEMENT, Role.HR], guard: 'technicianAssigned' },
+    { from: 'NEW', to: 'ASSESSMENT', by: [Role.EMPLOYEE, Role.CORPORATE_ADMIN, Role.MANAGEMENT, Role.HR] },
     { from: 'ASSESSMENT', to: 'ESTIMATE_PENDING', by: [Role.TECHNICIAN], requireMedia: ['BEFORE'] },
     { from: 'ESTIMATE_PENDING', to: 'QUOTATION_REVIEW', by: [Role.TECHNICIAN], action: 'attach_quote' },
     { from: 'QUOTATION_REVIEW', to: 'PENDING_APPROVAL', by: [Role.EMPLOYEE, Role.CORPORATE_ADMIN], action: 'request_approval' },
@@ -428,7 +428,7 @@ export const NOTIFY = {
   onClosed: ['TENANT','PROPERTY_OWNER'],
   channels: ['push','email','sms','whatsapp'],
   deepLinks: {
-    approval: 'fixizit://approvals/quote/:quotationId',
+    approval: 'fixzit://approvals/quote/:quotationId',
     ownerStatement: 'fixzit://financials/statements/property/:propertyId',
   },
 };

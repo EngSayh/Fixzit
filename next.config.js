@@ -6,6 +6,81 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 });
 
+// Bridge newly namespaced FM/Souq routes to the existing feature pages
+const navigationRewrites = [
+  // Work Orders
+  { source: '/fm/work-orders/new', destination: '/work-orders/new' },
+  { source: '/fm/work-orders/board', destination: '/work-orders/board' },
+  { source: '/fm/work-orders/pm', destination: '/work-orders/pm' },
+  { source: '/fm/work-orders/history', destination: '/work-orders/history' },
+  { source: '/fm/work-orders/approvals', destination: '/work-orders/approvals' },
+
+  // Properties
+  { source: '/fm/properties/new', destination: '/fm/properties' },
+  { source: '/fm/properties/units', destination: '/properties/units' },
+  { source: '/fm/properties/leases', destination: '/properties/leases' },
+  { source: '/fm/properties/inspections', destination: '/properties/inspections' },
+  { source: '/fm/properties/documents', destination: '/properties/documents' },
+  { source: '/fm/properties/units/new', destination: '/properties/units' },
+  { source: '/fm/properties/inspections/new', destination: '/properties/inspections' },
+
+  // Finance
+  { source: '/fm/finance/invoices', destination: '/fm/invoices' },
+  { source: '/fm/finance/invoices/new', destination: '/finance/invoices/new' },
+  { source: '/fm/finance/payments', destination: '/fm/finance' },
+  { source: '/fm/finance/payments/new', destination: '/finance/payments/new' },
+  { source: '/fm/finance/expenses', destination: '/fm/finance' },
+  { source: '/fm/finance/expenses/new', destination: '/finance/expenses/new' },
+  { source: '/fm/finance/budgets', destination: '/fm/finance' },
+  { source: '/fm/finance/budgets/new', destination: '/finance/budgets/new' },
+  { source: '/fm/finance/reports', destination: '/fm/reports' },
+  { source: '/fm/invoices/new', destination: '/finance/invoices/new' },
+
+  // HR
+  { source: '/fm/hr/directory', destination: '/hr/employees' },
+  { source: '/fm/hr/directory/new', destination: '/hr/employees' },
+  { source: '/fm/hr/leave', destination: '/hr/leave' },
+  { source: '/fm/hr/leave/approvals', destination: '/hr/leave' },
+  { source: '/fm/hr/payroll', destination: '/hr/payroll' },
+  { source: '/fm/hr/payroll/run', destination: '/hr/payroll' },
+  { source: '/fm/hr/recruitment', destination: '/hr/ats/jobs' },
+
+  // Administration & CRM
+  { source: '/fm/administration/policies/new', destination: '/administration' },
+  { source: '/fm/administration/assets/new', destination: '/administration' },
+  { source: '/fm/crm/leads/new', destination: '/crm' },
+  { source: '/fm/crm/accounts/new', destination: '/crm' },
+
+  // Marketplace / Souq
+  { source: '/fm/marketplace/vendors/new', destination: '/vendors' },
+  { source: '/fm/marketplace/listings/new', destination: '/marketplace' },
+  { source: '/fm/marketplace/orders/new', destination: '/marketplace/orders' },
+  { source: '/marketplace/rfqs/new', destination: '/marketplace/rfq' },
+  { source: '/marketplace/orders/new', destination: '/marketplace/orders' },
+  { source: '/marketplace/items/new', destination: '/marketplace' },
+
+  // Support & Compliance
+  { source: '/fm/support/tickets/new', destination: '/support/my-tickets' },
+  { source: '/fm/support/escalations/new', destination: '/support' },
+  { source: '/fm/compliance/contracts/new', destination: '/compliance' },
+  { source: '/fm/compliance/audits/new', destination: '/compliance' },
+
+  // Reports & System
+  { source: '/fm/reports/new', destination: '/fm/reports' },
+  { source: '/fm/reports/schedules/new', destination: '/fm/reports' },
+  { source: '/fm/system/users/invite', destination: '/system' },
+  { source: '/fm/system/roles/new', destination: '/system' },
+  { source: '/fm/system/integrations', destination: '/system' },
+
+  // Misc. FM routes
+  { source: '/fm/admin', destination: '/admin' },
+  { source: '/fm/tenants/new', destination: '/fm/tenants' },
+
+  // Marketplace / Aqar shared actions
+  { source: '/aqar/listings/new', destination: '/aqar/properties' },
+  { source: '/aqar/valuation/new', destination: '/aqar' },
+];
+
 const nextConfig = {
   // App Router is enabled by default in Next.js 14
   // No need for experimental.appDir anymore
@@ -235,53 +310,50 @@ const nextConfig = {
     ]
   },
 
-  // API Rewrites to backend server
+  // UI + API rewrites
   async rewrites() {
-    if (!isDevelopment) {
-      // Avoid rewriting API requests to localhost when running in production
-      // (e.g. on Vercel) where the backend is not available.
-      return [];
-    }
+    const apiRewrites = isDevelopment
+      ? [
+          {
+            source: '/api/auth/:path*',
+            destination: '/api/auth/:path*',
+          },
+          {
+            source: '/api/marketplace/:path*',
+            destination: 'http://localhost:5000/api/marketplace/:path*',
+          },
+          {
+            source: '/api/properties/:path*',
+            destination: 'http://localhost:5000/api/properties/:path*',
+          },
+          {
+            source: '/api/workorders/:path*',
+            destination: 'http://localhost:5000/api/workorders/:path*',
+          },
+          {
+            source: '/api/finance/:path*',
+            destination: 'http://localhost:5000/api/finance/:path*',
+          },
+          {
+            source: '/api/hr/:path*',
+            destination: 'http://localhost:5000/api/hr/:path*',
+          },
+          {
+            source: '/api/crm/:path*',
+            destination: 'http://localhost:5000/api/crm/:path*',
+          },
+          {
+            source: '/api/compliance/:path*',
+            destination: 'http://localhost:5000/api/compliance/:path*',
+          },
+          {
+            source: '/api/analytics/:path*',
+            destination: 'http://localhost:5000/api/analytics/:path*',
+          },
+        ]
+      : [];
 
-    return [
-      // Ensure auth API routes are handled first
-      {
-        source: '/api/auth/:path*',
-        destination: '/api/auth/:path*',
-      },
-      {
-        source: '/api/marketplace/:path*',
-        destination: 'http://localhost:5000/api/marketplace/:path*',
-      },
-      {
-        source: '/api/properties/:path*',
-        destination: 'http://localhost:5000/api/properties/:path*',
-      },
-      {
-        source: '/api/workorders/:path*',
-        destination: 'http://localhost:5000/api/workorders/:path*',
-      },
-      {
-        source: '/api/finance/:path*',
-        destination: 'http://localhost:5000/api/finance/:path*',
-      },
-      {
-        source: '/api/hr/:path*',
-        destination: 'http://localhost:5000/api/hr/:path*',
-      },
-      {
-        source: '/api/crm/:path*',
-        destination: 'http://localhost:5000/api/crm/:path*',
-      },
-      {
-        source: '/api/compliance/:path*',
-        destination: 'http://localhost:5000/api/compliance/:path*',
-      },
-      {
-        source: '/api/analytics/:path*',
-        destination: 'http://localhost:5000/api/analytics/:path*',
-      },
-    ]
+    return [...navigationRewrites, ...apiRewrites];
   },
 
   // Output configuration for deployment

@@ -34,6 +34,7 @@
     "qa:e2e": "playwright test --config=tests/playwright.config.ts",
     "verify:prep": "node -e \"require('fs').mkdirSync('_artifacts',{recursive:true})\"",
     "verify:routes": "tsx scripts/verify-routes.ts",
+    "check:nav-routes": "tsx scripts/check-nav-routes.ts",
     "verify:api": "tsx scripts/verify-api.ts",
     "verify:mongo": "tsx scripts/mongo-check.ts",
     "verify:all": "npm run verify:prep && npm run build && concurrently -k -s first \"npm run start\" \"wait-on http://localhost:3000 && npm run verify:routes && npm run verify:api && npm run verify:mongo\"",

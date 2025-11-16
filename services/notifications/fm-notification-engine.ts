@@ -185,7 +185,13 @@ export function generateLinks(
 ): { webUrl: string; deepLink: string } {
   if (!id) throw new Error('ID required for link generation');
   
-  const WEB_BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://app.fixizit.com';
+  const webBase = (process.env.NEXT_PUBLIC_FIXZIT_APP_URL
+    || process.env.NEXT_PUBLIC_APP_URL
+    || 'https://app.fixzit.com').replace(/\/$/, '');
+  const deepLinkSchemeRaw = process.env.NEXT_PUBLIC_FIXZIT_DEEP_LINK_SCHEME || 'fixzit://';
+  const deepLinkScheme = deepLinkSchemeRaw.endsWith('://')
+    ? deepLinkSchemeRaw
+    : `${deepLinkSchemeRaw.replace(/\/+$/, '')}://`;
 
   const paths: Record<typeof type, string> = {
     'work-order': `/fm/work-orders/${id}`,
@@ -202,8 +208,8 @@ export function generateLinks(
   }
 
   return {
-    webUrl: `${WEB_BASE}${path}`,
-    deepLink: `fixizit:/${path}` // Single slash for consistency
+    webUrl: `${webBase}${path}`,
+    deepLink: `${deepLinkScheme}${path.replace(/^\//, '')}`
   };
 }
 
