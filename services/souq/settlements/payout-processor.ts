@@ -15,7 +15,7 @@
 
 import { ObjectId } from 'mongodb';
 import { connectDb } from '@/lib/mongodb-unified';
-import logger from '@/lib/logger';
+import { logger } from '@/lib/logger';
 import type { SettlementStatement } from './settlement-calculator';
 
 /**
@@ -108,6 +108,15 @@ const PAYOUT_CONFIG = {
   currency: 'SAR',
 } as const;
 
+async function getDbInstance() {
+  const mongooseInstance = await connectDb();
+  const db = mongooseInstance.connection.db;
+  if (!db) {
+    throw new Error('Database connection not initialized');
+  }
+  return db;
+}
+
 /**
  * Payout Processor Service
  */
@@ -120,8 +129,7 @@ export class PayoutProcessorService {
     statementId: string,
     bankAccount: BankAccount
   ): Promise<PayoutRequest> {
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const db = await getDbInstance();
     const statementsCollection = db.collection('souq_settlements');
     const payoutsCollection = db.collection('souq_payouts');
 
@@ -193,8 +201,7 @@ export class PayoutProcessorService {
    * Process a single payout
    */
   static async processPayout(payoutId: string): Promise<PayoutRequest> {
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const db = await getDbInstance();
     const payoutsCollection = db.collection('souq_payouts');
 
     // Fetch payout
@@ -264,8 +271,7 @@ export class PayoutProcessorService {
     payout: PayoutRequest,
     errorMessage: string
   ): Promise<PayoutRequest> {
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const db = await getDbInstance();
     const payoutsCollection = db.collection('souq_payouts');
 
     const newRetryCount = payout.retryCount + 1;
@@ -375,8 +381,7 @@ export class PayoutProcessorService {
    * Process batch payouts
    */
   static async processBatchPayouts(scheduledDate: Date): Promise<BatchPayoutJob> {
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const db = await getDbInstance();
     const payoutsCollection = db.collection('souq_payouts');
     const batchesCollection = db.collection('souq_payout_batches');
 
@@ -444,8 +449,7 @@ export class PayoutProcessorService {
    * Cancel payout request
    */
   static async cancelPayout(payoutId: string, reason: string): Promise<void> {
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const db = await getDbInstance();
     const payoutsCollection = db.collection('souq_payouts');
 
     const payout = await payoutsCollection.findOne({ payoutId });
@@ -475,8 +479,7 @@ export class PayoutProcessorService {
    * Get payout status
    */
   static async getPayoutStatus(payoutId: string): Promise<PayoutRequest> {
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const db = await getDbInstance();
     const payoutsCollection = db.collection('souq_payouts');
 
     const payout = await payoutsCollection.findOne({ payoutId }) as PayoutRequest | null;
@@ -500,8 +503,7 @@ export class PayoutProcessorService {
       offset?: number;
     }
   ): Promise<{ payouts: PayoutRequest[]; total: number }> {
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const db = await getDbInstance();
     const payoutsCollection = db.collection('souq_payouts');
 
     const query: Record<string, unknown> = { sellerId };
@@ -570,8 +572,7 @@ export class PayoutProcessorService {
     statementId: string,
     status: SettlementStatement['status']
   ): Promise<void> {
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const db = await getDbInstance();
     const statementsCollection = db.collection('souq_settlements');
 
     const update: Record<string, unknown> = { status };
@@ -598,7 +599,7 @@ export class PayoutProcessorService {
       const { sendWhatsAppTextMessage, isWhatsAppEnabled } = await import('@/lib/integrations/whatsapp');
       
       // Get seller details for phone number
-      const db = await connectDb();
+      const db = await getDbInstance();
       const seller = await db.collection('souq_sellers').findOne({ 
         _id: new ObjectId(payout.sellerId) 
       });
