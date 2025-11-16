@@ -110,12 +110,12 @@ export async function POST(request: NextRequest) {
         throw new Error('Transaction failed to create package or payment');
       }
       
-      // إعادة التوجيه إلى بوابة الدفع (Tap Payments للسوق السعودي)
+      // Redirect to payment gateway (Tap Payments for Saudi market)
       let paymentGatewayUrl = `/aqar/payments/${payment._id}`;
       
       if (process.env.TAP_PAYMENTS_API_KEY && process.env.TAP_PAYMENTS_MERCHANT_ID) {
         try {
-          // إنشاء جلسة دفع Tap Payments
+          // Create Tap Payments checkout session
           const tapResponse = await fetch('https://api.tap.company/v2/charges', {
             method: 'POST',
             headers: {
@@ -149,10 +149,11 @@ export async function POST(request: NextRequest) {
             paymentGatewayUrl = tapData.transaction?.url || paymentGatewayUrl;
           }
         } catch (gatewayError) {
-          logger.error('فشل إعادة التوجيه لبوابة الدفع', gatewayError as Error, { paymentId: payment._id });
-          // الرجوع إلى صفحة الدفع المحلية في حالة فشل البوابة
+          logger.error('Payment gateway redirect failed', gatewayError as Error, { paymentId: payment._id });
+          // Fallback to local payment page if gateway fails
         }
       }
+>>>>>>> feat/souq-marketplace-advanced
       
       return ok(
         {
@@ -170,18 +171,18 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// ar.ts localization file
+// en.ts localization file
 export const messages = {
   aqar: {
     packages: {
       errors: {
-        fetchFailed: 'فشل في جلب الباقات',
+        fetchFailed: 'Failed to fetch packages',
       },
     },
   },
   common: {
     errors: {
-      unexpected: 'خطأ غير متوقع',
+      unexpected: 'Unexpected error',
     },
   },
 };

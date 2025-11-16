@@ -14,6 +14,7 @@ async function listUsers() {
     
     for (const username of usernames) {
       const user = await User.findOne({ username }).select('code username email professional.role status').lean();
+>>>>>>> feat/souq-marketplace-advanced
       if (user) {
         console.log(`✅ ${username.padEnd(25)} ${user.email?.padEnd(40)} ${user.professional?.role || 'NO_ROLE'}`);
       } else {

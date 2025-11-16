@@ -2840,6 +2840,7 @@ const translations: Record<Language, Record<string, string>> = {
     'support.types.': 'نوع الدعم',
     'support.priorities.': 'أولوية الدعم',
     'finance.accountType.': 'نوع الحساب',
+>>>>>>> feat/souq-marketplace-advanced
   },
   en: {
       // Navigation
@@ -2902,6 +2903,7 @@ const translations: Record<Language, Record<string, string>> = {
     'common.characters': 'characters',
     'common.popularPages': 'Popular Pages',
     'common.notAvailable': 'Not available',
+>>>>>>> feat/souq-marketplace-advanced
     
     // Common - Pages
     'common.pages.dashboard': 'Dashboard',

@@ -12,11 +12,13 @@ async function cleanup() {
     
     // Delete by email pattern
     const result1 = await User.deleteMany({ 
+>>>>>>> feat/souq-marketplace-advanced
       email: { $regex: /@test\.fixzit\.co$/ } 
     });
     
     // Delete by orgId with null employeeId (old test users)
     const result2 = await User.deleteMany({
+>>>>>>> feat/souq-marketplace-advanced
       orgId: '68dc8955a1ba6ed80ff372dc',
       employeeId: null
     });

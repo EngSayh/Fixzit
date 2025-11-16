@@ -6,6 +6,7 @@ async function count() {
   try {
     await db;
     const users = await User.find({ 
+>>>>>>> feat/souq-marketplace-advanced
       orgId: '68dc8955a1ba6ed80ff372dc',
       employeeId: null
     }).select('email username code employeeId').lean();

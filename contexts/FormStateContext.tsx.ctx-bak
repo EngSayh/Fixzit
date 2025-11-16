@@ -250,6 +250,7 @@ export function FormStateProvider({ children }: ProviderProps) {
           .then(() => callback())
           .catch((error) => {
             logger.error(`Form save error (${formId})`, error as Error, { formId });
+>>>>>>> feat/souq-marketplace-advanced
             throw error; // Re-throw so Promise.all() in requestSave() can handle it
           });
         
