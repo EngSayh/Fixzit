@@ -43,8 +43,8 @@ export async function GET() {
       return NextResponse.json({
         name: 'FIXZIT ENTERPRISE',
         logo: '/img/fixzit-logo.jpg',
-        primaryColor: '#0061A8',
-        secondaryColor: '#00A859'
+        primaryColor: '#B46B2F',
+        secondaryColor: '#D68B4A'
       });
     }
 
@@ -53,8 +53,8 @@ export async function GET() {
     return NextResponse.json({
       name: orgDoc?.name || 'FIXZIT ENTERPRISE',
       logo: orgDoc?.logo || '/img/fixzit-logo.jpg',
-      primaryColor: orgDoc?.branding?.primaryColor || '#0061A8',
-      secondaryColor: orgDoc?.branding?.secondaryColor || '#00A859'
+      primaryColor: orgDoc?.branding?.primaryColor || '#B46B2F',
+      secondaryColor: orgDoc?.branding?.secondaryColor || '#D68B4A'
     });
   } catch (error) {
     logger.error('Error fetching organization settings:', error);
@@ -62,8 +62,8 @@ export async function GET() {
     return NextResponse.json({
       name: 'FIXZIT ENTERPRISE',
       logo: '/img/fixzit-logo.jpg',
-      primaryColor: '#0061A8',
-      secondaryColor: '#00A859'
+      primaryColor: '#B46B2F',
+      secondaryColor: '#D68B4A'
     });
   }
 }

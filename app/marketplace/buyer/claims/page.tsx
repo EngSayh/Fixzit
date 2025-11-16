@@ -74,7 +74,7 @@ export default function BuyerClaimsPage() {
         {viewMode === 'list' && (
           <Button onClick={handleNewClaim}>
             <FileText className="w-4 h-4 mr-2" />
-            {t('marketplace.claims.buyer.newClaim', 'تقديم مطالبة جديدة')}
+            {t('marketplace.claims.buyer.newClaim') || 'تقديم مطالبة جديدة'}
           </Button>
         )}
       </div>

@@ -2,158 +2,115 @@
 
 ```yaml
 - generic [active] [ref=e1]:
-  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
-    - img [ref=e8]
-  - alert [ref=e11]
-  - generic [ref=e12]:
-    - generic [ref=e13]:
-      - banner [ref=e15]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]: Fx
+          - generic [ref=e7]:
+            - generic [ref=e8]: Fixzit Enterprise
+            - generic [ref=e9]: FM & Marketplaces · Brown shell
+        - navigation [ref=e10]:
+          - link "Dashboard" [ref=e11] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Work Orders" [ref=e12] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Properties" [ref=e13] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Finance" [ref=e14] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Souq" [ref=e15] [cursor=pointer]:
+            - /url: "#modules"
         - generic [ref=e16]:
-          - generic [ref=e17]:
-            - button "العودة إلى الصفحة الرئيسية" [ref=e18] [cursor=pointer]:
-              - generic [ref=e19]: FI
-              - generic [ref=e20]: FIXZIT ENTERPRISE
-            - button "تبديل التطبيق" [ref=e22] [cursor=pointer]:
-              - img [ref=e23]
-              - generic [ref=e28]: السوق
-              - img [ref=e29]
-          - generic [ref=e33]:
-            - img [ref=e34]
-            - combobox "Global search" [ref=e37]
-            - generic [ref=e38]:
-              - img [ref=e39]
-              - generic [ref=e41]: K
-          - link "تسجيل الدخول" [ref=e43] [cursor=pointer]:
-            - /url: /login
-      - generic [ref=e44]:
-        - complementary "التنقل الرئيسي" [ref=e46]:
-          - generic [ref=e47]:
-            - button "طي الشريط الجانبي" [ref=e48] [cursor=pointer]:
-              - img [ref=e49]
-            - generic [ref=e51]: فيكزيت إنتربرايز
-            - navigation "الوحدات" [ref=e52]:
-              - region "الأساسيات" [ref=e53]:
-                - generic [ref=e54]: الأساسيات
-                - list [ref=e55]:
-                  - listitem [ref=e56]:
-                    - link "لوحة التحكم" [ref=e57] [cursor=pointer]:
-                      - /url: /fm/dashboard
-                      - img [ref=e58]
-                      - generic [ref=e63]: لوحة التحكم
-              - region "الأعمال" [ref=e64]:
-                - generic [ref=e65]: الأعمال
-                - list [ref=e66]:
-                  - listitem [ref=e67]:
-                    - link "التقارير" [ref=e68] [cursor=pointer]:
-                      - /url: /fm/reports
-                      - img [ref=e69]
-                      - generic [ref=e71]: التقارير
-                    - list [ref=e72]:
-                      - listitem [ref=e73]:
-                        - link "Standard Reports" [ref=e74] [cursor=pointer]:
-                          - /url: /fm/reports?view=standard
-                          - generic [ref=e76]: Standard Reports
-                      - listitem [ref=e77]:
-                        - link "Custom Reports" [ref=e78] [cursor=pointer]:
-                          - /url: /fm/reports?view=custom
-                          - generic [ref=e80]: Custom Reports
-                      - listitem [ref=e81]:
-                        - link "Dashboards" [ref=e82] [cursor=pointer]:
-                          - /url: /fm/reports?view=dashboards
-                          - generic [ref=e84]: Dashboards
-            - generic [ref=e85]:
-              - generic [ref=e86]: الحساب
-              - list "الحساب"
-        - main [ref=e87]:
-          - main [ref=e91]:
-            - generic [ref=e92]:
-              - generic [ref=e93]:
-                - paragraph [ref=e94]: Fixzit Souq
-                - heading "Facilities, MRO & Construction Marketplace" [level=1] [ref=e95]
-                - paragraph [ref=e96]: Source ASTM and BS EN compliant materials with tenant-level approvals, finance posting, and vendor SLAs baked in.
-                - generic [ref=e97]:
-                  - generic [ref=e98]: Rapid RFQ
-                  - generic [ref=e99]: Work Order linked orders
-                  - generic [ref=e100]: Finance ready invoices
-              - generic [ref=e101]:
-                - heading "Live Operational KPIs" [level=2] [ref=e102]
-                - generic [ref=e103]:
-                  - generic [ref=e104]:
-                    - paragraph [ref=e105]: Open approvals
-                    - paragraph [ref=e106]: "3"
-                  - generic [ref=e107]:
-                    - paragraph [ref=e108]: Pending deliveries
-                    - paragraph [ref=e109]: "7"
-                  - generic [ref=e110]:
-                    - paragraph [ref=e111]: Finance ready
-                    - paragraph [ref=e112]: "5"
-            - generic [ref=e114]:
-              - heading "Featured for your organisation" [level=2] [ref=e115]
-              - link "View all" [ref=e116] [cursor=pointer]:
-                - /url: /marketplace/search
-      - contentinfo [ref=e118]:
-        - generic [ref=e119]:
-          - generic [ref=e120]:
-            - generic [ref=e121]: فيكزيت
-            - link "العودة إلى الصفحة الرئيسية" [ref=e122] [cursor=pointer]:
-              - /url: /
-              - img [ref=e123]
-              - generic [ref=e126]: العودة إلى الصفحة الرئيسية
-            - generic [ref=e127]:
-              - 'button "اختر اللغة: العربية — Saudi Arabia (AR-SA)" [ref=e129] [cursor=pointer]':
-                - img [ref=e130]
-                - generic [ref=e133]:
-                  - generic [ref=e134]: 🇸🇦
-                  - generic [ref=e135]: AR-SA
-              - button "اختر العملة SAR" [ref=e137] [cursor=pointer]:
-                - img [ref=e138]
-                - generic [ref=e141]:
-                  - generic [ref=e142]: 🇸🇦
-                  - generic [ref=e143]: SAR
-          - generic [ref=e144]:
-            - generic [ref=e145]:
-              - generic [ref=e146]: الشركة
-              - list [ref=e147]:
-                - listitem [ref=e148]:
-                  - link "معلومات عنا" [ref=e149] [cursor=pointer]:
-                    - /url: /about
-                - listitem [ref=e150]:
-                  - link "الوظائف" [ref=e151] [cursor=pointer]:
-                    - /url: /careers
-            - generic [ref=e152]:
-              - generic [ref=e153]: قانوني
-              - list [ref=e154]:
-                - listitem [ref=e155]:
-                  - link "الخصوصية" [ref=e156] [cursor=pointer]:
-                    - /url: /privacy
-                - listitem [ref=e157]:
-                  - link "الشروط" [ref=e158] [cursor=pointer]:
-                    - /url: /terms
-            - generic [ref=e159]:
-              - generic [ref=e160]: الدعم
-              - list [ref=e161]:
-                - listitem [ref=e162]:
-                  - link "مركز المساعدة" [ref=e163] [cursor=pointer]:
-                    - /url: /help
-                - listitem [ref=e164]:
-                  - button "فتح تذكرة" [ref=e165] [cursor=pointer]
-          - generic [ref=e166]:
-            - generic [ref=e167]:
-              - generic [ref=e168]: © 2025 فيكزيت. جميع الحقوق محفوظة.
-              - navigation "مسار فيكزت" [ref=e169]:
-                - generic [ref=e170]: فيكزت
-                - generic [ref=e171]: ›
-                - generic [ref=e172]: نظام التصميم
-                - generic [ref=e173]: ›
-                - generic [ref=e174]: الإصدار 2
-            - generic [ref=e175]:
-              - link "الخصوصية" [ref=e176] [cursor=pointer]:
-                - /url: /privacy
-              - link "الشروط" [ref=e177] [cursor=pointer]:
-                - /url: /terms
-              - link "الدعم" [ref=e178] [cursor=pointer]:
-                - /url: /support
-    - button "Ask Fixzit" [ref=e180] [cursor=pointer]:
-      - img [ref=e181]
-  - region "Notifications alt+T"
+          - button "🇸🇦 AR ▼" [ref=e17] [cursor=pointer]:
+            - generic [ref=e18]: 🇸🇦
+            - generic [ref=e19]: AR
+            - generic [ref=e20]: ▼
+          - generic [ref=e22]: SA
+    - generic [ref=e23]:
+      - complementary [ref=e24]:
+        - generic [ref=e26]: Core
+        - navigation [ref=e27]:
+          - link "🏠 Dashboard" [ref=e28] [cursor=pointer]:
+            - /url: "#dashboard"
+            - generic [ref=e29]: 🏠
+            - generic [ref=e30]: Dashboard
+          - link "🛠️ Work Orders" [ref=e31] [cursor=pointer]:
+            - /url: "#workorders"
+            - generic [ref=e32]: 🛠️
+            - generic [ref=e33]: Work Orders
+          - link "🏢 Properties" [ref=e34] [cursor=pointer]:
+            - /url: "#properties"
+            - generic [ref=e35]: 🏢
+            - generic [ref=e36]: Properties
+          - link "💰 Finance" [ref=e37] [cursor=pointer]:
+            - /url: "#finance"
+            - generic [ref=e38]: 💰
+            - generic [ref=e39]: Finance
+          - link "👥 HR" [ref=e40] [cursor=pointer]:
+            - /url: "#hr"
+            - generic [ref=e41]: 👥
+            - generic [ref=e42]: HR
+        - generic [ref=e44]: Business
+        - navigation [ref=e45]:
+          - link "📞 CRM" [ref=e46] [cursor=pointer]:
+            - /url: "#crm"
+            - generic [ref=e47]: 📞
+            - generic [ref=e48]: CRM
+          - link "🛒 Fixzit Souq" [ref=e49] [cursor=pointer]:
+            - /url: "#souq"
+            - generic [ref=e50]: 🛒
+            - generic [ref=e51]: Fixzit Souq
+          - link "🎧 Support" [ref=e52] [cursor=pointer]:
+            - /url: "#support"
+            - generic [ref=e53]: 🎧
+            - generic [ref=e54]: Support
+          - link "📊 Reports" [ref=e55] [cursor=pointer]:
+            - /url: "#reports"
+            - generic [ref=e56]: 📊
+            - generic [ref=e57]: Reports
+        - generic [ref=e59]: System
+        - navigation [ref=e60]:
+          - link "⚙️ System Mgmt." [ref=e61] [cursor=pointer]:
+            - /url: "#system"
+            - generic [ref=e62]: ⚙️
+            - generic [ref=e63]: System Mgmt.
+      - main [ref=e64]:
+        - main [ref=e67]:
+          - generic [ref=e68]:
+            - generic [ref=e69]:
+              - paragraph [ref=e70]: Fixzit Souq
+              - heading "Facilities, MRO & Construction Marketplace" [level=1] [ref=e71]
+              - paragraph [ref=e72]: Source ASTM and BS EN compliant materials with tenant-level approvals, finance posting, and vendor SLAs baked in.
+              - generic [ref=e73]:
+                - generic [ref=e74]: Rapid RFQ
+                - generic [ref=e75]: Work Order linked orders
+                - generic [ref=e76]: Finance ready invoices
+            - generic [ref=e77]:
+              - heading "Live Operational KPIs" [level=2] [ref=e78]
+              - generic [ref=e79]:
+                - generic [ref=e80]:
+                  - paragraph [ref=e81]: Open approvals
+                  - paragraph [ref=e82]: "3"
+                - generic [ref=e83]:
+                  - paragraph [ref=e84]: Pending deliveries
+                  - paragraph [ref=e85]: "7"
+                - generic [ref=e86]:
+                  - paragraph [ref=e87]: Finance ready
+                  - paragraph [ref=e88]: "5"
+          - generic [ref=e90]:
+            - heading "Featured for your organisation" [level=2] [ref=e91]
+            - link "View all" [ref=e92] [cursor=pointer]:
+              - /url: /marketplace/search
+        - region "Notifications alt+T"
+    - contentinfo [ref=e93]:
+      - generic [ref=e94]:
+        - generic [ref=e95]: © 2025 Fixzit Enterprise — Brown Theme
+        - generic [ref=e96]:
+          - button "Privacy" [ref=e97] [cursor=pointer]
+          - button "Terms" [ref=e98] [cursor=pointer]
+          - button "Support" [ref=e99] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e105] [cursor=pointer]:
+    - img [ref=e106]
+  - alert [ref=e109]
 ```

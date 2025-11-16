@@ -225,7 +225,7 @@ export function ProductDetailAd({
                     {product.badges.slice(0, 2).map((badge: string) => (
                       <span
                         key={badge}
-                        className="px-1.5 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 rounded"
+                        className="px-1.5 py-0.5 text-xs font-medium bg-primary/5 text-primary-dark rounded"
                       >
                         {badge === 'fbf' ? 'FBF' : badge}
                       </span>

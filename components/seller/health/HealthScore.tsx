@@ -33,8 +33,8 @@ export default function HealthScore({ score, status, trend, isAtRisk }: Props) {
 
   const getTrendIcon = () => {
     switch (trend) {
-      case 'improving': return <TrendingUp className="w-5 h-5 text-green-600" />;
-      case 'declining': return <TrendingDown className="w-5 h-5 text-red-600" />;
+      case 'improving': return <TrendingUp className="w-5 h-5 text-success" />;
+      case 'declining': return <TrendingDown className="w-5 h-5 text-destructive" />;
       case 'stable': return <Minus className="w-5 h-5 text-gray-600" />;
     }
   };
@@ -91,7 +91,7 @@ export default function HealthScore({ score, status, trend, isAtRisk }: Props) {
                 {getStatusLabel()} Health
               </h2>
               {isAtRisk && (
-                <AlertTriangle className="w-6 h-6 text-red-500" />
+                <AlertTriangle className="w-6 h-6 text-destructive" />
               )}
             </div>
             <div className="flex items-center gap-2 text-gray-600">
@@ -116,15 +116,15 @@ export default function HealthScore({ score, status, trend, isAtRisk }: Props) {
               <p className="font-medium">Your account is at risk. Immediate action required to avoid suspension.</p>
             )}
             {status === 'critical' && (
-              <p className="font-bold text-red-600">
+              <p className="font-bold text-destructive">
                 Critical: Your account may be suspended soon. Take immediate action.
               </p>
             )}
           </div>
 
           {isAtRisk && (
-            <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-lg">
-              <p className="text-sm text-red-800">
+            <div className="mt-4 p-4 bg-destructive/10 border border-red-300 rounded-lg">
+              <p className="text-sm text-destructive-dark">
                 <strong>Account at Risk:</strong> Your performance is below target thresholds. 
                 Please review the recommendations tab for specific actions to improve.
               </p>

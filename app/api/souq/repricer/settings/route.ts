@@ -6,7 +6,7 @@ import { AutoRepricerService } from '@/services/souq/auto-repricer-service';
  * GET /api/souq/repricer/settings
  * Get auto-repricer settings for current seller
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
  * DELETE /api/souq/repricer/settings
  * Disable auto-repricer
  */
-export async function DELETE(request: NextRequest) {
+export async function DELETE(_request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {

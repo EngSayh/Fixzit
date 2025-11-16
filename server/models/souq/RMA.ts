@@ -343,11 +343,11 @@ RMASchema.methods.completeInspection = function(
   };
   
   this.addTimelineEvent('inspection_complete', `Condition: ${condition}, Approved: ${approved}`, inspectedBy);
+  this.status = approved ? 'inspected' : 'completed';
   
   if (approved) {
     this.initiateRefund();
   } else {
-    this.status = 'completed';
     this.completedAt = new Date();
     this.addTimelineEvent('completed', 'Return rejected after inspection', 'system');
   }

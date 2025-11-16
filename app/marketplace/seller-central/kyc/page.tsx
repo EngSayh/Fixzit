@@ -90,7 +90,7 @@ export default function SellerKYCPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-2xl mx-auto p-8 text-center">
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-gray-900 mb-2">KYC Approved!</h1>
           <p className="text-gray-600 mb-6">
             Your seller account has been verified and approved. You can now start listing products.
@@ -109,7 +109,7 @@ export default function SellerKYCPage() {
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-2xl mx-auto p-8">
           <div className="text-center mb-6">
-            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
             <h1 className="text-3xl font-bold text-gray-900 mb-2">KYC Rejected</h1>
             <p className="text-gray-600">
               Your KYC submission was rejected. Please review the reason and resubmit.
@@ -143,7 +143,7 @@ export default function SellerKYCPage() {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-2xl mx-auto p-8 text-center">
-          <Circle className="w-16 h-16 text-yellow-500 mx-auto mb-4 animate-pulse" />
+          <Circle className="w-16 h-16 text-warning mx-auto mb-4 animate-pulse" />
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Under Review</h1>
           <p className="text-gray-600 mb-6">
             Your KYC submission is currently being reviewed by our team. 

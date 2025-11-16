@@ -1,6 +1,7 @@
 import type { Config } from 'tailwindcss';
 import tailwindcssLogical from 'tailwindcss-logical';
 import tailwindcssAnimate from 'tailwindcss-animate';
+import type { PluginAPI } from 'tailwindcss/types/config';
 
 const config: Config = {
   darkMode: ['class', '[data-theme="dark"]'],
@@ -140,7 +141,7 @@ const config: Config = {
     },
   },
   plugins: [
-    function ({ addUtilities, addComponents }) {
+    function ({ addUtilities, addComponents }: PluginAPI) {
       const rtlUtilities = {
         '.rtl-flip': {
           transform: 'scaleX(-1)',

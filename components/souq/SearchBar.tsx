@@ -251,7 +251,7 @@ export default function SearchBar({
                       <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
                     )}
                     {suggestion.type === 'category' && (
-                      <TrendingUp className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                      <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
                     )}
                     {suggestion.type === 'product' && (
                       <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />

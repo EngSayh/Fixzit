@@ -33,7 +33,15 @@ export async function GET(req: NextRequest) {
     
     if (!settings) {
       // Create default settings if not found
-      settings = await AtsSettings.findOrCreateForOrg(orgId);
+      const newSettings = await AtsSettings.findOrCreateForOrg(orgId);
+      settings = newSettings.toObject ? newSettings.toObject() : newSettings;
+    }
+
+    if (!settings) {
+      return NextResponse.json(
+        { error: 'Failed to create or retrieve settings' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({

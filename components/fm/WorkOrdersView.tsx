@@ -262,9 +262,9 @@ export function WorkOrdersView({ heading, description }: WorkOrdersViewProps) {
       </Card>
 
       {error && (
-        <Card className="border-destructive/20 bg-[var(--fixzit-danger-lightest)]">
+        <Card className="border-destructive/20 bg-destructive/10">
           <CardContent className="py-6">
-            <p className="text-sm text-[var(--fixzit-danger-dark)]">{error.message}</p>
+            <p className="text-sm text-destructive-dark">{error.message}</p>
           </CardContent>
         </Card>
       )}
@@ -439,7 +439,7 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!submitting) setOpen(nextOpen); }}>
       <DialogTrigger asChild>
-        <Button className="bg-[var(--fixzit-success)] hover:bg-[var(--fixzit-success-dark)]">
+        <Button className="bg-success hover:bg-success-dark">
           <Plus className="me-2 h-4 w-4" />
           New Work Order
         </Button>

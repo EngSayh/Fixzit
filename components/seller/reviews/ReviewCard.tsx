@@ -77,7 +77,7 @@ export function ReviewCard({
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <span>{review.customerName}</span>
             {review.isVerifiedPurchase && (
-              <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-medium">
+              <span className="bg-success/10 text-success-dark px-2 py-0.5 rounded text-xs font-medium">
                 Verified Purchase
               </span>
             )}
@@ -95,11 +95,11 @@ export function ReviewCard({
         <div className="grid md:grid-cols-2 gap-4 mb-4">
           {review.pros && review.pros.length > 0 && (
             <div>
-              <h4 className="font-semibold text-sm text-green-700 mb-2">Pros</h4>
+              <h4 className="font-semibold text-sm text-success-dark mb-2">Pros</h4>
               <ul className="space-y-1">
                 {review.pros.map((pro, index) => (
                   <li key={index} className="text-sm text-gray-600 flex items-start gap-2">
-                    <span className="text-green-600 mt-1">+</span>
+                    <span className="text-success mt-1">+</span>
                     <span>{pro}</span>
                   </li>
                 ))}
@@ -108,11 +108,11 @@ export function ReviewCard({
           )}
           {review.cons && review.cons.length > 0 && (
             <div>
-              <h4 className="font-semibold text-sm text-red-700 mb-2">Cons</h4>
+              <h4 className="font-semibold text-sm text-destructive-dark mb-2">Cons</h4>
               <ul className="space-y-1">
                 {review.cons.map((con, index) => (
                   <li key={index} className="text-sm text-gray-600 flex items-start gap-2">
-                    <span className="text-red-600 mt-1">-</span>
+                    <span className="text-destructive mt-1">-</span>
                     <span>{con}</span>
                   </li>
                 ))}
@@ -164,7 +164,7 @@ export function ReviewCard({
         <button
           onClick={() => setShowReportDialog(true)}
           disabled={!onReport}
-          className="flex items-center gap-2 text-sm text-gray-600 hover:text-red-600 disabled:opacity-50"
+          className="flex items-center gap-2 text-sm text-gray-600 hover:text-destructive disabled:opacity-50"
         >
           <Flag className="w-4 h-4" />
           <span>Report</span>
@@ -193,7 +193,7 @@ export function ReviewCard({
               <button
                 onClick={handleReport}
                 disabled={isSubmitting || !reportReason}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-destructive text-white rounded-lg hover:bg-destructive-dark disabled:opacity-50"
               >
                 {isSubmitting ? 'Submitting...' : 'Report'}
               </button>

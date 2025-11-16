@@ -192,8 +192,8 @@ export default function SearchPage() {
 
             {/* Error State */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                <p className="text-red-600">{error}</p>
+              <div className="bg-destructive/5 border border-red-200 rounded-lg p-6 text-center">
+                <p className="text-destructive">{error}</p>
               </div>
             )}
 
@@ -303,7 +303,7 @@ function ProductCard({ product, viewMode }: { product: Product; viewMode: 'grid'
             <p className="text-sm text-gray-600 mb-2">{product.brand}</p>
             <div className="flex items-center gap-2 mb-2">
               <div className="flex items-center">
-                <span className="text-yellow-400">★</span>
+                <span className="text-warning">★</span>
                 <span className="text-sm font-medium ml-1">{product.rating.toFixed(1)}</span>
               </div>
               <span className="text-sm text-gray-500">({product.totalReviews})</span>
@@ -312,7 +312,7 @@ function ProductCard({ product, viewMode }: { product: Product; viewMode: 'grid'
               {product.badges.map((badge) => (
                 <span
                   key={badge}
-                  className="inline-block px-2 py-1 text-xs font-medium bg-blue-50 text-blue-600 rounded"
+                  className="inline-block px-2 py-1 text-xs font-medium bg-primary/5 text-primary rounded"
                 >
                   {badge}
                 </span>
@@ -323,7 +323,7 @@ function ProductCard({ product, viewMode }: { product: Product; viewMode: 'grid'
                 {product.price.toFixed(2)} <span className="text-sm">SAR</span>
               </p>
               {!product.inStock && (
-                <span className="text-sm text-red-600 font-medium">Out of Stock</span>
+                <span className="text-sm text-destructive font-medium">Out of Stock</span>
               )}
             </div>
           </div>
@@ -349,7 +349,7 @@ function ProductCard({ product, viewMode }: { product: Product; viewMode: 'grid'
       <p className="text-sm text-gray-600 mb-2">{product.brand}</p>
       <div className="flex items-center gap-2 mb-2">
         <div className="flex items-center">
-          <span className="text-yellow-400">★</span>
+          <span className="text-warning">★</span>
           <span className="text-sm font-medium ml-1">{product.rating.toFixed(1)}</span>
         </div>
         <span className="text-sm text-gray-500">({product.totalReviews})</span>
@@ -358,7 +358,7 @@ function ProductCard({ product, viewMode }: { product: Product; viewMode: 'grid'
         {product.price.toFixed(2)} <span className="text-sm">SAR</span>
       </p>
       {!product.inStock && (
-        <span className="text-sm text-red-600 font-medium">Out of Stock</span>
+        <span className="text-sm text-destructive font-medium">Out of Stock</span>
       )}
     </Link>
   );

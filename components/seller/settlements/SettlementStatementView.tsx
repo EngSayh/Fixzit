@@ -64,7 +64,7 @@ export function SettlementStatementView({ statement }: SettlementStatementViewPr
       <div className="flex items-center justify-between mb-6 pb-4 border-b">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <FileText className="h-6 w-6 text-blue-600" />
+            <FileText className="h-6 w-6 text-primary" />
             <h2 className="text-2xl font-bold">
               كشف التسوية (Settlement Statement)
             </h2>
@@ -82,27 +82,27 @@ export function SettlementStatementView({ statement }: SettlementStatementViewPr
 
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="p-4 bg-green-50 rounded-lg">
+        <div className="p-4 bg-success/5 rounded-lg">
           <p className="text-sm text-gray-600 mb-1">إجمالي المبيعات</p>
-          <p className="text-xl font-bold text-green-600">
+          <p className="text-xl font-bold text-success">
             {formatCurrency(statement.summary.grossSales)}
           </p>
         </div>
-        <div className="p-4 bg-red-50 rounded-lg">
+        <div className="p-4 bg-destructive/5 rounded-lg">
           <p className="text-sm text-gray-600 mb-1">العمولات</p>
-          <p className="text-xl font-bold text-red-600">
+          <p className="text-xl font-bold text-destructive">
             -{formatCurrency(statement.summary.platformCommissions)}
           </p>
         </div>
-        <div className="p-4 bg-yellow-50 rounded-lg">
+        <div className="p-4 bg-warning/5 rounded-lg">
           <p className="text-sm text-gray-600 mb-1">الرسوم والضرائب</p>
-          <p className="text-xl font-bold text-yellow-600">
+          <p className="text-xl font-bold text-warning">
             -{formatCurrency(statement.summary.gatewayFees + statement.summary.vat)}
           </p>
         </div>
-        <div className="p-4 bg-blue-50 rounded-lg">
+        <div className="p-4 bg-primary/5 rounded-lg">
           <p className="text-sm text-gray-600 mb-1">صافي الدفعة</p>
-          <p className="text-xl font-bold text-blue-600">
+          <p className="text-xl font-bold text-primary">
             {formatCurrency(statement.summary.netPayout)}
           </p>
         </div>
@@ -117,37 +117,37 @@ export function SettlementStatementView({ statement }: SettlementStatementViewPr
         </div>
         <div className="flex justify-between py-2 border-b">
           <span>إجمالي المبيعات (Gross Sales)</span>
-          <span className="font-medium text-green-600">
+          <span className="font-medium text-success">
             {formatCurrency(statement.summary.grossSales)}
           </span>
         </div>
-        <div className="flex justify-between py-2 border-b text-red-600">
+        <div className="flex justify-between py-2 border-b text-destructive">
           <span>عمولة المنصة 10% (Platform Commission)</span>
           <span>-{formatCurrency(statement.summary.platformCommissions)}</span>
         </div>
-        <div className="flex justify-between py-2 border-b text-red-600">
+        <div className="flex justify-between py-2 border-b text-destructive">
           <span>رسوم بوابة الدفع 2.5% (Gateway Fees)</span>
           <span>-{formatCurrency(statement.summary.gatewayFees)}</span>
         </div>
-        <div className="flex justify-between py-2 border-b text-red-600">
+        <div className="flex justify-between py-2 border-b text-destructive">
           <span>ضريبة القيمة المضافة 15% (VAT)</span>
           <span>-{formatCurrency(statement.summary.vat)}</span>
         </div>
         {statement.summary.refunds > 0 && (
-          <div className="flex justify-between py-2 border-b text-red-600">
+          <div className="flex justify-between py-2 border-b text-destructive">
             <span>الاستردادات (Refunds)</span>
             <span>-{formatCurrency(statement.summary.refunds)}</span>
           </div>
         )}
         {statement.summary.reserves > 0 && (
-          <div className="flex justify-between py-2 border-b text-yellow-600">
+          <div className="flex justify-between py-2 border-b text-warning">
             <span>المحجوز للمرتجعات 20% (Reserves)</span>
             <span>-{formatCurrency(statement.summary.reserves)}</span>
           </div>
         )}
         <div className="flex justify-between py-3 border-t-2 text-lg font-bold">
           <span>صافي الدفعة (Net Payout)</span>
-          <span className="text-blue-600">
+          <span className="text-primary">
             {formatCurrency(statement.summary.netPayout)}
           </span>
         </div>

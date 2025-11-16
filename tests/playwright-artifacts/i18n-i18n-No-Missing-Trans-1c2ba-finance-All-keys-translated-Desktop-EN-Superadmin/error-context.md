@@ -2,132 +2,89 @@
 
 ```yaml
 - generic [active] [ref=e1]:
-  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
-    - img [ref=e8]
-  - alert [ref=e11]
-  - generic [ref=e12]:
-    - generic [ref=e13]:
-      - banner [ref=e15]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]: Fx
+          - generic [ref=e7]:
+            - generic [ref=e8]: Fixzit Enterprise
+            - generic [ref=e9]: FM & Marketplaces · Brown shell
+        - navigation [ref=e10]:
+          - link "Dashboard" [ref=e11] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Work Orders" [ref=e12] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Properties" [ref=e13] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Finance" [ref=e14] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Souq" [ref=e15] [cursor=pointer]:
+            - /url: "#modules"
         - generic [ref=e16]:
-          - generic [ref=e17]:
-            - button "العودة إلى الصفحة الرئيسية" [ref=e18] [cursor=pointer]:
-              - generic [ref=e19]: FI
-              - generic [ref=e20]: FIXZIT ENTERPRISE
-            - button "تبديل التطبيق" [ref=e22] [cursor=pointer]:
-              - img [ref=e23]
-              - generic [ref=e27]: إدارة المنشآت
-              - img [ref=e28]
-          - generic [ref=e32]:
-            - img [ref=e33]
-            - combobox "Global search" [ref=e36]
-            - generic [ref=e37]:
-              - img [ref=e38]
-              - generic [ref=e40]: K
-          - link "تسجيل الدخول" [ref=e42] [cursor=pointer]:
-            - /url: /login
-      - generic [ref=e43]:
-        - complementary "التنقل الرئيسي" [ref=e45]:
-          - generic [ref=e46]:
-            - button "طي الشريط الجانبي" [ref=e47] [cursor=pointer]:
-              - img [ref=e48]
-            - generic [ref=e50]: فيكزيت إنتربرايز
-            - navigation "الوحدات" [ref=e51]:
-              - region "الأساسيات" [ref=e52]:
-                - generic [ref=e53]: الأساسيات
-                - list [ref=e54]:
-                  - listitem [ref=e55]:
-                    - link "لوحة التحكم" [ref=e56] [cursor=pointer]:
-                      - /url: /fm/dashboard
-                      - img [ref=e57]
-                      - generic [ref=e62]: لوحة التحكم
-              - region "الأعمال" [ref=e63]:
-                - generic [ref=e64]: الأعمال
-                - list [ref=e65]:
-                  - listitem [ref=e66]:
-                    - link "التقارير" [ref=e67] [cursor=pointer]:
-                      - /url: /fm/reports
-                      - img [ref=e68]
-                      - generic [ref=e70]: التقارير
-                    - list [ref=e71]:
-                      - listitem [ref=e72]:
-                        - link "Standard Reports" [ref=e73] [cursor=pointer]:
-                          - /url: /fm/reports?view=standard
-                          - generic [ref=e75]: Standard Reports
-                      - listitem [ref=e76]:
-                        - link "Custom Reports" [ref=e77] [cursor=pointer]:
-                          - /url: /fm/reports?view=custom
-                          - generic [ref=e79]: Custom Reports
-                      - listitem [ref=e80]:
-                        - link "Dashboards" [ref=e81] [cursor=pointer]:
-                          - /url: /fm/reports?view=dashboards
-                          - generic [ref=e83]: Dashboards
-            - generic [ref=e84]:
-              - generic [ref=e85]: الحساب
-              - list "الحساب"
-        - main [ref=e86]
-      - contentinfo [ref=e150]:
-        - generic [ref=e151]:
-          - generic [ref=e152]:
-            - generic [ref=e153]: فيكزيت
-            - link "العودة إلى الصفحة الرئيسية" [ref=e154] [cursor=pointer]:
-              - /url: /
-              - img [ref=e155]
-              - generic [ref=e158]: العودة إلى الصفحة الرئيسية
-            - generic [ref=e159]:
-              - 'button "اختر اللغة: العربية — Saudi Arabia (AR-SA)" [ref=e161] [cursor=pointer]':
-                - img [ref=e162]
-                - generic [ref=e165]:
-                  - generic [ref=e166]: 🇸🇦
-                  - generic [ref=e167]: AR-SA
-              - button "اختر العملة SAR" [ref=e169] [cursor=pointer]:
-                - img [ref=e170]
-                - generic [ref=e173]:
-                  - generic [ref=e174]: 🇸🇦
-                  - generic [ref=e175]: SAR
-          - generic [ref=e176]:
-            - generic [ref=e177]:
-              - generic [ref=e178]: الشركة
-              - list [ref=e179]:
-                - listitem [ref=e180]:
-                  - link "معلومات عنا" [ref=e181] [cursor=pointer]:
-                    - /url: /about
-                - listitem [ref=e182]:
-                  - link "الوظائف" [ref=e183] [cursor=pointer]:
-                    - /url: /careers
-            - generic [ref=e184]:
-              - generic [ref=e185]: قانوني
-              - list [ref=e186]:
-                - listitem [ref=e187]:
-                  - link "الخصوصية" [ref=e188] [cursor=pointer]:
-                    - /url: /privacy
-                - listitem [ref=e189]:
-                  - link "الشروط" [ref=e190] [cursor=pointer]:
-                    - /url: /terms
-            - generic [ref=e191]:
-              - generic [ref=e192]: الدعم
-              - list [ref=e193]:
-                - listitem [ref=e194]:
-                  - link "مركز المساعدة" [ref=e195] [cursor=pointer]:
-                    - /url: /help
-                - listitem [ref=e196]:
-                  - button "فتح تذكرة" [ref=e197] [cursor=pointer]
-          - generic [ref=e198]:
-            - generic [ref=e199]:
-              - generic [ref=e200]: © 2025 فيكزيت. جميع الحقوق محفوظة.
-              - navigation "مسار فيكزت" [ref=e201]:
-                - generic [ref=e202]: فيكزت
-                - generic [ref=e203]: ›
-                - generic [ref=e204]: نظام التصميم
-                - generic [ref=e205]: ›
-                - generic [ref=e206]: الإصدار 2
-            - generic [ref=e207]:
-              - link "الخصوصية" [ref=e208] [cursor=pointer]:
-                - /url: /privacy
-              - link "الشروط" [ref=e209] [cursor=pointer]:
-                - /url: /terms
-              - link "الدعم" [ref=e210] [cursor=pointer]:
-                - /url: /support
-    - button "Ask Fixzit" [ref=e212] [cursor=pointer]:
-      - img [ref=e213]
-  - region "Notifications alt+T"
+          - button "🇸🇦 AR ▼" [ref=e17] [cursor=pointer]:
+            - generic [ref=e18]: 🇸🇦
+            - generic [ref=e19]: AR
+            - generic [ref=e20]: ▼
+          - generic [ref=e22]: SA
+    - generic [ref=e23]:
+      - complementary [ref=e24]:
+        - generic [ref=e26]: Core
+        - navigation [ref=e27]:
+          - link "🏠 Dashboard" [ref=e28] [cursor=pointer]:
+            - /url: "#dashboard"
+            - generic [ref=e29]: 🏠
+            - generic [ref=e30]: Dashboard
+          - link "🛠️ Work Orders" [ref=e31] [cursor=pointer]:
+            - /url: "#workorders"
+            - generic [ref=e32]: 🛠️
+            - generic [ref=e33]: Work Orders
+          - link "🏢 Properties" [ref=e34] [cursor=pointer]:
+            - /url: "#properties"
+            - generic [ref=e35]: 🏢
+            - generic [ref=e36]: Properties
+          - link "💰 Finance" [ref=e37] [cursor=pointer]:
+            - /url: "#finance"
+            - generic [ref=e38]: 💰
+            - generic [ref=e39]: Finance
+          - link "👥 HR" [ref=e40] [cursor=pointer]:
+            - /url: "#hr"
+            - generic [ref=e41]: 👥
+            - generic [ref=e42]: HR
+        - generic [ref=e44]: Business
+        - navigation [ref=e45]:
+          - link "📞 CRM" [ref=e46] [cursor=pointer]:
+            - /url: "#crm"
+            - generic [ref=e47]: 📞
+            - generic [ref=e48]: CRM
+          - link "🛒 Fixzit Souq" [ref=e49] [cursor=pointer]:
+            - /url: "#souq"
+            - generic [ref=e50]: 🛒
+            - generic [ref=e51]: Fixzit Souq
+          - link "🎧 Support" [ref=e52] [cursor=pointer]:
+            - /url: "#support"
+            - generic [ref=e53]: 🎧
+            - generic [ref=e54]: Support
+          - link "📊 Reports" [ref=e55] [cursor=pointer]:
+            - /url: "#reports"
+            - generic [ref=e56]: 📊
+            - generic [ref=e57]: Reports
+        - generic [ref=e59]: System
+        - navigation [ref=e60]:
+          - link "⚙️ System Mgmt." [ref=e61] [cursor=pointer]:
+            - /url: "#system"
+            - generic [ref=e62]: ⚙️
+            - generic [ref=e63]: System Mgmt.
+      - main [ref=e64]:
+        - region "Notifications alt+T"
+    - contentinfo [ref=e126]:
+      - generic [ref=e127]:
+        - generic [ref=e128]: © 2025 Fixzit Enterprise — Brown Theme
+        - generic [ref=e129]:
+          - button "Privacy" [ref=e130] [cursor=pointer]
+          - button "Terms" [ref=e131] [cursor=pointer]
+          - button "Support" [ref=e132] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e138] [cursor=pointer]:
+    - img [ref=e139]
+  - alert [ref=e142]
 ```

@@ -148,8 +148,8 @@ const ClaimSchema = new Schema<IClaim>({
   },
   requestedAmount: { type: Number, required: true },
   
-  buyerEvidence: [ClaimEvidenceSchema],
-  sellerEvidence: [ClaimEvidenceSchema],
+  buyerEvidence: { type: [ClaimEvidenceSchema], default: [] },
+  sellerEvidence: { type: [ClaimEvidenceSchema], default: [] },
   
   status: { 
     type: String, 
@@ -170,7 +170,7 @@ const ClaimSchema = new Schema<IClaim>({
   decision: ClaimDecisionSchema,
   fundsHold: ClaimFundsHoldSchema,
   
-  timeline: [ClaimTimelineSchema],
+  timeline: { type: [ClaimTimelineSchema], default: [] },
   
   buyerNotes: String,
   sellerNotes: String,

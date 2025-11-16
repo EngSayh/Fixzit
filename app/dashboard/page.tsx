@@ -7,10 +7,10 @@ export default function DashboardPage() {
   const { t } = useTranslation();
   
   const stats = [
-    { labelKey: 'dashboard.totalProperties', value: '42', icon: Users, color: 'bg-fixzit-blue' },
-    { labelKey: 'dashboard.openWorkOrders', value: '17', icon: TrendingUp, color: 'bg-fixzit-green' },
-    { labelKey: 'dashboard.monthlyRevenue', value: 'SAR 284,500', icon: DollarSign, color: 'bg-fixzit-yellow' },
-    { labelKey: 'dashboard.occupancyRate', value: '92%', icon: BarChart3, color: 'bg-fixzit-orange' },
+    { labelKey: 'dashboard.totalProperties', value: '42', icon: Users, color: 'bg-primary' },
+    { labelKey: 'dashboard.openWorkOrders', value: '17', icon: TrendingUp, color: 'bg-success' },
+    { labelKey: 'dashboard.monthlyRevenue', value: 'SAR 284,500', icon: DollarSign, color: 'bg-warning' },
+    { labelKey: 'dashboard.occupancyRate', value: '92%', icon: BarChart3, color: 'bg-accent' },
   ];
 
   return (
@@ -78,7 +78,7 @@ export default function DashboardPage() {
                       <p className="font-medium">INV-{2000 + i} - {t('dashboard.monthlyRent', 'Monthly Rent')}</p>
                       <p className="text-sm text-muted-foreground">{t('dashboard.tenant', 'Tenant')}: Acme Corp</p>
                     </div>
-                    <span className="font-semibold text-fixzit-green">
+                    <span className="font-semibold text-success">
                       +SAR {(15000 + i * 1000).toLocaleString()}
                     </span>
                   </div>

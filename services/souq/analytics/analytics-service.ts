@@ -283,24 +283,28 @@ class AnalyticsService {
 
     // Query listings for stock data
     const SouqListing = (await import('@/server/models/souq/Listing')).default;
+    const alertStartDate = new Date();
+    alertStartDate.setDate(alertStartDate.getDate() - (period === 'last_7_days' ? 7 : period === 'last_90_days' ? 90 : 30));
+    
     const listings = await SouqListing.find({
       sellerId,
       status: 'active',
-      stock: { $lte: 10 } // Low stock threshold
-    }).select('productId stock');
+      stockQuantity: { $lte: 10 } // Low stock threshold
+    }).select('productId stockQuantity');
 
     for (const listing of listings) {
-      const product = products.find(p => p._id.toString() === listing.productId);
+      const product = products.find(p => p._id.toString() === listing.productId.toString());
       if (product) {
         const stats = productStats.get(product._id.toString()) || { revenue: 0, unitsSold: 0, orders: 0 };
-        const averageDailySales = stats.unitsSold / Math.max(dateRange, 1);
-        const daysUntilStockout = averageDailySales > 0 ? Math.floor(listing.stock / averageDailySales) : 999;
+        const daysRange = period === 'last_7_days' ? 7 : period === 'last_90_days' ? 90 : 30;
+        const averageDailySales = stats.unitsSold / Math.max(daysRange, 1);
+        const daysUntilStockout = averageDailySales > 0 ? Math.floor(listing.stockQuantity / averageDailySales) : 999;
         
         if (daysUntilStockout <= 7) { // Alert if < 7 days of stock
           lowStock.push({
             productId: product._id.toString(),
             title: product.title.en || product.title.ar || 'Unknown',
-            currentStock: listing.stock,
+            currentStock: listing.stockQuantity,
             averageDailySales,
             daysUntilStockout
           });

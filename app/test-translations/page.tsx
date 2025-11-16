@@ -18,7 +18,7 @@ export default function TranslationTestPage() {
     <div className="p-8 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-6">Translation Test Page</h1>
       
-      <div className="mb-4 p-4 bg-blue-100 rounded">
+      <div className="mb-4 p-4 bg-primary/10 rounded">
         <strong>Current Language:</strong> {language}
       </div>
       
@@ -31,13 +31,13 @@ export default function TranslationTestPage() {
               Key: <code className="bg-gray-200 px-2 py-1 rounded">{key}</code>
             </div>
             <div className="text-lg font-semibold">
-              Translation: <span className="text-blue-600">{t(key, '❌ MISSING')}</span>
+              Translation: <span className="text-primary">{t(key, '❌ MISSING')}</span>
             </div>
           </div>
         ))}
       </div>
       
-      <div className="mt-8 p-4 bg-yellow-100 rounded">
+      <div className="mt-8 p-4 bg-warning/10 rounded">
         <h3 className="font-bold mb-2">Instructions:</h3>
         <ol className="list-decimal list-inside space-y-1">
           <li>If you see "❌ MISSING", the translation key doesn't exist</li>

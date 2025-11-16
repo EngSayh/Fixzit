@@ -377,7 +377,7 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
 
       {/* General error */}
       {errors.general && (
-        <div className="mt-4 p-3 bg-red-50 border border-destructive/20 rounded text-destructive text-sm" role="alert" aria-live="assertive" data-testid="general-error">
+        <div className="mt-4 p-3 bg-destructive/5 border border-destructive/20 rounded text-destructive text-sm" role="alert" aria-live="assertive" data-testid="general-error">
           {errors.general}
         </div>
       )}

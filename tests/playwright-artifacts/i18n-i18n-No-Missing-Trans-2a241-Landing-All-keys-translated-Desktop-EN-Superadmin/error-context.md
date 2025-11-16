@@ -2,136 +2,142 @@
 
 ```yaml
 - generic [active] [ref=e1]:
-  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
-    - img [ref=e8]
-  - alert [ref=e11]
-  - generic [ref=e12]:
-    - banner [ref=e13]:
-      - generic [ref=e14]:
-        - generic [ref=e15]:
-          - button "العودة إلى الصفحة الرئيسية" [ref=e16] [cursor=pointer]:
-            - generic [ref=e17]: FI
-            - generic [ref=e18]: FIXZIT ENTERPRISE
-          - button "تبديل التطبيق" [ref=e20] [cursor=pointer]:
-            - img [ref=e21]
-            - generic [ref=e25]: إدارة المنشآت
-            - img [ref=e26]
-        - generic [ref=e30]:
-          - img [ref=e31]
-          - combobox "Global search" [ref=e34]
-          - generic [ref=e35]:
-            - img [ref=e36]
-            - generic [ref=e38]: K
-        - link "تسجيل الدخول" [ref=e40] [cursor=pointer]:
-          - /url: /login
-    - generic [ref=e41]:
-      - generic [ref=e43]:
-        - heading "منصة فيكزيت للمؤسسات" [level=1] [ref=e44]
-        - paragraph [ref=e45]: حل موحد لإدارة المنشآت + السوق التجاري للعمليات العقارية الحديثة
-        - generic [ref=e46]:
-          - button "الوصول إلى فيكزيت FM" [ref=e47] [cursor=pointer]
-          - button "فيكزيت سوق" [ref=e48] [cursor=pointer]
-          - button "عقار فيكزيت" [ref=e49] [cursor=pointer]
-      - generic [ref=e51]:
-        - heading "حل كامل لإدارة المنشآت" [level=2] [ref=e52]
-        - generic [ref=e53]:
-          - generic [ref=e54]:
-            - heading "إدارة الممتلكات" [level=3] [ref=e55]
-            - paragraph [ref=e56]: إدارة محفظة العقارات الخاصة بك، تتبع الإشغال، والتعامل مع العلاقات مع المستأجرين
-            - link "استكشف ←" [ref=e57] [cursor=pointer]:
-              - /url: /fm/properties
-          - generic [ref=e58]:
-            - heading "أوامر العمل" [level=3] [ref=e59]
-            - paragraph [ref=e60]: إنشاء وتعيين وتتبع طلبات الصيانة مع إدارة اتفاقية مستوى الخدمة
-            - link "استكشف ←" [ref=e61] [cursor=pointer]:
-              - /url: /fm/work-orders
-          - generic [ref=e62]:
-            - heading "الموردون وطلبات العروض" [level=3] [ref=e63]
-            - paragraph [ref=e64]: مصدر المواد، إدارة الموردين، وتبسيط المشتريات
-            - link "استكشف ←" [ref=e65] [cursor=pointer]:
-              - /url: /fm/vendors
-          - generic [ref=e66]:
-            - heading "المالية والفوترة" [level=3] [ref=e67]
-            - paragraph [ref=e68]: التعامل مع الفواتير والمدفوعات وإعداد التقارير المالية
-            - link "استكشف ←" [ref=e69] [cursor=pointer]:
-              - /url: /fm/finance
-          - generic [ref=e70]:
-            - heading "إدارة علاقات العملاء والمستأجرين" [level=3] [ref=e71]
-            - paragraph [ref=e72]: إدارة علاقات المستأجرين وخدمة العملاء
-            - link "استكشف ←" [ref=e73] [cursor=pointer]:
-              - /url: /fm/crm
-          - generic [ref=e74]:
-            - heading "التحليلات والتقارير" [level=3] [ref=e75]
-            - paragraph [ref=e76]: احصل على رؤى من خلال تقارير وتحليلات شاملة
-            - link "استكشف ←" [ref=e77] [cursor=pointer]:
-              - /url: /fm/analytics
-      - generic [ref=e79]:
-        - heading "هل أنت مستعد لتحويل إدارة منشآتك؟" [level=2] [ref=e80]
-        - paragraph [ref=e81]: انضم إلى آلاف العقارات التي تستخدم بالفعل فيكزيت لتبسيط العمليات
-        - generic [ref=e82]:
-          - button "تسجيل الدخول" [ref=e83] [cursor=pointer]
-          - button "طلب عرض توضيحي" [ref=e84] [cursor=pointer]
-    - contentinfo [ref=e85]:
-      - generic [ref=e86]:
-        - generic [ref=e87]:
-          - generic [ref=e88]: فيكزيت
-          - link "العودة إلى الصفحة الرئيسية" [ref=e89] [cursor=pointer]:
-            - /url: /
-            - img [ref=e90]
-            - generic [ref=e93]: العودة إلى الصفحة الرئيسية
-          - generic [ref=e94]:
-            - 'button "اختر اللغة: العربية — Saudi Arabia (AR-SA)" [ref=e96] [cursor=pointer]':
-              - img [ref=e97]
-              - generic [ref=e100]:
-                - generic [ref=e101]: 🇸🇦
-                - generic [ref=e102]: AR-SA
-            - button "اختر العملة SAR" [ref=e104] [cursor=pointer]:
-              - img [ref=e105]
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]: Fx
+          - generic [ref=e7]:
+            - generic [ref=e8]: Fixzit Enterprise
+            - generic [ref=e9]: FM & Marketplaces · Brown shell
+        - navigation [ref=e10]:
+          - link "Dashboard" [ref=e11] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Work Orders" [ref=e12] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Properties" [ref=e13] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Finance" [ref=e14] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Souq" [ref=e15] [cursor=pointer]:
+            - /url: "#modules"
+        - generic [ref=e16]:
+          - button "🇸🇦 AR ▼" [ref=e17] [cursor=pointer]:
+            - generic [ref=e18]: 🇸🇦
+            - generic [ref=e19]: AR
+            - generic [ref=e20]: ▼
+          - generic [ref=e22]: SA
+    - generic [ref=e23]:
+      - complementary [ref=e24]:
+        - generic [ref=e26]: Core
+        - navigation [ref=e27]:
+          - link "🏠 Dashboard" [ref=e28] [cursor=pointer]:
+            - /url: "#dashboard"
+            - generic [ref=e29]: 🏠
+            - generic [ref=e30]: Dashboard
+          - link "🛠️ Work Orders" [ref=e31] [cursor=pointer]:
+            - /url: "#workorders"
+            - generic [ref=e32]: 🛠️
+            - generic [ref=e33]: Work Orders
+          - link "🏢 Properties" [ref=e34] [cursor=pointer]:
+            - /url: "#properties"
+            - generic [ref=e35]: 🏢
+            - generic [ref=e36]: Properties
+          - link "💰 Finance" [ref=e37] [cursor=pointer]:
+            - /url: "#finance"
+            - generic [ref=e38]: 💰
+            - generic [ref=e39]: Finance
+          - link "👥 HR" [ref=e40] [cursor=pointer]:
+            - /url: "#hr"
+            - generic [ref=e41]: 👥
+            - generic [ref=e42]: HR
+        - generic [ref=e44]: Business
+        - navigation [ref=e45]:
+          - link "📞 CRM" [ref=e46] [cursor=pointer]:
+            - /url: "#crm"
+            - generic [ref=e47]: 📞
+            - generic [ref=e48]: CRM
+          - link "🛒 Fixzit Souq" [ref=e49] [cursor=pointer]:
+            - /url: "#souq"
+            - generic [ref=e50]: 🛒
+            - generic [ref=e51]: Fixzit Souq
+          - link "🎧 Support" [ref=e52] [cursor=pointer]:
+            - /url: "#support"
+            - generic [ref=e53]: 🎧
+            - generic [ref=e54]: Support
+          - link "📊 Reports" [ref=e55] [cursor=pointer]:
+            - /url: "#reports"
+            - generic [ref=e56]: 📊
+            - generic [ref=e57]: Reports
+        - generic [ref=e59]: System
+        - navigation [ref=e60]:
+          - link "⚙️ System Mgmt." [ref=e61] [cursor=pointer]:
+            - /url: "#system"
+            - generic [ref=e62]: ⚙️
+            - generic [ref=e63]: System Mgmt.
+      - main [ref=e64]:
+        - generic [ref=e65]:
+          - generic [ref=e67]:
+            - generic [ref=e68]:
+              - paragraph [ref=e69]: Facility Management · Marketplaces · Saudi-first
+              - heading "Operate properties with calm. Move money with confidence." [level=1] [ref=e70]:
+                - text: Operate properties with calm.
+                - text: Move money with confidence.
+              - paragraph [ref=e71]: "A brown, calm Fixzit shell: unified Work Orders, Properties, Finance, HR and Souq in a single, Apple-inspired interface built for Saudi FM teams."
+              - generic [ref=e72]:
+                - button "Get started with Fixzit" [ref=e73] [cursor=pointer]
+                - button "Book a live demo" [ref=e74] [cursor=pointer]
+            - generic [ref=e76]:
+              - generic [ref=e77]:
+                - generic [ref=e78]:
+                  - paragraph [ref=e79]: Today · Portfolio overview
+                  - paragraph [ref=e80]: 124 active work orders · 18 overdue
+                - generic [ref=e81]: FM Command
+              - generic [ref=e82]:
+                - generic [ref=e83]:
+                  - paragraph [ref=e84]: Work Orders
+                  - paragraph [ref=e85]: "124"
+                  - paragraph [ref=e86]: 18 overdue
+                - generic [ref=e87]:
+                  - paragraph [ref=e88]: Properties
+                  - paragraph [ref=e89]: "32"
+                  - paragraph [ref=e90]: 91% occupied
+                - generic [ref=e91]:
+                  - paragraph [ref=e92]: Invoices
+                  - paragraph [ref=e93]: SAR 1.4M
+                  - paragraph [ref=e94]: this month
+          - generic [ref=e100]:
+            - generic [ref=e101]:
+              - heading "Everything your FM operation needs — connected" [level=2] [ref=e102]
+              - paragraph [ref=e103]: "Brown, calm and structured: one shell for Work Orders, Properties, Finance, HR and Souq."
+            - generic [ref=e104]:
+              - generic [ref=e105]:
+                - heading "Work Orders" [level=3] [ref=e106]
+                - paragraph [ref=e107]: "Blue logic, brown theme: new, in progress, completed, overdue with SLA timers and photos."
               - generic [ref=e108]:
-                - generic [ref=e109]: 🇸🇦
-                - generic [ref=e110]: SAR
-        - generic [ref=e111]:
-          - generic [ref=e112]:
-            - generic [ref=e113]: الشركة
-            - list [ref=e114]:
-              - listitem [ref=e115]:
-                - link "معلومات عنا" [ref=e116] [cursor=pointer]:
-                  - /url: /about
-              - listitem [ref=e117]:
-                - link "الوظائف" [ref=e118] [cursor=pointer]:
-                  - /url: /careers
-          - generic [ref=e119]:
-            - generic [ref=e120]: قانوني
-            - list [ref=e121]:
-              - listitem [ref=e122]:
-                - link "الخصوصية" [ref=e123] [cursor=pointer]:
-                  - /url: /privacy
-              - listitem [ref=e124]:
-                - link "الشروط" [ref=e125] [cursor=pointer]:
-                  - /url: /terms
-          - generic [ref=e126]:
-            - generic [ref=e127]: الدعم
-            - list [ref=e128]:
-              - listitem [ref=e129]:
-                - link "مركز المساعدة" [ref=e130] [cursor=pointer]:
-                  - /url: /help
-              - listitem [ref=e131]:
-                - button "فتح تذكرة" [ref=e132] [cursor=pointer]
-        - generic [ref=e133]:
-          - generic [ref=e134]:
-            - generic [ref=e135]: © 2025 فيكزيت. جميع الحقوق محفوظة.
-            - navigation "مسار فيكزت" [ref=e136]:
-              - generic [ref=e137]: فيكزت
-              - generic [ref=e138]: ›
-              - generic [ref=e139]: نظام التصميم
-              - generic [ref=e140]: ›
-              - generic [ref=e141]: الإصدار 2
-          - generic [ref=e142]:
-            - link "الخصوصية" [ref=e143] [cursor=pointer]:
-              - /url: /privacy
-            - link "الشروط" [ref=e144] [cursor=pointer]:
-              - /url: /terms
-            - link "الدعم" [ref=e145] [cursor=pointer]:
-              - /url: /support
-  - region "Notifications alt+T"
+                - heading "Properties" [level=3] [ref=e109]
+                - paragraph [ref=e110]: Units, assets, leases, owners and tenants with health status per property.
+              - generic [ref=e111]:
+                - heading "Finance" [level=3] [ref=e112]
+                - paragraph [ref=e113]: Invoices, receipts, expenses and ZATCA-ready billing aligned with Fixzit finance flows.
+              - generic [ref=e114]:
+                - heading "HR" [level=3] [ref=e115]
+                - paragraph [ref=e116]: Technicians, supervisors, shifts and skills matrix with clean status chips.
+              - generic [ref=e117]:
+                - heading "CRM & Support" [level=3] [ref=e118]
+                - paragraph [ref=e119]: Tickets, SLAs and CSAT in a unified shell, ready for channels and bots.
+              - generic [ref=e120]:
+                - heading "Fixzit Souq" [level=3] [ref=e121]
+                - paragraph [ref=e122]: Vendor onboarding, catalogs and orders using your existing Souq logic in a calmer UI.
+        - region "Notifications alt+T"
+    - contentinfo [ref=e123]:
+      - generic [ref=e124]:
+        - generic [ref=e125]: © 2025 Fixzit Enterprise — Brown Theme
+        - generic [ref=e126]:
+          - button "Privacy" [ref=e127] [cursor=pointer]
+          - button "Terms" [ref=e128] [cursor=pointer]
+          - button "Support" [ref=e129] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e135] [cursor=pointer]:
+    - img [ref=e136]
+  - alert [ref=e139]
 ```

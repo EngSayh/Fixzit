@@ -64,38 +64,38 @@ jobs:
         continue-on-error: false
 
       - name: Run Tests
-        run: pnpm test:models
+        run: |
+          export MONGODB_URI="${MONGODB_URI:-mongodb://localhost:27017/fixzit-test}"
+          pnpm test:models
         continue-on-error: false
         env:
           NODE_ENV: test
-          MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/fixzit-test' }}
->>>>>>> feat/souq-marketplace-advanced
 
       - name: Check Code Coverage
         run: |
           if [ -f coverage/coverage-summary.json ]; then
-            COVERAGE=$(node -e "const cov = require('./coverage/coverage-summary.json'); const total = cov.total; const pct = total.lines.pct; console.log(pct);")
+            COVERAGE=$(node -p "const summary=require('./coverage/coverage-summary.json'); summary?.total?.lines?.pct ?? 0")
             echo "Code coverage: ${COVERAGE}%"
-            if [ $(node -e "console.log($COVERAGE < 80 ? 1 : 0)") -eq 1 ]; then
->>>>>>> feat/souq-marketplace-advanced
+            if node -e "process.exit(parseFloat(process.argv[1]) >= 80 ? 0 : 1)" "$COVERAGE"; then
+              echo "✅ Code coverage ${COVERAGE}% meets 80% threshold"
+            else
               echo "❌ Code coverage ${COVERAGE}% is below 80% threshold"
               exit 1
             fi
-            echo "✅ Code coverage ${COVERAGE}% meets 80% threshold"
           else
             echo "⚠️ Coverage report not found, skipping coverage check"
           fi
         continue-on-error: false
 
       - name: Build Next.js
-        run: pnpm run build
+        run: |
+          export MONGODB_URI="${MONGODB_URI:-mongodb://localhost:27017/fixzit}"
+          export NEXTAUTH_SECRET="${NEXTAUTH_SECRET:-default-secret-for-ci-build-only}"
+          export NEXTAUTH_URL="${NEXTAUTH_URL:-http://localhost:3000}"
+          pnpm run build
         env:
           NODE_OPTIONS: --max-old-space-size=8192
           NODE_ENV: production
-          MONGODB_URI: ${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/fixzit' }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'default-secret-for-ci-build-only' }}
-          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
->>>>>>> feat/souq-marketplace-advanced
           NEXT_PUBLIC_APP_URL: http://localhost:3000
           
       - name: Upload Build Artifacts

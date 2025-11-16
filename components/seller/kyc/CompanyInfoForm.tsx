@@ -80,7 +80,7 @@ export default function CompanyInfoForm({ onSubmit }: Props) {
             placeholder="ABC Trading Company"
           />
           {errors.businessNameEn && (
-            <p className="text-sm text-red-500 mt-1">{errors.businessNameEn.message}</p>
+            <p className="text-sm text-destructive mt-1">{errors.businessNameEn.message}</p>
           )}
         </div>
 
@@ -93,7 +93,7 @@ export default function CompanyInfoForm({ onSubmit }: Props) {
             dir="rtl"
           />
           {errors.businessNameAr && (
-            <p className="text-sm text-red-500 mt-1">{errors.businessNameAr.message}</p>
+            <p className="text-sm text-destructive mt-1">{errors.businessNameAr.message}</p>
           )}
         </div>
       </div>
@@ -109,7 +109,7 @@ export default function CompanyInfoForm({ onSubmit }: Props) {
             maxLength={10}
           />
           {errors.crNumber && (
-            <p className="text-sm text-red-500 mt-1">{errors.crNumber.message}</p>
+            <p className="text-sm text-destructive mt-1">{errors.crNumber.message}</p>
           )}
           <p className="text-xs text-gray-500 mt-1">10-digit CR number</p>
         </div>
@@ -122,7 +122,7 @@ export default function CompanyInfoForm({ onSubmit }: Props) {
             placeholder="300000000000003"
           />
           {errors.vatNumber && (
-            <p className="text-sm text-red-500 mt-1">{errors.vatNumber.message}</p>
+            <p className="text-sm text-destructive mt-1">{errors.vatNumber.message}</p>
           )}
         </div>
       </div>
@@ -150,7 +150,7 @@ export default function CompanyInfoForm({ onSubmit }: Props) {
           placeholder="123 Main Street"
         />
         {errors.addressLine1 && (
-          <p className="text-sm text-red-500 mt-1">{errors.addressLine1.message}</p>
+          <p className="text-sm text-destructive mt-1">{errors.addressLine1.message}</p>
         )}
       </div>
 
@@ -172,7 +172,7 @@ export default function CompanyInfoForm({ onSubmit }: Props) {
             placeholder="Riyadh"
           />
           {errors.city && (
-            <p className="text-sm text-red-500 mt-1">{errors.city.message}</p>
+            <p className="text-sm text-destructive mt-1">{errors.city.message}</p>
           )}
         </div>
 
@@ -184,7 +184,7 @@ export default function CompanyInfoForm({ onSubmit }: Props) {
             placeholder="Riyadh"
           />
           {errors.province && (
-            <p className="text-sm text-red-500 mt-1">{errors.province.message}</p>
+            <p className="text-sm text-destructive mt-1">{errors.province.message}</p>
           )}
         </div>
 
@@ -196,7 +196,7 @@ export default function CompanyInfoForm({ onSubmit }: Props) {
             placeholder="12345"
           />
           {errors.postalCode && (
-            <p className="text-sm text-red-500 mt-1">{errors.postalCode.message}</p>
+            <p className="text-sm text-destructive mt-1">{errors.postalCode.message}</p>
           )}
         </div>
       </div>
@@ -211,7 +211,7 @@ export default function CompanyInfoForm({ onSubmit }: Props) {
             placeholder="+966 50 123 4567"
           />
           {errors.contactPhone && (
-            <p className="text-sm text-red-500 mt-1">{errors.contactPhone.message}</p>
+            <p className="text-sm text-destructive mt-1">{errors.contactPhone.message}</p>
           )}
         </div>
 
@@ -224,7 +224,7 @@ export default function CompanyInfoForm({ onSubmit }: Props) {
             placeholder="contact@example.com"
           />
           {errors.contactEmail && (
-            <p className="text-sm text-red-500 mt-1">{errors.contactEmail.message}</p>
+            <p className="text-sm text-destructive mt-1">{errors.contactEmail.message}</p>
           )}
         </div>
       </div>

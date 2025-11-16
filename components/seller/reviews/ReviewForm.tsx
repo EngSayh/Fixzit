@@ -116,7 +116,7 @@ export function ReviewForm({
       {/* Rating */}
       <div>
         <label className="block text-sm font-medium mb-2">
-          Rating <span className="text-red-500">*</span>
+          Rating <span className="text-destructive">*</span>
         </label>
         <div className="flex gap-2">
           {[1, 2, 3, 4, 5].map((star) => (
@@ -148,7 +148,7 @@ export function ReviewForm({
       {/* Title */}
       <div>
         <label htmlFor="title" className="block text-sm font-medium mb-2">
-          Review Title <span className="text-red-500">*</span>
+          Review Title <span className="text-destructive">*</span>
         </label>
         <input
           id="title"
@@ -167,7 +167,7 @@ export function ReviewForm({
       {/* Content */}
       <div>
         <label htmlFor="content" className="block text-sm font-medium mb-2">
-          Detailed Review <span className="text-red-500">*</span>
+          Detailed Review <span className="text-destructive">*</span>
         </label>
         <textarea
           id="content"
@@ -200,7 +200,7 @@ export function ReviewForm({
             <button
               type="button"
               onClick={() => removePro(index)}
-              className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg"
+              className="px-3 py-2 text-destructive hover:bg-destructive/5 rounded-lg"
             >
               Remove
             </button>
@@ -232,7 +232,7 @@ export function ReviewForm({
             <button
               type="button"
               onClick={() => removeCon(index)}
-              className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg"
+              className="px-3 py-2 text-destructive hover:bg-destructive/5 rounded-lg"
             >
               Remove
             </button>
@@ -249,7 +249,7 @@ export function ReviewForm({
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+        <div className="bg-destructive/5 border border-red-200 text-destructive-dark px-4 py-3 rounded-lg">
           {error}
         </div>
       )}

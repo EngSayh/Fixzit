@@ -46,7 +46,7 @@ export default function BuyBoxWinner({ winner, onAddToCart, currency = 'SAR' }: 
   const getDeliveryBadge = () => {
     if (winner.fulfillmentMethod === 'fbf') {
       return (
-        <Badge className="bg-blue-100 text-blue-800">
+        <Badge className="bg-primary/10 text-primary-dark">
           <Truck className="w-3 h-3 mr-1" />
           FBF - Fast Delivery
         </Badge>
@@ -93,12 +93,12 @@ export default function BuyBoxWinner({ winner, onAddToCart, currency = 'SAR' }: 
       {/* Availability */}
       <div className="mb-4">
         {winner.availableQuantity > 0 ? (
-          <div className="flex items-center gap-2 text-green-700">
+          <div className="flex items-center gap-2 text-success-dark">
             <CheckCircle2 className="w-5 h-5" />
             <span className="font-semibold">In Stock</span>
           </div>
         ) : (
-          <div className="text-red-600 font-semibold">Out of Stock</div>
+          <div className="text-destructive font-semibold">Out of Stock</div>
         )}
       </div>
 
@@ -167,7 +167,7 @@ export default function BuyBoxWinner({ winner, onAddToCart, currency = 'SAR' }: 
 
         {/* Trust Badges */}
         {winner.sellerId.accountHealth.status === 'excellent' && (
-          <div className="mt-3 flex items-center gap-2 text-sm text-green-700">
+          <div className="mt-3 flex items-center gap-2 text-sm text-success-dark">
             <ShieldCheck className="w-4 h-4" />
             <span>Verified Excellent Seller</span>
           </div>

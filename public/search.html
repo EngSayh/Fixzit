@@ -13,7 +13,7 @@
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0061A8 0%, #023047 100%);
+            background: linear-gradient(135deg, #B46B2F 0%, #3A2A1F 100%);
             min-height: 100vh;
             padding: 20px;
         }
@@ -24,7 +24,7 @@
         }
         
         .header {
-            background: #0061A8;
+            background: #B46B2F;
             color: white;
             padding: 20px;
             border-radius: 10px 10px 0 0;
@@ -36,7 +36,7 @@
         .logo {
             width: 40px;
             height: 40px;
-            background: #F6851F;
+            background: #C98036;
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -70,7 +70,7 @@
         
         .search-input:focus {
             outline: none;
-            border-color: #0061A8;
+            border-color: #B46B2F;
             box-shadow: 0 0 0 3px rgba(0,97,168,0.1);
         }
         
@@ -85,23 +85,23 @@
         }
         
         .btn-primary {
-            background: #0061A8;
+            background: #B46B2F;
             color: white;
         }
         
         .btn-primary:hover {
-            background: #023047;
+            background: #3A2A1F;
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,97,168,0.3);
         }
         
         .btn-secondary {
-            background: #F6851F;
+            background: #C98036;
             color: white;
         }
         
         .btn-success {
-            background: #00A859;
+            background: #6E4D2C;
             color: white;
         }
         
@@ -123,14 +123,14 @@
         }
         
         .chip:hover {
-            border-color: #0061A8;
+            border-color: #B46B2F;
             background: #e8f4ff;
         }
         
         .chip.active {
-            background: #0061A8;
+            background: #B46B2F;
             color: white;
-            border-color: #0061A8;
+            border-color: #B46B2F;
         }
         
         .results {
@@ -149,12 +149,12 @@
         .result-count {
             font-size: 18px;
             font-weight: 600;
-            color: #023047;
+            color: #3A2A1F;
         }
         
         .result-item {
             background: #f9f9f9;
-            border-left: 4px solid #0061A8;
+            border-left: 4px solid #B46B2F;
             padding: 20px;
             margin-bottom: 15px;
             border-radius: 8px;
@@ -169,7 +169,7 @@
         .result-title {
             font-size: 16px;
             font-weight: 600;
-            color: #023047;
+            color: #3A2A1F;
             margin-bottom: 10px;
         }
         
@@ -180,7 +180,7 @@
         }
         
         .result-match {
-            background: #FFB400;
+            background: #C98036;
             padding: 2px 6px;
             border-radius: 3px;
             font-weight: 500;
@@ -195,7 +195,7 @@
         .module-tag {
             display: inline-block;
             padding: 4px 12px;
-            background: #00A859;
+            background: #6E4D2C;
             color: white;
             border-radius: 15px;
             font-size: 12px;
@@ -216,7 +216,7 @@
         }
         
         .stat-card {
-            background: linear-gradient(135deg, #0061A8 0%, #023047 100%);
+            background: linear-gradient(135deg, #B46B2F 0%, #3A2A1F 100%);
             color: white;
             padding: 20px;
             border-radius: 10px;
@@ -421,7 +421,7 @@
                 },
                 {
                     component: 'Header',
-                    specification: 'Solid blue (#0061A8), 60px height',
+                    specification: 'Solid blue (#B46B2F), 60px height',
                     implemented: true,
                     location: '/src/components/layout/Header.tsx'
                 },
@@ -439,7 +439,7 @@
                 },
                 {
                     component: 'Color Scheme',
-                    specification: 'Fixzit colors (#0061A8, #023047, #F6851F, #00A859, #FFB400)',
+                    specification: 'Fixzit colors (#B46B2F, #3A2A1F, #C98036, #6E4D2C, #C98036)',
                     implemented: true,
                     location: '/src/styles/theme.ts'
                 },
@@ -622,13 +622,13 @@
 
         function getModuleColor(type) {
             const colors = {
-                'workflow': '#0061A8',
-                'workflow-step': '#023047',
-                'module': '#00A859',
-                'feature': '#F6851F',
-                'layout-audit': '#FFB400'
+                'workflow': '#B46B2F',
+                'workflow-step': '#3A2A1F',
+                'module': '#6E4D2C',
+                'feature': '#C98036',
+                'layout-audit': '#C98036'
             };
-            return colors[type] || '#0061A8';
+            return colors[type] || '#B46B2F';
         }
 
         // Auto-search for "workflow" on page load

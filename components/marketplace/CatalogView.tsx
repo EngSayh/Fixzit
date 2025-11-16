@@ -253,7 +253,7 @@ export default function CatalogView({
       </Card>
 
       {feedbackMessage && (
-        <div className="rounded-2xl border border-success/20 bg-[var(--fixzit-success-lightest)] px-4 py-3 text-sm text-[var(--fixzit-success-darker)]">
+        <div className="rounded-2xl border border-success/20 bg-success/10 px-4 py-3 text-sm text-success">
           {feedbackMessage}
         </div>
       )}
@@ -371,4 +371,3 @@ export default function CatalogView({
     </div>
   );
 }
-

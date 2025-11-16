@@ -92,16 +92,16 @@ export function WithdrawalForm({ sellerId: _sellerId, availableBalance, onSucces
       <h2 className="text-2xl font-bold mb-6">طلب سحب (Request Withdrawal)</h2>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
-          <AlertCircle className="h-5 w-5 text-red-600" />
-          <p className="text-red-600">{error}</p>
+        <div className="mb-4 p-4 bg-destructive/5 border border-red-200 rounded-lg flex items-center gap-2">
+          <AlertCircle className="h-5 w-5 text-destructive" />
+          <p className="text-destructive">{error}</p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-2">
-            المبلغ (Amount) <span className="text-red-500">*</span>
+            المبلغ (Amount) <span className="text-destructive">*</span>
           </label>
           <input
             type="number"
@@ -121,7 +121,7 @@ export function WithdrawalForm({ sellerId: _sellerId, availableBalance, onSucces
 
         <div>
           <label className="block text-sm font-medium mb-2">
-            IBAN <span className="text-red-500">*</span>
+            IBAN <span className="text-destructive">*</span>
           </label>
           <input
             type="text"
@@ -136,7 +136,7 @@ export function WithdrawalForm({ sellerId: _sellerId, availableBalance, onSucces
 
         <div>
           <label className="block text-sm font-medium mb-2">
-            اسم صاحب الحساب (Account Holder Name) <span className="text-red-500">*</span>
+            اسم صاحب الحساب (Account Holder Name) <span className="text-destructive">*</span>
           </label>
           <input
             type="text"
@@ -150,7 +150,7 @@ export function WithdrawalForm({ sellerId: _sellerId, availableBalance, onSucces
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2">
-              رقم الحساب (Account Number) <span className="text-red-500">*</span>
+              رقم الحساب (Account Number) <span className="text-destructive">*</span>
             </label>
             <input
               type="text"
@@ -163,7 +163,7 @@ export function WithdrawalForm({ sellerId: _sellerId, availableBalance, onSucces
 
           <div>
             <label className="block text-sm font-medium mb-2">
-              اسم البنك (Bank Name) <span className="text-red-500">*</span>
+              اسم البنك (Bank Name) <span className="text-destructive">*</span>
             </label>
             <input
               type="text"

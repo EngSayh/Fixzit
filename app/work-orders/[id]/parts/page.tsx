@@ -122,7 +122,7 @@ export default function WorkOrderPartsPage() {
                     placeholder="Search parts from marketplace..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full ps-10 pe-4 py-2 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-fixzit-blue/30"
+                    className="w-full ps-10 pe-4 py-2 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
               </div>
@@ -136,11 +136,11 @@ export default function WorkOrderPartsPage() {
                       <div>
                         <h3 className="font-semibold">{part.title}</h3>
                         <p className="text-sm text-muted-foreground">{part.category} • Stock: {part.stock}</p>
-                        <p className="text-lg font-bold text-fixzit-green">SAR {part.price}</p>
+                        <p className="text-lg font-bold text-success">SAR {part.price}</p>
                       </div>
                       <button
                         onClick={() => addPart(part)}
-                        className="px-4 py-2 bg-fixzit-blue text-white rounded-2xl hover:bg-fixzit-blue/90 flex items-center gap-2"
+                        className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 flex items-center gap-2"
                       >
                         <Plus className="h-4 w-4" />
                         Add
@@ -203,13 +203,13 @@ export default function WorkOrderPartsPage() {
                   <div className="border-t pt-4">
                     <div className="flex justify-between mb-4">
                       <span className="font-semibold">Total</span>
-                      <span className="font-bold text-xl text-fixzit-green">
+                      <span className="font-bold text-xl text-success">
                         SAR {selectedParts.reduce((sum, p) => sum + (p.price * p.quantity), 0).toFixed(2)}
                       </span>
                     </div>
                     <button
                       onClick={createPurchaseOrder}
-                      className="w-full py-3 bg-fixzit-green text-white rounded-2xl hover:bg-fixzit-green/90"
+                      className="w-full py-3 bg-success text-white rounded-2xl hover:bg-success/90"
                     >
                       Create Purchase Order
                     </button>

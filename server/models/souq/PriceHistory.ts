@@ -30,6 +30,9 @@ export interface IPriceHistory extends Document {
   autoRepricerRule?: string; // Rule ID that triggered change
   competitorListingId?: string; // Competitor that triggered change
   
+  // Methods
+  calculateImpact(): number | null;
+  
   // Impact tracking
   salesBefore?: number; // 7-day avg before change (filled later by analytics job)
   salesAfter?: number; // 7-day avg after change (filled later by analytics job)

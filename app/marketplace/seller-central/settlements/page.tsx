@@ -57,7 +57,7 @@ export default function SellerSettlementsPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center py-12">
-          <p className="text-red-500">{t('marketplace.settlements.pleaseLogin')}</p>
+          <p className="text-destructive">{t('marketplace.settlements.pleaseLogin')}</p>
         </div>
       </div>
     );
@@ -67,7 +67,7 @@ export default function SellerSettlementsPage() {
     return (
       <div className="container mx-auto p-6">
         <div className="text-center py-12">
-          <p className="text-red-500">
+          <p className="text-destructive">
             {t('marketplace.settlements.mustBeSeller')}
           </p>
         </div>

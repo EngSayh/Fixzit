@@ -119,7 +119,7 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
             />
           </label>
         </div>
-        {error && <p className="mt-2 text-sm text-[var(--fixzit-danger)]">{error}</p>}
+        {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
         <button
           onClick={addProduct}
           disabled={loading}

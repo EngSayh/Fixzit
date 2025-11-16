@@ -82,7 +82,7 @@ export default function BankDetailsForm({ onSubmit, onBack }: Props) {
           <option value="Arab National Bank">Arab National Bank</option>
         </select>
         {errors.bankName && (
-          <p className="text-sm text-red-500 mt-1">{errors.bankName.message}</p>
+          <p className="text-sm text-destructive mt-1">{errors.bankName.message}</p>
         )}
       </div>
 
@@ -95,7 +95,7 @@ export default function BankDetailsForm({ onSubmit, onBack }: Props) {
           maxLength={24}
         />
         {errors.iban && (
-          <p className="text-sm text-red-500 mt-1">{errors.iban.message}</p>
+          <p className="text-sm text-destructive mt-1">{errors.iban.message}</p>
         )}
         <p className="text-xs text-gray-500 mt-1">
           Format: SA followed by 2 digits and 18 alphanumeric characters
@@ -110,7 +110,7 @@ export default function BankDetailsForm({ onSubmit, onBack }: Props) {
           placeholder="Must match business name on CR"
         />
         {errors.accountHolderName && (
-          <p className="text-sm text-red-500 mt-1">{errors.accountHolderName.message}</p>
+          <p className="text-sm text-destructive mt-1">{errors.accountHolderName.message}</p>
         )}
       </div>
 

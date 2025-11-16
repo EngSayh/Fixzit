@@ -66,8 +66,8 @@ export default async function SellerReviewsPage({
           <div className="grid md:grid-cols-4 gap-4">
             <div className="bg-white border rounded-lg p-4">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-yellow-100 rounded-lg">
-                  <Star className="w-6 h-6 text-yellow-600" />
+                <div className="p-3 bg-warning/10 rounded-lg">
+                  <Star className="w-6 h-6 text-warning" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Average Rating</p>
@@ -78,8 +78,8 @@ export default async function SellerReviewsPage({
 
             <div className="bg-white border rounded-lg p-4">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <MessageSquare className="w-6 h-6 text-blue-600" />
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <MessageSquare className="w-6 h-6 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Reviews</p>
@@ -90,8 +90,8 @@ export default async function SellerReviewsPage({
 
             <div className="bg-white border rounded-lg p-4">
               <div className="flex items-center gap-3">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <TrendingUp className="w-6 h-6 text-green-600" />
+                <div className="p-3 bg-success/10 rounded-lg">
+                  <TrendingUp className="w-6 h-6 text-success" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Response Rate</p>

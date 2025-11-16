@@ -297,7 +297,7 @@ export default function AdvertisingPage() {
             <div className="flex gap-4">
               <Link
                 href="/marketplace/seller-central/advertising/create"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
               >
                 <Plus className="w-5 h-5" />
                 Create Campaign
@@ -435,7 +435,7 @@ export default function AdvertisingPage() {
 
               <Link
                 href="/marketplace/seller-central/advertising/create"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
               >
                 <Plus className="w-5 h-5" />
                 Create Campaign
@@ -452,7 +452,7 @@ export default function AdvertisingPage() {
                 <p className="text-gray-500 mb-4">No campaigns found</p>
                 <Link
                   href="/marketplace/seller-central/advertising/create"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
                 >
                   <Plus className="w-5 h-5" />
                   Create Your First Campaign
@@ -562,7 +562,7 @@ export default function AdvertisingPage() {
                             </Link>
                             <button
                               onClick={() => deleteCampaign(campaign.campaignId)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              className="p-2 text-destructive hover:bg-destructive/5 rounded-lg transition-colors"
                               title="Delete"
                             >
                               <Trash2 className="w-4 h-4" />

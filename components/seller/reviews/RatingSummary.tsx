@@ -83,7 +83,7 @@ export function RatingSummary({ stats, showVerified = true }: RatingSummaryProps
       {/* Verified Purchase Badge */}
       {showVerified && verifiedPurchasePercentage !== undefined && (
         <div className="flex items-center gap-2 text-sm">
-          <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
+          <div className="bg-success/10 text-success-dark px-3 py-1 rounded-full font-medium">
             {verifiedPurchasePercentage}% Verified Purchases
           </div>
           <span className="text-muted-foreground">

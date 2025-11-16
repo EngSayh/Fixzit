@@ -58,7 +58,7 @@ export default function OrderReviewPage({
       <div className="max-w-3xl mx-auto">
         <div className="bg-white border rounded-lg p-8">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            <div className="bg-destructive/5 border border-red-200 text-destructive-dark px-4 py-3 rounded-lg mb-6">
               {error}
             </div>
           )}

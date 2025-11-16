@@ -84,19 +84,19 @@ export default function SystemDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Roles</CardTitle>
-              <Shield className="w-4 h-4 text-blue-500" />
+              <Shield className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-500">{loading ? '...' : counters?.system.roles || 0}</div>
+              <div className="text-2xl font-bold text-primary">{loading ? '...' : counters?.system.roles || 0}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Tenants</CardTitle>
-              <Building className="w-4 h-4 text-green-500" />
+              <Building className="w-4 h-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-500">{loading ? '...' : counters?.system.tenants || 0}</div>
+              <div className="text-2xl font-bold text-success">{loading ? '...' : counters?.system.tenants || 0}</div>
             </CardContent>
           </Card>
         </div>

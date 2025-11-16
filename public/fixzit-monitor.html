@@ -28,7 +28,7 @@
         }
 
         .header {
-            background: linear-gradient(135deg, #0061A8 0%, #0078D4 100%);
+            background: linear-gradient(135deg, #B46B2F 0%, #9C6C3B 100%);
             color: white;
             padding: 30px;
             display: flex;
@@ -93,7 +93,7 @@
         }
 
         .btn-primary {
-            background: #0061A8;
+            background: #B46B2F;
             color: white;
         }
 
@@ -103,12 +103,12 @@
         }
 
         .btn-success {
-            background: #00A859;
+            background: #6E4D2C;
             color: white;
         }
 
         .btn-warning {
-            background: #F6851F;
+            background: #C98036;
             color: white;
         }
 
@@ -148,8 +148,8 @@
             font-size: 14px;
         }
 
-        .health-good { color: #00A859; }
-        .health-warning { color: #F6851F; }
+        .health-good { color: #6E4D2C; }
+        .health-warning { color: #C98036; }
         .health-critical { color: #dc3545; }
 
         .tabs {
@@ -169,8 +169,8 @@
         }
 
         .tab.active {
-            color: #0061A8;
-            border-bottom-color: #0061A8;
+            color: #B46B2F;
+            border-bottom-color: #B46B2F;
         }
 
         .tab-content {
@@ -194,7 +194,7 @@
         }
 
         .module-card:hover {
-            border-color: #0061A8;
+            border-color: #B46B2F;
             box-shadow: 0 5px 15px rgba(0,97,168,0.2);
         }
 
@@ -243,7 +243,7 @@
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #00A859, #00D068);
+            background: linear-gradient(90deg, #6E4D2C, #00D068);
             transition: width 0.5s;
         }
 
@@ -262,7 +262,7 @@
         }
 
         .error-severity-medium {
-            border-left: 4px solid #F6851F;
+            border-left: 4px solid #C98036;
         }
 
         .error-severity-low {
@@ -307,7 +307,7 @@
             width: 60px;
             height: 60px;
             border: 4px solid #e9ecef;
-            border-top: 4px solid #0061A8;
+            border-top: 4px solid #B46B2F;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 20px auto;
@@ -340,7 +340,7 @@
         }
 
         .status-connected {
-            background: #00A859;
+            background: #6E4D2C;
         }
 
         .status-disconnected {
@@ -431,17 +431,17 @@
             <div class="metric-card">
                 <div class="metric-label">Active Users</div>
                 <div class="metric-value" id="activeUsers">1,234</div>
-                <small style="color: #00A859">↑ 12% from yesterday</small>
+                <small style="color: #6E4D2C">↑ 12% from yesterday</small>
             </div>
             <div class="metric-card">
                 <div class="metric-label">API Latency</div>
                 <div class="metric-value" id="apiLatency">487ms</div>
-                <small style="color: #00A859">Within 800ms target ✓</small>
+                <small style="color: #6E4D2C">Within 800ms target ✓</small>
             </div>
             <div class="metric-card">
                 <div class="metric-label">Error Rate</div>
                 <div class="metric-value health-warning" id="errorRate">2.3%</div>
-                <small style="color: #F6851F">3 errors in last hour</small>
+                <small style="color: #C98036">3 errors in last hour</small>
             </div>
             <div class="metric-card">
                 <div class="metric-label">System Uptime</div>
@@ -601,7 +601,7 @@
                         </div>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${module.health}%; background: ${module.health >= 90 ? '#00A859' : module.health >= 70 ? '#F6851F' : '#dc3545'}"></div>
+                        <div class="progress-fill" style="width: ${module.health}%; background: ${module.health >= 90 ? '#6E4D2C' : module.health >= 70 ? '#C98036' : '#dc3545'}"></div>
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-top: 10px;">
                         <small>CPU: ${module.cpu}%</small>

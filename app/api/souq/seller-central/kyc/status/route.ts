@@ -6,7 +6,7 @@ import { sellerKYCService } from '@/services/souq/seller-kyc-service';
  * GET /api/souq/seller-central/kyc/status
  * Get KYC status for current seller
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {

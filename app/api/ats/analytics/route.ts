@@ -6,6 +6,7 @@ import { Job } from '@/server/models/Job';
 import { Interview } from '@/server/models/ats/Interview';
 import { atsRBAC } from '@/lib/ats/rbac';
 import { getCached, CacheTTL } from '@/lib/cache/redis';
+import { Types } from 'mongoose';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
@@ -33,24 +34,38 @@ export async function GET(req: NextRequest) {
     const { orgId } = authResult;
     
     const { searchParams } = new URL(req.url);
-    const period = searchParams.get('period') || '30'; // days
+    const periodParam = searchParams.get('period') || '30'; // days
     const jobId = searchParams.get('jobId');
-    
+
+    const period = Number.parseInt(periodParam, 10);
+    if (!Number.isFinite(period) || period < 1 || period > 365) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid period parameter. Use 1-365 days.' },
+        { status: 400 }
+      );
+    }
+
+    if (jobId && !Types.ObjectId.isValid(jobId)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid jobId parameter' },
+        { status: 400 }
+      );
+    }
+
     // Cache key: analytics:{orgId}:{period}:{jobId}
     const cacheKey = `analytics:${orgId}:${period}${jobId ? `:${jobId}` : ''}`;
     
     // Use cached data if available (5 minutes TTL)
     const analytics = await getCached(cacheKey, CacheTTL.FIVE_MINUTES, async () => {
-      const periodDays = parseInt(period, 10);
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - periodDays);
+      startDate.setDate(startDate.getDate() - period);
       
       // Build filter
       const filter: Record<string, unknown> = { 
         orgId,
         createdAt: { $gte: startDate }
       };
-      if (jobId) filter.jobId = jobId;
+      if (jobId) filter.jobId = new Types.ObjectId(jobId);
     
       // Get applications by stage
       const applicationsByStage = await (Application as any).aggregate([
@@ -175,7 +190,7 @@ export async function GET(req: NextRequest) {
       });
       
       return {
-        period: periodDays,
+        period,
         summary: {
           totalApplications,
           activeJobs,

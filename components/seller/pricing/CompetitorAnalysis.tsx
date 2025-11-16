@@ -59,12 +59,12 @@ export default function CompetitorAnalysis({ fsin }: CompetitorAnalysisProps) {
     <div className="space-y-6">
       {/* Price Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-blue-50 rounded-lg p-4">
+        <div className="bg-primary/5 rounded-lg p-4">
           <div className="text-sm text-gray-600 mb-1">Lowest Price</div>
           <div className="text-2xl font-bold text-gray-900">
             SAR {analysis.lowestPrice.toFixed(2)}
           </div>
-          <div className="flex items-center text-xs text-green-600 mt-1">
+          <div className="flex items-center text-xs text-success mt-1">
             <TrendingDown className="w-3 h-3 mr-1" />
             Best Deal
           </div>
@@ -84,12 +84,12 @@ export default function CompetitorAnalysis({ fsin }: CompetitorAnalysisProps) {
           </div>
         </div>
 
-        <div className="bg-red-50 rounded-lg p-4">
+        <div className="bg-destructive/5 rounded-lg p-4">
           <div className="text-sm text-gray-600 mb-1">Highest Price</div>
           <div className="text-2xl font-bold text-gray-900">
             SAR {analysis.highestPrice.toFixed(2)}
           </div>
-          <div className="flex items-center text-xs text-red-600 mt-1">
+          <div className="flex items-center text-xs text-destructive mt-1">
             <TrendingUp className="w-3 h-3 mr-1" />
             Most Expensive
           </div>
@@ -97,10 +97,10 @@ export default function CompetitorAnalysis({ fsin }: CompetitorAnalysisProps) {
       </div>
 
       {/* Total Competitors */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-primary/5 border border-blue-200 rounded-lg p-4">
         <div className="text-center">
-          <div className="text-3xl font-bold text-blue-900">{analysis.totalOffers}</div>
-          <div className="text-sm text-blue-700">Competing Sellers</div>
+          <div className="text-3xl font-bold text-primary-dark">{analysis.totalOffers}</div>
+          <div className="text-sm text-primary-dark">Competing Sellers</div>
         </div>
       </div>
 
@@ -117,7 +117,7 @@ export default function CompetitorAnalysis({ fsin }: CompetitorAnalysisProps) {
                 <div className="text-xs text-gray-600 w-32">SAR {bucket.range}</div>
                 <div className="flex-1 bg-gray-200 rounded-full h-6 overflow-hidden">
                   <div
-                    className="bg-blue-600 h-full flex items-center justify-end px-2"
+                    className="bg-primary h-full flex items-center justify-end px-2"
                     style={{ width: `${percentage}%` }}
                   >
                     {bucket.count > 0 && (
@@ -132,9 +132,9 @@ export default function CompetitorAnalysis({ fsin }: CompetitorAnalysisProps) {
       </div>
 
       {/* Recommendations */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <div className="bg-warning/5 border border-yellow-200 rounded-lg p-4">
         <h4 className="font-semibold text-yellow-900 mb-2">Pricing Recommendation</h4>
-        <p className="text-sm text-yellow-800">
+        <p className="text-sm text-warning-foreground">
           To win the Buy Box, price your product below SAR {analysis.lowestPrice.toFixed(2)}. 
           The average market price is SAR {analysis.averagePrice.toFixed(2)}.
         </p>

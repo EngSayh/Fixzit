@@ -5,11 +5,11 @@
 }
 
 :root {
-    --primary: #0061A8;
-    --primary-dark: #0061A8;  /* FIXED: was #023047 (banned) */
-    --accent: #FFB400;  /* FIXED: was #F6851F (banned) */
-    --success: #00A859;
-    --warning: #FFB400;
+    --primary: #B46B2F;
+    --primary-dark: #8C4D1F;
+    --accent: #D68B4A;
+    --success: #6E4D2C;
+    --warning: #C98036;
     --danger: #E74C3C;
 }
 
@@ -117,7 +117,7 @@ html[dir="rtl"] .menu-item {
 }
 
 .btn-yellow {
-    background: linear-gradient(135deg, #FFB400, #F6851F);
+    background: linear-gradient(135deg, #C98036, #D68B4A);
     color: white;
 }
 
@@ -127,7 +127,7 @@ html[dir="rtl"] .menu-item {
 }
 
 .btn-blue {
-    background: linear-gradient(135deg, #0061A8, #023047);
+    background: linear-gradient(135deg, #B46B2F, #3A2A1F);
     color: white;
 }
 
@@ -194,7 +194,7 @@ html[dir="rtl"] .menu-item {
 .feature-stat {
     padding-top: 1rem;
     border-top: 1px solid rgba(255, 255, 255, 0.2);
-    color: #FFB400;
+    color: #C98036;
     font-weight: bold;
 }
 
@@ -212,7 +212,7 @@ html[dir="rtl"] .menu-item {
 .metric-value {
     font-size: 3rem;
     font-weight: bold;
-    color: #FFB400;
+    color: #C98036;
     margin-bottom: 0.5rem;
 }
 
@@ -272,7 +272,7 @@ html[dir="rtl"] .menu-item {
 .logo {
     width: 80px;
     height: 80px;
-    background: linear-gradient(135deg, #0061A8, #023047);
+    background: linear-gradient(135deg, #B46B2F, #3A2A1F);
     border-radius: 20px;
     display: inline-flex;
     align-items: center;

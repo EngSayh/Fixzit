@@ -9,7 +9,7 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "theme_color": "#0061A8",
+  "theme_color": "#B46B2F",
   "background_color": "#f8fafc",
   "lang": "en",
   "dir": "auto",
@@ -239,9 +239,9 @@
       "language_preference": "dual",
       "rtl_primary": true,
       "cultural_colors": {
-        "primary": "#0061A8",
+        "primary": "#B46B2F",
         "saudi_green": "#006C35", 
-        "gold_accent": "#FFB400",
+        "gold_accent": "#C98036",
         "heritage_brown": "#8B4513"
       }
     },

@@ -3,7 +3,7 @@
   <defs>
     <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
       <stop offset="0" stop-color="#0D2538" />
-      <stop offset="1" stop-color="#0061A8" />
+      <stop offset="1" stop-color="#B46B2F" />
     </linearGradient>
     <linearGradient id="glove" x1="0" x2="1" y1="0" y2="1">
       <stop offset="0" stop-color="#8ed2ff" />
@@ -12,14 +12,14 @@
   </defs>
   <rect width="1200" height="675" fill="url(#bg)" />
   <g transform="translate(650 150)" opacity="0.12">
-    <circle cx="0" cy="0" r="260" fill="#00A859" />
+    <circle cx="0" cy="0" r="260" fill="#6E4D2C" />
   </g>
   <g transform="translate(240 140)">
     <path d="M120 60 C120 20 160 -10 196 12 C220 28 230 66 226 96 L208 240 L280 226 C320 218 340 258 312 286 L224 372 C212 384 194 392 176 392 L120 392 C96 392 76 372 76 348 L76 200 L44 200 C20 200 0 180 0 156 L0 116 C0 96 16 80 36 80 L76 80 C100 80 120 60 120 60Z" fill="url(#glove)" stroke="#0f4e7a" stroke-width="8" />
     <path d="M420 52 C420 16 454 -8 486 10 C510 24 522 60 516 90 L494 208 L566 196 C606 190 628 228 602 256 L510 352 C498 364 480 372 462 372 L406 372 C382 372 362 352 362 328 L362 180 L330 180 C306 180 286 160 286 136 L286 100 C286 80 302 64 322 64 L362 64 C386 64 406 52 406 52Z" fill="url(#glove)" stroke="#0f4e7a" stroke-width="8" />
   </g>
   <g transform="translate(100 520)">
-    <text font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="44" font-weight="600" fill="#FFB400">
+    <text font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="44" font-weight="600" fill="#C98036">
       SafeHands Nitrile Gloves · XL Powder Free
     </text>
     <text y="50" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="26" fill="#ffffff" opacity="0.9">

@@ -137,7 +137,6 @@ jobs:
           # TEST_VENDOR_EMAIL: ${{ secrets.TEST_VENDOR_EMAIL }}
           # TEST_VENDOR_PASSWORD: ${{ secrets.TEST_VENDOR_PASSWORD }}
           NODE_ENV: test
->>>>>>> feat/souq-marketplace-advanced
         run: |
           mkdir -p .artifacts
           status=0

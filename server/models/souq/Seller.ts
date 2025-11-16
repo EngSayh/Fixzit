@@ -128,6 +128,9 @@ export interface ISeller extends Document {
     dedicated_support: boolean;
   };
   
+  // Methods
+  canCompeteInBuyBox(): boolean;
+  
   autoRepricerSettings?: {
     enabled: boolean;
     rules: Record<string, IAutoRepricerRule>;

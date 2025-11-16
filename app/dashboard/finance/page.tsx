@@ -153,10 +153,10 @@ export default function FinanceDashboard() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Paid
                 </CardTitle>
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-500">
+                <div className="text-2xl font-bold text-success">
                   {loading ? '...' : counters?.invoices.paid || 0}
                 </div>
               </CardContent>

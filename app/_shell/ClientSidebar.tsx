@@ -373,7 +373,7 @@ export default function ClientSidebar() {
                       >
                         <span>{item.label}</span>
                         {item.badge && item.badge > 0 && (
-                          <span className="ml-2 rounded-full bg-red-500 text-white text-xs px-2">
+                          <span className="ml-2 rounded-full bg-destructive/90 text-white text-xs px-2">
                             {item.badge}
                           </span>
                         )}

@@ -223,7 +223,7 @@ export default function AdminNotificationsTab({ t }: { t: (key: string, fallback
                     onClick={() => setRecipientType(value as typeof recipientType)}
                     className={`p-4 border-2 rounded-lg flex flex-col items-center gap-2 transition-colors ${
                       recipientType === value
-                        ? 'border-[#0061A8] bg-blue-50 text-[#0061A8]'
+                        ? 'border-primary bg-primary/10 text-primary'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
@@ -251,7 +251,7 @@ export default function AdminNotificationsTab({ t }: { t: (key: string, fallback
                     disabled={!available}
                     className={`p-4 border-2 rounded-lg flex flex-col items-center gap-2 transition-colors ${
                       channels.has(value as 'email' | 'sms' | 'whatsapp')
-                        ? 'border-[#0061A8] bg-blue-50 text-[#0061A8]'
+                        ? 'border-primary bg-primary/10 text-primary'
                         : available
                         ? 'border-gray-200 hover:border-gray-300'
                         : 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
@@ -283,7 +283,7 @@ export default function AdminNotificationsTab({ t }: { t: (key: string, fallback
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value as typeof priority)}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
                 >
                   <option value="low">{t('admin.notifications.priority.low', 'Low')}</option>
                   <option value="normal">{t('admin.notifications.priority.normal', 'Normal')}</option>
@@ -302,7 +302,7 @@ export default function AdminNotificationsTab({ t }: { t: (key: string, fallback
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder={t('admin.notifications.subjectPlaceholder', 'Enter notification subject...')}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
                 />
               </div>
 
@@ -316,7 +316,7 @@ export default function AdminNotificationsTab({ t }: { t: (key: string, fallback
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={t('admin.notifications.messagePlaceholder', 'Enter your message here...')}
                   rows={8}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
                 />
                 <p className="text-sm text-gray-500 mt-1">
                   {message.length} {t('admin.notifications.characters', 'characters')}
@@ -358,7 +358,7 @@ export default function AdminNotificationsTab({ t }: { t: (key: string, fallback
             <button
               onClick={handleSend}
               disabled={isSending || channels.size === 0 || !subject.trim() || !message.trim()}
-              className="w-full px-6 py-3 bg-[#0061A8] text-white rounded-lg hover:bg-[#004a82] disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+            className="w-full px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
             >
               {isSending ? (
                 <>
@@ -374,12 +374,12 @@ export default function AdminNotificationsTab({ t }: { t: (key: string, fallback
             </button>
 
             {/* Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+            <div className="bg-primary/5 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-medium text-primary-dark mb-2 flex items-center gap-2">
                 <AlertCircle size={18} />
                 {t('admin.notifications.important', 'Important')}
               </h4>
-              <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+              <ul className="text-sm text-primary-dark space-y-1 list-disc list-inside">
                 <li>{t('admin.notifications.info.1', 'All notifications are logged for audit')}</li>
                 <li>{t('admin.notifications.info.2', 'Email requires SENDGRID_API_KEY')}</li>
                 <li>{t('admin.notifications.info.3', 'SMS requires TWILIO credentials')}</li>
@@ -397,7 +397,7 @@ export default function AdminNotificationsTab({ t }: { t: (key: string, fallback
             </h3>
             {isLoadingHistory ? (
               <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-[#0061A8] border-t-transparent"></div>
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div>
               </div>
             ) : history.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
@@ -429,20 +429,20 @@ export default function AdminNotificationsTab({ t }: { t: (key: string, fallback
                         {item.recipients.count} {item.recipients.type}
                       </span>
                       {item.results.email.sent > 0 && (
-                        <span className="flex items-center gap-1 text-green-600">
+                        <span className="flex items-center gap-1 text-success">
                           <Mail size={16} />
                           {item.results.email.sent} <CheckCircle size={14} />
                           {item.results.email.failed > 0 && (
-                            <><XCircle size={14} className="text-red-600" /> {item.results.email.failed}</>
+                            <><XCircle size={14} className="text-destructive" /> {item.results.email.failed}</>
                           )}
                         </span>
                       )}
                       {item.results.sms.sent > 0 && (
-                        <span className="flex items-center gap-1 text-green-600">
+                        <span className="flex items-center gap-1 text-success">
                           <MessageSquare size={16} />
                           {item.results.sms.sent} <CheckCircle size={14} />
                           {item.results.sms.failed > 0 && (
-                            <><XCircle size={14} className="text-red-600" /> {item.results.sms.failed}</>
+                            <><XCircle size={14} className="text-destructive" /> {item.results.sms.failed}</>
                           )}
                         </span>
                       )}

@@ -227,15 +227,15 @@ export default function AnalyticsPage() {
 
       {/* Error State */}
       {error && (
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-200 bg-destructive/5">
           <CardHeader>
-            <CardTitle className="text-red-900">Error Loading Analytics</CardTitle>
+            <CardTitle className="text-destructive-dark">Error Loading Analytics</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-red-800">{error}</p>
+            <p className="text-sm text-destructive-dark">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              className="mt-4 px-4 py-2 bg-destructive text-white rounded-lg hover:bg-destructive-dark"
             >
               Retry
             </button>

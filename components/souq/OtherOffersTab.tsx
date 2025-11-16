@@ -64,7 +64,7 @@ export default function OtherOffersTab({
   const getRatingDisplay = (rating: number, count: number) => {
     return (
       <div className="flex items-center gap-1">
-        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+        <Star className="w-4 h-4 fill-yellow-400 text-warning" />
         <span className="text-sm font-medium">{rating.toFixed(1)}</span>
         <span className="text-xs text-gray-500">({count})</span>
       </div>
@@ -129,7 +129,7 @@ export default function OtherOffersTab({
                         + {formatCurrency(offer.shippingCost)} shipping
                       </div>
                     ) : (
-                      <div className="text-xs text-green-600 font-medium">
+                      <div className="text-xs text-success font-medium">
                         FREE Shipping
                       </div>
                     )}
@@ -150,12 +150,12 @@ export default function OtherOffersTab({
                       {offer.sellerId.tradeName}
                     </div>
                     {offer.sellerId.accountHealth.status === 'excellent' && (
-                      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-300">
+                      <Badge variant="outline" className="text-xs bg-success/5 text-success-dark border-green-300">
                         Top Seller
                       </Badge>
                     )}
                     {isWinner && (
-                      <Badge className="text-xs bg-blue-100 text-blue-800 ml-1">
+                      <Badge className="text-xs bg-primary/10 text-primary-dark ml-1">
                         Buy Box Winner
                       </Badge>
                     )}
@@ -174,7 +174,7 @@ export default function OtherOffersTab({
                       {offer.estimatedDelivery}
                     </div>
                     {offer.fulfillmentMethod === 'fbf' && (
-                      <div className="flex items-center gap-1 text-xs text-blue-600">
+                      <div className="flex items-center gap-1 text-xs text-primary">
                         <Truck className="w-3 h-3" />
                         <span>FBF</span>
                       </div>
@@ -209,7 +209,7 @@ export default function OtherOffersTab({
                       Add to Cart
                     </Button>
                   ) : (
-                    <span className="text-sm text-red-600">Out of Stock</span>
+                    <span className="text-sm text-destructive">Out of Stock</span>
                   )}
                 </TableCell>
               </TableRow>

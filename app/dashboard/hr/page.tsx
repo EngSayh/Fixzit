@@ -87,10 +87,10 @@ export default function HRDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Active</CardTitle>
-              <UserCheck className="w-4 h-4 text-green-500" />
+              <UserCheck className="w-4 h-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-500">{loading ? '...' : counters?.employees.active || 0}</div>
+              <div className="text-2xl font-bold text-success">{loading ? '...' : counters?.employees.active || 0}</div>
             </CardContent>
           </Card>
           <Card>
@@ -110,10 +110,10 @@ export default function HRDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Present Today</CardTitle>
-              <UserCheck className="w-4 h-4 text-green-500" />
+              <UserCheck className="w-4 h-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-500">{loading ? '...' : counters?.attendance.present || 0}</div>
+              <div className="text-2xl font-bold text-success">{loading ? '...' : counters?.attendance.present || 0}</div>
             </CardContent>
           </Card>
           <Card>

@@ -19,10 +19,10 @@ interface Props {
 export default function ViolationsList({ violations }: Props) {
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
-      case 'critical': return <AlertCircle className="w-5 h-5 text-red-600" />;
+      case 'critical': return <AlertCircle className="w-5 h-5 text-destructive" />;
       case 'major': return <AlertTriangle className="w-5 h-5 text-orange-600" />;
-      case 'minor': return <AlertTriangle className="w-5 h-5 text-yellow-600" />;
-      default: return <Info className="w-5 h-5 text-blue-600" />;
+      case 'minor': return <AlertTriangle className="w-5 h-5 text-warning" />;
+      default: return <Info className="w-5 h-5 text-primary" />;
     }
   };
 
@@ -59,8 +59,8 @@ export default function ViolationsList({ violations }: Props) {
   if (violations.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <AlertCircle className="w-8 h-8 text-green-600" />
+        <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <AlertCircle className="w-8 h-8 text-success" />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">No Violations</h3>
         <p className="text-gray-600">
@@ -103,7 +103,7 @@ export default function ViolationsList({ violations }: Props) {
                 </div>
               </div>
               {violation.resolved && (
-                <Badge variant="outline" className="bg-green-50 text-green-700">
+                <Badge variant="outline" className="bg-success/5 text-success-dark">
                   Resolved
                 </Badge>
               )}

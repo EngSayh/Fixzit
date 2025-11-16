@@ -243,7 +243,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
 
           <button
             onClick={exportToCSV}
-            className="ml-auto inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="ml-auto inline-flex items-center gap-2 px-4 py-2 bg-success text-white rounded-lg hover:bg-success-dark transition-colors"
           >
             <Download className="w-4 h-4" />
             Export CSV
@@ -265,11 +265,11 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                 <span className="text-sm font-medium text-gray-700">Impressions & Clicks</span>
                 <div className="flex items-center gap-4 text-sm">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                    <div className="w-3 h-3 bg-primary/90 rounded"></div>
                     <span className="text-gray-600">Impressions</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded"></div>
+                    <div className="w-3 h-3 bg-success/90 rounded"></div>
                     <span className="text-gray-600">Clicks</span>
                   </div>
                 </div>
@@ -282,7 +282,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                     </div>
                     <div className="flex flex-col gap-1">
                       <div
-                        className="bg-blue-500 rounded"
+                        className="bg-primary/90 rounded"
                         style={{ height: `${(data.impressions / 5000) * 80}px` }}
                         title={`${data.impressions} impressions`}
                       ></div>
@@ -308,7 +308,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                     </div>
                     <div className="flex flex-col gap-1">
                       <div
-                        className="bg-red-500 rounded"
+                        className="bg-destructive/90 rounded"
                         style={{ height: `${(data.spend / 100) * 80}px` }}
                         title={`${data.spend.toFixed(2)} SAR`}
                       ></div>
@@ -389,9 +389,9 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                         <div className="flex items-center gap-1">
                           {data.ctr.toFixed(2)}%
                           {data.ctr > 2 ? (
-                            <TrendingUp className="w-4 h-4 text-green-600" />
+                            <TrendingUp className="w-4 h-4 text-success" />
                           ) : (
-                            <TrendingDown className="w-4 h-4 text-red-600" />
+                            <TrendingDown className="w-4 h-4 text-destructive" />
                           )}
                         </div>
                       </td>
@@ -461,9 +461,9 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                         <div className="flex items-center gap-1">
                           {data.ctr.toFixed(2)}%
                           {data.ctr > 2 ? (
-                            <TrendingUp className="w-4 h-4 text-green-600" />
+                            <TrendingUp className="w-4 h-4 text-success" />
                           ) : (
-                            <TrendingDown className="w-4 h-4 text-red-600" />
+                            <TrendingDown className="w-4 h-4 text-destructive" />
                           )}
                         </div>
                       </td>

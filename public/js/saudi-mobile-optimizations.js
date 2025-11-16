@@ -128,7 +128,7 @@ class SaudiMobileOptimizer {
     applyCulturalAdaptations() {
         // Saudi color preferences
         document.documentElement.style.setProperty('--saudi-green', '#006C35');
-        document.documentElement.style.setProperty('--gold-accent', '#FFB400');
+        document.documentElement.style.setProperty('--gold-accent', '#C98036');
         document.documentElement.style.setProperty('--heritage-brown', '#8B4513');
 
         // Prayer time considerations
@@ -441,7 +441,7 @@ class SaudiMobileOptimizer {
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: ${type === 'success' ? '#00A859' : type === 'warning' ? '#FFB400' : '#0061A8'};
+            background: ${type === 'success' ? '#6E4D2C' : type === 'warning' ? '#C98036' : '#B46B2F'};
             color: white;
             padding: 12px 20px;
             border-radius: 8px;

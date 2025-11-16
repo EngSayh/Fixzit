@@ -126,7 +126,7 @@ export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <Label className="text-base font-medium">
-                    {doc.label} {doc.required && <span className="text-red-500">*</span>}
+                    {doc.label} {doc.required && <span className="text-destructive">*</span>}
                   </Label>
                 </div>
                 {uploaded && (
@@ -156,8 +156,8 @@ export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
                   />
                 </label>
               ) : (
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
+                <div className="flex items-center gap-3 p-3 bg-success/5 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-success" />
                   <FileText className="w-5 h-5 text-gray-600" />
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">{uploaded.file.name}</p>

@@ -230,7 +230,7 @@ export function SponsoredProduct({
                 {product.badges.map((badge: string) => (
                   <span
                     key={badge}
-                    className="px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 rounded"
+                    className="px-2 py-0.5 text-xs font-medium bg-primary/5 text-primary-dark rounded"
                   >
                     {badge === 'fbf' ? 'Fulfilled by Fixzit' : badge}
                   </span>
@@ -240,7 +240,7 @@ export function SponsoredProduct({
 
             {/* Stock Status */}
             {!product.inStock && (
-              <div className="text-xs font-medium text-red-600">
+              <div className="text-xs font-medium text-destructive">
                 Out of Stock
               </div>
             )}

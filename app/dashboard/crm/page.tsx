@@ -74,10 +74,10 @@ export default function CRMDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Active Customers</CardTitle>
-              <Users className="w-4 h-4 text-green-500" />
+              <Users className="w-4 h-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-500">{loading ? '...' : counters?.customers.active || 0}</div>
+              <div className="text-2xl font-bold text-success">{loading ? '...' : counters?.customers.active || 0}</div>
             </CardContent>
           </Card>
           <Card>
@@ -92,10 +92,10 @@ export default function CRMDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Contracts</CardTitle>
-              <FileSignature className="w-4 h-4 text-blue-500" />
+              <FileSignature className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-500">{loading ? '...' : counters?.customers.contracts || 0}</div>
+              <div className="text-2xl font-bold text-primary">{loading ? '...' : counters?.customers.contracts || 0}</div>
             </CardContent>
           </Card>
         </div>

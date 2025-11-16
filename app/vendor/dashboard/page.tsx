@@ -65,7 +65,7 @@ export default function VendorDashboard() {
                 <p className="text-sm text-muted-foreground">Total Products</p>
                 <p className="text-2xl font-bold">{stats.totalProducts}</p>
               </div>
-              <Package className="h-8 w-8 text-fixzit-blue" />
+              <Package className="h-8 w-8 text-primary" />
             </div>
           </div>
           
@@ -75,7 +75,7 @@ export default function VendorDashboard() {
                 <p className="text-sm text-muted-foreground">Total Orders</p>
                 <p className="text-2xl font-bold">{stats.totalOrders}</p>
               </div>
-              <Clock className="h-8 w-8 text-fixzit-green" />
+              <Clock className="h-8 w-8 text-success" />
             </div>
           </div>
           
@@ -85,7 +85,7 @@ export default function VendorDashboard() {
                 <p className="text-sm text-muted-foreground">Revenue</p>
                 <p className="text-2xl font-bold">SAR {stats.revenue.toFixed(2)}</p>
               </div>
-              <TrendingUp className="h-8 w-8 text-fixzit-yellow" />
+              <TrendingUp className="h-8 w-8 text-warning" />
             </div>
           </div>
           
@@ -124,7 +124,7 @@ export default function VendorDashboard() {
                     <td className="px-6 py-4">SAR {product.price}</td>
                     <td className="px-6 py-4">{product.sold}</td>
                     <td className="px-6 py-4">
-                      <button className="text-fixzit-blue hover:underline">{t('common.edit', 'Edit')}</button>
+                      <button className="text-primary hover:underline">{t('common.edit', 'Edit')}</button>
                     </td>
                   </tr>
                 ))}

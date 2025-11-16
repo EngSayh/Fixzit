@@ -1,0 +1,2023 @@
+Debugger listening on ws://127.0.0.1:54616/8af56a11-71b0-4978-bceb-436b81b3a01f
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+🎨 Fixzit Brand Color Scanner
+================================
+
+📁 Scanning 1335 files...
+
+🚫 BANNED COLORS FOUND (MUST BE REPLACED):
+==========================================
+
+  ❌ app/cms/[slug]/page.tsx:54
+     Found: #023047
+     Replace with: #0061A8
+
+  ❌ public/assets/css/theme.css:4
+     Found: #023047
+     Replace with: #0061A8
+
+  ❌ public/assets/css/theme.css:5
+     Found: #F6851F
+     Replace with: #FFB400
+
+  ❌ public/styles.css:9
+     Found: #023047
+     Replace with: #0061A8
+
+  ❌ public/styles.css:10
+     Found: #F6851F
+     Replace with: #FFB400
+
+  ❌ public/styles.css:10
+     Found: #F6851F
+     Replace with: #FFB400
+
+  ❌ public/styles.css:9
+     Found: #023047
+     Replace with: #0061A8
+
+  ❌ public/styles.css:9
+     Found: #023047
+     Replace with: #0061A8
+
+  ❌ scripts/analyze-project.js:389
+     Found: #023047
+     Replace with: #0061A8
+
+  ❌ scripts/scan-hex.js:14
+     Found: #023047
+     Replace with: #0061A8
+
+  ❌ scripts/scan-hex.js:15
+     Found: #F6851F
+     Replace with: #FFB400
+
+  ❌ scripts/scan-hex.js:14
+     Found: #023047
+     Replace with: #0061A8
+
+  ❌ scripts/scan-hex.js:15
+     Found: #F6851F
+     Replace with: #FFB400
+
+  ❌ styles/tokens.css:6
+     Found: #023047
+     Replace with: #0061A8
+
+⚠️  OFF-PALETTE COLORS FOUND:
+=============================
+
+  #004A82 (4 occurrences)
+    - app/administration/page.tsx:494
+    - app/administration/page.tsx:494
+    - app/administration/page.tsx:494
+    - components/admin/AdminNotificationsTab.tsx:361
+
+  #3B82F6 (4 occurrences)
+    - app/api/settings/logo/route.ts:28
+    - app/api/settings/logo/route.ts:28
+    - app/api/settings/logo/route.ts:28
+    - server/models/PlatformSettings.ts:50
+
+  #FFFFEE (2 occurrences)
+    - aws/dist/docutils/writers/html4css1/html4css1.css:124
+    - aws/dist/docutils/writers/pep_html/pep.css:153
+
+  #EEEEEE (4 occurrences)
+    - aws/dist/docutils/writers/html4css1/html4css1.css:270
+    - aws/dist/docutils/writers/html5_polyglot/plain.css:268
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #5C6576 (4 occurrences)
+    - aws/dist/docutils/writers/html4css1/html4css1.css:271
+    - aws/dist/docutils/writers/html5_polyglot/plain.css:271
+    - aws/dist/docutils/writers/html5_polyglot/responsive.css:259
+    - aws/dist/docutils/writers/html5_polyglot/tuftig.css:314
+
+  #3B0D06 (4 occurrences)
+    - aws/dist/docutils/writers/html4css1/html4css1.css:272
+    - aws/dist/docutils/writers/html5_polyglot/plain.css:272
+    - aws/dist/docutils/writers/html5_polyglot/responsive.css:260
+    - aws/dist/docutils/writers/html5_polyglot/tuftig.css:315
+
+  #0C5404 (4 occurrences)
+    - aws/dist/docutils/writers/html4css1/html4css1.css:273
+    - aws/dist/docutils/writers/html5_polyglot/plain.css:273
+    - aws/dist/docutils/writers/html5_polyglot/responsive.css:261
+    - aws/dist/docutils/writers/html5_polyglot/tuftig.css:316
+
+  #352B84 (4 occurrences)
+    - aws/dist/docutils/writers/html4css1/html4css1.css:274
+    - aws/dist/docutils/writers/html5_polyglot/plain.css:274
+    - aws/dist/docutils/writers/html5_polyglot/responsive.css:262
+    - aws/dist/docutils/writers/html5_polyglot/tuftig.css:317
+
+  #DEB0A1 (4 occurrences)
+    - aws/dist/docutils/writers/html4css1/html4css1.css:275
+    - aws/dist/docutils/writers/html5_polyglot/plain.css:275
+    - aws/dist/docutils/writers/html5_polyglot/responsive.css:263
+    - aws/dist/docutils/writers/html5_polyglot/tuftig.css:318
+
+  #A3D289 (4 occurrences)
+    - aws/dist/docutils/writers/html4css1/html4css1.css:276
+    - aws/dist/docutils/writers/html5_polyglot/plain.css:276
+    - aws/dist/docutils/writers/html5_polyglot/responsive.css:264
+    - aws/dist/docutils/writers/html5_polyglot/tuftig.css:319
+
+  #800000 (1 occurrence)
+    - aws/dist/docutils/writers/html5_polyglot/math.css:48
+
+  #DBDBDB (5 occurrences)
+    - aws/dist/docutils/writers/html5_polyglot/plain.css:26
+    - qa/qa/artifacts/html-report/trace/assets/defaultSettingsView-Do_wwdKw.js:105
+    - qa/qa/artifacts/html-report/trace/assets/defaultSettingsView-Do_wwdKw.js:105
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #FFFFFA (1 occurrence)
+    - aws/dist/docutils/writers/html5_polyglot/plain.css:262
+
+  #FAFAF6 (4 occurrences)
+    - aws/dist/docutils/writers/html5_polyglot/responsive.css:33
+    - aws/dist/docutils/writers/html5_polyglot/responsive.css:33
+    - aws/dist/docutils/writers/html5_polyglot/tuftig.css:30
+    - aws/dist/docutils/writers/html5_polyglot/tuftig.css:30
+
+  #F6F9F8 (1 occurrence)
+    - aws/dist/docutils/writers/html5_polyglot/responsive.css:251
+
+  #D2E6EC (1 occurrence)
+    - aws/dist/docutils/writers/html5_polyglot/responsive.css:303
+
+  #EFEFEA (2 occurrences)
+    - aws/dist/docutils/writers/html5_polyglot/responsive.css:342
+    - aws/dist/docutils/writers/html5_polyglot/tuftig.css:405
+
+  #FEFEF8 (1 occurrence)
+    - aws/dist/docutils/writers/html5_polyglot/tuftig.css:40
+
+  #CCC (9 occurrences)
+    - aws/dist/docutils/writers/html5_polyglot/tuftig.css:170
+    - aws/dist/docutils/writers/s5_html/themes/big-black/pretty.css:8
+    - aws/dist/docutils/writers/s5_html/themes/big-black/pretty.css:8
+    - aws/dist/docutils/writers/s5_html/themes/medium-black/pretty.css:8
+    - aws/dist/docutils/writers/s5_html/themes/medium-black/pretty.css:8
+    ... and 4 more
+
+  #99CCFF (1 occurrence)
+    - aws/dist/docutils/writers/pep_html/pep.css:25
+
+  #FCC (8 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/big-black/framing.css:21
+    - aws/dist/docutils/writers/s5_html/themes/big-black/pretty.css:51
+    - aws/dist/docutils/writers/s5_html/themes/big-white/framing.css:20
+    - aws/dist/docutils/writers/s5_html/themes/default/framing.css:21
+    - aws/dist/docutils/writers/s5_html/themes/medium-black/pretty.css:57
+    ... and 3 more
+
+  #CCF (5 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/big-black/framing.css:22
+    - aws/dist/docutils/writers/s5_html/themes/big-white/framing.css:21
+    - aws/dist/docutils/writers/s5_html/themes/default/framing.css:22
+    - aws/dist/docutils/writers/s5_html/themes/medium-white/framing.css:21
+    - aws/dist/docutils/writers/s5_html/themes/small-white/framing.css:21
+
+  #BBD (5 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/big-black/framing.css:23
+    - aws/dist/docutils/writers/s5_html/themes/big-white/framing.css:22
+    - aws/dist/docutils/writers/s5_html/themes/default/framing.css:23
+    - aws/dist/docutils/writers/s5_html/themes/medium-white/framing.css:22
+    - aws/dist/docutils/writers/s5_html/themes/small-white/framing.css:22
+
+  #FFC (5 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/big-black/framing.css:24
+    - aws/dist/docutils/writers/s5_html/themes/big-white/framing.css:23
+    - aws/dist/docutils/writers/s5_html/themes/default/framing.css:24
+    - aws/dist/docutils/writers/s5_html/themes/medium-white/framing.css:23
+    - aws/dist/docutils/writers/s5_html/themes/small-white/framing.css:23
+
+  #888 (10 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/big-black/pretty.css:7
+    - aws/dist/docutils/writers/s5_html/themes/big-black/pretty.css:7
+    - aws/dist/docutils/writers/s5_html/themes/medium-black/pretty.css:7
+    - aws/dist/docutils/writers/s5_html/themes/medium-black/pretty.css:7
+    - aws/dist/docutils/writers/s5_html/themes/medium-white/pretty.css:7
+    ... and 5 more
+
+  #AAA (6 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/big-black/pretty.css:38
+    - aws/dist/docutils/writers/s5_html/themes/medium-black/pretty.css:22
+    - aws/dist/docutils/writers/s5_html/themes/medium-black/pretty.css:22
+    - aws/dist/docutils/writers/s5_html/themes/small-black/pretty.css:22
+    - aws/dist/docutils/writers/s5_html/themes/small-black/pretty.css:22
+    ... and 1 more
+
+  #FAA (7 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/big-black/pretty.css:71
+    - aws/dist/docutils/writers/s5_html/themes/big-white/pretty.css:71
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:84
+    - aws/dist/docutils/writers/s5_html/themes/medium-black/pretty.css:77
+    - aws/dist/docutils/writers/s5_html/themes/medium-white/pretty.css:77
+    ... and 2 more
+
+  #F88 (14 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/big-black/pretty.css:107
+    - aws/dist/docutils/writers/s5_html/themes/big-black/pretty.css:107
+    - aws/dist/docutils/writers/s5_html/themes/big-white/pretty.css:105
+    - aws/dist/docutils/writers/s5_html/themes/big-white/pretty.css:105
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:118
+    ... and 9 more
+
+  #00C (6 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/big-white/pretty.css:6
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:9
+    - aws/dist/docutils/writers/s5_html/themes/medium-white/pretty.css:6
+    - aws/dist/docutils/writers/s5_html/themes/small-white/pretty.css:6
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+    ... and 1 more
+
+  #88A (2 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/big-white/pretty.css:7
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:10
+
+  #227 (4 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/big-white/pretty.css:8
+    - aws/dist/docutils/writers/s5_html/themes/big-white/pretty.css:8
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:11
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:11
+
+  #005 (5 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/big-white/pretty.css:33
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:25
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:25
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:25
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:25
+
+  #DDD (9 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/big-white/pretty.css:36
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:48
+    - aws/dist/docutils/writers/s5_html/themes/medium-white/pretty.css:42
+    - aws/dist/docutils/writers/s5_html/themes/small-white/pretty.css:42
+    - public/styles.css:518
+    ... and 4 more
+
+  #444 (6 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/big-white/pretty.css:38
+    - aws/dist/docutils/writers/s5_html/themes/medium-white/pretty.css:22
+    - aws/dist/docutils/writers/s5_html/themes/medium-white/pretty.css:22
+    - aws/dist/docutils/writers/s5_html/themes/small-white/pretty.css:22
+    - aws/dist/docutils/writers/s5_html/themes/small-white/pretty.css:22
+    ... and 1 more
+
+  #77B (4 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/big-white/pretty.css:51
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:64
+    - aws/dist/docutils/writers/s5_html/themes/medium-white/pretty.css:57
+    - aws/dist/docutils/writers/s5_html/themes/small-white/pretty.css:58
+
+  #FFF (19 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/default/outline.css:14
+    - components/FlagIcon.tsx:30
+    - components/FlagIcon.tsx:30
+    - components/FlagIcon.tsx:30
+    - components/FlagIcon.tsx:30
+    ... and 14 more
+
+  #AAB (1 occurrence)
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:25
+
+  #DDE (1 occurrence)
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:34
+
+  #779 (1 occurrence)
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:45
+
+  #449 (1 occurrence)
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:50
+
+  #000 (6 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/default/pretty.css:54
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+    - qa/qa/artifacts/html-report/trace/index.BFsek2M6.css:1
+    - qa/qa/artifacts/html-report/trace/xtermModule.Beg8tuEN.css:32
+    ... and 1 more
+
+  #216 (1 occurrence)
+    - aws/dist/docutils/writers/s5_html/themes/default/slides.js:392
+
+  #222 (4 occurrences)
+    - aws/dist/docutils/writers/s5_html/themes/medium-white/pretty.css:8
+    - aws/dist/docutils/writers/s5_html/themes/medium-white/pretty.css:8
+    - aws/dist/docutils/writers/s5_html/themes/small-white/pretty.css:8
+    - aws/dist/docutils/writers/s5_html/themes/small-white/pretty.css:8
+
+  #006C35 (3 occurrences)
+    - components/FlagIcon.tsx:27
+    - public/js/saudi-mobile-optimizations.js:130
+    - tests/unit/components/FlagIcon.accessibility.test.tsx:86
+
+  #012169 (2 occurrences)
+    - components/FlagIcon.tsx:45
+    - tests/unit/components/FlagIcon.accessibility.test.tsx:96
+
+  #C8102E (5 occurrences)
+    - components/FlagIcon.tsx:47
+    - components/FlagIcon.tsx:47
+    - components/FlagIcon.tsx:47
+    - tests/unit/components/FlagIcon.accessibility.test.tsx:110
+    - tests/unit/components/FlagIcon.accessibility.test.tsx:110
+
+  #FFC107 (2 occurrences)
+    - components/auth/GoogleSignInButton.tsx:12
+    - public/app.css:11
+
+  #FF3D00 (1 occurrence)
+    - components/auth/GoogleSignInButton.tsx:13
+
+  #4CAF50 (1 occurrence)
+    - components/auth/GoogleSignInButton.tsx:14
+
+  #1976D2 (1 occurrence)
+    - components/auth/GoogleSignInButton.tsx:15
+
+  #0088FE (2 occurrences)
+    - components/seller/analytics/CustomerInsightsCard.tsx:29
+    - components/seller/analytics/TrafficAnalytics.tsx:52
+
+  #00C49F (2 occurrences)
+    - components/seller/analytics/CustomerInsightsCard.tsx:29
+    - components/seller/analytics/TrafficAnalytics.tsx:52
+
+  #FFBB28 (2 occurrences)
+    - components/seller/analytics/CustomerInsightsCard.tsx:29
+    - components/seller/analytics/TrafficAnalytics.tsx:52
+
+  #FF8042 (2 occurrences)
+    - components/seller/analytics/CustomerInsightsCard.tsx:29
+    - components/seller/analytics/TrafficAnalytics.tsx:52
+
+  #8884D8 (10 occurrences)
+    - components/seller/analytics/CustomerInsightsCard.tsx:29
+    - components/seller/analytics/CustomerInsightsCard.tsx:151
+    - components/seller/analytics/CustomerInsightsCard.tsx:151
+    - components/seller/analytics/SalesChart.tsx:148
+    - components/seller/analytics/SalesChart.tsx:148
+    ... and 5 more
+
+  #333 (12 occurrences)
+    - lib/email.ts:43
+    - lib/fm-notifications.ts:292
+    - public/styles.css:126
+    - public/styles.css:126
+    - public/styles.css:126
+    ... and 7 more
+
+  #0070F3 (4 occurrences)
+    - lib/email.ts:43
+    - lib/fm-notifications.ts:294
+    - services/notifications/fm-notification-engine.ts:541
+    - services/notifications/seller-notification-service.ts:134
+
+  #666 (13 occurrences)
+    - lib/email.ts:46
+    - lib/fm-notifications.ts:293
+    - public/styles.css:292
+    - public/styles.css:292
+    - public/styles.css:292
+    ... and 8 more
+
+  #EEE (5 occurrences)
+    - lib/email.ts:49
+    - lib/fm-notifications.ts:295
+    - scripts/analyze-project.js:430
+    - services/notifications/fm-notification-engine.ts:542
+    - services/notifications/seller-notification-service.ts:140
+
+  #999 (7 occurrences)
+    - lib/email.ts:50
+    - lib/fm-notifications.ts:296
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+    ... and 2 more
+
+  #039 (2 occurrences)
+    - lib/fm-notifications.ts:265
+    - services/notifications/fm-notification-engine.ts:520
+
+  #0078D4 (4 occurrences)
+    - public/app.css:4
+    - public/app.js:230
+    - public/arabic-support.js:114
+    - public/arabic-support.js:114
+
+  #107C10 (2 occurrences)
+    - public/app.css:6
+    - public/app.js:237
+
+  #FF8C00 (3 occurrences)
+    - public/app.css:7
+    - public/app.js:244
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+
+  #5C2D91 (2 occurrences)
+    - public/app.css:8
+    - public/app.js:251
+
+  #DC3545 (2 occurrences)
+    - public/app.css:9
+    - public/app.js:291
+
+  #28A745 (1 occurrence)
+    - public/app.css:10
+
+  #17A2B8 (1 occurrence)
+    - public/app.css:12
+
+  #F8FAFC (3 occurrences)
+    - public/app.css:15
+    - public/sw.js:383
+    - public/sw.js:383
+
+  #2D3748 (2 occurrences)
+    - public/app.css:16
+    - public/app.css:16
+
+  #718096 (1 occurrence)
+    - public/app.css:18
+
+  #E2E8F0 (2 occurrences)
+    - public/app.css:21
+    - public/sw.js:450
+
+  #FEE (1 occurrence)
+    - public/app.css:199
+
+  #8B4513 (1 occurrence)
+    - public/js/saudi-mobile-optimizations.js:132
+
+  #E74C3C (2 occurrences)
+    - public/styles.css:13
+    - qa/qa/artifacts/html-report/trace/index.BFsek2M6.css:1
+
+  #667EEA (3 occurrences)
+    - public/styles.css:18
+    - public/styles.css:18
+    - scripts/analyze-project.js:376
+
+  #764BA2 (3 occurrences)
+    - public/styles.css:18
+    - public/styles.css:18
+    - scripts/analyze-project.js:376
+
+  #1E3C72 (2 occurrences)
+    - public/styles.css:42
+    - public/styles.css:42
+
+  #2A5298 (1 occurrence)
+    - public/styles.css:42
+
+  #A0C4FF (1 occurrence)
+    - public/styles.css:86
+
+  #C0D8FF (4 occurrences)
+    - public/styles.css:92
+    - public/styles.css:92
+    - public/styles.css:92
+    - public/styles.css:92
+
+  #E0E0E0 (7 occurrences)
+    - public/styles.css:305
+    - public/styles.css:305
+    - public/styles.css:305
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 2 more
+
+  #F5F6FA (2 occurrences)
+    - public/styles.css:393
+    - public/styles.css:393
+
+  #F8F9FA (5 occurrences)
+    - public/styles.css:490
+    - scripts/analyze-project.js:407
+    - scripts/analyze-project.js:407
+    - scripts/analyze-project.js:407
+    - scripts/analyze-project.js:407
+
+  #1E293B (2 occurrences)
+    - public/sw.js:392
+    - public/sw.js:392
+
+  #64748B (3 occurrences)
+    - public/sw.js:393
+    - public/sw.js:393
+    - public/sw.js:393
+
+  #004D86 (2 occurrences)
+    - public/sw.js:401
+    - public/sw.js:401
+
+  #F2F2F2 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/assets/defaultSettingsView-Do_wwdKw.js:105
+
+  #777 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/assets/defaultSettingsView-Do_wwdKw.js:105
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+
+  #555 (3 occurrences)
+    - qa/qa/artifacts/html-report/trace/assets/defaultSettingsView-Do_wwdKw.js:105
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+
+  #DDDDDD (8 occurrences)
+    - qa/qa/artifacts/html-report/trace/assets/defaultSettingsView-Do_wwdKw.js:105
+    - qa/qa/artifacts/html-report/trace/assets/defaultSettingsView-Do_wwdKw.js:105
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 3 more
+
+  #3A3A3A (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/assets/defaultSettingsView-Do_wwdKw.js:105
+
+  #A1260D (11 occurrences)
+    - qa/qa/artifacts/html-report/trace/assets/defaultSettingsView-Do_wwdKw.js:105
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 6 more
+
+  #388A34 (10 occurrences)
+    - qa/qa/artifacts/html-report/trace/assets/defaultSettingsView-Do_wwdKw.js:105
+    - qa/qa/artifacts/html-report/trace/assets/defaultSettingsView-Do_wwdKw.js:105
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 5 more
+
+  #F7F7F7 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #7E7 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #00F (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #090 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #D44 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #292 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #708 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #219 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #164 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #05A (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #085 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #A50 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #A11 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #F50 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #30A (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #997 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #170 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #0B0 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #A22 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #E8F2FF (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #D9D9D9 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #D7D4F0 (3 occurrences)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #FFA (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/codeMirrorModule.C3UTv-Ge.css:1
+
+  #888888 (3 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #616161 (78 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 73 more
+
+  #717171 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #424242 (10 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 5 more
+
+  #0090F1 (12 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 7 more
+
+  #006AB1 (11 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 6 more
+
+  #A31515 (10 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 5 more
+
+  #007ACC (47 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 42 more
+
+  #767676 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #D6ECF2 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #F6F5D2 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #B89500 (8 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 3 more
+
+  #F2DEDE (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #BE1100 (8 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 3 more
+
+  #CECECE (14 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 9 more
+
+  #0062A3 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #5F6A79 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #4C5561 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #C4C4C4 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #333333 (18 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 13 more
+
+  #0E70C0 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #E51400 (26 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 21 more
+
+  #BF8803 (16 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 11 more
+
+  #1A85FF (22 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 17 more
+
+  #6C6C6C (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #F0F0F0 (10 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 5 more
+
+  #F3F3F3 (30 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 25 more
+
+  #C8C8C8 (10 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 5 more
+
+  #0066BF (8 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 3 more
+
+  #CCCEDB (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #555555 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #ADD6FF (6 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 1 more
+
+  #E5EBF1 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #A8AC94 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #E7E7E7 (20 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 15 more
+
+  #0000FF (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #DDB100 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #90C2F9 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #0060C0 (8 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 3 more
+
+  #E4E6F1 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #E8E8E8 (8 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 3 more
+
+  #D6EBFF (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #BBE7FF (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #B01011 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #855F00 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #A9A9A9 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #8E8E90 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #D4D4D4 (6 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 1 more
+
+  #4E4E4E (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #D18616 (8 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 3 more
+
+  #C9C9C9 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #652D90 (8 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 3 more
+
+  #D3D3D3 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #939393 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #237893 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #0B216F (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #919191 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #B9B9B9 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #0431FA (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #319331 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #7B3814 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #CEA33D (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #D67E00 (6 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 1 more
+
+  #A0A0A0 (5 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #646465 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #1E1E1E (25 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 20 more
+
+  #F2F8FC (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #ECECEC (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #33AAEE (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #004386 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #68217A (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #C72E0F (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #725102 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #2C2C2C (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #16825D (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #6F6F6F (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #D5D8E9 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #FFA600 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #FCBA03 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #444444 (8 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 3 more
+
+  #66AFE0 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #2090D3 (6 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 1 more
+
+  #F14C4C (30 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 25 more
+
+  #73C991 (12 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 7 more
+
+  #CCA700 (22 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 17 more
+
+  #848484 (16 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 11 more
+
+  #F1DFDE (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #369432 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #CC6633 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #48985D (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #BE8700 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #89D185 (12 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 7 more
+
+  #9B46B0 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #098658 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #569CD6 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #DF6100 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #1D9271 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #B51E78 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #CD3131 (6 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 1 more
+
+  #00BC00 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #949800 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #0451A5 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #BC05BC (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #0598BC (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #666666 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #14CE14 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #B5BA00 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #A5A5A5 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #587C0C (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #895503 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #AD0707 (6 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 1 more
+
+  #007100 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #1258A7 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #CCCCCC (90 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 85 more
+
+  #F48771 (12 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 7 more
+
+  #C5C5C5 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #007FD4 (12 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 7 more
+
+  #3794FF (34 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 29 more
+
+  #D7BA7D (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #3C3C3C (26 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 21 more
+
+  #A6A6A6 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #063B49 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #352A05 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #5A1D1D (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #0E639C (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #1177BB (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #3A3D41 (6 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 1 more
+
+  #45494E (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #4D4D4D (3 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #2A2D2E (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #252526 (28 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 23 more
+
+  #454545 (10 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 5 more
+
+  #3F3F46 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #264F78 (6 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 1 more
+
+  #515C6A (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #2C2C2D (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #4E94CE (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #FFCC00 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #75BEFF (22 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 17 more
+
+  #04395E (10 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 5 more
+
+  #37373D (14 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 9 more
+
+  #383B3D (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #2AAAFF (10 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    ... and 5 more
+
+  #F88070 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #585858 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #8C8C8C (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #303031 (6 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 1 more
+
+  #606060 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #525252 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #676767 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #B180D7 (8 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 3 more
+
+  #282828 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #AEAFAD (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #404040 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #707070 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #858585 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #C6C6C6 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #5A5A5A (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #999999 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #FFD700 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #DA70D6 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #179FFF (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #BD9B03 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #EE9D28 (6 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 1 more
+
+  #BBBBBB (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #001F33 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #2D2D2D (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #3399CC (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #7A6400 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #0C7D9D (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #1B81A8 (6 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    ... and 1 more
+
+  #420B0D (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #487E02 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #C586C0 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #CE9178 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #B5CEA8 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #6C2022 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #FF8E00 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #D758B3 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #0DBC79 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #E5E510 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #2472C8 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #BC3FBC (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #11A8CD (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #E5E5E5 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #23D18B (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #F5F543 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #3B8EEA (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #D670D6 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #29B8DB (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #81B88B (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #E2C08D (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #C74E39 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #E4676B (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #8DB9E2 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #0070C1 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+
+  #795E26 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+
+  #001080 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+
+  #267F99 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+
+  #6A9955 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+
+  #4FC1FF (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+
+  #DCDCAA (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+
+  #9CDCFE (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+
+  #4EC9B0 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+
+  #8C959F (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #EDEDED (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+
+  #EBEDF0 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+
+  #444950 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/defaultSettingsView.DVJHpiGt.css:1
+
+  #F44336 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/sw.bundle.js:1
+
+  #383A42 (4 occurrences)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #FAFAFA (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #E45649 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #50A14F (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #C18401 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #4078F2 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #A626A4 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #0184BC (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #E06C75 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #98C379 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #D19A66 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #D7D7D7 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #F8F8F2 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #F8F8F0 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #FF5555 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #50FA7B (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #F1FA8C (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #BD93F9 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #FF79C6 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #8BE9FD (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #BFBFBF (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #FF6E6E (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #69FF94 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #FFFFA5 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #D6ACFF (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #FF92DF (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #A4FFFF (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #E6E6E6 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #44475A (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.9zHYMU6d.js:2
+
+  #DDF4FF (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #0550AE (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #218BFF (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #FFF8C5 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #7D4E00 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #BF8700 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #FBEFFF (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #6E40C9 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #A475F9 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #FFEFF7 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #99286E (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #E85AAD (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #FFF0EB (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #9E2F1C (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #EA6045 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #FFF1E5 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #9B4215 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #E16F24 (2 occurrences)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #051D4D (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #80CCFF (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #3B2300 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #EAC54F (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #271052 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #D2A8FF (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #42062A (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #FF9BCE (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #460701 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #FFA28B (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #EC6547 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #471700 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #FFA657 (1 occurrence)
+    - qa/qa/artifacts/html-report/trace/uiMode.BatfzHMG.css:1
+
+  #FF6B6B (4 occurrences)
+    - scripts/analyze-project.js:445
+    - scripts/analyze-project.js:445
+    - scripts/analyze-project.js:445
+    - scripts/analyze-project.js:445
+
+  #E9ECEF (2 occurrences)
+    - scripts/analyze-project.js:454
+    - scripts/analyze-project.js:454
+
+  #FFF5F5 (1 occurrence)
+    - scripts/analyze-project.js:459
+
+  #FF8E53 (1 occurrence)
+    - scripts/analyze-project.js:471
+
+  #FFE6E6 (1 occurrence)
+    - scripts/analyze-project.js:495
+
+  #D63384 (3 occurrences)
+    - scripts/analyze-project.js:495
+    - scripts/analyze-project.js:495
+    - scripts/analyze-project.js:495
+
+  #FFF3CD (1 occurrence)
+    - scripts/analyze-project.js:496
+
+  #B45309 (2 occurrences)
+    - scripts/analyze-project.js:496
+    - scripts/analyze-project.js:496
+
+  #D1EDFF (1 occurrence)
+    - scripts/analyze-project.js:497
+
+  #0F5132 (1 occurrence)
+    - scripts/analyze-project.js:497
+
+  #283 (1 occurrence)
+    - server/models/finance/Journal.ts:208
+
+  #94A3B8 (1 occurrence)
+    - styles/tokens.css:11
+
+  #FEBD69 (1 occurrence)
+    - tests/pages/product.slug.page.test.ts:79
+
+  #FFD814 (1 occurrence)
+    - tests/pages/product.slug.page.test.ts:80
+
+❌ BRAND SCAN FAILED
+===================
+
+   Banned colors: 14
+   Off-palette colors: 1747
+   Total violations: 1761
+
+💡 Fix Options:
+   1. Replace with approved brand colors from WHITELIST
+   2. Use Tailwind theme tokens instead of hex
+   3. Add to whitelist if color is justified (requires approval)
+
+📚 See STRICT_GOVERNANCE.md for approved colors
+
+Waiting for the debugger to disconnect...

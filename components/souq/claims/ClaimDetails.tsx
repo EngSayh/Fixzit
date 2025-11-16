@@ -330,7 +330,7 @@ export default function ClaimDetails({ claimId, userRole, onActionRequired }: Cl
                   <Separator />
                   <div className="space-y-3">
                     <h3 className="font-semibold">الاستئناف (Appeal)</h3>
-                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg space-y-2">
+                    <div className="bg-warning/5 border border-yellow-200 p-4 rounded-lg space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium">
                           استئناف من {claim.appeal.appellant === 'buyer' ? 'المشتري' : 'البائع'}

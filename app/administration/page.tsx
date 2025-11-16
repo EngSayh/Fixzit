@@ -435,23 +435,7 @@ const AdminModule: React.FC = () => {
     }
   };
 
-  // Loading and access control
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#0061A8] border-t-transparent mb-4"></div>
-          <p className="text-gray-600">{t('admin.common.loadingSession', 'Loading session...')}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!sessionUser || !hasAdminAccess) {
-    return null; // Router will redirect
-  }
-
-  // Render functions
+  // Define tabs before any early returns (React Hooks rule)
   const tabs = useMemo(() => {
     const baseTabs = [
       { id: 'users', label: t('admin.tabs.users', 'Users'), icon: Users },
@@ -472,6 +456,22 @@ const AdminModule: React.FC = () => {
     return baseTabs;
   }, [isSuperAdmin, t]);
 
+  // Loading and access control
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mb-4"></div>
+          <p className="text-gray-600">{t('admin.common.loadingSession', 'Loading session...')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!sessionUser || !hasAdminAccess) {
+    return null; // Router will redirect
+  }
+
   const renderUsers = () => (
     <div className="space-y-6">
       {/* Header */}
@@ -491,7 +491,7 @@ const AdminModule: React.FC = () => {
           </button>
           <button
             onClick={handleAddUser}
-            className="px-4 py-2 bg-[#0061A8] text-white rounded-lg hover:bg-[#004a82] flex items-center gap-2"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark flex items-center gap-2"
             aria-label={t('admin.users.actions.addAria', 'Add new user')}
           >
             <UserPlus size={20} />
@@ -509,7 +509,7 @@ const AdminModule: React.FC = () => {
             placeholder={t('admin.users.searchPlaceholder', 'Search users...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full ps-10 pe-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8] focus:border-transparent"
+            className="w-full ps-10 pe-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
             aria-label={t('admin.users.searchAria', 'Search users')}
           />
         </div>
@@ -551,12 +551,12 @@ const AdminModule: React.FC = () => {
             {isLoadingData ? (
               <tr>
                 <td colSpan={6} className="text-center p-6">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-[#0061A8] border-t-transparent"></div>
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div>
                 </td>
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={6} className="text-center p-6 text-red-600">
+                <td colSpan={6} className="text-center p-6 text-destructive">
                   <AlertCircle className="inline mb-1" size={20} /> {error}
                 </td>
               </tr>
@@ -570,7 +570,7 @@ const AdminModule: React.FC = () => {
                   <div className="text-sm text-gray-500">{user.email}</div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary/20 text-secondary-foreground">
                     {user.role}
                   </span>
                 </td>
@@ -613,7 +613,7 @@ const AdminModule: React.FC = () => {
                     </button>
                     <button
                       onClick={() => handleDeleteUser(user.id)}
-                      className="p-2 hover:bg-gray-100 rounded text-red-600"
+                      className="p-2 hover:bg-gray-100 rounded text-destructive"
                       title={t('admin.users.actions.delete', 'Delete user')}
                       aria-label={`${t('admin.users.actions.delete', 'Delete user')} ${user.name}`}
                     >
@@ -637,7 +637,7 @@ const AdminModule: React.FC = () => {
           <p className="text-gray-600 mt-1">{t('admin.roles.subtitle', 'Define roles and permissions')}</p>
         </div>
         <button
-          className="px-4 py-2 bg-[#0061A8] text-white rounded-lg hover:bg-[#004a82] flex items-center gap-2"
+          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark flex items-center gap-2"
           aria-label={t('admin.roles.actions.addAria', 'Add new role')}
         >
           <Shield size={20} />
@@ -648,14 +648,14 @@ const AdminModule: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoadingData ? (
           <div className="col-span-full text-center p-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-[#0061A8] border-t-transparent"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div>
           </div>
         ) : roles.map(role => (
           <div key={role.id} className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <UserCog size={24} className="text-purple-600" />
+                <div className="p-2 bg-secondary/20 rounded-lg">
+                  <UserCog size={24} className="text-secondary-foreground" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg">{role.name}</h3>
@@ -697,7 +697,7 @@ const AdminModule: React.FC = () => {
       {/* Filters */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <select
-          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
           aria-label={t('admin.audit.filters.actionAria', 'Filter by action')}
         >
           <option value="">{t('admin.audit.filters.allActions', 'All Actions')}</option>
@@ -707,7 +707,7 @@ const AdminModule: React.FC = () => {
           <option>{t('admin.audit.filters.logout', 'Logout')}</option>
         </select>
         <select
-          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
           aria-label={t('admin.audit.filters.statusAria', 'Filter by status')}
         >
           <option value="">{t('admin.audit.filters.allStatus', 'All Status')}</option>
@@ -716,12 +716,12 @@ const AdminModule: React.FC = () => {
         </select>
         <input
           type="date"
-          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
           aria-label={t('admin.audit.filters.fromDate', 'From date')}
         />
         <input
           type="date"
-          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
+          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
           aria-label={t('admin.audit.filters.toDate', 'To date')}
         />
       </div>
@@ -758,7 +758,7 @@ const AdminModule: React.FC = () => {
             {isLoadingData ? (
               <tr>
                 <td colSpan={7} className="text-center p-6">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-[#0061A8] border-t-transparent"></div>
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div>
                 </td>
               </tr>
             ) : auditLogs.map(log => (
@@ -817,7 +817,7 @@ const AdminModule: React.FC = () => {
               </button>
               <button
                 onClick={handleSaveSettings}
-                className="px-4 py-2 bg-[#0061A8] text-white rounded-lg hover:bg-[#004a82] flex items-center gap-2"
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark flex items-center gap-2"
                 aria-label={t('admin.settings.buttons.saveAria', 'Save settings')}
               >
                 <Save size={20} />
@@ -829,7 +829,7 @@ const AdminModule: React.FC = () => {
 
         {isLoadingData ? (
           <div className="text-center p-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-[#0061A8] border-t-transparent"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div>
           </div>
         ) : (
           categories.map(category => (
@@ -848,7 +848,7 @@ const AdminModule: React.FC = () => {
                       <div className="flex-1">
                         <label htmlFor={setting.key} className="block font-medium text-gray-900">
                           {setting.key.split('.')[1].replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                          {hasChanged && <span className="ms-2 text-[#0061A8] text-sm">●</span>}
+                          {hasChanged && <span className="ms-2 text-primary text-sm">●</span>}
                         </label>
                         <p className="text-sm text-gray-500 mt-1">{setting.description}</p>
                       </div>
@@ -858,7 +858,7 @@ const AdminModule: React.FC = () => {
                             id={setting.key}
                             value={currentValue}
                             onChange={(e) => handleSettingChange(setting.key, e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
                           >
                             <option value="true">{t('admin.settings.options.enabled', 'Enabled')}</option>
                             <option value="false">{t('admin.settings.options.disabled', 'Disabled')}</option>
@@ -869,7 +869,7 @@ const AdminModule: React.FC = () => {
                             type="number"
                             value={currentValue}
                             onChange={(e) => handleSettingChange(setting.key, e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
                           />
                         ) : (
                           <input
@@ -877,7 +877,7 @@ const AdminModule: React.FC = () => {
                             type="text"
                             value={currentValue}
                             onChange={(e) => handleSettingChange(setting.key, e.target.value)}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#0061A8]"
+                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
                           />
                         )}
                       </div>
@@ -934,13 +934,13 @@ const AdminModule: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Success/Error notifications */}
       {successMessage && (
-        <div className="fixed top-4 end-4 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-slide-in">
+        <div className="fixed top-4 end-4 z-50 bg-success/90 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-slide-in">
           <Check size={20} />
           {successMessage}
         </div>
       )}
       {error && (
-        <div className="fixed top-4 end-4 z-50 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-slide-in">
+        <div className="fixed top-4 end-4 z-50 bg-destructive/90 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 animate-slide-in">
           <AlertCircle size={20} />
           {error}
         </div>
@@ -950,8 +950,8 @@ const AdminModule: React.FC = () => {
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <Shield size={32} className="text-purple-600" />
+            <div className="p-3 bg-secondary/20 rounded-lg">
+              <Shield size={32} className="text-secondary-foreground" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">{t('admin.header.title', 'Administration')}</h1>
@@ -967,7 +967,7 @@ const AdminModule: React.FC = () => {
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition-colors whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'border-[#0061A8] text-[#0061A8]'
+                    ? 'border-primary text-primary'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
                 aria-current={activeTab === tab.id ? 'page' : undefined}

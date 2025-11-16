@@ -67,6 +67,9 @@ export interface IListing extends Document {
   updatedAt: Date;
   activatedAt?: Date;
   deactivatedAt?: Date;
+  
+  // Methods
+  checkBuyBoxEligibility(): Promise<boolean>;
 }
 
 const ListingSchema = new Schema<IListing>(

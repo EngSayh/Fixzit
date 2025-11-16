@@ -6,7 +6,18 @@ import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, D
 import { User, Mail, Phone, Star, Calendar, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+const fetcher = async (url: string) => {
+  const response = await fetch(url);
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const error = new Error(payload?.error || `Request failed with status ${response.status}`);
+    (error as Error & { status?: number }).status = response.status;
+    throw error;
+  }
+
+  return payload ?? {};
+};
 
 interface Application {
   _id: string;
@@ -128,8 +139,8 @@ export default function ApplicationsKanban() {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-        <p className="text-red-800">Failed to load applications</p>
+      <div className="bg-destructive/5 border border-red-200 rounded-lg p-6 text-center">
+        <p className="text-destructive-dark">Failed to load applications</p>
       </div>
     );
   }
@@ -215,14 +226,14 @@ export default function ApplicationsKanban() {
                               <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
                                 <button
                                   onClick={() => window.location.href = `/dashboard/hr/recruitment?tab=applications&id=${application._id}`}
-                                  className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                                  className="text-sm text-primary hover:text-primary-dark font-medium flex items-center gap-1"
                                 >
                                   View Details
                                   <ChevronRight className="w-4 h-4" />
                                 </button>
                                 
                                 {application.score >= 80 && (
-                                  <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                                  <Star className="w-4 h-4 text-warning fill-yellow-500" />
                                 )}
                               </div>
                             </div>

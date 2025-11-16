@@ -121,7 +121,7 @@ export default function ResponseForm({ claimId, claimDetails, onSuccess, onCance
                   <RadioGroupItem value="full-refund" id="full-refund" className="mt-1" />
                   <Label htmlFor="full-refund" className="flex-1 cursor-pointer">
                     <div className="flex items-center gap-2 mb-1">
-                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      <CheckCircle2 className="w-4 h-4 text-success" />
                       <span className="font-medium">استرجاع كامل (Full Refund)</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -137,7 +137,7 @@ export default function ResponseForm({ claimId, claimDetails, onSuccess, onCance
                   <RadioGroupItem value="partial-refund" id="partial-refund" className="mt-1" />
                   <Label htmlFor="partial-refund" className="flex-1 cursor-pointer">
                     <div className="flex items-center gap-2 mb-1">
-                      <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
                       <span className="font-medium">استرجاع جزئي (Partial Refund)</span>
                     </div>
                     <p className="text-sm text-muted-foreground mb-2">
@@ -177,7 +177,7 @@ export default function ResponseForm({ claimId, claimDetails, onSuccess, onCance
                   <RadioGroupItem value="replacement" id="replacement" className="mt-1" />
                   <Label htmlFor="replacement" className="flex-1 cursor-pointer">
                     <div className="flex items-center gap-2 mb-1">
-                      <CheckCircle2 className="w-4 h-4 text-purple-600" />
+                      <CheckCircle2 className="w-4 h-4 text-secondary-foreground" />
                       <span className="font-medium">استبدال (Replacement)</span>
                     </div>
                     <p className="text-sm text-muted-foreground">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSession } from 'next-auth/react';
@@ -82,18 +82,28 @@ export default function RecruitmentPage() {
   );
   
   // Fetch settings data (only if user has permission)
-  const { data: settingsData, error: settingsError, isLoading: settingsLoading, mutate: mutateSettings } = useSWR(
+  const { data: settingsData, error: settingsError, isLoading: settingsLoading, mutate: _mutateSettings } = useSWR(
     canViewSettings ? '/api/ats/settings' : null,
     fetcher
   );
   
-  // Handle 402 Payment Required - redirect to upgrade page
-  if ((jobsError && (jobsError as any)?.status === 402) || 
+  const requiresUpgrade = useMemo(() => {
+    return (
+      (jobsError && (jobsError as any)?.status === 402) ||
       (applicationsError && (applicationsError as any)?.status === 402) ||
       (interviewsError && (interviewsError as any)?.status === 402) ||
       (analyticsError && (analyticsError as any)?.status === 402) ||
-      (settingsError && (settingsError as any)?.status === 402)) {
-    router.push('/billing/upgrade?feature=ats');
+      (settingsError && (settingsError as any)?.status === 402)
+    );
+  }, [jobsError, applicationsError, interviewsError, analyticsError, settingsError]);
+
+  useEffect(() => {
+    if (requiresUpgrade) {
+      router.push('/billing/upgrade?feature=ats');
+    }
+  }, [requiresUpgrade, router]);
+
+  if (requiresUpgrade) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -489,7 +499,7 @@ export default function RecruitmentPage() {
                               }`}>
                                 {interview.status}
                               </span>
-                              <span className="px-2 py-1 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded-full">
+                              <span className="px-2 py-1 text-xs bg-secondary/20 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 rounded-full">
                                 {interview.stage}
                               </span>
                               {isToday && (
@@ -640,15 +650,15 @@ export default function RecruitmentPage() {
                   </div>
                   <div className="bg-card border rounded-lg p-4">
                     <div className="text-sm text-muted-foreground mb-1">Active Jobs</div>
-                    <div className="text-3xl font-bold text-blue-600">{analytics.summary.activeJobs}</div>
+                    <div className="text-3xl font-bold text-primary">{analytics.summary.activeJobs}</div>
                   </div>
                   <div className="bg-card border rounded-lg p-4">
                     <div className="text-sm text-muted-foreground mb-1">Interviews</div>
-                    <div className="text-3xl font-bold text-purple-600">{analytics.summary.totalInterviews}</div>
+                    <div className="text-3xl font-bold text-secondary-foreground">{analytics.summary.totalInterviews}</div>
                   </div>
                   <div className="bg-card border rounded-lg p-4">
                     <div className="text-sm text-muted-foreground mb-1">Hired</div>
-                    <div className="text-3xl font-bold text-green-600">{analytics.summary.hiredCount}</div>
+                    <div className="text-3xl font-bold text-success">{analytics.summary.hiredCount}</div>
                   </div>
                 </div>
 
@@ -700,10 +710,10 @@ export default function RecruitmentPage() {
                       <span className="text-lg font-bold text-primary">{analytics.conversionRates.offerToHired}%</span>
                     </div>
                   </div>
-                  <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <div className="mt-4 p-4 bg-success/5 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Overall Conversion Rate</span>
-                      <span className="text-2xl font-bold text-green-600">{analytics.conversionRates.overallConversion}%</span>
+                      <span className="text-2xl font-bold text-success">{analytics.conversionRates.overallConversion}%</span>
                     </div>
                   </div>
                 </div>
@@ -948,8 +958,8 @@ export default function RecruitmentPage() {
                   </div>
                 </div>
 
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                <div className="bg-primary/5 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <p className="text-sm text-primary-dark dark:text-blue-200">
                     <span className="font-medium">Note:</span> Settings editing UI will be enabled in Phase 3. Currently displaying read-only configuration.
                   </p>
                 </div>

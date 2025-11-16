@@ -43,8 +43,8 @@ export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <DollarSign className="h-5 w-5 text-green-600" />
+            <div className="p-2 bg-success/10 rounded-lg">
+              <DollarSign className="h-5 w-5 text-success" />
             </div>
             <h3 className="text-sm font-medium text-gray-600">
               الرصيد المتاح (Available)
@@ -52,7 +52,7 @@ export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
           </div>
         </div>
         <div className="space-y-2">
-          <p className="text-3xl font-bold text-green-600">
+          <p className="text-3xl font-bold text-success">
             {formatCurrency(balance.available)}
           </p>
           <p className="text-xs text-gray-500">جاهز للسحب (Ready to withdraw)</p>
@@ -73,8 +73,8 @@ export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <Lock className="h-5 w-5 text-yellow-600" />
+            <div className="p-2 bg-warning/10 rounded-lg">
+              <Lock className="h-5 w-5 text-warning" />
             </div>
             <h3 className="text-sm font-medium text-gray-600">
               الرصيد المحجوز (Reserved)
@@ -82,7 +82,7 @@ export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
           </div>
         </div>
         <div className="space-y-2">
-          <p className="text-3xl font-bold text-yellow-600">
+          <p className="text-3xl font-bold text-warning">
             {formatCurrency(balance.reserved)}
           </p>
           <p className="text-xs text-gray-500">
@@ -95,8 +95,8 @@ export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Clock className="h-5 w-5 text-blue-600" />
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Clock className="h-5 w-5 text-primary" />
             </div>
             <h3 className="text-sm font-medium text-gray-600">
               الرصيد المعلق (Pending)
@@ -104,7 +104,7 @@ export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
           </div>
         </div>
         <div className="space-y-2">
-          <p className="text-3xl font-bold text-blue-600">
+          <p className="text-3xl font-bold text-primary">
             {formatCurrency(balance.pending)}
           </p>
           <p className="text-xs text-gray-500">
@@ -117,8 +117,8 @@ export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <TrendingUp className="h-5 w-5 text-purple-600" />
+            <div className="p-2 bg-secondary/20 rounded-lg">
+              <TrendingUp className="h-5 w-5 text-secondary-foreground" />
             </div>
             <h3 className="text-sm font-medium text-gray-600">
               إجمالي الأرباح (Total Earnings)
@@ -126,7 +126,7 @@ export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
           </div>
         </div>
         <div className="space-y-2">
-          <p className="text-3xl font-bold text-purple-600">
+          <p className="text-3xl font-bold text-secondary-foreground">
             {formatCurrency(balance.totalEarnings)}
           </p>
           <p className="text-xs text-gray-500">منذ البداية (All time)</p>
@@ -152,7 +152,7 @@ export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
               {balance.nextPayoutDate && (
                 <div>
                   <span className="text-gray-600">الدفعة القادمة (Next payout): </span>
-                  <span className="font-medium text-blue-600">
+                  <span className="font-medium text-primary">
                     {formatDate(balance.nextPayoutDate)}
                   </span>
                 </div>

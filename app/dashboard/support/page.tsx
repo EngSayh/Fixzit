@@ -92,10 +92,10 @@ export default function SupportDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Resolved</CardTitle>
-              <CheckCircle className="w-4 h-4 text-green-500" />
+              <CheckCircle className="w-4 h-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-500">{loading ? '...' : counters?.support.resolved || 0}</div>
+              <div className="text-2xl font-bold text-success">{loading ? '...' : counters?.support.resolved || 0}</div>
             </CardContent>
           </Card>
         </div>

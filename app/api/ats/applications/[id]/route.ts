@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { Application } from '@/server/models/Application';
-import { atsRBAC, canAccessResource, isValidStageTransition } from '@/lib/ats/rbac';
+import { atsRBAC, canAccessResource, isValidStageTransition, ALLOWED_STAGE_TRANSITIONS } from '@/lib/ats/rbac';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {notFoundError, rateLimitError} from '@/server/utils/errorResponses';
@@ -66,6 +66,12 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 }
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const clientIp = getClientIP(req);
+  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
+  }
+
   const params = await props.params;
   try {
     await connectToDatabase();
@@ -95,7 +101,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
           { 
             success: false, 
             error: `Invalid stage transition: ${oldStage} → ${body.stage}`,
-            allowedTransitions: isValidStageTransition
+            allowedTransitions: ALLOWED_STAGE_TRANSITIONS[oldStage] || []
           },
           { status: 400 }
         );
@@ -122,5 +128,4 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     return createSecureResponse({ error: "Failed to update application" }, 500, req);
   }
 }
-
 

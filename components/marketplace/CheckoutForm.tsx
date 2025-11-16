@@ -107,7 +107,7 @@ export default function CheckoutForm({ totals, currency }: CheckoutFormProps) {
           </span>
         </div>
       </div>
-      {error && <p className="text-sm text-[var(--fixzit-danger)]">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
       {success && <p className="text-sm text-success">Checkout submitted. Redirecting…</p>}
       <button
         type="submit"

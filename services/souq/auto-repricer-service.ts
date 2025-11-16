@@ -118,8 +118,8 @@ export class AutoRepricerService {
             change,
             changePercent,
             reason: 'auto_repricer',
-            competitorPrice: buyBoxListing?.price,
-            competitorListingId: buyBoxListing?._id?.toString(),
+            competitorPrice: offers[0]?.price,
+            competitorListingId: offers[0]?._id?.toString(),
             autoRepricerRule: `${rule.targetPosition}-${rule.undercut}`,
             salesBefore: recentOrders / 7, // Average per day
             createdAt: new Date()

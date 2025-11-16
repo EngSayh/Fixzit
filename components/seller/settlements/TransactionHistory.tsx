@@ -115,9 +115,9 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
 
   const getTransactionIcon = (type: string, amount: number) => {
     if (amount >= 0) {
-      return <ArrowUpCircle className="h-5 w-5 text-green-600" />;
+      return <ArrowUpCircle className="h-5 w-5 text-success" />;
     } else {
-      return <ArrowDownCircle className="h-5 w-5 text-red-600" />;
+      return <ArrowDownCircle className="h-5 w-5 text-destructive" />;
     }
   };
 

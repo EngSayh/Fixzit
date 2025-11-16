@@ -94,12 +94,12 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
     <div className="space-y-6">
       {/* Active Filters */}
       {hasActiveFilters && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="bg-primary/5 border border-blue-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-blue-900">Active Filters</h3>
+            <h3 className="text-sm font-semibold text-primary-dark">Active Filters</h3>
             <button
               onClick={clearAllFilters}
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+              className="text-xs text-primary hover:text-primary-dark font-medium"
             >
               Clear All
             </button>
@@ -252,7 +252,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
                     type="checkbox"
                     checked={currentBadges.includes(badge)}
                     onChange={() => toggleBadge(badge)}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 text-primary focus:ring-blue-500"
                   />
                   <span className="text-sm text-gray-700 capitalize">
                     {badge.replace('-', ' ')}
@@ -301,11 +301,11 @@ function FilterSection({
 // Filter Chip Component
 function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-blue-200 rounded-full text-sm text-blue-700">
+    <span className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-blue-200 rounded-full text-sm text-primary-dark">
       {label}
       <button
         onClick={onRemove}
-        className="hover:bg-blue-100 rounded-full p-0.5"
+        className="hover:bg-primary/10 rounded-full p-0.5"
       >
         <X className="h-3 w-3" />
       </button>

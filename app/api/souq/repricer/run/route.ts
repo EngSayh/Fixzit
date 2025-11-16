@@ -6,7 +6,7 @@ import { AutoRepricerService } from '@/services/souq/auto-repricer-service';
  * POST /api/souq/repricer/run
  * Manually trigger repricing for current seller
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {

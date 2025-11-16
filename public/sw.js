@@ -392,7 +392,7 @@ function getArabicOfflinePage() {
         h1 { color: #1e293b; margin-bottom: 16px; font-family: 'Tajawal', sans-serif; }
         p { color: #64748b; margin-bottom: 24px; line-height: 1.8; }
         button {
-          background: #0061A8; color: white; border: none;
+          background: #B46B2F; color: white; border: none;
           padding: 12px 24px; border-radius: 8px; font-weight: 500;
           cursor: pointer; transition: background 0.2s;
           min-height: 44px; touch-action: manipulation;
@@ -439,7 +439,7 @@ function getBilingualOfflinePage() {
         h1 { color: #1e293b; margin-bottom: 16px; }
         p { color: #64748b; margin-bottom: 24px; line-height: 1.6; }
         button {
-          background: #0061A8; color: white; border: none;
+          background: #B46B2F; color: white; border: none;
           padding: 12px 24px; border-radius: 8px; font-weight: 500;
           cursor: pointer; transition: background 0.2s;
           min-height: 44px; touch-action: manipulation; margin: 0 8px;

@@ -352,10 +352,10 @@ export default function SellerOnboarding() {
                     {t('marketplace.sellerOnboarding.documents.chooseFile', 'Choose File')}
                   </button>
                   {documents.commercialRegistration.file && (
-                    <p className="text-sm text-green-600 mt-2">✓ {documents.commercialRegistration.file.name}</p>
+                    <p className="text-sm text-success mt-2">✓ {documents.commercialRegistration.file.name}</p>
                   )}
                   {documents.commercialRegistration.error && (
-                    <p className="text-sm text-red-600 mt-2">{documents.commercialRegistration.error}</p>
+                    <p className="text-sm text-destructive mt-2">{documents.commercialRegistration.error}</p>
                   )}
                 </div>
                 <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
@@ -381,10 +381,10 @@ export default function SellerOnboarding() {
                     {t('marketplace.sellerOnboarding.documents.chooseFile', 'Choose File')}
                   </button>
                   {documents.taxCertificate.file && (
-                    <p className="text-sm text-green-600 mt-2">✓ {documents.taxCertificate.file.name}</p>
+                    <p className="text-sm text-success mt-2">✓ {documents.taxCertificate.file.name}</p>
                   )}
                   {documents.taxCertificate.error && (
-                    <p className="text-sm text-red-600 mt-2">{documents.taxCertificate.error}</p>
+                    <p className="text-sm text-destructive mt-2">{documents.taxCertificate.error}</p>
                   )}
                 </div>
               </div>
@@ -393,9 +393,9 @@ export default function SellerOnboarding() {
             {/* Step 4: Banking */}
             {step === 4 && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <CreditCard className="w-5 h-5 text-blue-600" />
-                  <p className="text-sm text-blue-600">
+                <div className="flex items-center gap-2 mb-4 p-3 bg-primary/5 dark:bg-blue-900/20 rounded-lg">
+                  <CreditCard className="w-5 h-5 text-primary" />
+                  <p className="text-sm text-primary">
                     {t(
                       'marketplace.sellerOnboarding.banking.info',
                       'Secure banking information for settlement payments'
@@ -446,8 +446,8 @@ export default function SellerOnboarding() {
 
             {/* Error Display */}
             {submitError && (
-              <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-sm text-red-600 dark:text-red-400">{submitError}</p>
+              <div className="mt-4 p-3 bg-destructive/5 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-sm text-destructive dark:text-destructive">{submitError}</p>
               </div>
             )}
 
@@ -472,7 +472,7 @@ export default function SellerOnboarding() {
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-6 py-2 bg-success text-white rounded-lg hover:bg-success-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                   {submitting

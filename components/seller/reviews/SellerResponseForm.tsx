@@ -98,12 +98,12 @@ export function SellerResponseForm({
       </p>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm mt-3">
+        <div className="bg-destructive/5 border border-red-200 text-destructive-dark px-3 py-2 rounded-lg text-sm mt-3">
           {error}
         </div>
       )}
       {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg text-sm mt-3">
+        <div className="bg-success/5 border border-green-200 text-success-dark px-3 py-2 rounded-lg text-sm mt-3">
           {success}
         </div>
       )}

@@ -185,7 +185,7 @@ export default function PricingDashboardPage() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-gray-600">Total Listings</h3>
-            <DollarSign className="w-5 h-5 text-blue-600" />
+            <DollarSign className="w-5 h-5 text-primary" />
           </div>
           <p className="text-3xl font-bold text-gray-900">{listings.length}</p>
         </Card>
@@ -193,7 +193,7 @@ export default function PricingDashboardPage() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-gray-600">Buy Box Winners</h3>
-            <Award className="w-5 h-5 text-yellow-600" />
+            <Award className="w-5 h-5 text-warning" />
           </div>
           <div className="flex items-baseline gap-2">
             <p className="text-3xl font-bold text-gray-900">{buyBoxWinners}</p>
@@ -206,7 +206,7 @@ export default function PricingDashboardPage() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-gray-600">Avg Buy Box Score</h3>
-            <TrendingUp className="w-5 h-5 text-green-600" />
+            <TrendingUp className="w-5 h-5 text-success" />
           </div>
           <p className="text-3xl font-bold text-gray-900">
             {avgBuyBoxScore.toFixed(0)}
@@ -251,7 +251,7 @@ export default function PricingDashboardPage() {
                     </td>
                     <td className="py-3 px-4">
                       {listing.buyBoxWinner ? (
-                        <Badge className="bg-yellow-100 text-yellow-800">
+                        <Badge className="bg-warning/10 text-warning-foreground">
                           <Award className="w-3 h-3 mr-1" />
                           Winner
                         </Badge>
@@ -263,11 +263,11 @@ export default function PricingDashboardPage() {
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{listing.buyBoxScore}</span>
                         {listing.buyBoxScore >= 80 ? (
-                          <TrendingUp className="w-4 h-4 text-green-600" />
+                          <TrendingUp className="w-4 h-4 text-success" />
                         ) : listing.buyBoxScore >= 50 ? (
-                          <TrendingUp className="w-4 h-4 text-yellow-600" />
+                          <TrendingUp className="w-4 h-4 text-warning" />
                         ) : (
-                          <TrendingDown className="w-4 h-4 text-red-600" />
+                          <TrendingDown className="w-4 h-4 text-destructive" />
                         )}
                       </div>
                     </td>

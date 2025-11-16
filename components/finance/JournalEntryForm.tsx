@@ -481,7 +481,7 @@ export default function JournalEntryForm({
         </div>
 
         {errors.lines && (
-          <div className="bg-red-50 border border-destructive/20 rounded p-2">
+          <div className="bg-destructive/5 border border-destructive/20 rounded p-2">
             <p className="text-sm text-destructive">{errors.lines}</p>
           </div>
         )}
@@ -638,7 +638,7 @@ export default function JournalEntryForm({
         </div>
 
         {errors.balance && (
-          <div className="bg-red-50 border border-destructive/20 rounded p-2">
+          <div className="bg-destructive/5 border border-destructive/20 rounded p-2">
             <p className="text-sm text-destructive">{errors.balance}</p>
           </div>
         )}
@@ -667,7 +667,7 @@ export default function JournalEntryForm({
       </div>
 
       {errors.submit && (
-        <div className="bg-red-50 border border-destructive/20 rounded-2xl p-4">
+        <div className="bg-destructive/5 border border-destructive/20 rounded-2xl p-4">
           <p className="text-sm text-destructive">{errors.submit}</p>
         </div>
       )}

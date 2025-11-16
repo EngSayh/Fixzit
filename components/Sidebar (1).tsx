@@ -376,11 +376,9 @@ export default function Sidebar({ tenantId: _tenantId }: SidebarProps) {
   const isAuthenticated = status === 'authenticated' && session != null;
   
   // Extract role from session - ensure it's a valid UserRoleType or 'guest'
-  // @ts-expect-error: NextAuth session.user may have custom properties
-  const role: UserRoleType | 'guest' = isAuthenticated ? (session.user?.role || 'VIEWER') : 'guest';
+  const role = (isAuthenticated ? (session.user?.role || 'VIEWER') : 'guest') as UserRoleType | 'guest';
   
   // Extract subscription plan from session - default to 'DEFAULT' for unknown plans
-  // @ts-expect-error: NextAuth session.user may have custom properties
   const subscription: string = isAuthenticated ? (session.user?.subscriptionPlan || 'DEFAULT') : 'DEFAULT';
 
   const active = useMemo(() => pathname || '', [pathname]);

@@ -167,9 +167,9 @@ export default function AdministrationPage() {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-green-500" />
+            <Activity className="h-4 w-4 text-success" />
             <span className="font-medium">
-              {t('admin.system.status', 'System')}: <span className="text-green-500">{t('admin.system.operational', 'Operational')}</span>
+              {t('admin.system.status', 'System')}: <span className="text-success">{t('admin.system.operational', 'Operational')}</span>
             </span>
           </div>
         </div>
@@ -247,15 +247,15 @@ export default function AdministrationPage() {
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-card border border-border rounded-lg p-6">
           <div className="flex items-center gap-3 mb-2">
-            <Database className="h-5 w-5 text-blue-500" />
+            <Database className="h-5 w-5 text-primary" />
             <h3 className="font-semibold">{t('admin.database.title', 'Database')}</h3>
           </div>
           <p className="text-sm text-muted-foreground mb-2">{t('admin.database.status', 'Status')}</p>
-          <p className="text-2xl font-bold text-green-500">{t('admin.database.healthy', 'Healthy')}</p>
+          <p className="text-2xl font-bold text-success">{t('admin.database.healthy', 'Healthy')}</p>
         </div>
         <div className="bg-card border border-border rounded-lg p-6">
           <div className="flex items-center gap-3 mb-2">
-            <Activity className="h-5 w-5 text-green-500" />
+            <Activity className="h-5 w-5 text-success" />
             <h3 className="font-semibold">{t('admin.monitoring.title', 'System Monitoring')}</h3>
           </div>
           <p className="text-sm text-muted-foreground mb-2">{t('admin.monitoring.uptime', 'Uptime')}</p>

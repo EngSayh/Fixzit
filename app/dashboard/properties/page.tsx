@@ -82,10 +82,10 @@ export default function PropertiesDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Occupied</CardTitle>
-              <Home className="w-4 h-4 text-green-500" />
+              <Home className="w-4 h-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-500">{loading ? '...' : counters?.properties.occupied || 0}</div>
+              <div className="text-2xl font-bold text-success">{loading ? '...' : counters?.properties.occupied || 0}</div>
             </CardContent>
           </Card>
           <Card>
@@ -100,10 +100,10 @@ export default function PropertiesDashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Occupancy Rate</CardTitle>
-              <TrendingUp className="w-4 h-4 text-blue-500" />
+              <TrendingUp className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-500">
+              <div className="text-2xl font-bold text-primary">
                 {loading ? '...' : `${counters?.properties.occupancy_rate?.toFixed(1) || 0}%`}
               </div>
             </CardContent>
