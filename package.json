@@ -33,7 +33,7 @@
     "qa:scan:duplicates": "node qa/scripts/scanDuplicates.mjs",
     "qa:e2e": "playwright test --config=tests/playwright.config.ts",
     "verify:prep": "node -e \"require('fs').mkdirSync('_artifacts',{recursive:true})\"",
-    "verify:routes": "tsx scripts/verify-routes.ts",
+    "verify:routes": "tsx scripts/verify-routes.ts && tsx scripts/check-nav-routes.ts",
     "check:nav-routes": "tsx scripts/check-nav-routes.ts",
     "verify:api": "tsx scripts/verify-api.ts",
     "verify:mongo": "tsx scripts/mongo-check.ts",
