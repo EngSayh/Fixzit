@@ -1,0 +1,132 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]: Fx
+          - generic [ref=e7]:
+            - generic [ref=e8]: Fixzit Enterprise
+            - generic [ref=e9]: FM & Marketplaces · Brown shell
+        - navigation [ref=e10]:
+          - link "Dashboard" [ref=e11] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Work Orders" [ref=e12] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Properties" [ref=e13] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Finance" [ref=e14] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Souq" [ref=e15] [cursor=pointer]:
+            - /url: "#modules"
+        - generic [ref=e16]:
+          - button "🇸🇦 AR ▼" [ref=e17] [cursor=pointer]:
+            - generic [ref=e18]: 🇸🇦
+            - generic [ref=e19]: AR
+            - generic [ref=e20]: ▼
+          - generic [ref=e22]: SA
+    - generic [ref=e23]:
+      - complementary [ref=e24]:
+        - generic [ref=e26]: Core
+        - navigation [ref=e27]:
+          - link "🏠 Dashboard" [ref=e28] [cursor=pointer]:
+            - /url: "#dashboard"
+            - generic [ref=e29]: 🏠
+            - generic [ref=e30]: Dashboard
+          - link "🛠️ Work Orders" [ref=e31] [cursor=pointer]:
+            - /url: "#workorders"
+            - generic [ref=e32]: 🛠️
+            - generic [ref=e33]: Work Orders
+          - link "🏢 Properties" [ref=e34] [cursor=pointer]:
+            - /url: "#properties"
+            - generic [ref=e35]: 🏢
+            - generic [ref=e36]: Properties
+          - link "💰 Finance" [ref=e37] [cursor=pointer]:
+            - /url: "#finance"
+            - generic [ref=e38]: 💰
+            - generic [ref=e39]: Finance
+          - link "👥 HR" [ref=e40] [cursor=pointer]:
+            - /url: "#hr"
+            - generic [ref=e41]: 👥
+            - generic [ref=e42]: HR
+        - generic [ref=e44]: Business
+        - navigation [ref=e45]:
+          - link "📞 CRM" [ref=e46] [cursor=pointer]:
+            - /url: "#crm"
+            - generic [ref=e47]: 📞
+            - generic [ref=e48]: CRM
+          - link "🛒 Fixzit Souq" [ref=e49] [cursor=pointer]:
+            - /url: "#souq"
+            - generic [ref=e50]: 🛒
+            - generic [ref=e51]: Fixzit Souq
+          - link "🎧 Support" [ref=e52] [cursor=pointer]:
+            - /url: "#support"
+            - generic [ref=e53]: 🎧
+            - generic [ref=e54]: Support
+          - link "📊 Reports" [ref=e55] [cursor=pointer]:
+            - /url: "#reports"
+            - generic [ref=e56]: 📊
+            - generic [ref=e57]: Reports
+        - generic [ref=e59]: System
+        - navigation [ref=e60]:
+          - link "⚙️ System Mgmt." [ref=e61] [cursor=pointer]:
+            - /url: "#system"
+            - generic [ref=e62]: ⚙️
+            - generic [ref=e63]: System Mgmt.
+      - main [ref=e64]:
+        - generic [ref=e66]:
+          - generic [ref=e67]:
+            - generic [ref=e68]:
+              - heading "أوامر العمل" [level=1] [ref=e69]
+              - paragraph [ref=e70]: إدارة وتتبع أوامر العمل عبر جميع العقارات
+            - button "New Work Order" [ref=e71] [cursor=pointer]:
+              - img [ref=e72]
+              - text: New Work Order
+          - generic [ref=e75]:
+            - generic [ref=e76]:
+              - img [ref=e77]
+              - textbox "البحث حسب العنوان أو الوصف" [ref=e80]
+            - generic [ref=e81]:
+              - combobox [ref=e82]:
+                - option "جميع الحالات"
+                - option "Submitted"
+                - option "Dispatched"
+                - option "In Progress"
+                - option "On Hold"
+                - option "Completed"
+                - option "Verified"
+                - option "Closed"
+                - option "Cancelled"
+              - img
+            - generic [ref=e83]:
+              - combobox [ref=e84]:
+                - option "جميع الأولويات"
+                - option "Low"
+                - option "Medium"
+                - option "High"
+                - option "Critical"
+              - img
+            - button "تحديث" [ref=e85] [cursor=pointer]:
+              - img [ref=e86]
+              - text: تحديث
+          - paragraph [ref=e93]: Failed to load work orders (401)
+          - generic [ref=e94]:
+            - generic [ref=e95]: يتم عرض 0 من أصل 0 أمر عمل
+            - generic [ref=e96]:
+              - button "السابق" [disabled]
+              - generic [ref=e97]: Page 1 of 1
+              - button "التالي" [disabled]
+        - region "Notifications alt+T"
+    - contentinfo [ref=e98]:
+      - generic [ref=e99]:
+        - generic [ref=e100]: © 2025 Fixzit Enterprise — Brown Theme
+        - generic [ref=e101]:
+          - button "Privacy" [ref=e102] [cursor=pointer]
+          - button "Terms" [ref=e103] [cursor=pointer]
+          - button "Support" [ref=e104] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e110] [cursor=pointer]:
+    - img [ref=e111]
+  - alert [ref=e114]
+```

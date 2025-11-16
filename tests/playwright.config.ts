@@ -6,6 +6,28 @@ dotenv.config({ path: '.env.test' });
 
 const baseURL = process.env.BASE_URL ?? 'http://localhost:3000';
 const isCI = !!process.env.CI;
+const defaultWebServerCommand = isCI ? 'pnpm start' : 'pnpm dev';
+
+let parsedBaseURL: URL | undefined;
+try {
+  parsedBaseURL = new URL(baseURL);
+} catch {
+  parsedBaseURL = undefined;
+}
+
+const baseHostname = parsedBaseURL?.hostname ?? 'localhost';
+const inferredPort =
+  parsedBaseURL?.port !== undefined && parsedBaseURL.port !== ''
+    ? Number(parsedBaseURL.port)
+    : undefined;
+
+const isLocalHost = ['localhost', '127.0.0.1', '0.0.0.0'].includes(baseHostname);
+const skipWebServer = process.env.PW_SKIP_WEB_SERVER === 'true';
+const resolvedWebServerCommand =
+  process.env.PW_WEB_SERVER ?? (isLocalHost ? defaultWebServerCommand : undefined);
+const shouldStartWebServer = !skipWebServer && resolvedWebServerCommand !== undefined;
+const webServerPort = Number(process.env.PW_WEB_PORT ?? inferredPort ?? 3000);
+const webServerUrl = process.env.PW_WEB_URL ?? undefined;
 
 /**
  * Playwright Configuration for Fixzit E2E Testing
@@ -35,6 +57,10 @@ const isCI = !!process.env.CI;
  * 
  *   # Let Playwright start dev server
  *   PW_WEB_SERVER="pnpm dev" PW_WEB_PORT=3000 npx playwright test
+ * 
+ *   # (New) Auto server behavior
+ *   # - Defaults to pnpm dev when BASE_URL points to localhost
+ *   # - Override command via PW_WEB_SERVER or disable via PW_SKIP_WEB_SERVER=true
  */
 
 // Roles tested across all locales
@@ -140,14 +166,13 @@ export default defineConfig({
   // Project matrix: 12 desktop + 4 mobile = 16 total
   projects: [...desktopProjects, ...mobileProjects],
   
-  // Optional dev server (enable via env vars)
-  // Set PW_WEB_SERVER="pnpm dev" PW_WEB_PORT=3000 to auto-start
-  webServer: process.env.PW_WEB_SERVER
+  // Auto-start Next.js dev server for local runs (override or skip via env vars)
+  webServer: shouldStartWebServer
     ? {
-        command: process.env.PW_WEB_SERVER,
-        port: Number(process.env.PW_WEB_PORT ?? 3000),
+        command: resolvedWebServerCommand!,
+        ...(webServerUrl ? { url: webServerUrl } : { port: webServerPort }),
         reuseExistingServer: !isCI,
         timeout: 120_000,
       }
-    : undefined, // Otherwise managed by tasks.json
+    : undefined,
 });

@@ -1,0 +1,167 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]: Fx
+          - generic [ref=e7]:
+            - generic [ref=e8]: Fixzit Enterprise
+            - generic [ref=e9]: FM & Marketplaces · Brown shell
+        - navigation [ref=e10]:
+          - link "Dashboard" [ref=e11] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Work Orders" [ref=e12] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Properties" [ref=e13] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Finance" [ref=e14] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Souq" [ref=e15] [cursor=pointer]:
+            - /url: "#modules"
+        - generic [ref=e16]:
+          - button "🇸🇦 AR ▼" [ref=e17] [cursor=pointer]:
+            - generic [ref=e18]: 🇸🇦
+            - generic [ref=e19]: AR
+            - generic [ref=e20]: ▼
+          - generic [ref=e22]: SA
+    - generic [ref=e23]:
+      - complementary [ref=e24]:
+        - generic [ref=e26]: Core
+        - navigation [ref=e27]:
+          - link "🏠 Dashboard" [ref=e28] [cursor=pointer]:
+            - /url: "#dashboard"
+            - generic [ref=e29]: 🏠
+            - generic [ref=e30]: Dashboard
+          - link "🛠️ Work Orders" [ref=e31] [cursor=pointer]:
+            - /url: "#workorders"
+            - generic [ref=e32]: 🛠️
+            - generic [ref=e33]: Work Orders
+          - link "🏢 Properties" [ref=e34] [cursor=pointer]:
+            - /url: "#properties"
+            - generic [ref=e35]: 🏢
+            - generic [ref=e36]: Properties
+          - link "💰 Finance" [ref=e37] [cursor=pointer]:
+            - /url: "#finance"
+            - generic [ref=e38]: 💰
+            - generic [ref=e39]: Finance
+          - link "👥 HR" [ref=e40] [cursor=pointer]:
+            - /url: "#hr"
+            - generic [ref=e41]: 👥
+            - generic [ref=e42]: HR
+        - generic [ref=e44]: Business
+        - navigation [ref=e45]:
+          - link "📞 CRM" [ref=e46] [cursor=pointer]:
+            - /url: "#crm"
+            - generic [ref=e47]: 📞
+            - generic [ref=e48]: CRM
+          - link "🛒 Fixzit Souq" [ref=e49] [cursor=pointer]:
+            - /url: "#souq"
+            - generic [ref=e50]: 🛒
+            - generic [ref=e51]: Fixzit Souq
+          - link "🎧 Support" [ref=e52] [cursor=pointer]:
+            - /url: "#support"
+            - generic [ref=e53]: 🎧
+            - generic [ref=e54]: Support
+          - link "📊 Reports" [ref=e55] [cursor=pointer]:
+            - /url: "#reports"
+            - generic [ref=e56]: 📊
+            - generic [ref=e57]: Reports
+        - generic [ref=e59]: System
+        - navigation [ref=e60]:
+          - link "⚙️ System Mgmt." [ref=e61] [cursor=pointer]:
+            - /url: "#system"
+            - generic [ref=e62]: ⚙️
+            - generic [ref=e63]: System Mgmt.
+      - main [ref=e64]:
+        - generic [ref=e65]:
+          - generic [ref=e66]: التقارير
+          - generic [ref=e67]:
+            - button "+ تقرير جديد" [ref=e68] [cursor=pointer]
+            - button "EN / عربي" [ref=e69] [cursor=pointer]
+        - generic [ref=e70]:
+          - complementary [ref=e71]:
+            - generic [ref=e72]: الأساسيات
+            - navigation [ref=e73]:
+              - link "🏠 لوحة التحكم" [ref=e74] [cursor=pointer]:
+                - /url: /dashboard
+              - link "🧰 أوامر العمل" [ref=e75] [cursor=pointer]:
+                - /url: /work-orders
+              - link "🏢 العقارات" [ref=e76] [cursor=pointer]:
+                - /url: /properties
+              - link "💳 المالية" [ref=e77] [cursor=pointer]:
+                - /url: /finance
+              - link "👥 الموارد البشرية" [ref=e78] [cursor=pointer]:
+                - /url: /hr
+            - generic [ref=e79]: الأعمال
+            - navigation [ref=e80]:
+              - link "📇 إدارة العلاقات" [ref=e81] [cursor=pointer]:
+                - /url: /crm
+              - link "🛍️ السوق" [ref=e82] [cursor=pointer]:
+                - /url: /marketplace
+              - link "🎧 الدعم" [ref=e83] [cursor=pointer]:
+                - /url: /support
+              - link "🛡️ الامتثال" [ref=e84] [cursor=pointer]:
+                - /url: /compliance
+              - link "📊 التقارير" [ref=e85] [cursor=pointer]:
+                - /url: /reports
+              - link "⚙️ إدارة النظام" [ref=e86] [cursor=pointer]:
+                - /url: /system
+          - main [ref=e87]:
+            - generic [ref=e88]:
+              - heading "التقارير" [level=2] [ref=e89]
+              - generic [ref=e90]:
+                - button "لوحة التحكم" [ref=e91] [cursor=pointer]
+                - button "منشئ التقارير" [ref=e92] [cursor=pointer]
+                - button "عارض التقارير" [ref=e93] [cursor=pointer]
+              - generic [ref=e94]:
+                - table [ref=e96]:
+                  - rowgroup [ref=e97]:
+                    - row "اسم التقرير النوع آخر تشغيل الحالة الإجراءات" [ref=e98]:
+                      - cell "اسم التقرير" [ref=e99]
+                      - cell "النوع" [ref=e100]
+                      - cell "آخر تشغيل" [ref=e101]
+                      - cell "الحالة" [ref=e102]
+                      - cell "الإجراءات" [ref=e103]
+                  - rowgroup [ref=e104]:
+                    - row "ملخص مالي شهري مالي 2024-01-15 10:30 جاهز عرض تحميل" [ref=e105]:
+                      - cell "ملخص مالي شهري" [ref=e106]
+                      - cell "مالي" [ref=e107]
+                      - cell "2024-01-15 10:30" [ref=e108]
+                      - cell "جاهز" [ref=e109]
+                      - cell "عرض تحميل" [ref=e110]:
+                        - button "عرض" [ref=e111] [cursor=pointer]
+                        - button "تحميل" [ref=e112] [cursor=pointer]
+                    - row "أداء أوامر العمل تشغيلي 2024-01-14 15:45 قيد التشغيل عرض تحميل" [ref=e113]:
+                      - cell "أداء أوامر العمل" [ref=e114]
+                      - cell "تشغيلي" [ref=e115]
+                      - cell "2024-01-14 15:45" [ref=e116]
+                      - cell "قيد التشغيل" [ref=e117]
+                      - cell "عرض تحميل" [ref=e118]:
+                        - button "عرض" [disabled] [ref=e119]
+                        - button "تحميل" [disabled] [ref=e120]
+                    - row "تقرير حالة الامتثال الامتثال 2024-01-13 09:15 خطأ إعادة المحاولة تعديل" [ref=e121]:
+                      - cell "تقرير حالة الامتثال" [ref=e122]
+                      - cell "الامتثال" [ref=e123]
+                      - cell "2024-01-13 09:15" [ref=e124]
+                      - cell "خطأ" [ref=e125]
+                      - cell "إعادة المحاولة تعديل" [ref=e126]:
+                        - button "إعادة المحاولة" [ref=e127] [cursor=pointer]
+                        - button "تعديل" [ref=e128] [cursor=pointer]
+                - generic [ref=e130]: واجهة إنشاء التقارير بالسحب والإفلات
+                - generic [ref=e132]: عارض التقارير مع خيارات التصدير
+            - generic [ref=e133]: © 2025 فيكزيت إنتربرايز — الإصدار 1.0
+        - region "Notifications alt+T"
+    - contentinfo [ref=e134]:
+      - generic [ref=e135]:
+        - generic [ref=e136]: © 2025 Fixzit Enterprise — Brown Theme
+        - generic [ref=e137]:
+          - button "Privacy" [ref=e138] [cursor=pointer]
+          - button "Terms" [ref=e139] [cursor=pointer]
+          - button "Support" [ref=e140] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e146] [cursor=pointer]:
+    - img [ref=e147]
+  - alert [ref=e150]
+```

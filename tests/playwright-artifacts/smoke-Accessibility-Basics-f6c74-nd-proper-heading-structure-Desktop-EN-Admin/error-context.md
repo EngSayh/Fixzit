@@ -1,0 +1,197 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]: Fx
+          - generic [ref=e7]:
+            - generic [ref=e8]: Fixzit Enterprise
+            - generic [ref=e9]: FM & Marketplaces · Brown shell
+        - navigation [ref=e10]:
+          - link "Dashboard" [ref=e11] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Work Orders" [ref=e12] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Properties" [ref=e13] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Finance" [ref=e14] [cursor=pointer]:
+            - /url: "#modules"
+          - link "Souq" [ref=e15] [cursor=pointer]:
+            - /url: "#modules"
+        - generic [ref=e16]:
+          - button "🇸🇦 AR ▼" [ref=e17] [cursor=pointer]:
+            - generic [ref=e18]: 🇸🇦
+            - generic [ref=e19]: AR
+            - generic [ref=e20]: ▼
+          - generic [ref=e22]: SA
+    - generic [ref=e23]:
+      - complementary [ref=e24]:
+        - generic [ref=e26]: Core
+        - navigation [ref=e27]:
+          - link "🏠 Dashboard" [ref=e28] [cursor=pointer]:
+            - /url: "#dashboard"
+            - generic [ref=e29]: 🏠
+            - generic [ref=e30]: Dashboard
+          - link "🛠️ Work Orders" [ref=e31] [cursor=pointer]:
+            - /url: "#workorders"
+            - generic [ref=e32]: 🛠️
+            - generic [ref=e33]: Work Orders
+          - link "🏢 Properties" [ref=e34] [cursor=pointer]:
+            - /url: "#properties"
+            - generic [ref=e35]: 🏢
+            - generic [ref=e36]: Properties
+          - link "💰 Finance" [ref=e37] [cursor=pointer]:
+            - /url: "#finance"
+            - generic [ref=e38]: 💰
+            - generic [ref=e39]: Finance
+          - link "👥 HR" [ref=e40] [cursor=pointer]:
+            - /url: "#hr"
+            - generic [ref=e41]: 👥
+            - generic [ref=e42]: HR
+        - generic [ref=e44]: Business
+        - navigation [ref=e45]:
+          - link "📞 CRM" [ref=e46] [cursor=pointer]:
+            - /url: "#crm"
+            - generic [ref=e47]: 📞
+            - generic [ref=e48]: CRM
+          - link "🛒 Fixzit Souq" [ref=e49] [cursor=pointer]:
+            - /url: "#souq"
+            - generic [ref=e50]: 🛒
+            - generic [ref=e51]: Fixzit Souq
+          - link "🎧 Support" [ref=e52] [cursor=pointer]:
+            - /url: "#support"
+            - generic [ref=e53]: 🎧
+            - generic [ref=e54]: Support
+          - link "📊 Reports" [ref=e55] [cursor=pointer]:
+            - /url: "#reports"
+            - generic [ref=e56]: 📊
+            - generic [ref=e57]: Reports
+        - generic [ref=e59]: System
+        - navigation [ref=e60]:
+          - link "⚙️ System Mgmt." [ref=e61] [cursor=pointer]:
+            - /url: "#system"
+            - generic [ref=e62]: ⚙️
+            - generic [ref=e63]: System Mgmt.
+      - main [ref=e64]:
+        - generic [ref=e66]:
+          - generic [ref=e67]:
+            - 'button "اختر اللغة: العربية — Saudi Arabia (AR-SA)" [ref=e69] [cursor=pointer]':
+              - img [ref=e70]
+              - generic [ref=e73]:
+                - generic [ref=e74]: 🇸🇦
+                - generic [ref=e75]: AR-SA
+            - button "اختر العملة SAR" [ref=e77] [cursor=pointer]:
+              - img [ref=e78]
+              - generic [ref=e81]:
+                - generic [ref=e82]: 🇸🇦
+                - generic [ref=e83]: SAR
+          - generic [ref=e84]:
+            - generic [ref=e85]:
+              - generic [ref=e87]: F
+              - heading "مرحباً بعودتك" [level=1] [ref=e88]
+              - paragraph [ref=e89]: مرحباً بعودتك! الرجاء تسجيل الدخول للمتابعة
+            - generic [ref=e90]:
+              - button "البريد الإلكتروني الشخصي" [ref=e91] [cursor=pointer]
+              - button "حساب الشركة" [ref=e92] [cursor=pointer]
+              - button "تسجيل الدخول الموحد" [ref=e93] [cursor=pointer]
+            - generic [ref=e94]:
+              - generic [ref=e95]:
+                - generic [ref=e96]: البريد الإلكتروني الشخصي
+                - generic [ref=e97]:
+                  - img [ref=e98]
+                  - textbox "البريد الإلكتروني الشخصي" [active] [ref=e101]:
+                    - /placeholder: أدخل بريدك الإلكتروني
+              - generic [ref=e102]:
+                - generic [ref=e103]:
+                  - generic [ref=e104]: كلمة المرور
+                  - link "نسيت كلمة المرور؟" [ref=e105] [cursor=pointer]:
+                    - /url: /forgot-password
+                - generic [ref=e106]:
+                  - img [ref=e107]
+                  - textbox "كلمة المرور" [ref=e110]:
+                    - /placeholder: أدخل كلمة المرور
+                  - button "إظهار كلمة المرور" [ref=e111] [cursor=pointer]:
+                    - img [ref=e112]
+              - generic [ref=e115]:
+                - checkbox "تذكرني" [ref=e116]
+                - generic [ref=e117] [cursor=pointer]: تذكرني
+              - button "تسجيل الدخول" [disabled]:
+                - generic:
+                  - img
+                  - text: تسجيل الدخول
+            - generic [ref=e119]:
+              - heading "حسابات البريد الإلكتروني الشخصية:" [level=3] [ref=e120]
+              - generic [ref=e121]:
+                - button "Super Admin Full system access superadmin@fixzit.co / password123" [ref=e122] [cursor=pointer]:
+                  - generic [ref=e123]:
+                    - img [ref=e124]
+                    - generic [ref=e126]:
+                      - generic [ref=e127]: Super Admin
+                      - generic [ref=e128]: Full system access
+                    - img [ref=e129]
+                  - generic [ref=e131]: superadmin@fixzit.co / password123
+                - button "Admin Administrative access admin@fixzit.co / password123" [ref=e132] [cursor=pointer]:
+                  - generic [ref=e133]:
+                    - img [ref=e134]
+                    - generic [ref=e137]:
+                      - generic [ref=e138]: Admin
+                      - generic [ref=e139]: Administrative access
+                    - img [ref=e140]
+                  - generic [ref=e142]: admin@fixzit.co / password123
+                - button "Property Manager Property management manager@fixzit.co / password123" [ref=e143] [cursor=pointer]:
+                  - generic [ref=e144]:
+                    - img [ref=e145]
+                    - generic [ref=e149]:
+                      - generic [ref=e150]: Property Manager
+                      - generic [ref=e151]: Property management
+                    - img [ref=e152]
+                  - generic [ref=e154]: manager@fixzit.co / password123
+                - button "Tenant Tenant portal access tenant@fixzit.co / password123" [ref=e155] [cursor=pointer]:
+                  - generic [ref=e156]:
+                    - img [ref=e157]
+                    - generic [ref=e162]:
+                      - generic [ref=e163]: Tenant
+                      - generic [ref=e164]: Tenant portal access
+                    - img [ref=e165]
+                  - generic [ref=e167]: tenant@fixzit.co / password123
+                - button "Vendor Vendor marketplace access vendor@fixzit.co / password123" [ref=e168] [cursor=pointer]:
+                  - generic [ref=e169]:
+                    - img [ref=e170]
+                    - generic [ref=e175]:
+                      - generic [ref=e176]: Vendor
+                      - generic [ref=e177]: Vendor marketplace access
+                    - img [ref=e178]
+                  - generic [ref=e180]: vendor@fixzit.co / password123
+            - paragraph [ref=e182]:
+              - text: ليس لديك حساب؟
+              - link "تسجيل حساب جديد" [ref=e183] [cursor=pointer]:
+                - /url: /signup
+          - link "العودة إلى الصفحة الرئيسية" [ref=e185] [cursor=pointer]:
+            - /url: /
+            - text: → العودة إلى الصفحة الرئيسية
+        - region "Notifications alt+T"
+    - contentinfo [ref=e186]:
+      - generic [ref=e187]:
+        - generic [ref=e188]: © 2025 Fixzit Enterprise — Brown Theme
+        - generic [ref=e189]:
+          - button "Privacy" [ref=e190] [cursor=pointer]
+          - button "Terms" [ref=e191] [cursor=pointer]
+          - button "Support" [ref=e192] [cursor=pointer]
+  - generic [ref=e197] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e198]:
+      - img [ref=e199]
+    - generic [ref=e202]:
+      - button "Open issues overlay" [ref=e203]:
+        - generic [ref=e204]:
+          - generic [ref=e205]: "2"
+          - generic [ref=e206]: "3"
+        - generic [ref=e207]:
+          - text: Issue
+          - generic [ref=e208]: s
+      - button "Collapse issues badge" [ref=e209]:
+        - img [ref=e210]
+  - alert [ref=e212]
+```

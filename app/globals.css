@@ -68,6 +68,42 @@
     --sidebar-accent-foreground: 24 15% 20%;
     --sidebar-border: 0 0% 88%;
     --sidebar-ring: 30 60% 40%;
+
+    /* Legacy alias tokens mapped to the new palette */
+    --fixzit-primary: hsl(var(--primary));
+    --fixzit-primary-dark: hsl(30 60% 32%);
+    --fixzit-primary-darker: hsl(26 50% 26%);
+    --fixzit-primary-darkest: hsl(22 40% 20%);
+    --fixzit-primary-light: hsl(30 60% 58%);
+    --fixzit-primary-lighter: hsl(30 55% 72%);
+    --fixzit-primary-lightest: hsl(30 50% 90%);
+    --fixzit-secondary: hsl(var(--secondary));
+    --fixzit-secondary-dark: hsl(24 10% 70%);
+    --fixzit-secondary-darker: hsl(24 10% 60%);
+    --fixzit-secondary-lighter: hsl(0 0% 98%);
+    --fixzit-secondary-lightest: hsl(0 0% 100%);
+    --fixzit-success: hsl(var(--accent));
+    --fixzit-success-dark: hsl(30 55% 32%);
+    --fixzit-success-darker: hsl(26 48% 26%);
+    --fixzit-success-darkest: hsl(22 40% 20%);
+    --fixzit-success-light: hsl(30 60% 60%);
+    --fixzit-success-lighter: hsl(30 55% 74%);
+    --fixzit-success-lightest: hsl(30 50% 92%);
+    --fixzit-danger: hsl(var(--destructive));
+    --fixzit-danger-dark: hsl(0 70% 45%);
+    --fixzit-danger-darker: hsl(0 65% 38%);
+    --fixzit-danger-darkest: hsl(0 55% 30%);
+    --fixzit-danger-light: hsl(0 75% 70%);
+    --fixzit-danger-lighter: hsl(0 75% 82%);
+    --fixzit-danger-lightest: hsl(0 75% 92%);
+    --fixzit-accent: hsl(var(--accent));
+    --fixzit-accent-dark: hsl(30 55% 32%);
+    --fixzit-accent-darker: hsl(26 48% 26%);
+    --fixzit-accent-light: hsl(30 60% 58%);
+    --fixzit-accent-lighter: hsl(30 55% 72%);
+    --fixzit-accent-lightest: hsl(30 50% 90%);
+    --fixzit-indigo: hsl(var(--primary));
+    --fixzit-indigo-dark: hsl(30 60% 30%);
   }
 
   .dark {
@@ -110,6 +146,42 @@
     --sidebar-accent-foreground: 240 5% 96%;
     --sidebar-border: 240 4% 16%;
     --sidebar-ring: 30 60% 60%;
+
+    /* Legacy alias tokens mapped for dark mode */
+    --fixzit-primary: hsl(var(--primary));
+    --fixzit-primary-dark: hsl(30 60% 50%);
+    --fixzit-primary-darker: hsl(30 55% 45%);
+    --fixzit-primary-darkest: hsl(26 45% 35%);
+    --fixzit-primary-light: hsl(30 70% 68%);
+    --fixzit-primary-lighter: hsl(30 70% 78%);
+    --fixzit-primary-lightest: hsl(30 75% 86%);
+    --fixzit-secondary: hsl(var(--secondary));
+    --fixzit-secondary-dark: hsl(217 33% 28%);
+    --fixzit-secondary-darker: hsl(217 33% 24%);
+    --fixzit-secondary-lighter: hsl(217 33% 34%);
+    --fixzit-secondary-lightest: hsl(217 33% 40%);
+    --fixzit-success: hsl(var(--accent));
+    --fixzit-success-dark: hsl(30 55% 48%);
+    --fixzit-success-darker: hsl(30 50% 42%);
+    --fixzit-success-darkest: hsl(26 45% 34%);
+    --fixzit-success-light: hsl(30 70% 66%);
+    --fixzit-success-lighter: hsl(30 70% 74%);
+    --fixzit-success-lightest: hsl(30 75% 84%);
+    --fixzit-danger: hsl(var(--destructive));
+    --fixzit-danger-dark: hsl(0 63% 38%);
+    --fixzit-danger-darker: hsl(0 55% 33%);
+    --fixzit-danger-darkest: hsl(0 45% 28%);
+    --fixzit-danger-light: hsl(0 70% 55%);
+    --fixzit-danger-lighter: hsl(0 70% 65%);
+    --fixzit-danger-lightest: hsl(0 70% 78%);
+    --fixzit-accent: hsl(var(--accent));
+    --fixzit-accent-dark: hsl(30 55% 46%);
+    --fixzit-accent-darker: hsl(26 50% 40%);
+    --fixzit-accent-light: hsl(30 75% 70%);
+    --fixzit-accent-lighter: hsl(30 75% 78%);
+    --fixzit-accent-lightest: hsl(30 80% 86%);
+    --fixzit-indigo: hsl(var(--primary));
+    --fixzit-indigo-dark: hsl(30 60% 42%);
   }
 
   * {

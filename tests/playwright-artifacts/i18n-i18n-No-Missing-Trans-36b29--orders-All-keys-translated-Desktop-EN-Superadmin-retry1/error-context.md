@@ -1,0 +1,54 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - main [ref=e16]:
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - heading "أوامر العمل" [level=1] [ref=e22]
+          - paragraph [ref=e23]: إدارة وتتبع أوامر العمل عبر جميع العقارات
+        - button "New Work Order" [ref=e24] [cursor=pointer]:
+          - img [ref=e25]
+          - text: New Work Order
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - img [ref=e30]
+          - textbox "البحث حسب العنوان أو الوصف" [ref=e33]
+        - generic [ref=e34]:
+          - combobox [ref=e35]:
+            - option "جميع الحالات"
+            - option "Submitted"
+            - option "Dispatched"
+            - option "In Progress"
+            - option "On Hold"
+            - option "Completed"
+            - option "Verified"
+            - option "Closed"
+            - option "Cancelled"
+          - img
+        - generic [ref=e36]:
+          - combobox [ref=e37]:
+            - option "جميع الأولويات"
+            - option "Low"
+            - option "Medium"
+            - option "High"
+            - option "Critical"
+          - img
+        - button "تحديث" [disabled]:
+          - img
+          - text: تحديث
+      - generic [ref=e40]:
+        - img [ref=e41]
+        - text: جاري تحميل أوامر العمل…
+      - generic [ref=e43]:
+        - generic [ref=e44]: يتم عرض 0 من أصل 0 أمر عمل
+        - generic [ref=e45]:
+          - button "السابق" [disabled]
+          - generic [ref=e46]: Page 1 of 1
+          - button "التالي" [disabled]
+  - region "Notifications alt+T"
+```

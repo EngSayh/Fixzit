@@ -1,126 +1,125 @@
 'use client';
 
-import Link from "next/link";
-import { useTranslation } from "@/contexts/TranslationContext";
-
-export default function LandingPage(){
-  const { t } = useTranslation();
-
+export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 pt-16">
-
-      {/* Hero Section */}
-      <section className="py-20 px-4 text-center">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-foreground">
-            {t('landing.title', 'Fixzit Enterprise Platform')}
-          </h1>
-          <p className="text-xl mb-8 text-muted-foreground max-w-3xl mx-auto">
-            {t('landing.subtitle', 'Unified Facility Management + Marketplace Solution for modern property operations')}
-          </p>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-wrap gap-4 justify-center mb-12">
-            <Link href="/fm" role="button" className="px-8 py-4 bg-primary hover:bg-primary/90 text-white font-semibold rounded-2xl transition-colors">
-              {t('landing.hero.cta1', 'Access Fixzit FM')}
-            </Link>
-            <Link href="/souq" role="button" className="px-8 py-4 bg-success hover:bg-success/90 text-white font-semibold rounded-2xl transition-colors">
-              {t('landing.hero.cta2', 'Fixzit Souq')}
-            </Link>
-            <Link href="/aqar" role="button" className="px-8 py-4 bg-accent hover:bg-accent/90 text-white font-semibold rounded-2xl transition-colors">
-              {t('landing.hero.cta3', 'Aqar Real Estate')}
-            </Link>
+    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+      <section className="fxz-hero">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14 flex flex-col lg:flex-row items-center gap-10">
+          <div className="flex-1 space-y-6">
+            <p className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+              Facility Management · Marketplaces · Saudi-first
+            </p>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight text-foreground">
+              Operate properties with calm. <br />
+              Move money with confidence.
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground max-w-xl">
+              A brown, calm Fixzit shell: unified Work Orders, Properties, Finance,
+              HR and Souq in a single, Apple-inspired interface built for Saudi FM teams.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <button className="fxz-btn-primary px-4 py-2 text-sm font-medium">
+                Get started with Fixzit
+              </button>
+              <button className="fxz-btn-outline px-4 py-2 text-sm font-medium">
+                Book a live demo
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
 
-      {/* Features Section */}
-      <section className="py-16 px-4 bg-card">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-12 text-foreground">
-            {t('landing.features.title', 'Complete Facility Management Solution')}
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="bg-muted p-6 rounded-2xl">
-              <h3 className="text-xl font-semibold mb-2 text-foreground">{t('landing.features.property.title', 'Property Management')}</h3>
-              <p className="text-muted-foreground mb-4">{t('landing.features.property.desc', 'Manage your real estate portfolio, track occupancy, and handle tenant relations')}</p>
-              <Link href="/fm/properties" className="text-primary hover:text-primary/90 font-medium">
-                {t('landing.features.property.cta', 'Explore →')}
-              </Link>
-            </div>
-
-            <div className="bg-muted p-6 rounded-2xl">
-              <h3 className="text-xl font-semibold mb-2 text-foreground">{t('landing.features.workorders.title', 'Work Orders')}</h3>
-              <p className="text-muted-foreground mb-4">{t('landing.features.workorders.desc', 'Create, assign, and track maintenance requests with SLA management')}</p>
-              <Link href="/fm/work-orders" className="text-primary hover:text-primary/90 font-medium">
-                {t('landing.features.workorders.cta', 'Explore →')}
-              </Link>
-            </div>
-
-            <div className="bg-muted p-6 rounded-2xl">
-              <h3 className="text-xl font-semibold mb-2 text-foreground">{t('landing.features.vendors.title', 'Vendors & RFQs')}</h3>
-              <p className="text-muted-foreground mb-4">{t('landing.features.vendors.desc', 'Source materials, manage vendors, and streamline procurement')}</p>
-              <Link href="/fm/vendors" className="text-primary hover:text-primary/90 font-medium">
-                {t('landing.features.vendors.cta', 'Explore →')}
-              </Link>
-            </div>
-
-            <div className="bg-muted p-6 rounded-2xl">
-              <h3 className="text-xl font-semibold mb-2 text-foreground">{t('landing.features.finance.title', 'Finance & Billing')}</h3>
-              <p className="text-muted-foreground mb-4">{t('landing.features.finance.desc', 'Handle invoicing, payments, and financial reporting')}</p>
-              <Link href="/fm/finance" className="text-primary hover:text-primary/90 font-medium">
-                {t('landing.features.finance.cta', 'Explore →')}
-              </Link>
-            </div>
-
-            <div className="bg-muted p-6 rounded-2xl">
-              <h3 className="text-xl font-semibold mb-2 text-foreground">{t('landing.features.crm.title', 'CRM & Tenants')}</h3>
-              <p className="text-muted-foreground mb-4">{t('landing.features.crm.desc', 'Manage tenant relationships and customer service')}</p>
-              <Link href="/fm/crm" className="text-primary hover:text-primary/90 font-medium">
-                {t('landing.features.crm.cta', 'Explore →')}
-              </Link>
-            </div>
-
-            <div className="bg-muted p-6 rounded-2xl">
-              <h3 className="text-xl font-semibold mb-2 text-foreground">{t('landing.features.analytics.title', 'Analytics & Reports')}</h3>
-              <p className="text-muted-foreground mb-4">{t('landing.features.analytics.desc', 'Gain insights with comprehensive reporting and analytics')}</p>
-              <Link href="/fm/analytics" className="text-primary hover:text-primary/90 font-medium">
-                {t('landing.features.analytics.cta', 'Explore →')}
-              </Link>
+          <div className="flex-1 w-full">
+            <div className="fxz-card p-4 sm:p-5">
+              <div className="flex justify-between items-center mb-4">
+                <div className="space-y-1">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    Today · Portfolio overview
+                  </p>
+                  <p className="font-semibold text-sm">
+                    124 active work orders · 18 overdue
+                  </p>
+                </div>
+                <span className="px-2 py-1 rounded-full text-[11px] bg-secondary text-secondary-foreground">
+                  FM Command
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="p-3 rounded-xl border border-border bg-card">
+                  <p className="text-[11px] text-muted-foreground">Work Orders</p>
+                  <p className="text-lg font-semibold">124</p>
+                  <p className="text-[11px] text-muted-foreground">18 overdue</p>
+                </div>
+                <div className="p-3 rounded-xl border border-border bg-card">
+                  <p className="text-[11px] text-muted-foreground">Properties</p>
+                  <p className="text-lg font-semibold">32</p>
+                  <p className="text-[11px] text-muted-foreground">91% occupied</p>
+                </div>
+                <div className="p-3 rounded-xl border border-border bg-card">
+                  <p className="text-[11px] text-muted-foreground">Invoices</p>
+                  <p className="text-lg font-semibold">SAR 1.4M</p>
+                  <p className="text-[11px] text-muted-foreground">this month</p>
+                </div>
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
+                <div className="h-16 rounded-xl bg-muted" />
+                <div className="h-16 rounded-xl bg-muted" />
+                <div className="h-16 rounded-xl bg-muted" />
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 px-4 bg-primary text-white">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-4">
-            {t('landing.cta.title', 'Ready to transform your facility management?')}
-          </h2>
-          <p className="text-xl mb-8 opacity-90">
-            {t('landing.cta.subtitle', 'Join thousands of properties already using Fixzit to streamline operations')}
-          </p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Link
-              href="/login"
-              role="button"
-              className="inline-flex px-8 py-4 bg-card hover:bg-muted text-primary font-semibold rounded-2xl transition-colors"
-            >
-              {t('landing.cta.login', 'Get Started / Login')}
-            </Link>
-            <Link 
-              href="/request-demo" 
-              role="button" 
-              className="inline-flex px-8 py-4 bg-transparent border-2 border-white hover:bg-white/10 text-white font-semibold rounded-2xl transition-colors"
-            >
-              {t('landing.cta.demo', 'Request a Demo')}
-            </Link>
+      <section id="modules" className="py-10 bg-[hsl(var(--section-alt))] flex-1">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-semibold mb-1">
+              Everything your FM operation needs — connected
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Brown, calm and structured: one shell for Work Orders, Properties, Finance, HR and Souq.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="fxz-card p-4">
+              <h3 className="font-semibold mb-1">Work Orders</h3>
+              <p className="text-sm text-muted-foreground">
+                Blue logic, brown theme: new, in progress, completed, overdue with SLA timers and photos.
+              </p>
+            </div>
+            <div className="fxz-card p-4">
+              <h3 className="font-semibold mb-1">Properties</h3>
+              <p className="text-sm text-muted-foreground">
+                Units, assets, leases, owners and tenants with health status per property.
+              </p>
+            </div>
+            <div className="fxz-card p-4">
+              <h3 className="font-semibold mb-1">Finance</h3>
+              <p className="text-sm text-muted-foreground">
+                Invoices, receipts, expenses and ZATCA-ready billing aligned with Fixzit finance flows.
+              </p>
+            </div>
+            <div className="fxz-card p-4">
+              <h3 className="font-semibold mb-1">HR</h3>
+              <p className="text-sm text-muted-foreground">
+                Technicians, supervisors, shifts and skills matrix with clean status chips.
+              </p>
+            </div>
+            <div className="fxz-card p-4">
+              <h3 className="font-semibold mb-1">CRM &amp; Support</h3>
+              <p className="text-sm text-muted-foreground">
+                Tickets, SLAs and CSAT in a unified shell, ready for channels and bots.
+              </p>
+            </div>
+            <div className="fxz-card p-4">
+              <h3 className="font-semibold mb-1">Fixzit Souq</h3>
+              <p className="text-sm text-muted-foreground">
+                Vendor onboarding, catalogs and orders using your existing Souq logic in a calmer UI.
+              </p>
+            </div>
           </div>
         </div>
       </section>
-
     </div>
   );
 }

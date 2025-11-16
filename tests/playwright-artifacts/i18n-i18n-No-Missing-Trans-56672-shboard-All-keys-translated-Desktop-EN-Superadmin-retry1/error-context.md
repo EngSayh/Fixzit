@@ -1,0 +1,73 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e6] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e7]:
+      - img [ref=e8]
+    - generic [ref=e11]:
+      - button "Open issues overlay" [ref=e12]:
+        - generic [ref=e13]:
+          - generic [ref=e14]: "2"
+          - generic [ref=e15]: "3"
+        - generic [ref=e16]:
+          - text: Issue
+          - generic [ref=e17]: s
+      - button "Collapse issues badge" [ref=e18]:
+        - img [ref=e19]
+  - alert [ref=e21]
+  - generic [ref=e24]:
+    - generic [ref=e25]:
+      - 'button "اختر اللغة: العربية — Saudi Arabia (AR-SA)" [ref=e27] [cursor=pointer]':
+        - img [ref=e28]
+        - generic [ref=e31]:
+          - generic [ref=e32]: 🇸🇦
+          - generic [ref=e33]: AR-SA
+      - button "اختر العملة SAR" [ref=e35] [cursor=pointer]:
+        - img [ref=e36]
+        - generic [ref=e39]:
+          - generic [ref=e40]: 🇸🇦
+          - generic [ref=e41]: SAR
+    - generic [ref=e42]:
+      - generic [ref=e43]:
+        - generic [ref=e45]: F
+        - heading "مرحباً بعودتك" [level=1] [ref=e46]
+        - paragraph [ref=e47]: مرحباً بعودتك! الرجاء تسجيل الدخول للمتابعة
+      - generic [ref=e48]:
+        - button "البريد الإلكتروني الشخصي" [ref=e49] [cursor=pointer]
+        - button "حساب الشركة" [ref=e50] [cursor=pointer]
+        - button "تسجيل الدخول الموحد" [ref=e51] [cursor=pointer]
+      - generic [ref=e52]:
+        - generic [ref=e53]:
+          - generic [ref=e54]: البريد الإلكتروني الشخصي
+          - generic [ref=e55]:
+            - img [ref=e56]
+            - textbox "البريد الإلكتروني الشخصي" [active] [ref=e59]:
+              - /placeholder: أدخل بريدك الإلكتروني
+        - generic [ref=e60]:
+          - generic [ref=e61]:
+            - generic [ref=e62]: كلمة المرور
+            - link "نسيت كلمة المرور؟" [ref=e63] [cursor=pointer]:
+              - /url: /forgot-password
+          - generic [ref=e64]:
+            - img [ref=e65]
+            - textbox "كلمة المرور" [ref=e68]:
+              - /placeholder: أدخل كلمة المرور
+            - button "إظهار كلمة المرور" [ref=e69] [cursor=pointer]:
+              - img [ref=e70]
+        - generic [ref=e73]:
+          - checkbox "تذكرني" [ref=e74]
+          - generic [ref=e75] [cursor=pointer]: تذكرني
+        - button "تسجيل الدخول" [disabled]:
+          - generic:
+            - img
+            - text: تسجيل الدخول
+      - paragraph [ref=e78]:
+        - text: ليس لديك حساب؟
+        - link "تسجيل حساب جديد" [ref=e79] [cursor=pointer]:
+          - /url: /signup
+    - link "العودة إلى الصفحة الرئيسية" [ref=e81] [cursor=pointer]:
+      - /url: /
+      - text: → العودة إلى الصفحة الرئيسية
+  - region "Notifications alt+T"
+```

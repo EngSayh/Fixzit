@@ -1,0 +1,70 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - main [ref=e16]:
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - heading "الموارد البشرية" [level=1] [ref=e20]
+        - paragraph [ref=e21]: إدارة الموظفين، الرواتب، الإجازات، والحضور
+      - tablist [ref=e23]:
+        - tab "📊 لوحة التحكم" [selected] [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]: 📊
+          - text: لوحة التحكم
+        - tab "الموظفين" [ref=e26] [cursor=pointer]:
+          - img [ref=e27]
+          - text: الموظفين
+        - tab "الرواتب" [ref=e32] [cursor=pointer]:
+          - img [ref=e33]
+          - text: الرواتب
+        - tab "الإجازات" [ref=e35] [cursor=pointer]:
+          - img [ref=e36]
+          - text: الإجازات
+        - tab "الحضور" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+          - text: الحضور
+      - generic [ref=e42]:
+        - generic [ref=e43]:
+          - generic [ref=e46]:
+            - generic [ref=e47]:
+              - paragraph [ref=e48]: إجمالي الموظفين
+              - paragraph [ref=e49]: "0"
+            - img [ref=e51]
+          - generic [ref=e58]:
+            - generic [ref=e59]:
+              - paragraph [ref=e60]: الرواتب الشهرية
+              - paragraph [ref=e61]: SAR 0
+            - img [ref=e63]
+          - generic [ref=e67]:
+            - generic [ref=e68]:
+              - paragraph [ref=e69]: طلبات الإجازة المعلقة
+              - paragraph [ref=e70]: "0"
+            - img [ref=e72]
+          - generic [ref=e76]:
+            - generic [ref=e77]:
+              - paragraph [ref=e78]: الحضور اليوم
+              - paragraph [ref=e79]: 0/0
+            - img [ref=e81]
+        - generic [ref=e84]:
+          - heading "إجراءات سريعة" [level=3] [ref=e86]
+          - generic [ref=e88]:
+            - button "👤 إضافة موظف تسجيل موظف جديد" [ref=e89] [cursor=pointer]:
+              - generic [ref=e90]: 👤
+              - generic [ref=e91]: إضافة موظف
+              - generic [ref=e92]: تسجيل موظف جديد
+            - button "💰 معالجة الرواتب تشغيل الرواتب الشهرية" [ref=e93] [cursor=pointer]:
+              - generic [ref=e94]: 💰
+              - generic [ref=e95]: معالجة الرواتب
+              - generic [ref=e96]: تشغيل الرواتب الشهرية
+            - button "📅 الموافقة على الإجازة مراجعة طلبات الإجازة" [ref=e97] [cursor=pointer]:
+              - generic [ref=e98]: 📅
+              - generic [ref=e99]: الموافقة على الإجازة
+              - generic [ref=e100]: مراجعة طلبات الإجازة
+        - generic [ref=e101]:
+          - heading "النشاط الأخير" [level=3] [ref=e103]
+          - paragraph [ref=e106]: سيظهر النشاط الأخير هنا...
+  - region "Notifications alt+T"
+```

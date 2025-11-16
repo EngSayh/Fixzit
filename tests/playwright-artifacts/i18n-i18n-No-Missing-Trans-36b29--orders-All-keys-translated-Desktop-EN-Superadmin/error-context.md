@@ -1,0 +1,73 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e7] [cursor=pointer]:
+    - img [ref=e8]
+  - alert [ref=e11]
+  - generic [ref=e13]:
+    - banner [ref=e15]:
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - button "العودة إلى الصفحة الرئيسية" [ref=e18] [cursor=pointer]:
+            - generic [ref=e19]: FI
+            - generic [ref=e20]: FIXZIT ENTERPRISE
+          - button "تبديل التطبيق" [ref=e22] [cursor=pointer]:
+            - img [ref=e23]
+            - generic [ref=e27]: إدارة المنشآت
+            - img [ref=e28]
+        - generic [ref=e32]:
+          - img [ref=e33]
+          - combobox "Global search" [ref=e36]
+          - generic [ref=e37]:
+            - img [ref=e38]
+            - generic [ref=e40]: K
+        - link "تسجيل الدخول" [ref=e42] [cursor=pointer]:
+          - /url: /login
+    - main [ref=e45]:
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - generic [ref=e50]:
+            - heading "أوامر العمل" [level=1] [ref=e51]
+            - paragraph [ref=e52]: إدارة وتتبع أوامر العمل عبر جميع العقارات
+          - button "New Work Order" [ref=e53] [cursor=pointer]:
+            - img [ref=e54]
+            - text: New Work Order
+        - generic [ref=e57]:
+          - generic [ref=e58]:
+            - img [ref=e59]
+            - textbox "البحث حسب العنوان أو الوصف" [ref=e62]
+          - generic [ref=e63]:
+            - combobox [ref=e64]:
+              - option "جميع الحالات"
+              - option "Submitted"
+              - option "Dispatched"
+              - option "In Progress"
+              - option "On Hold"
+              - option "Completed"
+              - option "Verified"
+              - option "Closed"
+              - option "Cancelled"
+            - img
+          - generic [ref=e65]:
+            - combobox [ref=e66]:
+              - option "جميع الأولويات"
+              - option "Low"
+              - option "Medium"
+              - option "High"
+              - option "Critical"
+            - img
+          - button "تحديث" [disabled]:
+            - img
+            - text: تحديث
+        - generic [ref=e69]:
+          - img [ref=e70]
+          - text: جاري تحميل أوامر العمل…
+        - generic [ref=e72]:
+          - generic [ref=e73]: يتم عرض 0 من أصل 0 أمر عمل
+          - generic [ref=e74]:
+            - button "السابق" [disabled]
+            - generic [ref=e75]: Page 1 of 1
+            - button "التالي" [disabled]
+  - region "Notifications alt+T"
+```
