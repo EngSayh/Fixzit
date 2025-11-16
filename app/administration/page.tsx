@@ -20,8 +20,9 @@ import {
   Users, Shield, Activity, Settings as SettingsIcon, 
   UserPlus, Download, Edit, Lock, Unlock, Trash2, 
   Search, Filter, Save, X, Check, AlertCircle,
-  MoreVertical, Eye, UserCog, Globe, DollarSign
+  MoreVertical, Eye, UserCog, Globe, DollarSign, Bell
 } from 'lucide-react';
+import AdminNotificationsTab from '@/components/admin/AdminNotificationsTab';
 import { logger } from '@/lib/logger';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useAuthRbac } from '@/hooks/useAuthRbac';
@@ -90,7 +91,7 @@ const AdminModule: React.FC = () => {
   const activeOrgId = orgId ?? 'platform';
 
   // State management
-  const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'audit' | 'settings' | 'tenants' | 'billing'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'audit' | 'settings' | 'tenants' | 'billing' | 'notifications'>('users');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -460,6 +461,7 @@ const AdminModule: React.FC = () => {
 
     if (isSuperAdmin) {
       baseTabs.push(
+        { id: 'notifications', label: t('admin.tabs.notifications', 'Send Notifications'), icon: Bell },
         { id: 'tenants', label: t('admin.tabs.tenants', 'Tenant Management'), icon: Globe },
         { id: 'billing', label: t('admin.tabs.billing', 'Subscriptions & Billing'), icon: DollarSign }
       );
@@ -982,6 +984,7 @@ const AdminModule: React.FC = () => {
         {activeTab === 'roles' && renderRoles()}
         {activeTab === 'audit' && renderAuditLogs()}
         {activeTab === 'settings' && renderSettings()}
+        {activeTab === 'notifications' && isSuperAdmin && <AdminNotificationsTab t={t} />}
         {activeTab === 'tenants' && renderTenantManagement()}
         {activeTab === 'billing' && renderBilling()}
       </div>
