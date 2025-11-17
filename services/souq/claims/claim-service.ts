@@ -455,8 +455,20 @@ export class ClaimService {
         $push: { evidence: { $each: appealEvidence } },
       }
     );
-    
-    // TODO: Notify admin team
+
+    // Notify admin team for manual review
+    await addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
+      to: 'souq-claims-admins',
+      priority: 'high',
+      message: `Claim ${claimId} was appealed by the ${appealedBy}.`,
+      metadata: {
+        claimId,
+        appealedBy,
+        sellerId: claim.sellerId,
+        buyerId: claim.buyerId,
+        reason,
+      },
+    });
   }
 
   /**

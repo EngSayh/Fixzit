@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 const originalEnv = { ...process.env };
 const runtimeGlobal = globalThis as Omit<typeof globalThis, 'fetch'> & { fetch?: typeof fetch };
-let createPayout: typeof import('../../../lib/paytabs')['createPayout'];
-let queryPayoutStatus: typeof import('../../../lib/paytabs')['queryPayoutStatus'];
+let createPayout: typeof import('../../../lib/paytabs.ts')['createPayout'];
+let queryPayoutStatus: typeof import('../../../lib/paytabs.ts')['queryPayoutStatus'];
 
 describe('PayTabs payouts', () => {
   beforeEach(async () => {
@@ -12,7 +12,7 @@ describe('PayTabs payouts', () => {
     process.env.PAYTABS_SERVER_KEY = 'sk_test_xxx';
     process.env.PAYTABS_BASE_URL = 'https://secure.paytabs.test';
     vi.resetModules();
-    ({ createPayout, queryPayoutStatus } = await import('../../../lib/paytabs'));
+    ({ createPayout, queryPayoutStatus } = await import('../../../lib/paytabs.ts'));
   });
 
   afterEach(() => {
