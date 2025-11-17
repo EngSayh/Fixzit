@@ -6,6 +6,16 @@ echo "🔐 GitHub Secrets → Local .env.local Sync Helper"
 echo "=================================================="
 echo ""
 
+# Check for required dependencies
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "❌ Error: python3 is required but not installed."
+    echo "Please install Python 3 first:"
+    echo "  - macOS: brew install python3"
+    echo "  - Ubuntu/Debian: sudo apt-get install python3"
+    echo "  - CentOS/RHEL: sudo yum install python3"
+    exit 1
+fi
+
 # Resolve script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -184,7 +194,7 @@ update_or_append() {
     if grep -q "^${key}=" "$ENV_FILE"; then
         # Key exists, update it using Python for safe replacement
         # Pass values via environment variables to avoid quoting issues
-        UPDATE_KEY="$key" UPDATE_VALUE="$value" UPDATE_FILE="$ENV_FILE" python3 - <<'PYEOF'
+        if UPDATE_KEY="$key" UPDATE_VALUE="$value" UPDATE_FILE="$ENV_FILE" python3 - <<'PYEOF'
 import os
 
 key = os.environ['UPDATE_KEY']
@@ -203,10 +213,15 @@ for i, line in enumerate(lines):
 with open(env_file, 'w') as f:
     f.writelines(lines)
 PYEOF
-        echo "  ✓ Updated $key"
+        then
+            echo "  ✓ Updated $key"
+        else
+            echo "  ❌ Failed to update $key (Python error)"
+            return 1
+        fi
     else
-        # Key doesn't exist, append it
-        echo "${key}=${value}" >> "$ENV_FILE"
+        # Key doesn't exist, append it using printf (safe for values starting with -)
+        printf '%s=%s\n' "$key" "$value" >> "$ENV_FILE"
         echo "  ✓ Added $key"
     fi
 }
