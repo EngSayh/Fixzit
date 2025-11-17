@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { getDatabase } from '@/lib/mongodb-unified';
-import { ClaimService, Claim, ClaimType, DecisionOutcome } from './claim-service';
+import { ClaimService, Claim, DecisionOutcome } from './claim-service';
+import { logger } from '@/lib/logger';
 
 export interface InvestigationResult {
   claimId: string;
@@ -419,7 +420,7 @@ export class InvestigationService {
           resolvedCount++;
         }
       } catch (error) {
-        console.error(`Failed to auto-resolve claim ${claim.claimId}:`, error);
+        logger.error(`Failed to auto-resolve claim ${claim.claimId}:`, error);
       }
     }
 

@@ -9,7 +9,8 @@ import postingService from '../../../server/services/finance/postingService';
 import Journal from '../../../server/models/finance/Journal';
 import LedgerEntry from '../../../server/models/finance/LedgerEntry';
 import ChartAccount from '../../../server/models/finance/ChartAccount';
-import { setTenantContext, setAuditContext, clearContext } from '../../../server/models/plugins/tenantAudit';
+import { setAuditContext, clearContext } from '../../../server/models/plugins/tenantAudit';
+import { setTenantContext as setTenantIsolationContext } from '../../../server/plugins/tenantIsolation';
 import { toMinor, applyFx } from '../../../server/lib/currency';
 
 // TYPESCRIPT FIX: Use ObjectIds instead of strings for type safety
@@ -23,32 +24,41 @@ describe('postingService Unit Tests', () => {
   beforeAll(async () => {
     // Connect to test database
     const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit-test';
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
     await mongoose.connect(MONGODB_URI);
 
     // Set context - TYPESCRIPT FIX: Context functions expect string IDs
-    setTenantContext({ orgId: TEST_ORG_ID.toString() });
+    setTenantIsolationContext({ orgId: TEST_ORG_ID, skipTenantFilter: true });
     setAuditContext({ userId: TEST_USER_ID.toString() });
 
     // Create test accounts
     const cashAccount = await ChartAccount.create({
       orgId: TEST_ORG_ID,
-      accountCode: '1110-TEST',
+      accountCode: '1110',
       accountName: 'Test Cash Account',
       accountType: 'ASSET',
       normalBalance: 'DEBIT',
       balance: 0,
       isActive: true,
+      currency: 'SAR',
+      createdBy: TEST_USER_ID,
+      updatedBy: TEST_USER_ID,
     });
     cashAccountId = cashAccount._id as mongoose.Types.ObjectId;
 
     const revenueAccount = await ChartAccount.create({
       orgId: TEST_ORG_ID,
-      accountCode: '4100-TEST',
+      accountCode: '4100',
       accountName: 'Test Revenue Account',
       accountType: 'REVENUE',
       normalBalance: 'CREDIT',
       balance: 0,
       isActive: true,
+      currency: 'SAR',
+      createdBy: TEST_USER_ID,
+      updatedBy: TEST_USER_ID,
     });
     revenueAccountId = revenueAccount._id as mongoose.Types.ObjectId;
   });
@@ -59,6 +69,7 @@ describe('postingService Unit Tests', () => {
     await LedgerEntry.deleteMany({ orgId: TEST_ORG_ID });
     await ChartAccount.deleteMany({ orgId: TEST_ORG_ID });
     clearContext();
+    setTenantIsolationContext({});
     await mongoose.disconnect();
   });
 
@@ -68,13 +79,42 @@ describe('postingService Unit Tests', () => {
     await LedgerEntry.deleteMany({ orgId: TEST_ORG_ID });
     
     // Reset account balances to zero
-    const cashAcc = await ChartAccount.findById(cashAccountId);
-    const revAcc = await ChartAccount.findById(revenueAccountId);
-    if (cashAcc) {
+    let cashAcc = await ChartAccount.findById(cashAccountId);
+    if (!cashAcc) {
+      cashAcc = await ChartAccount.create({
+        orgId: TEST_ORG_ID,
+        accountCode: '1110',
+        accountName: 'Test Cash Account',
+        accountType: 'ASSET',
+        normalBalance: 'DEBIT',
+        balance: 0,
+        isActive: true,
+        currency: 'SAR',
+        createdBy: TEST_USER_ID,
+        updatedBy: TEST_USER_ID,
+      });
+      cashAccountId = cashAcc._id as mongoose.Types.ObjectId;
+    } else {
       cashAcc.balance = 0;
       await cashAcc.save();
     }
-    if (revAcc) {
+
+    let revAcc = await ChartAccount.findById(revenueAccountId);
+    if (!revAcc) {
+      revAcc = await ChartAccount.create({
+        orgId: TEST_ORG_ID,
+        accountCode: '4100',
+        accountName: 'Test Revenue Account',
+        accountType: 'REVENUE',
+        normalBalance: 'CREDIT',
+        balance: 0,
+        isActive: true,
+        currency: 'SAR',
+        createdBy: TEST_USER_ID,
+        updatedBy: TEST_USER_ID,
+      });
+      revenueAccountId = revAcc._id as mongoose.Types.ObjectId;
+    } else {
       revAcc.balance = 0;
       await revAcc.save();
     }

@@ -1,8 +1,8 @@
 import { cookies } from 'next/headers';
 import { findLanguageByCode } from '@/data/language-options';
 import { NextRequest } from 'next/server';
-import { messages as enMessages } from '@/locales/en';
-import { messages as arMessages } from '@/locales/ar';
+import enMessages from '@/i18n/dictionaries/en';
+import arMessages from '@/i18n/dictionaries/ar';
 
 // eslint-disable-next-line no-unused-vars
 type TFn = (key: string, fallback?: string) => string;

@@ -14,9 +14,8 @@ import type { Intent } from "@/src/types/copilot";
  * @param locale - Current locale ('en' | 'ar')
  * @returns Detected intent for routing to appropriate handler
  */
-export function classifyIntent(text: string, locale: 'en' | 'ar'): Intent {
+export function classifyIntent(text: string, _locale: 'en' | 'ar'): Intent {
   const lower = text.toLowerCase();
-  const normalized = text.trim();
 
   // APARTMENT_SEARCH: Real estate queries (high priority for Aqar module integration)
   // EN: apartment, flat, unit, studio, bedroom, 2br, 3br, available, vacant, for rent, search
@@ -149,7 +148,7 @@ export function detectSentiment(text: string): 'negative' | 'neutral' | 'positiv
  * @param locale - Current locale
  * @returns Extracted parameters (bedrooms, city, priceRange, etc.)
  */
-export function extractApartmentSearchParams(text: string, locale: 'en' | 'ar'): {
+export function extractApartmentSearchParams(text: string, _locale: 'en' | 'ar'): {
   bedrooms?: number;
   city?: string;
   priceRange?: { min?: number; max?: number };

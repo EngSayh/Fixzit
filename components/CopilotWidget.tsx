@@ -20,7 +20,7 @@ type SpeechRecognitionInstance = {
   start: () => void;
   stop: () => void;
   lang: string;
-  onresult: (e: SpeechRecognitionEvent) => void;
+  onresult: (_event: SpeechRecognitionEvent) => void;
   onerror: () => void;
   onend: () => void;
 };
@@ -136,7 +136,6 @@ const translations = {
   }
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ToolFormState = Record<string, any>;
 
 const initialForms: Record<string, ToolFormState> = {

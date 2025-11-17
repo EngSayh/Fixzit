@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 // Global test setup for Vitest with Jest compatibility
 import React from 'react';
 import { render } from '@testing-library/react';
@@ -11,7 +10,6 @@ import mongoose from 'mongoose';
 
 // Provide Jest compatibility layer for tests using jest.* APIs
 if (typeof global !== 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (global as any).jest = vi;
 }
 
@@ -133,7 +131,7 @@ vi.mock('@/lib/mongodb-unified', () => {
         typeof (JournalModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
       // Add deleteMany alias with proper typing
       (JournalModel as Record<string, unknown>).deleteMany = (...args: unknown[]) => 
-        ((JournalModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...args);
+        ((JournalModel as { collection: { deleteMany: (..._args: unknown[]) => unknown } }).collection.deleteMany)(...args);
     }
   } catch {
     // Non-fatal; only needed for tests that import these modules
@@ -146,7 +144,7 @@ vi.mock('@/lib/mongodb-unified', () => {
         (LedgerModel as { collection?: { deleteMany?: unknown } }).collection && 
         typeof (LedgerModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
       (LedgerModel as Record<string, unknown>).deleteMany = (...args: unknown[]) => 
-        ((LedgerModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...args);
+        ((LedgerModel as { collection: { deleteMany: (..._args: unknown[]) => unknown } }).collection.deleteMany)(...args);
     }
   } catch {
     // Non-fatal
@@ -160,7 +158,7 @@ vi.mock('@/lib/mongodb-unified', () => {
         typeof (ChartModel as { collection: { deleteMany: unknown } }).collection.deleteMany === 'function') {
       // 🔒 TYPE SAFETY: Use unknown[] for variadic args
       (ChartModel as Record<string, unknown>).deleteMany = (...args: unknown[]) => 
-        ((ChartModel as { collection: { deleteMany: (...args: unknown[]) => unknown } }).collection.deleteMany)(...args);
+        ((ChartModel as { collection: { deleteMany: (..._args: unknown[]) => unknown } }).collection.deleteMany)(...args);
     }
   } catch {
     // Non-fatal

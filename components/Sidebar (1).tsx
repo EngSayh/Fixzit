@@ -357,6 +357,22 @@ const SUB_MODULES_BY_PATH: Record<string, SubModuleItem[]> = {
   ]
 };
 
+const CATEGORY_LABEL_KEYS: Record<string, string> = {
+  core: 'sidebar.category.core',
+  fm: 'sidebar.category.fm',
+  procurement: 'sidebar.category.procurement',
+  finance: 'sidebar.category.finance',
+  hr: 'sidebar.category.hr',
+  crm: 'sidebar.category.crm',
+  marketplace: 'sidebar.category.marketplace',
+  support: 'sidebar.category.support',
+  compliance: 'sidebar.category.compliance',
+  reporting: 'sidebar.category.reporting',
+  admin: 'sidebar.category.admin',
+  business: 'sidebar.category.business',
+  system: 'sidebar.category.system'
+};
+
 // ✅ FIX: Remove props - role and subscription derived from session (single source of truth)
 interface SidebarProps {
   tenantId?: string; // Optional, kept for potential future use
@@ -400,11 +416,11 @@ export default function Sidebar({ tenantId: _tenantId }: SidebarProps) {
     }, {} as Record<string, ModuleItem[]>);
   }, [allowedModules]);
 
-  const getCategoryName = (category: string) =>
-    t(
-      `sidebar.category.${category}`,
-      CATEGORY_FALLBACKS[category as keyof typeof CATEGORY_FALLBACKS] || category
-    );
+  const getCategoryName = (category: string) => {
+    const key = CATEGORY_LABEL_KEYS[category] || `sidebar.category.${category}`;
+    const fallback = CATEGORY_FALLBACKS[category as keyof typeof CATEGORY_FALLBACKS] || category;
+    return t(key, fallback);
+  };
 
   const asideBase =
     screenInfo.isMobile || screenInfo.isTablet

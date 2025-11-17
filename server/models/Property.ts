@@ -209,7 +209,7 @@ const PropertySchema = new Schema({
 });
 
 // Apply plugins BEFORE indexes for proper tenant isolation and audit tracking
-PropertySchema.plugin(tenantIsolationPlugin);
+PropertySchema.plugin(tenantIsolationPlugin, { uniqueTenantFields: ['code'] });
 PropertySchema.plugin(auditPlugin);
 
 // Indexes for performance (orgId from plugin)

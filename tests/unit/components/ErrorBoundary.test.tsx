@@ -47,21 +47,14 @@ vi.mock('next/dynamic', () => {
 let ErrorBoundary: any;
 try {
   // Try likely project paths
-   
   ErrorBoundary = require('@/components/ErrorBoundary').default;
 } catch {
   try {
-     
-    ErrorBoundary = require('src/components/ErrorBoundary').default;
+    ErrorBoundary = require('../../src/components/ErrorBoundary').default;
   } catch {
-    try {
-       
-      ErrorBoundary = require('../../src/components/ErrorBoundary').default;
-    } catch {
-      // Last resort: define a proxy that throws to indicate path map required.
-      // The test body will skip if component cannot be loaded.
-      ErrorBoundary = null;
-    }
+    // Last resort: define a proxy that throws to indicate path map required.
+    // The test body will skip if component cannot be loaded.
+    ErrorBoundary = null;
   }
 }
 

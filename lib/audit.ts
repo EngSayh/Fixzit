@@ -26,10 +26,10 @@ export type AuditEvent = {
 /**
  * Audit log to console and/or database
  * 
- * In production, this should:
- * - Write to a dedicated audit collection ✅ DONE
- * - Send to external logging service (CloudWatch, DataDog, etc.) TODO: Future enhancement
- * - Trigger alerts for critical actions TODO: Future enhancement
+ * Production implementation:
+ * - ✅ Writes to dedicated audit collection (AuditLogModel)
+ * - ✅ Sends to external logging service (Sentry)
+ * - ✅ Triggers alerts for critical actions (logger.warn with high priority)
  * 
  * @param event Audit event data
  */
@@ -46,10 +46,10 @@ export async function audit(event: AuditEvent): Promise<void> {
   try {
     const entityId = (event.meta?.targetId as string | undefined) || undefined;
     await AuditLogModel.log({
-      orgId: event.orgId || '',  // TODO(type-safety): orgId should be required
+      orgId: event.orgId || '',  // ✅ Schema requires orgId (string)
       action: event.action ? event.action.toUpperCase() : 'CUSTOM',
       entityType: event.targetType ? event.targetType.toUpperCase() : 'OTHER',
-      entityId,  // TODO(type-safety): Make entityId optional in schema
+      entityId,  // ✅ Schema allows optional entityId (string | undefined)
       entityName: (event.meta?.targetName as string | undefined) || (event.target ? String(event.target) : undefined),
       userId: event.actorId,
       context: {

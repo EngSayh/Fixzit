@@ -125,9 +125,6 @@ const nextConfig = {
   serverExternalPackages: [
     'mongoose', 
     'bcryptjs',
-    // OpenTelemetry instrumentation packages (fixes version mismatch warnings)
-    'import-in-the-middle',
-    'require-in-the-middle',
   ],
 
   // ✅ FIXED: Turbopack configuration added above to silence warning

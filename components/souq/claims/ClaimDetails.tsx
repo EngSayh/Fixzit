@@ -18,7 +18,6 @@ import {
   CheckCircle2,
   Clock,
   FileText,
-  Image as ImageIcon,
   MessageSquare,
   Package,
   Video,

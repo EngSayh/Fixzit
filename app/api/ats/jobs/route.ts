@@ -4,86 +4,11 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { Job } from '@/server/models/Job';
 import { generateSlug } from '@/lib/utils';
 import { atsRBAC } from '@/lib/ats/rbac';
-import { z } from 'zod';
+import { getServerTranslation } from '@/lib/i18n/server';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { getClientIP } from '@/server/security/headers';
-
-const CreateJobSchema = z.object({
-  title: z.string().min(3, 'Job title must be at least 3 characters'),
-  department: z.string().min(1, 'Department is required'),
-  description: z.string().optional(),
-  jobType: z.enum(['full-time', 'part-time', 'contract', 'temporary', 'internship', 'remote', 'hybrid']).default('full-time'),
-  status: z.enum(['draft', 'pending', 'published', 'closed', 'archived']).default('pending'),
-  visibility: z.enum(['internal', 'public']).default('public'),
-  location: z
-    .object({
-      city: z.string().optional(),
-      country: z.string().optional(),
-      mode: z.enum(['onsite', 'remote', 'hybrid']).optional(),
-    })
-    .optional(),
-  salaryRange: z
-    .object({
-      min: z.number().min(0).optional(),
-      max: z.number().min(0).optional(),
-      currency: z.string().optional(),
-    })
-    .refine(
-      (val: { min?: number; max?: number; currency?: string }) =>
-        typeof val.min !== 'number' ||
-        typeof val.max !== 'number' ||
-        val.max >= val.min,
-      {
-        message: 'Maximum salary must be greater than or equal to minimum salary.',
-        path: ['max'],
-      }
-    )
-    .optional(),
-  requirements: z.array(z.string()).optional(),
-  benefits: z.array(z.string()).optional(),
-  skills: z.array(z.string()).optional(),
-  screeningRules: z
-    .object({
-      minYears: z.number().min(0).max(50, 'Minimum years of experience must be less than or equal to 50').optional(),
-      requiredSkills: z.array(z.string()).optional(),
-      autoRejectMissingSkills: z.boolean().optional(),
-      autoRejectMissingExperience: z.boolean().optional(),
-    })
-    .optional(),
-  metadata: z.record(z.any()).optional(),
-});
-
-type CreateJobInput = z.infer<typeof CreateJobSchema>;
-
-const normalizeJobPayload = (input: CreateJobInput) => {
-  const normalizeArray = (values?: string[]) =>
-    Array.isArray(values) ? values.map((value) => value.trim()).filter(Boolean) : [];
-
-  const location = input.location
-    ? {
-        ...input.location,
-        mode: input.location.mode || 'onsite',
-      }
-    : undefined;
-
-  return {
-    title: input.title.trim(),
-    department: input.department.trim(),
-    description: input.description?.trim() || undefined,
-    jobType: input.jobType,
-    visibility: input.visibility,
-    location,
-    salaryRange: input.salaryRange,
-    requirements: normalizeArray(input.requirements),
-    benefits: normalizeArray(input.benefits),
-    skills: normalizeArray(input.skills),
-    screeningRules: input.screeningRules,
-    metadata: input.metadata,
-    status: input.status,
-  };
-};
 /**
  * @openapi
  * /api/ats/jobs:
@@ -152,8 +77,9 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     logger.error('Jobs list error:', error instanceof Error ? error.message : 'Unknown error');
+    const t = await getServerTranslation(req);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch jobs' },
+      { success: false, error: t('ats.errors.jobsFetchFailed') },
       { status: 500 }
     );
   }
@@ -169,6 +95,7 @@ export async function POST(req: NextRequest) {
 
   try {
     await connectToDatabase();
+    const body = await req.json();
     
     // RBAC: Check permissions for creating jobs
     const authResult = await atsRBAC(req, ['jobs:create']);
@@ -177,42 +104,36 @@ export async function POST(req: NextRequest) {
     }
     const { userId, orgId, atsModule } = authResult;
 
-    const body = await req.json();
-    const parsed = CreateJobSchema.safeParse(body);
-    if (!parsed.success) {
+    if (!body?.title) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Validation failed',
-          details: parsed.error.flatten(),
-        },
+        { success: false, error: 'Job title is required' },
         { status: 400 }
       );
     }
 
-    const normalized = normalizeJobPayload(parsed.data);
-
-    if (
-      Number.isFinite(atsModule.jobPostLimit) &&
-      atsModule.jobPostLimit !== Number.MAX_SAFE_INTEGER
-    ) {
-      const activeJobs = await Job.countDocuments({
+    const jobPostLimit = atsModule?.jobPostLimit ?? Number.MAX_SAFE_INTEGER;
+    const shouldEnforceLimit = Number.isFinite(jobPostLimit) && jobPostLimit !== Number.MAX_SAFE_INTEGER;
+    if (shouldEnforceLimit) {
+      const activeJobCount = await (Job as any).countDocuments({
         orgId,
         status: { $in: ['pending', 'published'] },
       });
-      if (activeJobs >= atsModule.jobPostLimit) {
+
+      if (activeJobCount >= jobPostLimit) {
+        const t = await getServerTranslation(req);
         return NextResponse.json(
           {
             success: false,
-            error: 'Job post limit reached for your ATS plan',
-            limit: atsModule.jobPostLimit,
+            error: t('ats.errors.jobPostLimitExceeded'),
+            limit: jobPostLimit,
+            count: activeJobCount,
           },
-          { status: 402 }
+          { status: 403 }
         );
       }
     }
-
-    const baseSlug = generateSlug(normalized.title);
+    
+    const baseSlug = generateSlug(body.title);
     let slug = baseSlug;
     let counter = 1;
     while (await (Job as any).findOne({ orgId, slug })) {
@@ -220,18 +141,22 @@ export async function POST(req: NextRequest) {
     }
     
     const job = await (Job as any).create({
-      ...normalized,
+      ...body,
       orgId,
       slug,
       postedBy: userId,
+      status: body.status || 'draft'
     });
     return NextResponse.json({ success: true, data: job }, { status: 201 });
   } catch (error) {
     logger.error('Job creation error:', error instanceof Error ? error.message : 'Unknown error');
+    const t = await getServerTranslation(req);
     return NextResponse.json(
-      { success: false, error: 'Failed to create job' },
+      { success: false, error: t('ats.errors.jobCreationFailed') },
       { status: 500 }
     );
   }
 }
+
+
 

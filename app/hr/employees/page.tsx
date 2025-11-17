@@ -12,6 +12,13 @@ import { logger } from '@/lib/logger';
 
 type EmploymentStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'TERMINATED';
 
+const EMPLOYMENT_STATUS_LABELS: Record<EmploymentStatus, { key: string; fallback: string }> = {
+  ACTIVE: { key: 'hr.employees.status.active', fallback: 'Active' },
+  INACTIVE: { key: 'hr.employees.status.inactive', fallback: 'Inactive' },
+  ON_LEAVE: { key: 'hr.employees.status.onLeave', fallback: 'On Leave' },
+  TERMINATED: { key: 'hr.employees.status.terminated', fallback: 'Terminated' },
+};
+
 interface EmployeeCompensation {
   baseSalary?: number;
   housingAllowance?: number;
@@ -57,12 +64,14 @@ export default function EmployeesPage() {
     }
   };
 
-  const statusOptions: { value: EmploymentStatus; label: string }[] = useMemo(() => [
-    { value: 'ACTIVE', label: t('hr.employees.status.active', 'Active') },
-    { value: 'INACTIVE', label: t('hr.employees.status.inactive', 'Inactive') },
-    { value: 'ON_LEAVE', label: t('hr.employees.status.onLeave', 'On Leave') },
-    { value: 'TERMINATED', label: t('hr.employees.status.terminated', 'Terminated') },
-  ], [t]);
+  const statusOptions: { value: EmploymentStatus; label: string }[] = useMemo(
+    () =>
+      (Object.keys(EMPLOYMENT_STATUS_LABELS) as EmploymentStatus[]).map((status) => {
+        const { key, fallback } = EMPLOYMENT_STATUS_LABELS[status];
+        return { value: status, label: t(key, fallback) };
+      }),
+    [t]
+  );
 
   const filteredEmployees = employees.filter((employee) => {
     const query = searchQuery.trim().toLowerCase();
@@ -97,6 +106,11 @@ export default function EmployeesPage() {
       default:
         return 'bg-muted text-foreground border-border';
     }
+  };
+
+  const formatEmploymentStatus = (status: EmploymentStatus) => {
+    const label = EMPLOYMENT_STATUS_LABELS[status];
+    return label ? t(label.key, label.fallback) : status;
   };
 
   if (loading) {
@@ -187,7 +201,7 @@ export default function EmployeesPage() {
                         {employee.firstName} {employee.lastName}
                       </h3>
                       <Badge className={getStatusColor(employee.employmentStatus)}>
-                        {t(`hr.employees.status.${employee.employmentStatus.toLowerCase()}`, employee.employmentStatus)}
+                        {formatEmploymentStatus(employee.employmentStatus)}
                       </Badge>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">

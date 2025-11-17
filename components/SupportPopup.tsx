@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { toast } from 'react-hot-toast';
 import {
@@ -75,6 +75,73 @@ const CATEGORIES = ['Technical', 'Feature Request', 'Billing', 'Account', 'Gener
 const TYPES = ['Bug', 'Feature', 'Complaint', 'Billing', 'Access', 'Other'];
 const PRIORITIES = ['Low', 'Medium', 'High', 'Urgent'];
 
+const MODULE_LABELS: Record<string, { key: string; fallback: string }> = {
+  FM: { key: 'support.modules.fm', fallback: 'Facility Management' },
+  Souq: { key: 'support.modules.souq', fallback: 'Souq Marketplace' },
+  Aqar: { key: 'support.modules.aqar', fallback: 'Aqar' },
+  Account: { key: 'support.modules.account', fallback: 'Account' },
+  Billing: { key: 'support.modules.billing', fallback: 'Billing' },
+  Other: { key: 'support.modules.other', fallback: 'Other' },
+};
+
+const CATEGORY_LABELS: Record<string, { key: string; fallback: string }> = {
+  Technical: { key: 'support.categories.technical', fallback: 'Technical' },
+  'Feature Request': { key: 'support.categories.featureRequest', fallback: 'Feature Request' },
+  Billing: { key: 'support.categories.billing', fallback: 'Billing' },
+  Account: { key: 'support.categories.account', fallback: 'Account' },
+  General: { key: 'support.categories.general', fallback: 'General' },
+  'Bug Report': { key: 'support.categories.bugReport', fallback: 'Bug Report' },
+};
+
+const SUB_CATEGORY_LABELS: Record<string, { key: string; fallback: string }> = {
+  'Bug Report': { key: 'support.subCategories.bugReport', fallback: 'Bug Report' },
+  'Performance Issue': { key: 'support.subCategories.performanceIssue', fallback: 'Performance Issue' },
+  'UI Error': { key: 'support.subCategories.uiError', fallback: 'UI Error' },
+  'API Error': { key: 'support.subCategories.apiError', fallback: 'API Error' },
+  'Database Error': { key: 'support.subCategories.databaseError', fallback: 'Database Error' },
+  'New Feature': { key: 'support.subCategories.newFeature', fallback: 'New Feature' },
+  Enhancement: { key: 'support.subCategories.enhancement', fallback: 'Enhancement' },
+  Integration: { key: 'support.subCategories.integration', fallback: 'Integration' },
+  Customization: { key: 'support.subCategories.customization', fallback: 'Customization' },
+  'Mobile App': { key: 'support.subCategories.mobileApp', fallback: 'Mobile App' },
+  'Invoice Issue': { key: 'support.subCategories.invoiceIssue', fallback: 'Invoice Issue' },
+  'Payment Error': { key: 'support.subCategories.paymentError', fallback: 'Payment Error' },
+  Subscription: { key: 'support.subCategories.subscription', fallback: 'Subscription' },
+  Refund: { key: 'support.subCategories.refund', fallback: 'Refund' },
+  Pricing: { key: 'support.subCategories.pricing', fallback: 'Pricing' },
+  'Login Issue': { key: 'support.subCategories.loginIssue', fallback: 'Login Issue' },
+  'Password Reset': { key: 'support.subCategories.passwordReset', fallback: 'Password Reset' },
+  'Profile Update': { key: 'support.subCategories.profileUpdate', fallback: 'Profile Update' },
+  Permissions: { key: 'support.subCategories.permissions', fallback: 'Permissions' },
+  'Access Denied': { key: 'support.subCategories.accessDenied', fallback: 'Access Denied' },
+  Documentation: { key: 'support.subCategories.documentation', fallback: 'Documentation' },
+  Training: { key: 'support.subCategories.training', fallback: 'Training' },
+  Support: { key: 'support.subCategories.support', fallback: 'Support' },
+  Feedback: { key: 'support.subCategories.feedback', fallback: 'Feedback' },
+  Other: { key: 'support.subCategories.other', fallback: 'Other' },
+  'Critical Bug': { key: 'support.subCategories.criticalBug', fallback: 'Critical Bug' },
+  'Minor Bug': { key: 'support.subCategories.minorBug', fallback: 'Minor Bug' },
+  'Cosmetic Issue': { key: 'support.subCategories.cosmeticIssue', fallback: 'Cosmetic Issue' },
+  'Data Error': { key: 'support.subCategories.dataError', fallback: 'Data Error' },
+  'Security Issue': { key: 'support.subCategories.securityIssue', fallback: 'Security Issue' },
+};
+
+const TYPE_LABELS: Record<string, { key: string; fallback: string }> = {
+  Bug: { key: 'support.types.bug', fallback: 'Bug' },
+  Feature: { key: 'support.types.feature', fallback: 'Feature' },
+  Complaint: { key: 'support.types.complaint', fallback: 'Complaint' },
+  Billing: { key: 'support.types.billing', fallback: 'Billing' },
+  Access: { key: 'support.types.access', fallback: 'Access' },
+  Other: { key: 'support.types.other', fallback: 'Other' },
+};
+
+const PRIORITY_LABELS: Record<string, { key: string; fallback: string }> = {
+  Low: { key: 'support.priorities.low', fallback: 'Low' },
+  Medium: { key: 'support.priorities.medium', fallback: 'Medium' },
+  High: { key: 'support.priorities.high', fallback: 'High' },
+  Urgent: { key: 'support.priorities.urgent', fallback: 'Urgent' },
+};
+
 const SUB_CATEGORIES: Record<string, string[]> = {
   Technical: ['Bug Report', 'Performance Issue', 'UI Error', 'API Error', 'Database Error'],
   'Feature Request': ['New Feature', 'Enhancement', 'Integration', 'Customization', 'Mobile App'],
@@ -107,6 +174,41 @@ export default function SupportPopup({ open, onClose, errorDetails }: ISupportPo
   
   // UI state
   const [submitting, setSubmitting] = useState(false);
+  const getModuleLabel = useCallback(
+    (value: string) => {
+      const entry = MODULE_LABELS[value] ?? { key: `support.modules.${value}`, fallback: value };
+      return t(entry.key, entry.fallback);
+    },
+    [t]
+  );
+  const getCategoryLabel = useCallback(
+    (value: string) => {
+      const entry = CATEGORY_LABELS[value] ?? { key: `support.categories.${value}`, fallback: value };
+      return t(entry.key, entry.fallback);
+    },
+    [t]
+  );
+  const getSubCategoryLabel = useCallback(
+    (value: string) => {
+      const entry = SUB_CATEGORY_LABELS[value] ?? { key: `support.subCategories.${value}`, fallback: value };
+      return t(entry.key, entry.fallback);
+    },
+    [t]
+  );
+  const getTypeLabel = useCallback(
+    (value: string) => {
+      const entry = TYPE_LABELS[value] ?? { key: `support.types.${value}`, fallback: value };
+      return t(entry.key, entry.fallback);
+    },
+    [t]
+  );
+  const getPriorityLabel = useCallback(
+    (value: string) => {
+      const entry = PRIORITY_LABELS[value] ?? { key: `support.priorities.${value}`, fallback: value };
+      return t(entry.key, entry.fallback);
+    },
+    [t]
+  );
 
   // ✅ FIX: Use STORAGE_KEYS.userSession (updated key)
   const isAuthenticated = typeof window !== 'undefined' && localStorage.getItem(STORAGE_KEYS.userSession);
@@ -264,7 +366,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
                 <SelectContent>
                   {MODULES.map((m) => (
                     <SelectItem key={m} value={m}>
-                      {t('support.modules.' + m, m)}
+                      {getModuleLabel(m)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -283,7 +385,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
                 <SelectContent>
                   {CATEGORIES.map((c) => (
                     <SelectItem key={c} value={c}>
-                      {t('support.categories.' + c, c)}
+                      {getCategoryLabel(c)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -298,7 +400,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
                 <SelectContent>
                   {(SUB_CATEGORIES[category] || []).map((s) => (
                     <SelectItem key={s} value={s}>
-                      {t('support.subCategories.' + s, s)}
+                      {getSubCategoryLabel(s)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -317,7 +419,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
                 <SelectContent>
                   {TYPES.map((t_val) => (
                     <SelectItem key={t_val} value={t_val}>
-                      {t('support.types.' + t_val, t_val)}
+                      {getTypeLabel(t_val)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -332,7 +434,7 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
                 <SelectContent>
                   {PRIORITIES.map((p) => (
                     <SelectItem key={p} value={p}>
-                      {t('support.priorities.' + p, p)}
+                      {getPriorityLabel(p)}
                     </SelectItem>
                   ))}
                 </SelectContent>

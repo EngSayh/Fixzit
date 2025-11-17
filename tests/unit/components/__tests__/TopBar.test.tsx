@@ -56,16 +56,41 @@ vi.mock('../i18n/CurrencySelector', () => ({
   default: () => <div data-testid="currency-selector">Currency Selector</div>,
 }));
 
-vi.mock('../topbar/AppSwitcher', () => ({
+vi.mock('@/components/topbar/AppSwitcher', () => ({
   default: () => <div data-testid="app-switcher">App Switcher</div>,
 }));
 
-vi.mock('../topbar/GlobalSearch', () => ({
+vi.mock('@/components/topbar/GlobalSearch', () => ({
   default: () => <div data-testid="global-search">Global Search</div>,
 }));
 
-vi.mock('../topbar/QuickActions', () => ({
+vi.mock('@/components/topbar/QuickActions', () => ({
   default: () => <div data-testid="quick-actions">Quick Actions</div>,
+}));
+
+vi.mock('@/components/topbar/TopMegaMenu', () => ({
+  TopMegaMenu: () => <div data-testid="mega-menu">Mega Menu</div>,
+}));
+
+vi.mock('@/contexts/TopBarContext', () => ({
+  useTopBar: () => ({
+    app: 'fm',
+    appLabelKey: 'app.fm',
+    appFallbackLabel: 'Facility Management (FM)',
+    appSearchEntities: [],
+    module: 'dashboard',
+    moduleLabelKey: 'nav.dashboard',
+    moduleFallbackLabel: 'Dashboard',
+    searchPlaceholderKey: 'search.placeholders.dashboard',
+    searchPlaceholderFallback: 'Search…',
+    searchEntities: [],
+    quickActions: [],
+    savedSearches: [],
+    navKey: 'dashboard',
+    megaMenuCollapsed: false,
+    setMegaMenuCollapsed: vi.fn(),
+    setApp: vi.fn(),
+  }),
 }));
 
 // Mock session

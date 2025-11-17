@@ -21,6 +21,7 @@ import {
   type ModuleId,
   type BadgeCounts,
 } from '@/config/navigation';
+import { logger } from '@/lib/logger';
 
 interface SidebarProps {
   className?: string;
@@ -45,10 +46,10 @@ const GOVERNANCE_GROUPS: Record<GovernanceGroup, ModuleId[]> = {
   system: ['system', 'administration'],
 };
 
-const GOVERNANCE_FALLBACKS: Record<GovernanceGroup, string> = {
-  core: 'Core',
-  business: 'Business',
-  system: 'System Management',
+const GOVERNANCE_CATEGORY_LABELS: Record<GovernanceGroup, { key: string; fallback: string }> = {
+  core: { key: 'sidebar.category.core', fallback: 'Core' },
+  business: { key: 'sidebar.category.business', fallback: 'Business' },
+  system: { key: 'sidebar.category.system', fallback: 'System Management' },
 };
 
 const modulePathMap = MODULES.reduce<Record<ModuleId, string>>((acc, module) => {
@@ -141,7 +142,11 @@ export default function Sidebar({ className, onNavigate, badgeCounts }: SidebarP
       planModules.length > 0 &&
       allowedIds.length === 0
     ) {
-      console.warn(`[Sidebar] RBAC mismatch for role ${role} and plan ${subscription}.`);
+      logger.warn('[Sidebar] RBAC mismatch detected', {
+        component: 'Sidebar',
+        role,
+        subscription,
+      });
     }
 
     const allowedSet = new Set(allowedIds);
@@ -161,7 +166,10 @@ export default function Sidebar({ className, onNavigate, badgeCounts }: SidebarP
   }, [allowedModules]);
 
   const getCategoryName = useCallback(
-    (group: GovernanceGroup) => t(`sidebar.category.${group}`, GOVERNANCE_FALLBACKS[group]),
+    (group: GovernanceGroup) => {
+      const label = GOVERNANCE_CATEGORY_LABELS[group];
+      return t(label.key, label.fallback);
+    },
     [t]
   );
 

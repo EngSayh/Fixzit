@@ -56,7 +56,7 @@ const DEFAULT_UNSAVED_MESSAGE = 'You have unsaved changes. Are you sure you want
  * ```
  */
 export function useFormTracking(options: UseFormTrackingOptions) {
-  const { formId, isDirty, onSave, unsavedMessage = DEFAULT_UNSAVED_MESSAGE } = options;
+  const { formId, isDirty, onSave, unsavedMessage: _unsavedMessage = DEFAULT_UNSAVED_MESSAGE } = options;
   const { registerForm, onSaveRequest, unregisterForm, markFormDirty, markFormClean } = useFormState();
 
   // Keep a ref to the save function to avoid re-running effects

@@ -58,7 +58,7 @@ type Usage = {
   storageUsed: number; // MB
 };
 
-type ModulesConfig = {
+export type ModulesConfig = {
   ats?: {
     enabled: boolean;
     jobPostLimit: number;
@@ -467,6 +467,17 @@ const OrganizationSchema = new Schema<IOrganization>(
       ats: {
         enabled: { type: Boolean, default: false },
         jobPostLimit: { type: Number, default: 10, min: 0 },
+        seats: { type: Number, default: 25, min: 0 },
+        seatWarningThreshold: { type: Number, default: 0.9, min: 0, max: 1 },
+        activatedAt: { type: Date },
+        billingPlan: { type: String, default: 'ATS_STARTER' },
+      },
+    },
+
+    modules: {
+      ats: {
+        enabled: { type: Boolean, default: false },
+        jobPostLimit: { type: Number, default: 5, min: 0 },
         seats: { type: Number, default: 25, min: 0 },
         seatWarningThreshold: { type: Number, default: 0.9, min: 0, max: 1 },
         activatedAt: { type: Date },

@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import useSWR, { mutate } from 'swr';
 import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DroppableStateSnapshot, DraggableProvided, DraggableStateSnapshot } from '@hello-pangea/dnd';
-import { User, Mail, Phone, Star, Calendar, ChevronRight } from 'lucide-react';
+import { Mail, Phone, Star, Calendar, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import ClientDate from '@/components/ClientDate';
+import { logger } from '@/lib/logger';
 
 const fetcher = async (url: string) => {
   const response = await fetch(url);
@@ -115,7 +117,10 @@ export default function ApplicationsKanban() {
       // Clear optimistic state
       setOptimisticApplications(null);
     } catch (error) {
-      console.error('Error updating application:', error);
+      logger.error('[ApplicationsKanban] Failed to update application stage', error, {
+        applicationId: draggableId,
+        destinationStage: destStage
+      });
       toast.error('Failed to update application stage');
       
       // Revert optimistic update
@@ -219,7 +224,15 @@ export default function ApplicationsKanban() {
                                 
                                 <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                                   <Calendar className="w-3 h-3" />
-                                  <span>Applied {new Date(application.createdAt).toLocaleDateString()}</span>
+                                  <span className="inline-flex items-center gap-1">
+                                    Applied{' '}
+                                    <ClientDate
+                                      date={application.createdAt}
+                                      format="date-only"
+                                      className="font-medium"
+                                      placeholder="--"
+                                    />
+                                  </span>
                                 </div>
                               </div>
 

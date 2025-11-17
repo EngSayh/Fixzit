@@ -38,7 +38,10 @@ const IGNORE_PATTERNS = (process.env.I18N_IGNORE ?? '')
   .filter(Boolean)
   .map(toGlobRegex); // precompiled
 
-const LOCALES_DIR = 'i18n/locales';
+const LOCALE_DIRS = (process.env.I18N_DIRS ?? 'i18n/locales,i18n/dictionaries').split(',')
+  .map(dir => dir.trim())
+  .filter(Boolean);
+const ROOT_LOCALE_FALLBACK = 'i18n';
 
 // -------------------------------------------------------------------------------------------------
 // Utils
@@ -121,11 +124,22 @@ for (const lang of LANGS) {
   dictionaries[lang] = new Set();
   byLangNs[lang] = {};
 
-  const pattern = `${LOCALES_DIR}/${lang}/**/*.json`;
-  const files = glob.sync(pattern, { dot: false });
+  const fileSet = new Set();
+  for (const dir of LOCALE_DIRS) {
+    const pattern = path.join(dir, lang, '**/*.json');
+    for (const match of glob.sync(pattern, { dot: false, nodir: true })) {
+      fileSet.add(match);
+    }
+  }
+  const rootJson = path.join(ROOT_LOCALE_FALLBACK, `${lang}.json`);
+  if (existsSync(rootJson)) {
+    fileSet.add(rootJson);
+  }
+
+  const files = [...fileSet];
 
   if (!files.length) {
-    warn(`⚠️  No locale files found for "${lang}" under ${LOCALES_DIR}/${lang}`);
+    warn(`⚠️  No locale files found for "${lang}" in ${[...LOCALE_DIRS, ROOT_LOCALE_FALLBACK].join(', ')}`);
   }
 
   for (const f of files) {

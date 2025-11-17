@@ -183,7 +183,11 @@ export default function AttendancePage() {
             </p>
             <Select value={selectedEmployee} onValueChange={(value) => setSelectedEmployee(value)}>
               <SelectTrigger>
-                <SelectValue placeholder={t('hr.attendance.selectPlaceholder', 'Choose employee')} />
+                <SelectValue>
+                  {selectedEmployee 
+                    ? employees.find(e => e._id === selectedEmployee)?.firstName + ' ' + employees.find(e => e._id === selectedEmployee)?.lastName
+                    : t('hr.attendance.selectPlaceholder', 'Choose employee')}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {employees.map((employee) => (
@@ -221,7 +225,9 @@ export default function AttendancePage() {
               </p>
               <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as AttendanceStatus | 'ALL')}>
                 <SelectTrigger>
-                  <SelectValue placeholder={t('hr.attendance.filters.status', 'Status')} />
+                  <SelectValue>
+                    {statusOptions.find(o => o.value === statusFilter)?.label || t('hr.attendance.filters.status', 'Status')}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {statusOptions.map((option) => (
@@ -238,7 +244,9 @@ export default function AttendancePage() {
               </p>
               <Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value as 'ALL' | 'MANUAL' | 'IMPORT' | 'BIOMETRIC')}>
                 <SelectTrigger>
-                  <SelectValue placeholder={t('hr.attendance.filters.source', 'Source')} />
+                  <SelectValue>
+                    {sourceOptions.find(o => o.value === sourceFilter)?.label || t('hr.attendance.filters.source', 'Source')}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {sourceOptions.map((option) => (

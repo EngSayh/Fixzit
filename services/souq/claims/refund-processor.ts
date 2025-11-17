@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { getDatabase } from '@/lib/mongodb-unified';
-import * as paytabs from '@/lib/paytabs';
+import { createRefund } from '@/lib/paytabs';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
 import { ClaimService } from './claim-service';
 
@@ -162,7 +162,7 @@ export class RefundProcessor {
     }
 
     // Use PayTabs refund API
-    const paytabsRefund = await paytabs.createRefund({
+    const paytabsRefund = await createRefund({
       originalTransactionId: refund.originalTransactionId,
       refundId: refund.refundId,
       amount: refund.amount, // PayTabs uses decimal SAR, not halalas
@@ -362,7 +362,7 @@ export class RefundProcessor {
         await this.executeRefund(refund);
         retriedCount++;
       } catch (error) {
-        console.error(`Failed to retry refund ${refund.refundId}:`, error);
+        logger.error('Failed to retry refund', { refundId: refund.refundId, error });
       }
     }
 

@@ -11,7 +11,9 @@ export async function GET() {
   
   try {
     // Import helpers - keeps logic DRY and secure
-    const { ENABLED, listSanitized, assertDemoConfig } = await import('@/dev/credentials.server');
+    const { ENABLED, listSanitized, assertDemoConfig } = await import(
+      /* webpackIgnore: true */ '@/dev/credentials.server'
+    );
     
     if (!ENABLED) {
       return NextResponse.json({ error: 'Demo not enabled' }, { status: 403 });

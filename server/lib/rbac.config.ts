@@ -14,6 +14,8 @@ export const UserRole = {
   STAFF: 'STAFF',
   TENANT: 'TENANT',
   VENDOR: 'VENDOR',
+  OWNER: 'OWNER',
+  PROPERTY_OWNER: 'PROPERTY_OWNER',
 } as const;
 
 export type Role = typeof UserRole[keyof typeof UserRole];
@@ -62,7 +64,13 @@ export const FinancePermissions = {
   // Reporting
   'finance.reports.income-statement': [UserRole.ADMIN, UserRole.FINANCE_OFFICER, UserRole.FINANCE_MANAGER, UserRole.MANAGER],
   'finance.reports.balance-sheet': [UserRole.ADMIN, UserRole.FINANCE_OFFICER, UserRole.FINANCE_MANAGER, UserRole.MANAGER],
-  'finance.reports.owner-statement': [UserRole.ADMIN, UserRole.FINANCE_OFFICER, UserRole.FINANCE_MANAGER],
+  'finance.reports.owner-statement': [
+    UserRole.ADMIN,
+    UserRole.FINANCE_OFFICER,
+    UserRole.FINANCE_MANAGER,
+    UserRole.OWNER,
+    UserRole.PROPERTY_OWNER,
+  ],
 } as const;
 
 /**

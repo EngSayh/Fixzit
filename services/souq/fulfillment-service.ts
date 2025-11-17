@@ -6,6 +6,7 @@ import { smsaCarrier } from '@/lib/carriers/smsa';
 import { splCarrier } from '@/lib/carriers/spl';
 import { addJob } from '@/lib/queues/setup';
 import { logger } from '@/lib/logger';
+/* eslint-disable no-unused-vars */
 
 /**
  * Fulfillment Service

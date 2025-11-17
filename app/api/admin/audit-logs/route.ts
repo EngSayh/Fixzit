@@ -74,7 +74,6 @@ export async function GET(request: NextRequest) {
     }
     
     // Search logs
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const logs = await AuditLogModel.search({
       orgId: session.user.orgId || 'default',
       userId: userId || undefined,

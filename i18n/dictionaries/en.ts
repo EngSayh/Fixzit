@@ -81,6 +81,11 @@ const en = {
     preferences: 'Preferences',
     help: 'Help',
     helpCenter: 'Help Center',
+    category: {
+      core: 'Core',
+      business: 'Business',
+      system: 'System Management',
+    },
     categories: {
       core: 'Core',
       fm: 'Facility Management',
@@ -28286,6 +28291,15 @@ const en = {
       interviewScheduled: 'Interview scheduled successfully',
       feedbackSubmitted: 'Feedback submitted successfully',
       invalidTransition: 'Invalid stage transition',
+    },
+    errors: {
+      moduleDisabled: 'ATS module is not enabled for your organization. Please upgrade to access recruitment features.',
+      seatLimitExceeded: 'ATS seat limit exceeded. Current usage: {{usage}}/{{limit}}. Please upgrade your plan to add more users.',
+      jobPostLimitExceeded: 'Job post limit reached for your ATS plan. You have {{count}}/{{limit}} active jobs. Please upgrade to post more positions.',
+      authenticationRequired: 'Authentication required to access ATS features',
+      insufficientPermissions: 'Insufficient permissions to perform this action',
+      jobCreationFailed: 'Failed to create job posting',
+      jobsFetchFailed: 'Failed to fetch jobs',
     },
   },
 };

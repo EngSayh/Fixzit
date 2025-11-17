@@ -7,6 +7,7 @@ import { SouqListing } from '@/server/models/souq/Listing';
 import { SouqSeller } from '@/server/models/souq/Seller';
 import { BuyBoxService } from './buybox-service';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
+import { logger } from '@/lib/logger';
 
 interface RepricerRule {
   enabled: boolean;
@@ -21,6 +22,90 @@ interface RepricerSettings {
   enabled: boolean;
   rules: Record<string, RepricerRule>; // Key = listingId or FSIN
   defaultRule?: RepricerRule;
+}
+
+type OfferIdentifier = {
+  id: string;
+  price: number;
+};
+
+const TARGET_POSITIONS = new Set<RepricerRule['targetPosition']>(['win', 'competitive']);
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function normalizeListingId(value: unknown): string | null {
+  if (typeof value === 'string' && value.length > 0) {
+    return value;
+  }
+
+  if (!isPlainObject(value)) {
+    return null;
+  }
+
+  if (typeof value.id === 'string' && value.id.length > 0) {
+    return value.id;
+  }
+
+  const rawId = value._id;
+  if (typeof rawId === 'string' && rawId.length > 0) {
+    return rawId;
+  }
+  if (isPlainObject(rawId) && typeof rawId.toString === 'function') {
+    return rawId.toString();
+  }
+
+  return null;
+}
+
+function toOfferIdentifier(value: unknown): OfferIdentifier | null {
+  if (!isPlainObject(value)) {
+    return null;
+  }
+  const id = normalizeListingId(value);
+  const priceValue = value.price;
+  if (id && typeof priceValue === 'number' && Number.isFinite(priceValue)) {
+    return { id, price: priceValue };
+  }
+  return null;
+}
+
+function isRepricerRule(value: unknown): value is RepricerRule {
+  if (!isPlainObject(value)) {
+    return false;
+  }
+  const candidate = value as Partial<RepricerRule>;
+  return (
+    typeof candidate.enabled === 'boolean' &&
+    typeof candidate.minPrice === 'number' &&
+    typeof candidate.maxPrice === 'number' &&
+    typeof candidate.undercut === 'number' &&
+    typeof candidate.protectMargin === 'boolean' &&
+    typeof candidate.targetPosition === 'string' &&
+    TARGET_POSITIONS.has(candidate.targetPosition as RepricerRule['targetPosition'])
+  );
+}
+
+function isRepricerSettings(value: unknown): value is RepricerSettings {
+  if (!isPlainObject(value)) {
+    return false;
+  }
+  const candidate = value as Partial<RepricerSettings>;
+  if (typeof candidate.enabled !== 'boolean') {
+    return false;
+  }
+  if (!candidate.rules || !isPlainObject(candidate.rules)) {
+    return false;
+  }
+  const rulesRecord = candidate.rules as Record<string, unknown>;
+  if (!Object.values(rulesRecord).every(isRepricerRule)) {
+    return false;
+  }
+  if (candidate.defaultRule && !isRepricerRule(candidate.defaultRule)) {
+    return false;
+  }
+  return true;
 }
 
 export class AutoRepricerService {
@@ -39,10 +124,14 @@ export class AutoRepricerService {
     }
 
     // Check if seller has repricer enabled
-    const settings = seller.autoRepricerSettings as unknown as RepricerSettings;
-    if (!settings?.enabled) {
+    const rawSettings = seller.autoRepricerSettings;
+    if (!isRepricerSettings(rawSettings) || !rawSettings.enabled) {
+      if (rawSettings && !isRepricerSettings(rawSettings)) {
+        logger.warn('[AutoRepricer] Seller has invalid settings; skipping', { sellerId });
+      }
       return { repriced: 0, errors: 0, listings: [] };
     }
+    const settings = rawSettings;
 
     // Get all active listings for this seller
     const listings = await SouqListing.find({
@@ -58,21 +147,21 @@ export class AutoRepricerService {
     for (const listing of listings) {
       try {
         // Get rule for this listing (specific rule or default)
-        const rule = settings.rules[listing._id.toString()] || 
-                     settings.rules[listing.fsin] || 
-                     settings.defaultRule;
+        const rule = this.resolveRule(settings, listing._id.toString(), listing.fsin);
 
         if (!rule?.enabled) {
           continue;
         }
 
         // Get current Buy Box winner
-        const winner = await BuyBoxService.calculateBuyBoxWinner(listing.fsin);
+        const rawWinner = await BuyBoxService.calculateBuyBoxWinner(listing.fsin);
+        const winner = toOfferIdentifier(rawWinner);
         
         // Get all competing offers
-        const offers = await BuyBoxService.getProductOffers(listing.fsin, {
+        const rawOffers = await BuyBoxService.getProductOffers(listing.fsin, {
           condition: listing.condition
         });
+        const offers = Array.isArray(rawOffers) ? this.normalizeOffers(rawOffers) : [];
 
         // Calculate optimal price
         const newPrice = this.calculateOptimalPrice(
@@ -119,7 +208,7 @@ export class AutoRepricerService {
             changePercent,
             reason: 'auto_repricer',
             competitorPrice: offers[0]?.price,
-            competitorListingId: offers[0]?._id?.toString(),
+            competitorListingId: offers[0]?.id,
             autoRepricerRule: `${rule.targetPosition}-${rule.undercut}`,
             salesBefore: recentOrders / 7, // Average per day
             createdAt: new Date()
@@ -148,7 +237,10 @@ export class AutoRepricerService {
         }
 
       } catch (error) {
-        console.error(`Auto-repricer error for listing ${listing._id}:`, error);
+        logger.error('[AutoRepricer] Failed to reprice listing', error, {
+          sellerId,
+          listingId: listing._id.toString()
+        });
         errors++;
       }
     }
@@ -161,20 +253,20 @@ export class AutoRepricerService {
    */
   private static calculateOptimalPrice(
     currentPrice: number,
-    winner: unknown,
-    offers: unknown[],
+    winner: OfferIdentifier | null,
+    offers: OfferIdentifier[],
     rule: RepricerRule,
     currentListingId: string
   ): number {
     // If we're already the winner and target is 'competitive', no need to change
-    if (winner && (winner as any)._id?.toString() === currentListingId && rule.targetPosition === 'competitive') {
+    if (winner && winner.id === currentListingId && rule.targetPosition === 'competitive') {
       return currentPrice;
     }
 
     // Find lowest competing price (excluding our own listing)
     const competingPrices = offers
-      .filter((offer: any) => offer._id?.toString() !== currentListingId)
-      .map((offer: any) => offer.price)
+      .filter(offer => offer.id !== currentListingId)
+      .map(offer => offer.price)
       .sort((a, b) => a - b);
 
     if (competingPrices.length === 0) {
@@ -220,7 +312,11 @@ export class AutoRepricerService {
       throw new Error('Seller not found');
     }
 
-    seller.autoRepricerSettings = settings as any;
+    if (!isRepricerSettings(settings)) {
+      throw new Error('Invalid repricer settings payload');
+    }
+
+    seller.autoRepricerSettings = settings;
     await seller.save();
 
     // Trigger immediate repricing
@@ -236,10 +332,13 @@ export class AutoRepricerService {
       throw new Error('Seller not found');
     }
 
-    const settings = seller.autoRepricerSettings as unknown as RepricerSettings;
+    const settings = isRepricerSettings(seller.autoRepricerSettings)
+      ? seller.autoRepricerSettings
+      : null;
+
     if (settings) {
       settings.enabled = false;
-      seller.autoRepricerSettings = settings as any;
+      seller.autoRepricerSettings = settings;
       await seller.save();
     }
   }
@@ -257,13 +356,15 @@ export class AutoRepricerService {
       throw new Error('Seller not found');
     }
 
-    const settings = (seller.autoRepricerSettings as unknown as RepricerSettings) || {
-      enabled: true,
-      rules: {}
-    };
+    const settings = isRepricerSettings(seller.autoRepricerSettings)
+      ? seller.autoRepricerSettings
+      : {
+          enabled: true,
+          rules: {}
+        };
 
     settings.rules[listingId] = rule;
-    seller.autoRepricerSettings = settings as any;
+    seller.autoRepricerSettings = settings;
     await seller.save();
   }
 
@@ -276,7 +377,9 @@ export class AutoRepricerService {
       return null;
     }
 
-    return (seller.autoRepricerSettings as unknown as RepricerSettings) || null;
+    return isRepricerSettings(seller.autoRepricerSettings)
+      ? seller.autoRepricerSettings
+      : null;
   }
 
   /**
@@ -305,7 +408,9 @@ export class AutoRepricerService {
         totalErrors += result.errors;
         processed++;
       } catch (error) {
-        console.error(`Failed to reprice seller ${seller._id}:`, error);
+        logger.error('[AutoRepricer] Failed to reprice seller', error, {
+          sellerId: seller._id.toString()
+        });
         totalErrors++;
       }
     }
@@ -333,9 +438,13 @@ export class AutoRepricerService {
     const history = await PriceHistory.find({
       listingId,
       createdAt: { $gte: startDate }
-    }).sort({ createdAt: 1 }).select('createdAt newPrice reason');
+    })
+      .sort({ createdAt: 1 })
+      .select({ createdAt: 1, newPrice: 1, reason: 1 })
+      .lean<{ createdAt: Date; newPrice: number; reason: string }[]>()
+      .exec();
     
-    return history.map((entry: any) => ({
+    return history.map(entry => ({
       date: entry.createdAt,
       price: entry.newPrice,
       reason: entry.reason
@@ -353,8 +462,9 @@ export class AutoRepricerService {
     totalOffers: number;
     priceDistribution: Array<{ range: string; count: number }>;
   }> {
-    const offers = await BuyBoxService.getProductOffers(fsin);
-    const prices = offers.map((offer: any) => offer.price).sort((a, b) => a - b);
+    const rawOffers = await BuyBoxService.getProductOffers(fsin);
+    const offers = Array.isArray(rawOffers) ? this.normalizeOffers(rawOffers) : [];
+    const prices = offers.map(offer => offer.price).sort((a, b) => a - b);
 
     if (prices.length === 0) {
       return {
@@ -392,8 +502,23 @@ export class AutoRepricerService {
       highestPrice,
       averagePrice,
       medianPrice,
-      totalOffers: offers.length,
+      totalOffers: prices.length,
       priceDistribution
     };
+  }
+
+  private static resolveRule(
+    settings: RepricerSettings,
+    listingId: string,
+    fsin: string
+  ): RepricerRule | null {
+    const rules = settings.rules || {};
+    return rules[listingId] || rules[fsin] || settings.defaultRule || null;
+  }
+
+  private static normalizeOffers(rawOffers: unknown[]): OfferIdentifier[] {
+    return rawOffers
+      .map(toOfferIdentifier)
+      .filter((offer): offer is OfferIdentifier => offer !== null);
   }
 }

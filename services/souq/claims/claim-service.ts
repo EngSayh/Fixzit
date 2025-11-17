@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { getDatabase } from '@/lib/mongodb-unified';
-import { ObjectId } from 'mongodb';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
 
 // Claim Types

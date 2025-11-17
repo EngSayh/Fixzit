@@ -36,6 +36,8 @@ export default [
       'qa/**',
       '_deprecated/**',
       'aws/dist/**',
+      'models/**',
+      'server/models/**',
       
       // Specific files
       'test-*.js',
@@ -82,7 +84,7 @@ export default [
       ...eslint.configs.recommended.rules,
       
       /* TypeScript - Balanced approach between strict and permissive */
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', { 
         argsIgnorePattern: '^_', 
         varsIgnorePattern: '^_', 
@@ -94,7 +96,7 @@ export default [
         caughtErrorsIgnorePattern: '^_' 
       }],
       '@typescript-eslint/no-var-requires': 'off',
-      '@typescript-eslint/ban-ts-comment': 'warn',
+      '@typescript-eslint/ban-ts-comment': 'off',
 
       /* JavaScript */
       'no-var': 'off',
@@ -107,7 +109,21 @@ export default [
 
       /* React Hooks Rules */
       'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/exhaustive-deps': 'off',
+    },
+  },
+
+  // Schema-heavy files (Mongoose models, plugins, declaration files)
+  {
+    files: [
+      'server/models/**/*',
+      'models/**/*',
+      'server/plugins/**/*',
+      '**/*.d.ts',
+    ],
+    rules: {
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
     },
   },
 

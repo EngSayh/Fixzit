@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import { sendOTP, isValidSaudiPhone } from '@/lib/sms';
+import { sendOTP, isValidSaudiPhone, isSMSDevModeEnabled } from '@/lib/sms';
 import { logCommunication } from '@/lib/communication-logger';
 import {
   otpStore,
@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { identifier: identifierRaw, password } = parsed.data;
+    const smsDevMode = isSMSDevModeEnabled();
 
     // 3. Determine login type (email or employee number)
     const emailOk = z.string().email().safeParse(identifierRaw).success;
@@ -172,10 +173,12 @@ export async function POST(request: NextRequest) {
     // 8. Get user's phone number
     let userPhone = user.contact?.phone || user.personal?.phone || user.phone;
 
-    if (
-      !userPhone &&
-      (user.role === 'SUPER_ADMIN' || user.roles?.includes?.('SUPER_ADMIN'))
-    ) {
+    const isSuperAdmin =
+      user.role === 'SUPER_ADMIN' ||
+      user.professional?.role === 'SUPER_ADMIN' ||
+      user.roles?.includes?.('SUPER_ADMIN');
+
+    if (!userPhone && isSuperAdmin) {
       const fallbackPhone =
         process.env.NEXTAUTH_SUPERADMIN_FALLBACK_PHONE ||
         process.env.SUPER_ADMIN_FALLBACK_PHONE ||
@@ -277,14 +280,25 @@ export async function POST(request: NextRequest) {
     // 13. Return success response (mask phone number)
     const maskedPhone = userPhone.replace(/(\d{3})\d+(\d{4})/, '$1****$2');
 
+    const responseData: {
+      phone: string;
+      expiresIn: number;
+      attemptsRemaining: number;
+      devCode?: string;
+    } = {
+      phone: maskedPhone,
+      expiresIn: OTP_EXPIRY_MS / 1000, // seconds
+      attemptsRemaining: MAX_ATTEMPTS,
+    };
+
+    if (smsDevMode) {
+      responseData.devCode = otp;
+    }
+
     return NextResponse.json({
       success: true,
       message: 'OTP sent successfully',
-      data: {
-        phone: maskedPhone,
-        expiresIn: OTP_EXPIRY_MS / 1000, // seconds
-        attemptsRemaining: MAX_ATTEMPTS,
-      },
+      data: responseData,
     });
   } catch (error) {
     logger.error('[OTP] Send OTP error', error as Error);

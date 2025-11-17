@@ -11,6 +11,7 @@ import {
   Globe, CheckCircle, XCircle, Clock, AlertCircle, History
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import ClientDate from '@/components/ClientDate';
 
 interface NotificationHistory {
   _id: string;
@@ -33,7 +34,11 @@ interface NotificationHistory {
   status: string;
 }
 
-export default function AdminNotificationsTab({ t }: { t: (key: string, fallback?: string) => string }) {
+export default function AdminNotificationsTab({
+  t,
+}: {
+  t: (_key: string, _defaultText?: string) => string;
+}) {
   const [recipientType, setRecipientType] = useState<'users' | 'tenants' | 'corporate' | 'all'>('users');
   const [channels, setChannels] = useState<Set<'email' | 'sms' | 'whatsapp'>>(new Set(['email']));
   const [subject, setSubject] = useState('');
@@ -411,7 +416,13 @@ export default function AdminNotificationsTab({ t }: { t: (key: string, fallback
                       <div>
                         <h4 className="font-medium">{item.subject}</h4>
                         <p className="text-sm text-gray-500">
-                          {t('admin.notifications.sentBy', 'Sent by')} {item.senderEmail} · {new Date(item.sentAt).toLocaleString()}
+                          {t('admin.notifications.sentBy', 'Sent by')} {item.senderEmail} ·{' '}
+                          <ClientDate
+                            date={item.sentAt}
+                            format="medium"
+                            className="inline"
+                            placeholder="--"
+                          />
                         </p>
                       </div>
                       <span className={`px-2 py-1 rounded text-xs font-medium ${

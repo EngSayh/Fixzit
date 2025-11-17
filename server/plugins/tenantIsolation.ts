@@ -24,9 +24,15 @@ export function clearTenantContext() {
   currentTenantContext = {};
 }
 
+interface TenantIsolationOptions {
+  excludeModels?: string[];
+  uniqueTenantFields?: string[];
+}
+
 // Plugin function
-export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?: string[] } = {}) {
+export function tenantIsolationPlugin(schema: Schema, options: TenantIsolationOptions = {}) {
   const excludeModels = options.excludeModels || ['Organization'];
+  const uniqueTenantFields = options.uniqueTenantFields ?? [];
 
   const orgFieldName = schema.path('orgId')
     ? 'orgId'
@@ -60,6 +66,53 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
     next();
   });
 
+  if (uniqueTenantFields.length > 0) {
+    schema.pre('save', async function(next) {
+      if (!this.isNew) {
+        return next();
+      }
+
+      const docOrgId = (this as Record<string, unknown>)[orgFieldName];
+      const context = getTenantContext();
+      const tenantId = docOrgId ?? context.orgId;
+
+      if (!tenantId) {
+        return next();
+      }
+
+      try {
+        const ModelCtor = this.constructor as unknown as {
+          exists(filter: Record<string, unknown>): Promise<{ _id: unknown } | null>;
+        };
+
+        for (const field of uniqueTenantFields) {
+          const value = (this as Record<string, unknown>)[field];
+          if (value === undefined || value === null || value === '') {
+            continue;
+          }
+
+          const existing = await ModelCtor.exists({
+            [orgFieldName]: tenantId,
+            [field]: value,
+          });
+
+          if (existing) {
+            return next(
+              Object.assign(
+                new Error(`E11000 duplicate key error: ${String(field)} already exists for this organization`),
+                { code: 11000 }
+              )
+            );
+          }
+        }
+
+        next();
+      } catch (error) {
+        next(error as Error);
+      }
+    });
+  }
+
   // Pre-validate middleware to ensure orgId is set
   schema.pre('validate', function(next) {
     if (this.isNew && !(this as Record<string, unknown>)[orgFieldName]) {
@@ -71,8 +124,6 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
     next();
   });
 
-  // Query middleware for find operations
-  // eslint-disable-next-line no-unused-vars
   schema.pre(/^find/, function(this: Query<unknown, unknown>) {
     const context = getTenantContext();
     
@@ -87,8 +138,6 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
     }
   });
 
-  // Query middleware for count operations
-  // eslint-disable-next-line no-unused-vars
   schema.pre(/^count/, function(this: Query<unknown, unknown>) {
     const context = getTenantContext();
     
@@ -101,8 +150,6 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
     }
   });
 
-  // Query middleware for distinct operations
-  // eslint-disable-next-line no-unused-vars
   schema.pre('distinct', function(this: Query<unknown, unknown>) {
     const context = getTenantContext();
     
@@ -115,8 +162,6 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
     }
   });
 
-  // Update middleware
-  // eslint-disable-next-line no-unused-vars
   schema.pre(/^update/, function(this: Query<unknown, unknown>) {
     const context = getTenantContext();
     
@@ -129,8 +174,6 @@ export function tenantIsolationPlugin(schema: Schema, options: { excludeModels?:
     }
   });
 
-  // Delete middleware
-  // eslint-disable-next-line no-unused-vars
   schema.pre(/^delete/, function(this: Query<unknown, unknown>) {
     const context = getTenantContext();
     

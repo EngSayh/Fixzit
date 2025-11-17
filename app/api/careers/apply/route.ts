@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { Job } from '@/server/models/Job';
+import { submitApplicationFromForm, ApplicationSubmissionError } from '@/server/services/ats/application-intake';
 import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
+import { rateLimitError } from '@/server/utils/errorResponses';
 import { getClientIP } from '@/server/security/headers';
+
 /**
  * @openapi
  * /api/careers/apply:
- *   get:
+ *   post:
  *     summary: careers/apply operations
  *     tags: [careers]
  *     security:
@@ -22,7 +25,6 @@ import { getClientIP } from '@/server/security/headers';
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting
   const clientIp = getClientIP(req);
   const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
   if (!rl.allowed) {
@@ -30,184 +32,84 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    await connectToDatabase();
+
     const formData = await req.formData();
+    const jobId = (formData.get('jobId') as string | null)?.trim();
 
-    const jobId = formData.get('jobId') as string;
-    const firstName = formData.get('firstName') as string;
-    const lastName = formData.get('lastName') as string;
-    const email = formData.get('email') as string;
-    const phone = formData.get('phone') as string;
-    const position = formData.get('position') as string;
-    const department = formData.get('department') as string;
-    const coverLetter = formData.get('coverLetter') as string;
-    const resume = formData.get('resume') as File;
-
-    // Comprehensive validation
-    if (!jobId || !firstName || !lastName || !email || !phone || !coverLetter || !resume) {
-      return NextResponse.json(
-        {
-          error: 'All fields are required',
-          details: 'Please ensure all required fields are filled and a resume is uploaded'
-        },
-        { status: 400 }
-      );
+    if (!jobId) {
+      return NextResponse.json({ success: false, error: 'Missing jobId' }, { status: 400 });
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email address format' },
-        { status: 400 }
-      );
+    const job = await (Job as any).findById(jobId);
+    if (!job) {
+      return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });
     }
 
-    // Validate phone number (basic validation)
-    const phoneRegex = /^[+]?[0-9\s()-]{8,20}$/;
-    if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
-      return NextResponse.json(
-        { error: 'Invalid phone number format' },
-        { status: 400 }
-      );
-    }
+    const skillsRaw = String(formData.get('skills') || '');
+    const skills = skillsRaw
+      ? skillsRaw
+          .split(',')
+          .map((skill) => skill.trim())
+          .filter(Boolean)
+      : [];
 
-
-    // Validate file type
-    const allowedTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ];
-    if (!allowedTypes.includes(resume.type)) {
-      return NextResponse.json(
-        {
-          error: 'Invalid file type',
-          details: 'Only PDF, DOC, and DOCX files are allowed. Please upload a valid resume file.'
-        },
-        { status: 400 }
-      );
-    }
-
-    // Validate file size (10MB limit)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (resume.size > maxSize) {
-      return NextResponse.json(
-        {
-          error: 'File size too large',
-          details: `File size is ${(resume.size / 1024 / 1024).toFixed(2)}MB. Maximum allowed size is 10MB.`
-        },
-        { status: 400 }
-      );
-    }
-
-    // Validate cover letter length
-    if (coverLetter.length < 50) {
-      return NextResponse.json(
-        {
-          error: 'Cover letter too short',
-          details: 'Cover letter must be at least 50 characters long.'
-        },
-        { status: 400 }
-      );
-    }
-
-    if (coverLetter.length > 2000) {
-      return NextResponse.json(
-        {
-          error: 'Cover letter too long',
-          details: 'Cover letter must be less than 2000 characters.'
-        },
-        { status: 400 }
-      );
-    }
-
-    // In a real application, you would:
-    // 1. Save the file to a storage service (AWS S3, Google Cloud Storage, etc.)
-    // 2. Save the application data to a database
-    // 3. Send notification emails to HR and applicant
-    // 4. Process the application through ATS system
-    // 5. Generate application tracking ID
-
-    // For now, we'll simulate comprehensive processing
-    logger.info('🎯 Job Application Received:', {
-      applicationId: `APP-${crypto.randomUUID()}`, // SECURITY: Crypto-random ID, not predictable Date.now()
-      timestamp: new Date().toISOString(),
-      jobDetails: {
-        jobId,
-        position,
-        department
-      },
-      applicant: {
-        name: `${firstName} ${lastName}`,
-        email,
-        phone
-      },
-      application: {
-        coverLetterLength: coverLetter.length,
-        resume: {
-          name: resume.name,
-          type: resume.type,
-          size: `${(resume.size / 1024 / 1024).toFixed(2)}MB`
+    const experienceRaw = String(formData.get('experience') || '').trim();
+    const experienceYears = experienceRaw ? Number.parseInt(experienceRaw, 10) : undefined;
+    const resumeFile = formData.get('resume') as File | null;
+    const resumePayload = resumeFile && resumeFile.size > 0
+      ? {
+          buffer: Buffer.from(await resumeFile.arrayBuffer()),
+          filename: resumeFile.name,
+          mimeType: resumeFile.type,
+          size: resumeFile.size,
         }
+      : undefined;
+
+    const phoneE164 = String(formData.get('phoneE164') || '').trim();
+
+    try {
+      const result = await submitApplicationFromForm({
+        job,
+        resumeFile: resumePayload,
+        source: 'careers',
+        fields: {
+          firstName: (formData.get('firstName') as string | null) || undefined,
+          lastName: (formData.get('lastName') as string | null) || undefined,
+          fullName: (formData.get('fullName') as string | null) || undefined,
+          email: (formData.get('email') as string | null) || undefined,
+          phone: phoneE164 || ((formData.get('phone') as string | null) || undefined),
+          location: (formData.get('location') as string | null) || undefined,
+          coverLetter: (formData.get('coverLetter') as string | null) || undefined,
+          skills,
+          experience: Number.isFinite(experienceYears ?? NaN) ? experienceYears : undefined,
+          linkedin: (formData.get('linkedin') as string | null) || undefined,
+          consent: String(formData.get('consent') || 'true') === 'true',
+        },
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            applicationId: result.applicationId,
+            status: result.stage,
+            score: result.score,
+          },
+        },
+        { status: 201 }
+      );
+    } catch (error) {
+      if (error instanceof ApplicationSubmissionError) {
+        return NextResponse.json({ success: false, error: error.message }, { status: error.status });
       }
-    });
-
-    // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    const applicationId = `APP-${crypto.randomUUID()}`; // SECURITY: Crypto-random ID
-
-    return NextResponse.json({
-      success: true,
-      message: 'Application submitted successfully',
-      applicationId,
-      applicantName: `${firstName} ${lastName}`,
-      position,
-      department,
-      submittedAt: new Date().toISOString(),
-      nextSteps: [
-        '✅ Application received and logged',
-        '📧 Confirmation email sent to your email address',
-        '👥 HR team will review your application within 5 business days',
-        '📞 If selected, you will be contacted for an interview',
-        '📋 You can track your application status using ID: ' + applicationId,
-        '🎯 Thank you for your interest in joining Fixzit Enterprise!'
-      ],
-      contactInfo: {
-        hrEmail: 'careers@fixzit.com',
-        supportPhone: '+966 50 123 4567'
-      }
-    });
-
+      throw error;
+    }
   } catch (error) {
     logger.error('🚨 Job application error:', error instanceof Error ? error.message : 'Unknown error');
-
-    // Determine error type and provide appropriate response
-    let errorMessage = 'An unexpected error occurred';
-    let errorDetails = 'Please try again or contact our support team';
-
-    if (error instanceof Error) {
-      // Log actual error server-side but don't expose to client
-      logger.error('Job application error details:', error);
-      if (error.message.includes('fetch')) {
-        errorMessage = 'Network error';
-        errorDetails = 'Please check your internet connection and try again';
-      } else if (error.message.includes('file')) {
-        errorMessage = 'File processing error';
-        errorDetails = 'There was an issue processing your file. Please try with a different file';
-      }
-      // Don't expose arbitrary error.message to client
-    }
-
     return NextResponse.json(
-      {
-        error: errorMessage,
-        details: errorDetails,
-        timestamp: new Date().toISOString()
-      },
+      { success: false, error: 'Failed to submit application', details: 'Please try again later' },
       { status: 500 }
     );
   }
 }
-
-

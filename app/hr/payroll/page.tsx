@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calculator, Download, Eye, Plus, FileText } from 'lucide-react';
 import ClientDate from '@/components/ClientDate';

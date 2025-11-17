@@ -10,12 +10,73 @@
  */
 
 import Redis from 'ioredis';
+import { logger } from '@/lib/logger';
 
-const redis = new Redis({
-  host: process.env.BULLMQ_REDIS_HOST || 'localhost',
-  port: parseInt(process.env.BULLMQ_REDIS_PORT || '6379'),
-  password: process.env.BULLMQ_REDIS_PASSWORD,
-});
+const DAY_SECONDS = 86400;
+const DAY_MS = DAY_SECONDS * 1000;
+
+function createRedisClient(): Redis | null {
+  const redisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL;
+  const redisHost = process.env.BULLMQ_REDIS_HOST;
+  const redisPort = parseInt(process.env.BULLMQ_REDIS_PORT || '6379', 10);
+  const redisPassword = process.env.BULLMQ_REDIS_PASSWORD || process.env.REDIS_PASSWORD;
+  if (!redisUrl && !redisHost) {
+    logger.warn('[BudgetManager] Redis not configured. Falling back to in-memory budget tracking.');
+    return null;
+  }
+
+  const client = redisUrl
+    ? new Redis(redisUrl, { lazyConnect: true })
+    : new Redis({
+        host: redisHost!,
+        port: redisPort,
+        password: redisPassword,
+        lazyConnect: true,
+      });
+
+  client.on('error', (error) => {
+    logger.error('[BudgetManager] Redis connection error', { error });
+  });
+
+  return client;
+}
+
+const redis = createRedisClient();
+
+type LocalBudgetEntry = { spent: number; expiresAt: number };
+const localBudget = new Map<string, LocalBudgetEntry>();
+const localAlerts = new Map<string, number>();
+
+function getLocalSpend(key: string): number {
+  const entry = localBudget.get(key);
+  if (!entry) return 0;
+  if (entry.expiresAt <= Date.now()) {
+    localBudget.delete(key);
+    return 0;
+  }
+  return entry.spent;
+}
+
+function setLocalSpend(key: string, spent: number) {
+  localBudget.set(key, { spent, expiresAt: Date.now() + DAY_MS });
+}
+
+function deleteLocalSpend(key: string) {
+  localBudget.delete(key);
+}
+
+function hasLocalAlert(key: string): boolean {
+  const expiresAt = localAlerts.get(key);
+  if (!expiresAt || expiresAt <= Date.now()) {
+    localAlerts.delete(key);
+    return false;
+  }
+  return true;
+}
+
+function setLocalAlert(key: string, ttlSeconds: number) {
+  localAlerts.set(key, Date.now() + ttlSeconds * 1000);
+}
 
 interface BudgetStatus {
   campaignId: string;
@@ -53,8 +114,8 @@ export class BudgetManager {
     const campaign = await this.fetchCampaign(campaignId);
     if (!campaign) return false;
 
-    // Atomic increment with budget check
-    const script = `
+    if (redis) {
+      const script = `
       local spent = redis.call('GET', KEYS[1]) or '0'
       local spentNum = tonumber(spent)
       local amountNum = tonumber(ARGV[1])
@@ -69,22 +130,31 @@ export class BudgetManager {
       end
     `;
 
-    const result = await redis.eval(
-      script,
-      1,
-      key,
-      amount.toString(),
-      campaign.dailyBudget.toString()
-    );
+      const result = await redis.eval(
+        script,
+        1,
+        key,
+        amount.toString(),
+        campaign.dailyBudget.toString()
+      );
 
-    const success = result === 1;
+      const success = result === 1;
 
-    if (success) {
-      // Check if we need to send alerts or pause campaign
-      await this.checkBudgetThresholds(campaignId);
+      if (success) {
+        await this.checkBudgetThresholds(campaignId);
+      }
+
+      return success;
     }
 
-    return success;
+    const currentSpent = getLocalSpend(key);
+    if (currentSpent + amount <= campaign.dailyBudget) {
+      setLocalSpend(key, currentSpent + amount);
+      await this.checkBudgetThresholds(campaignId);
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -92,8 +162,9 @@ export class BudgetManager {
    */
   static async getBudgetStatus(campaignId: string): Promise<BudgetStatus> {
     const key = this.getBudgetKey(campaignId);
-    const spentStr = await redis.get(key);
-    const spentToday = parseFloat(spentStr || '0');
+    const spentToday = redis
+      ? parseFloat((await redis.get(key)) || '0')
+      : getLocalSpend(key);
 
     const campaign = await this.fetchCampaign(campaignId);
     
@@ -135,7 +206,11 @@ export class BudgetManager {
       const key = this.getBudgetKey(campaign.campaignId);
       
       // Delete Redis key (will start fresh tomorrow)
-      await redis.del(key);
+      if (redis) {
+        await redis.del(key);
+      } else {
+        deleteLocalSpend(key);
+      }
       
       // Reset spentToday in MongoDB
       await db.collection('souq_ad_campaigns').updateOne(
@@ -146,7 +221,7 @@ export class BudgetManager {
       resetCount++;
     }
 
-    console.log(`[BudgetManager] Reset ${resetCount} campaign budgets`);
+    logger.info(`[BudgetManager] Reset ${resetCount} campaign budgets`);
     
     return { reset: resetCount };
   }
@@ -156,7 +231,11 @@ export class BudgetManager {
    */
   static async resetCampaignBudget(campaignId: string): Promise<void> {
     const key = this.getBudgetKey(campaignId);
-    await redis.del(key);
+    if (redis) {
+      await redis.del(key);
+    } else {
+      deleteLocalSpend(key);
+    }
 
     const { getDatabase } = await import('@/lib/mongodb-unified');
     const db = await getDatabase();
@@ -166,7 +245,7 @@ export class BudgetManager {
       { $set: { spentToday: 0, lastBudgetReset: new Date() } }
     );
 
-    console.log(`[BudgetManager] Reset budget for campaign: ${campaignId}`);
+    logger.info(`[BudgetManager] Reset budget for campaign: ${campaignId}`);
   }
 
   /**
@@ -180,11 +259,17 @@ export class BudgetManager {
     for (const threshold of this.ALERT_THRESHOLDS) {
       if (percentage >= threshold) {
         const alertKey = `${this.REDIS_PREFIX}alert:${campaignId}:${threshold}`;
-        const alreadySent = await redis.get(alertKey);
+        const alreadySent = redis
+          ? await redis.get(alertKey)
+          : hasLocalAlert(alertKey) ? '1' : null;
 
         if (!alreadySent) {
           await this.sendBudgetAlert(campaignId, threshold);
-          await redis.set(alertKey, '1', 'EX', 86400); // Don't send again today
+          if (redis) {
+            await redis.set(alertKey, '1', 'EX', DAY_SECONDS); // Don't send again today
+          } else {
+            setLocalAlert(alertKey, DAY_SECONDS);
+          }
         }
       }
     }
@@ -207,7 +292,7 @@ export class BudgetManager {
 
     const percentage = Math.round(threshold * 100);
     
-    console.log(
+    logger.info(
       `[BudgetManager] ALERT: Campaign ${campaignId} has used ${percentage}% of daily budget`
     );
 
@@ -241,7 +326,7 @@ export class BudgetManager {
       }
     );
 
-    console.log(`[BudgetManager] Paused campaign ${campaignId}: ${reason}`);
+    logger.info(`[BudgetManager] Paused campaign ${campaignId}: ${reason}`);
 
     // TODO: Send notification
   }
@@ -345,7 +430,7 @@ export class BudgetManager {
       { $set: { dailyBudget: newBudget } }
     );
 
-    console.log(`[BudgetManager] Updated budget for ${campaignId}: ${newBudget} SAR`);
+    logger.info(`[BudgetManager] Updated budget for ${campaignId}: ${newBudget} SAR`);
   }
 
   /**

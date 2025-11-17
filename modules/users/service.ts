@@ -79,7 +79,7 @@ export class UserService {
         passwordHash
         // createdBy will be set automatically by auditPlugin from context
       });
-      // TODO(type-safety): Verify IUser password property definition
+      // ✅ Remove password field before saving (security best practice)
       delete (user as any).password;
       await user.save();
       return user.toObject();
@@ -114,7 +114,7 @@ export class UserService {
       await user.save();
       
       const result = user.toObject() as any;
-      delete result.passwordHash;  // TODO(type-safety): Make passwordHash optional in type
+      delete result.passwordHash;  // ✅ Remove sensitive field for security
       return result;
     } finally {
       clearTenantContext();
@@ -142,7 +142,7 @@ export class UserService {
       await user.save();
       
       const result = user.toObject() as any;
-      delete result.passwordHash;  // TODO(type-safety): Make passwordHash optional in type
+      delete result.passwordHash;  // ✅ Remove sensitive field for security
       return result;
     } finally {
       clearTenantContext();
@@ -168,7 +168,7 @@ export class UserService {
       await user.save();
       
       const result = user.toObject() as any;
-      delete result.passwordHash;  // TODO(type-safety): Make passwordHash optional in type
+      delete result.passwordHash;  // ✅ Remove sensitive field for security
       return result as Record<string, unknown>;
     } finally {
       clearAuditContext();

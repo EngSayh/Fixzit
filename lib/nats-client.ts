@@ -1,4 +1,6 @@
 import { connect, NatsConnection, JSONCodec } from 'nats';
+import { logger } from '@/lib/logger';
+
 
 let nc: NatsConnection | null = null;
 const jc = JSONCodec();
@@ -25,13 +27,13 @@ export async function getNatsConnection(): Promise<NatsConnection | null> {
       // Log connection status
       (async () => {
         for await (const status of nc!.status()) {
-          console.log(`[NATS] Status update: ${status.type}`);
+          logger.info(`[NATS] Status update: ${status.type}`);
         }
       })();
 
-      console.log('[NATS] Connected successfully');
+      logger.info('[NATS] Connected successfully');
     } catch (error) {
-      console.error('[NATS] Connection failed:', error);
+      logger.error('[NATS] Connection failed:', error);
       nc = null;
       throw error;
     }
@@ -52,13 +54,13 @@ export async function publish(
   try {
     const connection = await getNatsConnection();
     if (!connection) {
-      console.warn('[NATS] Not configured, skipping publish:', subject);
+      logger.warn('[NATS] Not configured, skipping publish', { subject });
       return;
     }
 
     connection.publish(subject, jc.encode(data));
   } catch (error) {
-    console.error(`[NATS] Failed to publish to ${subject}:`, error);
+    logger.error(`[NATS] Failed to publish to ${subject}:`, error);
     // Don't throw - publishing failure shouldn't break application flow
   }
 }
@@ -70,9 +72,9 @@ export async function closeNatsConnection(): Promise<void> {
   if (nc) {
     try {
       await nc.drain();
-      console.log('[NATS] Connection closed gracefully');
+      logger.info('[NATS] Connection closed gracefully');
     } catch (error) {
-      console.error('[NATS] Error closing connection:', error);
+      logger.error('[NATS] Error closing connection:', error);
     } finally {
       nc = null;
     }

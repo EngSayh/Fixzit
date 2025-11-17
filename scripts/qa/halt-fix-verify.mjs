@@ -7,6 +7,8 @@ const PAGES = [
   '/help', '/cms/privacy', '/cms/terms', '/cms/about'
 ];
 const LOCALES = ['en','ar'];
+const FIRST_SCREENSHOT_DELAY_MS = 2000;
+const BETWEEN_SCREENSHOT_DELAY_MS = 10000;
 
 async function check(page, url, role, lang) {
   const errors = [];
@@ -21,12 +23,12 @@ async function check(page, url, role, lang) {
     const resp = await page.goto(url, { waitUntil: 'networkidle', timeout: 10000 });
     const status = resp?.status();
 
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(FIRST_SCREENSHOT_DELAY_MS);
 
     const t0 = `artifacts/${Date.now()}-${role}-${lang}-${url.replace(/\W+/g,'_')}-t0.png`;
     await page.screenshot({ path: t0, fullPage: true });
 
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(BETWEEN_SCREENSHOT_DELAY_MS);
 
     const t1 = t0.replace('-t0','-t1');
     await page.screenshot({ path: t1, fullPage: true });
@@ -56,21 +58,24 @@ async function check(page, url, role, lang) {
 
   for (const role of ROLES) {
     console.log(`\n🔍 Testing role: ${role}`);
-    const context = await browser.newContext();
+    for (const locale of LOCALES) {
+      console.log(`   🌐 Locale: ${locale}`);
+      const context = await browser.newContext();
 
-    // Set role and language via localStorage
-    await context.addInitScript(role => localStorage.setItem('fxz.role', role), role);
-    await context.addInitScript(lang => localStorage.setItem('fxz.lang', lang), 'en');
+      // Set role and language via localStorage
+      await context.addInitScript(roleValue => localStorage.setItem('fxz.role', roleValue), role);
+      await context.addInitScript(langValue => localStorage.setItem('fxz.lang', langValue), locale);
 
-    const page = await context.newPage();
+      const page = await context.newPage();
 
-    for (const p of PAGES) {
-      console.log(`  📄 Testing ${p}...`);
-      const r = await check(page, `http://localhost:3000${p}`, role, 'en');
-      results.push({ role, lang: 'en', page: p, ...r });
+      for (const p of PAGES) {
+        console.log(`    📄 Testing ${p}...`);
+        const r = await check(page, `http://localhost:3000${p}`, role, locale);
+        results.push({ role, lang: locale, page: p, ...r });
+      }
+
+      await context.close();
     }
-
-    await context.close();
   }
 
   await browser.close();

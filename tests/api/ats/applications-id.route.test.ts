@@ -60,7 +60,18 @@ describe('API /api/ats/applications/[id] PATCH', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    atsRBAC.mockResolvedValue({ authorized: true, orgId: 'org-1', userId: 'user-1', isSuperAdmin: false });
+    atsRBAC.mockResolvedValue({
+      authorized: true,
+      orgId: 'org-1',
+      userId: 'user-1',
+      isSuperAdmin: false,
+      atsModule: {
+        enabled: true,
+        jobPostLimit: Number.MAX_SAFE_INTEGER,
+        seats: Number.MAX_SAFE_INTEGER,
+        seatUsage: 0,
+      },
+    });
     ApplicationMock.findById.mockResolvedValue({
       _id: 'app-1',
       stage: 'applied',

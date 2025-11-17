@@ -18,7 +18,7 @@ type ResolvedTheme = 'light' | 'dark';
 type ThemeContextValue = {
   theme: ThemeMode;
   resolvedTheme: ResolvedTheme;
-  setTheme: (mode: ThemeMode) => void;
+  setTheme: (_mode: ThemeMode) => void;
 };
 
 const ThemeCtx = createContext<ThemeContextValue | null>(null);

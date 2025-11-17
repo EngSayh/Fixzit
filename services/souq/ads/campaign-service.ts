@@ -11,6 +11,7 @@
  */
 
 import { nanoid } from 'nanoid';
+import { logger } from '@/lib/logger';
 
 type KeywordMatchType = 'exact' | 'phrase' | 'broad';
 type KeywordTargetInput = string | {
@@ -136,7 +137,7 @@ export class CampaignService {
     await db.collection('souq_ad_campaigns').insertOne(campaign);
     await db.collection('souq_ad_bids').insertMany(bids);
 
-    console.log(`[CampaignService] Created campaign: ${campaignId}`);
+    logger.info(`[CampaignService] Created campaign: ${campaignId}`);
 
     return campaign;
   }
@@ -173,7 +174,7 @@ export class CampaignService {
       .collection('souq_ad_campaigns')
       .findOne({ campaignId });
 
-    console.log(`[CampaignService] Updated campaign: ${campaignId}`);
+    logger.info(`[CampaignService] Updated campaign: ${campaignId}`);
 
     return updated as unknown as Campaign;
   }
@@ -191,7 +192,7 @@ export class CampaignService {
     // Delete campaign
     await db.collection('souq_ad_campaigns').deleteOne({ campaignId });
 
-    console.log(`[CampaignService] Deleted campaign: ${campaignId}`);
+    logger.info(`[CampaignService] Deleted campaign: ${campaignId}`);
   }
 
   /**
@@ -335,7 +336,7 @@ export class CampaignService {
       { $set: { bidAmount: newBidAmount } }
     );
 
-    console.log(`[CampaignService] Updated bid ${bidId}: ${newBidAmount} SAR`);
+    logger.info(`[CampaignService] Updated bid ${bidId}: ${newBidAmount} SAR`);
   }
 
   /**
@@ -350,7 +351,7 @@ export class CampaignService {
       { $set: { status } }
     );
 
-    console.log(`[CampaignService] Bid ${bidId} status: ${status}`);
+    logger.info(`[CampaignService] Bid ${bidId} status: ${status}`);
   }
 
   /**
@@ -382,7 +383,7 @@ export class CampaignService {
 
     await db.collection('souq_ad_bids').insertOne(bid);
 
-    console.log(`[CampaignService] Added keyword "${keyword}" to campaign ${campaignId}`);
+    logger.info(`[CampaignService] Added keyword "${keyword}" to campaign ${campaignId}`);
 
     return bid;
   }

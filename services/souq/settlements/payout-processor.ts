@@ -15,6 +15,7 @@
 
 import { ObjectId } from 'mongodb';
 import { connectDb } from '@/lib/mongodb-unified';
+import { logger } from '@/lib/logger';
 import type { SettlementStatement } from './settlement-calculator';
 
 /**
@@ -107,6 +108,15 @@ const PAYOUT_CONFIG = {
   currency: 'SAR',
 } as const;
 
+async function getDbInstance() {
+  const mongooseInstance = await connectDb();
+  const db = mongooseInstance.connection.db;
+  if (!db) {
+    throw new Error('Database connection not initialized');
+  }
+  return db;
+}
+
 /**
  * Payout Processor Service
  */
@@ -119,8 +129,7 @@ export class PayoutProcessorService {
     statementId: string,
     bankAccount: BankAccount
   ): Promise<PayoutRequest> {
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const db = await getDbInstance();
     const statementsCollection = db.collection('souq_settlements');
     const payoutsCollection = db.collection('souq_payouts');
 
@@ -192,8 +201,7 @@ export class PayoutProcessorService {
    * Process a single payout
    */
   static async processPayout(payoutId: string): Promise<PayoutRequest> {
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const db = await getDbInstance();
     const payoutsCollection = db.collection('souq_payouts');
 
     // Fetch payout
@@ -263,8 +271,7 @@ export class PayoutProcessorService {
     payout: PayoutRequest,
     errorMessage: string
   ): Promise<PayoutRequest> {
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const db = await getDbInstance();
     const payoutsCollection = db.collection('souq_payouts');
 
     const newRetryCount = payout.retryCount + 1;
@@ -310,7 +317,7 @@ export class PayoutProcessorService {
 
       // Schedule retry job (via BullMQ or cron)
       const retryDelay = PAYOUT_CONFIG.retryDelayMinutes * 60 * 1000 * Math.pow(2, newRetryCount - 1);
-      console.log(`Scheduling retry ${newRetryCount} for payout ${payout.payoutId} in ${retryDelay}ms`);
+      logger.info(`Scheduling retry ${newRetryCount} for payout ${payout.payoutId} in ${retryDelay}ms`);
 
       return {
         ...payout,
@@ -330,7 +337,7 @@ export class PayoutProcessorService {
     // TODO: Replace with actual SADAD/SPAN API integration
     // This is a mock implementation
 
-    console.log(`Executing ${payout.method.toUpperCase()} transfer for ${payout.amount} SAR to ${payout.bankAccount.iban}`);
+    logger.info(`Executing ${payout.method.toUpperCase()} transfer for ${payout.amount} SAR to ${payout.bankAccount.iban}`);
 
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -374,8 +381,7 @@ export class PayoutProcessorService {
    * Process batch payouts
    */
   static async processBatchPayouts(scheduledDate: Date): Promise<BatchPayoutJob> {
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const db = await getDbInstance();
     const payoutsCollection = db.collection('souq_payouts');
     const batchesCollection = db.collection('souq_payout_batches');
 
@@ -415,7 +421,7 @@ export class PayoutProcessorService {
           batch.failedPayouts++;
         }
       } catch (error) {
-        console.error(`Error processing payout ${payout.payoutId}:`, error);
+        logger.error('Error processing payout', { payoutId: payout.payoutId, error });
         batch.failedPayouts++;
       }
     }
@@ -443,8 +449,7 @@ export class PayoutProcessorService {
    * Cancel payout request
    */
   static async cancelPayout(payoutId: string, reason: string): Promise<void> {
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const db = await getDbInstance();
     const payoutsCollection = db.collection('souq_payouts');
 
     const payout = await payoutsCollection.findOne({ payoutId });
@@ -474,8 +479,7 @@ export class PayoutProcessorService {
    * Get payout status
    */
   static async getPayoutStatus(payoutId: string): Promise<PayoutRequest> {
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const db = await getDbInstance();
     const payoutsCollection = db.collection('souq_payouts');
 
     const payout = await payoutsCollection.findOne({ payoutId }) as PayoutRequest | null;
@@ -499,8 +503,7 @@ export class PayoutProcessorService {
       offset?: number;
     }
   ): Promise<{ payouts: PayoutRequest[]; total: number }> {
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const db = await getDbInstance();
     const payoutsCollection = db.collection('souq_payouts');
 
     const query: Record<string, unknown> = { sellerId };
@@ -569,8 +572,7 @@ export class PayoutProcessorService {
     statementId: string,
     status: SettlementStatement['status']
   ): Promise<void> {
-    await connectDb();
-    const db = (await connectDb()).connection.db!;
+    const db = await getDbInstance();
     const statementsCollection = db.collection('souq_settlements');
 
     const update: Record<string, unknown> = { status };
@@ -593,26 +595,48 @@ export class PayoutProcessorService {
     type: 'success' | 'failed',
     errorMessage?: string
   ): Promise<void> {
-    // TODO: Implement email/SMS notification
-    console.log(`Sending ${type} notification for payout ${payout.payoutId}`);
+    try {
+      const { sendWhatsAppTextMessage, isWhatsAppEnabled } = await import('@/lib/integrations/whatsapp');
+      
+      // Get seller details for phone number
+      const db = await getDbInstance();
+      const seller = await db.collection('souq_sellers').findOne({ 
+        _id: new ObjectId(payout.sellerId) 
+      });
 
-    if (type === 'success') {
-      console.log(`Payout of ${payout.amount} SAR completed successfully. Transaction ID: ${payout.transactionReference}`);
-    } else {
-      console.log(`Payout of ${payout.amount} SAR failed. Error: ${errorMessage}`);
+      if (!seller?.contactInfo?.phone) {
+        logger.warn(`No phone number for seller ${payout.sellerId}, skipping notification`);
+        return;
+      }
+
+      const message = type === 'success'
+        ? `تم تحويل مبلغ ${payout.amount.toFixed(2)} ريال سعودي إلى حسابك البنكي بنجاح.\n\nرقم المرجع: ${payout.transactionReference}\n\nسيصل المبلغ خلال 1-2 يوم عمل.`
+        : `فشل تحويل مبلغ ${payout.amount.toFixed(2)} ريال سعودي.\n\nالسبب: ${errorMessage}\n\nسيتم إعادة المحاولة تلقائياً.`;
+
+      if (isWhatsAppEnabled()) {
+        const result = await sendWhatsAppTextMessage({
+          to: seller.contactInfo.phone,
+          message,
+        });
+
+        if (result.success) {
+          logger.info(`Payout notification sent via WhatsApp for ${payout.payoutId}`, {
+            messageId: result.messageId,
+          });
+        } else {
+          logger.error(`Failed to send WhatsApp notification for ${payout.payoutId}`, {
+            error: result.error,
+          });
+        }
+      } else {
+        logger.info(`WhatsApp disabled, logging ${type} notification for payout ${payout.payoutId}`, {
+          phone: seller.contactInfo.phone,
+          message,
+        });
+      }
+    } catch (error) {
+      logger.error(`Error sending payout notification for ${payout.payoutId}`, error);
     }
-
-    // Real implementation:
-    // await EmailService.send({
-    //   to: seller.email,
-    //   template: type === 'success' ? 'payout-success' : 'payout-failed',
-    //   data: {
-    //     amount: payout.amount,
-    //     currency: payout.currency,
-    //     transactionReference: payout.transactionReference,
-    //     errorMessage,
-    //   },
-    // });
   }
 
   /**

@@ -23,7 +23,7 @@ function toMinor(value: Types.Decimal128 | undefined): bigint {
 }
 
 export async function trialBalance(ctx: RequestContext, from: Date, to: Date) {
-  if (!['Finance', 'Admin'].includes(ctx.role)) {
+  if (!['FINANCE', 'ADMIN', 'SUPER_ADMIN'].includes(ctx.role)) {
     throw new ForbiddenError('Only Finance/Admin can view trial balance');
   }
 
@@ -106,7 +106,7 @@ export async function balanceSheet(ctx: RequestContext, asOf: Date) {
 }
 
 export async function ownerStatement(ctx: RequestContext, propertyId: string, from: Date, to: Date) {
-  if (!['Owner', 'Finance', 'Admin'].includes(ctx.role)) {
+  if (!['OWNER', 'PROPERTY_OWNER', 'FINANCE', 'ADMIN', 'SUPER_ADMIN'].includes(ctx.role)) {
     throw new ForbiddenError('Only Owner/Finance/Admin can view statements');
   }
 

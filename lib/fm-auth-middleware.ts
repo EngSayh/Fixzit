@@ -7,7 +7,6 @@ import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { can, Role, SubmoduleKey, Action, Plan } from '@/domain/fm/fm.behavior';
-import { Organization } from '@/server/models/Organization';
 import { connectDb } from '@/lib/mongo';
 
 export interface FMAuthContext {
@@ -126,8 +125,8 @@ export async function requireFMAuth(
     await connectDb();
     // Always use ctx.orgId - don't allow callers to query other orgs
     const { Organization } = await import('@/server/models/Organization');
-    // TODO(type-safety): Verify Organization.findOne type resolution
-    const org = await (Organization as any).findOne({ orgId: ctx.orgId });
+    // ✅ Organization.findOne is properly typed via OrganizationModel interface
+    const org = await Organization.findOne({ orgId: ctx.orgId });
     
     if (org) {
       // Map organization plan to FM Plan enum (with fallback chain)

@@ -1,20 +1,38 @@
 import { Queue, Worker, Job } from 'bullmq';
 import { SearchIndexerService } from '@/services/souq/search-indexer-service';
 import Redis from 'ioredis';
+import { logger } from '@/lib/logger';
 
-// Redis connection for BullMQ
-const connection = new Redis({
-  host: process.env.BULLMQ_REDIS_HOST || 'localhost',
-  port: parseInt(process.env.BULLMQ_REDIS_PORT || '6379'),
-  password: process.env.BULLMQ_REDIS_PASSWORD,
-  maxRetriesPerRequest: null,
-});
+const bullRedisUrl = process.env.BULLMQ_REDIS_URL || process.env.REDIS_URL;
+const bullRedisHost = process.env.BULLMQ_REDIS_HOST;
+const bullRedisPort = parseInt(process.env.BULLMQ_REDIS_PORT || '6379', 10);
+const bullRedisPassword = process.env.BULLMQ_REDIS_PASSWORD || process.env.REDIS_PASSWORD;
+const hasBullRedisConfig = Boolean(bullRedisUrl || bullRedisHost);
+
+const connection = hasBullRedisConfig
+  ? bullRedisUrl
+    ? new Redis(bullRedisUrl, { maxRetriesPerRequest: null })
+    : new Redis({
+        host: bullRedisHost!,
+        port: bullRedisPort,
+        password: bullRedisPassword,
+        maxRetriesPerRequest: null,
+      })
+  : null;
+
+if (!connection) {
+  logger.warn('[SearchIndex] Redis not configured. Search indexing queue is disabled.');
+} else {
+  connection.on('error', (error) => {
+    logger.error('[SearchIndex] Redis connection error', { error });
+  });
+}
 
 // ============================================================================
 // QUEUE DEFINITIONS
 // ============================================================================
 
-export const searchIndexQueue = new Queue('search-indexing', { connection });
+export const searchIndexQueue = connection ? new Queue('search-indexing', { connection }) : null;
 
 // ============================================================================
 // JOB TYPES
@@ -48,6 +66,10 @@ type SearchIndexJobData = FullReindexJob | IncrementalUpdateJob | DeleteFromInde
  * Runs at 2:00 AM Saudi time (UTC+3)
  */
 export async function scheduleFullReindex() {
+  if (!searchIndexQueue) {
+    logger.warn('[SearchIndex] Cannot schedule full reindex - Redis not configured');
+    return;
+  }
   await searchIndexQueue.add(
     'full_reindex',
     {
@@ -63,13 +85,17 @@ export async function scheduleFullReindex() {
     }
   );
 
-  console.log('[SearchIndex] Scheduled daily full reindex at 2:00 AM');
+  logger.info('[SearchIndex] Scheduled daily full reindex at 2:00 AM');
 }
 
 /**
  * Trigger immediate full reindex (manual)
  */
 export async function triggerFullReindex(target: 'products' | 'sellers' | 'all' = 'all') {
+  if (!searchIndexQueue) {
+    logger.warn('[SearchIndex] Cannot trigger reindex - Redis not configured');
+    return null;
+  }
   const job = await searchIndexQueue.add(
     'full_reindex',
     {
@@ -81,7 +107,7 @@ export async function triggerFullReindex(target: 'products' | 'sellers' | 'all' 
     }
   );
 
-  console.log(`[SearchIndex] Triggered full reindex: ${job.id}`);
+  logger.info(`[SearchIndex] Triggered full reindex: ${job.id}`);
   return job.id;
 }
 
@@ -92,6 +118,10 @@ export async function triggerIncrementalUpdate(
   target: 'product' | 'seller',
   id: string
 ) {
+  if (!searchIndexQueue) {
+    logger.warn('[SearchIndex] Cannot queue incremental update - Redis not configured');
+    return null;
+  }
   const job = await searchIndexQueue.add(
     'incremental_update',
     {
@@ -109,7 +139,7 @@ export async function triggerIncrementalUpdate(
     }
   );
 
-  console.log(`[SearchIndex] Triggered incremental update: ${target} ${id}`);
+  logger.info(`[SearchIndex] Triggered incremental update: ${target} ${id}`);
   return job.id;
 }
 
@@ -120,6 +150,10 @@ export async function triggerDeleteFromIndex(
   target: 'product' | 'seller',
   id: string
 ) {
+  if (!searchIndexQueue) {
+    logger.warn('[SearchIndex] Cannot queue delete - Redis not configured');
+    return null;
+  }
   const job = await searchIndexQueue.add(
     'delete',
     {
@@ -137,7 +171,7 @@ export async function triggerDeleteFromIndex(
     }
   );
 
-  console.log(`[SearchIndex] Triggered delete from index: ${target} ${id}`);
+  logger.info(`[SearchIndex] Triggered delete from index: ${target} ${id}`);
   return job.id;
 }
 
@@ -149,7 +183,7 @@ export async function triggerDeleteFromIndex(
  * Process search indexing jobs
  */
 async function processSearchIndexJob(job: Job<SearchIndexJobData>) {
-  console.log(`[SearchIndex] Processing job: ${job.name} (${job.id})`);
+  logger.info(`[SearchIndex] Processing job: ${job.name} (${job.id})`);
 
   try {
     const { data } = job;
@@ -159,13 +193,13 @@ async function processSearchIndexJob(job: Job<SearchIndexJobData>) {
         if (data.target === 'products' || data.target === 'all') {
           const result = await SearchIndexerService.fullReindexProducts();
           await job.updateProgress(50);
-          console.log(`[SearchIndex] Products reindexed: ${result.indexed}`);
+          logger.info(`[SearchIndex] Products reindexed: ${result.indexed}`);
         }
 
         if (data.target === 'sellers' || data.target === 'all') {
           const result = await SearchIndexerService.fullReindexSellers();
           await job.updateProgress(100);
-          console.log(`[SearchIndex] Sellers reindexed: ${result.indexed}`);
+          logger.info(`[SearchIndex] Sellers reindexed: ${result.indexed}`);
         }
         break;
       }
@@ -190,9 +224,9 @@ async function processSearchIndexJob(job: Job<SearchIndexJobData>) {
         throw new Error(`Unknown job type: ${(data as SearchIndexJobData).type}`);
     }
 
-    console.log(`[SearchIndex] Job completed: ${job.id}`);
+    logger.info(`[SearchIndex] Job completed: ${job.id}`);
   } catch (error) {
-    console.error(`[SearchIndex] Job failed: ${job.id}`, error);
+    logger.error('[SearchIndex] Job failed', { jobId: job.id, error });
     throw error; // Let BullMQ handle retries
   }
 }
@@ -207,8 +241,12 @@ let worker: Worker | null = null;
  * Start the search indexing worker
  */
 export function startSearchIndexWorker() {
+  if (!connection) {
+    logger.warn('[SearchIndex] Worker disabled - Redis not configured');
+    return null;
+  }
   if (worker) {
-    console.warn('[SearchIndex] Worker already running');
+    logger.warn('[SearchIndex] Worker already running');
     return worker;
   }
 
@@ -222,18 +260,18 @@ export function startSearchIndexWorker() {
   });
 
   worker.on('completed', (job: Job) => {
-    console.log(`[SearchIndex] Job ${job.id} completed successfully`);
+    logger.info(`[SearchIndex] Job ${job.id} completed successfully`);
   });
 
   worker.on('failed', (job: Job | undefined, error: Error) => {
-    console.error(`[SearchIndex] Job ${job?.id} failed:`, error);
+    logger.error('[SearchIndex] Job failed event', { jobId: job?.id, error });
   });
 
   worker.on('error', (error: Error) => {
-    console.error('[SearchIndex] Worker error:', error);
+    logger.error('[SearchIndex] Worker error event', { error });
   });
 
-  console.log('[SearchIndex] Worker started');
+  logger.info('[SearchIndex] Worker started');
   
   // Schedule daily reindex
   scheduleFullReindex();
@@ -246,13 +284,13 @@ export function startSearchIndexWorker() {
  */
 export async function stopSearchIndexWorker() {
   if (!worker) {
-    console.warn('[SearchIndex] Worker not running');
+    logger.warn('[SearchIndex] Worker not running');
     return;
   }
 
   await worker.close();
   worker = null;
-  console.log('[SearchIndex] Worker stopped');
+  logger.info('[SearchIndex] Worker stopped');
 }
 
 // ============================================================================

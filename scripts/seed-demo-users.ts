@@ -7,16 +7,28 @@ import { db } from '../lib/mongo';
 import { User } from '../server/models/User';
 import { hashPassword } from '../lib/auth';
 
+const demoPhones = {
+  superadmin: process.env.DEMO_SUPERADMIN_PHONE || process.env.NEXTAUTH_SUPERADMIN_FALLBACK_PHONE || '+966500000001',
+  admin: process.env.DEMO_ADMIN_PHONE || '+966500000002',
+  manager: process.env.DEMO_MANAGER_PHONE || '+966500000003',
+  tenant: process.env.DEMO_TENANT_PHONE || '+966500000004',
+  vendor: process.env.DEMO_VENDOR_PHONE || '+966500000005',
+  emp001: process.env.DEMO_EMP001_PHONE || '+966500000006',
+  emp002: process.env.DEMO_EMP002_PHONE || '+966500000007',
+} as const;
+
 const demoUsers = [
   {
     code: 'USR-SUPERADMIN',
     username: 'superadmin',
     email: 'superadmin@fixzit.co',
     password: 'password123',
+    phone: demoPhones.superadmin,
     orgId: '68dc8955a1ba6ed80ff372dc',
     personal: {
       firstName: 'Super',
       lastName: 'Admin',
+      phone: demoPhones.superadmin,
       nationality: 'SA',
       address: { country: 'SA' }
     },
@@ -44,6 +56,7 @@ const demoUsers = [
     username: 'admin',
     email: 'admin@fixzit.co',
     password: 'password123',
+    phone: demoPhones.admin,
     // Don't set orgId/createdBy for existing user - will be updated via updateOne
   },
   {
@@ -51,10 +64,12 @@ const demoUsers = [
     username: 'manager',
     email: 'manager@fixzit.co',
     password: 'password123',
+    phone: demoPhones.manager,
     orgId: '68dc8955a1ba6ed80ff372dc',
     personal: {
       firstName: 'Property',
       lastName: 'Manager',
+      phone: demoPhones.manager,
       nationality: 'SA',
       address: { country: 'SA' }
     },
@@ -82,10 +97,12 @@ const demoUsers = [
     username: 'tenant',
     email: 'tenant@fixzit.co',
     password: 'password123',
+    phone: demoPhones.tenant,
     orgId: '68dc8955a1ba6ed80ff372dc',
     personal: {
       firstName: 'Demo',
       lastName: 'Tenant',
+      phone: demoPhones.tenant,
       nationality: 'SA',
       address: { country: 'SA' }
     },
@@ -113,10 +130,12 @@ const demoUsers = [
     username: 'vendor',
     email: 'vendor@fixzit.co',
     password: 'password123',
+    phone: demoPhones.vendor,
     orgId: '68dc8955a1ba6ed80ff372dc',
     personal: {
       firstName: 'Demo',
       lastName: 'Vendor',
+      phone: demoPhones.vendor,
       nationality: 'SA',
       address: { country: 'SA' }
     },
@@ -144,10 +163,12 @@ const demoUsers = [
     username: 'EMP001',
     email: 'emp001@fixzit.co',
     password: 'password123',
+    phone: demoPhones.emp001,
     orgId: '68dc8955a1ba6ed80ff372dc',
     personal: {
       firstName: 'Employee',
       lastName: 'One',
+      phone: demoPhones.emp001,
       nationality: 'SA',
       address: { country: 'SA' }
     },
@@ -175,10 +196,12 @@ const demoUsers = [
     username: 'EMP002',
     email: 'emp002@fixzit.co',
     password: 'password123',
+    phone: demoPhones.emp002,
     orgId: '68dc8955a1ba6ed80ff372dc',
     personal: {
       firstName: 'Employee',
       lastName: 'Two',
+      phone: demoPhones.emp002,
       nationality: 'SA',
       address: { country: 'SA' }
     },
@@ -223,14 +246,23 @@ async function seedDemoUsers() {
       
       if (existingUser) {
         // Update existing user's password using direct MongoDB update to skip validation
+        const updateFields: Record<string, any> = {
+          password: hashedPassword,
+          status: 'ACTIVE',
+          username: userData.username
+        };
+
+        if (userData.phone) {
+          updateFields.phone = userData.phone;
+        }
+        if (userData.personal?.phone) {
+          updateFields['personal.phone'] = userData.personal.phone;
+        }
+
         await User.updateOne(
           { _id: existingUser._id },
           {
-            $set: {
-              password: hashedPassword,
-              status: 'ACTIVE',
-              username: userData.username
-            }
+            $set: updateFields
           }
         );
         console.log(`✅ Updated user: ${userData.email} (password updated)`);

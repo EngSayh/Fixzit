@@ -6,16 +6,27 @@ import { db } from '../lib/mongo';
 import { User } from '../server/models/User';
 import { hashPassword } from '../lib/auth';
 
+const demoPhones = {
+  superadmin: process.env.DEMO_SUPERADMIN_PHONE || process.env.NEXTAUTH_SUPERADMIN_FALLBACK_PHONE || '+966500000001',
+  manager: process.env.DEMO_MANAGER_PHONE || '+966500000003',
+  tenant: process.env.DEMO_TENANT_PHONE || '+966500000004',
+  vendor: process.env.DEMO_VENDOR_PHONE || '+966500000005',
+  emp001: process.env.DEMO_EMP001_PHONE || '+966500000006',
+  emp002: process.env.DEMO_EMP002_PHONE || '+966500000007',
+} as const;
+
 const newUsers = [
   {
     code: 'USR-SUPERADMIN',
     username: 'superadmin',
     email: 'superadmin@fixzit.co',
     employeeId: 'SUPER-001',
+    phone: demoPhones.superadmin,
     orgId: '68dc8955a1ba6ed80ff372dc',
     personal: {
       firstName: 'Super',
       lastName: 'Admin',
+      phone: demoPhones.superadmin,
       address: { country: 'SA' }
     },
     professional: {
@@ -30,10 +41,12 @@ const newUsers = [
     username: 'manager',
     email: 'manager@fixzit.co',
     employeeId: 'MGR-001',
+    phone: demoPhones.manager,
     orgId: '68dc8955a1ba6ed80ff372dc',
     personal: {
       firstName: 'Property',
       lastName: 'Manager',
+      phone: demoPhones.manager,
       address: { country: 'SA' }
     },
     professional: {
@@ -48,10 +61,12 @@ const newUsers = [
     username: 'tenant',
     email: 'tenant@fixzit.co',
     employeeId: 'TENANT-001',
+    phone: demoPhones.tenant,
     orgId: '68dc8955a1ba6ed80ff372dc',
     personal: {
       firstName: 'Demo',
       lastName: 'Tenant',
+      phone: demoPhones.tenant,
       address: { country: 'SA' }
     },
     professional: {
@@ -66,10 +81,12 @@ const newUsers = [
     username: 'vendor',
     email: 'vendor@fixzit.co',
     employeeId: 'VENDOR-001',
+    phone: demoPhones.vendor,
     orgId: '68dc8955a1ba6ed80ff372dc',
     personal: {
       firstName: 'Demo',
       lastName: 'Vendor',
+      phone: demoPhones.vendor,
       address: { country: 'SA' }
     },
     professional: {
@@ -84,10 +101,12 @@ const newUsers = [
     username: 'EMP001',
     email: 'emp001@fixzit.co',
     employeeId: 'EMP001',
+    phone: demoPhones.emp001,
     orgId: '68dc8955a1ba6ed80ff372dc',
     personal: {
       firstName: 'Employee',
       lastName: 'One',
+      phone: demoPhones.emp001,
       address: { country: 'SA' }
     },
     professional: {
@@ -102,10 +121,12 @@ const newUsers = [
     username: 'EMP002',
     email: 'emp002@fixzit.co',
     employeeId: 'EMP002',
+    phone: demoPhones.emp002,
     orgId: '68dc8955a1ba6ed80ff372dc',
     personal: {
       firstName: 'Employee',
       lastName: 'Two',
+      phone: demoPhones.emp002,
       address: { country: 'SA' }
     },
     professional: {

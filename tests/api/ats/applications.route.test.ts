@@ -73,7 +73,16 @@ describe('API /api/ats/applications', () => {
     vi.clearAllMocks();
     ApplicationMock.find.mockReturnValue(queryChain());
     ApplicationMock.countDocuments.mockResolvedValue(0);
-    atsRBAC.mockResolvedValue({ authorized: true, orgId: 'org-1' });
+    atsRBAC.mockResolvedValue({
+      authorized: true,
+      orgId: 'org-1',
+      atsModule: {
+        enabled: true,
+        jobPostLimit: Number.MAX_SAFE_INTEGER,
+        seats: Number.MAX_SAFE_INTEGER,
+        seatUsage: 0,
+      },
+    });
   });
 
   const callGET = async (query: string) => {

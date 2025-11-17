@@ -54,6 +54,16 @@ interface IChartAccount {
   type: string;
 }
 
+const CATEGORY_LABELS: Record<string, { key: string; fallback: string }> = {
+  MAINTENANCE_REPAIR: { key: 'finance.category.maintenance', fallback: 'Maintenance & Repair' },
+  UTILITIES: { key: 'finance.category.utilities', fallback: 'Utilities' },
+  OFFICE_SUPPLIES: { key: 'finance.category.officeSupplies', fallback: 'Office Supplies' },
+  HVAC: { key: 'finance.category.hvac', fallback: 'HVAC' },
+  PLUMBING: { key: 'finance.category.plumbing', fallback: 'Plumbing' },
+  ELECTRICAL: { key: 'finance.category.electrical', fallback: 'Electrical' },
+  OTHER: { key: 'finance.category.other', fallback: 'Other' },
+};
+
 export default function NewExpensePage() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -106,6 +116,10 @@ export default function NewExpensePage() {
   const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
   const totalTax = lineItems.reduce((sum, item) => sum + item.taxAmount, 0);
   const totalAmount = subtotal + totalTax;
+  const getCategoryLabel = (category: string) => {
+    const lookup = CATEGORY_LABELS[category.toUpperCase()] ?? CATEGORY_LABELS.OTHER;
+    return t(lookup.key, lookup.fallback);
+  };
 
   // ============================================================================
   // LIFECYCLE & DATA LOADING
@@ -891,7 +905,7 @@ export default function NewExpensePage() {
                 {budgetInfo.map((budget) => (
                   <div key={budget.budgetId}>
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm text-muted-foreground">{t(`finance.category.${budget.category.toLowerCase()}`, budget.category)}</span>
+                      <span className="text-sm text-muted-foreground">{getCategoryLabel(budget.category)}</span>
                       <span className="text-xs text-muted-foreground">{budget.percentage.toFixed(0)}%</span>
                     </div>
                     <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
@@ -1002,4 +1016,3 @@ export default function NewExpensePage() {
     </div>
   );
 }
-

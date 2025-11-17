@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { logger } from '@/lib/logger';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -126,8 +127,50 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
   };
 
   const exportToCSV = () => {
-    // TODO: Implement CSV export
-    console.log('Exporting transactions to CSV...');
+    try {
+      const { exportToCSV: doExport } = require('@/lib/export-utils');
+      
+      // Filter transactions based on current filters
+      let filtered = transactions;
+      if (filters.type !== 'all') {
+        filtered = filtered.filter((t) => t.type === filters.type);
+      }
+      if (filters.startDate) {
+        const start = new Date(filters.startDate).getTime();
+        filtered = filtered.filter((t) => new Date(t.createdAt).getTime() >= start);
+      }
+      if (filters.endDate) {
+        const end = new Date(filters.endDate).getTime();
+        filtered = filtered.filter((t) => new Date(t.createdAt).getTime() <= end);
+      }
+      
+      // Prepare export data
+      const exportData = filtered.map((txn) => ({
+        date: new Date(txn.createdAt).toLocaleDateString(),
+        type: getTypeLabel(txn.type),
+        description: txn.description,
+        amount: `${txn.amount >= 0 ? '+' : ''}${txn.amount.toFixed(2)} SAR`,
+        orderId: txn.orderId || 'N/A',
+        balanceBefore: txn.balanceBefore.toFixed(2),
+        balanceAfter: txn.balanceAfter.toFixed(2),
+      }));
+      
+      const filename = `transactions-${new Date().toISOString().split('T')[0]}.csv`;
+      doExport(exportData, filename, [
+        { key: 'date', label: 'Date' },
+        { key: 'type', label: 'Type' },
+        { key: 'description', label: 'Description' },
+        { key: 'amount', label: 'Amount' },
+        { key: 'orderId', label: 'Order ID' },
+        { key: 'balanceBefore', label: 'Balance Before' },
+        { key: 'balanceAfter', label: 'Balance After' },
+      ]);
+      
+      logger.info('Transactions exported to CSV', { count: exportData.length, filename });
+    } catch (error) {
+      logger.error('Failed to export transactions', { error });
+      alert('Failed to export data. Please try again.');
+    }
   };
 
   return (

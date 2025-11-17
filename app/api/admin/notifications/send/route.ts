@@ -318,30 +318,77 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // WhatsApp (placeholder - requires WhatsApp Business API integration)
+      // WhatsApp via WhatsApp Business API
       if (channels.includes('whatsapp') && contact.phone) {
         try {
-          // TODO: Integrate WhatsApp Business API
-          // For now, log as placeholder
-          logger.info('[Admin Notification] WhatsApp not yet implemented', { phone: contact.phone });
-          results.whatsapp.failed++;
-          enqueueLog({
-            userId: contact.id,
-            channel: 'whatsapp',
-            type: 'broadcast',
-            recipient: contact.phone,
-            subject,
-            message,
-            status: 'failed',
-            errorMessage: 'WhatsApp channel not yet implemented',
-            metadata: {
-              phone: contact.phone,
-              name: contact.name,
-              priority: priority || 'normal',
-              broadcastId: broadcastId.toString(),
-              triggeredBy,
-            },
-          });
+          const { sendWhatsAppTextMessage, isWhatsAppEnabled } = await import('@/lib/integrations/whatsapp');
+          
+          if (!isWhatsAppEnabled()) {
+            logger.warn('[Admin Notification] WhatsApp not configured', { phone: contact.phone });
+            results.whatsapp.failed++;
+            enqueueLog({
+              userId: contact.id,
+              channel: 'whatsapp',
+              type: 'broadcast',
+              recipient: contact.phone,
+              subject,
+              message,
+              status: 'failed',
+              errorMessage: 'WhatsApp Business API not configured. Add WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_ACCESS_TOKEN, WHATSAPP_BUSINESS_ACCOUNT_ID to environment.',
+              metadata: {
+                phone: contact.phone,
+                name: contact.name,
+                priority: priority || 'normal',
+                broadcastId: broadcastId.toString(),
+                triggeredBy,
+              },
+            });
+          } else {
+            const result = await sendWhatsAppTextMessage({
+              to: contact.phone,
+              message: `${subject}\n\n${message}`,
+            });
+
+            if (result.success) {
+              results.whatsapp.sent++;
+              enqueueLog({
+                userId: contact.id,
+                channel: 'whatsapp',
+                type: 'broadcast',
+                recipient: contact.phone,
+                subject,
+                message,
+                status: 'sent',
+                metadata: {
+                  phone: contact.phone,
+                  name: contact.name,
+                  priority: priority || 'normal',
+                  broadcastId: broadcastId.toString(),
+                  triggeredBy,
+                  messageId: result.messageId,
+                },
+              });
+            } else {
+              results.whatsapp.failed++;
+              enqueueLog({
+                userId: contact.id,
+                channel: 'whatsapp',
+                type: 'broadcast',
+                recipient: contact.phone,
+                subject,
+                message,
+                status: 'failed',
+                errorMessage: result.error || 'Unknown error',
+                metadata: {
+                  phone: contact.phone,
+                  name: contact.name,
+                  priority: priority || 'normal',
+                  broadcastId: broadcastId.toString(),
+                  triggeredBy,
+                },
+              });
+            }
+          }
         } catch (error) {
           logger.error('[Admin Notification] WhatsApp failed', { error, phone: contact.phone });
           results.whatsapp.failed++;

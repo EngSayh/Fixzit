@@ -268,7 +268,10 @@ JournalSchema.pre('save', async function(next) {
 
   const existing = await (this as any).constructor.findById(this._id).select('status').lean();
   if (existing?.status === 'POSTED' && this.isModified()) {
-    return next(new Error('Posted records are immutable'));
+    if (this.status === 'VOID') {
+      return next();
+    }
+    return next(new Error('Posted journals cannot be modified'));
   }
 
   next();

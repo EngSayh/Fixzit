@@ -17,8 +17,9 @@ import { WOPriority } from '@/server/work-orders/wo.schema';
 const createWorkOrderSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),
+  type: z.enum(["MAINTENANCE", "REPAIR", "INSPECTION", "INSTALLATION", "EMERGENCY", "PREVENTIVE", "CORRECTIVE"]).default("MAINTENANCE"),
   priority: WOPriority.default("MEDIUM"),
-  category: z.string().optional(),
+  category: z.string().default("GENERAL"),
   subcategory: z.string().optional(),
   propertyId: z.string().optional(),
   unitNumber: z.string().optional(),

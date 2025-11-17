@@ -30,7 +30,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   AlertCircle,
@@ -41,7 +40,6 @@ import {
   Search,
   Shield,
   TrendingUp,
-  XCircle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -176,7 +174,7 @@ export default function ClaimReviewPanel() {
     }
   };
 
-  const handleBulkAction = async (action: 'approve' | 'reject') => {
+  const handleBulkAction = async (_action: 'approve' | 'reject') => {
     if (selectedClaims.size === 0) {
       toast({
         variant: 'destructive',
@@ -363,7 +361,9 @@ export default function ClaimReviewPanel() {
               <SelectTrigger className="w-full md:w-[200px]">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4" />
-                  <SelectValue placeholder="الحالة" />
+                  <SelectValue>
+                    {statusFilter === 'all' ? 'الحالة' : statusFilter}
+                  </SelectValue>
                 </div>
               </SelectTrigger>
               <SelectContent>
@@ -378,7 +378,9 @@ export default function ClaimReviewPanel() {
               <SelectTrigger className="w-full md:w-[200px]">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4" />
-                  <SelectValue placeholder="الأولوية" />
+                  <SelectValue>
+                    {priorityFilter === 'all' ? 'الأولوية' : priorityFilter}
+                  </SelectValue>
                 </div>
               </SelectTrigger>
               <SelectContent>

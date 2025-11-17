@@ -6,6 +6,7 @@
 'use client';
 
 import React from 'react';
+import { logger } from '@/lib/logger';
 import { Card } from '@/components/ui/card';
 import { Download, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -54,8 +55,37 @@ export function SettlementStatementView({ statement }: SettlementStatementViewPr
     }).format(new Date(date));
   };
 
-  const downloadPDF = () => {
-    console.log('Downloading PDF for', statement.statementId);
+  const downloadPDF = async () => {
+    try {
+      const { exportToPDF } = await import('@/lib/export-utils');
+      
+      // Prepare statement data for PDF
+      const summaryData = [
+        { item: 'Gross Sales', amount: `${statement.summary.grossSales.toFixed(2)} SAR` },
+        { item: 'Platform Commission', amount: `-${statement.summary.platformCommissions.toFixed(2)} SAR` },
+        { item: 'Gateway Fees', amount: `-${statement.summary.gatewayFees.toFixed(2)} SAR` },
+        { item: 'VAT on Commission', amount: `-${statement.summary.vat.toFixed(2)} SAR` },
+        { item: 'Refunds', amount: `-${statement.summary.refunds.toFixed(2)} SAR` },
+        { item: 'Chargebacks', amount: `-${statement.summary.chargebacks.toFixed(2)} SAR` },
+        { item: 'Reserves', amount: `-${statement.summary.reserves.toFixed(2)} SAR` },
+        { item: 'Net Payout', amount: `${statement.summary.netPayout.toFixed(2)} SAR` },
+      ];
+      
+      const filename = `statement-${statement.statementId}.pdf`;
+      await exportToPDF(summaryData, [
+        { key: 'item', label: 'Item' },
+        { key: 'amount', label: 'Amount' },
+      ], filename, {
+        title: 'Settlement Statement',
+        subtitle: `Statement ID: ${statement.statementId} | Period: ${new Date(statement.period.start).toLocaleDateString()} - ${new Date(statement.period.end).toLocaleDateString()}`,
+        orientation: 'portrait',
+      });
+      
+      logger.info('Settlement statement downloaded', { statementId: statement.statementId, filename });
+    } catch (error) {
+      logger.error('Failed to download statement', { error, statementId: statement.statementId });
+      alert('Failed to download statement. Please try again.');
+    }
   };
 
   return (

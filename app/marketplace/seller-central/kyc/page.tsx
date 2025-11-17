@@ -37,7 +37,7 @@ export default function SellerKYCPage() {
       setLoading(true);
       const response = await fetch('/api/souq/seller-central/kyc/status');
       if (!response.ok) throw new Error('Failed to fetch KYC status');
-      const { success, ...status } = await response.json();
+      const { success: _success, ...status } = await response.json();
       setKYCStatus(status);
       setCurrentStep(status.currentStep || 'company_info');
     } catch (err) {

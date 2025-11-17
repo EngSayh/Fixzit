@@ -390,7 +390,7 @@ class AccountHealthService {
     if (!seller) return;
 
     switch (violation.action) {
-      case 'listing_suppression':
+      case 'listing_suppression': {
         // Suppress all active listings
         const { SouqListing } = await import('@/server/models/souq/Listing');
         await SouqListing.updateMany(
@@ -398,6 +398,7 @@ class AccountHealthService {
           { $set: { status: 'suppressed', suppressionReason: violation.description } }
         );
         break;
+      }
 
       case 'account_suspension':
         // Suspend seller account
@@ -439,10 +440,6 @@ class AccountHealthService {
     // Current metrics for specified period
     const current = await this.calculateAccountHealth(sellerId, period);
 
-    // Previous period for trend
-    const previousStart = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-    const previousEnd = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    
     // Simplified trend calculation
     const trend = await this.calculateTrend(sellerId, current.odr);
 
@@ -470,7 +467,6 @@ class AccountHealthService {
   private async calculateTrend(sellerId: string, currentODR: number): Promise<'improving' | 'stable' | 'declining'> {
     // Compare with 60-day period
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     const previousODR = await this.calculateODR(sellerId, sixtyDaysAgo);
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SalesChart } from '@/components/seller/analytics/SalesChart';
 import { ProductPerformanceTable } from '@/components/seller/analytics/ProductPerformanceTable';
@@ -107,6 +108,14 @@ const PERIOD_LABELS: Record<Period, string> = {
   ytd: 'Year to Date',
 };
 
+const formatTrendValue = (value: number) => {
+  if (!Number.isFinite(value)) {
+    return '0%';
+  }
+  const prefix = value > 0 ? '+' : '';
+  return `${prefix}${value.toFixed(1)}%`;
+};
+
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState<Period>('last_30_days');
   const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'products' | 'customers' | 'traffic'>('overview');
@@ -150,13 +159,77 @@ export default function AnalyticsPage() {
   }, [period]);
 
   const handleExportCSV = () => {
-    // TODO: Implement CSV export
-    console.log('Exporting to CSV...');
+    const analytics = data;
+    if (!analytics) {
+      logger.warn('Tried to export analytics before data loaded', { period });
+      alert('Analytics data is still loading. Please try again in a moment.');
+      return;
+    }
+
+    try {
+      const { exportToCSV } = require('@/lib/export-utils');
+      const { sales, customers } = analytics;
+      
+      // Prepare export data from current analytics
+      const exportData = [
+        { metric: 'Total Revenue', value: `${sales.revenue.total.toFixed(2)} SAR`, trend: formatTrendValue(sales.revenue.trend) },
+        { metric: 'Total Orders', value: sales.orders.total.toString(), trend: formatTrendValue(sales.orders.trend) },
+        { metric: 'Average Order Value', value: `${sales.averageOrderValue.current.toFixed(2)} SAR`, trend: formatTrendValue(sales.averageOrderValue.trend) },
+        { metric: 'New Customers', value: customers.acquisition.newCustomers.toString(), trend: 'N/A' },
+        { metric: 'Conversion Rate', value: `${sales.conversionRate.current.toFixed(2)}%`, trend: formatTrendValue(sales.conversionRate.trend) },
+      ];
+      
+      const filename = `analytics-${period}-${new Date().toISOString().split('T')[0]}.csv`;
+      exportToCSV(exportData, filename, [
+        { key: 'metric', label: 'Metric' },
+        { key: 'value', label: 'Value' },
+        { key: 'trend', label: 'Trend' },
+      ]);
+      
+      logger.info('Analytics exported to CSV', { period, filename });
+    } catch (error) {
+      logger.error('Failed to export CSV', { error });
+      alert('Failed to export data. Please try again.');
+    }
   };
 
-  const handleExportPDF = () => {
-    // TODO: Implement PDF export
-    console.log('Exporting to PDF...');
+  const handleExportPDF = async () => {
+    const analytics = data;
+    if (!analytics) {
+      logger.warn('Tried to export analytics before data loaded', { period, format: 'pdf' });
+      alert('Analytics data is still loading. Please try again in a moment.');
+      return;
+    }
+
+    try {
+      const { exportToPDF } = await import('@/lib/export-utils');
+      const { sales, customers } = analytics;
+      
+      // Prepare export data
+      const exportData = [
+        { metric: 'Total Revenue', value: `${sales.revenue.total.toFixed(2)} SAR`, trend: formatTrendValue(sales.revenue.trend) },
+        { metric: 'Total Orders', value: String(sales.orders.total), trend: formatTrendValue(sales.orders.trend) },
+        { metric: 'Average Order Value', value: `${sales.averageOrderValue.current.toFixed(2)} SAR`, trend: formatTrendValue(sales.averageOrderValue.trend) },
+        { metric: 'New Customers', value: String(customers.acquisition.newCustomers), trend: 'N/A' },
+        { metric: 'Conversion Rate', value: `${sales.conversionRate.current.toFixed(2)}%`, trend: formatTrendValue(sales.conversionRate.trend) },
+      ];
+      
+      const filename = `analytics-${period}-${new Date().toISOString().split('T')[0]}.pdf`;
+      await exportToPDF(exportData, [
+        { key: 'metric', label: 'Metric' },
+        { key: 'value', label: 'Value' },
+        { key: 'trend', label: 'Trend' },
+      ], filename, {
+        title: 'Analytics Dashboard Export',
+        subtitle: `Period: ${period.replace('_', ' ')}`,
+        orientation: 'portrait',
+      });
+      
+      logger.info('Analytics exported to PDF', { period, filename });
+    } catch (error) {
+      logger.error('Failed to export PDF', { error });
+      alert('Failed to export data. Please try again.');
+    }
   };
 
   return (

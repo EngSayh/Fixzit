@@ -124,7 +124,6 @@ const CategorySchema = new Schema<ICategory>(
 // Indexes for performance
 CategorySchema.index({ parentCategoryId: 1, displayOrder: 1 });
 CategorySchema.index({ level: 1, isActive: 1 });
-CategorySchema.index({ path: 1 });
 CategorySchema.index({ 'name.en': 'text', 'name.ar': 'text' });
 
 // Virtual for full path names

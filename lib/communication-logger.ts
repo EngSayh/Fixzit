@@ -17,6 +17,7 @@ export interface CommunicationLog {
     twilioSid?: string;
     sendgridId?: string;
     whatsappId?: string;
+    messageId?: string;
     email?: string;
     phone?: string;
     name?: string;

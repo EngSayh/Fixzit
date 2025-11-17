@@ -14,7 +14,7 @@
 
 import { ObjectId } from 'mongodb';
 import { connectDb } from '@/lib/mongodb-unified';
-import { createClient } from 'redis';
+import { getRedisClient as getCacheRedisClient } from '@/lib/cache/redis';
 
 /**
  * Balance types
@@ -90,21 +90,6 @@ interface BalanceAdjustment {
 }
 
 /**
- * Redis client setup
- */
-let redisClient: ReturnType<typeof createClient> | null = null;
-
-async function getRedisClient() {
-  if (!redisClient) {
-    redisClient = createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379',
-    });
-    await redisClient.connect();
-  }
-  return redisClient;
-}
-
-/**
  * Seller Balance Service
  */
 export class SellerBalanceService {
@@ -112,20 +97,24 @@ export class SellerBalanceService {
    * Get seller balance (real-time from Redis)
    */
   static async getBalance(sellerId: string): Promise<SellerBalance> {
-    const redis = await getRedisClient();
+    const redis = await getCacheRedisClient();
     const key = `seller:${sellerId}:balance`;
 
     // Try to get from Redis cache
-    const cached = await redis.get(key);
-    if (cached) {
-      return JSON.parse(cached) as SellerBalance;
+    if (redis) {
+      const cached = await redis.get(key);
+      if (cached) {
+        return JSON.parse(cached) as SellerBalance;
+      }
     }
 
     // Calculate from database if not cached
     const balance = await this.calculateBalance(sellerId);
 
     // Cache for 5 minutes
-    await redis.setEx(key, 300, JSON.stringify(balance));
+    if (redis) {
+      await redis.setEx(key, 300, JSON.stringify(balance));
+    }
 
     return balance;
   }
@@ -532,7 +521,8 @@ export class SellerBalanceService {
    * Invalidate Redis cache for seller balance
    */
   private static async invalidateBalanceCache(sellerId: string): Promise<void> {
-    const redis = await getRedisClient();
+    const redis = await getCacheRedisClient();
+    if (!redis) return;
     const key = `seller:${sellerId}:balance`;
     await redis.del(key);
   }

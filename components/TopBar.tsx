@@ -25,8 +25,10 @@ import CurrencySelector from './i18n/CurrencySelector';
 import AppSwitcher from './topbar/AppSwitcher';
 import GlobalSearch from './topbar/GlobalSearch';
 import QuickActions from './topbar/QuickActions';
+import { TopMegaMenu } from './topbar/TopMegaMenu';
 import Portal from './Portal';
 import { logger } from '@/lib/logger';
+import { useTopBar } from '@/contexts/TopBarContext';
 
 // Type definitions
 interface OrgSettings {
@@ -42,7 +44,17 @@ interface Notification {
   timestamp: string;
   read: boolean;
   targetUrl?: string;
+  category?: string;
 }
+
+type NotificationFilter = 'all' | 'work_orders' | 'finance' | 'support';
+
+const NOTIFICATION_FILTERS: Array<{ id: NotificationFilter; labelKey: string; category?: string }> = [
+  { id: 'all', labelKey: 'notifications.filters.all' },
+  { id: 'work_orders', labelKey: 'notifications.filters.maintenance', category: 'maintenance' },
+  { id: 'finance', labelKey: 'notifications.filters.finance', category: 'finance' },
+  { id: 'support', labelKey: 'notifications.filters.system', category: 'system' },
+];
 
 /**
  * ✅ REFACTORED TopBar Component
@@ -62,6 +74,7 @@ export default function TopBar() {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [notifFilter, setNotifFilter] = useState<NotificationFilter>('all');
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const [logoError, setLogoError] = useState(false);
@@ -92,6 +105,9 @@ export default function TopBar() {
   const { hasUnsavedChanges, clearAllUnsavedChanges } = useFormState();
   const { t, isRTL } = useTranslation();
   const { isMobile } = useResponsive();
+  const { appLabelKey, appFallbackLabel, moduleLabelKey, moduleFallbackLabel } = useTopBar();
+  const appLabel = t(appLabelKey, appFallbackLabel);
+  const moduleLabel = t(moduleLabelKey, moduleFallbackLabel);
 
   // Close all popups helper
   const closeAllPopups = useCallback(() => {
@@ -193,7 +209,15 @@ export default function TopBar() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/notifications?limit=5&read=false', {
+      const params = new URLSearchParams({
+        limit: '5',
+        read: 'false',
+      });
+      const categoryValue = NOTIFICATION_FILTERS.find((f) => f.id === notifFilter)?.category;
+      if (categoryValue) {
+        params.set('category', categoryValue);
+      }
+      const response = await fetch(`/api/notifications?${params.toString()}`, {
         credentials: 'include'
       });
       if (response.ok) {
@@ -217,14 +241,14 @@ export default function TopBar() {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, notifFilter]);
 
   // Fetch notifications when dropdown opens
   useEffect(() => {
-    if (notifOpen && notifications.length === 0 && isAuthenticated) {
+    if (notifOpen && isAuthenticated) {
       fetchNotifications();
     }
-  }, [notifOpen, notifications.length, isAuthenticated, fetchNotifications]);
+  }, [notifOpen, notifFilter, isAuthenticated, fetchNotifications]);
 
   // Reposition dropdowns on resize/scroll
   useEffect(() => {
@@ -326,10 +350,10 @@ export default function TopBar() {
 
   // ✅ FIXED: Use semantic colors throughout
   return (
-    <header className={`sticky top-0 z-40 h-14 bg-card text-card-foreground ${isMobile ? 'px-2' : 'px-4'} shadow-sm border-b border-border`}>
-      <div className={`h-full flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+    <header className={`sticky top-0 z-40 h-16 bg-[#0061A8] text-white ${isMobile ? 'px-2' : 'px-4'} shadow-sm border-b border-black/20`}>
+      <div className={`h-full flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Left Section: Logo & App Switcher */}
-        <div className={`flex items-center gap-2 sm:gap-3 flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex items-center gap-3 flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <Button
             variant="ghost"
             onClick={handleLogoClick}
@@ -353,11 +377,20 @@ export default function TopBar() {
                 {orgSettings?.name?.substring(0, 2).toUpperCase() || 'FX'}
               </div>
             )}
-            <span className={`font-bold text-foreground ${isMobile ? 'hidden' : 'text-lg'} whitespace-nowrap ${isRTL ? 'text-right' : ''}`}>
-              {orgSettings?.name || t('common.brand')}
-            </span>
+            <div className={`flex flex-col ${isRTL ? 'text-right' : 'text-left'}`}>
+              <span className={`font-semibold ${isMobile ? 'hidden' : 'text-lg'}`}>
+                {orgSettings?.name || t('common.brand')}
+              </span>
+              <div className="flex flex-wrap items-center gap-1 text-[11px]">
+                <span className="rounded-full bg-white/20 px-2 py-0.5 uppercase tracking-wide">
+                  {appLabel}
+                </span>
+                <span className="text-white/80">{moduleLabel}</span>
+              </div>
+            </div>
           </Button>
           <AppSwitcher />
+          <TopMegaMenu />
         </div>
         
         {/* Center Section: Global Search */}
@@ -391,6 +424,8 @@ export default function TopBar() {
               notifOpen={notifOpen}
               setNotifOpen={setNotifOpen}
               setUserOpen={setUserOpen}
+              notifFilter={notifFilter}
+              setNotifFilter={setNotifFilter}
               notifBtnRef={notifBtnRef}
               notifPos={notifPos}
               setNotifPos={setNotifPos}
@@ -508,6 +543,8 @@ interface NotificationPopupProps {
   notifOpen: boolean;
   setNotifOpen: (open: boolean) => void;
   setUserOpen: (open: boolean) => void;
+  notifFilter: NotificationFilter;
+  setNotifFilter: (filter: NotificationFilter) => void;
   notifBtnRef: React.RefObject<HTMLButtonElement>;
   notifPos: { top: number; left: number; width: number };
   setNotifPos: (pos: { top: number; left: number; width: number }) => void;
@@ -527,6 +564,8 @@ function NotificationPopup({
   notifOpen,
   setNotifOpen,
   setUserOpen,
+  notifFilter,
+  setNotifFilter,
   notifBtnRef,
   notifPos,
   setNotifPos,
@@ -579,25 +618,38 @@ function NotificationPopup({
           }}
         >
           {/* Header */}
-          <div className="p-3 border-b border-border flex justify-between items-start">
-            <div>
-              <div className="font-semibold text-foreground">{t('nav.notifications')}</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {unreadCount > 0
-                  ? `${unreadCount} ${t('common.unread')}`
-                  : t('common.noNotifications')
-                }
+          <div className="p-3 border-b border-border">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="font-semibold text-foreground">{t('nav.notifications')}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {unreadCount > 0 ? `${unreadCount} ${t('common.unread')}` : t('common.noNotifications')}
+                </div>
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setNotifOpen(false)}
+                className="h-6 w-6 text-muted-foreground"
+                aria-label="Close notifications"
+              >
+                <X className="w-4 h-4" />
+              </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setNotifOpen(false)}
-              className="h-6 w-6 text-muted-foreground"
-              aria-label="Close notifications"
-            >
-              <X className="w-4 h-4" />
-            </Button>
+            <div className={`mt-3 flex flex-wrap gap-2 ${isRTL ? 'justify-end' : 'justify-start'}`}>
+              {NOTIFICATION_FILTERS.map((filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  onClick={() => setNotifFilter(filter.id)}
+                  className={`rounded-full px-3 py-1 text-xs ${
+                    notifFilter === filter.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {t(filter.labelKey, filter.id)}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Notification List */}
