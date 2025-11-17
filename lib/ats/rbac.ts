@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 
 const ATS_UPGRADE_PATH = '/billing/upgrade?feature=ats';
 const ATS_SEAT_USER_ROLES = ['HR', 'CORPORATE_ADMIN', 'ADMIN', 'FM_MANAGER', 'PROPERTY_MANAGER'];
-const ATS_SEAT_PROFESSIONAL_ROLES = ['HR Manager', 'Recruiter', 'Hiring Manager', 'Corporate Admin', 'Talent Acquisition Lead'];
+const ATS_SEAT_PROFESSIONAL_ROLES = ['HR', 'CORPORATE_ADMIN'];
 const ATS_SEAT_REQUIRED_ROLES: ATSRole[] = ['Corporate Admin', 'HR Manager', 'Recruiter', 'Hiring Manager'];
 
 export type AtsModuleAccess = {
@@ -273,7 +273,7 @@ async function ensureAtsModuleAccess(
   if (module.seats !== Number.MAX_SAFE_INTEGER && ATS_SEAT_REQUIRED_ROLES.includes(role)) {
     const usage = await countAtsSeatUsage(orgId);
     module.seatUsage = usage;
-    if (usage > module.seats) {
+    if (usage >= module.seats) {
       return {
         module,
         errorResponse: NextResponse.json(

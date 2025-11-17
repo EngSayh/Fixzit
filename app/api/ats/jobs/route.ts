@@ -15,7 +15,7 @@ const CreateJobSchema = z.object({
   department: z.string().min(1, 'Department is required'),
   description: z.string().optional(),
   jobType: z.enum(['full-time', 'part-time', 'contract', 'temporary', 'internship', 'remote', 'hybrid']).default('full-time'),
-  status: z.enum(['draft', 'pending', 'published', 'closed', 'archived']).optional(),
+  status: z.enum(['draft', 'pending', 'published', 'closed', 'archived']).default('pending'),
   visibility: z.enum(['internal', 'public']).default('public'),
   location: z
     .object({
@@ -30,13 +30,23 @@ const CreateJobSchema = z.object({
       max: z.number().min(0).optional(),
       currency: z.string().optional(),
     })
+    .refine(
+      (val: { min?: number; max?: number; currency?: string }) =>
+        typeof val.min !== 'number' ||
+        typeof val.max !== 'number' ||
+        val.max >= val.min,
+      {
+        message: 'Maximum salary must be greater than or equal to minimum salary.',
+        path: ['max'],
+      }
+    )
     .optional(),
   requirements: z.array(z.string()).optional(),
   benefits: z.array(z.string()).optional(),
   skills: z.array(z.string()).optional(),
   screeningRules: z
     .object({
-      minYears: z.number().min(0).optional(),
+      minYears: z.number().min(0).max(50, 'Minimum years of experience must be less than or equal to 50').optional(),
       requiredSkills: z.array(z.string()).optional(),
       autoRejectMissingSkills: z.boolean().optional(),
       autoRejectMissingExperience: z.boolean().optional(),
@@ -197,7 +207,7 @@ export async function POST(req: NextRequest) {
             error: 'Job post limit reached for your ATS plan',
             limit: atsModule.jobPostLimit,
           },
-          { status: 403 }
+          { status: 402 }
         );
       }
     }
@@ -214,7 +224,6 @@ export async function POST(req: NextRequest) {
       orgId,
       slug,
       postedBy: userId,
-      status: normalized.status || 'pending'
     });
     return NextResponse.json({ success: true, data: job }, { status: 201 });
   } catch (error) {
