@@ -482,6 +482,7 @@ async function testWorkOrderEndpoints() {
       body: {
         title: 'Test Work Order - Leaking Faucet',
         description: 'Kitchen faucet is leaking and needs repair',
+        type: 'MAINTENANCE',
         priority: 'MEDIUM',
         category: 'PLUMBING',
         propertyId: testUserId || '691a122168aef400bf90dbbe', // API extracts this into location.propertyId
