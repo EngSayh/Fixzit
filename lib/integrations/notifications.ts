@@ -500,9 +500,21 @@ function extractWhatsAppParameters(notification: NotificationPayload): any[] {
 // Bulk Notification Helper
 // =============================================================================
 
+type ChannelSenders = {
+  push: typeof sendFCMNotification;
+  email: typeof sendEmailNotification;
+  sms: typeof sendSMSNotification;
+  whatsapp: typeof sendWhatsAppNotification;
+};
+
+interface BulkNotificationOptions {
+  senders?: Partial<ChannelSenders>;
+}
+
 export async function sendBulkNotifications(
   notification: NotificationPayload,
-  recipients: NotificationRecipient[]
+  recipients: NotificationRecipient[],
+  options: BulkNotificationOptions = {}
 ): Promise<BulkNotificationResult> {
   logger.info('[Notifications] Sending bulk notifications', {
     count: recipients.length,
@@ -520,6 +532,13 @@ export async function sendBulkNotifications(
   if (recipients.length === 0) {
     return result;
   }
+
+  const senders: ChannelSenders = {
+    push: options.senders?.push ?? sendFCMNotification,
+    email: options.senders?.email ?? sendEmailNotification,
+    sms: options.senders?.sms ?? sendSMSNotification,
+    whatsapp: options.senders?.whatsapp ?? sendWhatsAppNotification,
+  };
 
   const batchSize = 50;
   const batchCount = Math.ceil(recipients.length / batchSize);
@@ -552,16 +571,16 @@ export async function sendBulkNotifications(
           try {
             switch (channel) {
               case 'push':
-                await sendFCMNotification(recipient.userId, notification);
+                await senders.push(recipient.userId, notification);
                 break;
               case 'email':
-                await sendEmailNotification(recipient, notification);
+                await senders.email(recipient, notification);
                 break;
               case 'sms':
-                await sendSMSNotification(recipient, notification);
+                await senders.sms(recipient, notification);
                 break;
               case 'whatsapp':
-                await sendWhatsAppNotification(recipient, notification);
+                await senders.whatsapp(recipient, notification);
                 break;
             }
             result.succeeded += 1;
