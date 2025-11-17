@@ -208,7 +208,7 @@ export class AutoRepricerService {
             changePercent,
             reason: 'auto_repricer',
             competitorPrice: offers[0]?.price,
-            competitorListingId: offers[0]?._id?.toString(),
+            competitorListingId: offers[0]?.id,
             autoRepricerRule: `${rule.targetPosition}-${rule.undercut}`,
             salesBefore: recentOrders / 7, // Average per day
             createdAt: new Date()
@@ -441,7 +441,8 @@ export class AutoRepricerService {
     })
       .sort({ createdAt: 1 })
       .select({ createdAt: 1, newPrice: 1, reason: 1 })
-      .lean<{ createdAt: Date; newPrice: number; reason: string }>();
+      .lean<{ createdAt: Date; newPrice: number; reason: string }[]>()
+      .exec();
     
     return history.map(entry => ({
       date: entry.createdAt,

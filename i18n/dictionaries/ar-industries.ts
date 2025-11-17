@@ -658,6 +658,15 @@ helpCenter: {
 ats: {
   title: 'التوظيف (نظام تتبع المتقدمين)',
   subtitle: 'نظام تتبع المتقدمين - إدارة الوظائف والطلبات والمقابلات',
+  errors: {
+    moduleDisabled: 'وحدة ATS غير مفعلة لمؤسستك. يرجى الترقية للوصول إلى ميزات التوظيف.',
+    seatLimitExceeded: 'تم تجاوز حد مقاعد ATS. الاستخدام الحالي: {{usage}}/{{limit}}. يرجى ترقية خطتك لإضافة المزيد من المستخدمين.',
+    jobPostLimitExceeded: 'تم الوصول إلى حد إعلانات الوظائف لخطة ATS الخاصة بك. لديك {{count}}/{{limit}} وظيفة نشطة. يرجى الترقية لنشر المزيد من الوظائف.',
+    authenticationRequired: 'مطلوب المصادقة للوصول إلى ميزات ATS',
+    insufficientPermissions: 'صلاحيات غير كافية لتنفيذ هذا الإجراء',
+    jobCreationFailed: 'فشل إنشاء إعلان الوظيفة',
+    jobsFetchFailed: 'فشل جلب الوظائف',
+  },
   tabs: {
     jobs: 'الوظائف',
     applications: 'الطلبات',

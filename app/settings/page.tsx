@@ -11,6 +11,15 @@ import { Switch } from '@/components/ui/switch';
 import { Bell, Lock, User, Palette } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
+const NOTIFICATION_LABELS: Record<string, { key: string; fallback: string }> = {
+  email: { key: 'settings.notifications.email', fallback: 'Email Alerts' },
+  sms: { key: 'settings.notifications.sms', fallback: 'SMS Alerts' },
+  push: { key: 'settings.notifications.push', fallback: 'Push Notifications' },
+  workOrders: { key: 'settings.notifications.workOrders', fallback: 'Work Orders' },
+  maintenance: { key: 'settings.notifications.maintenance', fallback: 'Maintenance Updates' },
+  reports: { key: 'settings.notifications.reports', fallback: 'Reports' },
+};
+
 export default function SettingsPage() {
   const { t } = useTranslation();
   const [notifications, setNotifications] = useState({
@@ -21,6 +30,13 @@ export default function SettingsPage() {
     maintenance: true,
     reports: false
   });
+  const getNotificationLabel = (key: string) => {
+    const entry = NOTIFICATION_LABELS[key] ?? {
+      key: `settings.notifications.${key}`,
+      fallback: key.replace(/([A-Z])/g, ' $1').trim()
+    };
+    return t(entry.key, entry.fallback);
+  };
 
   return (
     <div className="min-h-screen bg-muted dark:bg-neutral-900">
@@ -126,7 +142,7 @@ export default function SettingsPage() {
                 {Object.entries(notifications).map(([key, value]) => (
                   <div key={key} className="flex items-center justify-between">
                     <Label htmlFor={key} className="capitalize">
-                      {t(`settings.notifications.${key}`, key.replace(/([A-Z])/g, ' $1').trim())}
+                      {getNotificationLabel(key)}
                     </Label>
                     <Switch
                       id={key}
@@ -194,4 +210,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

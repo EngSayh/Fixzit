@@ -23,7 +23,7 @@ function coerceIdsDeep(value: unknown): unknown {
 }
 
 type TransformableDocument = {
-  _id?: Types.ObjectId | string | { toString?: () => string };
+  _id?: unknown;
   __v?: unknown;
   id?: string;
   [key: string]: unknown;
@@ -34,12 +34,13 @@ export function toJSONClean(schema: Schema) {
     virtuals: true,
     versionKey: false,
     transform(_doc: unknown, ret: TransformableDocument) {
-      if (ret._id != null) {
+      const rawId = ret._id as Types.ObjectId | string | { toString?: () => string } | undefined;
+      if (rawId != null) {
         const normalizedId =
-          typeof ret._id === 'string'
-            ? ret._id
-            : typeof ret._id?.toString === 'function'
-              ? ret._id.toString()
+          typeof rawId === 'string'
+            ? rawId
+            : typeof rawId?.toString === 'function'
+              ? rawId.toString()
               : undefined;
         if (normalizedId) {
           ret.id = normalizedId;

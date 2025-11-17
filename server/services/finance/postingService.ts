@@ -33,6 +33,7 @@ import Decimal from 'decimal.js';
 import JournalModel, { IJournal, IJournalLine } from '../../models/finance/Journal';
 import LedgerEntryModel, { ILedgerEntry } from '../../models/finance/LedgerEntry';
 import ChartAccountModel, { IChartAccount } from '../../models/finance/ChartAccount';
+import { nextNumber } from '../../lib/numbering';
 
 export interface CreateJournalInput {
   orgId: Types.ObjectId;
@@ -95,13 +96,13 @@ class PostingService {
 
     // Fetch account details for denormalization
     const accountIds = lines.map(line => line.accountId);
+    const expectedOrgId = orgId.toString();
     const accounts = await ChartAccountModel.find({ 
       _id: { $in: accountIds }, 
-      orgId, 
       isActive: true 
     });
 
-    if (accounts.length !== accountIds.length) {
+    if (accounts.length !== accountIds.length || accounts.some(acc => acc.orgId?.toString() !== expectedOrgId)) {
       throw new Error('One or more accounts not found or inactive');
     }
 
@@ -132,8 +133,11 @@ class PostingService {
     });
 
     // Create journal entry
+    const journalNumber = await nextNumber(orgId.toString(), 'JE');
+
     const journal = await JournalModel.create({
       orgId,
+      journalNumber,
       journalDate,
       description,
       sourceType,
@@ -176,26 +180,17 @@ class PostingService {
       throw new Error('Cannot post unbalanced journal entry');
     }
 
-    // FIX 1: Start database transaction for atomicity
-    let session: ClientSession | null = null;
-    try {
-      // For test compatibility: check if session is supported
-      if (JournalModel.db && typeof JournalModel.db.startSession === 'function') {
-        session = await JournalModel.db.startSession();
-        session.startTransaction();
-      }
-    } catch {
-      // Tests with mocks may not support sessions - continue without
-      logger.warn('[PostingService] Transaction not available, continuing without (test mode)');
-    }
-
-    try {
+    const executePosting = async (session: ClientSession | null) => {
       // FIX 2: Bulk-fetch all accounts (eliminates N+1 query bug)
       const accountIds = [...new Set(journal.lines.map((line: IJournalLine) => line.accountId))];
-      const accounts = await ChartAccountModel.find({
+      const accountQuery = ChartAccountModel.find({
         _id: { $in: accountIds },
         orgId: journal.orgId
-      }, null, session ? { session } : {});
+      });
+      if (session) {
+        accountQuery.session(session);
+      }
+      const accounts = await accountQuery.exec();
 
       const accountMap = new Map(
         accounts.map((acc: IChartAccount & Document) => [acc._id.toString(), acc])
@@ -347,28 +342,35 @@ class PostingService {
       
       await journal.save(session ? { session } : {});
 
-      // Commit transaction if active
-      if (session) {
-        await session.commitTransaction();
-      }
-
       return {
         journal,
         ledgerEntries,
         accountBalances
       };
-    } catch (error) {
-      // Rollback transaction on error
-      if (session) {
+    };
+
+    // FIX 1: Start database transaction for atomicity when supported
+    if (JournalModel.db && typeof JournalModel.db.startSession === 'function') {
+      const session = await JournalModel.db.startSession();
+      try {
+        await session.startTransaction();
+        const result = await executePosting(session);
+        await session.commitTransaction();
+        return result;
+      } catch (error) {
         await session.abortTransaction();
-      }
-      throw error;
-    } finally {
-      // Clean up session
-      if (session) {
+        const message = (error as Error).message || '';
+        if (message.includes('Transaction numbers are only allowed')) {
+          logger.warn('[PostingService] Transactions unavailable on this MongoDB instance. Retrying without transactional session.');
+          return executePosting(null);
+        }
+        throw error;
+      } finally {
         await session.endSession();
       }
     }
+
+    return executePosting(null);
   }
 
   /**

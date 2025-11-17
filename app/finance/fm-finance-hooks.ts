@@ -209,12 +209,12 @@ export async function updateOwnerStatement(
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
   
-  const existingTransactions = await FMFinancialTransaction.find({
+  const existingTransactions = (await FMFinancialTransaction.find({
     ownerId,
     propertyId,
     'statementPeriod.month': currentMonth,
     'statementPeriod.year': currentYear
-  }).lean<LeanFMTransaction[]>();
+  }).lean()) as unknown as LeanFMTransaction[];
 
   logger.info(`[Finance] Updating statement for owner ${ownerId} property ${propertyId}`);
   logger.info(`[Finance] Adding ${transactions.length} new transactions`);
@@ -243,14 +243,14 @@ export async function generateOwnerStatement(
   period: { from: Date; to: Date }
 ): Promise<OwnerStatement> {
   // Query FMFinancialTransaction collection for transactions in period
-  const dbTransactions = await FMFinancialTransaction.find({
+  const dbTransactions = (await FMFinancialTransaction.find({
     ownerId,
     propertyId,
     transactionDate: {
       $gte: period.from,
       $lte: period.to
     }
-  }).sort({ transactionDate: 1 }).lean<LeanFMTransaction[]>();
+  }).sort({ transactionDate: 1 }).lean()) as unknown as LeanFMTransaction[];
 
   // Convert to interface format
   const transactions: FinancialTransaction[] = dbTransactions.map(transaction => ({
@@ -265,7 +265,7 @@ export async function generateOwnerStatement(
     category: transaction.category,
     description: transaction.description,
     date: transaction.transactionDate,
-    dueDate: transaction.dueDate,
+    dueDate: transaction.dueDate ?? undefined,
     status: transaction.status,
     createdAt: transaction.createdAt,
     updatedAt: transaction.updatedAt
@@ -298,11 +298,11 @@ export async function getTenantPendingInvoices(
   tenantId: string
 ): Promise<FinancialTransaction[]> {
   // Query FMFinancialTransaction collection for pending invoices
-  const dbInvoices = await FMFinancialTransaction.find({
+  const dbInvoices = (await FMFinancialTransaction.find({
     tenantId,
     type: 'INVOICE',
     status: 'PENDING'
-  }).sort({ dueDate: 1 }).lean<LeanFMTransaction[]>();
+  }).sort({ dueDate: 1 }).lean()) as unknown as LeanFMTransaction[];
 
   // Convert to interface format
   return dbInvoices.map(transaction => ({
@@ -317,7 +317,7 @@ export async function getTenantPendingInvoices(
     category: transaction.category,
     description: transaction.description,
     date: transaction.transactionDate,
-    dueDate: transaction.dueDate,
+    dueDate: transaction.dueDate ?? undefined,
     status: 'PENDING' as const,
     createdAt: transaction.createdAt,
     updatedAt: transaction.updatedAt

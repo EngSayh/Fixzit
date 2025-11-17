@@ -15,7 +15,6 @@
 import { createHash } from 'crypto';
 import { AttendanceRecord } from '@/server/models/hr.models';
 import type { PayrollLineDoc } from '@/server/models/hr.models';
-import { logger } from '@/lib/logger';
 
 export interface WPSRecord {
   employeeId: string; // Employee code/ID

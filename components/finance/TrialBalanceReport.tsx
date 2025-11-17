@@ -39,6 +39,14 @@ interface ITrialBalanceData {
   difference: number;
 }
 
+const ACCOUNT_TYPE_LABELS: Record<string, { key: string; fallback: string }> = {
+  ASSET: { key: 'finance.accountType.ASSET', fallback: 'Asset' },
+  LIABILITY: { key: 'finance.accountType.LIABILITY', fallback: 'Liability' },
+  EQUITY: { key: 'finance.accountType.EQUITY', fallback: 'Equity' },
+  REVENUE: { key: 'finance.accountType.REVENUE', fallback: 'Revenue' },
+  EXPENSE: { key: 'finance.accountType.EXPENSE', fallback: 'Expense' },
+};
+
 interface ITrialBalanceReportProps {
   initialYear?: number;
   initialPeriod?: number;
@@ -68,6 +76,16 @@ export default function TrialBalanceReport({
   const [data, setData] = useState<ITrialBalanceData | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const getAccountTypeLabel = useCallback(
+    (type: string) => {
+      const entry = ACCOUNT_TYPE_LABELS[type] ?? {
+        key: `finance.accountType.${type}`,
+        fallback: type,
+      };
+      return t(entry.key, entry.fallback);
+    },
+    [t]
+  );
 
   // UI state
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(
@@ -267,7 +285,7 @@ export default function TrialBalanceReport({
               ) : (
                 <ChevronRight className="inline-block me-2 w-4 h-4" />
               )}
-              {t('finance.accountType.' + type, type)}
+              {getAccountTypeLabel(type)}
             </td>
             <td className="px-4 py-3 font-bold text-end text-foreground">{typeDebits.toFixed(2)}</td>
             <td className="px-4 py-3 font-bold text-end text-foreground">{typeCredits.toFixed(2)}</td>

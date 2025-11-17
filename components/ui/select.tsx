@@ -3,6 +3,38 @@
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import type { ReactNode } from 'react';
+
+// Helper: detect placeholder passed via legacy <SelectValue placeholder="..."> usage
+const SELECT_VALUE_DISPLAY_NAME = 'SelectValue';
+
+function extractPlaceholderFromNode(node: ReactNode): string | undefined {
+  if (!node) {
+    return undefined;
+  }
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const found = extractPlaceholderFromNode(child);
+      if (found) {
+        return found;
+      }
+    }
+    return undefined;
+  }
+  if (typeof node === 'object' && React.isValidElement(node)) {
+    const elementType = node.type as { displayName?: string };
+    if (elementType?.displayName === SELECT_VALUE_DISPLAY_NAME) {
+      const maybe = (node.props as SelectValueProps)?.placeholder;
+      if (typeof maybe === 'string' && maybe.trim().length > 0) {
+        return maybe;
+      }
+    }
+    if (node.props?.children) {
+      return extractPlaceholderFromNode(node.props.children);
+    }
+  }
+  return undefined;
+}
 
 // --- Main Select Component ---
 
@@ -40,6 +72,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     ...props 
   }, ref) => {
     
+    const derivedPlaceholder = placeholder ?? extractPlaceholderFromNode(children);
+
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
       // Propagate the original event
       if (onChange) {
@@ -59,7 +93,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     if (value !== undefined) {
       selectProps.value = value;
     } else {
-      selectProps.defaultValue = defaultValue ?? (placeholder ? '' : undefined);
+      selectProps.defaultValue = defaultValue ?? (derivedPlaceholder ? '' : undefined);
     }
 
     return (
@@ -82,9 +116,9 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             The 'value=""' is crucial for the placeholder to work
             with 'required' and form validation.
           */}
-          {placeholder && (
+          {derivedPlaceholder && (
             <option value="" disabled hidden>
-              {placeholder}
+              {derivedPlaceholder}
             </option>
           )}
           
@@ -195,6 +229,8 @@ interface SelectValueProps extends React.HTMLAttributes<HTMLSpanElement> {
   placeholder?: string;
 }
 
+let hasLoggedSelectValueWarning = false;
+
 /**
  * @deprecated This component is provided for backward compatibility only.
  * With the new native select implementation, you don't need SelectValue.
@@ -202,7 +238,8 @@ interface SelectValueProps extends React.HTMLAttributes<HTMLSpanElement> {
  */
 export const SelectValue: React.FC<SelectValueProps> = () => {
   // Warn developers during development
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' && !hasLoggedSelectValueWarning) {
+    hasLoggedSelectValueWarning = true;
     import('../../lib/logger').then(({ logWarn }) => {
       logWarn(
         'SelectValue is deprecated and non-functional with the new native Select. ' +
