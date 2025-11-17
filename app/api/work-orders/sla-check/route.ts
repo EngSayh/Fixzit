@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { WorkOrder } from '@/server/models/WorkOrder';
 
 import { logger } from '@/lib/logger';
+import { parseDate } from '@/lib/date-utils';
 /**
  * POST /api/work-orders/sla-check
  * Check for SLA breaches and send escalation notifications
@@ -34,7 +35,7 @@ export async function POST() {
     
     for (const wo of workOrders) {
       // TODO(schema-migration): Schema has responseDeadline/resolutionDeadline, not deadline
-      const deadline = new Date((wo.sla as any)?.resolutionDeadline || Date.now());
+      const deadline = parseDate((wo.sla as any)?.resolutionDeadline, () => new Date());
       const diff = deadline.getTime() - now.getTime();
       
       if (diff <= 0) {
@@ -101,7 +102,7 @@ export async function GET() {
       critical: 0,
       breached: 0,
       workOrders: allWorkOrders.map((wo: any) => {
-        const deadline = new Date(wo.sla?.resolutionDeadline || Date.now());
+        const deadline = parseDate(wo.sla?.resolutionDeadline, () => new Date());
         const diff = deadline.getTime() - now.getTime();
         const hours = Math.floor(Math.abs(diff) / (1000 * 60 * 60));
         

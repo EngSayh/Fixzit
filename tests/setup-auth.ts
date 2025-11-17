@@ -1,4 +1,4 @@
-import { chromium, FullConfig } from '@playwright/test';
+import { chromium, FullConfig, BrowserContext } from '@playwright/test';
 import { mkdir } from 'fs/promises';
 import { URLSearchParams } from 'url';
 
@@ -169,17 +169,7 @@ async function globalSetup(config: FullConfig) {
       await page.goto(`${baseURL}/dashboard`, { waitUntil: 'networkidle' }).catch(() => {});
       await page.waitForTimeout(2000);
 
-      const cookies = await context.cookies();
-      const hasSession = cookies.some(
-        c =>
-          c.name.includes('session') ||
-          c.name.includes('next-auth') ||
-          c.name === 'authjs.session-token'
-      );
-
-      if (!hasSession) {
-        console.warn(`  ⚠️  No auth cookie detected for ${role.name}. State may be invalid.`);
-      }
+      await ensureSessionCookie(context, baseURL);
 
       await context.storageState({ path: role.statePath });
       console.log(`✅ ${role.name} authenticated successfully`);
@@ -195,3 +185,19 @@ async function globalSetup(config: FullConfig) {
 }
 
 export default globalSetup;
+const SESSION_COOKIE_PATTERNS = ['session', 'next-auth'];
+
+async function ensureSessionCookie(context: BrowserContext, baseURL: string, timeoutMs = 5000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const cookies = await context.cookies(baseURL);
+    const hasSession = cookies.some((cookie) =>
+      SESSION_COOKIE_PATTERNS.some((pattern) => cookie.name.includes(pattern))
+    );
+    if (hasSession) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error('Auth session cookie was not detected before timeout');
+}

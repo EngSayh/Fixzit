@@ -15,6 +15,7 @@
 import { ObjectId } from 'mongodb';
 import { connectDb } from '@/lib/mongodb-unified';
 import { getRedisClient as getCacheRedisClient } from '@/lib/cache/redis';
+import { PayoutProcessorService } from '@/services/souq/settlements/payout-processor';
 
 /**
  * Balance types
@@ -72,9 +73,13 @@ interface WithdrawalRequest {
   bankAccount: {
     iban: string;
     accountHolderName: string;
+    bankName?: string;
+    accountNumber?: string;
+    swiftCode?: string;
   };
   payoutId?: string; // Reference to payout request
   notes?: string;
+  statementId: string;
 }
 
 /**
@@ -235,7 +240,8 @@ export class SellerBalanceService {
   static async requestWithdrawal(
     sellerId: string,
     amount: number,
-    bankAccount: WithdrawalRequest['bankAccount']
+    bankAccount: WithdrawalRequest['bankAccount'],
+    statementId: string
   ): Promise<WithdrawalRequest> {
     await connectDb();
     const db = (await connectDb()).connection.db!;
@@ -268,6 +274,10 @@ export class SellerBalanceService {
       throw new Error('You already have a pending withdrawal request');
     }
 
+    if (!statementId) {
+      throw new Error('statementId is required to request withdrawal');
+    }
+
     // Generate request ID
     const requestId = `WDR-${Date.now()}-${sellerId.slice(-6).toUpperCase()}`;
 
@@ -279,6 +289,7 @@ export class SellerBalanceService {
       status: 'pending',
       requestedAt: new Date(),
       bankAccount,
+      statementId,
     };
 
     // Save to database
@@ -316,24 +327,33 @@ export class SellerBalanceService {
       throw new Error(`Withdrawal is already ${request.status}`);
     }
 
-    // Update status
+    // Initiate payout (call PayoutProcessorService)
+    const bankAccount = this.normalizeBankAccount(request.bankAccount);
+    const payout = await PayoutProcessorService.requestPayout(
+      request.sellerId,
+      request.statementId,
+      bankAccount
+    );
+
+    const payoutStatus = payout.status === 'pending' ? 'processing' : payout.status;
+
+    // Update status with payout reference
     await withdrawalsCollection.updateOne(
       { requestId },
       {
         $set: {
-          status: 'approved',
+          status: payoutStatus,
           processedAt: new Date(),
+          payoutId: payout.payoutId,
           notes: `Approved by admin ${adminId}`,
         },
       }
     );
 
-    // Initiate payout (call PayoutProcessorService)
-    // TODO: Integrate with PayoutProcessorService.requestPayout()
-
     return {
       ...request,
-      status: 'approved',
+      status: payoutStatus as WithdrawalRequest['status'],
+      payoutId: payout.payoutId,
       processedAt: new Date(),
     };
   }
@@ -515,6 +535,28 @@ export class SellerBalanceService {
       description: `Reserve released for order ${orderId}`,
       metadata: { orderId },
     });
+  }
+
+  private static normalizeBankAccount(
+    bankAccount: WithdrawalRequest['bankAccount']
+  ): {
+    bankName: string;
+    accountNumber: string;
+    iban: string;
+    accountHolderName: string;
+    swiftCode?: string;
+  } {
+    if (!bankAccount.accountNumber) {
+      throw new Error('Account number is required for payout processing');
+    }
+
+    return {
+      bankName: bankAccount.bankName || 'UNKNOWN',
+      accountNumber: bankAccount.accountNumber,
+      iban: bankAccount.iban,
+      accountHolderName: bankAccount.accountHolderName,
+      swiftCode: bankAccount.swiftCode,
+    };
   }
 
   /**

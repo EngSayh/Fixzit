@@ -1,0 +1,546 @@
+import admin from 'firebase-admin';
+import sgMail from '@sendgrid/mail';
+import twilio from 'twilio';
+import axios from 'axios';
+import { logger } from '@/lib/logger';
+import type { NotificationPayload, NotificationRecipient } from '@/lib/fm-notifications';
+
+/**
+ * External Notification Service Integrations
+ * Implements SendGrid, Twilio, WhatsApp Business API, and Firebase Cloud Messaging
+ */
+
+// =============================================================================
+// Firebase Cloud Messaging (FCM) - Push Notifications
+// =============================================================================
+
+let fcmInitialized = false;
+
+function initializeFCM() {
+  if (fcmInitialized) return;
+
+  try {
+    if (!process.env.FIREBASE_ADMIN_PROJECT_ID) {
+      logger.warn('[FCM] Firebase credentials not configured');
+      return;
+    }
+
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n')
+      })
+    });
+
+    fcmInitialized = true;
+    logger.info('[FCM] Initialized successfully');
+  } catch (error) {
+    logger.error('[FCM] Initialization failed', { error });
+  }
+}
+
+export async function sendFCMNotification(
+  userId: string,
+  notification: NotificationPayload
+): Promise<void> {
+  try {
+    initializeFCM();
+
+    if (!fcmInitialized) {
+      logger.warn('[FCM] Skipping push notification (not initialized)');
+      return;
+    }
+
+    // Get user's FCM tokens from database
+    const tokens = await getUserFCMTokens(userId);
+    if (tokens.length === 0) {
+      logger.info('[FCM] No tokens found for user', { userId });
+      return;
+    }
+
+    // Build FCM message
+    const message: admin.messaging.MulticastMessage = {
+      tokens,
+      notification: {
+        title: notification.title,
+        body: notification.body
+      },
+      data: {
+        notificationId: notification.id,
+        event: notification.event,
+        deepLink: notification.deepLink || '',
+        ...Object.fromEntries(
+          Object.entries(notification.data || {}).map(([k, v]) => [k, String(v)])
+        )
+      },
+      android: {
+        priority: notification.priority === 'high' ? 'high' : 'normal',
+        notification: {
+          sound: 'default',
+          channelId: 'fixzit_notifications'
+        }
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+            badge: 1
+          }
+        }
+      },
+      webpush: {
+        notification: {
+          icon: '/img/logo.jpg',
+          badge: '/img/badge.png',
+          requireInteraction: notification.priority === 'high'
+        }
+      }
+    };
+
+    // Send notification
+    const response = await admin.messaging().sendEachForMulticast(message);
+
+    logger.info('[FCM] Push notification sent', {
+      userId,
+      successCount: response.successCount,
+      failureCount: response.failureCount
+    });
+
+    // Remove invalid tokens
+    if (response.failureCount > 0) {
+      const failedTokens = response.responses
+        .map((resp, idx) => (!resp.success ? tokens[idx] : null))
+        .filter(Boolean) as string[];
+
+      await removeInvalidFCMTokens(userId, failedTokens);
+    }
+  } catch (error) {
+    logger.error('[FCM] Failed to send push notification', { error, userId });
+    throw error;
+  }
+}
+
+async function getUserFCMTokens(userId: string): Promise<string[]> {
+  // Query database for user's FCM tokens
+  // This would come from a UserDevices collection
+  try {
+    const { User } = await import('@/server/models/User');
+    const user = await User.findOne({ userId }).select('fcmTokens').lean();
+    return user?.fcmTokens || [];
+  } catch (error) {
+    logger.error('[FCM] Failed to get user tokens', { error, userId });
+    return [];
+  }
+}
+
+async function removeInvalidFCMTokens(userId: string, tokens: string[]): Promise<void> {
+  try {
+    const { User } = await import('@/server/models/User');
+    await User.updateOne(
+      { userId },
+      { $pull: { fcmTokens: { $in: tokens } } }
+    );
+    logger.info('[FCM] Removed invalid tokens', { userId, count: tokens.length });
+  } catch (error) {
+    logger.error('[FCM] Failed to remove invalid tokens', { error, userId });
+  }
+}
+
+// =============================================================================
+// SendGrid - Email Notifications
+// =============================================================================
+
+let sendGridInitialized = false;
+
+function initializeSendGrid() {
+  if (sendGridInitialized) return;
+
+  try {
+    if (!process.env.SENDGRID_API_KEY) {
+      logger.warn('[SendGrid] API key not configured');
+      return;
+    }
+
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    sendGridInitialized = true;
+    logger.info('[SendGrid] Initialized successfully');
+  } catch (error) {
+    logger.error('[SendGrid] Initialization failed', { error });
+  }
+}
+
+export async function sendEmailNotification(
+  recipient: NotificationRecipient,
+  notification: NotificationPayload
+): Promise<void> {
+  try {
+    initializeSendGrid();
+
+    if (!sendGridInitialized) {
+      logger.warn('[SendGrid] Skipping email notification (not initialized)');
+      return;
+    }
+
+    if (!recipient.email) {
+      logger.warn('[SendGrid] No email address for recipient', { userId: recipient.userId });
+      return;
+    }
+
+    // Build email message
+    const message = {
+      to: recipient.email,
+      from: {
+        email: process.env.SENDGRID_FROM_EMAIL || 'noreply@fixzit.co',
+        name: process.env.SENDGRID_FROM_NAME || 'Fixzit'
+      },
+      subject: notification.title,
+      text: notification.body,
+      html: buildEmailHTML(notification, recipient),
+      category: ['notification', notification.event],
+      customArgs: {
+        notificationId: notification.id,
+        userId: recipient.userId,
+        event: notification.event
+      }
+    };
+
+    // Use template if configured
+    if (process.env.SENDGRID_TEMPLATE_NOTIFICATION) {
+      Object.assign(message, {
+        templateId: process.env.SENDGRID_TEMPLATE_NOTIFICATION,
+        dynamicTemplateData: {
+          name: recipient.name,
+          title: notification.title,
+          body: notification.body,
+          deepLink: notification.deepLink,
+          actionUrl: notification.deepLink ? `https://fixzit.co${notification.deepLink.replace('fixzit://', '/')}` : undefined,
+          priority: notification.priority,
+          ...notification.data
+        }
+      });
+    }
+
+    // Send email
+    await sgMail.send(message);
+
+    logger.info('[SendGrid] Email sent successfully', {
+      to: recipient.email,
+      subject: notification.title
+    });
+  } catch (error: any) {
+    logger.error('[SendGrid] Failed to send email', {
+      error: error.message,
+      code: error.code,
+      response: error.response?.body
+    });
+    throw error;
+  }
+}
+
+function buildEmailHTML(notification: NotificationPayload, recipient: NotificationRecipient): string {
+  const actionButton = notification.deepLink
+    ? `<a href="https://fixzit.co${notification.deepLink.replace('fixzit://', '/')}" style="display: inline-block; padding: 12px 24px; background: #0066cc; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0;">View Details</a>`
+    : '';
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${notification.title}</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: #f4f4f4; padding: 20px; border-radius: 8px;">
+        <h1 style="color: #0066cc; margin-top: 0;">${notification.title}</h1>
+        <p style="font-size: 16px;">${notification.body}</p>
+        ${actionButton}
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        <p style="font-size: 12px; color: #666;">
+          This email was sent to ${recipient.email} as part of your Fixzit notifications.
+          <br>
+          If you no longer wish to receive these emails, you can 
+          <a href="https://fixzit.co/settings/notifications" style="color: #0066cc;">manage your notification preferences</a>.
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+// =============================================================================
+// Twilio - SMS Notifications
+// =============================================================================
+
+let twilioClient: twilio.Twilio | null = null;
+
+function initializeTwilio() {
+  if (twilioClient) return;
+
+  try {
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+      logger.warn('[Twilio] Credentials not configured');
+      return;
+    }
+
+    twilioClient = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
+
+    logger.info('[Twilio] Initialized successfully');
+  } catch (error) {
+    logger.error('[Twilio] Initialization failed', { error });
+  }
+}
+
+export async function sendSMSNotification(
+  recipient: NotificationRecipient,
+  notification: NotificationPayload
+): Promise<void> {
+  try {
+    initializeTwilio();
+
+    if (!twilioClient) {
+      logger.warn('[Twilio] Skipping SMS notification (not initialized)');
+      return;
+    }
+
+    if (!recipient.phone) {
+      logger.warn('[Twilio] No phone number for recipient', { userId: recipient.userId });
+      return;
+    }
+
+    // Format message (SMS has 160 character limit for single message)
+    const message = `${notification.title}\n${notification.body}`;
+    const truncatedMessage = message.length > 160
+      ? message.substring(0, 157) + '...'
+      : message;
+
+    // Send SMS
+    const response = await twilioClient.messages.create({
+      body: truncatedMessage,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: recipient.phone,
+      statusCallback: `${process.env.NEXTAUTH_URL}/api/webhooks/twilio/status`
+    });
+
+    logger.info('[Twilio] SMS sent successfully', {
+      to: recipient.phone,
+      sid: response.sid,
+      status: response.status
+    });
+  } catch (error: any) {
+    logger.error('[Twilio] Failed to send SMS', {
+      error: error.message,
+      code: error.code,
+      status: error.status
+    });
+    throw error;
+  }
+}
+
+// =============================================================================
+// WhatsApp Business API - WhatsApp Notifications
+// =============================================================================
+
+export async function sendWhatsAppNotification(
+  recipient: NotificationRecipient,
+  notification: NotificationPayload
+): Promise<void> {
+  try {
+    if (!process.env.WHATSAPP_BUSINESS_API_KEY) {
+      logger.warn('[WhatsApp] API key not configured');
+      return;
+    }
+
+    if (!recipient.phone) {
+      logger.warn('[WhatsApp] No phone number for recipient', { userId: recipient.userId });
+      return;
+    }
+
+    // WhatsApp Business API requires approved templates
+    // Using template-based messaging
+    const templateName = getWhatsAppTemplate(notification.event);
+    
+    if (!templateName) {
+      logger.warn('[WhatsApp] No template for event', { event: notification.event });
+      return;
+    }
+
+    // Format phone number (WhatsApp requires E.164 format)
+    const phoneNumber = formatPhoneForWhatsApp(recipient.phone);
+
+    // Send WhatsApp message via WhatsApp Business API
+    const response = await axios.post(
+      `https://graph.facebook.com/v18.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+      {
+        messaging_product: 'whatsapp',
+        to: phoneNumber,
+        type: 'template',
+        template: {
+          name: templateName,
+          language: {
+            code: 'ar' // Arabic for Saudi market
+          },
+          components: [
+            {
+              type: 'body',
+              parameters: extractWhatsAppParameters(notification)
+            }
+          ]
+        }
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.WHATSAPP_BUSINESS_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    logger.info('[WhatsApp] Message sent successfully', {
+      to: phoneNumber,
+      messageId: response.data.messages?.[0]?.id,
+      template: templateName
+    });
+  } catch (error: any) {
+    logger.error('[WhatsApp] Failed to send message', {
+      error: error.message,
+      response: error.response?.data
+    });
+    throw error;
+  }
+}
+
+function getWhatsAppTemplate(event: string): string | null {
+  // Map events to approved WhatsApp templates
+  const templateMap: Record<string, string> = {
+    onTicketCreated: 'work_order_created',
+    onAssign: 'work_order_assigned',
+    onApprovalRequested: 'approval_required',
+    onApproved: 'approval_granted',
+    onClosed: 'work_order_closed'
+  };
+
+  return templateMap[event] || null;
+}
+
+function formatPhoneForWhatsApp(phone: string): string {
+  // Remove all non-digit characters
+  let cleaned = phone.replace(/\D/g, '');
+
+  // Add country code if missing (assume Saudi Arabia +966)
+  if (!cleaned.startsWith('966')) {
+    // Remove leading zero if present
+    if (cleaned.startsWith('0')) {
+      cleaned = cleaned.substring(1);
+    }
+    cleaned = '966' + cleaned;
+  }
+
+  return cleaned;
+}
+
+function extractWhatsAppParameters(notification: NotificationPayload): any[] {
+  // Extract dynamic parameters from notification data
+  // WhatsApp templates have placeholders like {{1}}, {{2}}, etc.
+  const params = [];
+
+  switch (notification.event) {
+    case 'onTicketCreated':
+      params.push(
+        { type: 'text', text: notification.data?.workOrderId || 'N/A' },
+        { type: 'text', text: notification.data?.tenantName || 'N/A' }
+      );
+      break;
+
+    case 'onAssign':
+      params.push(
+        { type: 'text', text: notification.data?.workOrderId || 'N/A' },
+        { type: 'text', text: notification.data?.technicianName || 'N/A' }
+      );
+      break;
+
+    case 'onApprovalRequested':
+      params.push(
+        { type: 'text', text: notification.data?.quotationId || 'N/A' },
+        { type: 'text', text: `SAR ${notification.data?.amount?.toLocaleString() || '0'}` }
+      );
+      break;
+
+    case 'onClosed':
+      params.push(
+        { type: 'text', text: notification.data?.workOrderId || 'N/A' }
+      );
+      break;
+  }
+
+  return params;
+}
+
+// =============================================================================
+// Bulk Notification Helper
+// =============================================================================
+
+export async function sendBulkNotifications(
+  notification: NotificationPayload,
+  recipients: NotificationRecipient[]
+): Promise<void> {
+  logger.info('[Notifications] Sending bulk notifications', {
+    count: recipients.length,
+    event: notification.event
+  });
+
+  // Send in parallel batches of 50 to avoid rate limits
+  const batchSize = 50;
+  const batches = [];
+
+  for (let i = 0; i < recipients.length; i += batchSize) {
+    const batch = recipients.slice(i, i + batchSize);
+    batches.push(batch);
+  }
+
+  for (const batch of batches) {
+    await Promise.all(
+      batch.map(async (recipient) => {
+        try {
+          // Send via preferred channels
+          for (const channel of recipient.preferredChannels) {
+            switch (channel) {
+              case 'push':
+                await sendFCMNotification(recipient.userId, notification);
+                break;
+              case 'email':
+                await sendEmailNotification(recipient, notification);
+                break;
+              case 'sms':
+                await sendSMSNotification(recipient, notification);
+                break;
+              case 'whatsapp':
+                await sendWhatsAppNotification(recipient, notification);
+                break;
+            }
+          }
+        } catch (error) {
+          logger.error('[Notifications] Failed to send to recipient', {
+            error,
+            userId: recipient.userId,
+            channels: recipient.preferredChannels
+          });
+        }
+      })
+    );
+
+    // Rate limiting delay between batches
+    if (batches.indexOf(batch) < batches.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+
+  logger.info('[Notifications] Bulk notifications sent', {
+    count: recipients.length,
+    event: notification.event
+  });
+}

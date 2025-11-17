@@ -20,6 +20,7 @@ import {
   AlertCircle, Clock} from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import ClientDate from '@/components/ClientDate';
+import { parseDate } from '@/lib/date-utils';
 
 interface InvoiceItem {
   description: string;
@@ -192,10 +193,13 @@ export default function InvoicesPage() {
               <div>
                 <p className="text-sm text-muted-foreground">{t('fm.invoices.paidThisMonth', 'Paid This Month')}</p>
                 <p className="text-2xl font-bold text-success">
-                  {invoices.filter((inv: Invoice) => 
-                    inv.status === 'PAID' && 
-                    new Date(inv.payments?.[0]?.date || Date.now()).getMonth() === new Date().getMonth()
-                  ).length}
+                  {invoices.filter((inv: Invoice) => {
+                    if (inv.status !== 'PAID') {
+                      return false;
+                    }
+                    const paymentDate = parseDate(inv.payments?.[0]?.date, () => new Date());
+                    return paymentDate.getMonth() === new Date().getMonth();
+                  }).length}
                 </p>
               </div>
               <CheckCircle className="w-8 h-8 text-success" />

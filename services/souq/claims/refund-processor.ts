@@ -2,6 +2,7 @@
 import { getDatabase } from '@/lib/mongodb-unified';
 import { createRefund } from '@/lib/paytabs';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
+import { logger } from '@/lib/logger';
 import { ClaimService } from './claim-service';
 
 export interface RefundRequest {

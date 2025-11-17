@@ -11,6 +11,7 @@
 
 import Redis from 'ioredis';
 import { logger } from '@/lib/logger';
+import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
 
 const DAY_SECONDS = 86400;
 const DAY_MS = DAY_SECONDS * 1000;
@@ -296,13 +297,18 @@ export class BudgetManager {
       `[BudgetManager] ALERT: Campaign ${campaignId} has used ${percentage}% of daily budget`
     );
 
-    // TODO: Send email/notification to seller
-    // const notificationService = await import('@/services/notifications');
-    // await notificationService.send({
-    //   userId: campaign.sellerId,
-    //   type: 'ad_budget_alert',
-    //   data: { campaignId, percentage },
-    // });
+    await this.enqueueSellerAlert({
+      sellerId: campaign.sellerId,
+      template: 'souq_ad_budget_alert',
+      internalAudience: 'souq-ads-ops',
+      subject: `Campaign ${campaignId} reached ${percentage}% of its budget`,
+      data: {
+        campaignId,
+        sellerId: campaign.sellerId,
+        percentage,
+        dailyBudget: campaign.dailyBudget,
+      },
+    });
   }
 
   /**
@@ -314,6 +320,8 @@ export class BudgetManager {
   ): Promise<void> {
     const { getDatabase } = await import('@/lib/mongodb-unified');
     const db = await getDatabase();
+
+    const campaign = await this.fetchCampaign(campaignId);
 
     await db.collection('souq_ad_campaigns').updateOne(
       { campaignId },
@@ -328,7 +336,40 @@ export class BudgetManager {
 
     logger.info(`[BudgetManager] Paused campaign ${campaignId}: ${reason}`);
 
-    // TODO: Send notification
+    await this.enqueueSellerAlert({
+      sellerId: campaign?.sellerId || 'unknown',
+      template: 'souq_ad_campaign_paused',
+      internalAudience: 'souq-ads-ops',
+      subject: `Campaign ${campaignId} paused (${reason})`,
+      data: {
+        campaignId,
+        reason,
+      },
+    });
+  }
+
+  private static async enqueueSellerAlert(params: {
+    sellerId: string;
+    template: string;
+    internalAudience: string;
+    subject: string;
+    data: Record<string, unknown>;
+  }): Promise<void> {
+    const { sellerId, template, internalAudience, subject, data } = params;
+
+    await Promise.all([
+      addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
+        to: sellerId,
+        template,
+        data,
+      }),
+      addJob(QUEUE_NAMES.NOTIFICATIONS, 'internal-notification', {
+        to: internalAudience,
+        priority: 'normal',
+        message: subject,
+        metadata: data,
+      }),
+    ]);
   }
 
   /**

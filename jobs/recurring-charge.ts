@@ -1,5 +1,6 @@
 import Subscription from '@/server/models/Subscription';
 import { logger } from '@/lib/logger';
+import { parseDate } from '@/lib/date-utils';
 
 export async function chargeDueMonthlySubs() {
   const paytabsDomain = process.env.PAYTABS_DOMAIN;
@@ -66,7 +67,7 @@ export async function chargeDueMonthlySubs() {
 
       if (data.tran_ref && data.payment_result?.response_status === 'A') {
         // ✅ Payment successful - update next billing date
-        const nextBillingDate = new Date(subscription.next_billing_date || new Date());
+        const nextBillingDate = parseDate(subscription.next_billing_date, () => new Date());
         nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
 
         await Subscription.findByIdAndUpdate(subscription._id, {

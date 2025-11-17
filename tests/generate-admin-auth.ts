@@ -5,7 +5,7 @@
  * Creates only the admin auth state to avoid rate limiting
  */
 
-import { chromium } from '@playwright/test';
+import { chromium, BrowserContext } from '@playwright/test';
 import { mkdir } from 'fs/promises';
 import { config } from 'dotenv';
 import { resolve } from 'path';
@@ -127,19 +127,7 @@ async function generateAuthState() {
     await page.waitForTimeout(3000);
 
     // Verify authentication
-    const cookies = await context.cookies();
-    const authCookie = cookies.find(c => 
-      c.name.includes('session') || 
-      c.name.includes('next-auth') ||
-      c.name === 'authjs.session-token'
-    );
-
-    if (!authCookie) {
-      console.warn('⚠️  Warning: No auth cookie found, authentication may have failed');
-      console.log('Cookies:', cookies.map(c => c.name).join(', '));
-    } else {
-      console.log(`✅ Auth cookie found: ${authCookie.name}`);
-    }
+    await ensureSessionCookie(context, baseURL);
 
     // Step 6: Save state
     const statePath = 'tests/state/admin.json';
@@ -165,3 +153,19 @@ generateAuthState()
     console.error(error);
     process.exit(1);
   });
+const SESSION_COOKIE_PATTERNS = ['session', 'next-auth'];
+
+async function ensureSessionCookie(context: BrowserContext, baseURL: string, timeoutMs = 5000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const cookies = await context.cookies(baseURL);
+    const hasSession = cookies.some((cookie) =>
+      SESSION_COOKIE_PATTERNS.some((pattern) => cookie.name.includes(pattern))
+    );
+    if (hasSession) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error('Auth session cookie was not detected before timeout');
+}
