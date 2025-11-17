@@ -334,8 +334,16 @@ export class PayoutProcessorService {
   private static async executeBankTransfer(
     payout: PayoutRequest
   ): Promise<BankTransferResponse> {
-    // TODO: Replace with actual SADAD/SPAN API integration
-    // This is a mock implementation
+    if (process.env.ENABLE_SADAD_PAYOUTS !== 'true') {
+      logger.warn('[PayoutProcessor] SADAD/SPAN integration disabled. Using manual fallback. See docs/payments/manual-withdrawal-process.md for the current runbook.');
+      return {
+        success: false,
+        errorCode: 'INTEGRATION_DISABLED',
+        errorMessage: 'SADAD/SPAN payouts are deferred until banking approvals complete.',
+      };
+    }
+    // Placeholder for future SADAD/SPAN integration. When ENABLE_SADAD_PAYOUTS=true
+    // this block should be replaced with the actual bank API client.
 
     logger.info(`Executing ${payout.method.toUpperCase()} transfer for ${payout.amount} SAR to ${payout.bankAccount.iban}`);
 

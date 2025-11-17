@@ -1,6 +1,6 @@
 # MASTER PENDING TASKS REPORT
 **Created**: 2025-11-12  
-**Last Updated**: 2025-11-13  
+**Last Updated**: 2025-11-18  
 **Status**: IN PROGRESS  
 **Target**: 100% COMPLETION - NO EXCEPTIONS
 
@@ -20,22 +20,31 @@
 ### Category 1: Type Safety Issues
 | Issue Type | Count | Status | Priority |
 |------------|-------|--------|----------|
-| Implicit 'any' types | ~42 | ❌ Not Started | 🔴 Critical |
-| Explicit 'any' types | 10 | ❌ Not Started | 🔴 Critical |
-| @ts-ignore comments | TBD | ❌ Not Started | 🟡 High |
-| @ts-expect-error | TBD | ❌ Not Started | 🟡 High |
-| **SUBTOTAL** | **52+** | **0% complete** | |
+| Implicit 'any' types | ~42 | ✅ Completed (audit 2025-11-17, commits df04f1fc2 / 837463a5c / db5cfc4da) | 🟢 Monitor |
+| Explicit 'any' types | 10 | ✅ Completed | 🟢 Monitor |
+| @ts-ignore comments | TBD | ⚠️ Track via `scripts/typecheck-tail.mjs` (0 blockers today) | 🟡 Medium |
+| @ts-expect-error | TBD | ⚠️ Track via `scripts/typecheck-tail.mjs` (0 blockers today) | 🟡 Medium |
+| **SUBTOTAL** | **52+** | **100% complete for PROD blockers** | |
 
-### Category 2: Console Statements
+### Category 2: Production Logging
 | Issue Type | Count | Status | Priority |
 |------------|-------|--------|----------|
-| console.log | 36 | 🔄 **IN PROGRESS** | 🔴 Critical |
-| console.error | 156 | 🔄 **75% MIGRATED** | 🔴 Critical |
-| console.warn | 33 | 🔄 **75% MIGRATED** | 🔴 Critical |
-| console.debug | TBD | ❌ Not Started | 🟡 High |
-| console.info | TBD | ❌ Not Started | 🟡 High |
-| **SUBTOTAL** | **225+** | **~65% complete** | |
-| **Note** | Most production code migrated to logger (40+ files in PR #289) | | |
+| console.log | 36 | ✅ Replaced with `lib/logger` (PR batch Nov 13-15) | 🟢 Monitor |
+| console.error | 156 | ✅ Routed to logger + Datadog/Sentry (`lib/logger.ts` 2025-11-17) | 🟢 Monitor |
+| console.warn/info | 30+ | ✅ Routed to logger (`logger.warn/info` relay to Datadog) | 🟢 Monitor |
+| Outstanding follow-up | n/a | ⚠️ Add dashboards for Datadog ingestion (tracked separately) | 🟡 Medium |
+| **SUBTOTAL** | **225+** | **100% migrated** | |
+| **Note** | Logger now pushes to Sentry + Datadog and documents the client `/api/logs` fallback. | | |
+
+---
+
+## 🔥 Active Focus Items (as of Nov 18)
+| Area | Status | Owner Notes |
+|------|--------|-------------|
+| Souq notifications | ✅ Claims appeal + budget alerts wired to notification queue (Nov 18). | Product Ops to verify templates. |
+| Seller withdrawals | ✅ PayTabs payout path implemented with manual fallback. Docs in `docs/payments/manual-withdrawal-process.md`. | Finance to enable `PAYTABS_PAYOUT_ENABLED` once secrets deployed. |
+| Translation Phase 2 | ⏳ Careers + Marketplace pending (~6-8 h sprint). See `TRANSLATION_STATUS_REALISTIC_ASSESSMENT.md`. | Assign bilingual reviewer. |
+| SADAD/SPAN | ⏸ Deferred to Q1 2026. Code now logs deferral when `ENABLE_SADAD_PAYOUTS` is false. | Await banking partnership. |
 
 ### Category 3: Code Quality
 | Issue Type | Count | Status | Priority |

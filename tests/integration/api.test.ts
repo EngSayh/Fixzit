@@ -1,3 +1,4 @@
+// @ts-expect-error - supertest types not installed yet, run: pnpm add -D @types/supertest
 import request from 'supertest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
@@ -443,7 +444,7 @@ describe('API Integration Tests', () => {
       }
       
       const responses = await Promise.all(requests);
-      const rateLimited = responses.filter(r => r.status === 429);
+      const rateLimited = responses.filter((r: any) => r.status === 429);
       
       expect(rateLimited.length).toBeGreaterThan(0);
     });

@@ -1,5 +1,6 @@
 import { logger } from '@/lib/logger';
 import { getDatabase } from '@/lib/mongodb-unified';
+import { createPayout } from '@/lib/paytabs';
 
 /**
  * Withdrawal Request from Seller
@@ -34,6 +35,7 @@ export interface Withdrawal {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   transactionId?: string;
   failureReason?: string;
+  notes?: string;
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;
@@ -86,42 +88,17 @@ export class WithdrawalService {
         updatedAt: new Date(),
       });
 
-      // TODO: Implement PayTabs payout API when available
-      // For now, create a refund-like transaction or use bank transfer flow
-      // PayTabs may require different API endpoint for payouts vs refunds
-      
       logger.info('[Withdrawal] Withdrawal initiated', {
         withdrawalId,
         sellerId: request.sellerId,
         amount: request.amount,
       });
 
-      // Update status to processing
-      await this.updateWithdrawalStatus(withdrawalId, 'processing');
+      const paytabsHandled = await this.tryPayTabsPayout(withdrawalId, request);
 
-      // ✅ Process payout via bank transfer
-      // Note: PayTabs supports card refunds but not direct bank payouts
-      // For seller withdrawals, Saudi banks typically require:
-      // 1. SARIE (Saudi Arabian Riyal Interbank Express) for same-day
-      // 2. Local bank transfer for next-day settlement
-      // 3. IBAN validation (already implemented above)
-      
-      // In production, integrate with:
-      // - SAMA's SARIE system for instant transfers (requires bank partnership)
-      // - Local bank APIs for ACH/SWIFT transfers
-      // - Or use payment aggregators like HyperPay/PayTabs Business for payouts
-      
-      // For now, mark as completed for manual processing via banking portal
-      await this.updateWithdrawalStatus(withdrawalId, 'completed', {
-        completedAt: new Date(),
-        transactionId: `BANK-${withdrawalId}`,
-      });
-
-      logger.info('[Withdrawal] Withdrawal completed (manual bank transfer)', {
-        withdrawalId,
-        iban: request.bankAccount.iban,
-        amount: request.amount,
-      });
+      if (!paytabsHandled) {
+        await this.markManualCompletion(withdrawalId, request, 'Manual payout per finance runbook');
+      }
 
       return {
         success: true,
@@ -266,5 +243,86 @@ export class WithdrawalService {
       .limit(limit)
       .toArray();
     return withdrawals as unknown as Withdrawal[];
+  }
+
+  private static isPayTabsEnabled(): boolean {
+    return process.env.PAYTABS_PAYOUT_ENABLED === 'true'
+      && !!process.env.PAYTABS_PROFILE_ID
+      && !!process.env.PAYTABS_SERVER_KEY;
+  }
+
+  private static async tryPayTabsPayout(
+    withdrawalId: string,
+    request: WithdrawalRequest
+  ): Promise<boolean> {
+    if (!this.isPayTabsEnabled()) {
+      logger.debug('[Withdrawal] PayTabs payout disabled, falling back to manual process', {
+        withdrawalId,
+      });
+      return false;
+    }
+
+    try {
+      const payout = await createPayout({
+        amount: request.amount,
+        currency: 'SAR',
+        reference: `WD-${withdrawalId}`,
+        description: `Seller withdrawal ${withdrawalId}`,
+        beneficiary: {
+          name: request.bankAccount.accountHolderName,
+          iban: request.bankAccount.iban,
+          bank: request.bankAccount.bankName,
+          accountNumber: request.bankAccount.accountNumber,
+        },
+        metadata: {
+          sellerId: request.sellerId,
+          statementId: request.statementId,
+        },
+      });
+
+      if (!payout.success) {
+        logger.error('[Withdrawal] PayTabs payout failed, manual process required', {
+          withdrawalId,
+          sellerId: request.sellerId,
+          error: payout.error,
+        });
+        return false;
+      }
+
+      const normalizedStatus = payout.status?.toUpperCase() === 'COMPLETED' ? 'completed' : 'processing';
+
+      await this.updateWithdrawalStatus(withdrawalId, normalizedStatus as Withdrawal['status'], {
+        transactionId: payout.payoutId,
+        notes: 'PayTabs payout submitted',
+      });
+
+      return true;
+    } catch (error) {
+      logger.error('[Withdrawal] PayTabs payout threw unexpected error', {
+        withdrawalId,
+        error,
+      });
+      return false;
+    }
+  }
+
+  private static async markManualCompletion(
+    withdrawalId: string,
+    request: WithdrawalRequest,
+    note?: string
+  ): Promise<void> {
+    await this.updateWithdrawalStatus(withdrawalId, 'completed', {
+      completedAt: new Date(),
+      transactionId: `MANUAL-${withdrawalId}`,
+      notes: note,
+    });
+
+    logger.info('[Withdrawal] Withdrawal completed manually (bank transfer)', {
+      withdrawalId,
+      iban: request.bankAccount.iban,
+      amount: request.amount,
+      sellerId: request.sellerId,
+      documentation: 'See docs/payments/manual-withdrawal-process.md',
+    });
   }
 }

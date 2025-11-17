@@ -91,7 +91,7 @@ test.describe('Critical User Flows', () => {
       await page.waitForSelector('[data-testid="work-orders-table"]');
       
       // Click first work order
-      await page.click('[data-testid="work-order-row"]').first();
+      await page.locator('[data-testid="work-order-row"]').first().click();
       
       // Should navigate to details page
       await expect(page).toHaveURL(/\/work-orders\/[a-zA-Z0-9-]+/);
@@ -106,7 +106,7 @@ test.describe('Critical User Flows', () => {
       await page.waitForSelector('[data-testid="work-orders-table"]');
       
       // Click first work order
-      await page.click('[data-testid="work-order-row"]').first();
+      await page.locator('[data-testid="work-order-row"]').first().click();
       
       // Click status dropdown
       await page.click('[data-testid="status-select"]');
@@ -157,7 +157,7 @@ test.describe('Critical User Flows', () => {
       await page.waitForSelector('[data-testid="property-card"]');
       
       // Click first property
-      await page.click('[data-testid="property-card"]').first();
+      await page.locator('[data-testid="property-card"]').first().click();
       
       // Should navigate to details
       await expect(page).toHaveURL(/\/properties\/[a-zA-Z0-9-]+/);
@@ -171,7 +171,7 @@ test.describe('Critical User Flows', () => {
       await page.waitForSelector('[data-testid="property-card"]');
       
       // Click first property
-      await page.click('[data-testid="property-card"]').first();
+      await page.locator('[data-testid="property-card"]').first().click();
       
       // Click add asset button
       await page.click('button:has-text("Add Asset")');
@@ -220,7 +220,7 @@ test.describe('Critical User Flows', () => {
       await page.waitForSelector('[data-testid="product-card"]');
       
       // Click first product
-      await page.click('[data-testid="product-card"]').first();
+      await page.locator('[data-testid="product-card"]').first().click();
       
       // Click add to cart
       await page.click('button:has-text("Add to Cart")');
@@ -237,7 +237,7 @@ test.describe('Critical User Flows', () => {
       // Add product to cart first
       await page.goto('/marketplace');
       await page.waitForSelector('[data-testid="product-card"]');
-      await page.click('[data-testid="product-card"]').first();
+      await page.locator('[data-testid="product-card"]').first().click();
       await page.click('button:has-text("Add to Cart")');
       
       // Navigate to cart
@@ -280,7 +280,7 @@ test.describe('Critical User Flows', () => {
       await page.waitForSelector('[data-testid="work-order-row"]');
       
       // Click first work order
-      await page.click('[data-testid="work-order-row"]').first();
+      await page.locator('[data-testid="work-order-row"]').first().click();
       
       // Click upload button
       await page.click('button:has-text("Upload"), button:has-text("Attach")');
@@ -302,7 +302,7 @@ test.describe('Critical User Flows', () => {
       await page.waitForSelector('[data-testid="work-order-row"]');
       
       // Click first work order
-      await page.click('[data-testid="work-order-row"]').first();
+      await page.locator('[data-testid="work-order-row"]').first().click();
       
       // Find and click first document
       const documentLink = page.locator('[data-testid="document-link"]').first();
@@ -319,11 +319,11 @@ test.describe('Critical User Flows', () => {
       await page.waitForSelector('[data-testid="work-order-row"]');
       
       // Click first work order
-      await page.click('[data-testid="work-order-row"]').first();
+      await page.locator('[data-testid="work-order-row"]').first().click();
       
       // Click download button
       const downloadPromise = page.waitForEvent('download');
-      await page.click('[data-testid="document-download"]').first();
+      await page.locator('[data-testid="document-download"]').first().click();
       
       // Wait for download
       const download = await downloadPromise;

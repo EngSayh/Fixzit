@@ -1,4 +1,6 @@
+import { randomUUID } from 'crypto';
 import { logger } from '@/lib/logger';
+import { sendFCMNotification, sendEmailNotification, sendSMSNotification, sendWhatsAppNotification } from '@/lib/integrations/notifications';
 /**
  * FM Notification Template Engine
  * Generates notifications with deep links for various FM events
@@ -28,7 +30,8 @@ export interface NotificationPayload {
   createdAt: Date;
   sentAt?: Date;
   deliveredAt?: Date;
-  status: 'pending' | 'sent' | 'delivered' | 'failed';
+  status: 'pending' | 'sent' | 'delivered' | 'failed' | 'partial_failure';
+  failureReason?: string;
 }
 
 /**
@@ -39,17 +42,30 @@ export function generateDeepLink(
   id: string,
   subPath?: string
 ): string {
+  const scheme = process.env.NEXT_PUBLIC_FIXZIT_DEEP_LINK_SCHEME || 'fixzit://';
+  const normalizedScheme = scheme.endsWith('://') ? scheme : `${scheme.replace(/\/+$/, '')}://`;
   const deepLinkMap = {
-    'work-order': `fixizit://fm/work-orders/${id}`,
-    'approval': `fixizit://approvals/quote/${id}`,
-    'property': `fixizit://fm/properties/${id}`,
-    'unit': `fixizit://fm/units/${id}`,
-    'tenant': `fixizit://fm/tenants/${id}`,
-    'financial': `fixizit://financials/statements/property/${id}`
+    'work-order': `${normalizedScheme}fm/work-orders/${id}`,
+    'approval': `${normalizedScheme}approvals/quote/${id}`,
+    'property': `${normalizedScheme}fm/properties/${id}`,
+    'unit': `${normalizedScheme}fm/units/${id}`,
+    'tenant': `${normalizedScheme}fm/tenants/${id}`,
+    'financial': `${normalizedScheme}financials/statements/property/${id}`
   };
 
   const baseLink = deepLinkMap[type];
   return subPath ? `${baseLink}/${subPath}` : baseLink;
+}
+
+function requireContextValue(
+  value: string | undefined,
+  field: string,
+  event: keyof typeof NOTIFY
+): string {
+  if (!value) {
+    throw new Error(`[Notifications] Missing ${field} for ${event}`);
+  }
+  return value;
 }
 
 /**
@@ -76,47 +92,60 @@ export function buildNotification(
   let priority: 'high' | 'normal' | 'low' = 'normal';
 
   switch (event) {
-    case 'onTicketCreated':
+    case 'onTicketCreated': {
+      const workOrderId = requireContextValue(context.workOrderId, 'workOrderId', event);
       title = 'New Work Order Created';
-      body = `Work Order #${context.workOrderId} has been created by ${context.tenantName}`;
-      deepLink = generateDeepLink('work-order', context.workOrderId || '');
+      body = `Work Order #${workOrderId} has been created by ${context.tenantName ?? 'customer'}`;
+      deepLink = generateDeepLink('work-order', workOrderId);
       priority = 'high';
       break;
+    }
 
-    case 'onAssign':
+    case 'onAssign': {
+      const workOrderId = requireContextValue(context.workOrderId, 'workOrderId', event);
       title = 'Work Order Assigned';
-      body = `You have been assigned to Work Order #${context.workOrderId}`;
-      deepLink = generateDeepLink('work-order', context.workOrderId || '');
+      body = `You have been assigned to Work Order #${workOrderId}`;
+      deepLink = generateDeepLink('work-order', workOrderId);
       priority = 'high';
       break;
+    }
 
-    case 'onApprovalRequested':
+    case 'onApprovalRequested': {
+      const quotationId = requireContextValue(context.quotationId, 'quotationId', event);
       title = 'Approval Required';
-      body = `Quotation #${context.quotationId} requires your approval (Amount: SAR ${context.amount?.toLocaleString()})`;
-      deepLink = generateDeepLink('approval', context.quotationId || '');
+      const amountText = typeof context.amount === 'number'
+        ? ` (Amount: SAR ${context.amount.toLocaleString()})`
+        : '';
+      body = `Quotation #${quotationId} requires your approval${amountText}`;
+      deepLink = generateDeepLink('approval', quotationId);
       priority = 'high';
       break;
+    }
 
-    case 'onApproved':
+    case 'onApproved': {
+      const quotationId = requireContextValue(context.quotationId, 'quotationId', event);
       title = 'Approval Granted';
-      body = `Quotation #${context.quotationId} has been approved`;
-      deepLink = generateDeepLink('approval', context.quotationId || '');
+      body = `Quotation #${quotationId} has been approved`;
+      deepLink = generateDeepLink('approval', quotationId);
       priority = 'normal';
       break;
+    }
 
-    case 'onClosed':
+    case 'onClosed': {
+      const workOrderId = requireContextValue(context.workOrderId, 'workOrderId', event);
       title = 'Work Order Closed';
-      body = `Work Order #${context.workOrderId} has been completed and closed`;
-      deepLink = generateDeepLink('financial', context.propertyId || '');
+      body = `Work Order #${workOrderId} has been completed and closed`;
+      deepLink = generateDeepLink('work-order', workOrderId);
       priority = 'normal';
       break;
+    }
 
     default:
       body = 'Notification';
   }
 
   return {
-    id: `NOTIF-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+    id: randomUUID(),
     event,
     recipients,
     title,
@@ -190,47 +219,10 @@ async function sendPushNotifications(
 ): Promise<void> {
   logger.info('[Notifications] Sending push', { recipientCount: recipients.length });
   
-  // FCM Integration (if configured)
-  if (process.env.FCM_SERVER_KEY && process.env.FCM_SENDER_ID) {
-    try {
-      const admin = await import('firebase-admin').catch(() => null);
-      
-      if (admin && !admin.apps.length) {
-        admin.initializeApp({
-          credential: admin.credential.cert({
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-          }),
-        });
-      }
-      
-      if (admin) {
-        const tokens = recipients
-          .map(r => (r as { fcmToken?: string }).fcmToken)
-          .filter((t): t is string => Boolean(t));
-        
-        if (tokens.length > 0) {
-          await admin.messaging().sendEachForMulticast({
-            tokens,
-            notification: {
-              title: notification.title,
-              body: notification.body,
-            },
-            data: {
-              deepLink: notification.deepLink || '',
-              ...notification.data as Record<string, string>,
-            },
-          });
-          logger.info('[Notifications] FCM push sent', { tokenCount: tokens.length });
-        }
-      }
-    } catch (error: unknown) {
-      logger.error('[Notifications] FCM push failed:', { error });
-    }
-  } else {
-    logger.debug('[Notifications] FCM not configured (FCM_SERVER_KEY or FCM_SENDER_ID missing)');
-  }
+  // Send via FCM to each recipient
+  await Promise.allSettled(
+    recipients.map(recipient => sendFCMNotification(recipient.userId, notification))
+  );
 }
 
 /**
@@ -242,70 +234,10 @@ async function sendEmailNotifications(
 ): Promise<void> {
   logger.info('[Notifications] Sending email', { recipientCount: recipients.length });
   
-  // SendGrid Integration (if configured)
-  if (process.env.SENDGRID_API_KEY) {
-    try {
-      const sgMail = await import('@sendgrid/mail').then(m => m.default).catch(() => null);
-      
-      if (sgMail) {
-        sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-        
-        const emails = recipients
-          .map(r => r.email)
-          .filter((e): e is string => Boolean(e));
-        
-        if (emails.length > 0) {
-          // HTML-escape user content to prevent XSS
-          const escapeHtml = (str: string): string => {
-            return str
-              .replace(/&/g, '&amp;')
-              .replace(/</g, '&lt;')
-              .replace(/>/g, '&gt;')
-              .replace(/"/g, '&quot;')
-              .replace(/'/g, '&#039;');
-          };
-          
-          // Validate and sanitize deep link URL
-          const sanitizeUrl = (url: string | undefined): string => {
-            if (!url) return '';
-            // Block javascript: and data: schemes
-            if (url.trim().toLowerCase().startsWith('javascript:') || 
-                url.trim().toLowerCase().startsWith('data:')) {
-              logger.warn('[Notifications] Blocked unsafe URL scheme', { url });
-              return '';
-            }
-            return url;
-          };
-          
-          const escapedTitle = escapeHtml(notification.title);
-          const escapedBody = escapeHtml(notification.body);
-          const safeLink = sanitizeUrl(notification.deepLink);
-          const escapedLink = escapeHtml(safeLink); // HTML-escape for use in attribute
-          
-          await sgMail.sendMultiple({
-            to: emails,
-            from: process.env.SENDGRID_FROM_EMAIL || 'notifications@fixzit.com',
-            subject: escapedTitle,
-            text: notification.body, // Plain text doesn't need escaping
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #333;">${escapedTitle}</h2>
-                <p style="color: #666; line-height: 1.6;">${escapedBody}</p>
-                ${safeLink ? `<p><a href="${escapedLink}" style="background: #0070f3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px;">View Details</a></p>` : ''}
-                <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
-                <p style="color: #999; font-size: 12px;">This is an automated notification from Fixzit. Please do not reply to this email.</p>
-              </div>
-            `,
-          });
-          logger.info('[Notifications] Email sent via SendGrid', { recipientCount: emails.length });
-        }
-      }
-    } catch (error: unknown) {
-      logger.error('[Notifications] Email send failed:', { error });
-    }
-  } else {
-    logger.debug('[Notifications] SendGrid not configured (SENDGRID_API_KEY missing)');
-  }
+  // Send via SendGrid to each recipient
+  await Promise.allSettled(
+    recipients.map(recipient => sendEmailNotification(recipient, notification))
+  );
 }
 
 /**
@@ -317,42 +249,10 @@ async function sendSMSNotifications(
 ): Promise<void> {
   logger.info('[Notifications] Sending SMS', { recipientCount: recipients.length });
   
-  // Twilio Integration (if configured)
-  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-    try {
-      const twilio = await import('twilio').then(m => m.default).catch(() => null);
-      
-      if (twilio) {
-        const client = twilio(
-          process.env.TWILIO_ACCOUNT_SID,
-          process.env.TWILIO_AUTH_TOKEN
-        );
-        
-        const phones = recipients
-          .map(r => r.phone)
-          .filter((p): p is string => Boolean(p));
-        
-        if (phones.length > 0) {
-          const smsBody = `${notification.title}\n\n${notification.body}${notification.deepLink ? `\n\nView: ${notification.deepLink}` : ''}`;
-          
-          await Promise.all(
-            phones.map(phone =>
-              client.messages.create({
-                to: phone,
-                from: process.env.TWILIO_PHONE_NUMBER || '',
-                body: smsBody.substring(0, 1600), // SMS length limit
-              })
-            )
-          );
-          logger.info('[Notifications] SMS sent via Twilio', { recipientCount: phones.length });
-        }
-      }
-    } catch (error: unknown) {
-      logger.error('[Notifications] SMS send failed:', { error });
-    }
-  } else {
-    logger.debug('[Notifications] Twilio not configured (TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN missing)');
-  }
+  // Send via Twilio to each recipient
+  await Promise.allSettled(
+    recipients.map(recipient => sendSMSNotification(recipient, notification))
+  );
 }
 
 /**
@@ -364,42 +264,10 @@ async function sendWhatsAppNotifications(
 ): Promise<void> {
   logger.info('[Notifications] Sending WhatsApp', { recipientCount: recipients.length });
   
-  // WhatsApp Business API via Twilio (if configured)
-  if (process.env.TWILIO_WHATSAPP_NUMBER && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-    try {
-      const twilio = await import('twilio').then(m => m.default).catch(() => null);
-      
-      if (twilio) {
-        const client = twilio(
-          process.env.TWILIO_ACCOUNT_SID,
-          process.env.TWILIO_AUTH_TOKEN
-        );
-        
-        const phones = recipients
-          .map(r => r.phone)
-          .filter((p): p is string => Boolean(p));
-        
-        if (phones.length > 0) {
-          const whatsappBody = `*${notification.title}*\n\n${notification.body}${notification.deepLink ? `\n\nView Details: ${notification.deepLink}` : ''}`;
-          
-          await Promise.all(
-            phones.map(phone =>
-              client.messages.create({
-                to: `whatsapp:${phone}`,
-                from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
-                body: whatsappBody,
-              })
-            )
-          );
-          logger.info('[Notifications] WhatsApp sent via Twilio', { recipientCount: phones.length });
-        }
-      }
-    } catch (error) {
-      logger.error('[Notifications] WhatsApp send failed:', { error });
-    }
-  } else {
-    logger.debug('[Notifications] WhatsApp not configured (TWILIO_WHATSAPP_NUMBER or TWILIO_ACCOUNT_SID missing)');
-  }
+  // Send via WhatsApp Business API to each recipient
+  await Promise.allSettled(
+    recipients.map(recipient => sendWhatsAppNotification(recipient, notification))
+  );
 }
 
 /**

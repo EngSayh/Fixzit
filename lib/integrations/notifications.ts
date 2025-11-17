@@ -3,12 +3,27 @@ import sgMail from '@sendgrid/mail';
 import twilio from 'twilio';
 import axios from 'axios';
 import { logger } from '@/lib/logger';
-import type { NotificationPayload, NotificationRecipient } from '@/lib/fm-notifications';
+import type { NotificationChannel, NotificationPayload, NotificationRecipient } from '@/lib/fm-notifications';
 
 /**
  * External Notification Service Integrations
  * Implements SendGrid, Twilio, WhatsApp Business API, and Firebase Cloud Messaging
  */
+
+export interface BulkNotificationIssue {
+  userId: string;
+  channel: NotificationChannel;
+  type: 'failed' | 'skipped';
+  reason: string;
+}
+
+export interface BulkNotificationResult {
+  attempted: number;
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  issues: BulkNotificationIssue[];
+}
 
 // =============================================================================
 // Firebase Cloud Messaging (FCM) - Push Notifications
@@ -48,8 +63,9 @@ export async function sendFCMNotification(
     initializeFCM();
 
     if (!fcmInitialized) {
+      const error = new Error('FCM not configured');
       logger.warn('[FCM] Skipping push notification (not initialized)');
-      return;
+      throw error;
     }
 
     // Get user's FCM tokens from database
@@ -126,7 +142,7 @@ async function getUserFCMTokens(userId: string): Promise<string[]> {
   // This would come from a UserDevices collection
   try {
     const { User } = await import('@/server/models/User');
-    const user = await User.findOne({ userId }).select('fcmTokens').lean();
+    const user = await User.findOne({ userId }).select('fcmTokens').lean() as { fcmTokens?: string[] } | null;
     return user?.fcmTokens || [];
   } catch (error) {
     logger.error('[FCM] Failed to get user tokens', { error, userId });
@@ -179,7 +195,7 @@ export async function sendEmailNotification(
 
     if (!sendGridInitialized) {
       logger.warn('[SendGrid] Skipping email notification (not initialized)');
-      return;
+      throw new Error('SendGrid not configured');
     }
 
     if (!recipient.email) {
@@ -197,7 +213,7 @@ export async function sendEmailNotification(
       subject: notification.title,
       text: notification.body,
       html: buildEmailHTML(notification, recipient),
-      category: ['notification', notification.event],
+      categories: ['notification', notification.event],
       customArgs: {
         notificationId: notification.id,
         userId: recipient.userId,
@@ -304,7 +320,7 @@ export async function sendSMSNotification(
 
     if (!twilioClient) {
       logger.warn('[Twilio] Skipping SMS notification (not initialized)');
-      return;
+      throw new Error('Twilio SMS not configured');
     }
 
     if (!recipient.phone) {
@@ -350,9 +366,9 @@ export async function sendWhatsAppNotification(
   notification: NotificationPayload
 ): Promise<void> {
   try {
-    if (!process.env.WHATSAPP_BUSINESS_API_KEY) {
-      logger.warn('[WhatsApp] API key not configured');
-      return;
+    if (!process.env.WHATSAPP_BUSINESS_API_KEY || !process.env.WHATSAPP_PHONE_NUMBER_ID) {
+      logger.warn('[WhatsApp] API credentials not configured');
+      throw new Error('WhatsApp Business API not configured');
     }
 
     if (!recipient.phone) {
@@ -487,27 +503,53 @@ function extractWhatsAppParameters(notification: NotificationPayload): any[] {
 export async function sendBulkNotifications(
   notification: NotificationPayload,
   recipients: NotificationRecipient[]
-): Promise<void> {
+): Promise<BulkNotificationResult> {
   logger.info('[Notifications] Sending bulk notifications', {
     count: recipients.length,
     event: notification.event
   });
 
-  // Send in parallel batches of 50 to avoid rate limits
-  const batchSize = 50;
-  const batches = [];
+  const result: BulkNotificationResult = {
+    attempted: 0,
+    succeeded: 0,
+    failed: 0,
+    skipped: 0,
+    issues: []
+  };
 
-  for (let i = 0; i < recipients.length; i += batchSize) {
-    const batch = recipients.slice(i, i + batchSize);
-    batches.push(batch);
+  if (recipients.length === 0) {
+    return result;
   }
 
-  for (const batch of batches) {
+  const batchSize = 50;
+  const batchCount = Math.ceil(recipients.length / batchSize);
+
+  for (let batchIndex = 0; batchIndex < batchCount; batchIndex++) {
+    const batch = recipients.slice(batchIndex * batchSize, (batchIndex + 1) * batchSize);
+
     await Promise.all(
       batch.map(async (recipient) => {
-        try {
-          // Send via preferred channels
-          for (const channel of recipient.preferredChannels) {
+        for (const channel of recipient.preferredChannels) {
+          const validationError = validateRecipientChannel(recipient, channel);
+          if (validationError) {
+            result.skipped += 1;
+            result.issues.push({
+              userId: recipient.userId,
+              channel,
+              type: 'skipped',
+              reason: validationError
+            });
+            logger.warn('[Notifications] Skipping channel for recipient', {
+              userId: recipient.userId,
+              channel,
+              reason: validationError
+            });
+            continue;
+          }
+
+          result.attempted += 1;
+
+          try {
             switch (channel) {
               case 'push':
                 await sendFCMNotification(recipient.userId, notification);
@@ -522,25 +564,60 @@ export async function sendBulkNotifications(
                 await sendWhatsAppNotification(recipient, notification);
                 break;
             }
+            result.succeeded += 1;
+          } catch (error) {
+            result.failed += 1;
+            const reason = error instanceof Error ? error.message : 'Unknown error';
+            result.issues.push({
+              userId: recipient.userId,
+              channel,
+              type: 'failed',
+              reason
+            });
+            logger.error('[Notifications] Failed to send to recipient', {
+              error,
+              userId: recipient.userId,
+              channel
+            });
           }
-        } catch (error) {
-          logger.error('[Notifications] Failed to send to recipient', {
-            error,
-            userId: recipient.userId,
-            channels: recipient.preferredChannels
-          });
         }
       })
     );
 
-    // Rate limiting delay between batches
-    if (batches.indexOf(batch) < batches.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    if (batchIndex < batchCount - 1) {
+      await delay(1000);
     }
   }
 
   logger.info('[Notifications] Bulk notifications sent', {
     count: recipients.length,
-    event: notification.event
+    event: notification.event,
+    attempted: result.attempted,
+    succeeded: result.succeeded,
+    failed: result.failed,
+    skipped: result.skipped
   });
+
+  return result;
+}
+
+function validateRecipientChannel(
+  recipient: NotificationRecipient,
+  channel: NotificationChannel
+): string | null {
+  switch (channel) {
+    case 'email':
+      return recipient.email ? null : 'Missing email address';
+    case 'sms':
+    case 'whatsapp':
+      return recipient.phone ? null : 'Missing phone number';
+    case 'push':
+      return recipient.userId ? null : 'Missing userId';
+    default:
+      return null;
+  }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }

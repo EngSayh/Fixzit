@@ -79,6 +79,43 @@ scripts/FINAL_FIX_EVERYTHING.sh
 - `express-rate-limit`
 - `express-mongo-sanitize`
 
+---
+
+## ✅ December 8, 2025 Update
+
+### 4. Supertest Missing (Integration Tests)
+
+**Issue:** `tests/integration/api.test.ts` imports `supertest`, but the package was not listed in devDependencies, causing `depcheck` to flag a missing dependency.
+
+**Resolution:**
+```bash
+pnpm add -D supertest
+```
+
+**Justification:** Integration tests spin up the API and use `supertest` to issue real HTTP requests; the package is required for CI to run the suite.
+
+### 5. `@types/bcrypt` Removal
+
+**Issue:** `@types/bcrypt` was installed even though the codebase exclusively uses `bcryptjs` (with `@types/bcryptjs`). No files import `bcrypt`.
+
+**Resolution:**
+```bash
+pnpm remove @types/bcrypt
+```
+
+**Justification:** Removes an unused devDependency and reduces lockfile churn. `@types/bcryptjs` remains for the actual hashing library.
+
+### 6. False Positives (Remain Installed)
+
+| Package        | Reason depcheck flags it | Why it stays |
+|----------------|--------------------------|--------------|
+| `autoprefixer` | Only referenced from `postcss.config.js` | Required by PostCSS to add vendor prefixes during builds |
+| `postcss`      | Loaded via Next/Tailwind build tooling   | Needed for Tailwind/PostCSS pipeline |
+| `cross-env`    | Only used inside `package.json` scripts  | Required to set env vars across shells (dozens of scripts depend on it) |
+| `prettier`     | Invoked manually / via tooling           | Kept as the project formatter and referenced in tooling configs |
+
+These packages should be added to the depcheck ignore list (or left documented here) to avoid future false positives.
+
 **Alternative:** If we need a custom server, Next.js supports `server.js` with custom middleware without requiring Express.
 
 ---

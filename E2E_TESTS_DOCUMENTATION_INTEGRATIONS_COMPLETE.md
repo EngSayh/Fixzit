@@ -55,7 +55,7 @@ Completed comprehensive production readiness tasks:
 
 ### 2. Deployment Guide (docs/DEPLOYMENT_GUIDE.md)
 **File**: `docs/DEPLOYMENT_GUIDE.md`  
-**Lines**: 1,800+ lines
+**Lines**: 1,277 lines (verified via `wc -l`)
 
 **Sections**:
 
@@ -170,7 +170,7 @@ Completed comprehensive production readiness tasks:
 
 ### 3. E2E Authentication Tests (tests/e2e/auth.spec.ts)
 **File**: `tests/e2e/auth.spec.ts`  
-**Lines**: 400+ lines  
+**Lines**: 324 lines  
 **Framework**: Playwright
 
 **Test Suites**:
@@ -215,7 +215,7 @@ Completed comprehensive production readiness tasks:
 
 ### 4. E2E Critical Flow Tests (tests/e2e/critical-flows.spec.ts)
 **File**: `tests/e2e/critical-flows.spec.ts`  
-**Lines**: 800+ lines  
+**Lines**: 543 lines  
 **Framework**: Playwright
 
 **Test Suites**:
@@ -277,12 +277,12 @@ Completed comprehensive production readiness tasks:
 
 ### 5. API Integration Tests (tests/integration/api.test.ts)
 **File**: `tests/integration/api.test.ts`  
-**Lines**: 600+ lines  
+**Lines**: 507 lines  
 **Framework**: Jest + Supertest + MongoDB Memory Server
 
 **Test Suites**:
 
-#### Authentication Endpoints (6 tests)
+#### Authentication Endpoints (9 tests)
 - ✅ POST /api/auth/signup - Create new user account
 - ✅ POST /api/auth/signup - Reject duplicate email
 - ✅ POST /api/auth/signup - Validate password strength
@@ -293,20 +293,21 @@ Completed comprehensive production readiness tasks:
 - ✅ POST /api/auth/refresh - Refresh authentication token
 - ✅ POST /api/auth/refresh - Reject expired token
 
-#### Work Orders API (7 tests)
+#### Work Orders API (12 tests)
 - ✅ POST /api/work-orders - Create new work order
 - ✅ POST /api/work-orders - Require authentication
 - ✅ POST /api/work-orders - Validate required fields
 - ✅ GET /api/work-orders - List all work orders
 - ✅ GET /api/work-orders - Paginate results
 - ✅ GET /api/work-orders - Filter by status
+- ✅ GET /api/work-orders - Require authentication
 - ✅ GET /api/work-orders/:id - Get work order by ID
 - ✅ GET /api/work-orders/:id - Return 404 for non-existent ID
 - ✅ PUT /api/work-orders/:id - Update work order
 - ✅ PUT /api/work-orders/:id - Validate status transitions
 - ✅ DELETE /api/work-orders/:id - Delete work order
 
-#### Properties API (5 tests)
+#### Properties API (4 tests)
 - ✅ POST /api/properties - Create new property
 - ✅ GET /api/properties - List all properties
 - ✅ GET /api/properties/:id - Get property by ID
@@ -332,13 +333,13 @@ Completed comprehensive production readiness tasks:
 #### Health Check (1 test)
 - ✅ Return healthy status with database info
 
-**Total Tests**: 28 API integration tests
+**Total Tests**: 35 API integration tests (per `rg -c "it\\(" tests/integration/api.test.ts`)
 
 ---
 
 ### 6. External Notification Integrations (lib/integrations/notifications.ts)
 **File**: `lib/integrations/notifications.ts`  
-**Lines**: 550+ lines
+**Lines**: 546 lines
 
 **Integrations Implemented**:
 
@@ -425,29 +426,13 @@ Completed comprehensive production readiness tasks:
 ---
 
 ### 7. Updated FM Notifications (lib/fm-notifications.ts)
-**Changes**: Replaced 4 TODO comments with actual integrations
+**Changes**: Template engine now enforces required context, aligns with the shared integrations helper, and tracks delivery quality.
 
-**Before**:
-```typescript
-// TODO: Integrate with FCM or Web Push
-// TODO: Integrate with email service (SendGrid, AWS SES, etc.)
-// TODO: Integrate with SMS gateway (Twilio, AWS SNS, etc.)
-// TODO: Integrate with WhatsApp Business API
-```
-
-**After**:
-```typescript
-// ✅ Calls sendFCMNotification()
-// ✅ Calls sendEmailNotification()
-// ✅ Calls sendSMSNotification()
-// ✅ Calls sendWhatsAppNotification()
-```
-
-**Integration Points**:
-- Import from `lib/integrations/notifications.ts`
-- Promise.allSettled() for parallel sending
-- Error isolation (failures don't block other channels)
-- Logging for monitoring
+**Highlights**:
+- ✅ Deep links respect `NEXT_PUBLIC_FIXZIT_DEEP_LINK_SCHEME` (default `fixzit://`) instead of the previous `fixizit://` typo and support future overrides.
+- ✅ `buildNotification()` throws when required IDs are missing and uses `crypto.randomUUID()` for collision-resistant notification IDs.
+- ✅ `sendNotification()` calls the centralized `sendBulkNotifications()` helper so FCM, SendGrid, Twilio SMS, and WhatsApp all flow through hardened integrations and batching.
+- ✅ Delivery status now supports `partial_failure`, stores `failureReason`, and logs per-channel issues for observability.
 
 ---
 
@@ -472,14 +457,14 @@ Completed comprehensive production readiness tasks:
 
 ### API Integration Tests (Jest)
 - **Authentication**: 9 tests
-- **Work Orders**: 11 tests
+- **Work Orders**: 12 tests
 - **Properties**: 4 tests
 - **Assets**: 2 tests
 - **Error Handling**: 4 tests
 - **Rate Limiting**: 1 test
 - **CORS**: 2 tests
 - **Health Check**: 1 test
-- **Total API**: 34 tests
+- **Total API**: 35 tests
 
 **Coverage**:
 - All CRUD endpoints ✅
