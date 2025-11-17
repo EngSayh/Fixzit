@@ -16,6 +16,47 @@ import { createHash } from 'crypto';
 import { AttendanceRecord } from '@/server/models/hr.models';
 import type { PayrollLineDoc } from '@/server/models/hr.models';
 
+/**
+ * Calculate actual work days from attendance records
+ * @param employeeId Employee ID to calculate work days for
+ * @param periodMonth Period in format YYYY-MM
+ * @returns Number of days worked (including partial days as full days)
+ */
+async function calculateWorkDays(
+  employeeId: string,
+  periodMonth: string
+): Promise<number> {
+  try {
+    // Parse month to get start and end dates
+    const [year, month] = periodMonth.split('-').map(Number);
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0); // Last day of month
+    
+    // Query attendance records for the period
+    const records = await AttendanceRecord.find({
+      employeeId,
+      date: {
+        $gte: startDate,
+        $lte: endDate
+      },
+      // Count all statuses except 'absent' and 'no-show'
+      status: { $nin: ['absent', 'no-show', 'unpaid-leave'] }
+    }).lean();
+    
+    // Count unique dates (in case of multiple clock-ins per day)
+    const uniqueDates = new Set(
+      records.map(r => r.date?.toISOString().split('T')[0])
+    );
+    
+    return uniqueDates.size;
+  } catch (error) {
+    // Fallback to calendar days in month if query fails
+    const [year, month] = periodMonth.split('-').map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    return daysInMonth;
+  }
+}
+
 export interface WPSRecord {
   employeeId: string; // Employee code/ID
   employeeName: string; // Full name
@@ -73,11 +114,11 @@ function extractBankCode(iban: string): string {
  * Generate WPS CSV file from payslips
  * Returns both the file and any errors encountered (for robust error handling)
  */
-export function generateWPSFile(
+export async function generateWPSFile(
   lines: PayrollLineDoc[],
   organizationId: string,
   periodMonth: string // Format: YYYY-MM
-): { file: WPSFile; errors: string[] } {
+): Promise<{ file: WPSFile; errors: string[] }> {
   const records: WPSRecord[] = [];
   const errors: string[] = [];
   let totalNetSalary = 0;
@@ -100,9 +141,14 @@ export function generateWPSFile(
     const totalDeductions =
       (line.deductions || 0) + (line.taxDeduction || 0) + (line.gosiContribution || 0);
     
-    let workDays = 30;
+    // ✅ Calculate actual work days from attendance records
+    let workDays = 30; // Default fallback
     if ((line as any).workDays && typeof (line as any).workDays === 'number') {
+      // Use pre-calculated value if provided
       workDays = (line as any).workDays;
+    } else {
+      // Query attendance system for actual work days
+      workDays = await calculateWorkDays(line.employeeCode, periodMonth);
     }
     
     const record: WPSRecord = {

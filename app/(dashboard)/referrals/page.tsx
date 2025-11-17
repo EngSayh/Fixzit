@@ -549,16 +549,16 @@ export default function ReferralProgramPage() {
                 <table className="min-w-full divide-y divide-border dark:divide-gray-700">
                   <thead className="bg-muted dark:bg-gray-800">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
+                      <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
                         Email
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
+                      <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
                         Referred At
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
+                      <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
+                      <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground dark:text-muted-foreground uppercase">
                         Reward
                       </th>
                     </tr>

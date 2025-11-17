@@ -109,11 +109,11 @@ export default function VendorDashboard() {
             <table className="w-full">
               <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Product</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Stock</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Price</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Sold</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Product</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Stock</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Price</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Sold</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -142,10 +142,10 @@ export default function VendorDashboard() {
             <table className="w-full">
               <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Order ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Total</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Order ID</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Customer</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Total</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">

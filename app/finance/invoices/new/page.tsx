@@ -619,8 +619,8 @@ export default function NewInvoicePage() {
               <table className="w-full text-sm">
                 <thead className="bg-muted">
                   <tr>
-                    <th className="px-2 py-2 text-left">{t('finance.invoice.description', 'Description')}</th>
-                    <th className="px-2 py-2 text-left">{t('finance.invoice.revenueAccount', 'Revenue Account')}</th>
+                    <th className="px-2 py-2 text-start">{t('finance.invoice.description', 'Description')}</th>
+                    <th className="px-2 py-2 text-start">{t('finance.invoice.revenueAccount', 'Revenue Account')}</th>
                     <th className="px-2 py-2 text-right">{t('finance.invoice.qty', 'Qty')}</th>
                     <th className="px-2 py-2 text-right">{t('finance.invoice.rate', 'Rate')}</th>
                     <th className="px-2 py-2 text-right">{t('finance.invoice.discount', 'Discount')}</th>
@@ -870,13 +870,13 @@ export default function NewInvoicePage() {
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('workOrders.quickActions', 'Quick Actions')}</h3>
             <div className="space-y-2">
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 📋 {t('finance.invoice.createFromTemplate', 'Create from Template')}
               </button>
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 📊 {t('finance.invoice.costCalculator', 'View Cost Calculator')}
               </button>
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 💰 {t('finance.invoice.paymentSchedule', 'Payment Schedule')}
               </button>
             </div>
