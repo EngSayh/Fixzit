@@ -421,7 +421,7 @@ export class PayoutProcessorService {
           batch.failedPayouts++;
         }
       } catch (error) {
-        console.error(`Error processing payout ${payout.payoutId}:`, error);
+        logger.error('Error processing payout', { payoutId: payout.payoutId, error });
         batch.failedPayouts++;
       }
     }

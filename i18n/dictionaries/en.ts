@@ -81,6 +81,11 @@ const en = {
     preferences: 'Preferences',
     help: 'Help',
     helpCenter: 'Help Center',
+    category: {
+      core: 'Core',
+      business: 'Business',
+      system: 'System Management',
+    },
     categories: {
       core: 'Core',
       fm: 'Facility Management',

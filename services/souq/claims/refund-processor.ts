@@ -362,7 +362,7 @@ export class RefundProcessor {
         await this.executeRefund(refund);
         retriedCount++;
       } catch (error) {
-        console.error(`Failed to retry refund ${refund.refundId}:`, error);
+        logger.error('Failed to retry refund', { refundId: refund.refundId, error });
       }
     }
 

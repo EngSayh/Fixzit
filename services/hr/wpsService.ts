@@ -15,6 +15,7 @@
 import { createHash } from 'crypto';
 import { AttendanceRecord } from '@/server/models/hr.models';
 import type { PayrollLineDoc } from '@/server/models/hr.models';
+import { logger } from '@/lib/logger';
 
 export interface WPSRecord {
   employeeId: string; // Employee code/ID
@@ -301,7 +302,7 @@ export async function calculateWorkDaysFromAttendance(
     return Math.min(workDays, daysInMonth);
   } catch (error) {
     // If calculation fails, return default (caller should handle this)
-    console.error('[WPS] Failed to calculate work days from attendance:', error);
+    logger.error('[WPS] Failed to calculate work days from attendance', { error });
     return 30; // Default fallback
   }
 }

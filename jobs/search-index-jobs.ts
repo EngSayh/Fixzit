@@ -226,7 +226,7 @@ async function processSearchIndexJob(job: Job<SearchIndexJobData>) {
 
     logger.info(`[SearchIndex] Job completed: ${job.id}`);
   } catch (error) {
-    console.error(`[SearchIndex] Job failed: ${job.id}`, error);
+    logger.error('[SearchIndex] Job failed', { jobId: job.id, error });
     throw error; // Let BullMQ handle retries
   }
 }
@@ -246,7 +246,7 @@ export function startSearchIndexWorker() {
     return null;
   }
   if (worker) {
-    console.warn('[SearchIndex] Worker already running');
+    logger.warn('[SearchIndex] Worker already running');
     return worker;
   }
 
@@ -264,11 +264,11 @@ export function startSearchIndexWorker() {
   });
 
   worker.on('failed', (job: Job | undefined, error: Error) => {
-    console.error(`[SearchIndex] Job ${job?.id} failed:`, error);
+    logger.error('[SearchIndex] Job failed event', { jobId: job?.id, error });
   });
 
   worker.on('error', (error: Error) => {
-    console.error('[SearchIndex] Worker error:', error);
+    logger.error('[SearchIndex] Worker error event', { error });
   });
 
   logger.info('[SearchIndex] Worker started');
@@ -284,7 +284,7 @@ export function startSearchIndexWorker() {
  */
 export async function stopSearchIndexWorker() {
   if (!worker) {
-    console.warn('[SearchIndex] Worker not running');
+    logger.warn('[SearchIndex] Worker not running');
     return;
   }
 

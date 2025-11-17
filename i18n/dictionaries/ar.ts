@@ -155,6 +155,11 @@ const ar = {
     preferences: 'التفضيلات',
     help: 'المساعدة',
     helpCenter: 'مركز المساعدة',
+    category: {
+      core: 'الأساسية',
+      business: 'الأعمال',
+      system: 'إدارة النظام',
+    },
     categories: {
       core: 'الأساسية',
       fm: 'إدارة المنشآت',

@@ -214,7 +214,7 @@ export async function updateOwnerStatement(
     propertyId,
     'statementPeriod.month': currentMonth,
     'statementPeriod.year': currentYear
-  }).lean<LeanFMTransaction>();
+  }).lean<LeanFMTransaction[]>();
 
   logger.info(`[Finance] Updating statement for owner ${ownerId} property ${propertyId}`);
   logger.info(`[Finance] Adding ${transactions.length} new transactions`);
@@ -250,7 +250,7 @@ export async function generateOwnerStatement(
       $gte: period.from,
       $lte: period.to
     }
-  }).sort({ transactionDate: 1 }).lean<LeanFMTransaction>();
+  }).sort({ transactionDate: 1 }).lean<LeanFMTransaction[]>();
 
   // Convert to interface format
   const transactions: FinancialTransaction[] = dbTransactions.map(transaction => ({
@@ -302,7 +302,7 @@ export async function getTenantPendingInvoices(
     tenantId,
     type: 'INVOICE',
     status: 'PENDING'
-  }).sort({ dueDate: 1 }).lean<LeanFMTransaction>();
+  }).sort({ dueDate: 1 }).lean<LeanFMTransaction[]>();
 
   // Convert to interface format
   return dbInvoices.map(transaction => ({
