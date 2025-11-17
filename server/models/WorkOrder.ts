@@ -391,7 +391,7 @@ const WorkOrderSchema = new Schema({
 });
 
 // Apply plugins
-WorkOrderSchema.plugin(tenantIsolationPlugin);
+WorkOrderSchema.plugin(tenantIsolationPlugin, { uniqueTenantFields: ['workOrderNumber'] });
 WorkOrderSchema.plugin(auditPlugin);
 
 // Indexes for performance and querying (orgId is already indexed by tenantIsolationPlugin)

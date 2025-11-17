@@ -11,10 +11,27 @@ import { useTranslation } from '@/contexts/TranslationContext';
 
 import { logger } from '@/lib/logger';
 
+/**
+ * Formats a translated toast/message string that needs a dynamic count placeholder.
+ * Centralizing this logic ensures we always run numbers through translators without duplicating string.replace calls.
+ */
 const formatCountMessage = (
-  formatter: (value: string) => string,
+  formatter: (_value: string) => string,
   count: number
 ) => formatter(String(count));
+
+const PRIORITY_TRANSLATIONS = {
+  high: { key: 'notifications.priority.high', fallback: 'HIGH' },
+  medium: { key: 'notifications.priority.medium', fallback: 'MEDIUM' },
+  low: { key: 'notifications.priority.low', fallback: 'LOW' }
+} as const;
+
+const CATEGORY_TRANSLATIONS = {
+  maintenance: { key: 'notifications.category.maintenance', fallback: 'Maintenance' },
+  vendor: { key: 'notifications.category.vendor', fallback: 'Vendor' },
+  finance: { key: 'notifications.category.finance', fallback: 'Finance' },
+  system: { key: 'notifications.category.system', fallback: 'System' }
+} as const;
 
 export default function NotificationsPage() {
   const { data: session } = useSession();
@@ -55,19 +72,38 @@ export default function NotificationsPage() {
     return Array.isArray(notificationItems) ? notificationItems : [];
   }, [notificationItems]);
 
+  /**
+   * Returns the localized label for a notification priority code.
+   * Falls back to the uppercase raw value so the UI is never blank.
+   */
   const formatPriorityChip = (priority: string) => {
-    const key = `notifications.priority.${priority?.toLowerCase?.() ?? ''}`;
-    return t(key, priority?.toUpperCase?.() ?? priority);
+    const normalized = priority?.toLowerCase?.() as keyof typeof PRIORITY_TRANSLATIONS | undefined;
+    const translation = normalized ? PRIORITY_TRANSLATIONS[normalized] : undefined;
+    if (translation) {
+      return t(translation.key, translation.fallback);
+    }
+    return priority?.toUpperCase?.() ?? priority;
   };
 
+  /**
+   * Returns the localized label for a notification category key.
+   * If a key is missing in the dictionaries we fall back to the original category text.
+   */
   const formatCategoryChip = (category: string) => {
-    const key = `notifications.category.${category?.toLowerCase?.() ?? ''}`;
-    return t(key, category);
+    const normalized = category?.toLowerCase?.() as keyof typeof CATEGORY_TRANSLATIONS | undefined;
+    const translation = normalized ? CATEGORY_TRANSLATIONS[normalized] : undefined;
+    return translation ? t(translation.key, translation.fallback) : category;
   };
 
+  /**
+   * Generates the localized label for the read/unread badge.
+   */
   const formatStatusLabel = (read: boolean) =>
     read ? t('notifications.status.read', 'Read') : t('notifications.status.unread', 'Unread');
 
+  /**
+   * Maps priority codes to tailwind utility classes so the chips stay consistent across the view.
+   */
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
@@ -81,6 +117,10 @@ export default function NotificationsPage() {
     }
   };
 
+  /**
+   * Emoji-based icon mapping for notification types.
+   * We stick to emoji to avoid yet another icon font download on this heavy page.
+   */
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'work-order':
@@ -98,6 +138,10 @@ export default function NotificationsPage() {
     }
   };
 
+  /**
+   * Returns the badge color palette for each notification category.
+   * This keeps the summary chips and table rows in sync.
+   */
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'maintenance':
@@ -483,7 +527,6 @@ export default function NotificationsPage() {
             <div className="text-primary">📢</div>
           </div>
         </div>
-*** End Patch
         <div className="card">
           <div className="flex items-center justify-between">
             <div>

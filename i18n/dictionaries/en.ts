@@ -28287,6 +28287,15 @@ const en = {
       feedbackSubmitted: 'Feedback submitted successfully',
       invalidTransition: 'Invalid stage transition',
     },
+    errors: {
+      moduleDisabled: 'ATS module is not enabled for your organization. Please upgrade to access recruitment features.',
+      seatLimitExceeded: 'ATS seat limit exceeded. Current usage: {{usage}}/{{limit}}. Please upgrade your plan to add more users.',
+      jobPostLimitExceeded: 'Job post limit reached for your ATS plan. You have {{count}}/{{limit}} active jobs. Please upgrade to post more positions.',
+      authenticationRequired: 'Authentication required to access ATS features',
+      insufficientPermissions: 'Insufficient permissions to perform this action',
+      jobCreationFailed: 'Failed to create job posting',
+      jobsFetchFailed: 'Failed to fetch jobs',
+    },
   },
 };
 

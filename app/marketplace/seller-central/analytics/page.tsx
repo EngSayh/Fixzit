@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import logger from '@/lib/logger';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SalesChart } from '@/components/seller/analytics/SalesChart';
 import { ProductPerformanceTable } from '@/components/seller/analytics/ProductPerformanceTable';
@@ -108,6 +108,14 @@ const PERIOD_LABELS: Record<Period, string> = {
   ytd: 'Year to Date',
 };
 
+const formatTrendValue = (value: number) => {
+  if (!Number.isFinite(value)) {
+    return '0%';
+  }
+  const prefix = value > 0 ? '+' : '';
+  return `${prefix}${value.toFixed(1)}%`;
+};
+
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState<Period>('last_30_days');
   const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'products' | 'customers' | 'traffic'>('overview');
@@ -151,16 +159,24 @@ export default function AnalyticsPage() {
   }, [period]);
 
   const handleExportCSV = () => {
+    const analytics = data;
+    if (!analytics) {
+      logger.warn('Tried to export analytics before data loaded', { period });
+      alert('Analytics data is still loading. Please try again in a moment.');
+      return;
+    }
+
     try {
       const { exportToCSV } = require('@/lib/export-utils');
+      const { sales, customers } = analytics;
       
       // Prepare export data from current analytics
       const exportData = [
-        { metric: 'Total Revenue', value: `${data.revenue.total.toFixed(2)} SAR`, trend: `${data.revenue.trend > 0 ? '+' : ''}${data.revenue.trend}%` },
-        { metric: 'Total Orders', value: data.orders.total, trend: `${data.orders.trend > 0 ? '+' : ''}${data.orders.trend}%` },
-        { metric: 'Average Order Value', value: `${data.orders.averageValue.toFixed(2)} SAR`, trend: `${data.orders.trend > 0 ? '+' : ''}${data.orders.trend}%` },
-        { metric: 'Total Customers', value: data.customers.total, trend: `${data.customers.trend > 0 ? '+' : ''}${data.customers.trend}%` },
-        { metric: 'Conversion Rate', value: `${data.conversion.rate}%`, trend: `${data.conversion.trend > 0 ? '+' : ''}${data.conversion.trend}%` },
+        { metric: 'Total Revenue', value: `${sales.revenue.total.toFixed(2)} SAR`, trend: formatTrendValue(sales.revenue.trend) },
+        { metric: 'Total Orders', value: sales.orders.total.toString(), trend: formatTrendValue(sales.orders.trend) },
+        { metric: 'Average Order Value', value: `${sales.averageOrderValue.current.toFixed(2)} SAR`, trend: formatTrendValue(sales.averageOrderValue.trend) },
+        { metric: 'New Customers', value: customers.acquisition.newCustomers.toString(), trend: 'N/A' },
+        { metric: 'Conversion Rate', value: `${sales.conversionRate.current.toFixed(2)}%`, trend: formatTrendValue(sales.conversionRate.trend) },
       ];
       
       const filename = `analytics-${period}-${new Date().toISOString().split('T')[0]}.csv`;
@@ -178,16 +194,24 @@ export default function AnalyticsPage() {
   };
 
   const handleExportPDF = async () => {
+    const analytics = data;
+    if (!analytics) {
+      logger.warn('Tried to export analytics before data loaded', { period, format: 'pdf' });
+      alert('Analytics data is still loading. Please try again in a moment.');
+      return;
+    }
+
     try {
       const { exportToPDF } = await import('@/lib/export-utils');
+      const { sales, customers } = analytics;
       
       // Prepare export data
       const exportData = [
-        { metric: 'Total Revenue', value: `${data.revenue.total.toFixed(2)} SAR`, trend: `${data.revenue.trend > 0 ? '+' : ''}${data.revenue.trend}%` },
-        { metric: 'Total Orders', value: String(data.orders.total), trend: `${data.orders.trend > 0 ? '+' : ''}${data.orders.trend}%` },
-        { metric: 'Average Order Value', value: `${data.orders.averageValue.toFixed(2)} SAR`, trend: `${data.orders.trend > 0 ? '+' : ''}${data.orders.trend}%` },
-        { metric: 'Total Customers', value: String(data.customers.total), trend: `${data.customers.trend > 0 ? '+' : ''}${data.customers.trend}%` },
-        { metric: 'Conversion Rate', value: `${data.conversion.rate}%`, trend: `${data.conversion.trend > 0 ? '+' : ''}${data.conversion.trend}%` },
+        { metric: 'Total Revenue', value: `${sales.revenue.total.toFixed(2)} SAR`, trend: formatTrendValue(sales.revenue.trend) },
+        { metric: 'Total Orders', value: String(sales.orders.total), trend: formatTrendValue(sales.orders.trend) },
+        { metric: 'Average Order Value', value: `${sales.averageOrderValue.current.toFixed(2)} SAR`, trend: formatTrendValue(sales.averageOrderValue.trend) },
+        { metric: 'New Customers', value: String(customers.acquisition.newCustomers), trend: 'N/A' },
+        { metric: 'Conversion Rate', value: `${sales.conversionRate.current.toFixed(2)}%`, trend: formatTrendValue(sales.conversionRate.trend) },
       ];
       
       const filename = `analytics-${period}-${new Date().toISOString().split('T')[0]}.pdf`;

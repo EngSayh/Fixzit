@@ -36,7 +36,7 @@ interface NotificationHistory {
 export default function AdminNotificationsTab({
   t,
 }: {
-  t: (id: string, defaultText?: string) => string;
+  t: (_key: string, _defaultText?: string) => string;
 }) {
   const [recipientType, setRecipientType] = useState<'users' | 'tenants' | 'corporate' | 'all'>('users');
   const [channels, setChannels] = useState<Set<'email' | 'sms' | 'whatsapp'>>(new Set(['email']));

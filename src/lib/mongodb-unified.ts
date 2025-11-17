@@ -1,8 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import mongoose, { type Mongoose } from 'mongoose';
 
 declare global {
-  // eslint-disable-next-line no-var
   var __mongoose: { conn: Mongoose | null; promise: Promise<Mongoose> | null } | undefined;
 }
 

@@ -9,8 +9,20 @@
 
 import { connectDb } from '@/lib/mongodb-unified';
 import { SouqOrder } from '@/server/models/souq/Order';
+import type { IOrder } from '@/server/models/souq/Order';
 import { SouqProduct } from '@/server/models/souq/Product';
 import mongoose from 'mongoose';
+
+type SouqOrderItem = (IOrder['items'][number] & {
+  price?: number;
+  sellerId?: IOrder['items'][number]['sellerId'] | string;
+});
+
+type SellerOrderSummary = {
+  createdAt: IOrder['createdAt'];
+  status?: IOrder['status'];
+  items?: SouqOrderItem[];
+};
 
 export interface ISalesMetrics {
   revenue: {
@@ -599,7 +611,7 @@ class AnalyticsService {
    * Group orders by day for charting
    */
   private groupByDay(
-    orders: Array<{ createdAt: Date; status?: string; items?: Array<any> }>,
+    orders: SellerOrderSummary[],
     sellerIdStr: string,
     startDate: Date,
     endDate: Date
@@ -626,9 +638,9 @@ class AnalyticsService {
     return dailyData;
   }
 
-  private getSellerItems(order: { items?: Array<any> }, sellerIdStr: string) {
+  private getSellerItems(order: SellerOrderSummary, sellerIdStr: string): SouqOrderItem[] {
     if (!Array.isArray(order.items)) return [];
-    return order.items.filter(item => {
+    return order.items.filter((item): item is SouqOrderItem => {
       const rawSellerId = item?.sellerId;
       if (!rawSellerId) return false;
       const value = typeof rawSellerId === 'string' ? rawSellerId : rawSellerId.toString();
@@ -636,7 +648,7 @@ class AnalyticsService {
     });
   }
 
-  private getItemSubtotal(item: any): number {
+  private getItemSubtotal(item: SouqOrderItem): number {
     if (typeof item.subtotal === 'number') return item.subtotal;
     const price = typeof item.pricePerUnit === 'number'
       ? item.pricePerUnit
@@ -647,14 +659,14 @@ class AnalyticsService {
     return price * quantity;
   }
 
-  private calculateSellerOrderRevenue(order: { items?: Array<any>; status?: string }, sellerIdStr: string): number {
+  private calculateSellerOrderRevenue(order: SellerOrderSummary, sellerIdStr: string): number {
     const sellerItems = this.getSellerItems(order, sellerIdStr);
     return sellerItems
       .filter(item => !this.isCancelledOrReturned(item, order.status))
       .reduce((sum, item) => sum + this.getItemSubtotal(item), 0);
   }
 
-  private hasSellerItemStatus(order: { items?: Array<any>; status?: string }, sellerIdStr: string, statuses: string | string[]): boolean {
+  private hasSellerItemStatus(order: SellerOrderSummary, sellerIdStr: string, statuses: string | string[]): boolean {
     const targetStatuses = Array.isArray(statuses) ? statuses : [statuses];
     const normalizedTargets = targetStatuses.map(status => status.toLowerCase());
     return this.getSellerItems(order, sellerIdStr).some(item => {
@@ -663,13 +675,13 @@ class AnalyticsService {
     });
   }
 
-  private allSellerItemsDelivered(order: { items?: Array<any>; status?: string }, sellerIdStr: string): boolean {
+  private allSellerItemsDelivered(order: SellerOrderSummary, sellerIdStr: string): boolean {
     const sellerItems = this.getSellerItems(order, sellerIdStr);
     if (sellerItems.length === 0) return false;
     return sellerItems.every(item => this.normalizeItemStatus(item.status, order.status) === 'delivered');
   }
 
-  private isCancelledOrReturned(item: any, orderStatus?: string): boolean {
+  private isCancelledOrReturned(item: SouqOrderItem, orderStatus?: IOrder['status']): boolean {
     const status = this.normalizeItemStatus(item.status, orderStatus);
     return status === 'cancelled' || status === 'returned';
   }

@@ -1,5 +1,5 @@
 import { MeiliSearch } from 'meilisearch';
-import logger from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 
 let client: MeiliSearch | null = null;

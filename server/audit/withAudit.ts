@@ -165,7 +165,6 @@ export function withAudit<
           },
         };
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await AuditLogModel.log(auditData);
       } catch (err) {
         // never break the API

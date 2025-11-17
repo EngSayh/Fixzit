@@ -1,5 +1,4 @@
 // src/types/mongoose-compat.ts
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import type {
   Model,
   HydratedDocument,

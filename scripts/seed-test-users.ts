@@ -25,7 +25,7 @@ const normalizedUsers = testUsers.map(user => ({
   ...user,
   phone: TEST_PHONE,
   mobile: TEST_PHONE,
-  role: user.professional?.role ?? user.role ?? 'USER',
+  role: user.professional?.role ?? 'USER',
 }));
 
 async function seedTestUsers() {

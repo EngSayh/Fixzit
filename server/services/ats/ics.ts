@@ -11,9 +11,8 @@ export type InterviewInviteInput = {
   end: Date;
 };
 
-function formatDate(date: Date) {
-  const icsDate = ICAL.Time.fromJSDate(date, true);
-  return icsDate.toString();
+function toICSTime(date: Date) {
+  return ICAL.Time.fromJSDate(date, true);
 }
 
 export function generateInterviewICS(input: InterviewInviteInput) {
@@ -27,8 +26,8 @@ export function generateInterviewICS(input: InterviewInviteInput) {
   vevent.summary = input.title;
   vevent.description = input.description || '';
   vevent.location = input.location || 'Virtual';
-  vevent.startDate = ICAL.Time.fromString(formatDate(input.start));
-  vevent.endDate = ICAL.Time.fromString(formatDate(input.end));
+  vevent.startDate = toICSTime(input.start);
+  vevent.endDate = toICSTime(input.end);
 
   const organizerProp = new ICAL.Property('organizer');
   organizerProp.setParameter('cn', input.organizer.name);

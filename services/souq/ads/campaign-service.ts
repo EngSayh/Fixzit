@@ -11,7 +11,7 @@
  */
 
 import { nanoid } from 'nanoid';
-import logger from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 type KeywordMatchType = 'exact' | 'phrase' | 'broad';
 type KeywordTargetInput = string | {

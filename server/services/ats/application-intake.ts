@@ -272,7 +272,7 @@ async function extractResumeDetails(resumeFile?: ResumeFileInput): Promise<{
 async function persistResumeFile(file: ResumeFileInput): Promise<string> {
   const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'resumes');
   await fs.mkdir(uploadDir, { recursive: true });
-  const safeName = file.filename.replace(/[^a-zA-Z0-9.\-]+/g, '_');
+  const safeName = file.filename.replace(/[^a-zA-Z0-9.-]+/g, '_');
   const fileName = `${Date.now()}-${safeName}`;
   const filePath = path.join(uploadDir, fileName);
   await fs.writeFile(filePath, file.buffer);

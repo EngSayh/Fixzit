@@ -1,151 +1,196 @@
 import { chromium, FullConfig } from '@playwright/test';
 import { mkdir } from 'fs/promises';
+import { URLSearchParams } from 'url';
+
+type RoleConfig = {
+  name: string;
+  identifierEnv: string;
+  passwordEnv: string;
+  phoneEnv?: string;
+  statePath: string;
+};
 
 /**
  * AUTHENTICATION SETUP - OTP FLOW
  * Creates storage states for all user roles using OTP authentication
- * Uses direct API calls to bypass OTP code requirement
- * Roles: SuperAdmin, Admin, Manager, Technician, Tenant, Vendor
+ * Mirrors the real OTP → verify → credentials callback flow so server-side
+ * RBAC hooks and OTP session validation stay intact.
  */
-
 async function globalSetup(config: FullConfig) {
   console.log('\n🔐 Setting up authentication states for all roles (OTP flow)...\n');
 
   const baseURL = config.projects[0].use.baseURL || 'http://localhost:3000';
-  
-  // Validate all required environment variables are present (fail fast)
-  const requiredEnvVars = [
-    'TEST_SUPERADMIN_PHONE',
-    'TEST_ADMIN_PHONE',
-    'TEST_MANAGER_PHONE',
-    'TEST_TECHNICIAN_PHONE',
-    'TEST_TENANT_PHONE',
-    'TEST_VENDOR_PHONE'
-  ];
 
-  const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-  if (missingVars.length > 0) {
-    console.error('\n❌ ERROR: Missing required test environment variables:\n');
-    missingVars.forEach(varName => console.error(`   - ${varName}`));
-    console.error('\nCreate a .env.test file or set these variables in your CI environment.');
-    console.error('Example: TEST_ADMIN_PHONE=+966500000001\n');
-    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
-  }
-
-  // Ensure state directory exists
-  await mkdir('tests/state', { recursive: true });
-
-  const browser = await chromium.launch();
-
-  const roles = [
+  const roles: RoleConfig[] = [
     {
       name: 'SuperAdmin',
-      phone: process.env.TEST_SUPERADMIN_PHONE!,
-      statePath: 'tests/state/superadmin.json'
+      identifierEnv: 'TEST_SUPERADMIN_IDENTIFIER',
+      passwordEnv: 'TEST_SUPERADMIN_PASSWORD',
+      phoneEnv: 'TEST_SUPERADMIN_PHONE',
+      statePath: 'tests/state/superadmin.json',
     },
     {
       name: 'Admin',
-      phone: process.env.TEST_ADMIN_PHONE!,
-      statePath: 'tests/state/admin.json'
+      identifierEnv: 'TEST_ADMIN_IDENTIFIER',
+      passwordEnv: 'TEST_ADMIN_PASSWORD',
+      phoneEnv: 'TEST_ADMIN_PHONE',
+      statePath: 'tests/state/admin.json',
     },
     {
       name: 'Manager',
-      phone: process.env.TEST_MANAGER_PHONE!,
-      statePath: 'tests/state/manager.json'
+      identifierEnv: 'TEST_MANAGER_IDENTIFIER',
+      passwordEnv: 'TEST_MANAGER_PASSWORD',
+      phoneEnv: 'TEST_MANAGER_PHONE',
+      statePath: 'tests/state/manager.json',
     },
     {
       name: 'Technician',
-      phone: process.env.TEST_TECHNICIAN_PHONE!,
-      statePath: 'tests/state/technician.json'
+      identifierEnv: 'TEST_TECHNICIAN_IDENTIFIER',
+      passwordEnv: 'TEST_TECHNICIAN_PASSWORD',
+      phoneEnv: 'TEST_TECHNICIAN_PHONE',
+      statePath: 'tests/state/technician.json',
     },
     {
       name: 'Tenant',
-      phone: process.env.TEST_TENANT_PHONE!,
-      statePath: 'tests/state/tenant.json'
+      identifierEnv: 'TEST_TENANT_IDENTIFIER',
+      passwordEnv: 'TEST_TENANT_PASSWORD',
+      phoneEnv: 'TEST_TENANT_PHONE',
+      statePath: 'tests/state/tenant.json',
     },
     {
       name: 'Vendor',
-      phone: process.env.TEST_VENDOR_PHONE!,
-      statePath: 'tests/state/vendor.json'
-    }
+      identifierEnv: 'TEST_VENDOR_IDENTIFIER',
+      passwordEnv: 'TEST_VENDOR_PASSWORD',
+      phoneEnv: 'TEST_VENDOR_PHONE',
+      statePath: 'tests/state/vendor.json',
+    },
   ];
 
+  const missing = roles.flatMap(role => {
+    const missingVars: string[] = [];
+    if (!process.env[role.identifierEnv]) missingVars.push(role.identifierEnv);
+    if (!process.env[role.passwordEnv]) missingVars.push(role.passwordEnv);
+    return missingVars;
+  });
+
+  if (missing.length > 0) {
+    console.error('\n❌ ERROR: Missing required login credentials for test roles:\n');
+    missing.forEach(envVar => console.error(`   - ${envVar}`));
+    console.error('\nPopulate these values in .env.test or your CI secrets store.');
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+
+  await mkdir('tests/state', { recursive: true });
+  const browser = await chromium.launch();
+
   for (const role of roles) {
+    const context = await browser.newContext();
     try {
-      console.log(`🔑 Authenticating as ${role.name} (${role.phone})...`);
-      
-      const context = await browser.newContext();
+      const identifier = process.env[role.identifierEnv]!;
+      const password = process.env[role.passwordEnv]!;
+      const phone = role.phoneEnv ? process.env[role.phoneEnv] : undefined;
+      console.log(`🔑 Authenticating as ${role.name} (${identifier})...`);
+
       const page = await context.newPage();
 
-      // Step 1: Request OTP via API
+      // Step 1: Send OTP (credentials provider requires identifier + password)
       const otpResponse = await page.request.post(`${baseURL}/api/auth/otp/send`, {
-        data: { phone: role.phone }
+        headers: { 'Content-Type': 'application/json' },
+        data: { identifier, password },
       });
 
       if (!otpResponse.ok()) {
-        throw new Error(`Failed to send OTP: ${otpResponse.status()}`);
+        const body = await otpResponse.text();
+        throw new Error(`Failed to send OTP (${otpResponse.status()}): ${body}`);
       }
 
-      const otpData = await otpResponse.json();
-      const otpCode = otpData.otp || otpData.code;
-      
+      const otpPayload = await otpResponse.json();
+      const otpCode =
+        otpPayload?.data?.devCode ??
+        otpPayload?.data?.otp ??
+        otpPayload?.otp ??
+        otpPayload?.code;
+
       if (!otpCode) {
-        throw new Error('OTP code not returned from API (may need test mode enabled)');
+        throw new Error('OTP code not returned from /otp/send (enable SMS dev mode)');
       }
 
-      console.log(`  📱 OTP sent: ${otpCode}`);
+      console.log(`  📱 OTP sent (dev code ${otpCode})${phone ? ` to ${phone}` : ''}`);
 
-      // Step 2: Get CSRF token
-      await page.goto(`${baseURL}/api/auth/csrf`);
-      const csrfData = await page.evaluate(() => document.body.textContent);
-      const csrfToken = JSON.parse(csrfData!).csrfToken;
-
-      // Step 3: Verify OTP and create NextAuth session
-      const verifyResponse = await page.request.post(`${baseURL}/api/auth/callback/credentials`, {
-        data: {
-          phone: role.phone,
-          otp: otpCode,
-          csrfToken,
-          json: true
-        }
+      // Step 2: Verify OTP to receive otpToken
+      const verifyResponse = await page.request.post(`${baseURL}/api/auth/otp/verify`, {
+        headers: { 'Content-Type': 'application/json' },
+        data: { identifier, otp: otpCode },
       });
 
       if (!verifyResponse.ok()) {
-        throw new Error(`Failed to verify OTP: ${verifyResponse.status()}`);
+        const body = await verifyResponse.text();
+        throw new Error(`Failed to verify OTP (${verifyResponse.status()}): ${body}`);
       }
 
-      // Step 4: Navigate to dashboard to ensure cookies are set
-      await page.goto(`${baseURL}/dashboard`, { waitUntil: 'networkidle' });
+      const verifyPayload = await verifyResponse.json();
+      const otpToken = verifyPayload?.data?.otpToken;
+      if (!otpToken) {
+        throw new Error('OTP verification succeeded but otpToken missing from response');
+      }
 
-      // Wait for authentication to complete
+      // Step 3: Obtain CSRF token (NextAuth requires the CSRF cookie + token)
+      const csrfResponse = await page.goto(`${baseURL}/api/auth/csrf`);
+      const csrfText = await csrfResponse?.text();
+      const csrfToken = csrfText ? JSON.parse(csrfText).csrfToken : undefined;
+
+      if (!csrfToken) {
+        throw new Error('Failed to retrieve CSRF token');
+      }
+
+      // Step 4: Create a NextAuth session through the credentials callback
+      const form = new URLSearchParams({
+        identifier,
+        password,
+        otpToken,
+        csrfToken,
+        rememberMe: 'on',
+        redirect: 'false',
+        callbackUrl: `${baseURL}/dashboard`,
+        json: 'true',
+      });
+
+      const sessionResponse = await page.request.post(`${baseURL}/api/auth/callback/credentials`, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        data: form.toString(),
+      });
+
+      if (!sessionResponse.ok()) {
+        const body = await sessionResponse.text();
+        throw new Error(`Failed to create session (${sessionResponse.status()}): ${body}`);
+      }
+
+      // Step 5: Load dashboard to ensure cookies + session storage are populated
+      await page.goto(`${baseURL}/dashboard`, { waitUntil: 'networkidle' }).catch(() => {});
       await page.waitForTimeout(2000);
 
-      // Verify authentication by checking for user session
       const cookies = await context.cookies();
-      const hasAuthCookie = cookies.some(c => 
-        c.name.includes('session') || 
-        c.name.includes('next-auth') ||
-        c.name === 'authjs.session-token'
+      const hasSession = cookies.some(
+        c =>
+          c.name.includes('session') ||
+          c.name.includes('next-auth') ||
+          c.name === 'authjs.session-token'
       );
 
-      if (!hasAuthCookie) {
-        console.warn(`  ⚠️  No auth cookie found for ${role.name}, may not be fully authenticated`);
+      if (!hasSession) {
+        console.warn(`  ⚠️  No auth cookie detected for ${role.name}. State may be invalid.`);
       }
 
-      // Save authenticated state
       await context.storageState({ path: role.statePath });
-
       console.log(`✅ ${role.name} authenticated successfully`);
-
-      await context.close();
     } catch (error) {
       console.error(`❌ Failed to authenticate ${role.name}:`, error);
-      // Continue with other roles even if one fails
+    } finally {
+      await context.close().catch(() => {});
     }
   }
 
   await browser.close();
-  
   console.log('\n✅ Authentication setup complete\n');
 }
 

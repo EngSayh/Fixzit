@@ -6,9 +6,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Plus, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { logger } from '@/lib/logger';
+import { usePermittedQuickActions } from './usePermittedQuickActions';
 
 export default function QuickActions() {
   const { quickActions } = useTopBar();
+  const permittedActions = usePermittedQuickActions(quickActions);
   const { t, isRTL } = useTranslation();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -34,11 +36,11 @@ export default function QuickActions() {
           break;
         case 'ArrowDown':
           event.preventDefault();
-          setActiveIndex((prev) => (prev + 1) % quickActions.length);
+          setActiveIndex((prev) => (prev + 1) % permittedActions.length);
           break;
         case 'ArrowUp':
           event.preventDefault();
-          setActiveIndex((prev) => (prev - 1 + quickActions.length) % quickActions.length);
+          setActiveIndex((prev) => (prev - 1 + permittedActions.length) % permittedActions.length);
           break;
         case 'Home':
           event.preventDefault();
@@ -46,13 +48,13 @@ export default function QuickActions() {
           break;
         case 'End':
           event.preventDefault();
-          setActiveIndex(quickActions.length - 1);
+          setActiveIndex(permittedActions.length - 1);
           break;
         case 'Enter':
         case ' ':
           event.preventDefault();
-          if (quickActions[activeIndex]) {
-            const action = quickActions[activeIndex];
+          if (permittedActions[activeIndex]) {
+            const action = permittedActions[activeIndex];
             // AUDIT: Log user navigation action
             import('../../lib/logger')
               .then(({ logInfo }) => {
@@ -83,7 +85,7 @@ export default function QuickActions() {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [open, activeIndex, quickActions, router]);
+  }, [open, activeIndex, permittedActions, router]);
 
   // Move focus and scroll active item into view for ARIA compliance
   useEffect(() => {
@@ -95,7 +97,7 @@ export default function QuickActions() {
     }
   }, [activeIndex, open]);
 
-  if (quickActions.length === 0) {
+  if (permittedActions.length === 0) {
     return null;
   }
 
@@ -120,7 +122,7 @@ export default function QuickActions() {
           aria-label={t('topbar.quickActions', 'Quick actions')}
         >
           <div className="p-2">
-            {quickActions.map((action, idx) => (
+            {permittedActions.map((action, idx) => (
               <div
                 key={action.id}
                 ref={(el) => { itemRefs.current[idx] = el; }}

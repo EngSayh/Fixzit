@@ -4,7 +4,8 @@
  */
 
 import { Queue, Worker, QueueEvents, type Job, type Processor } from 'bullmq';
-import { getRedisClient } from '@/lib/redis-client';
+import type Redis from 'ioredis';
+import { getRedisClient } from '@/lib/redis';
 import { logger } from '@/lib/logger';
 
 // Queue names
@@ -27,12 +28,20 @@ const queues = new Map<QueueName, Queue>();
 const workers = new Map<QueueName, Worker>();
 const queueEvents = new Map<QueueName, QueueEvents>();
 
+function requireRedisConnection(context: string): Redis {
+  const connection = getRedisClient();
+  if (!connection) {
+    throw new Error(`[Queues] Redis not configured (${context}). Set REDIS_URL to enable BullMQ queues.`);
+  }
+  return connection;
+}
+
 /**
  * Get or create a queue instance
  */
 export function getQueue(name: QueueName): Queue {
   if (!queues.has(name)) {
-    const connection = getRedisClient();
+    const connection = requireRedisConnection(`queue:${name}`);
     
     const queue = new Queue(name, {
       connection,
@@ -73,7 +82,7 @@ export function createWorker<T = unknown, R = unknown>(
     return workers.get(name)!;
   }
 
-  const connection = getRedisClient();
+  const connection = requireRedisConnection(`worker:${name}`);
 
   const worker = new Worker<T, R>(name, processor, {
     connection,
@@ -125,7 +134,7 @@ export function createQueueEvents(name: QueueName): QueueEvents {
     return queueEvents.get(name)!;
   }
 
-  const connection = getRedisClient();
+  const connection = requireRedisConnection(`events:${name}`);
 
   const events = new QueueEvents(name, { connection });
 

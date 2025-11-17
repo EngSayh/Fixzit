@@ -29,7 +29,7 @@ interface RepricerSettings {
 
 interface Props {
   settings: RepricerSettings;
-  onUpdate: (settings: RepricerSettings) => void;
+  onUpdate: (_updatedSettings: RepricerSettings) => void;
 }
 
 export default function PricingRuleCard({ settings, onUpdate }: Props) {

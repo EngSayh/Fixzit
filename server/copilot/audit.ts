@@ -1,4 +1,3 @@
-import { CopilotAudit } from "@/server/models/CopilotAudit";
 import { CopilotSession } from "./session";
 import { logger } from '@/lib/logger';
 
@@ -33,4 +32,3 @@ export async function recordAudit(options: AuditOptions) {
     logger.error("Failed to record copilot audit", { error });
   }
 }
-

@@ -89,7 +89,6 @@ const SouqTransactionSchema = new Schema<ISouqTransaction>(
 // Indexes
 SouqTransactionSchema.index({ sellerId: 1, createdAt: -1 });
 SouqTransactionSchema.index({ sellerId: 1, type: 1, createdAt: -1 });
-SouqTransactionSchema.index({ orderId: 1 });
 
 export const SouqTransaction =
   (mongoose.models.SouqTransaction as mongoose.Model<ISouqTransaction>) ||

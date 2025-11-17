@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
-import { APPS, AppKey } from '@/config/topbar-modules';
+import { APPS, AppKey, DEFAULT_SCOPE, getSearchEntitiesForScope } from '@/config/topbar-modules';
+import type { ModuleScope } from '@/config/topbar-modules';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
@@ -60,6 +61,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const app = (searchParams.get('app') || 'fm') as AppKey;
     const q = (searchParams.get('q') || '').trim();
+    const scope = searchParams.get('scope') === 'all' ? 'all' : 'module';
+    const moduleScope = (searchParams.get('module') as ModuleScope) || DEFAULT_SCOPE;
     const entities = (searchParams.get('entities') || '').split(',').filter(Boolean);
 
     if (!q) {
@@ -80,7 +83,12 @@ export async function GET(req: NextRequest) {
       score: number;
     }
 
-    const searchEntities = entities.length > 0 ? entities : appConfig.searchEntities;
+    let searchEntities =
+      entities.length > 0 ? entities : getSearchEntitiesForScope(moduleScope, app);
+    if (scope === 'all') {
+      const combined = new Set([...searchEntities, ...appConfig.searchEntities]);
+      searchEntities = Array.from(combined);
+    }
     const results: SearchResult[] = [];
 
     // Search across different entity types based on app
@@ -235,4 +243,3 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ results: [] }, 500, req);
   }
 }
-

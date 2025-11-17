@@ -4,6 +4,7 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { Job } from '@/server/models/Job';
 import { generateSlug } from '@/lib/utils';
 import { atsRBAC } from '@/lib/ats/rbac';
+import { getServerTranslation } from '@/lib/i18n/server';
 
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
@@ -76,8 +77,9 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     logger.error('Jobs list error:', error instanceof Error ? error.message : 'Unknown error');
+    const t = await getServerTranslation(req);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch jobs' },
+      { success: false, error: t('ats.errors.jobsFetchFailed') },
       { status: 500 }
     );
   }
@@ -118,11 +120,13 @@ export async function POST(req: NextRequest) {
       });
 
       if (activeJobCount >= jobPostLimit) {
+        const t = await getServerTranslation(req);
         return NextResponse.json(
           {
             success: false,
-            error: 'Job post limit reached for your ATS plan',
+            error: t('ats.errors.jobPostLimitExceeded'),
             limit: jobPostLimit,
+            count: activeJobCount,
           },
           { status: 403 }
         );
@@ -146,8 +150,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, data: job }, { status: 201 });
   } catch (error) {
     logger.error('Job creation error:', error instanceof Error ? error.message : 'Unknown error');
+    const t = await getServerTranslation(req);
     return NextResponse.json(
-      { success: false, error: 'Failed to create job' },
+      { success: false, error: t('ats.errors.jobCreationFailed') },
       { status: 500 }
     );
   }

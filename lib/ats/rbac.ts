@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import type { IOrganization } from '@/server/models/Organization';
+import { UserRole } from '@/types/user';
+import { getServerTranslation } from '@/lib/i18n/server';
 
 export type AtsModuleAccess = {
   enabled: boolean;
@@ -30,6 +33,25 @@ const ATS_UPGRADE_PATH = '/billing/upgrade?feature=ats';
 const ATS_SEAT_USER_ROLES = ['HR', 'CORPORATE_ADMIN', 'ADMIN', 'FM_MANAGER', 'PROPERTY_MANAGER'];
 const ATS_SEAT_PROFESSIONAL_ROLES = ['HR Manager', 'Recruiter', 'Hiring Manager', 'Corporate Admin', 'Talent Acquisition Lead'];
 const ATS_SEAT_REQUIRED_ROLES: ATSRole[] = ['Corporate Admin', 'HR Manager', 'Recruiter', 'Hiring Manager'];
+
+/**
+ * Map platform UserRole to ATSRole
+ * Handles the mismatch between session.user.role (SUPER_ADMIN) and ATSRole ('Super Admin')
+ */
+function mapUserRoleToATSRole(userRole: string): ATSRole {
+  // Direct mapping for known platform roles
+  const roleMap: Record<string, ATSRole> = {
+    [UserRole.SUPER_ADMIN]: 'Super Admin',
+    [UserRole.CORPORATE_ADMIN]: 'Corporate Admin',
+    [UserRole.HR]: 'HR Manager',
+    // Default mappings for other roles
+    [UserRole.ADMIN]: 'HR Manager',
+    [UserRole.FM_MANAGER]: 'Hiring Manager',
+    [UserRole.PROPERTY_MANAGER]: 'Hiring Manager',
+  };
+  
+  return roleMap[userRole] || 'Candidate';
+}
 
 /**
  * ATS Permissions Matrix
@@ -160,17 +182,18 @@ export async function atsRBAC(
   const session = await auth();
   
   if (!session?.user) {
+    const t = await getServerTranslation(req);
     return {
       authorized: false,
       response: NextResponse.json(
-        { success: false, error: 'Authentication required' },
+        { success: false, error: t('ats.errors.authenticationRequired') },
         { status: 401 }
       )
     };
   }
 
   const userId = session.user.id;
-  const role = session.user.role as ATSRole;
+  const role = mapUserRoleToATSRole(session.user.role);
   const isSuperAdmin = role === 'Super Admin';
 
   // Get orgId from session (with impersonation support for Super Admin)
@@ -193,12 +216,13 @@ export async function atsRBAC(
   const authorized = hasAnyPermission(role, requiredPermissions);
 
   if (!authorized) {
+    const t = await getServerTranslation(req);
     return {
       authorized: false,
       response: NextResponse.json(
         { 
           success: false, 
-          error: 'Forbidden: Insufficient permissions',
+          error: t('ats.errors.insufficientPermissions'),
           required: requiredPermissions,
           userRole: role
         },
@@ -207,7 +231,7 @@ export async function atsRBAC(
     };
   }
 
-  const { module: atsModule, errorResponse } = await ensureAtsModuleAccess(orgId, role, isSuperAdmin);
+  const { module: atsModule, errorResponse } = await ensureAtsModuleAccess(req, orgId, role, isSuperAdmin);
   if (errorResponse) {
     return { authorized: false, response: errorResponse };
   }
@@ -223,6 +247,7 @@ export async function atsRBAC(
 }
 
 async function ensureAtsModuleAccess(
+  req: NextRequest,
   orgId: string,
   role: ATSRole,
   isSuperAdmin: boolean
@@ -239,16 +264,19 @@ async function ensureAtsModuleAccess(
   }
 
   const { Organization } = await import('@/server/models/Organization');
-  const organization = await Organization.findOne({ orgId }).select('modules.ats').lean();
+  const organization = (await (Organization as any)
+    .findOne({ orgId }, { modules: 1 })
+    .lean()) as Pick<IOrganization, 'modules'> | null;
   const config = organization?.modules?.ats;
 
   if (!config?.enabled) {
+    const t = await getServerTranslation(req);
     return {
       module: DEFAULT_ATS_MODULE,
       errorResponse: NextResponse.json(
         {
           success: false,
-          error: 'ATS module not enabled for this tenant',
+          error: t('ats.errors.moduleDisabled'),
           feature: 'ats',
           upgradeUrl: ATS_UPGRADE_PATH,
         },
@@ -274,12 +302,13 @@ async function ensureAtsModuleAccess(
     const usage = await countAtsSeatUsage(orgId);
     module.seatUsage = usage;
     if (usage > module.seats) {
+      const t = await getServerTranslation(req);
       return {
         module,
         errorResponse: NextResponse.json(
           {
             success: false,
-            error: 'ATS seat limit reached for this subscription',
+            error: t('ats.errors.seatLimitExceeded'),
             feature: 'ats',
             upgradeUrl: ATS_UPGRADE_PATH,
             seats: {

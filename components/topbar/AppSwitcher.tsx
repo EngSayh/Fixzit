@@ -1,11 +1,11 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import { useTopBar } from '@/contexts/TopBarContext';
 import { APPS, type AppKey } from '@/config/topbar-modules';
 import { useTranslation } from '@/contexts/TranslationContext';
 import Link from 'next/link';
 import { ChevronDown, Building2, Store, Landmark } from 'lucide-react';
-import { useState, useEffect } from 'react';
 
 const appIcons = {
   fm: Building2,

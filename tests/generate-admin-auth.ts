@@ -9,6 +9,7 @@ import { chromium } from '@playwright/test';
 import { mkdir } from 'fs/promises';
 import { config } from 'dotenv';
 import { resolve } from 'path';
+import { URLSearchParams } from 'url';
 
 // Load .env.test
 config({ path: resolve(__dirname, '../.env.test') });
@@ -17,7 +18,13 @@ async function generateAuthState() {
   console.log('\n🔐 Generating admin authentication state...\n');
 
   const baseURL = 'http://localhost:3000';
-  const phone = process.env.TEST_ADMIN_PHONE || '+966500000001';
+  const identifier = process.env.TEST_ADMIN_IDENTIFIER;
+  const password = process.env.TEST_ADMIN_PASSWORD;
+  const phone = process.env.TEST_ADMIN_PHONE;
+
+  if (!identifier || !password) {
+    throw new Error('TEST_ADMIN_IDENTIFIER and TEST_ADMIN_PASSWORD must be set in .env.test');
+  }
 
   // Ensure state directory exists
   await mkdir('tests/state', { recursive: true });
@@ -28,13 +35,14 @@ async function generateAuthState() {
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    console.log(`📱 Sending OTP...`);
+    console.log(`📱 Sending OTP${phone ? ` for ${phone}` : ''}...`);
 
     // Step 1: Send OTP (using identifier + password, not phone)
     const otpResponse = await page.request.post(`${baseURL}/api/auth/otp/send`, {
+      headers: { 'Content-Type': 'application/json' },
       data: { 
-        identifier: 'admin@test.fixzit.co',
-        password: 'Test@1234'
+        identifier,
+        password
       }
     });
 
@@ -56,8 +64,9 @@ async function generateAuthState() {
     // Step 2: Verify OTP to get otpToken
     console.log('🔑 Verifying OTP...');
     const verifyResponse = await page.request.post(`${baseURL}/api/auth/otp/verify`, {
+      headers: { 'Content-Type': 'application/json' },
       data: {
-        identifier: 'admin@test.fixzit.co',
+        identifier,
         otp: otpCode
       }
     });
@@ -78,19 +87,29 @@ async function generateAuthState() {
 
     // Step 3: Get CSRF token
     console.log('🔐 Getting CSRF token...');
-    await page.goto(`${baseURL}/api/auth/csrf`);
-    const csrfText = await page.textContent('body');
-    const csrfToken = JSON.parse(csrfText!).csrfToken;
+    const csrfResponse = await page.goto(`${baseURL}/api/auth/csrf`);
+    const csrfText = await csrfResponse?.text();
+    const csrfToken = csrfText ? JSON.parse(csrfText).csrfToken : undefined;
+    if (!csrfToken) {
+      throw new Error('Failed to retrieve CSRF token');
+    }
     console.log('✅ CSRF token retrieved');
 
     // Step 4: Create NextAuth session
     console.log('🔑 Creating NextAuth session...');
+    const form = new URLSearchParams({
+      identifier,
+      password,
+      otpToken,
+      csrfToken,
+      rememberMe: 'on',
+      redirect: 'false',
+      callbackUrl: `${baseURL}/dashboard`,
+      json: 'true'
+    });
     const sessionResponse = await page.request.post(`${baseURL}/api/auth/callback/credentials`, {
-      data: {
-        otpToken,
-        csrfToken,
-        json: true
-      }
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      data: form.toString()
     });
 
     if (!sessionResponse.ok()) {

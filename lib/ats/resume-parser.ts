@@ -22,6 +22,7 @@ interface ParsedResume {
     email?: string;
     phone?: string;
   };
+  rawText?: string;
 }
 
 /**
@@ -52,7 +53,8 @@ export function parsePlainText(text: string): ParsedResume {
     skills: extractSkills(text),
     experience: extractExperience(text, normalizedText),
     education: extractEducation(text, normalizedText),
-    contact: extractContact(text)
+    contact: extractContact(text),
+    rawText: text
   };
 }
 

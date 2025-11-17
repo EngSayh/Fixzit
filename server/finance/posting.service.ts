@@ -8,15 +8,19 @@ import { ForbiddenError } from '../lib/errors';
 import { RequestContext } from '../lib/authContext';
 import { log } from '../lib/logger';
 
-export async function postJournal(ctx: RequestContext, data: any) {
+export async function postJournal(ctx: RequestContext, journalId: Types.ObjectId | string) {
   if (!['FINANCE', 'ADMIN', 'SUPER_ADMIN'].includes(ctx.role)) {
     throw new ForbiddenError('Only Finance/Admin can post journals');
+  }
+  if (!journalId) {
+    throw new Error('journalId is required to post a journal');
   }
 
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const j = await Journal.findOne({ _id: journalId, orgId: ctx.orgId }).session(session);
+    const id = typeof journalId === 'string' ? new Types.ObjectId(journalId) : journalId;
+    const j = await Journal.findOne({ _id: id, orgId: ctx.orgId }).session(session);
     if (!j || j.status !== 'DRAFT') throw new Error('Invalid journal');
 
     let totalDeb = 0n;

@@ -6,7 +6,7 @@ let domPurifyInstance: ReturnType<typeof createDOMPurify> | null = null;
 function getDOMPurify() {
   if (domPurifyInstance) return domPurifyInstance;
   const windowLike = typeof window === 'undefined' ? new JSDOM('').window : window;
-  domPurifyInstance = createDOMPurify(windowLike as unknown as Window);
+  domPurifyInstance = createDOMPurify(windowLike as unknown as Window & typeof globalThis);
   return domPurifyInstance;
 }
 

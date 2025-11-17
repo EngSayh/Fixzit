@@ -136,7 +136,6 @@ const translations = {
   }
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ToolFormState = Record<string, any>;
 
 const initialForms: Record<string, ToolFormState> = {

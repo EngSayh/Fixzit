@@ -3,8 +3,28 @@
  * Automatically creates financial transactions when work orders are closed
  */
 
+import type { HydratedDocument, Types } from 'mongoose';
 import { FMFinancialTransaction } from '@/server/models/FMFinancialTransaction';
+import type { FMFinancialTransactionDoc } from '@/server/models/FMFinancialTransaction';
 import { logger } from '@/lib/logger';
+
+type PaymentDetailsInput = {
+  paymentMethod: string;
+  paymentRef?: string;
+  receivedFrom: string;
+  receivedBy: string;
+  notes?: string;
+};
+
+type FMTransactionDocument = HydratedDocument<FMFinancialTransactionDoc> & {
+  markAsPaid(_details: PaymentDetailsInput): Promise<HydratedDocument<FMFinancialTransactionDoc>>;
+};
+
+type LeanFMTransaction = FMFinancialTransactionDoc & { _id: Types.ObjectId };
+
+function hasMarkAsPaid(doc: HydratedDocument<FMFinancialTransactionDoc>): doc is FMTransactionDocument {
+  return typeof (doc as FMTransactionDocument).markAsPaid === 'function';
+}
 
 export interface WorkOrderFinancialData {
   workOrderId: string;
@@ -27,7 +47,7 @@ export interface WorkOrderFinancialData {
 
 export interface FinancialTransaction {
   id: string;
-  type: 'EXPENSE' | 'INVOICE' | 'PAYMENT';
+  type: 'EXPENSE' | 'INVOICE' | 'PAYMENT' | 'ADJUSTMENT';
   workOrderId: string;
   propertyId: string;
   ownerId: string;
@@ -38,7 +58,7 @@ export interface FinancialTransaction {
   description: string;
   date: Date;
   dueDate?: Date;
-  status: 'PENDING' | 'POSTED' | 'PAID' | 'CANCELLED';
+  status: 'PENDING' | 'POSTED' | 'PAID' | 'CANCELLED' | 'REFUNDED';
   postingRef?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -134,7 +154,7 @@ export async function onWorkOrderClosed(
     };
 
     // Save invoice to database
-    const savedInvoice = (await FMFinancialTransaction.create({
+    const savedInvoice = await FMFinancialTransaction.create({
       type: 'INVOICE',
       workOrderId: invoiceTransaction.workOrderId,
       propertyId: invoiceTransaction.propertyId,
@@ -147,7 +167,7 @@ export async function onWorkOrderClosed(
       transactionDate: invoiceTransaction.date,
       dueDate: invoiceTransaction.dueDate,
       status: 'PENDING'
-    })) as any;
+    });
     logger.info(`[Finance] Created invoice: ${savedInvoice.transactionNumber}`);
     results.invoiceTransaction = {
       ...invoiceTransaction,
@@ -189,12 +209,12 @@ export async function updateOwnerStatement(
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
   
-  const existingTransactions = (await FMFinancialTransaction.find({
+  const existingTransactions = await FMFinancialTransaction.find({
     ownerId,
     propertyId,
     'statementPeriod.month': currentMonth,
     'statementPeriod.year': currentYear
-  })) as any;
+  }).lean<LeanFMTransaction>();
 
   logger.info(`[Finance] Updating statement for owner ${ownerId} property ${propertyId}`);
   logger.info(`[Finance] Adding ${transactions.length} new transactions`);
@@ -202,12 +222,12 @@ export async function updateOwnerStatement(
   
   // Calculate totals from database records
   const expenses = existingTransactions
-    .filter((t: any) => t.type === 'EXPENSE')
-    .reduce((sum: number, t: any) => sum + t.amount, 0);
+    .filter(t => t.type === 'EXPENSE')
+    .reduce((sum, t) => sum + t.amount, 0);
   
   const revenue = existingTransactions
-    .filter((t: any) => t.type === 'INVOICE' && t.status === 'PAID')
-    .reduce((sum: number, t: any) => sum + t.amount, 0);
+    .filter(t => t.type === 'INVOICE' && t.status === 'PAID')
+    .reduce((sum, t) => sum + t.amount, 0);
 
   logger.info(`[Finance] Total expenses: ${expenses} SAR`);
   logger.info(`[Finance] Total revenue: ${revenue} SAR`);
@@ -223,36 +243,33 @@ export async function generateOwnerStatement(
   period: { from: Date; to: Date }
 ): Promise<OwnerStatement> {
   // Query FMFinancialTransaction collection for transactions in period
-  const dbTransactions = (await FMFinancialTransaction.find({
+  const dbTransactions = await FMFinancialTransaction.find({
     ownerId,
     propertyId,
     transactionDate: {
       $gte: period.from,
       $lte: period.to
     }
-  }).sort({ transactionDate: 1 }));
+  }).sort({ transactionDate: 1 }).lean<LeanFMTransaction>();
 
   // Convert to interface format
-  const transactions: FinancialTransaction[] = dbTransactions.map((t: any) => {
-    const doc = t as unknown as { _id: { toString(): string } };
-    return {
-      id: doc._id.toString(),
-      type: t.type as 'EXPENSE' | 'INVOICE' | 'PAYMENT',
-      workOrderId: t.workOrderId?.toString() || '',
-      propertyId: t.propertyId,
-      ownerId: t.ownerId,
-      tenantId: t.tenantId || undefined,
-      amount: t.amount,
-      currency: t.currency,
-      category: t.category,
-      description: t.description,
-      date: t.transactionDate,
-      dueDate: t.dueDate,
-      status: t.status as 'PENDING' | 'POSTED' | 'PAID' | 'CANCELLED',
-      createdAt: t.createdAt,
-      updatedAt: t.updatedAt
-    };
-  });
+  const transactions: FinancialTransaction[] = dbTransactions.map(transaction => ({
+    id: transaction._id.toString(),
+    type: transaction.type,
+    workOrderId: transaction.workOrderId?.toString() ?? '',
+    propertyId: transaction.propertyId,
+    ownerId: transaction.ownerId,
+    tenantId: transaction.tenantId || undefined,
+    amount: transaction.amount,
+    currency: transaction.currency,
+    category: transaction.category,
+    description: transaction.description,
+    date: transaction.transactionDate,
+    dueDate: transaction.dueDate,
+    status: transaction.status,
+    createdAt: transaction.createdAt,
+    updatedAt: transaction.updatedAt
+  }));
 
   const totalExpenses = transactions
     .filter(t => t.type === 'EXPENSE')
@@ -281,33 +298,30 @@ export async function getTenantPendingInvoices(
   tenantId: string
 ): Promise<FinancialTransaction[]> {
   // Query FMFinancialTransaction collection for pending invoices
-  const dbInvoices = (await FMFinancialTransaction.find({
+  const dbInvoices = await FMFinancialTransaction.find({
     tenantId,
     type: 'INVOICE',
     status: 'PENDING'
-  }).sort({ dueDate: 1 }));
+  }).sort({ dueDate: 1 }).lean<LeanFMTransaction>();
 
   // Convert to interface format
-  return dbInvoices.map((t: any) => {
-    const doc = t as unknown as { _id: { toString(): string } };
-    return {
-      id: doc._id.toString(),
-      type: 'INVOICE' as const,
-      workOrderId: t.workOrderId?.toString() || '',
-      propertyId: t.propertyId,
-      ownerId: t.ownerId,
-      tenantId: t.tenantId || undefined,
-      amount: t.amount,
-      currency: t.currency,
-      category: t.category,
-      description: t.description,
-      date: t.transactionDate,
-      dueDate: t.dueDate,
-      status: 'PENDING' as const,
-      createdAt: t.createdAt,
-      updatedAt: t.updatedAt
-    };
-  });
+  return dbInvoices.map(transaction => ({
+    id: transaction._id.toString(),
+    type: 'INVOICE' as const,
+    workOrderId: transaction.workOrderId?.toString() ?? '',
+    propertyId: transaction.propertyId,
+    ownerId: transaction.ownerId,
+    tenantId: transaction.tenantId || undefined,
+    amount: transaction.amount,
+    currency: transaction.currency,
+    category: transaction.category,
+    description: transaction.description,
+    date: transaction.transactionDate,
+    dueDate: transaction.dueDate,
+    status: 'PENDING' as const,
+    createdAt: transaction.createdAt,
+    updatedAt: transaction.updatedAt
+  }));
 }
 
 /**
@@ -326,8 +340,10 @@ export async function recordPayment(
   }
 
   // Mark invoice as paid
-  // TODO(type-safety): Verify Invoice schema has markAsPaid method
-  await (invoice as any).markAsPaid({
+  if (!hasMarkAsPaid(invoice)) {
+    throw new Error('Invoice document missing markAsPaid handler');
+  }
+  await invoice.markAsPaid({
     paymentMethod,
     paymentRef: reference,
     receivedFrom: invoice.tenantId || 'Unknown',
@@ -363,7 +379,7 @@ export async function recordPayment(
     workOrderId: savedPayment.workOrderId?.toString() || '',
     propertyId: savedPayment.propertyId,
     ownerId: savedPayment.ownerId,
-    tenantId: savedPayment.tenantId as string,  // TODO(type-safety): Verify tenantId type
+    tenantId: savedPayment.tenantId || undefined,
     amount: savedPayment.amount,
     currency: savedPayment.currency,
     category: savedPayment.category,

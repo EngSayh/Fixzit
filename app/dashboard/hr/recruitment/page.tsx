@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSession } from 'next-auth/react';
@@ -9,6 +9,7 @@ import { hasPermission } from '@/lib/ats/rbac';
 import type { ATSRole } from '@/lib/ats/rbac';
 import ApplicationsKanban from '@/components/ats/ApplicationsKanban';
 import { AnalyticsOverview } from '@/components/ats/AnalyticsOverview';
+import ClientDate from '@/components/ClientDate';
 
 /**
  * ATS Recruitment Dashboard (Monday.com-style)
@@ -49,6 +50,33 @@ export default function RecruitmentPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>('jobs');
   const [applicationsView, setApplicationsView] = useState<'list' | 'kanban'>('list');
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setCurrentDate(new Date());
+    const intervalId = window.setInterval(() => setCurrentDate(new Date()), 60000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  const formatInterviewDate = useCallback(
+    (value: Date, locale = 'en-US') =>
+      value.toLocaleDateString(locale, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      }),
+    []
+  );
+
+  const formatInterviewTime = useCallback(
+    (value: Date, locale = 'en-US') =>
+      value.toLocaleTimeString(locale, {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+    []
+  );
   
   const userRole = (session?.user?.role || 'Candidate') as ATSRole;
   
@@ -288,7 +316,13 @@ export default function RecruitmentPage() {
                             📝 {job.applicationCount || 0} applications
                           </span>
                           <span className="text-muted-foreground">
-                            📅 Posted {new Date(job.createdAt).toLocaleDateString()}
+                            📅 Posted{' '}
+                            <ClientDate
+                              date={job.createdAt}
+                              format="date-only"
+                              className="font-medium"
+                              placeholder="--"
+                            />
                           </span>
                         </div>
                       </div>
@@ -424,7 +458,13 @@ export default function RecruitmentPage() {
                           )}
                           <div className="flex items-center gap-4 text-sm">
                             <span className="text-muted-foreground">
-                              📅 Applied {new Date(app.createdAt).toLocaleDateString()}
+                              📅 Applied{' '}
+                              <ClientDate
+                                date={app.createdAt}
+                                format="date-only"
+                                className="font-medium"
+                                placeholder="--"
+                              />
                             </span>
                             {app.candidateId?.experience && (
                               <span className="text-muted-foreground">
@@ -519,8 +559,8 @@ export default function RecruitmentPage() {
                       jobId?: { title?: string };
                     };
                     const scheduledDate = new Date(interview.scheduledAt);
-                    const isPast = scheduledDate < new Date();
-                    const isToday = scheduledDate.toDateString() === new Date().toDateString();
+                    const isPast = currentDate ? scheduledDate < currentDate : false;
+                    const isToday = currentDate ? scheduledDate.toDateString() === currentDate.toDateString() : false;
                     
                     return (
                       <div key={interview._id} className={`bg-card border rounded-lg p-6 hover:shadow-md transition-shadow ${
@@ -557,23 +597,21 @@ export default function RecruitmentPage() {
                             <div className="grid grid-cols-2 gap-4 mb-3">
                               <div className="text-sm">
                                 <span className="text-muted-foreground">📅 Date: </span>
-                                <span className="font-medium">
-                                  {scheduledDate.toLocaleDateString('en-US', { 
-                                    weekday: 'short', 
-                                    month: 'short', 
-                                    day: 'numeric',
-                                    year: 'numeric'
-                                  })}
-                                </span>
+                                <ClientDate
+                                  className="font-medium"
+                                  date={interview.scheduledAt}
+                                  formatter={formatInterviewDate}
+                                  placeholder="--"
+                                />
                               </div>
                               <div className="text-sm">
                                 <span className="text-muted-foreground">🕐 Time: </span>
-                                <span className="font-medium">
-                                  {scheduledDate.toLocaleTimeString('en-US', { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit'
-                                  })}
-                                </span>
+                                <ClientDate
+                                  className="font-medium"
+                                  date={interview.scheduledAt}
+                                  formatter={formatInterviewTime}
+                                  placeholder="--"
+                                />
                               </div>
                               <div className="text-sm">
                                 <span className="text-muted-foreground">⏱️ Duration: </span>

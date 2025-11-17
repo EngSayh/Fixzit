@@ -2,8 +2,6 @@
 // All queries MUST include org_id for multi-tenant isolation
 // Use these in Server Components, Server Actions, or API Routes only
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { getDatabase } from './mongodb-unified';
 import { logger } from './logger';
 

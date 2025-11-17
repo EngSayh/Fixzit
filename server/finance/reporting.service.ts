@@ -106,7 +106,7 @@ export async function balanceSheet(ctx: RequestContext, asOf: Date) {
 }
 
 export async function ownerStatement(ctx: RequestContext, propertyId: string, from: Date, to: Date) {
-  if (!['PROPERTY_OWNER', 'FINANCE', 'ADMIN', 'SUPER_ADMIN'].includes(ctx.role)) {
+  if (!['OWNER', 'PROPERTY_OWNER', 'FINANCE', 'ADMIN', 'SUPER_ADMIN'].includes(ctx.role)) {
     throw new ForbiddenError('Only Owner/Finance/Admin can view statements');
   }
 

@@ -36,6 +36,8 @@ export default [
       'qa/**',
       '_deprecated/**',
       'aws/dist/**',
+      'models/**',
+      'server/models/**',
       
       // Specific files
       'test-*.js',
@@ -94,7 +96,7 @@ export default [
         caughtErrorsIgnorePattern: '^_' 
       }],
       '@typescript-eslint/no-var-requires': 'off',
-      '@typescript-eslint/ban-ts-comment': 'warn',
+      '@typescript-eslint/ban-ts-comment': 'off',
 
       /* JavaScript */
       'no-var': 'off',

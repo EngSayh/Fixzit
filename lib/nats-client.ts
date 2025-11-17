@@ -1,5 +1,5 @@
 import { connect, NatsConnection, JSONCodec } from 'nats';
-import logger from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 
 let nc: NatsConnection | null = null;
@@ -54,7 +54,7 @@ export async function publish(
   try {
     const connection = await getNatsConnection();
     if (!connection) {
-      logger.warn('[NATS] Not configured, skipping publish:', subject);
+      logger.warn('[NATS] Not configured, skipping publish', { subject });
       return;
     }
 

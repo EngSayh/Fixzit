@@ -1,32 +1,75 @@
 'use client';
 
-import React, { createContext, useContext, useMemo } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { APPS, AppKey, detectAppFromPath } from '@/config/topbar-modules';
+import {
+  APPS,
+  AppKey,
+  ModuleScope,
+  QuickActionConfig,
+  SavedSearchConfig,
+  SearchEntity,
+  detectAppFromPath,
+  detectModuleFromPath,
+  getModuleQuickActions,
+  getModuleSavedSearches,
+  getModuleSearchConfig,
+  getNavKeyForScope,
+  getSearchEntitiesForScope,
+} from '@/config/topbar-modules';
+import type { SidebarModuleKey } from '@/config/topbar-modules';
 
 interface TopBarState {
   app: AppKey;
-  searchPlaceholderKey: string; // FIX: Changed to match AppConfig
-  searchEntities: string[];
-  quickActions: Array<{
-    id: string;
-    labelKey: string; // FIX: Changed to match AppConfig
-    href: string;
-    permission: string;
-  }>;
-  // eslint-disable-next-line no-unused-vars
-  setApp: (app: AppKey) => void;
+  appLabelKey: string;
+  appFallbackLabel: string;
+  appSearchEntities: SearchEntity[];
+  module: ModuleScope;
+  moduleLabelKey: string;
+  moduleFallbackLabel: string;
+  searchPlaceholderKey: string;
+  searchPlaceholderFallback: string;
+  searchEntities: SearchEntity[];
+  quickActions: QuickActionConfig[];
+  savedSearches: SavedSearchConfig[];
+  navKey?: SidebarModuleKey;
+  megaMenuCollapsed: boolean;
+  setMegaMenuCollapsed: (_next: boolean) => void;
+  setApp: (_app: AppKey) => void;
 }
 
 const TopBarContext = createContext<TopBarState | null>(null);
+const MEGA_MENU_PREF_KEY = 'fixzit:topbar:megaMenuCollapsed';
+const APP_FALLBACK_LABELS: Record<AppKey, string> = {
+  fm: 'Facility Management (FM)',
+  souq: 'Materials Marketplace (Fixizit Souq)',
+  aqar: 'Real Estate Marketplace (Aqar Souq)',
+};
 
 export function TopBarProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  
-  // URL is SINGLE SOURCE OF TRUTH - no localStorage race condition
+
   const app = detectAppFromPath(pathname || '/');
+  const module = detectModuleFromPath(pathname || '/');
   const appConfig = APPS[app];
+  const moduleConfig = getModuleSearchConfig(module);
+  const searchEntities = getSearchEntitiesForScope(module, app);
+  const quickActions = getModuleQuickActions(module, app);
+  const savedSearches = getModuleSavedSearches(module);
+  const navKey = getNavKeyForScope(module);
+
+  const [megaMenuCollapsed, setMegaMenuCollapsedState] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(MEGA_MENU_PREF_KEY) === '1';
+  });
+
+  const setMegaMenuCollapsed = useCallback((next: boolean) => {
+    setMegaMenuCollapsedState(next);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(MEGA_MENU_PREF_KEY, next ? '1' : '0');
+    }
+  }, []);
 
   // setApp must trigger navigation, not just state change
   const setApp = (newApp: AppKey) => {
@@ -36,12 +79,22 @@ export function TopBarProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<TopBarState>(() => ({
     app,
-    searchPlaceholderKey: appConfig.searchPlaceholderKey, // FIX: Use new property name
-    searchEntities: appConfig.searchEntities,
-    quickActions: appConfig.quickActions,
+    appLabelKey: appConfig.labelKey,
+    appFallbackLabel: APP_FALLBACK_LABELS[app],
+    appSearchEntities: appConfig.searchEntities,
+    module,
+    moduleLabelKey: moduleConfig.labelKey,
+    moduleFallbackLabel: moduleConfig.fallbackLabel,
+    searchPlaceholderKey: moduleConfig.searchPlaceholderKey,
+    searchPlaceholderFallback: moduleConfig.placeholderFallback,
+    searchEntities,
+    quickActions,
+    savedSearches,
+    navKey,
+    megaMenuCollapsed,
+    setMegaMenuCollapsed,
     setApp,
-
-  }), [app]); // Only depend on app, not appConfig (derived from app)
+  }), [app, appConfig, module, moduleConfig, searchEntities, quickActions, savedSearches, navKey, megaMenuCollapsed, setMegaMenuCollapsed]);
 
   return (
     <TopBarContext.Provider value={value}>

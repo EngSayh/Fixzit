@@ -1,5 +1,5 @@
 import { searchClient, INDEXES, ProductDocument, SellerDocument } from '@/lib/meilisearch';
-import logger from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 /**
  * Search Indexer Service
@@ -94,7 +94,11 @@ export class SearchIndexerService {
           indexed += documents.length;
           logger.info(`[SearchIndexer] Indexed batch: ${indexed} products`);
         } catch (error) {
-          console.error('[SearchIndexer] Failed to index batch:', error);
+          logger.error('[SearchIndexer] Failed to index batch', error, {
+            component: 'SearchIndexerService',
+            action: 'fullReindexProducts',
+            offset,
+          });
           errors += documents.length;
         }
 
@@ -109,7 +113,10 @@ export class SearchIndexerService {
       
       return { indexed, errors };
     } catch (error) {
-      console.error('[SearchIndexer] Full reindex failed:', error);
+      logger.error('[SearchIndexer] Full reindex failed', error, {
+        component: 'SearchIndexerService',
+        action: 'fullReindexProducts',
+      });
       throw error;
     }
   }
@@ -122,7 +129,11 @@ export class SearchIndexerService {
     try {
       const listing = await this.fetchListingById(listingId);
       if (!listing) {
-        console.warn(`[SearchIndexer] Listing not found: ${listingId}`);
+        logger.warn(`[SearchIndexer] Listing not found: ${listingId}`, {
+          component: 'SearchIndexerService',
+          action: 'updateListing',
+          listingId,
+        });
         return;
       }
 
@@ -139,7 +150,11 @@ export class SearchIndexerService {
       
       logger.info(`[SearchIndexer] Updated listing in search: ${listingId}`);
     } catch (error) {
-      console.error(`[SearchIndexer] Failed to update listing ${listingId}:`, error);
+      logger.error(`[SearchIndexer] Failed to update listing ${listingId}`, error, {
+        component: 'SearchIndexerService',
+        action: 'updateListing',
+        listingId,
+      });
       throw error;
     }
   }
@@ -155,7 +170,11 @@ export class SearchIndexerService {
       
       logger.info(`[SearchIndexer] Deleted product from search: ${fsin}`);
     } catch (error) {
-      console.error(`[SearchIndexer] Failed to delete product ${fsin}:`, error);
+      logger.error(`[SearchIndexer] Failed to delete product ${fsin}`, error, {
+        component: 'SearchIndexerService',
+        action: 'deleteFromIndex',
+        fsin,
+      });
       throw error;
     }
   }
@@ -191,7 +210,11 @@ export class SearchIndexerService {
           indexed += documents.length;
           logger.info(`[SearchIndexer] Indexed batch: ${indexed} sellers`);
         } catch (error) {
-          console.error('[SearchIndexer] Failed to index seller batch:', error);
+          logger.error('[SearchIndexer] Failed to index seller batch', error, {
+            component: 'SearchIndexerService',
+            action: 'fullReindexSellers',
+            offset,
+          });
           errors += documents.length;
         }
 
@@ -205,7 +228,10 @@ export class SearchIndexerService {
       
       return { indexed, errors };
     } catch (error) {
-      console.error('[SearchIndexer] Full seller reindex failed:', error);
+      logger.error('[SearchIndexer] Full seller reindex failed', error, {
+        component: 'SearchIndexerService',
+        action: 'fullReindexSellers',
+      });
       throw error;
     }
   }
@@ -217,7 +243,11 @@ export class SearchIndexerService {
     try {
       const seller = await this.fetchSellerById(sellerId);
       if (!seller) {
-        console.warn(`[SearchIndexer] Seller not found: ${sellerId}`);
+        logger.warn(`[SearchIndexer] Seller not found: ${sellerId}`, {
+          component: 'SearchIndexerService',
+          action: 'updateSeller',
+          sellerId,
+        });
         return;
       }
 
@@ -228,7 +258,11 @@ export class SearchIndexerService {
       
       logger.info(`[SearchIndexer] Updated seller in search: ${sellerId}`);
     } catch (error) {
-      console.error(`[SearchIndexer] Failed to update seller ${sellerId}:`, error);
+      logger.error(`[SearchIndexer] Failed to update seller ${sellerId}`, error, {
+        component: 'SearchIndexerService',
+        action: 'updateSeller',
+        sellerId,
+      });
       throw error;
     }
   }
@@ -325,7 +359,11 @@ export class SearchIndexerService {
       const seller = sellerMap.get(listing.sellerId);
 
       if (!product || !seller) {
-        console.warn(`[SearchIndexer] Missing data for listing ${listing.listingId}`);
+        logger.warn(`[SearchIndexer] Missing data for listing ${listing.listingId}`, {
+          component: 'SearchIndexerService',
+          action: 'transformListingsToDocuments',
+          listingId: listing.listingId,
+        });
         return null;
       }
 

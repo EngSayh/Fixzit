@@ -217,10 +217,17 @@ export async function testSMSConfiguration(): Promise<boolean> {
 
   try {
     const { default: twilio } = await import('twilio');
-    const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    if (!accountSid || !authToken) {
+      logger.error('[SMS] Configuration test failed - missing credentials');
+      return false;
+    }
+
+    const client = twilio(accountSid, authToken);
 
     // Validate credentials by fetching account info
-    await client.api.accounts(process.env.TWILIO_ACCOUNT_SID).fetch();
+    await client.api.accounts(accountSid).fetch();
 
     logger.info('[SMS] Configuration test passed');
     return true;

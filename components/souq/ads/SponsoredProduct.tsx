@@ -13,8 +13,8 @@ interface SponsoredProductProps {
     category?: string;
     productId?: string;
   };
-  onImpression?: (bid: string, campaign: string) => void;
-  onClick?: (bid: string, campaign: string, actualCpc: number) => void;
+  onImpression?: (_bid: string, _campaign: string) => void;
+  onClick?: (_bid: string, _campaign: string, _actualCpc: number) => void;
 }
 
 type SponsoredProductData = NonNullable<AuctionWinner['product']>;

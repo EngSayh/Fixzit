@@ -1,5 +1,5 @@
 import { MeiliSearch } from 'meilisearch';
-import logger from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 // Initialize Meilisearch client
 const meiliHost = process.env.MEILI_HOST || 'http://localhost:7700';
