@@ -264,6 +264,43 @@ grep -r "FIXME:" --include="*.ts" --include="*.tsx" lib/ services/ server/
 
 ---
 
+### 6. Notification Reliability Hardening ✅ COMPLETE
+**Status**: Complete (new telemetry + tests)  
+**Estimated Time**: 2 hours  
+**Impact**: Observability + regression safety for cross-channel dispatch  
+**Priority**: HIGH (blocked release previously)
+
+**Deliverables**:
+- ✅ Added `lib/telemetry.ts` to emit structured dispatch events + optional webhook (`NOTIFICATIONS_TELEMETRY_WEBHOOK`)
+- ✅ Updated `lib/fm-notifications.ts` to push telemetry + capture partial failures with `failureReason`
+- ✅ Created deterministic `sendBulkNotifications` channel injection hook and unit tests (`tests/unit/lib/notifications.bulk.test.ts`)
+
+**Next Checks**:
+```bash
+pnpm vitest tests/unit/lib/notifications.bulk.test.ts
+```
+
+---
+
+### 7. Test Plan Alignment 🔄 IN PROGRESS
+**Status**: Documentation corrected; suites still missing RBAC + document upload assertions  
+**Estimated Time**: 1-2 days  
+**Impact**: Keeps QA dashboards honest, prevents false sense of coverage  
+**Priority**: HIGH
+
+**Action Plan**:
+1. ✅ Update reports with verified line + test counts (`E2E_TESTS_DOCUMENTATION_INTEGRATIONS_COMPLETE.md`)
+2. 🔄 Add Playwright specs for RBAC + document flows referenced in docs
+3. 🔄 Extend API integration tests for marketplace / reports before claiming “end-to-end complete”
+
+**Command Reference**:
+```bash
+pnpm playwright test tests/e2e/critical-flows.spec.ts
+pnpm vitest -c vitest.config.api.ts run
+```
+
+---
+
 ## Medium Priority Tasks
 
 ### 6. Audit Log Enhancements 🟡 MEDIUM

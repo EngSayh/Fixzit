@@ -9,7 +9,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -241,11 +240,9 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
             <Label htmlFor="claimType">نوع المشكلة (Problem Type) *</Label>
             <Select value={claimType} onValueChange={setClaimType}>
               <SelectTrigger id="claimType">
-                <SelectValue>
-                  {claimType 
-                    ? CLAIM_TYPES.find(t => t.value === claimType)?.label 
-                    : "اختر نوع المشكلة (Select problem type)"}
-                </SelectValue>
+                {claimType 
+                  ? CLAIM_TYPES.find(t => t.value === claimType)?.label 
+                  : "اختر نوع المشكلة (Select problem type)"}
               </SelectTrigger>
               <SelectContent>
                 {CLAIM_TYPES.map((type) => (

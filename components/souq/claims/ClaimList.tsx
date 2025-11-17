@@ -10,7 +10,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
 import {
   Table,
@@ -189,9 +188,7 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
             <SelectTrigger className="w-full md:w-[200px]">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4" />
-                <SelectValue>
-                  {statusFilter === 'all' ? 'الحالة (Status)' : statusFilter}
-                </SelectValue>
+                <span>{statusFilter === 'all' ? 'الحالة (Status)' : statusFilter}</span>
               </div>
             </SelectTrigger>
             <SelectContent>
@@ -212,9 +209,7 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
             <SelectTrigger className="w-full md:w-[200px]">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4" />
-                <SelectValue>
-                  {typeFilter === 'all' ? 'النوع (Type)' : typeFilter}
-                </SelectValue>
+                <span>{typeFilter === 'all' ? 'النوع (Type)' : typeFilter}</span>
               </div>
             </SelectTrigger>
             <SelectContent>
