@@ -43,6 +43,18 @@ WHATSAPP_BUSINESS_API_KEY=your_whatsapp_api_key_here
 WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id_here
 ```
 
+### Telemetry (REQUIRED for monitoring)
+```bash
+# Choose one:
+NOTIFICATIONS_TELEMETRY_WEBHOOK=https://api.datadoghq.com/api/v1/events?api_key=YOUR_KEY
+# OR
+NOTIFICATIONS_TELEMETRY_WEBHOOK=https://events.pagerduty.com/v2/enqueue
+# OR
+NOTIFICATIONS_TELEMETRY_WEBHOOK=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+```
+
+**Note:** Without this, dispatch metrics won't reach your monitoring system.
+
 ---
 
 ## 🔑 Step 2: Get API Keys (1 minute each)
@@ -66,11 +78,22 @@ WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id_here
 
 ---
 
+## ⚠️ Step 0: Validate Configuration (30 seconds)
+
+**IMPORTANT:** Run validation before testing any channel:
+```bash
+pnpm tsx scripts/validate-notification-env.ts
+```
+
+This ensures all required variables are set correctly.
+
+---
+
 ## ▶️ Step 3: Run Tests (30 seconds)
 
 ### Test Email Only (Easiest First Test)
 ```bash
-pnpm tsx scripts/notifications-smoke.ts email
+pnpm tsx qa/notifications/run-smoke.ts --channel email
 ```
 
 **Expected Output:**
@@ -86,10 +109,10 @@ pnpm tsx scripts/notifications-smoke.ts email
 ### Test Multiple Channels
 ```bash
 # Email + SMS
-pnpm tsx scripts/notifications-smoke.ts email sms
+pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms
 
 # All channels
-pnpm tsx scripts/notifications-smoke.ts email sms whatsapp push
+pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel whatsapp --channel push
 ```
 
 ---

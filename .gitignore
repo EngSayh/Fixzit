@@ -55,6 +55,7 @@ Thumbs.db
 
 # Local artifacts we'll keep but not commit
 /_archive/
+/.archive/
 /_artifacts/
 /reports/
 /exports/

@@ -125,6 +125,21 @@ async function loadCatalogKeys(ctxPath) {
   }
   const arKeys = objectLiteralToKeySet(arBlock);
   const enKeys = objectLiteralToKeySet(enBlock);
+
+  const generatedPath = path.join(ROOT, 'i18n', 'new-translations.ts');
+  if (await exists(generatedPath)) {
+    try {
+      const generated = await readText(generatedPath);
+      const keyRegex = /'([^']+)'\s*:\s*'[^']*'/g;
+      for (const match of generated.matchAll(keyRegex)) {
+        const key = match[1];
+        arKeys.add(key);
+        enKeys.add(key);
+      }
+    } catch (err) {
+      console.warn(`⚠️  Failed to parse ${generatedPath}: ${err.message}`);
+    }
+  }
   return { ar: arKeys, en: enKeys, errors: [] };
 }
 

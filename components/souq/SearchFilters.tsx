@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface Facets {
   categories: Record<string, number>;
@@ -19,6 +20,7 @@ interface SearchFiltersProps {
 export default function SearchFilters({ facets }: SearchFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const auto = useAutoTranslator('souq.searchFilters');
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(['categories', 'price', 'rating'])
   );
@@ -96,36 +98,42 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
       {hasActiveFilters && (
         <div className="bg-primary/5 border border-blue-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-primary-dark">Active Filters</h3>
+            <h3 className="text-sm font-semibold text-primary-dark">
+              {auto('Active Filters', 'activeFiltersHeading')}
+            </h3>
             <button
               onClick={clearAllFilters}
               className="text-xs text-primary hover:text-primary-dark font-medium"
             >
-              Clear All
+              {auto('Clear All', 'clearAllButton')}
             </button>
           </div>
           <div className="flex flex-wrap gap-2">
             {currentCategory && (
               <FilterChip
-                label={`Category: ${currentCategory}`}
+                label={`${auto('Category', 'chip.categoryLabel')}: ${currentCategory}`}
+                removeLabel={auto('Remove filter', 'chip.remove')}
                 onRemove={() => applyFilter('category', null)}
               />
             )}
             {currentMinPrice && (
               <FilterChip
-                label={`Min: ${currentMinPrice} SAR`}
+                label={`${auto('Min', 'chip.min')}: ${currentMinPrice} SAR`}
+                removeLabel={auto('Remove filter', 'chip.remove')}
                 onRemove={() => applyFilter('minPrice', null)}
               />
             )}
             {currentMaxPrice && (
               <FilterChip
-                label={`Max: ${currentMaxPrice} SAR`}
+                label={`${auto('Max', 'chip.max')}: ${currentMaxPrice} SAR`}
+                removeLabel={auto('Remove filter', 'chip.remove')}
                 onRemove={() => applyFilter('maxPrice', null)}
               />
             )}
             {currentMinRating && (
               <FilterChip
-                label={`${currentMinRating}+ Stars`}
+                label={`${currentMinRating}+ ${auto('Stars', 'chip.stars')}`}
+                removeLabel={auto('Remove filter', 'chip.remove')}
                 onRemove={() => applyFilter('minRating', null)}
               />
             )}
@@ -133,6 +141,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
               <FilterChip
                 key={badge}
                 label={badge}
+                removeLabel={auto('Remove filter', 'chip.remove')}
                 onRemove={() => toggleBadge(badge)}
               />
             ))}
@@ -142,7 +151,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
 
       {/* Categories */}
       <FilterSection
-        title="Categories"
+        title={auto('Categories', 'section.categories')}
         expanded={expandedSections.has('categories')}
         onToggle={() => toggleSection('categories')}
       >
@@ -164,7 +173,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
 
       {/* Price Range */}
       <FilterSection
-        title="Price Range"
+        title={auto('Price Range', 'section.price')}
         expanded={expandedSections.has('price')}
         onToggle={() => toggleSection('price')}
       >
@@ -208,7 +217,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
 
       {/* Rating */}
       <FilterSection
-        title="Customer Rating"
+        title={auto('Customer Rating', 'section.rating')}
         expanded={expandedSections.has('rating')}
         onToggle={() => toggleSection('rating')}
       >
@@ -228,7 +237,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
                   </span>
                 ))}
               </div>
-              <span className="text-sm">& Up</span>
+              <span className="text-sm">{auto('& Up', 'rating.andUp')}</span>
             </button>
           ))}
         </div>
@@ -237,7 +246,7 @@ export default function SearchFilters({ facets }: SearchFiltersProps) {
       {/* Badges */}
       {facets?.badges && Object.keys(facets.badges).length > 0 && (
         <FilterSection
-          title="Features"
+          title={auto('Features', 'section.features')}
           expanded={expandedSections.has('badges')}
           onToggle={() => toggleSection('badges')}
         >
@@ -299,13 +308,14 @@ function FilterSection({
 }
 
 // Filter Chip Component
-function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+function FilterChip({ label, onRemove, removeLabel }: { label: string; onRemove: () => void; removeLabel?: string }) {
   return (
     <span className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-blue-200 rounded-full text-sm text-primary-dark">
       {label}
       <button
         onClick={onRemove}
         className="hover:bg-primary/10 rounded-full p-0.5"
+        aria-label={removeLabel}
       >
         <X className="h-3 w-3" />
       </button>

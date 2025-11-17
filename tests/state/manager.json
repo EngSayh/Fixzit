@@ -1,38 +1,8 @@
 {
   "cookies": [
     {
-      "name": "fxz.currency",
-      "value": "SAR",
-      "domain": "localhost",
-      "path": "/",
-      "expires": 1794316812.809095,
-      "httpOnly": false,
-      "secure": false,
-      "sameSite": "Strict"
-    },
-    {
-      "name": "fxz.lang",
-      "value": "ar",
-      "domain": "localhost",
-      "path": "/",
-      "expires": 1794316816,
-      "httpOnly": false,
-      "secure": false,
-      "sameSite": "Lax"
-    },
-    {
-      "name": "fxz.locale",
-      "value": "ar-SA",
-      "domain": "localhost",
-      "path": "/",
-      "expires": 1794316816,
-      "httpOnly": false,
-      "secure": false,
-      "sameSite": "Lax"
-    },
-    {
       "name": "authjs.csrf-token",
-      "value": "178199ddce874a385b8ca967a5977dfbcdd0b3eab1f14904b800578be0277975%7Cb38f09c7a71c5d2b8f550791cfce6fb820d618c4e3399f34fbd819e207dde05a",
+      "value": "d31200d0ce45cf148ba097e8b0392e737663821cb9aae4c47cb5b430006741b0%7C0ef9fc9752622aefb698eb23691b1b20fc742e8dcc90a8e6945a65ac6d500e58",
       "domain": "localhost",
       "path": "/",
       "expires": -1,
@@ -42,7 +12,7 @@
     },
     {
       "name": "authjs.callback-url",
-      "value": "http%3A%2F%2Flocalhost%3A3000%2Flogin",
+      "value": "http%3A%2F%2Flocalhost%3A3000%2Fdashboard",
       "domain": "localhost",
       "path": "/",
       "expires": -1,
@@ -51,22 +21,42 @@
       "sameSite": "Lax"
     },
     {
-      "name": "authjs.session-token",
-      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiVkQ1cnFHXzFxVDNWWDlZM3RpdGZ3VXlNclJwZV9FQUxKb1ByMU8wTXFyQjFUcG5STnZUeEVTSkhyVl8wMlNJdW1wcl82ekh3THFHWFp0WjM1Z0JKTGcifQ..lwFUtejiQADvwKKmioOCAQ.nqzHP_3HiY0uupED4qL4gx3OHW5L6kL37Skr2vLHKmvrUE4hLz2G3dNzd_mYejUMCwN_bjf299c7Nwk0Yx5WpZrmcokcWKSCeog0YB2H1bNiGhNr-bKSdjOygJt7iFmQoqceC8nSytuRACIpw-Xzrfqc3euoYxZMATplM65hB3PTWDiCFnTqQ8-obxQl5HojBdBvYPKx4rhb5bizlKEqmprih-jjPRNwLecx_BD7EPYimgHx3b6My7TMA5rmo44E8vpdNvb5hwpNJCyjH8TAdk_WTBXmSxZPEfj2rrNaXBZiAMFC0SiuhYkz9dZv2Y4JxiTCFhc66tWIgI7QnrmY99qPGtFGfkYR2gijehtqc6bocnZp_oXmNnPT2rlsKmD9-_zxAzFstgY3H7eoO4OroNbTnK62NZ_87F8b3ZhDEd-UCfjR2gUY8IzEYX0J6vZ4.xS-_wp1XSISDi4pVZjXpSUgqYhiTu8geYgpS3PnDruU",
+      "name": "fxz.currency",
+      "value": "SAR",
       "domain": "localhost",
       "path": "/",
-      "expires": 1765372816.010344,
-      "httpOnly": true,
+      "expires": 1794914307.932052,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "fxz.lang",
+      "value": "ar",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1794914307.941197,
+      "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
-      "name": "locale",
-      "value": "ar",
+      "name": "fxz.locale",
+      "value": "ar-SA",
       "domain": "localhost",
       "path": "/",
-      "expires": 1794316816,
+      "expires": 1794914307.94121,
       "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "authjs.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoiYzA2eU0wYTVkbmJiYW16T09ISUpBUFMwdjZZLVp6emVkeE5HM0toR2NieWkwaE9kNU1ZVURUN3hpczVEdV9vMV95a0k4eWNBNEZLZDJiMlg3eDJNWGcifQ..uBgU2O_WinfJ-JZzER8QvQ.jHkXlQCUMELLPkxydrKuYFTgDDbLrJhKo8m0fSFO0W6QKDGeBFYn-PZHr0TnOiRUpomp48YBgzzbavyY1QCtvAU10H4E2gOELSAGyuTbTFWbJO6X8J8YS2LQuxZsMRL2bvpqjFb7HXRbHdkKu_JLk9otTHT7iqh_3-rPbJy_AbukMt3eck11eVKpEMtA3h70iauLth3NV2S4A3EeGh6X9c5tRiS1UOd_5rCav8HJOegqSiQDODY0VGbr2Qb3tFZ96GQXBB6yTPODuPlpn0RevzK4GHbRrEEQqAHA_RcP2hM1u_84Kga7CJEpwzIPassRTS24qqp6LRMRRf2wP0DWsd3b6GNXjInxsIUl-Utgf6GsFhPLf8vBxIHMzlEuqJeErCP5e9PA5_DrTagr6W2QKnnU9XdJnf8j-wYJvAEGSzXriE_9SlDSzbvGgHhpddZRk9h0qEjsTbANtq18jGexdw.bGQCv0MVJjFMw7PjpGj2mqMfCidrb4n57XCV7OeT6oU",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1765970308.986789,
+      "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
     }
@@ -76,6 +66,14 @@
       "origin": "http://localhost:3000",
       "localStorage": [
         {
+          "name": "theme",
+          "value": "light"
+        },
+        {
+          "name": "fxz.theme",
+          "value": "light"
+        },
+        {
           "name": "fxz.lang",
           "value": "ar"
         },
@@ -84,16 +82,12 @@
           "value": "SAR"
         },
         {
-          "name": "fxz.theme",
-          "value": "light"
+          "name": "sidebarCollapsed",
+          "value": "{}"
         },
         {
           "name": "fxz.locale",
           "value": "ar-SA"
-        },
-        {
-          "name": "locale",
-          "value": "ar"
         }
       ]
     }

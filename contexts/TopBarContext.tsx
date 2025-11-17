@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import {
   APPS,
   AppKey,
@@ -49,6 +50,14 @@ const APP_FALLBACK_LABELS: Record<AppKey, string> = {
 export function TopBarProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { data: session } = useSession();
+  const sessionUser = session?.user as { id?: string; orgId?: string } | undefined;
+  const userId = sessionUser?.id ?? 'anonymous';
+  const orgId = sessionUser?.orgId ?? 'global';
+  const megaMenuPrefKey = useMemo(
+    () => `${MEGA_MENU_PREF_KEY}:${orgId}:${userId}`,
+    [orgId, userId]
+  );
 
   const app = detectAppFromPath(pathname || '/');
   const module = detectModuleFromPath(pathname || '/');
@@ -61,15 +70,24 @@ export function TopBarProvider({ children }: { children: React.ReactNode }) {
 
   const [megaMenuCollapsed, setMegaMenuCollapsedState] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
-    return window.localStorage.getItem(MEGA_MENU_PREF_KEY) === '1';
+    return window.localStorage.getItem(megaMenuPrefKey) === '1';
   });
 
-  const setMegaMenuCollapsed = useCallback((next: boolean) => {
-    setMegaMenuCollapsedState(next);
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(MEGA_MENU_PREF_KEY, next ? '1' : '0');
-    }
-  }, []);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem(megaMenuPrefKey);
+    setMegaMenuCollapsedState(stored === '1');
+  }, [megaMenuPrefKey]);
+
+  const setMegaMenuCollapsed = useCallback(
+    (next: boolean) => {
+      setMegaMenuCollapsedState(next);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(megaMenuPrefKey, next ? '1' : '0');
+      }
+    },
+    [megaMenuPrefKey]
+  );
 
   // setApp must trigger navigation, not just state change
   const setApp = (newApp: AppKey) => {

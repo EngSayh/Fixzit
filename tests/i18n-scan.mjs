@@ -165,16 +165,35 @@ for (const lang of LANGS) {
 
 // 1b) (Optional) Extract keys from TranslationContext.tsx as fallback
 const translationCtxPath = 'contexts/TranslationContext.tsx';
+const extractLocaleBlock = (source, localeKey) => {
+  const baseIndex = source.indexOf('const baseTranslations');
+  const searchSpace = baseIndex >= 0 ? source.slice(baseIndex) : source;
+  const keyIndex = searchSpace.indexOf(`${localeKey}:`);
+  if (keyIndex === -1) return '';
+  const braceStart = searchSpace.indexOf('{', keyIndex);
+  if (braceStart === -1) return '';
+  let depth = 0;
+  for (let i = braceStart; i < searchSpace.length; i++) {
+    const ch = searchSpace[i];
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) {
+        return searchSpace.slice(braceStart, i + 1);
+      }
+    }
+  }
+  return '';
+};
+
 if (existsSync(translationCtxPath)) {
   try {
     const content = readFileSync(translationCtxPath, 'utf8');
-    const extractKeys = (label) => {
-      const m = content.match(new RegExp(`const\\s+${label}\\s*=\\s*({[\\s\\S]*?});`));
-      if (!m) return [];
-      return [...m[1].matchAll(/['"]([^'"]+)['"]\s*:/g)].map(x => x[1]);
-    };
-    const enKeys = extractKeys('englishTranslations');
-    const arKeys = extractKeys('arabicTranslations');
+    const arBlock = extractLocaleBlock(content, 'ar');
+    const enBlock = extractLocaleBlock(content, 'en');
+    const keyRegex = /['"]([^'"]+)['"]\s*:/g;
+    const arKeys = arBlock ? [...arBlock.matchAll(keyRegex)].map(m => m[1]) : [];
+    const enKeys = enBlock ? [...enBlock.matchAll(keyRegex)].map(m => m[1]) : [];
 
     for (const k of enKeys) {
       dictionaries.en?.add(k);
@@ -189,6 +208,22 @@ if (existsSync(translationCtxPath)) {
     }
   } catch (e) {
     warn(`⚠️  Failed to parse ${translationCtxPath}: ${e.message}`);
+  }
+}
+
+const generatedTranslationsPath = 'i18n/new-translations.ts';
+if (existsSync(generatedTranslationsPath)) {
+  try {
+    const generated = readFileSync(generatedTranslationsPath, 'utf8');
+    const keyRegex = /'([^']+)'\s*:\s*'[^']*'/g;
+    for (const match of generated.matchAll(keyRegex)) {
+      const key = match[1];
+      dictionaries.en?.add(key);
+      dictionaries.ar?.add(key);
+    }
+    log('✅ Loaded keys from i18n/new-translations.ts');
+  } catch (e) {
+    warn(`⚠️  Failed to parse ${generatedTranslationsPath}: ${e.message}`);
   }
 }
 

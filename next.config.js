@@ -48,6 +48,9 @@ const nextConfig = {
     NEXT_PUBLIC_VERSION: '2.0.26',
     NEXT_PUBLIC_DEFAULT_LOCALE: 'ar',
     NEXT_PUBLIC_CURRENCY: 'SAR',
+    CORS_ORIGINS:
+      process.env.CORS_ORIGINS ||
+      'https://fixzit.sa,https://www.fixzit.sa,https://app.fixzit.sa,https://dashboard.fixzit.sa,https://staging.fixzit.sa',
   },
 
   // Performance optimizations

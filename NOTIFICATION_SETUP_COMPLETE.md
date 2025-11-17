@@ -144,7 +144,11 @@ db.users.findOne({ _id: ObjectId("YOUR_USER_ID") })
 Start with email (easiest to verify):
 
 ```bash
-pnpm tsx scripts/notifications-smoke.ts email
+# Step 0: Validate first (REQUIRED)
+pnpm tsx scripts/validate-notification-env.ts
+
+# Step 1: Run smoke test
+pnpm tsx qa/notifications/run-smoke.ts --channel email
 ```
 
 **Expected successful output:**
@@ -171,13 +175,13 @@ Once email works, test other channels:
 
 ```bash
 # Add SMS
-pnpm tsx scripts/notifications-smoke.ts email sms
+pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms
 
 # Add WhatsApp
-pnpm tsx scripts/notifications-smoke.ts email sms whatsapp
+pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel whatsapp
 
 # Test all (including push)
-pnpm tsx scripts/notifications-smoke.ts push email sms whatsapp
+pnpm tsx qa/notifications/run-smoke.ts --channel push --channel email --channel sms --channel whatsapp
 ```
 
 ---

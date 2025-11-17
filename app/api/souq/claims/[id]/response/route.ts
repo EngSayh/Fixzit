@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { ClaimService } from '@/services/souq/claims/claim-service';
+import { enforceRateLimit } from '@/lib/middleware/rate-limit';
 
 /**
  * POST /api/souq/claims/[id]/response
@@ -10,6 +11,13 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const limited = enforceRateLimit(request, {
+    keyPrefix: 'souq-claims:response',
+    requests: 30,
+    windowMs: 120_000,
+  });
+  if (limited) return limited;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {

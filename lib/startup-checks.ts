@@ -1,3 +1,5 @@
+import { requireEnv, TEST_JWT_SECRET } from './env';
+
 /**
  * Startup Validation - Fail Fast on Missing/Invalid Configuration
  * 
@@ -7,22 +9,16 @@
  * IMPORTANT: Call validateStartup() from your app entry point (e.g., middleware.ts or layout.tsx)
  */
 
-/**
- * Validates all critical environment variables required for production
- * @throws {Error} If any validation fails - should crash the application
- */
 export function validateStartup(): void {
   const errors: string[] = [];
 
-  // JWT_SECRET validation
-  if (process.env.NODE_ENV === 'production') {
-    const jwtSecret = process.env.JWT_SECRET;
-    
-    if (!jwtSecret || jwtSecret.trim().length === 0) {
-      errors.push('JWT_SECRET is required in production environment');
-    } else if (jwtSecret.length < 32) {
-      errors.push(`JWT_SECRET must be at least 32 characters for security. Current length: ${jwtSecret.length}`);
+  try {
+    const jwtSecret = requireEnv('JWT_SECRET', { testFallback: TEST_JWT_SECRET });
+    if (jwtSecret.length < 32) {
+      errors.push(`JWT_SECRET must be at least 32 characters long. Current length: ${jwtSecret.length}`);
     }
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
   }
 
   // Throw all errors at once for comprehensive startup feedback
@@ -60,8 +56,6 @@ export function validateStartupAndMark(): void {
  * @throws {Error} If validateStartupAndMark() has not been called or JWT_SECRET is missing in production
  */
 export function getJWTSecret(): string {
-  const secret = process.env.JWT_SECRET;
-  
   // Enforce that startup validation has been run
   if (!startupValidated) {
     throw new Error(
@@ -69,15 +63,6 @@ export function getJWTSecret(): string {
       'Call validateStartupAndMark() during application startup (e.g., in middleware.ts).'
     );
   }
-  
-  // In production, never use dev fallback
-  if (process.env.NODE_ENV === 'production') {
-    if (!secret) {
-      throw new Error('FATAL: JWT_SECRET is required in production but not set.');
-    }
-    return secret;
-  }
-  
-  // In development, allow dev fallback only after validation (meets 32+ char requirement)
-  return secret || 'dev-only-secret-REPLACE-IN-PRODUCTION-WITH-STRONG-KEY';
+
+  return requireEnv('JWT_SECRET', { testFallback: TEST_JWT_SECRET });
 }

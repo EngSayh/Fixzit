@@ -1,0 +1,130 @@
+{
+  "c8ec6d4915f6c4e1208631351a3799ee:6981": [
+    "./.env.local",
+    "./.archive/legacy/env/.env.local.backup.20251117_132634",
+    "./.archive/legacy/env/.env.local.backup.20251117_140125",
+    "./.archive/legacy/env/.env.local.backup.20251117_125927",
+    "./.archive/legacy/env/.env.local.backup.20251117_125952",
+    "./.archive/legacy/env/.env.local.backup.20251117_132547"
+  ],
+  "108bc610b75170c9d05a2b6f8e58ffda:124347": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-59487--Layout-integrity-no-errors-Desktop-EN-Admin/test-failed-1.png",
+    "./tests/playwright-artifacts/smoke-Branding-Theme-Consi-64ad3--brand-elements-are-visible-Desktop-EN-Superadmin/test-failed-1.png",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-59487--Layout-integrity-no-errors-Desktop-EN-Superadmin-retry1/test-failed-1.png"
+  ],
+  "b14c9501f3e67b5a95fe444b22f2c3a7:12737": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-59487--Layout-integrity-no-errors-Desktop-EN-Admin/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-59487--Layout-integrity-no-errors-Desktop-EN-Superadmin/error-context.md",
+    "./tests/playwright-artifacts/smoke-Branding-Theme-Consi-64ad3--brand-elements-are-visible-Desktop-EN-Superadmin/error-context.md",
+    "./tests/playwright-artifacts/smoke-Branding-Theme-Consi-64ad3--brand-elements-are-visible-Desktop-EN-Superadmin-retry1/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-59487--Layout-integrity-no-errors-Desktop-EN-Superadmin-retry1/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-59487--Layout-integrity-no-errors-Desktop-EN-Admin-retry1/error-context.md"
+  ],
+  "30b005ff0816576a3511dd60e2e66795:37707": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-f0ec1--Layout-integrity-no-errors-Desktop-EN-Superadmin/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-f0ec1--Layout-integrity-no-errors-Desktop-EN-Superadmin-retry1/error-context.md",
+    "./tests/playwright-artifacts/smoke-Accessibility-Basics-f6c74-nd-proper-heading-structure-Desktop-EN-Superadmin-retry1/error-context.md",
+    "./tests/playwright-artifacts/smoke-Accessibility-Basics-c6436-ink-for-keyboard-navigation-Desktop-EN-Superadmin-retry1/error-context.md",
+    "./tests/playwright-artifacts/smoke-Accessibility-Basics-f6c74-nd-proper-heading-structure-Desktop-EN-Superadmin/error-context.md",
+    "./tests/playwright-artifacts/smoke-Accessibility-Basics-c6436-ink-for-keyboard-navigation-Desktop-EN-Superadmin/error-context.md",
+    "./tests/playwright-artifacts/i18n-i18n-Language-Switchi-12cd7-r-shows-SAR-and-USD-options-Desktop-EN-Superadmin/error-context.md",
+    "./tests/playwright-artifacts/smoke-Branding-Theme-Consi-e4a3b-ry-brand-colors-are-applied-Desktop-EN-Superadmin-retry1/error-context.md",
+    "./tests/playwright-artifacts/i18n-i18n-Language-Switchi-34a9f-s-content-and-RTL-direction-Desktop-EN-Superadmin-retry1/error-context.md",
+    "./tests/playwright-artifacts/i18n-i18n-Language-Switchi-34a9f-s-content-and-RTL-direction-Desktop-EN-Superadmin/error-context.md"
+  ],
+  "0e680f5d9959f96906ca9413daeeb44a:107938": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-f0ec1--Layout-integrity-no-errors-Desktop-EN-Admin-retry1/test-failed-1.png",
+    "./tests/playwright-artifacts/i18n-i18n-Language-Switchi-12cd7-r-shows-SAR-and-USD-options-Desktop-EN-Admin/test-failed-1.png"
+  ],
+  "1871a81b06313c05892b73a209a720ec:37701": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-f0ec1--Layout-integrity-no-errors-Desktop-EN-Admin-retry1/error-context.md",
+    "./tests/playwright-artifacts/i18n-i18n-Language-Switchi-34a9f-s-content-and-RTL-direction-Desktop-EN-Admin-retry1/error-context.md",
+    "./tests/playwright-artifacts/i18n-i18n-Language-Switchi-12cd7-r-shows-SAR-and-USD-options-Desktop-EN-Admin-retry1/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-f0ec1--Layout-integrity-no-errors-Desktop-EN-Admin/error-context.md",
+    "./tests/playwright-artifacts/i18n-i18n-Language-Switchi-12cd7-r-shows-SAR-and-USD-options-Desktop-EN-Admin/error-context.md",
+    "./tests/playwright-artifacts/i18n-i18n-Language-Switchi-34a9f-s-content-and-RTL-direction-Desktop-EN-Admin/error-context.md"
+  ],
+  "7bff79618fb1ce1d5a1057417e19065a:30333": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-8ba72--Layout-integrity-no-errors-Desktop-EN-Admin/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-8ba72--Layout-integrity-no-errors-Desktop-EN-Admin-retry1/error-context.md"
+  ],
+  "9599200022260b9bd26bdc3e26b43b21:7046": [
+    "./tests/playwright-artifacts/i18n-i18n-No-Missing-Trans-ecf60-s-HR-hr-All-keys-translated-Desktop-EN-Admin-retry1/error-context.md",
+    "./tests/playwright-artifacts/i18n-i18n-No-Missing-Trans-ecf60-s-HR-hr-All-keys-translated-Desktop-EN-Superadmin-retry1/error-context.md",
+    "./tests/playwright-artifacts/i18n-i18n-No-Missing-Trans-ecf60-s-HR-hr-All-keys-translated-Desktop-EN-Admin/error-context.md"
+  ],
+  "be5b66f65264250594ed65ccc0a5e4dd:29055": [
+    "./tests/playwright-artifacts/i18n-i18n-No-Missing-Trans-5cacc-etplace-All-keys-translated-Desktop-EN-Superadmin-retry1/error-context.md",
+    "./tests/playwright-artifacts/i18n-i18n-No-Missing-Trans-5cacc-etplace-All-keys-translated-Desktop-EN-Superadmin/error-context.md"
+  ],
+  "86f82c5841f125c1a3ba447cf9d29228:107962": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-f0ec1--Layout-integrity-no-errors-Desktop-EN-Superadmin-retry1/test-failed-1.png",
+    "./tests/playwright-artifacts/i18n-i18n-Language-Switchi-34a9f-s-content-and-RTL-direction-Desktop-EN-Superadmin/test-failed-1.png"
+  ],
+  "b6b5eea384f4a5450334615b7412daa7:31330": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-95090--Layout-integrity-no-errors-Desktop-EN-Superadmin-retry1/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-95090--Layout-integrity-no-errors-Desktop-EN-Superadmin/error-context.md"
+  ],
+  "f2e29ab7a64eb695a750328ea0f27ade:27103": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-f088b--Layout-integrity-no-errors-Desktop-EN-Superadmin/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-f088b--Layout-integrity-no-errors-Desktop-EN-Superadmin-retry1/error-context.md"
+  ],
+  "56ecc08bc2e8fad11e132ae558af01b1:8392": [
+    "./tests/playwright-artifacts/i18n-i18n-No-Missing-Trans-2a241-Landing-All-keys-translated-Desktop-EN-Superadmin-retry1/error-context.md",
+    "./tests/playwright-artifacts/i18n-i18n-No-Missing-Trans-2a241-Landing-All-keys-translated-Desktop-EN-Superadmin/error-context.md"
+  ],
+  "df2add78d6bae4cbb21c3cee44d485f8:7519": [
+    "./tests/playwright-artifacts/i18n-i18n-No-Missing-Trans-e1821-perties-All-keys-translated-Desktop-EN-Superadmin-retry1/error-context.md",
+    "./tests/playwright-artifacts/i18n-i18n-No-Missing-Trans-e1821-perties-All-keys-translated-Desktop-EN-Superadmin/error-context.md"
+  ],
+  "92fcfbfaa2cd86b3a722651f23ef39d9:31030": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-b627c--Layout-integrity-no-errors-Desktop-EN-Superadmin-retry1/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-b627c--Layout-integrity-no-errors-Desktop-EN-Superadmin/error-context.md"
+  ],
+  "f9974207ee446f002b447e55fd921516:30427": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-bf9d5--Layout-integrity-no-errors-Desktop-EN-Admin-retry1/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-bf9d5--Layout-integrity-no-errors-Desktop-EN-Admin/error-context.md"
+  ],
+  "8a698c702f195fc9741c2fb50f55a7f6:27656": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-7bd59--Layout-integrity-no-errors-Desktop-EN-Admin/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-7bd59--Layout-integrity-no-errors-Desktop-EN-Admin-retry1/error-context.md"
+  ],
+  "81c4605cf720be2bba2b09d961a5e774:27864": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-7bd59--Layout-integrity-no-errors-Desktop-EN-Superadmin-retry1/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-7bd59--Layout-integrity-no-errors-Desktop-EN-Superadmin/error-context.md"
+  ],
+  "5c829f0a9dff4ff14bb57408a999330d:108296": [
+    "./tests/playwright-artifacts/smoke-Accessibility-Basics-f6c74-nd-proper-heading-structure-Desktop-EN-Superadmin/test-failed-1.png",
+    "./tests/playwright-artifacts/smoke-Accessibility-Basics-c6436-ink-for-keyboard-navigation-Desktop-EN-Superadmin/test-failed-1.png",
+    "./tests/playwright-artifacts/smoke-Branding-Theme-Consi-e4a3b-ry-brand-colors-are-applied-Desktop-EN-Superadmin-retry1/test-failed-1.png",
+    "./tests/playwright-artifacts/i18n-i18n-Language-Switchi-34a9f-s-content-and-RTL-direction-Desktop-EN-Superadmin-retry1/test-failed-1.png"
+  ],
+  "15c4cc561409c4d4b1c651c7029fa9e9:28847": [
+    "./tests/playwright-artifacts/i18n-i18n-No-Missing-Trans-5cacc-etplace-All-keys-translated-Desktop-EN-Admin-retry1/error-context.md",
+    "./tests/playwright-artifacts/i18n-i18n-No-Missing-Trans-5cacc-etplace-All-keys-translated-Desktop-EN-Admin/error-context.md"
+  ],
+  "801f51413520fa414065c29afdfe3e36:27140": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-bf944--Layout-integrity-no-errors-Desktop-EN-Superadmin/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-bf944--Layout-integrity-no-errors-Desktop-EN-Superadmin-retry1/error-context.md"
+  ],
+  "3fe9653c54045767d21a752888d5893d:31500": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-cca89--Layout-integrity-no-errors-Desktop-EN-Superadmin-retry1/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-cca89--Layout-integrity-no-errors-Desktop-EN-Superadmin/error-context.md"
+  ],
+  "45fa11c69501b246269b6dde3cf785b4:29719": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-8ba72--Layout-integrity-no-errors-Desktop-EN-Superadmin/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-8ba72--Layout-integrity-no-errors-Desktop-EN-Superadmin-retry1/error-context.md"
+  ],
+  "3a10220f1ea1ecf6eddd9fcf09e5572e:105741": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-bf9d5--Layout-integrity-no-errors-Desktop-EN-Superadmin-retry1/test-failed-1.png",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-bf9d5--Layout-integrity-no-errors-Desktop-EN-Superadmin/test-failed-1.png"
+  ],
+  "2967ee0aa02a855d3b3470121e563240:30569": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-bf9d5--Layout-integrity-no-errors-Desktop-EN-Superadmin-retry1/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-bf9d5--Layout-integrity-no-errors-Desktop-EN-Superadmin/error-context.md"
+  ],
+  "3929ad034a63369183c3c582c1701e28:30392": [
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-03f9a--Layout-integrity-no-errors-Desktop-EN-Admin-retry1/error-context.md",
+    "./tests/playwright-artifacts/smoke-Global-Layout-Naviga-03f9a--Layout-integrity-no-errors-Desktop-EN-Admin/error-context.md"
+  ]
+}

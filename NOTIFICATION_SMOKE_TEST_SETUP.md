@@ -229,19 +229,19 @@ WhatsApp requires **pre-approved templates** for business messages. For testing:
 
 ```bash
 # Test specific channels
-pnpm tsx scripts/notifications-smoke.ts email
-pnpm tsx scripts/notifications-smoke.ts email sms
-pnpm tsx scripts/notifications-smoke.ts push email sms whatsapp
+pnpm tsx qa/notifications/run-smoke.ts --channel email
+pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms
+pnpm tsx qa/notifications/run-smoke.ts --channel push --channel email --channel sms --channel whatsapp
 
 # Test all configured channels
-pnpm tsx scripts/notifications-smoke.ts email sms whatsapp push
+pnpm tsx qa/notifications/run-smoke.ts --channel email --channel sms --channel whatsapp --channel push
 ```
 
 ### Channel-Specific Tests
 
 #### Email Only
 ```bash
-pnpm tsx scripts/notifications-smoke.ts email
+pnpm tsx qa/notifications/run-smoke.ts --channel email
 ```
 
 **Expected Output:**

@@ -1,17 +1,18 @@
 # 🌍 Fixzit Translation System - Complete Audit Report
 
-**Date:** 2025-01-XX  
-**Status:** ✅ **100% PARITY ACHIEVED**
+**Date:** 2025-11-17  
+**Status:** ✅ **Translation audit automation enabled (2,936 tracked keys)**
 
 ---
 
 ## Executive Summary
 
-All translation catalogs in the Fixzit system have achieved **perfect parity** between English and Arabic:
+The translation pipeline now runs two automated scanners on every PR:
 
-- **TranslationContext.tsx**: 944 keys (EN) / 944 keys (AR) ✅
-- **i18n JSON files**: 403 keys (EN) / 403 keys (AR) ✅
-- **Total Missing Keys**: 0
+- `pnpm run scan:i18n:audit` → generates `docs/translations/translation-audit.json` via `scripts/audit-translations.mjs` (2,936 EN/AR keys, **0 missing**).
+- `pnpm run scan:i18n` → executes `tests/i18n-scan.mjs` against both the JSON catalogs and `contexts/TranslationContext.tsx`, emitting `_artifacts/i18n-report.json` and flagging files with hardcoded UI copy.
+
+Both jobs are wired into `.github/workflows/fixzit-quality-gates.yml` and fail the build whenever either report contains gaps.
 
 ---
 
@@ -25,21 +26,27 @@ All translation catalogs in the Fixzit system have achieved **perfect parity** b
 
 **Structure:**
 ```typescript
-const translations = {
+const baseTranslations = {
   ar: {
     'common.welcome': 'مرحبا',
     'app.fm': 'إدارة المرافق',
-    // ... 944 total keys
+    // ... 2,662 total keys
   },
   en: {
     'common.welcome': 'Welcome',
     'app.fm': 'Facility Management',
-    // ... 944 total keys
+    // ... 2,662 total keys
   }
-}
+};
+
+const translations = {
+  ar: { ...baseTranslations.ar, ...newTranslations.ar },
+  en: { ...baseTranslations.en, ...newTranslations.en },
+  // fr/es/... fall back to baseTranslations
+};
 ```
 
-**Status:** ✅ **944/944 keys** - Perfect parity
+**Status:** ✅ **2662/2662 base keys** merged with auto-generated keys
 
 **Usage:** Primary source for all UI translations via `useTranslation()` hook
 
@@ -53,7 +60,32 @@ const translations = {
 
 **Purpose:** JSON-based translation catalog (possibly for API, SSR, or external systems)
 
-**Status:** ✅ **403/403 keys** - Perfect parity
+**Status:** ✅ **1055/1055 keys** (kept in sync via `scripts/generate_missing_translations.py`)
+
+### 3. Auto-generated keys: `i18n/new-translations.ts`
+
+- `scripts/generate_missing_translations.py` reads `docs/translations/translation-audit.json`, scrapes fallback strings from the codebase, translates them to Arabic, and writes `i18n/new-translations.ts` + updates `i18n/{en,ar}.json`.
+- `contexts/TranslationContext.tsx` merges `newTranslations` at runtime, so adding a new key only requires declaring it once.
+- Re-run `pnpm run scan:i18n:audit` after changing copy—any missing keys are appended automatically.
+
+### 4. Component workflow (new `useAutoTranslator` helper)
+
+```tsx
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+
+export function ExampleCard() {
+  const auto = useAutoTranslator('example.card');
+  return (
+    <>
+      <h3>{auto('System Management', 'title')}</h3>
+      <p>{auto('Configure system settings and preferences', 'subtitle')}</p>
+    </>
+  );
+}
+```
+
+- The helper converts `scope + id` into a deterministic key (`auto.example.card.title`).
+- `scan:i18n:audit` detects the new key, populates `i18n/new-translations.ts`, and rewrites `i18n/{en,ar}.json` automatically.
 
 **Note:** Separate from TranslationContext - may serve different use cases
 

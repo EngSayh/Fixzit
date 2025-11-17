@@ -55,7 +55,7 @@ const qrDataUrl = await QRCode.toDataURL(base64, {
 
 ```bash
 MONGODB_URI=mongodb://localhost:27017/fixzit
-JWT_SECRET=dev-secret-key
+JWT_SECRET=<generate-a-secure-32-char-secret>
 JWT_REFRESH_SECRET=dev-refresh-secret
 ```
 

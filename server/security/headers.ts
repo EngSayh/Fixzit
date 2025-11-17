@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extractClientIP } from '@/lib/ip';
+import { resolveAllowedOrigin } from '@/lib/security/cors-allowlist';
 
 /** Utils */
 const isProd = process.env.NODE_ENV === 'production';
-const toArray = (v?: string) =>
-  (v ? v.split(',').map(s => s.trim()).filter(Boolean) : []) as string[];
-
 /**
  * Security headers middleware for API responses
  * - Only for JSON/API — do not use this CSP on HTML pages
@@ -64,34 +62,19 @@ export function withSecurityHeaders(response: NextResponse, request?: NextReques
  * - Echoes preflight headers/method if provided
  */
 export function withCORS(request: NextRequest, response: NextResponse): NextResponse {
-  const origin = request.headers.get('origin') || '';
-  const allowFromEnv = toArray(process.env.CORS_ORIGINS);           // optional comma list
-  const frontend = process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [];
-  const localhost = process.env.NODE_ENV === 'development'
-    ? ['http://localhost:3000', 'http://localhost:3001']
-    : [];
-
-  const allowedOrigins = new Set<string>([
-    'https://fixzit.co',
-    'https://www.fixzit.co',
-    'https://app.fixzit.co',
-    'https://dashboard.fixzit.co',
-    ...frontend,
-    ...allowFromEnv,
-    ...localhost,
-  ].filter(Boolean));
+  const origin = request.headers.get('origin');
+  const allowedOrigin = resolveAllowedOrigin(origin);
 
   // For dynamic Origin we must set Vary
   response.headers.append('Vary', 'Origin');
 
   // Credentials-safe CORS
-  if (origin && allowedOrigins.has(origin)) {
-    response.headers.set('Access-Control-Allow-Origin', origin);
+  if (allowedOrigin) {
+    response.headers.set('Access-Control-Allow-Origin', allowedOrigin);
     response.headers.set('Access-Control-Allow-Credentials', 'true');
-  } else if (process.env.NODE_ENV === 'development') {
-    // Dev fallback to primary localhost
-    response.headers.set('Access-Control-Allow-Origin', 'http://localhost:3000');
-    response.headers.set('Access-Control-Allow-Credentials', 'true');
+  } else {
+    response.headers.delete('Access-Control-Allow-Origin');
+    response.headers.set('Access-Control-Allow-Credentials', 'false');
   }
 
   // Echo requested method/headers if present (preflight)

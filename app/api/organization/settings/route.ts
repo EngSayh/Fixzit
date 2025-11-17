@@ -42,7 +42,7 @@ export async function GET() {
       // Return default settings if no organization found
       return NextResponse.json({
         name: 'FIXZIT ENTERPRISE',
-        logo: '/img/fixzit-logo.jpg',
+        logo: '/img/fixzit-logo.png',
         primaryColor: '#B46B2F',
         secondaryColor: '#D68B4A'
       });
@@ -52,7 +52,7 @@ export async function GET() {
 
     return NextResponse.json({
       name: orgDoc?.name || 'FIXZIT ENTERPRISE',
-      logo: orgDoc?.logo || '/img/fixzit-logo.jpg',
+      logo: orgDoc?.logo || '/img/fixzit-logo.png',
       primaryColor: orgDoc?.branding?.primaryColor || '#B46B2F',
       secondaryColor: orgDoc?.branding?.secondaryColor || '#D68B4A'
     });
@@ -61,7 +61,7 @@ export async function GET() {
     // Return default settings on error
     return NextResponse.json({
       name: 'FIXZIT ENTERPRISE',
-      logo: '/img/fixzit-logo.jpg',
+      logo: '/img/fixzit-logo.png',
       primaryColor: '#B46B2F',
       secondaryColor: '#D68B4A'
     });

@@ -26,8 +26,8 @@ services:
     volumes:
       - meilisearch_data:/meili_data
     environment:
-      - MEILI_MASTER_KEY=master_key_dev_fixzit_2024
-      - MEILI_ENV=development
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:?Set MEILI_MASTER_KEY}
+      - MEILI_ENV=${MEILI_ENV:-development}
       - MEILI_NO_ANALYTICS=true
     restart: unless-stopped
     healthcheck:
@@ -46,8 +46,8 @@ services:
     volumes:
       - minio_data:/data
     environment:
-      - MINIO_ROOT_USER=admin
-      - MINIO_ROOT_PASSWORD=fixzit2024
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-fixzit-minio}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}
       - MINIO_BROWSER_REDIRECT_URL=http://localhost:9001
     command: server /data --console-address ":9001"
     restart: unless-stopped

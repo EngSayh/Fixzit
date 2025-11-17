@@ -15,7 +15,7 @@ const STATIC_ASSETS = [
   '/index.html',
   '/marketplace',
   '/manifest.json',
-  '/assets/fixzit_logo.png',
+  '/img/fixzit-logo.png',
   '/assets/logo.svg'
 ];
 
@@ -607,7 +607,7 @@ async function handlePushNotification(data) {
   
   const options = {
     body: body,
-    icon: '/assets/fixzit_logo.png',
+    icon: '/img/fixzit-logo.png',
     badge: '/assets/logo.svg',
     vibrate: [200, 100, 200],
     tag: data.tag || 'default',

@@ -4,6 +4,7 @@ import { jwtVerify } from 'jose';
 import { Types } from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import { objectIdFrom } from './objectIds';
+import { requireEnv, TEST_JWT_SECRET } from './env';
 
 export interface MarketplaceRequestContext {
   tenantKey: string;
@@ -14,12 +15,10 @@ export interface MarketplaceRequestContext {
 }
 
 async function decodeToken(token?: string | null) {
-  if (!token || !process.env.JWT_SECRET) {
-    return undefined;
-  }
-
   try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    const secret = new TextEncoder().encode(
+      requireEnv('JWT_SECRET', { testFallback: TEST_JWT_SECRET })
+    );
     const { payload } = await jwtVerify(token, secret);
     return payload;
   } catch {

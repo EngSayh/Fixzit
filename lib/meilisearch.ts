@@ -1,9 +1,12 @@
 import { MeiliSearch } from 'meilisearch';
 import { logger } from '@/lib/logger';
+import { requireEnv } from '@/lib/env';
 
 // Initialize Meilisearch client
 const meiliHost = process.env.MEILI_HOST || 'http://localhost:7700';
-const meiliMasterKey = process.env.MEILI_MASTER_KEY || 'fixzit_search_master_key_2025_secure';
+const meiliMasterKey = requireEnv('MEILI_MASTER_KEY', {
+  testFallback: 'test-meili-master-key-32-characters-long-for-ci',
+});
 
 export const searchClient = new MeiliSearch({
   host: meiliHost,

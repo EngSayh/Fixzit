@@ -13,6 +13,7 @@ import {
 } from '@/config/language-options';
 // ✅ FIX: Import centralized storage and cookie keys
 import { STORAGE_KEYS, COOKIE_KEYS, APP_DEFAULTS } from '@/config/constants';
+import { newTranslations } from '@/i18n/new-translations';
 
 export type Language = LanguageCode;
 
@@ -30,7 +31,7 @@ interface TranslationContextType {
 const TranslationContext = createContext<TranslationContextType | undefined>(undefined);
 
 // Translation data
-const translations: Record<Language, Record<string, string>> = {
+const baseTranslations: Record<Language, Record<string, string>> = {
   ar: {
     // Navigation
     'nav.dashboard': 'لوحة التحكم',
@@ -5864,6 +5865,24 @@ const translations: Record<Language, Record<string, string>> = {
   ur: {},
   hi: {},
   zh: {},
+};
+
+const translations: Record<Language, Record<string, string>> = {
+  ar: {
+    ...baseTranslations.ar,
+    ...newTranslations.ar,
+  },
+  en: {
+    ...baseTranslations.en,
+    ...newTranslations.en,
+  },
+  fr: baseTranslations.fr,
+  pt: baseTranslations.pt,
+  ru: baseTranslations.ru,
+  es: baseTranslations.es,
+  ur: baseTranslations.ur,
+  hi: baseTranslations.hi,
+  zh: baseTranslations.zh,
 };
 
 // ✅ FIX: Use centralized APP_DEFAULTS instead of hardcoded 'ar'

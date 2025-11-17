@@ -2,6 +2,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { logger } from '@/lib/logger';
+import { handlePreflight } from '@/server/security/headers';
+import { isOriginAllowed } from '@/lib/security/cors-allowlist';
 
 // ⚡ PERFORMANCE OPTIMIZATION: Lazy-load auth only for protected routes
 // Previously: auth imported eagerly (adds ~30-40 KB to middleware bundle)
@@ -28,7 +30,6 @@ type WrappedReq = NextRequest & { auth?: AuthSession | null };
 // ---------- Configurable switches ----------
 const API_PROTECT_ALL = process.env.API_PROTECT_ALL !== 'false'; // secure-by-default
 const REQUIRE_ORG_ID_FOR_FM = process.env.REQUIRE_ORG_ID === 'true';
-
 // ---------- Route helpers ----------
 function matchesRoute(pathname: string, route: string): boolean {
   if (pathname === route) return true;
@@ -192,6 +193,22 @@ function attachUserHeaders(req: NextRequest, user: SessionUser): NextResponse {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const method = request.method;
+  const isApiRequest = pathname.startsWith('/api');
+
+  if (isApiRequest) {
+    if (method === 'OPTIONS') {
+      const preflight = handlePreflight(request);
+      if (preflight) return preflight;
+    }
+
+    const origin = request.headers.get('origin');
+    if (origin && !isAllowedOrigin(origin)) {
+      return NextResponse.json(
+        { error: 'Origin not allowed' },
+        { status: 403 }
+      );
+    }
+  }
 
   // Dev helpers hard gate (server-only check)
   const devEnabled = process.env.ENABLE_DEMO_LOGIN === 'true' || process.env.NODE_ENV === 'development';

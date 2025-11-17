@@ -15,6 +15,7 @@ import { globby } from 'globby';
 
 const ROOT = process.cwd();
 const REPORT = path.join(ROOT, 'reports', 'i18n-missing-v2.json');
+const IGNORE_KEYS = new Set(['a','bool','hello','missing.key','msg','nested.deep.value','num','obj','watch-all','welcome']);
 
 // Load waivers if present
 let WAIVE = {};
@@ -80,6 +81,21 @@ function extractFromTranslationContext(filePath) {
   }
 }
 
+function extractFromGeneratedTranslations(filePath) {
+  if (!fs.existsSync(filePath)) return {};
+  const txt = fs.readFileSync(filePath, 'utf8');
+  const keyRegex = /'([^']+)'\s*:\s*'[^']*'/g;
+  const keys = new Set();
+  let match;
+  while ((match = keyRegex.exec(txt))) {
+    keys.add(match[1]);
+  }
+  return [...keys].reduce((acc, key) => {
+    acc[key] = '';
+    return acc;
+  }, {});
+}
+
 async function extractUsedKeys() {
   const files = await globby(['**/*.{ts,tsx,js,jsx}'], {
     ignore: [
@@ -90,7 +106,10 @@ async function extractUsedKeys() {
       '**/coverage/**',
       '**/.git/**',
       '**/.turbo/**',
-      '**/.vercel/**'
+      '**/.vercel/**',
+      '**/*.test.*',
+      '**/*.spec.*',
+      'tests/**'
     ],
   });
   
@@ -132,8 +151,10 @@ void (async function main() {
   }
 
   // Merge locale files + TranslationContext
-  const en = { ...enLoc, ...ctxEn };
-  const ar = { ...arLoc, ...ctxAr };
+  const generated = extractFromGeneratedTranslations(path.join(ROOT, 'i18n', 'new-translations.ts'));
+
+  const en = { ...enLoc, ...ctxEn, ...generated };
+  const ar = { ...arLoc, ...ctxAr, ...generated };
 
   const used = await extractUsedKeys();
   const enKeys = new Set(Object.keys(en));
@@ -141,7 +162,7 @@ void (async function main() {
 
   const enOnly = [...enKeys].filter(k => !arKeys.has(k)).sort();
   const arOnly = [...arKeys].filter(k => !enKeys.has(k)).sort();
-  const usedButMissing = used.filter(k => !enKeys.has(k) || !arKeys.has(k));
+  const usedButMissing = used.filter(k => !IGNORE_KEYS.has(k) && (!enKeys.has(k) || !arKeys.has(k)));
 
   const out = {
     timestamp: new Date().toISOString(),

@@ -97,7 +97,12 @@ const authMiddleware = async (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) throw new Error('No token');
     
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fixzit-secret-key');
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret || jwtSecret.trim().length === 0) {
+      throw new Error('JWT_SECRET is not configured. Set JWT_SECRET in your environment.');
+    }
+
+    const decoded = jwt.verify(token, jwtSecret);
     const result = await pool.query('SELECT * FROM users WHERE id = $1', [decoded.userId]);
     
     if (result.rows.length === 0) throw new Error('User not found');
@@ -133,9 +138,14 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret || jwtSecret.trim().length === 0) {
+      throw new Error('JWT_SECRET is not configured. Set JWT_SECRET in your environment.');
+    }
+
     const token = jwt.sign(
       { userId: user.id, orgId: user.org_id, role: user.role }, 
-      process.env.JWT_SECRET || 'fixzit-secret-key'
+      jwtSecret
     );
     
     // Update last login

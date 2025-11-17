@@ -78,7 +78,7 @@ async function main(){
 
     // 5) E2E (Playwright) — full or fast
     const pwArgs = FAST ? ['-g','@smoke'] : [];
-    await run('npx', ['playwright','test', ...pwArgs], 'E2E');
+    await run('bash', ['scripts/run-playwright.sh', ...pwArgs], 'E2E');
   } finally {
     if (dev) {
       try {

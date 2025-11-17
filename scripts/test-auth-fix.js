@@ -1,23 +1,27 @@
 // Test script to verify auth fixes
 const jwt = require('jsonwebtoken');
+const { requireEnv } = require('../lib/env');
 
-// Set a test JWT secret if not set
-if (!process.env.JWT_SECRET) {
-  process.env.JWT_SECRET = 'test-secret-key-change-in-production';
-  console.log('⚠️  Using test JWT_SECRET - change this in production!');
+let jwtSecret;
+try {
+  jwtSecret = requireEnv('JWT_SECRET');
+} catch (error) {
+  console.error('❌ JWT_SECRET is required to run this script.');
+  console.error('   Set JWT_SECRET in your environment before running auth tests.');
+  process.exit(1);
 }
 
 // Test JWT generation
 try {
   const testToken = jwt.sign(
     { userId: 'test123', role: 'admin' },
-    process.env.JWT_SECRET,
+    jwtSecret,
     { expiresIn: '1h' }
   );
   console.log('✅ JWT generation works');
   
   // Test JWT verification
-  const decoded = jwt.verify(testToken, process.env.JWT_SECRET);
+  const decoded = jwt.verify(testToken, jwtSecret);
   console.log('✅ JWT verification works');
   console.log('   Decoded:', decoded);
 } catch (error) {

@@ -171,7 +171,7 @@ def audit_logo_implementation():
 
     # Check for logo assets
     logo_assets = [
-        "assets/fixzit_logo.jpg",
+        "public/img/fixzit-logo.png",
         "assets/logo.svg",
         "assets/logos/fixzit_official_logo.jpg",
     ]

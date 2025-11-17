@@ -350,7 +350,11 @@ export default function TopBar() {
 
   // ✅ FIXED: Use semantic colors throughout
   return (
-    <header className={`sticky top-0 z-40 h-16 bg-[#0061A8] text-white ${isMobile ? 'px-2' : 'px-4'} shadow-sm border-b border-black/20`}>
+    <header
+      className={`sticky top-0 z-40 h-16 bg-[#0061A8] text-white ${isMobile ? 'px-2' : 'px-4'} shadow-sm border-b border-black/20`}
+      role="banner"
+      aria-label={t('nav.globalHeader', 'Fixzit global navigation')}
+    >
       <div className={`h-full flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Left Section: Logo & App Switcher */}
         <div className={`flex items-center gap-3 flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>

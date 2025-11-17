@@ -170,7 +170,7 @@ function printSummary(results: ValidationResult[]): void {
   if (ready === total) {
     console.log('🎉 All notification channels are configured and ready!\n');
     console.log('   Run smoke tests with:');
-    console.log('   pnpm tsx scripts/notifications-smoke.ts push email sms whatsapp\n');
+    console.log('   pnpm tsx qa/notifications/run-smoke.ts --channel push --channel email --channel sms --channel whatsapp\n');
   } else if (ready > 0) {
     console.log('⚡ Some channels are ready. You can test configured channels:\n');
     
@@ -180,7 +180,7 @@ function printSummary(results: ValidationResult[]): void {
       .filter(name => name !== 'common');
     
     if (readyChannels.length > 0) {
-      console.log(`   pnpm tsx scripts/notifications-smoke.ts ${readyChannels.join(' ')}\n`);
+      console.log(`   pnpm tsx qa/notifications/run-smoke.ts ${readyChannels.map(ch => `--channel ${ch}`).join(' ')}\n`);
     }
     
     if (incomplete > 0 || notConfigured > 0) {

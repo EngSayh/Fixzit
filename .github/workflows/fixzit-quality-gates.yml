@@ -84,6 +84,15 @@ jobs:
             *) npm run scan:api ;;
           esac
 
+      - name: i18n audit (docs/translations)
+        shell: bash
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm run scan:i18n:audit ;;
+            yarn) yarn run scan:i18n:audit ;;
+            *) npm run scan:i18n:audit ;;
+          esac
+
       - name: i18n scan (TranslationContext aware)
         shell: bash
         run: |
@@ -91,6 +100,15 @@ jobs:
             pnpm) pnpm run scan:i18n:v2 ;;
             yarn) yarn run scan:i18n:v2 ;;
             *) npm run scan:i18n:v2 ;;
+          esac
+
+      - name: i18n scan (locale usage)
+        shell: bash
+        run: |
+          case "${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm run scan:i18n ;;
+            yarn) yarn run scan:i18n ;;
+            *) npm run scan:i18n ;;
           esac
 
       - name: Fixzit Agent (dry, full similarity)

@@ -4,6 +4,7 @@ const loggingMiddleware = require('./src/middleware/logging');
 const errorHandler = require('./src/middleware/error');
 const { setupSecurity } = require('./src/middleware/security');
 const Env = require('./src/config/env');
+const { requireEnv } = require('../lib/env');
 
 const express = require('express');
 const http = require('http');
@@ -86,28 +87,19 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static('public'));
 
 // Environment validation
-const requiredEnvVars = ['JWT_SECRET'];
-const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
-
-if (missingEnvVars.length > 0) {
-  logger.error('Missing required environment variables', { variables: missingEnvVars });
-  
-  // In production, fail-fast for security
-  if (process.env.NODE_ENV === 'production') {
-    logger.error('SECURITY ERROR: Required secrets missing in production');
-    process.exit(1);
-  }
-  
-  // Only use fallbacks in explicit development mode
-  if (process.env.NODE_ENV === 'development') {
-    logger.warn('Using development fallback secrets - NOT FOR PRODUCTION');
-    if (!process.env.JWT_SECRET) process.env.JWT_SECRET = 'dev-jwt-secret-fixzit-2024';
-    if (!process.env.REFRESH_TOKEN_SECRET) process.env.REFRESH_TOKEN_SECRET = 'dev-refresh-secret-fixzit-2024';
-  } else {
-    logger.error('Missing secrets in non-development environment');
+function ensureRequiredSecrets() {
+  try {
+    requireEnv('JWT_SECRET');
+    requireEnv('REFRESH_TOKEN_SECRET');
+  } catch (error) {
+    logger.error('Missing required environment variables for authentication', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     process.exit(1);
   }
 }
+
+ensureRequiredSecrets();
 
 // Initialize WebSocket with realtime service
 realtimeService.establishWebSocket(server);

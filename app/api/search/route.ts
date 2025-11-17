@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { APPS, AppKey, DEFAULT_SCOPE, getSearchEntitiesForScope } from '@/config/topbar-modules';
@@ -30,6 +30,15 @@ function generateHref(entity: string, id: string): string {
   const basePath = baseRoutes[entity] || '/dashboard';
   return `${basePath}?highlight=${id}`;
 }
+
+type SearchResult = {
+  id: string;
+  entity: string;
+  title: string;
+  subtitle?: string;
+  href: string;
+  score?: number;
+};
 
 /**
  * @openapi
@@ -72,15 +81,6 @@ export async function GET(req: NextRequest) {
     const appConfig = APPS[app];
     if (!appConfig) {
       return createSecureResponse({ results: [] }, 200, req);
-    }
-
-    interface SearchResult {
-      id: string;
-      entity: string;
-      title: string;
-      subtitle: string;
-      href: string;
-      score: number;
     }
 
     let searchEntities =
@@ -208,7 +208,7 @@ export async function GET(req: NextRequest) {
             status?: string;
             score?: number;
           }
-          
+
           const items = await collection
             .find(searchQuery)
             .project(projection)
@@ -217,15 +217,16 @@ export async function GET(req: NextRequest) {
             .toArray();
 
           items.forEach((item: SearchItem) => {
-            const result = {
-              id: item._id?.toString() || '',
+            const id = item._id?.toString() || '';
+            const normalized: SearchResult = {
+              id,
               entity,
               title: item.title || item.name || item.code || `Untitled ${entity}`,
-              subtitle: item.description || item.address || item.status || '',
-              href: generateHref(entity, item._id?.toString() || ''),
-              score: item.score || 0
+              subtitle: item.description || item.address || item.status || undefined,
+              href: generateHref(entity, id),
+              score: typeof item.score === 'number' ? item.score : undefined,
             };
-            results.push(result);
+            results.push(normalized);
           });
         }
       } catch (error) {
@@ -234,9 +235,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Sort by score and limit results
-    results.sort((a, b) => (b.score || 0) - (a.score || 0));
-    return NextResponse.json({ results: results.slice(0, 20) });
+    // Sort by score and limit results, stripping score after ordering
+    const normalizedResults = results
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .slice(0, 20)
+      .map(({ score, ...rest }) => rest);
+    return createSecureResponse({ results: normalizedResults }, 200, req);
 
   } catch (error) {
     logger.error('Search API error:', error instanceof Error ? error.message : 'Unknown error');

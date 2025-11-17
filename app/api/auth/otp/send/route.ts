@@ -12,6 +12,7 @@ import {
   RATE_LIMIT_WINDOW_MS,
   MAX_SENDS_PER_WINDOW,
 } from '@/lib/otp-store';
+import { enforceRateLimit } from '@/lib/middleware/rate-limit';
 
 // Validation schema
 const SendOTPSchema = z.object({
@@ -62,6 +63,13 @@ function checkRateLimit(identifier: string): { allowed: boolean; remaining: numb
  * - 500: Server error
  */
 export async function POST(request: NextRequest) {
+  const ipRateLimited = enforceRateLimit(request, {
+    keyPrefix: 'auth:otp-send',
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (ipRateLimited) return ipRateLimited;
+
   try {
     // 1. Parse and validate request body
     const body = await request.json();

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
 import { logger } from '@/lib/logger';
+import { enforceRateLimit } from '@/lib/middleware/rate-limit';
 import {
   otpStore,
   MAX_ATTEMPTS,
@@ -31,6 +32,13 @@ const VerifyOTPSchema = z.object({
  * - 500: Server error
  */
 export async function POST(request: NextRequest) {
+  const limited = enforceRateLimit(request, {
+    keyPrefix: 'auth:otp-verify',
+    requests: 10,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
+
   try {
     // 1. Parse and validate request body
     const body = await request.json();

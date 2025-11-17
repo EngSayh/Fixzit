@@ -46,7 +46,12 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default-secret-key');
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret || jwtSecret.trim().length === 0) {
+      throw new Error('JWT_SECRET is not configured. Set JWT_SECRET in your environment.');
+    }
+
+    const decoded = jwt.verify(token, jwtSecret);
     
     // Attach user info to request
     req.userId = decoded.userId;

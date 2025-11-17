@@ -195,7 +195,7 @@ class SaudiPrayerTimes {
 
                 const notification = new Notification('وقت الصلاة', {
                     body: `حان وقت صلاة ${prayerNames[prayer]}`,
-                    icon: '/assets/fixzit_logo.png',
+                    icon: '/img/fixzit-logo.png',
                     tag: `prayer-${prayer}`,
                     dir: 'rtl',
                     lang: 'ar'

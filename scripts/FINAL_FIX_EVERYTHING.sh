@@ -108,11 +108,19 @@ app.listen(PORT, () => {
 ENDSERVER
 
 # Step 6: Ensure .env exists
-[ ! -f .env ] && echo "
-JWT_SECRET=$(openssl rand -hex 32 2>/dev/null || echo 'fixzit-secret-key-2024')
+if [ ! -f .env ]; then
+  JWT_SECRET_VALUE=$(openssl rand -hex 32 2>/dev/null)
+  if [ -z "$JWT_SECRET_VALUE" ]; then
+    echo "Failed to generate JWT secret. Please install openssl and run again."
+    exit 1
+  fi
+  cat > .env <<EOF
+JWT_SECRET=$JWT_SECRET_VALUE
 MONGODB_URI=mongodb://localhost:27017/fixzit_souq
 NODE_ENV=development
-PORT=5000" > .env
+PORT=5000
+EOF
+fi
 
 # Step 7: Install any missing packages
 npm install express mongoose bcryptjs jsonwebtoken cors dotenv multer qrcode express-validator 2>/dev/null

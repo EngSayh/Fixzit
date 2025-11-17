@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { logger } from '@/lib/logger';
+import { getEnv } from '@/lib/env';
 
 // Safe TLS detection function
 function isTlsEnabled(uri: string): boolean {
@@ -54,25 +55,45 @@ interface DatabaseHandle {
 // MongoDB-only implementation - no mock database
 
 // Environment configuration
-const uri = process.env.MONGODB_URI;
+const rawMongoUri = getEnv('MONGODB_URI');
 const dbName = process.env.MONGODB_DB || 'fixzit';
+const isProd = process.env.NODE_ENV === 'production';
 
-// Runtime validation function (called when connection is attempted, not at module load)
-function validateMongoUri(): void {
-  // Skip validation during CI builds or when SKIP_ENV_VALIDATION is set
-  if (process.env.CI === 'true' || process.env.SKIP_ENV_VALIDATION === 'true') {
-    return;
+function resolveMongoUri(): string {
+  if (rawMongoUri && rawMongoUri.trim().length > 0) {
+    return rawMongoUri;
   }
-  
-  // Only enforce in production
-  if (process.env.NODE_ENV === 'production') {
-    if (!uri || uri.trim().length === 0) {
-      throw new Error('FATAL: MONGODB_URI is required in production environment. Please configure MongoDB connection.');
-    }
-    // Validate MongoDB connection string format (basic check)
-    if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
-      throw new Error('FATAL: MONGODB_URI must start with mongodb:// or mongodb+srv://');
-    }
+
+  if (!isProd) {
+    logger.warn('[Mongo] MONGODB_URI not set, using localhost fallback (development only)');
+    return 'mongodb://127.0.0.1:27017';
+  }
+
+  throw new Error('FATAL: MONGODB_URI is required in production environment.');
+}
+
+function validateMongoUri(uri: string): void {
+  if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
+    throw new Error('FATAL: MONGODB_URI must start with mongodb:// or mongodb+srv://');
+  }
+}
+
+function assertNotLocalhostInProd(uri: string): void {
+  if (!isProd) return;
+  const localPatterns = ['mongodb://localhost', 'mongodb://127.0.0.1', 'mongodb://0.0.0.0'];
+  if (localPatterns.some(pattern => uri.startsWith(pattern))) {
+    throw new Error(
+      'FATAL: Local MongoDB URIs are not allowed in production. Point MONGODB_URI to your managed cluster.'
+    );
+  }
+}
+
+function assertAtlasUriInProd(uri: string): void {
+  if (!isProd) return;
+  if (!uri.startsWith('mongodb+srv://')) {
+    throw new Error(
+      'FATAL: Production deployments require a MongoDB Atlas connection string (mongodb+srv://).'
+    );
   }
 }
 
@@ -89,33 +110,26 @@ const globalObj = (typeof global !== 'undefined' ? global : globalThis) as typeo
 let conn = globalObj._mongoose as Promise<DatabaseHandle>;
 
 if (!conn) {
-  // Validate MongoDB URI (only in production runtime, not during CI builds)
-  validateMongoUri();
-  
-  // Always attempt real MongoDB connection
-  const connectionUri = uri || 'mongodb://localhost:27017'; // Dev fallback only
-  
-  if (connectionUri) {
-    conn = globalObj._mongoose = mongoose.connect(connectionUri, {
-      dbName,
-      autoIndex: true,
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 8000,
-      connectTimeoutMS: 8000,
-      // Production-critical options for MongoDB Atlas
-      retryWrites: true,        // Automatic retry for write operations (network failures)
-      tls: isTlsEnabled(connectionUri),  // Safe TLS detection
-      w: 'majority',            // Write concern for data durability (prevents data loss)
-    }).then(m => {
-      // Return the native MongoDB database object
-      return m.connection.db as unknown as DatabaseHandle;
-    }).catch((err) => {
-      logger.error('ERROR: mongoose.connect() failed', { error: err?.message || err });
-      throw new Error(`MongoDB connection failed: ${err?.message || err}. Please ensure MongoDB is running.`);
-    });
-  } else {
-    throw new Error('No MONGODB_URI set. Please configure MongoDB connection.');
-  }
+  const connectionUri = resolveMongoUri();
+  validateMongoUri(connectionUri);
+  assertNotLocalhostInProd(connectionUri);
+  assertAtlasUriInProd(connectionUri);
+
+  conn = globalObj._mongoose = mongoose.connect(connectionUri, {
+    dbName,
+    autoIndex: true,
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 8000,
+    connectTimeoutMS: 8000,
+    retryWrites: true,
+    tls: isTlsEnabled(connectionUri),
+    w: 'majority',
+  }).then(m => {
+    return m.connection.db as unknown as DatabaseHandle;
+  }).catch((err) => {
+    logger.error('ERROR: mongoose.connect() failed', { error: err?.message || err });
+    throw new Error(`MongoDB connection failed: ${err?.message || err}. Please ensure MongoDB is running.`);
+  });
 }
 
 export const db = conn;

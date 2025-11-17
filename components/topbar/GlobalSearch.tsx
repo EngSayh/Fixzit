@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useId } from 'react';
+import React, { useState, useEffect, useRef, useId, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Command } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { useTopBar } from '@/contexts/TopBarContext';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { CommandPalette } from './CommandPalette';
@@ -19,6 +20,9 @@ const SEARCH_SCOPE_KEY = 'fixzit:searchScope';
 
 export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) {
   const router = useRouter();
+  const { data: session } = useSession();
+  const sessionUser = session?.user as { id?: string; orgId?: string } | undefined;
+  const scopeStorageKey = `${SEARCH_SCOPE_KEY}:${sessionUser?.orgId ?? 'global'}:${sessionUser?.id ?? 'anonymous'}`;
   const {
     app,
     module,
@@ -43,7 +47,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
   const [commandOpen, setCommandOpen] = useState(false);
   const [scope, setScopeState] = useState<'module' | 'all'>(() => {
     if (typeof window === 'undefined') return 'module';
-    const stored = window.localStorage.getItem(SEARCH_SCOPE_KEY);
+    const stored = window.localStorage.getItem(scopeStorageKey);
     return stored === 'all' ? 'all' : 'module';
   });
 
@@ -56,12 +60,18 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
   const moduleLabel = t(moduleLabelKey, moduleFallbackLabel);
   const scopeEntities = scope === 'module' ? searchEntities : appSearchEntities;
 
-  const persistScope = (next: 'module' | 'all') => {
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem(scopeStorageKey);
+    setScopeState(stored === 'all' ? 'all' : 'module');
+  }, [scopeStorageKey]);
+
+  const persistScope = useCallback((next: 'module' | 'all') => {
     setScopeState(next);
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem(SEARCH_SCOPE_KEY, next);
+      window.localStorage.setItem(scopeStorageKey, next);
     }
-  };
+  }, [scopeStorageKey]);
 
   useEffect(() => {
     setActiveIndex(0);
@@ -69,10 +79,12 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!query.trim()) {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
       setResults([]);
       setOpen(false);
       setError(null);
+      setLoading(false);
       return;
     }
 
@@ -84,7 +96,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
           app,
           module,
           scope,
-          q: query,
+          q: trimmed,
           entities: scopeEntities.join(','),
         });
         const response = await fetch(`/api/search?${params.toString()}`);
@@ -109,7 +121,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
       } finally {
         setLoading(false);
       }
-    }, 300);
+    }, 250);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
