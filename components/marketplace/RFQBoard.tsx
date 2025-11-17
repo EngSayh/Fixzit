@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { useState } from 'react';
 import { Calendar, DollarSign, Package } from 'lucide-react';
 import ClientDate from '@/components/ClientDate';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface RFQCategory {
   slug: string;
@@ -40,6 +41,9 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const auto = useAutoTranslator('marketplace.rfqBoard');
+  const createError = auto('Failed to create RFQ', 'errors.create');
+  const networkError = auto('Network error. Please try again.', 'errors.network');
 
   const createRFQ = async () => {
     setSubmitting(true);
@@ -60,7 +64,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
 
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
-        setError(payload.error ?? 'Failed to create RFQ');
+        setError(payload.error ?? createError);
         return;
       }
 
@@ -70,7 +74,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
       setShowForm(false);
     } catch (fetchError) {
       logger.error('Failed to create RFQ:', { error: fetchError });
-      setError('Network error. Please try again.');
+      setError(networkError);
     } finally {
       setSubmitting(false);
     }
@@ -80,23 +84,29 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold text-foreground">Request for Quotations</h1>
-          <p className="text-sm text-muted-foreground">Coordinate bulk sourcing with approved vendors.</p>
+          <h1 className="text-3xl font-semibold text-foreground">
+            {auto('Request for Quotations', 'header.title')}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {auto('Coordinate bulk sourcing with approved vendors.', 'header.subtitle')}
+          </p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
           className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white hover:bg-primary/90"
         >
-          {showForm ? 'Close form' : 'Create RFQ'}
+          {showForm ? auto('Close form', 'actions.closeForm') : auto('Create RFQ', 'actions.create')}
         </button>
       </div>
 
       {showForm && (
         <div className="rounded-3xl bg-card p-6 shadow">
-          <h2 className="text-lg font-semibold text-foreground">New RFQ</h2>
+          <h2 className="text-lg font-semibold text-foreground">
+            {auto('New RFQ', 'form.title')}
+          </h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <label className="text-sm text-muted-foreground">
-              Title
+              {auto('Title', 'form.fields.title')}
               <input
                 value={form.title}
                 onChange={event => setForm({ ...form, title: event.target.value })}
@@ -105,13 +115,13 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
               />
             </label>
             <label className="text-sm text-muted-foreground">
-              Category
+              {auto('Category', 'form.fields.category')}
               <select
                 value={form.categoryId}
                 onChange={event => setForm({ ...form, categoryId: event.target.value })}
                 className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
               >
-                <option value="">Select</option>
+                <option value="">{auto('Select', 'form.selectPlaceholder')}</option>
                 {categories.map(category => (
                   <option key={category.slug} value={category.slug}>
                     {category.name}
@@ -120,7 +130,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
               </select>
             </label>
             <label className="md:col-span-2 text-sm text-muted-foreground">
-              Description
+              {auto('Description', 'form.fields.description')}
               <textarea
                 value={form.description}
                 onChange={event => setForm({ ...form, description: event.target.value })}
@@ -129,7 +139,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
               />
             </label>
             <label className="text-sm text-muted-foreground">
-              Quantity
+              {auto('Quantity', 'form.fields.quantity')}
               <input
                 type="number"
                 value={form.quantity}
@@ -138,7 +148,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
               />
             </label>
             <label className="text-sm text-muted-foreground">
-              Budget (SAR)
+              {auto('Budget (SAR)', 'form.fields.budget')}
               <input
                 type="number"
                 value={form.budget}
@@ -147,7 +157,7 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
               />
             </label>
             <label className="text-sm text-muted-foreground">
-              Deadline
+              {auto('Deadline', 'form.fields.deadline')}
               <input
                 type="date"
                 value={form.deadline}
@@ -163,13 +173,13 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
               disabled={submitting}
               className="rounded-full bg-warning px-5 py-2 text-sm font-semibold text-black hover:bg-warning/90 disabled:opacity-60"
             >
-              {submitting ? 'Submitting…' : 'Submit RFQ'}
+              {submitting ? auto('Submitting…', 'form.submitting') : auto('Submit RFQ', 'form.submit')}
             </button>
             <button
               onClick={() => setShowForm(false)}
               className="rounded-full border border-border px-5 py-2 text-sm font-semibold text-foreground hover:bg-muted"
             >
-              Cancel
+              {auto('Cancel', 'actions.cancel')}
             </button>
           </div>
         </div>
@@ -182,7 +192,10 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-foreground">{rfq.title}</h3>
-                  <p className="text-sm text-muted-foreground">Created <ClientDate date={rfq.createdAt} format="date-only" /></p>
+                  <p className="text-sm text-muted-foreground">
+                    {auto('Created', 'list.createdLabel')}{' '}
+                    <ClientDate date={rfq.createdAt} format="date-only" />
+                  </p>
                   <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
                     {rfq.categoryId && (
                       <span className="flex items-center gap-1">
@@ -199,7 +212,8 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
                     {rfq.deadline && (
                       <span className="flex items-center gap-1">
                         <Calendar size={14} />
-                        Due <ClientDate date={rfq.deadline} format="date-only" />
+                        {auto('Due', 'list.dueLabel')}{' '}
+                        <ClientDate date={rfq.deadline} format="date-only" />
                       </span>
                     )}
                   </div>
@@ -212,8 +226,12 @@ export default function RFQBoard({ categories, initialRfqs }: RFQBoardProps) {
           ))
         ) : (
           <div className="rounded-3xl border border-dashed border-primary/40 bg-card p-10 text-center text-muted-foreground">
-            <p className="text-lg font-semibold text-foreground">No RFQs yet</p>
-            <p className="mt-2 text-sm">Create an RFQ to engage approved vendors.</p>
+            <p className="text-lg font-semibold text-foreground">
+              {auto('No RFQs yet', 'empty.title')}
+            </p>
+            <p className="mt-2 text-sm">
+              {auto('Create an RFQ to engage approved vendors.', 'empty.subtitle')}
+            </p>
           </div>
         )}
       </div>

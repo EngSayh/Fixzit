@@ -2,6 +2,7 @@
 import { logger } from '@/lib/logger';
 
 import { useState } from 'react';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface VendorProduct {
   id: string;
@@ -27,6 +28,9 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const auto = useAutoTranslator('marketplace.vendorCatalogue');
+  const addError = auto('Unable to add product', 'errors.addProduct');
+  const networkError = auto('Network error. Please try again.', 'errors.network');
 
   const addProduct = async () => {
     setLoading(true);
@@ -46,7 +50,7 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
 
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
-        setError(payload.error ?? 'Unable to add product');
+        setError(payload.error ?? addError);
         return;
       }
 
@@ -55,7 +59,7 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
       setForm({ title: '', sku: '', categoryId: '', price: '', uom: 'ea' });
     } catch (fetchError) {
       logger.error('Failed to add product:', { error: fetchError });
-      setError('Network error. Please try again.');
+      setError(networkError);
     } finally {
       setLoading(false);
     }
@@ -64,14 +68,20 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold text-foreground">Vendor Catalogue</h1>
-        <p className="text-sm text-muted-foreground">Publish compliant products for Fixzit Souq buyers.</p>
+        <h1 className="text-3xl font-semibold text-foreground">
+          {auto('Vendor Catalogue', 'header.title')}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {auto('Publish compliant products for Fixzit Souq buyers.', 'header.subtitle')}
+        </p>
       </div>
       <div className="rounded-3xl bg-card p-6 shadow">
-        <h2 className="text-lg font-semibold text-foreground">Add new product</h2>
+        <h2 className="text-lg font-semibold text-foreground">
+          {auto('Add new product', 'form.title')}
+        </h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="text-sm text-muted-foreground">
-            Product title
+            {auto('Product title', 'form.fields.title')}
             <input
               value={form.title}
               onChange={event => setForm({ ...form, title: event.target.value })}
@@ -79,7 +89,7 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
             />
           </label>
           <label className="text-sm text-muted-foreground">
-            SKU
+            {auto('SKU', 'form.fields.sku')}
             <input
               value={form.sku}
               onChange={event => setForm({ ...form, sku: event.target.value })}
@@ -87,13 +97,13 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
             />
           </label>
           <label className="text-sm text-muted-foreground">
-            Category
+            {auto('Category', 'form.fields.category')}
             <select
               value={form.categoryId}
               onChange={event => setForm({ ...form, categoryId: event.target.value })}
               className="mt-1 w-full rounded-2xl border border-border px-3 py-2"
             >
-              <option value="">Select</option>
+              <option value="">{auto('Select', 'form.selectPlaceholder')}</option>
               {categories.map(category => (
                 <option key={category.slug} value={category.slug}>
                   {category.name}
@@ -102,7 +112,7 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
             </select>
           </label>
           <label className="text-sm text-muted-foreground">
-            Price (SAR)
+            {auto('Price (SAR)', 'form.fields.price')}
             <input
               type="number"
               value={form.price}
@@ -111,7 +121,7 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
             />
           </label>
           <label className="text-sm text-muted-foreground">
-            Unit of measure
+            {auto('Unit of measure', 'form.fields.uom')}
             <input
               value={form.uom}
               onChange={event => setForm({ ...form, uom: event.target.value })}
@@ -125,18 +135,22 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
           disabled={loading}
           className="mt-4 rounded-full bg-warning px-5 py-2 text-sm font-semibold text-black hover:bg-warning/90 disabled:opacity-60"
         >
-          {loading ? 'Saving…' : 'Publish product'}
+          {loading ? auto('Saving…', 'form.saving') : auto('Publish product', 'form.submit')}
         </button>
       </div>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-foreground">Published products</h2>
+        <h2 className="text-lg font-semibold text-foreground">
+          {auto('Published products', 'list.title')}
+        </h2>
         {products.length ? (
           <div className="grid gap-4 md:grid-cols-2">
             {products.map(product => (
               <article key={product.id} className="rounded-3xl bg-card p-5 shadow">
                 <h3 className="text-lg font-semibold text-foreground">{product.title.en}</h3>
-                <p className="text-sm text-muted-foreground">SKU {product.sku}</p>
+                <p className="text-sm text-muted-foreground">
+                  {auto('SKU {{value}}', 'list.sku').replace('{{value}}', product.sku)}
+                </p>
                 <p className="text-sm text-muted-foreground">
                   {product.buy.price} {product.buy.currency} / {product.buy.uom}
                 </p>
@@ -148,8 +162,12 @@ export default function VendorCatalogueManager({ categories, initialProducts }: 
           </div>
         ) : (
           <div className="rounded-3xl border border-dashed border-primary/40 bg-card p-10 text-center text-muted-foreground">
-            <p className="text-lg font-semibold text-foreground">No products yet</p>
-            <p className="mt-2 text-sm">Add products to appear in the marketplace catalogue.</p>
+            <p className="text-lg font-semibold text-foreground">
+              {auto('No products yet', 'empty.title')}
+            </p>
+            <p className="mt-2 text-sm">
+              {auto('Add products to appear in the marketplace catalogue.', 'empty.subtitle')}
+            </p>
           </div>
         )}
       </section>

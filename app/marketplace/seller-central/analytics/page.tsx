@@ -7,6 +7,7 @@ import { SalesChart } from '@/components/seller/analytics/SalesChart';
 import { ProductPerformanceTable } from '@/components/seller/analytics/ProductPerformanceTable';
 import { CustomerInsightsCard } from '@/components/seller/analytics/CustomerInsightsCard';
 import { TrafficAnalytics } from '@/components/seller/analytics/TrafficAnalytics';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 type Period = 'last_7_days' | 'last_30_days' | 'last_90_days' | 'ytd';
 
@@ -101,13 +102,6 @@ interface AnalyticsData {
   traffic: TrafficAnalyticsData;
 }
 
-const PERIOD_LABELS: Record<Period, string> = {
-  last_7_days: 'Last 7 Days',
-  last_30_days: 'Last 30 Days',
-  last_90_days: 'Last 90 Days',
-  ytd: 'Year to Date',
-};
-
 const formatTrendValue = (value: number) => {
   if (!Number.isFinite(value)) {
     return '0%';
@@ -117,6 +111,13 @@ const formatTrendValue = (value: number) => {
 };
 
 export default function AnalyticsPage() {
+  const auto = useAutoTranslator('marketplace.sellerCentral.analytics');
+  const PERIOD_LABELS: Record<Period, string> = {
+    last_7_days: auto('Last 7 Days', 'periods.last7'),
+    last_30_days: auto('Last 30 Days', 'periods.last30'),
+    last_90_days: auto('Last 90 Days', 'periods.last90'),
+    ytd: auto('Year to Date', 'periods.ytd'),
+  };
   const [period, setPeriod] = useState<Period>('last_30_days');
   const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'products' | 'customers' | 'traffic'>('overview');
   const [data, setData] = useState<AnalyticsData | null>(null);
@@ -132,7 +133,7 @@ export default function AnalyticsPage() {
         const response = await fetch(`/api/souq/analytics/dashboard?period=${period}`);
         
         if (!response.ok) {
-          throw new Error('Failed to fetch analytics data');
+          throw new Error(auto('Failed to fetch analytics data', 'errors.fetch'));
         }
 
         const result = await response.json();
@@ -145,10 +146,10 @@ export default function AnalyticsPage() {
             traffic: result.traffic,
           });
         } else {
-          throw new Error(result.error || 'Unknown error occurred');
+          throw new Error(result.error || auto('Unknown error occurred', 'errors.unknown'));
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(err instanceof Error ? err.message : auto('An error occurred', 'errors.generic'));
         console.error('Analytics fetch error:', err);
       } finally {
         setIsLoading(false);
@@ -162,7 +163,7 @@ export default function AnalyticsPage() {
     const analytics = data;
     if (!analytics) {
       logger.warn('Tried to export analytics before data loaded', { period });
-      alert('Analytics data is still loading. Please try again in a moment.');
+      alert(auto('Analytics data is still loading. Please try again in a moment.', 'alerts.dataLoading'));
       return;
     }
 
@@ -172,11 +173,11 @@ export default function AnalyticsPage() {
       
       // Prepare export data from current analytics
       const exportData = [
-        { metric: 'Total Revenue', value: `${sales.revenue.total.toFixed(2)} SAR`, trend: formatTrendValue(sales.revenue.trend) },
-        { metric: 'Total Orders', value: sales.orders.total.toString(), trend: formatTrendValue(sales.orders.trend) },
-        { metric: 'Average Order Value', value: `${sales.averageOrderValue.current.toFixed(2)} SAR`, trend: formatTrendValue(sales.averageOrderValue.trend) },
-        { metric: 'New Customers', value: customers.acquisition.newCustomers.toString(), trend: 'N/A' },
-        { metric: 'Conversion Rate', value: `${sales.conversionRate.current.toFixed(2)}%`, trend: formatTrendValue(sales.conversionRate.trend) },
+        { metric: auto('Total Revenue', 'export.totalRevenue'), value: `${sales.revenue.total.toFixed(2)} SAR`, trend: formatTrendValue(sales.revenue.trend) },
+        { metric: auto('Total Orders', 'export.totalOrders'), value: sales.orders.total.toString(), trend: formatTrendValue(sales.orders.trend) },
+        { metric: auto('Average Order Value', 'export.avgOrderValue'), value: `${sales.averageOrderValue.current.toFixed(2)} SAR`, trend: formatTrendValue(sales.averageOrderValue.trend) },
+        { metric: auto('New Customers', 'export.newCustomers'), value: customers.acquisition.newCustomers.toString(), trend: 'N/A' },
+        { metric: auto('Conversion Rate', 'export.conversionRate'), value: `${sales.conversionRate.current.toFixed(2)}%`, trend: formatTrendValue(sales.conversionRate.trend) },
       ];
       
       const filename = `analytics-${period}-${new Date().toISOString().split('T')[0]}.csv`;
@@ -197,7 +198,7 @@ export default function AnalyticsPage() {
     const analytics = data;
     if (!analytics) {
       logger.warn('Tried to export analytics before data loaded', { period, format: 'pdf' });
-      alert('Analytics data is still loading. Please try again in a moment.');
+      alert(auto('Analytics data is still loading. Please try again in a moment.', 'alerts.dataLoading'));
       return;
     }
 
@@ -216,30 +217,38 @@ export default function AnalyticsPage() {
       
       const filename = `analytics-${period}-${new Date().toISOString().split('T')[0]}.pdf`;
       await exportToPDF(exportData, [
-        { key: 'metric', label: 'Metric' },
-        { key: 'value', label: 'Value' },
-        { key: 'trend', label: 'Trend' },
+        { key: 'metric', label: auto('Metric', 'export.table.metric') },
+        { key: 'value', label: auto('Value', 'export.table.value') },
+        { key: 'trend', label: auto('Trend', 'export.table.trend') },
       ], filename, {
-        title: 'Analytics Dashboard Export',
-        subtitle: `Period: ${period.replace('_', ' ')}`,
+        title: auto('Analytics Dashboard Export', 'export.pdf.title'),
+        subtitle: `${auto('Period:', 'export.pdf.subtitle')} ${period.replace('_', ' ')}`,
         orientation: 'portrait',
       });
       
       logger.info('Analytics exported to PDF', { period, filename });
     } catch (error) {
       logger.error('Failed to export PDF', { error });
-      alert('Failed to export data. Please try again.');
+      alert(auto('Failed to export data. Please try again.', 'alerts.exportFailed'));
     }
   };
+
+  const tabs = [
+    { id: 'overview' as const, label: auto('Overview', 'tabs.overview') },
+    { id: 'sales' as const, label: auto('Sales', 'tabs.sales') },
+    { id: 'products' as const, label: auto('Products', 'tabs.products') },
+    { id: 'customers' as const, label: auto('Customers', 'tabs.customers') },
+    { id: 'traffic' as const, label: auto('Traffic', 'tabs.traffic') },
+  ];
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
+          <h1 className="text-3xl font-bold">{auto('Analytics Dashboard', 'header.title')}</h1>
           <p className="text-muted-foreground">
-            Monitor your store performance and customer insights
+            {auto('Monitor your store performance and customer insights', 'header.subtitle')}
           </p>
         </div>
         
@@ -262,13 +271,13 @@ export default function AnalyticsPage() {
             onClick={handleExportCSV}
             className="px-4 py-2 border rounded-lg hover:bg-accent"
           >
-            Export CSV
+            {auto('Export CSV', 'actions.exportCsv')}
           </button>
           <button
             onClick={handleExportPDF}
             className="px-4 py-2 border rounded-lg hover:bg-accent"
           >
-            Export PDF
+            {auto('Export PDF', 'actions.exportPdf')}
           </button>
         </div>
       </div>
@@ -276,13 +285,7 @@ export default function AnalyticsPage() {
       {/* Tabs */}
       <div className="border-b">
         <nav className="flex gap-4">
-          {[
-            { id: 'overview', label: 'Overview' },
-            { id: 'sales', label: 'Sales' },
-            { id: 'products', label: 'Products' },
-            { id: 'customers', label: 'Customers' },
-            { id: 'traffic', label: 'Traffic' },
-          ].map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
@@ -302,7 +305,9 @@ export default function AnalyticsPage() {
       {error && (
         <Card className="border-red-200 bg-destructive/5">
           <CardHeader>
-            <CardTitle className="text-destructive-dark">Error Loading Analytics</CardTitle>
+            <CardTitle className="text-destructive-dark">
+              {auto('Error Loading Analytics', 'errors.title')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-destructive-dark">{error}</p>
@@ -310,7 +315,7 @@ export default function AnalyticsPage() {
               onClick={() => window.location.reload()}
               className="mt-4 px-4 py-2 bg-destructive text-white rounded-lg hover:bg-destructive-dark"
             >
-              Retry
+              {auto('Retry', 'actions.retry')}
             </button>
           </CardContent>
         </Card>
@@ -357,7 +362,9 @@ export default function AnalyticsPage() {
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading analytics data...</p>
+            <p className="text-muted-foreground">
+              {auto('Loading analytics data...', 'state.loading')}
+            </p>
           </div>
         </div>
       )}

@@ -9,7 +9,9 @@
  * for each notification channel before running smoke tests.
  */
 
-import 'dotenv/config';
+import { loadEnv } from '@/scripts/utils/load-env';
+
+loadEnv();
 
 interface ValidationResult {
   channel: string;

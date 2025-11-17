@@ -258,25 +258,28 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {workOrders?.items?.slice(0, 5).map((wo: WorkOrderResponse) => (
-                <div key={wo.id} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-2 h-2 rounded-full ${
-                      wo.priority === 'CRITICAL' ? 'bg-destructive' :
-                      wo.priority === 'HIGH' ? 'bg-warning' :
-                      wo.priority === 'MEDIUM' ? 'bg-warning' :
-                      'bg-success'
-                    }`} />
-                    <div>
-                      <p className="font-medium text-sm">{wo.code}</p>
-                      <p className="text-xs text-muted-foreground">{wo.title}</p>
+              {workOrders?.items?.slice(0, 5).map((wo: WorkOrderResponse, index: number) => {
+                const key = wo.id ?? wo.code ?? `work-order-${index}`;
+                return (
+                  <div key={key} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-2 h-2 rounded-full ${
+                        wo.priority === 'CRITICAL' ? 'bg-destructive' :
+                        wo.priority === 'HIGH' ? 'bg-warning' :
+                        wo.priority === 'MEDIUM' ? 'bg-warning' :
+                        'bg-success'
+                      }`} />
+                      <div>
+                        <p className="font-medium text-sm">{wo.code}</p>
+                        <p className="text-xs text-muted-foreground">{wo.title}</p>
+                      </div>
                     </div>
+                    <Badge variant="outline" className="text-xs">
+                      {wo.status}
+                    </Badge>
                   </div>
-                  <Badge variant="outline" className="text-xs">
-                    {wo.status}
-                  </Badge>
-                </div>
-              ))}
+                );
+              })}
               {(!workOrders?.items || workOrders.items.length === 0) && (
                 <p className="text-sm text-muted-foreground text-center py-4">{t('dashboard.noRecentWorkOrders')}</p>
               )}
@@ -296,22 +299,25 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {properties?.items?.slice(0, 5).map((property: Property) => (
-                <div key={property.id} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Building2 className="w-4 h-4 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium text-sm">{property.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {property.address?.city} • {toFiniteNumber(property.units?.length)} {t('dashboard.units')}
-                      </p>
+              {properties?.items?.slice(0, 5).map((property: Property, index: number) => {
+                const key = property.id ?? property.name ?? `property-${index}`;
+                return (
+                  <div key={key} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <Building2 className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium text-sm">{property.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {property.address?.city} • {toFiniteNumber(property.units?.length)} {t('dashboard.units')}
+                        </p>
+                      </div>
                     </div>
+                    <span className="text-xs text-muted-foreground">
+                      {toFiniteNumber(property.details?.occupancyRate)}% {t('dashboard.occupied')}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {toFiniteNumber(property.details?.occupancyRate)}% {t('dashboard.occupied')}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
               {(!properties?.items || properties.items.length === 0) && (
                 <p className="text-sm text-muted-foreground text-center py-4">{t('dashboard.noProperties')}</p>
               )}

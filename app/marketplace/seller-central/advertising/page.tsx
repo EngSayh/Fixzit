@@ -18,6 +18,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface Campaign {
   campaignId: string;
@@ -52,6 +53,7 @@ interface OverviewMetrics {
 }
 
 export default function AdvertisingPage() {
+  const auto = useAutoTranslator('marketplace.sellerCentral.advertising');
   const { data: session } = useSession();
   const [activeTab, setActiveTab] = useState<'overview' | 'campaigns'>('overview');
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -82,7 +84,7 @@ export default function AdvertisingPage() {
       if (filterType !== 'all') params.append('type', filterType);
 
       const response = await fetch(`/api/souq/ads/campaigns?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to load campaigns');
+      if (!response.ok) throw new Error(auto('Failed to load campaigns', 'errors.loadCampaigns'));
 
       const payload = await response.json();
       const apiCampaigns = payload.data || [];
@@ -90,16 +92,15 @@ export default function AdvertisingPage() {
 
       // Load stats for each campaign
       const statsPromises = apiCampaigns.map((campaign: Campaign) =>
-        fetch(`/api/souq/ads/campaigns/${campaign.campaignId}/stats`)
-          .then(async (res) => {
-            if (!res.ok) throw new Error('Failed to load campaign stats');
-            const statsPayload = await res.json();
-            const statsData = statsPayload.data || statsPayload;
-            return {
-              campaignId: campaign.campaignId,
-              stats: statsData,
-            };
-          })
+        fetch(`/api/souq/ads/campaigns/${campaign.campaignId}/stats`).then(async (res) => {
+          if (!res.ok) throw new Error(auto('Failed to load campaign stats', 'errors.loadStats'));
+          const statsPayload = await res.json();
+          const statsData = statsPayload.data || statsPayload;
+          return {
+            campaignId: campaign.campaignId,
+            stats: statsData,
+          };
+        })
       );
 
       const statsResults = await Promise.all(statsPromises);
@@ -113,6 +114,7 @@ export default function AdvertisingPage() {
       calculateOverviewMetrics(apiCampaigns, statsMap);
     } catch (error) {
       console.error('Failed to load campaigns:', error);
+      alert(auto('Failed to load campaigns. Please try again.', 'alerts.loadCampaigns'));
     } finally {
       setIsLoading(false);
     }
@@ -155,16 +157,21 @@ export default function AdvertisingPage() {
         body: JSON.stringify({ status: newStatus }),
       });
 
-      if (!response.ok) throw new Error('Failed to update campaign');
+      if (!response.ok) throw new Error(auto('Failed to update campaign', 'errors.updateCampaign'));
 
       loadCampaigns();
     } catch (error) {
       console.error('Failed to toggle campaign status:', error);
+      alert(auto('Failed to update campaign status. Please try again.', 'alerts.toggleCampaign'));
     }
   };
 
   const deleteCampaign = async (campaignId: string) => {
-    if (!confirm('Are you sure you want to delete this campaign? This action cannot be undone.')) {
+    if (
+      !confirm(
+        auto('Are you sure you want to delete this campaign? This action cannot be undone.', 'confirm.deleteCampaign')
+      )
+    ) {
       return;
     }
 
@@ -173,11 +180,12 @@ export default function AdvertisingPage() {
         method: 'DELETE',
       });
 
-      if (!response.ok) throw new Error('Failed to delete campaign');
+      if (!response.ok) throw new Error(auto('Failed to delete campaign', 'errors.deleteCampaign'));
 
       loadCampaigns();
     } catch (error) {
       console.error('Failed to delete campaign:', error);
+      alert(auto('Failed to delete campaign. Please try again.', 'alerts.deleteCampaign'));
     }
   };
 
@@ -219,9 +227,11 @@ export default function AdvertisingPage() {
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Advertising</h1>
+        <h1 className="text-3xl font-bold text-gray-900">
+          {auto('Advertising', 'header.title')}
+        </h1>
         <p className="text-gray-600 mt-2">
-          Manage your advertising campaigns and track performance
+          {auto('Manage your advertising campaigns and track performance', 'header.subtitle')}
         </p>
       </div>
 
@@ -235,7 +245,7 @@ export default function AdvertisingPage() {
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
-          Overview
+          {auto('Overview', 'tabs.overview')}
         </button>
         <button
           onClick={() => setActiveTab('campaigns')}
@@ -245,7 +255,7 @@ export default function AdvertisingPage() {
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
-          Campaigns
+          {auto('Campaigns', 'tabs.campaigns')}
         </button>
       </div>
 
@@ -256,65 +266,71 @@ export default function AdvertisingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <MetricCard
               icon={DollarSign}
-              label="Total Spend"
+              label={auto('Total Spend', 'metrics.totalSpend')}
               value={`${overviewMetrics.totalSpend.toFixed(2)} SAR`}
-              subtitle="Last 30 days"
+              subtitle={auto('Last 30 days', 'metrics.last30')}
               color="text-red-600"
             />
             <MetricCard
               icon={Eye}
-              label="Impressions"
+              label={auto('Impressions', 'metrics.impressions')}
               value={overviewMetrics.totalImpressions.toLocaleString()}
               color="text-blue-600"
             />
             <MetricCard
               icon={MousePointerClick}
-              label="Clicks"
+              label={auto('Clicks', 'metrics.clicks')}
               value={overviewMetrics.totalClicks.toLocaleString()}
               color="text-green-600"
             />
             <MetricCard
               icon={TrendingUp}
-              label="ACOS"
+              label={auto('ACOS', 'metrics.acos')}
               value={`${overviewMetrics.avgAcos.toFixed(1)}%`}
-              subtitle="Lower is better"
+              subtitle={auto('Lower is better', 'metrics.lowerBetter')}
               color="text-purple-600"
             />
             <MetricCard
               icon={BarChart3}
-              label="ROAS"
+              label={auto('ROAS', 'metrics.roas')}
               value={overviewMetrics.avgRoas.toFixed(2)}
-              subtitle="Higher is better"
+              subtitle={auto('Higher is better', 'metrics.higherBetter')}
               color="text-indigo-600"
             />
           </div>
 
           {/* Quick Actions */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {auto('Quick Actions', 'quickActions.title')}
+            </h3>
             <div className="flex gap-4">
               <Link
                 href="/marketplace/seller-central/advertising/create"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
               >
                 <Plus className="w-5 h-5" />
-                Create Campaign
+                {auto('Create Campaign', 'quickActions.create')}
               </Link>
               <button className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                 <BarChart3 className="w-5 h-5" />
-                View Reports
+                {auto('View Reports', 'quickActions.viewReports')}
               </button>
             </div>
           </div>
 
           {/* Active Campaigns Summary */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Active Campaigns</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {auto('Active Campaigns', 'activeCampaigns.title')}
+            </h3>
             {isLoading ? (
-              <div className="text-center py-8 text-gray-500">Loading...</div>
+              <div className="text-center py-8 text-gray-500">
+                {auto('Loading...', 'state.loading')}
+              </div>
             ) : filteredCampaigns.filter((c) => c.status === 'active').length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No active campaigns. Create one to get started.
+                {auto('No active campaigns. Create one to get started.', 'activeCampaigns.empty')}
               </div>
             ) : (
               <div className="space-y-4">
@@ -333,14 +349,19 @@ export default function AdvertisingPage() {
                         <div className="flex-1">
                           <h4 className="font-medium text-gray-900">{campaign.name}</h4>
                           <p className="text-sm text-gray-600">
-                            {campaign.type.replace('_', ' ').toUpperCase()} • {campaign.bids.length}{' '}
-                            bids
+                            {campaign.type.replace('_', ' ').toUpperCase()} •{' '}
+                            {auto('{{count}} bids', 'activeCampaigns.bids').replace(
+                              '{{count}}',
+                              String(campaign.bids.length)
+                            )}
                           </p>
                         </div>
 
                         <div className="flex items-center gap-6">
                           <div className="text-right">
-                            <p className="text-sm text-gray-600">Budget Used</p>
+                            <p className="text-sm text-gray-600">
+                              {auto('Budget Used', 'activeCampaigns.budget')}
+                            </p>
                             <p className="font-medium text-gray-900">
                               {campaign.spentToday.toFixed(2)} / {campaign.dailyBudget.toFixed(2)}{' '}
                               SAR
@@ -361,12 +382,20 @@ export default function AdvertisingPage() {
 
                           {stats && (
                             <div className="text-right">
-                              <p className="text-sm text-gray-600">Performance</p>
+                              <p className="text-sm text-gray-600">
+                                {auto('Performance', 'activeCampaigns.performance')}
+                              </p>
                               <p className="font-medium text-gray-900">
-                                CTR: {stats.ctr.toFixed(2)}%
+                                {auto('CTR: {{value}}%', 'activeCampaigns.ctr').replace(
+                                  '{{value}}',
+                                  stats.ctr.toFixed(2)
+                                )}
                               </p>
                               <p className="text-sm text-gray-600">
-                                CPC: {stats.avgCpc.toFixed(2)} SAR
+                                {auto('CPC: {{value}} SAR', 'activeCampaigns.cpc').replace(
+                                  '{{value}}',
+                                  stats.avgCpc.toFixed(2)
+                                )}
                               </p>
                             </div>
                           )}
@@ -375,7 +404,7 @@ export default function AdvertisingPage() {
                             href={`/marketplace/seller-central/advertising/${campaign.campaignId}`}
                             className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                           >
-                            View Details
+                            {auto('View Details', 'activeCampaigns.view')}
                           </Link>
                         </div>
                       </div>
@@ -398,7 +427,7 @@ export default function AdvertisingPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search campaigns..."
+                    placeholder={auto('Search campaigns...', 'filters.searchPlaceholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -413,10 +442,10 @@ export default function AdvertisingPage() {
                   onChange={(e) => setFilterStatus(e.target.value)}
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="paused">Paused</option>
-                  <option value="ended">Ended</option>
+                  <option value="all">{auto('All Status', 'filters.allStatus')}</option>
+                  <option value="active">{auto('Active', 'filters.active')}</option>
+                  <option value="paused">{auto('Paused', 'filters.paused')}</option>
+                  <option value="ended">{auto('Ended', 'filters.ended')}</option>
                 </select>
 
                 <select
@@ -424,10 +453,16 @@ export default function AdvertisingPage() {
                   onChange={(e) => setFilterType(e.target.value)}
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="all">All Types</option>
-                  <option value="sponsored_products">Sponsored Products</option>
-                  <option value="sponsored_brands">Sponsored Brands</option>
-                  <option value="product_display">Product Display</option>
+                  <option value="all">{auto('All Types', 'filters.allTypes')}</option>
+                  <option value="sponsored_products">
+                    {auto('Sponsored Products', 'filters.sponsoredProducts')}
+                  </option>
+                  <option value="sponsored_brands">
+                    {auto('Sponsored Brands', 'filters.sponsoredBrands')}
+                  </option>
+                  <option value="product_display">
+                    {auto('Product Display', 'filters.productDisplay')}
+                  </option>
                 </select>
               </div>
 
@@ -436,7 +471,7 @@ export default function AdvertisingPage() {
                 className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
               >
                 <Plus className="w-5 h-5" />
-                Create Campaign
+                {auto('Create Campaign', 'quickActions.create')}
               </Link>
             </div>
           </div>
@@ -444,16 +479,20 @@ export default function AdvertisingPage() {
           {/* Campaigns List */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             {isLoading ? (
-              <div className="text-center py-12 text-gray-500">Loading campaigns...</div>
+              <div className="text-center py-12 text-gray-500">
+                {auto('Loading campaigns...', 'state.loadingCampaigns')}
+              </div>
             ) : filteredCampaigns.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-gray-500 mb-4">No campaigns found</p>
+                <p className="text-gray-500 mb-4">
+                  {auto('No campaigns found', 'campaigns.empty')}
+                </p>
                 <Link
                   href="/marketplace/seller-central/advertising/create"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
                 >
                   <Plus className="w-5 h-5" />
-                  Create Your First Campaign
+                  {auto('Create Your First Campaign', 'campaigns.createFirst')}
                 </Link>
               </div>
             ) : (
@@ -461,19 +500,19 @@ export default function AdvertisingPage() {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Campaign
+                      {auto('Campaign', 'table.campaign')}
                     </th>
                     <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
+                      {auto('Status', 'table.status')}
                     </th>
                     <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Budget
+                      {auto('Budget', 'table.budget')}
                     </th>
                     <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Performance
+                      {auto('Performance', 'table.performance')}
                     </th>
                     <th className="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
+                      {auto('Actions', 'table.actions')}
                     </th>
                   </tr>
                 </thead>
@@ -488,7 +527,11 @@ export default function AdvertisingPage() {
                           <div>
                             <p className="font-medium text-gray-900">{campaign.name}</p>
                             <p className="text-sm text-gray-600">
-                              {campaign.type.replace('_', ' ').toUpperCase()} • {campaign.bids.length} bids
+                              {campaign.type.replace('_', ' ').toUpperCase()} •{' '}
+                              {auto('{{count}} bids', 'campaigns.bids').replace(
+                                '{{count}}',
+                                String(campaign.bids.length)
+                              )}
                             </p>
                           </div>
                         </td>
@@ -502,13 +545,15 @@ export default function AdvertisingPage() {
                                 : 'bg-gray-100 text-gray-800'
                             }`}
                           >
-                            {campaign.status}
+                            {auto(campaign.status, `status.${campaign.status}`)}
                           </span>
                         </td>
                         <td className="px-6 py-4">
                           <div>
                             <p className="text-sm text-gray-900">
-                              {campaign.spentToday.toFixed(2)} / {campaign.dailyBudget.toFixed(2)} SAR
+                              {auto('{{spent}} / {{budget}} SAR', 'table.budgetUsage')
+                                .replace('{{spent}}', campaign.spentToday.toFixed(2))
+                                .replace('{{budget}}', campaign.dailyBudget.toFixed(2))}
                             </p>
                             <div className="w-24 h-1.5 bg-gray-200 rounded-full mt-1">
                               <div
@@ -528,14 +573,21 @@ export default function AdvertisingPage() {
                           {stats ? (
                             <div className="text-sm">
                               <p className="text-gray-900">
-                                {stats.impressions.toLocaleString()} impressions
+                                {auto('{{count}} impressions', 'table.impressions').replace(
+                                  '{{count}}',
+                                  stats.impressions.toLocaleString()
+                                )}
                               </p>
                               <p className="text-gray-600">
-                                CTR: {stats.ctr.toFixed(2)}% • CPC: {stats.avgCpc.toFixed(2)} SAR
+                                {auto('CTR: {{ctr}}% • CPC: {{cpc}} SAR', 'table.ctrCpc')
+                                  .replace('{{ctr}}', stats.ctr.toFixed(2))
+                                  .replace('{{cpc}}', stats.avgCpc.toFixed(2))}
                               </p>
                             </div>
                           ) : (
-                            <p className="text-sm text-gray-500">No data</p>
+                            <p className="text-sm text-gray-500">
+                              {auto('No data', 'table.noData')}
+                            </p>
                           )}
                         </td>
                         <td className="px-6 py-4">
@@ -543,7 +595,11 @@ export default function AdvertisingPage() {
                             <button
                               onClick={() => toggleCampaignStatus(campaign.campaignId, campaign.status)}
                               className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                              title={campaign.status === 'active' ? 'Pause' : 'Resume'}
+                              title={
+                                campaign.status === 'active'
+                                  ? auto('Pause', 'actions.pause')
+                                  : auto('Resume', 'actions.resume')
+                              }
                             >
                               {campaign.status === 'active' ? (
                                 <Pause className="w-4 h-4" />
@@ -554,21 +610,21 @@ export default function AdvertisingPage() {
                             <Link
                               href={`/marketplace/seller-central/advertising/${campaign.campaignId}/edit`}
                               className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                              title="Edit"
+                              title={auto('Edit', 'actions.edit')}
                             >
                               <Edit className="w-4 h-4" />
                             </Link>
                             <button
                               onClick={() => deleteCampaign(campaign.campaignId)}
                               className="p-2 text-destructive hover:bg-destructive/5 rounded-lg transition-colors"
-                              title="Delete"
+                              title={auto('Delete', 'actions.delete')}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
                             <Link
                               href={`/marketplace/seller-central/advertising/${campaign.campaignId}`}
                               className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                              title="More options"
+                              title={auto('More options', 'actions.more')}
                             >
                               <MoreVertical className="w-4 h-4" />
                             </Link>

@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import LoginPrompt from '@/components/LoginPrompt';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 type VendorInfo = {
   id: string;
@@ -105,8 +106,8 @@ interface CatalogViewProps {
 }
 
 export default function CatalogView({
-  title = 'Fixzit Marketplace',
-  subtitle = 'Browse verified materials and service vendors ready for procurement',
+  title,
+  subtitle,
   tenantId = DEFAULT_TENANT,
   context = 'public'
 }: CatalogViewProps) {
@@ -116,6 +117,10 @@ export default function CatalogView({
   const [maxPrice, setMaxPrice] = useState('');
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const auto = useAutoTranslator('marketplace.catalog');
+  const resolvedTitle = title ?? auto('Fixzit Marketplace', 'header.title');
+  const resolvedSubtitle =
+    subtitle ?? auto('Browse verified materials and service vendors ready for procurement', 'header.subtitle');
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -148,6 +153,28 @@ export default function CatalogView({
 
   const products = productData?.products ?? [];
   const categories = categoryData?.categories ?? [];
+  const fmHint = auto('Inventory synced with tenant procurement guardrails and 3-bid policy.', 'header.fmHint');
+  const searchPlaceholder = auto('Search products, vendors, or SKUs', 'filters.search');
+  const allCategoriesLabel = auto('All categories', 'filters.allCategories');
+  const minPlaceholder = auto('Min SAR', 'filters.minPrice');
+  const maxPlaceholder = auto('Max SAR', 'filters.maxPrice');
+  const resetFiltersLabel = auto('Reset filters', 'actions.resetFilters');
+  const inviteVendorLabel = auto('Invite vendor', 'actions.inviteVendor');
+  const emptyTitle = auto('No products match your filters', 'empty.title');
+  const emptySubtitleError = auto('We could not reach the marketplace catalog right now.', 'empty.error');
+  const emptySubtitleDefault = auto('Adjust your filters or check back later for new inventory.', 'empty.subtitle');
+  const vendorPending = auto('Vendor pending onboarding', 'cards.vendorPending');
+  const imageFallback = auto('Image not provided', 'cards.imageFallback');
+  const noDescriptionCopy = auto('Vendor has not provided a detailed description yet.', 'cards.noDescription');
+  const ratingTemplate = auto('{{rating}} · {{count}} reviews', 'cards.rating');
+  const verifiedVendorLabel = auto('Verified vendor', 'cards.verifiedVendor');
+  const addToCartLabel = auto('Add to cart', 'actions.addToCart');
+  const requestQuoteLabel = auto('Request quote', 'actions.requestQuote');
+  const loginTitle = auto('Sign in to continue', 'loginPrompt.title');
+  const loginDescription = auto(
+    'Sign in to request quotes, chat with vendors, or place orders.',
+    'loginPrompt.description'
+  );
 
   const isAuthenticated = () => {
     if (typeof window === 'undefined') return false;
@@ -170,10 +197,12 @@ export default function CatalogView({
       });
 
       if (!res.ok) {
-        throw new Error('Unable to add to cart');
+        throw new Error('ADD_TO_CART_FAILED');
       }
 
-      setFeedbackMessage(`${product.title} added to cart.`);
+      setFeedbackMessage(
+        auto('{{product}} added to cart.', 'feedback.added').replace('{{product}}', product.title)
+      );
       await mutate();
     } catch (err) {
       import('../../lib/logger')
@@ -187,23 +216,25 @@ export default function CatalogView({
         .catch((loggerError) => {
           logger.error('Failed to load logger:', { error: loggerError });
         });
-      setFeedbackMessage('We could not add this item to your cart. Please try again.');
+      setFeedbackMessage(
+        auto('We could not add this item to your cart. Please try again.', 'feedback.failed')
+      );
     }
   };
 
   const emptyStateSubtitle = error
-    ? 'We could not reach the marketplace catalog right now.'
-    : 'Adjust your filters or check back later for new inventory.';
+    ? emptySubtitleError
+    : emptySubtitleDefault;
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-foreground">{title}</h1>
-        <p className="text-muted-foreground">{subtitle}</p>
+        <h1 className="text-3xl font-bold text-foreground">{resolvedTitle}</h1>
+        <p className="text-muted-foreground">{resolvedSubtitle}</p>
         {context === 'fm' && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <ShieldCheck className="w-4 h-4 text-success" />
-            <span>Inventory synced with tenant procurement guardrails and 3-bid policy.</span>
+            <span>{fmHint}</span>
           </div>
         )}
       </div>
@@ -216,14 +247,14 @@ export default function CatalogView({
               <Input
                 value={search}
                 onChange={event => setSearch(event.target.value)}
-                placeholder="Search products, vendors, or SKUs"
+                placeholder={searchPlaceholder}
                 className="ps-9"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:w-[540px]">
               <Select value={category} onValueChange={value => setCategory(value)}>
                 <SelectContent>
-                  <SelectItem value="">All categories</SelectItem>
+                  <SelectItem value="">{allCategoriesLabel}</SelectItem>
                   {categories.map(cat => (
                     <SelectItem key={cat.id} value={cat.slug || cat.id}>
                       {cat.name}
@@ -235,7 +266,7 @@ export default function CatalogView({
                 type="number"
                 inputMode="decimal"
                 min="0"
-                placeholder="Min SAR"
+                placeholder={minPlaceholder}
                 value={minPrice}
                 onChange={event => setMinPrice(event.target.value)}
               />
@@ -243,7 +274,7 @@ export default function CatalogView({
                 type="number"
                 inputMode="decimal"
                 min="0"
-                placeholder="Max SAR"
+                placeholder={maxPlaceholder}
                 value={maxPrice}
                 onChange={event => setMaxPrice(event.target.value)}
               />
@@ -267,16 +298,16 @@ export default function CatalogView({
           <CardContent className="py-16 flex flex-col items-center text-center gap-4">
             <PackageSearch className="w-12 h-12 text-muted-foreground" />
             <div>
-              <h2 className="text-lg font-semibold text-foreground">No products match your filters</h2>
+              <h2 className="text-lg font-semibold text-foreground">{emptyTitle}</h2>
               <p className="text-muted-foreground text-sm">{emptyStateSubtitle}</p>
             </div>
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => { setSearch(''); setCategory(''); setMinPrice(''); setMaxPrice(''); }}>
-                Reset filters
+                {resetFiltersLabel}
               </Button>
               {context === 'fm' && (
                 <Button onClick={() => setShowLoginPrompt(true)} className="bg-primary hover:bg-primary-dark">
-                  Invite vendor
+                  {inviteVendorLabel}
                 </Button>
               )}
             </div>
@@ -290,7 +321,7 @@ export default function CatalogView({
                 <CardTitle className="text-lg text-foreground">{product.title}</CardTitle>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Store className="w-4 h-4" />
-                  <span>{product.vendor?.name ?? 'Vendor pending onboarding'}</span>
+                  <span>{product.vendor?.name ?? vendorPending}</span>
                   {product.vendor?.verified && <BadgeCheck className="w-4 h-4 text-success" />}
                 </div>
               </CardHeader>
@@ -300,7 +331,9 @@ export default function CatalogView({
                     {product.images?.[0] ? (
                       <img src={product.images[0]} alt={product.title} className="h-full w-full object-cover" />
                     ) : (
-                      <span className="text-xs text-muted-foreground text-center px-2">Image not provided</span>
+                      <span className="text-xs text-muted-foreground text-center px-2">
+                        {imageFallback}
+                      </span>
                     )}
                   </div>
                   <div className="space-y-2 flex-1">
@@ -310,7 +343,8 @@ export default function CatalogView({
                     </div>
                     <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                       <Badge variant="outline" className="border-success text-success">
-                        Stock: {product.stock}
+                        {auto('Stock: {{count}}', 'cards.stock')
+                          .replace('{{count}}', String(product.stock))}
                       </Badge>
                       {product.category?.name && (
                         <Badge variant="outline">{product.category.name}</Badge>
@@ -320,20 +354,22 @@ export default function CatalogView({
                 </div>
 
                 <p className="text-sm text-muted-foreground line-clamp-3">
-                  {product.description || 'Vendor has not provided a detailed description yet.'}
+                  {product.description || noDescriptionCopy}
                 </p>
 
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 text-warning" />
                     <span>
-                      {(product.rating ?? 0).toFixed(1)} · {product.reviewCount ?? 0} reviews
+                      {ratingTemplate
+                        .replace('{{rating}}', (product.rating ?? 0).toFixed(1))
+                        .replace('{{count}}', String(product.reviewCount ?? 0))}
                     </span>
                   </div>
                   {product.vendor?.verified && (
                     <div className="flex items-center gap-1 text-success">
                       <ShieldCheck className="w-4 h-4" />
-                      <span className="font-medium">Verified vendor</span>
+                      <span className="font-medium">{verifiedVendorLabel}</span>
                     </div>
                   )}
                 </div>
@@ -344,14 +380,14 @@ export default function CatalogView({
                     onClick={() => handleAddToCart(product)}
                   >
                     <ShoppingCart className="w-4 h-4 me-2" />
-                    Add to cart
+                    {addToCartLabel}
                   </Button>
                   <Button
                     variant="outline"
                     className="flex-1"
                     onClick={() => setShowLoginPrompt(true)}
                   >
-                    Request quote
+                    {requestQuoteLabel}
                   </Button>
                 </div>
               </CardContent>
@@ -363,8 +399,8 @@ export default function CatalogView({
       <LoginPrompt
         isOpen={showLoginPrompt}
         onClose={() => setShowLoginPrompt(false)}
-        title="Sign in to continue"
-        description="Sign in to request quotes, chat with vendors, or place orders."
+        title={loginTitle}
+        description={loginDescription}
         action="marketplace"
         redirectTo="/marketplace"
       />

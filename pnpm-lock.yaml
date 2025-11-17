@@ -6,6 +6,8 @@ settings:
 
 overrides:
   vite: ^7.1.11
+  import-in-the-middle: 1.15.0
+  require-in-the-middle: 7.5.2
 
 importers:
 
@@ -104,6 +106,9 @@ importers:
       ical.js:
         specifier: ^2.2.1
         version: 2.2.1
+      import-in-the-middle:
+        specifier: 1.15.0
+        version: 1.15.0
       ioredis:
         specifier: ^5.8.2
         version: 5.8.2
@@ -188,6 +193,9 @@ importers:
       remark-rehype:
         specifier: ^11.1.2
         version: 11.1.2
+      require-in-the-middle:
+        specifier: 7.5.2
+        version: 7.5.2
       server-only:
         specifier: ^0.0.1
         version: 0.0.1

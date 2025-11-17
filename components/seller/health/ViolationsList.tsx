@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, AlertTriangle, Info } from 'lucide-react';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface Violation {
   type: string;
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export default function ViolationsList({ violations }: Props) {
+  const auto = useAutoTranslator('seller.health.violations');
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'critical': return <AlertCircle className="w-5 h-5 text-destructive" />;
@@ -45,15 +47,24 @@ export default function ViolationsList({ violations }: Props) {
   };
 
   const formatType = (type: string) => {
-    return type.split('_').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
+    const fallback = type
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    return auto(fallback, `types.${type}`);
   };
 
   const formatAction = (action: string) => {
-    return action.split('_').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
+    const fallback = action
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+    return auto(fallback, `actions.${action}`);
+  };
+
+  const formatSeverity = (severity: string) => {
+    const fallback = severity.charAt(0).toUpperCase() + severity.slice(1);
+    return auto(fallback, `severity.${severity}`);
   };
 
   if (violations.length === 0) {
@@ -62,9 +73,14 @@ export default function ViolationsList({ violations }: Props) {
         <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
           <AlertCircle className="w-8 h-8 text-success" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Violations</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          {auto('No Violations', 'state.empty.title')}
+        </h3>
         <p className="text-gray-600">
-          Your account has no policy violations. Keep maintaining high standards!
+          {auto(
+            'Your account has no policy violations. Keep maintaining high standards!',
+            'state.empty.description'
+          )}
         </p>
       </div>
     );
@@ -73,9 +89,14 @@ export default function ViolationsList({ violations }: Props) {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Policy Violations</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          {auto('Policy Violations', 'header.title')}
+        </h2>
         <p className="text-gray-600">
-          Review and resolve any policy violations to maintain account health.
+          {auto(
+            'Review and resolve any policy violations to maintain account health.',
+            'header.description'
+          )}
         </p>
       </div>
 
@@ -96,7 +117,7 @@ export default function ViolationsList({ violations }: Props) {
                       {formatType(violation.type)}
                     </h3>
                     <Badge variant={getSeverityColor(violation.severity) as never}>
-                      {violation.severity.toUpperCase()}
+                      {formatSeverity(violation.severity)}
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-600">{violation.description}</p>
@@ -104,7 +125,7 @@ export default function ViolationsList({ violations }: Props) {
               </div>
               {violation.resolved && (
                 <Badge variant="outline" className="bg-success/5 text-success-dark">
-                  Resolved
+                  {auto('Resolved', 'status.resolved')}
                 </Badge>
               )}
             </div>

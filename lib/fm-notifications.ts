@@ -163,7 +163,7 @@ export function buildNotification(
  */
 export async function sendNotification(
   notification: NotificationPayload
-): Promise<void> {
+): Promise<BulkNotificationResult> {
   logger.info('[Notifications] Sending notification', { 
     id: notification.id,
     event: notification.event,
@@ -179,7 +179,13 @@ export async function sendNotification(
       id: notification.id,
       event: notification.event
     });
-    return;
+    return {
+      attempted: 0,
+      succeeded: 0,
+      failed: 0,
+      skipped: 0,
+      issues: []
+    };
   }
 
   let result: BulkNotificationResult;
@@ -238,6 +244,8 @@ export async function sendNotification(
   }).catch(error => {
     logger.warn('[Notifications] Telemetry emission failed', { id: notification.id, error });
   });
+
+  return result;
 }
 
 /**

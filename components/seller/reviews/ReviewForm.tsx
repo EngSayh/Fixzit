@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { Star } from 'lucide-react';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 export interface ReviewFormData {
   rating: number;
@@ -40,6 +41,8 @@ export function ReviewForm({
   const [cons, setCons] = useState<string[]>(initialData?.cons || ['']);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const auto = useAutoTranslator('seller.reviewForm');
+  const defaultSubmitError = auto('Failed to submit review', 'errors.submitFailed');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,17 +50,21 @@ export function ReviewForm({
 
     // Validation
     if (rating === 0) {
-      setError('Please select a rating');
+      setError(auto('Please select a rating', 'validation.ratingRequired'));
       return;
     }
 
     if (title.length < 5) {
-      setError('Title must be at least 5 characters');
+      setError(
+        auto('Title must be at least 5 characters', 'validation.titleLength')
+      );
       return;
     }
 
     if (content.length < 20) {
-      setError('Review must be at least 20 characters');
+      setError(
+        auto('Review must be at least 20 characters', 'validation.contentLength')
+      );
       return;
     }
 
@@ -72,7 +79,7 @@ export function ReviewForm({
         cons: cons.filter((c) => c.trim() !== ''),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit review');
+      setError(err instanceof Error ? err.message : defaultSubmitError);
     } finally {
       setIsSubmitting(false);
     }
@@ -105,10 +112,18 @@ export function ReviewForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Product Info */}
       <div className="border-b pb-4">
-        <h2 className="text-2xl font-bold">Review {productName}</h2>
+        <h2 className="text-2xl font-bold">
+          {auto('Review {{productName}}', 'header.title').replace(
+            '{{productName}}',
+            productName
+          )}
+        </h2>
         {orderId && (
           <p className="text-sm text-muted-foreground mt-1">
-            Verified Purchase - Order #{orderId}
+            {auto('Verified Purchase - Order #{{orderId}}', 'header.verifiedOrder').replace(
+              '{{orderId}}',
+              orderId
+            )}
           </p>
         )}
       </div>
@@ -116,7 +131,8 @@ export function ReviewForm({
       {/* Rating */}
       <div>
         <label className="block text-sm font-medium mb-2">
-          Rating <span className="text-destructive">*</span>
+          {auto('Rating', 'rating.label')}{' '}
+          <span className="text-destructive">*</span>
         </label>
         <div className="flex gap-2">
           {[1, 2, 3, 4, 5].map((star) => (
@@ -139,7 +155,10 @@ export function ReviewForm({
           ))}
           {rating > 0 && (
             <span className="ml-2 text-sm text-muted-foreground self-center">
-              {rating} out of 5 stars
+              {auto('{{rating}} out of 5 stars', 'rating.caption').replace(
+                '{{rating}}',
+                String(rating)
+              )}
             </span>
           )}
         </div>
@@ -148,45 +167,56 @@ export function ReviewForm({
       {/* Title */}
       <div>
         <label htmlFor="title" className="block text-sm font-medium mb-2">
-          Review Title <span className="text-destructive">*</span>
+          {auto('Review Title', 'fields.title.label')}{' '}
+          <span className="text-destructive">*</span>
         </label>
         <input
           id="title"
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Summarize your experience"
+          placeholder={auto('Summarize your experience', 'fields.title.placeholder')}
           maxLength={200}
           className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <p className="text-xs text-muted-foreground mt-1">
-          {title.length}/200 characters
+          {auto('{{count}}/200 characters', 'fields.title.counter').replace(
+            '{{count}}',
+            String(title.length)
+          )}
         </p>
       </div>
 
       {/* Content */}
       <div>
         <label htmlFor="content" className="block text-sm font-medium mb-2">
-          Detailed Review <span className="text-destructive">*</span>
+          {auto('Detailed Review', 'fields.content.label')}{' '}
+          <span className="text-destructive">*</span>
         </label>
         <textarea
           id="content"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Share your experience with this product..."
+          placeholder={auto(
+            'Share your experience with this product...',
+            'fields.content.placeholder'
+          )}
           maxLength={5000}
           rows={6}
           className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <p className="text-xs text-muted-foreground mt-1">
-          {content.length}/5000 characters (minimum 20)
+          {auto('{{count}}/5000 characters (minimum 20)', 'fields.content.counter').replace(
+            '{{count}}',
+            String(content.length)
+          )}
         </p>
       </div>
 
       {/* Pros */}
       <div>
         <label className="block text-sm font-medium mb-2">
-          Pros (Optional)
+          {auto('Pros (Optional)', 'fields.pros.label')}
         </label>
         {pros.map((pro, index) => (
           <div key={index} className="flex gap-2 mb-2">
@@ -194,7 +224,7 @@ export function ReviewForm({
               type="text"
               value={pro}
               onChange={(e) => updatePro(index, e.target.value)}
-              placeholder="What did you like?"
+              placeholder={auto('What did you like?', 'fields.pros.placeholder')}
               className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <button
@@ -202,7 +232,7 @@ export function ReviewForm({
               onClick={() => removePro(index)}
               className="px-3 py-2 text-destructive hover:bg-destructive/5 rounded-lg"
             >
-              Remove
+              {auto('Remove', 'actions.remove')}
             </button>
           </div>
         ))}
@@ -211,14 +241,14 @@ export function ReviewForm({
           onClick={addPro}
           className="text-sm text-primary hover:underline"
         >
-          + Add Pro
+          {auto('+ Add Pro', 'actions.addPro')}
         </button>
       </div>
 
       {/* Cons */}
       <div>
         <label className="block text-sm font-medium mb-2">
-          Cons (Optional)
+          {auto('Cons (Optional)', 'fields.cons.label')}
         </label>
         {cons.map((con, index) => (
           <div key={index} className="flex gap-2 mb-2">
@@ -226,7 +256,7 @@ export function ReviewForm({
               type="text"
               value={con}
               onChange={(e) => updateCon(index, e.target.value)}
-              placeholder="What could be improved?"
+              placeholder={auto('What could be improved?', 'fields.cons.placeholder')}
               className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <button
@@ -234,7 +264,7 @@ export function ReviewForm({
               onClick={() => removeCon(index)}
               className="px-3 py-2 text-destructive hover:bg-destructive/5 rounded-lg"
             >
-              Remove
+              {auto('Remove', 'actions.remove')}
             </button>
           </div>
         ))}
@@ -243,7 +273,7 @@ export function ReviewForm({
           onClick={addCon}
           className="text-sm text-primary hover:underline"
         >
-          + Add Con
+          {auto('+ Add Con', 'actions.addCon')}
         </button>
       </div>
 
@@ -263,7 +293,7 @@ export function ReviewForm({
             disabled={isSubmitting}
             className="px-6 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
           >
-            Cancel
+            {auto('Cancel', 'actions.cancel')}
           </button>
         )}
         <button
@@ -271,7 +301,9 @@ export function ReviewForm({
           disabled={isSubmitting}
           className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
         >
-          {isSubmitting ? 'Submitting...' : 'Submit Review'}
+          {isSubmitting
+            ? auto('Submitting...', 'actions.submitting')
+            : auto('Submit Review', 'actions.submit')}
         </button>
       </div>
     </form>

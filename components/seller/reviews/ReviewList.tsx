@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { ReviewCard } from './ReviewCard';
 import type { IReview } from '@/server/models/souq/Review';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface ReviewListProps {
   productId?: string;
@@ -35,6 +36,7 @@ export function ReviewList({
     verifiedOnly: false,
     sortBy: 'recent',
   });
+  const auto = useAutoTranslator('seller.reviewList');
 
   useEffect(() => {
     if (productId) {
@@ -79,7 +81,9 @@ export function ReviewList({
       <div className="flex flex-wrap gap-4 items-center bg-gray-50 p-4 rounded-lg">
         {/* Rating Filter */}
         <div>
-          <label className="block text-sm font-medium mb-2">Filter by Rating</label>
+          <label className="block text-sm font-medium mb-2">
+            {auto('Filter by Rating', 'filters.ratingLabel')}
+          </label>
           <select
             value={filters.rating || ''}
             onChange={(e) =>
@@ -89,12 +93,12 @@ export function ReviewList({
             }
             className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="">All Ratings</option>
-            <option value="5">5 Stars</option>
-            <option value="4">4 Stars</option>
-            <option value="3">3 Stars</option>
-            <option value="2">2 Stars</option>
-            <option value="1">1 Star</option>
+            <option value="">{auto('All Ratings', 'filters.allRatings')}</option>
+            {[5, 4, 3, 2, 1].map((value) => (
+              <option key={value} value={value}>
+                {auto('{{count}} Stars', 'filters.ratingOption').replace('{{count}}', String(value))}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -109,13 +113,15 @@ export function ReviewList({
               }
               className="w-4 h-4 text-primary"
             />
-            <span className="text-sm">Verified Purchases Only</span>
+            <span className="text-sm">{auto('Verified Purchases Only', 'filters.verifiedOnly')}</span>
           </label>
         </div>
 
         {/* Sort By */}
         <div>
-          <label className="block text-sm font-medium mb-2">Sort By</label>
+          <label className="block text-sm font-medium mb-2">
+            {auto('Sort By', 'filters.sortLabel')}
+          </label>
           <select
             value={filters.sortBy}
             onChange={(e) =>
@@ -123,9 +129,9 @@ export function ReviewList({
             }
             className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="recent">Most Recent</option>
-            <option value="helpful">Most Helpful</option>
-            <option value="rating">Highest Rating</option>
+            <option value="recent">{auto('Most Recent', 'filters.sort.recent')}</option>
+            <option value="helpful">{auto('Most Helpful', 'filters.sort.helpful')}</option>
+            <option value="rating">{auto('Highest Rating', 'filters.sort.rating')}</option>
           </select>
         </div>
       </div>
@@ -134,7 +140,9 @@ export function ReviewList({
       {loading ? (
         <div className="text-center py-12">
           <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-muted-foreground">Loading reviews...</p>
+          <p className="mt-4 text-muted-foreground">
+            {auto('Loading reviews...', 'state.loading')}
+          </p>
         </div>
       ) : reviews.length > 0 ? (
         <div className="space-y-4">
@@ -149,7 +157,7 @@ export function ReviewList({
         </div>
       ) : (
         <div className="text-center py-12 border rounded-lg">
-          <p className="text-muted-foreground">No reviews found</p>
+          <p className="text-muted-foreground">{auto('No reviews found', 'state.empty')}</p>
         </div>
       )}
 
@@ -161,17 +169,19 @@ export function ReviewList({
             disabled={page === 1 || loading}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
           >
-            Previous
+            {auto('Previous', 'pagination.previous')}
           </button>
           <span className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
+            {auto('Page {{page}} of {{total}}', 'pagination.summary')
+              .replace('{{page}}', String(page))
+              .replace('{{total}}', String(totalPages))}
           </span>
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages || loading}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
           >
-            Next
+            {auto('Next', 'pagination.next')}
           </button>
         </div>
       )}

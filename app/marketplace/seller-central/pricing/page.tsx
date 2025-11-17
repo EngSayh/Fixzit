@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Award, DollarSign, RefreshCw } from 'lucide-react';
 import PricingRuleCard from '@/components/seller/pricing/PricingRuleCard';
 import CompetitorAnalysis from '@/components/seller/pricing/CompetitorAnalysis';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface RepricerSettings {
   enabled: boolean;
@@ -42,6 +43,7 @@ interface Listing {
 }
 
 export default function PricingDashboardPage() {
+  const auto = useAutoTranslator('marketplace.sellerCentral.pricing');
   const [settings, setSettings] = useState<RepricerSettings | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,8 +62,8 @@ export default function PricingDashboardPage() {
         fetch('/api/souq/inventory') // Get seller's listings
       ]);
 
-      if (!settingsRes.ok) throw new Error('Failed to fetch settings');
-      if (!listingsRes.ok) throw new Error('Failed to fetch listings');
+      if (!settingsRes.ok) throw new Error(auto('Failed to fetch settings', 'errors.fetchSettings'));
+      if (!listingsRes.ok) throw new Error(auto('Failed to fetch listings', 'errors.fetchListings'));
 
       const settingsData = await settingsRes.json();
       const listingsData = await listingsRes.json();
@@ -69,7 +71,7 @@ export default function PricingDashboardPage() {
       setSettings(settingsData.settings);
       setListings(listingsData.listings || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : auto('Unknown error', 'errors.unknown'));
     } finally {
       setLoading(false);
     }
@@ -87,11 +89,11 @@ export default function PricingDashboardPage() {
         body: JSON.stringify({ settings: newSettings })
       });
 
-      if (!response.ok) throw new Error('Failed to update settings');
+      if (!response.ok) throw new Error(auto('Failed to update settings', 'errors.updateSettings'));
 
       setSettings(newSettings);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : auto('Unknown error', 'errors.unknown'));
     }
   };
 
@@ -102,16 +104,21 @@ export default function PricingDashboardPage() {
         method: 'POST'
       });
 
-      if (!response.ok) throw new Error('Failed to run repricing');
+      if (!response.ok) throw new Error(auto('Failed to run repricing', 'errors.runRepricing'));
 
       const data = await response.json();
       
       // Refresh listings after repricing
       await fetchData();
 
-      alert(`Repricing complete: ${data.result.repriced} listings updated`);
+      alert(
+        auto('Repricing complete: {{count}} listings updated', 'alerts.repricingComplete').replace(
+          '{{count}}',
+          String(data.result.repriced)
+        )
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : auto('Unknown error', 'errors.unknown'));
     } finally {
       setRepricing(false);
     }
@@ -122,7 +129,9 @@ export default function PricingDashboardPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading pricing dashboard...</p>
+          <p className="text-gray-600">
+            {auto('Loading pricing dashboard...', 'state.loading')}
+          </p>
         </div>
       </div>
     );
@@ -146,9 +155,11 @@ export default function PricingDashboardPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Pricing Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          {auto('Pricing Dashboard', 'header.title')}
+        </h1>
         <p className="text-gray-600">
-          Manage your pricing strategy and monitor Buy Box performance.
+          {auto('Manage your pricing strategy and monitor Buy Box performance.', 'header.subtitle')}
         </p>
       </div>
 
@@ -157,10 +168,10 @@ export default function PricingDashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Auto-Repricer
+              {auto('Auto-Repricer', 'autoRepricer.title')}
             </h2>
             <p className="text-sm text-gray-600">
-              Automatically adjust prices every 15 minutes to stay competitive
+              {auto('Automatically adjust prices every 15 minutes to stay competitive', 'autoRepricer.description')}
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -170,7 +181,9 @@ export default function PricingDashboardPage() {
               variant="outline"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${repricing ? 'animate-spin' : ''}`} />
-              {repricing ? 'Repricing...' : 'Run Now'}
+              {repricing
+                ? auto('Repricing...', 'autoRepricer.repricing')
+                : auto('Run Now', 'autoRepricer.runNow')}
             </Button>
             <Switch
               checked={settings?.enabled || false}
@@ -184,7 +197,9 @@ export default function PricingDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Card className="p-6">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Total Listings</h3>
+            <h3 className="text-sm font-medium text-gray-600">
+              {auto('Total Listings', 'metrics.totalListings')}
+            </h3>
             <DollarSign className="w-5 h-5 text-primary" />
           </div>
           <p className="text-3xl font-bold text-gray-900">{listings.length}</p>
@@ -192,7 +207,9 @@ export default function PricingDashboardPage() {
 
         <Card className="p-6">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Buy Box Winners</h3>
+            <h3 className="text-sm font-medium text-gray-600">
+              {auto('Buy Box Winners', 'metrics.buyBoxWinners')}
+            </h3>
             <Award className="w-5 h-5 text-warning" />
           </div>
           <div className="flex items-baseline gap-2">
@@ -205,7 +222,9 @@ export default function PricingDashboardPage() {
 
         <Card className="p-6">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-gray-600">Avg Buy Box Score</h3>
+            <h3 className="text-sm font-medium text-gray-600">
+              {auto('Avg Buy Box Score', 'metrics.avgScore')}
+            </h3>
             <TrendingUp className="w-5 h-5 text-success" />
           </div>
           <p className="text-3xl font-bold text-gray-900">
@@ -216,24 +235,40 @@ export default function PricingDashboardPage() {
 
       {/* Listings Table */}
       <Card className="p-6 mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Listings</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          {auto('Your Listings', 'listings.title')}
+        </h2>
         
         {listings.length === 0 ? (
           <p className="text-center text-gray-600 py-8">
-            No active listings found. Create a listing to start selling.
+            {auto('No active listings found. Create a listing to start selling.', 'listings.empty')}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-start py-3 px-4 font-medium text-gray-700">Product</th>
-                  <th className="text-start py-3 px-4 font-medium text-gray-700">SKU</th>
-                  <th className="text-start py-3 px-4 font-medium text-gray-700">Price</th>
-                  <th className="text-start py-3 px-4 font-medium text-gray-700">Buy Box</th>
-                  <th className="text-start py-3 px-4 font-medium text-gray-700">Score</th>
-                  <th className="text-start py-3 px-4 font-medium text-gray-700">Last Change</th>
-                  <th className="text-start py-3 px-4 font-medium text-gray-700">Actions</th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">
+                    {auto('Product', 'listings.columns.product')}
+                  </th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">
+                    {auto('SKU', 'listings.columns.sku')}
+                  </th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">
+                    {auto('Price', 'listings.columns.price')}
+                  </th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">
+                    {auto('Buy Box', 'listings.columns.buyBox')}
+                  </th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">
+                    {auto('Score', 'listings.columns.score')}
+                  </th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">
+                    {auto('Last Change', 'listings.columns.lastChange')}
+                  </th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">
+                    {auto('Actions', 'listings.columns.actions')}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -246,17 +281,22 @@ export default function PricingDashboardPage() {
                     <td className="py-3 px-4 text-gray-700">{listing.sku}</td>
                     <td className="py-3 px-4">
                       <div className="font-semibold text-gray-900">
-                        SAR {listing.price.toFixed(2)}
+                        {auto('SAR {{price}}', 'listings.row.priceValue').replace(
+                          '{{price}}',
+                          listing.price.toFixed(2)
+                        )}
                       </div>
                     </td>
                     <td className="py-3 px-4">
                       {listing.buyBoxWinner ? (
                         <Badge className="bg-warning/10 text-warning-foreground">
                           <Award className="w-3 h-3 mr-1" />
-                          Winner
+                          {auto('Winner', 'listings.badges.winner')}
                         </Badge>
                       ) : (
-                        <Badge variant="outline">Not Winning</Badge>
+                        <Badge variant="outline">
+                          {auto('Not Winning', 'listings.badges.notWinning')}
+                        </Badge>
                       )}
                     </td>
                     <td className="py-3 px-4">
@@ -274,11 +314,11 @@ export default function PricingDashboardPage() {
                     <td className="py-3 px-4 text-sm text-gray-600">
                       {listing.lastPriceChange
                         ? new Date(listing.lastPriceChange).toLocaleDateString()
-                        : 'Never'}
+                        : auto('Never', 'listings.row.never')}
                     </td>
                     <td className="py-3 px-4">
                       <Button variant="ghost" size="sm">
-                        View Details
+                        {auto('View Details', 'listings.actions.view')}
                       </Button>
                     </td>
                   </tr>
@@ -292,7 +332,9 @@ export default function PricingDashboardPage() {
       {/* Pricing Rules */}
       {settings && (
         <Card className="p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Pricing Rules</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            {auto('Pricing Rules', 'rules.title')}
+          </h2>
           <PricingRuleCard settings={settings} onUpdate={setSettings} />
         </Card>
       )}
@@ -300,7 +342,9 @@ export default function PricingDashboardPage() {
       {/* Competitor Analysis */}
       {listings.length > 0 && (
         <Card className="p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Competitor Analysis</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            {auto('Competitor Analysis', 'analysis.title')}
+          </h2>
           <CompetitorAnalysis fsin={listings[0].fsin} />
         </Card>
       )}

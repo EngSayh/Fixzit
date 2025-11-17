@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import clsx from 'clsx';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 export interface MarketplaceFacets {
   categories: { slug: string; name: string }[];
@@ -27,11 +28,14 @@ interface FacetsProps {
 export default function Facets({ facets, selected, onChange }: FacetsProps) {
   const [priceMin, setPriceMin] = useState(selected.minPrice?.toString() ?? '');
   const [priceMax, setPriceMax] = useState(selected.maxPrice?.toString() ?? '');
+  const auto = useAutoTranslator('marketplace.facets');
 
   return (
     <aside className="w-full max-w-xs space-y-6">
       <section>
-        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">Categories</h3>
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
+          {auto('Categories', 'sections.categories')}
+        </h3>
         <ul className="space-y-1 text-sm">
           {facets.categories.map(category => (
             <li key={category.slug}>
@@ -51,7 +55,9 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
       </section>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">Brand</h3>
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
+          {auto('Brand', 'sections.brand')}
+        </h3>
         <ul className="space-y-1 text-sm">
           {facets.brands.map(brand => (
             <li key={brand}>
@@ -71,7 +77,9 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
       </section>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">Standards</h3>
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
+          {auto('Standards', 'sections.standards')}
+        </h3>
         <ul className="space-y-1 text-sm">
           {facets.standards.map(standard => (
             <li key={standard}>
@@ -91,22 +99,24 @@ export default function Facets({ facets, selected, onChange }: FacetsProps) {
       </section>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">Price</h3>
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
+          {auto('Price', 'sections.price')}
+        </h3>
         <div className="flex items-center gap-2 text-sm">
           <input
             type="number"
             inputMode="decimal"
-            placeholder="Min"
+            placeholder={auto('Min', 'price.minPlaceholder')}
             className="w-full rounded-2xl border border-border px-3 py-2"
             value={priceMin}
             onChange={event => setPriceMin(event.target.value)}
             onBlur={() => onChange({ minPrice: priceMin ? Number(priceMin) : undefined })}
           />
-          <span className="text-muted-foreground">—</span>
+          <span className="text-muted-foreground">{auto('to', 'price.separator')}</span>
           <input
             type="number"
             inputMode="decimal"
-            placeholder="Max"
+            placeholder={auto('Max', 'price.maxPlaceholder')}
             className="w-full rounded-2xl border border-border px-3 py-2"
             value={priceMax}
             onChange={event => setPriceMax(event.target.value)}

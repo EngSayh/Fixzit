@@ -351,11 +351,11 @@ export default function TopBar() {
   // ✅ FIXED: Use semantic colors throughout
   return (
     <header
-      className={`sticky top-0 z-40 h-16 bg-[#0061A8] text-white ${isMobile ? 'px-2' : 'px-4'} shadow-sm border-b border-black/20`}
+      className={`sticky top-0 z-40 fxz-topbar ${isMobile ? 'px-2' : 'px-4'}`}
       role="banner"
       aria-label={t('nav.globalHeader', 'Fixzit global navigation')}
     >
-      <div className={`h-full flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className={`h-16 flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Left Section: Logo & App Switcher */}
         <div className={`flex items-center gap-3 flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <Button
@@ -368,28 +368,28 @@ export default function TopBar() {
               <Image
                 src={orgSettings.logo}
                 alt={orgSettings.name}
-                width={32}
-                height={32}
-                className="rounded-md object-cover"
+                width={36}
+                height={36}
+                className="rounded-2xl object-cover"
                 onError={() => setLogoError(true)}
               />
             ) : (
-              <div 
-                className="w-8 h-8 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm"
+              <div
+                className="h-9 w-9 rounded-2xl fxz-topbar-logo flex items-center justify-center text-xs font-semibold"
                 aria-hidden="true"
               >
                 {orgSettings?.name?.substring(0, 2).toUpperCase() || 'FX'}
               </div>
             )}
             <div className={`flex flex-col ${isRTL ? 'text-right' : 'text-left'}`}>
-              <span className={`font-semibold ${isMobile ? 'hidden' : 'text-lg'}`}>
+              <span className={`font-semibold leading-tight ${isMobile ? 'hidden' : 'text-base'}`}>
                 {orgSettings?.name || t('common.brand')}
               </span>
-              <div className="flex flex-wrap items-center gap-1 text-[11px]">
-                <span className="rounded-full bg-white/20 px-2 py-0.5 uppercase tracking-wide">
+              <div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+                <span className="px-2 py-0.5 fxz-topbar-pill uppercase tracking-wide">
                   {appLabel}
                 </span>
-                <span className="text-white/80">{moduleLabel}</span>
+                <span>{moduleLabel}</span>
               </div>
             </div>
           </Button>
@@ -403,7 +403,7 @@ export default function TopBar() {
             <GlobalSearch />
           </div>
         )}
-        
+
         {/* Right Section: Actions & User Menu */}
         <div className={`flex items-center gap-1 sm:gap-2 flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
           {/* Mobile search button */}
@@ -459,11 +459,7 @@ export default function TopBar() {
               t={t}
             />
           ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-            >
+            <Button variant="outline" size="sm" asChild>
               <Link href="/login">
                 {t('common.signIn')}
               </Link>

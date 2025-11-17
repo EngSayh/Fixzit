@@ -1,10 +1,10 @@
 {
   "stats": {
-    "files": 630,
+    "files": 631,
     "usedKeys": 2382,
     "hasDynamic": true,
-    "enCount": 2936,
-    "arCount": 2936,
+    "enCount": 2950,
+    "arCount": 2950,
     "parityGap": 0
   },
   "missing": {
@@ -7592,5 +7592,5 @@
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/ui/pagination.tsx"
     ]
   },
-  "timestamp": "2025-11-17T10:42:56.348Z"
+  "timestamp": "2025-11-17T14:26:16.777Z"
 }

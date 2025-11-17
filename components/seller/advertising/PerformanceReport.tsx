@@ -8,6 +8,7 @@ import {
   TrendingDown,
   ArrowUpDown,
 } from 'lucide-react';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface PerformanceData {
   date: string;
@@ -62,6 +63,14 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 50;
+  const auto = useAutoTranslator('seller.advertising.performance');
+  const datePresets = [
+    { value: 'today', label: auto('Today', 'filters.today') },
+    { value: 'yesterday', label: auto('Yesterday', 'filters.yesterday') },
+    { value: 'last7', label: auto('Last 7 Days', 'filters.last7') },
+    { value: 'last30', label: auto('Last 30 Days', 'filters.last30') },
+    { value: 'custom', label: auto('Custom', 'filters.custom') },
+  ] as const;
 
   useEffect(() => {
     const dates = calculateDateRange(datePreset);
@@ -198,17 +207,13 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700">Date Range:</span>
+            <span className="text-sm font-medium text-gray-700">
+              {auto('Date Range:', 'filters.dateRangeLabel')}
+            </span>
           </div>
 
           <div className="flex gap-2">
-            {[
-              { value: 'today', label: 'Today' },
-              { value: 'yesterday', label: 'Yesterday' },
-              { value: 'last7', label: 'Last 7 Days' },
-              { value: 'last30', label: 'Last 30 Days' },
-              { value: 'custom', label: 'Custom' },
-            ].map((preset) => (
+            {datePresets.map((preset) => (
               <button
                 key={preset.value}
                 onClick={() => setDatePreset(preset.value as DatePreset)}
@@ -231,7 +236,9 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                 onChange={(e) => setStartDate(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg"
               />
-              <span className="text-gray-500">to</span>
+              <span className="text-gray-500">
+                {auto('to', 'filters.to')}
+              </span>
               <input
                 type="date"
                 value={endDate}
@@ -246,31 +253,41 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
             className="ml-auto inline-flex items-center gap-2 px-4 py-2 bg-success text-white rounded-lg hover:bg-success-dark transition-colors"
           >
             <Download className="w-4 h-4" />
-            Export CSV
+            {auto('Export CSV', 'actions.exportCsv')}
           </button>
         </div>
       </div>
 
       {/* Performance Charts */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Over Time</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          {auto('Performance Over Time', 'sections.performanceOverTime')}
+        </h3>
         
         {isLoading ? (
-          <div className="text-center py-12 text-gray-500">Loading chart data...</div>
+          <div className="text-center py-12 text-gray-500">
+            {auto('Loading chart data...', 'state.loadingCharts')}
+          </div>
         ) : (
           <div className="space-y-6">
             {/* Simple text-based chart visualization */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Impressions & Clicks</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {auto('Impressions & Clicks', 'charts.impressionsClicks')}
+                </span>
                 <div className="flex items-center gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-primary/90 rounded"></div>
-                    <span className="text-gray-600">Impressions</span>
+                    <span className="text-gray-600">
+                      {auto('Impressions', 'metrics.impressions')}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-success/90 rounded"></div>
-                    <span className="text-gray-600">Clicks</span>
+                    <span className="text-gray-600">
+                      {auto('Clicks', 'metrics.clicks')}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -284,7 +301,10 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                       <div
                         className="bg-primary/90 rounded"
                         style={{ height: `${(data.impressions / 5000) * 80}px` }}
-                        title={`${data.impressions} impressions`}
+                        title={auto('{{count}} impressions', 'metrics.impressionsTooltip').replace(
+                          '{{count}}',
+                          String(data.impressions)
+                        )}
                       ></div>
                       <div className="text-xs text-gray-600">{data.impressions}</div>
                     </div>
@@ -295,9 +315,14 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Daily Spend</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {auto('Daily Spend', 'charts.dailySpend')}
+                </span>
                 <span className="text-sm text-gray-600">
-                  Total: {performanceData.reduce((sum, d) => sum + d.spend, 0).toFixed(2)} SAR
+                  {auto('Total: {{amount}} SAR', 'charts.dailySpendTotal').replace(
+                    '{{amount}}',
+                    performanceData.reduce((sum, d) => sum + d.spend, 0).toFixed(2)
+                  )}
                 </span>
               </div>
               <div className="grid grid-cols-7 gap-2">
@@ -310,7 +335,10 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                       <div
                         className="bg-destructive/90 rounded"
                         style={{ height: `${(data.spend / 100) * 80}px` }}
-                        title={`${data.spend.toFixed(2)} SAR`}
+                        title={auto('{{amount}} SAR', 'metrics.spendTooltip').replace(
+                          '{{amount}}',
+                          data.spend.toFixed(2)
+                        )}
                       ></div>
                       <div className="text-xs text-gray-600">{data.spend.toFixed(0)}</div>
                     </div>
@@ -337,7 +365,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
           >
-            Keyword Performance
+            {auto('Keyword Performance', 'tables.keywordsTab')}
           </button>
           <button
             onClick={() => {
@@ -350,7 +378,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
           >
-            Product Performance
+            {auto('Product Performance', 'tables.productsTab')}
           </button>
         </div>
 
@@ -360,16 +388,36 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <SortableHeader field="keyword">Keyword</SortableHeader>
-                  <SortableHeader field="campaignName">Campaign</SortableHeader>
-                  <SortableHeader field="impressions">Impressions</SortableHeader>
-                  <SortableHeader field="clicks">Clicks</SortableHeader>
-                  <SortableHeader field="ctr">CTR</SortableHeader>
-                  <SortableHeader field="avgCpc">Avg CPC</SortableHeader>
-                  <SortableHeader field="spend">Spend</SortableHeader>
-                  <SortableHeader field="conversions">Conversions</SortableHeader>
-                  <SortableHeader field="acos">ACOS</SortableHeader>
-                  <SortableHeader field="roas">ROAS</SortableHeader>
+                  <SortableHeader field="keyword">
+                    {auto('Keyword', 'tables.headers.keyword')}
+                  </SortableHeader>
+                  <SortableHeader field="campaignName">
+                    {auto('Campaign', 'tables.headers.campaign')}
+                  </SortableHeader>
+                  <SortableHeader field="impressions">
+                    {auto('Impressions', 'tables.headers.impressions')}
+                  </SortableHeader>
+                  <SortableHeader field="clicks">
+                    {auto('Clicks', 'tables.headers.clicks')}
+                  </SortableHeader>
+                  <SortableHeader field="ctr">
+                    {auto('CTR', 'tables.headers.ctr')}
+                  </SortableHeader>
+                  <SortableHeader field="avgCpc">
+                    {auto('Avg CPC', 'tables.headers.avgCpc')}
+                  </SortableHeader>
+                  <SortableHeader field="spend">
+                    {auto('Spend', 'tables.headers.spend')}
+                  </SortableHeader>
+                  <SortableHeader field="conversions">
+                    {auto('Conversions', 'tables.headers.conversions')}
+                  </SortableHeader>
+                  <SortableHeader field="acos">
+                    {auto('ACOS', 'tables.headers.acos')}
+                  </SortableHeader>
+                  <SortableHeader field="roas">
+                    {auto('ROAS', 'tables.headers.roas')}
+                  </SortableHeader>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -430,15 +478,33 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <SortableHeader field="productId">Product ID</SortableHeader>
-                  <SortableHeader field="productName">Product Name</SortableHeader>
-                  <SortableHeader field="campaignName">Campaign</SortableHeader>
-                  <SortableHeader field="impressions">Impressions</SortableHeader>
-                  <SortableHeader field="clicks">Clicks</SortableHeader>
-                  <SortableHeader field="ctr">CTR</SortableHeader>
-                  <SortableHeader field="conversions">Conversions</SortableHeader>
-                  <SortableHeader field="revenue">Revenue</SortableHeader>
-                  <SortableHeader field="acos">ACOS</SortableHeader>
+                  <SortableHeader field="productId">
+                    {auto('Product ID', 'tables.headers.productId')}
+                  </SortableHeader>
+                  <SortableHeader field="productName">
+                    {auto('Product Name', 'tables.headers.productName')}
+                  </SortableHeader>
+                  <SortableHeader field="campaignName">
+                    {auto('Campaign', 'tables.headers.campaign')}
+                  </SortableHeader>
+                  <SortableHeader field="impressions">
+                    {auto('Impressions', 'tables.headers.impressions')}
+                  </SortableHeader>
+                  <SortableHeader field="clicks">
+                    {auto('Clicks', 'tables.headers.clicks')}
+                  </SortableHeader>
+                  <SortableHeader field="ctr">
+                    {auto('CTR', 'tables.headers.ctr')}
+                  </SortableHeader>
+                  <SortableHeader field="conversions">
+                    {auto('Conversions', 'tables.headers.conversions')}
+                  </SortableHeader>
+                  <SortableHeader field="revenue">
+                    {auto('Revenue', 'tables.headers.revenue')}
+                  </SortableHeader>
+                  <SortableHeader field="acos">
+                    {auto('ACOS', 'tables.headers.acos')}
+                  </SortableHeader>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -496,9 +562,13 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
             <p className="text-sm text-gray-600">
-              Showing {(currentPage - 1) * rowsPerPage + 1} to{' '}
-              {Math.min(currentPage * rowsPerPage, getSortedData().length)} of{' '}
-              {getSortedData().length} results
+              {auto(
+                'Showing {{start}} to {{end}} of {{total}} results',
+                'pagination.summary'
+              )
+                .replace('{{start}}', String((currentPage - 1) * rowsPerPage + 1))
+                .replace('{{end}}', String(Math.min(currentPage * rowsPerPage, getSortedData().length)))
+                .replace('{{total}}', String(getSortedData().length))}
             </p>
             <div className="flex gap-2">
               <button
@@ -506,7 +576,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                 disabled={currentPage === 1}
                 className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Previous
+                {auto('Previous', 'pagination.previous')}
               </button>
               <div className="flex gap-1">
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -531,7 +601,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
                 disabled={currentPage === totalPages}
                 className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Next
+                {auto('Next', 'pagination.next')}
               </button>
             </div>
           </div>

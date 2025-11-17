@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,16 +8,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
-const bankDetailsSchema = z.object({
-  bankName: z.string().min(2, 'Bank name required'),
-  iban: z.string().regex(/^SA\d{2}[A-Z0-9]{18}$/, 'Invalid Saudi IBAN format'),
-  accountHolderName: z.string().min(2, 'Account holder name required'),
-  currency: z.string().default('SAR'),
-  swiftCode: z.string().optional()
-});
-
-type BankDetailsFormData = z.infer<typeof bankDetailsSchema>;
+type BankDetailsFormData = {
+  bankName: string;
+  iban: string;
+  accountHolderName: string;
+  currency: string;
+  swiftCode?: string;
+};
 
 interface Props {
   onSubmit: (_data: BankDetailsFormData) => Promise<void>;
@@ -27,12 +26,35 @@ interface Props {
 export default function BankDetailsForm({ onSubmit, onBack }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const auto = useAutoTranslator('seller.kyc.bankDetails');
+  const bankDetailsSchema = useMemo(
+    () =>
+      z.object({
+        bankName: z.string().min(2, auto('Bank name required', 'validation.bankName')),
+        iban: z
+          .string()
+          .regex(
+            /^SA\d{2}[A-Z0-9]{18}$/,
+            auto('Invalid Saudi IBAN format', 'validation.iban')
+          ),
+        accountHolderName: z
+          .string()
+          .min(2, auto('Account holder name required', 'validation.accountHolder')),
+        currency: z.string().default('SAR'),
+        swiftCode: z.string().optional(),
+      }),
+    [auto]
+  );
 
-  const { register, handleSubmit, formState: { errors } } = useForm<BankDetailsFormData>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<BankDetailsFormData>({
     resolver: zodResolver(bankDetailsSchema),
     defaultValues: {
-      currency: 'SAR'
-    }
+      currency: 'SAR',
+    },
   });
 
   const handleFormSubmit = async (data: BankDetailsFormData) => {
@@ -41,7 +63,9 @@ export default function BankDetailsForm({ onSubmit, onBack }: Props) {
       setError(null);
       await onSubmit(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit');
+      setError(
+        err instanceof Error ? err.message : auto('Failed to submit', 'errors.submit')
+      );
     } finally {
       setSubmitting(false);
     }
@@ -50,9 +74,14 @@ export default function BankDetailsForm({ onSubmit, onBack }: Props) {
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Bank Account Details</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          {auto('Bank Account Details', 'header.title')}
+        </h2>
         <p className="text-gray-600 mb-6">
-          Enter your bank account details for receiving payments. This must match the business name on your CR.
+          {auto(
+            'Enter your bank account details for receiving payments. This must match the business name on your CR.',
+            'header.description'
+          )}
         </p>
       </div>
 
@@ -63,13 +92,15 @@ export default function BankDetailsForm({ onSubmit, onBack }: Props) {
       )}
 
       <div>
-        <Label htmlFor="bankName">Bank Name *</Label>
+        <Label htmlFor="bankName">
+          {auto('Bank Name *', 'fields.bankName.label')}
+        </Label>
         <select 
           id="bankName"
           {...register('bankName')}
           className="w-full px-3 py-2 border border-gray-300 rounded-md"
         >
-          <option value="">Select Bank</option>
+          <option value="">{auto('Select Bank', 'fields.bankName.placeholder')}</option>
           <option value="Al Rajhi Bank">Al Rajhi Bank</option>
           <option value="National Commercial Bank">National Commercial Bank (NCB)</option>
           <option value="Riyad Bank">Riyad Bank</option>
@@ -87,27 +118,29 @@ export default function BankDetailsForm({ onSubmit, onBack }: Props) {
       </div>
 
       <div>
-        <Label htmlFor="iban">IBAN *</Label>
+        <Label htmlFor="iban">{auto('IBAN *', 'fields.iban.label')}</Label>
         <Input 
           id="iban"
           {...register('iban')}
-          placeholder="SA0000000000000000000000"
+          placeholder={auto('SA0000000000000000000000', 'fields.iban.placeholder')}
           maxLength={24}
         />
         {errors.iban && (
           <p className="text-sm text-destructive mt-1">{errors.iban.message}</p>
         )}
         <p className="text-xs text-gray-500 mt-1">
-          Format: SA followed by 2 digits and 18 alphanumeric characters
+          {auto('Format: SA followed by 2 digits and 18 alphanumeric characters', 'fields.iban.helper')}
         </p>
       </div>
 
       <div>
-        <Label htmlFor="accountHolderName">Account Holder Name *</Label>
+        <Label htmlFor="accountHolderName">
+          {auto('Account Holder Name *', 'fields.accountHolder.label')}
+        </Label>
         <Input 
           id="accountHolderName"
           {...register('accountHolderName')}
-          placeholder="Must match business name on CR"
+          placeholder={auto('Must match business name on CR', 'fields.accountHolder.placeholder')}
         />
         {errors.accountHolderName && (
           <p className="text-sm text-destructive mt-1">{errors.accountHolderName.message}</p>
@@ -116,41 +149,48 @@ export default function BankDetailsForm({ onSubmit, onBack }: Props) {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="currency">Currency *</Label>
+          <Label htmlFor="currency">{auto('Currency *', 'fields.currency.label')}</Label>
           <select 
             id="currency"
             {...register('currency')}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           >
-            <option value="SAR">SAR - Saudi Riyal</option>
-            <option value="USD">USD - US Dollar</option>
-            <option value="EUR">EUR - Euro</option>
+            <option value="SAR">{auto('SAR - Saudi Riyal', 'fields.currency.sar')}</option>
+            <option value="USD">{auto('USD - US Dollar', 'fields.currency.usd')}</option>
+            <option value="EUR">{auto('EUR - Euro', 'fields.currency.eur')}</option>
           </select>
         </div>
 
         <div>
-          <Label htmlFor="swiftCode">SWIFT Code (Optional)</Label>
+          <Label htmlFor="swiftCode">
+            {auto('SWIFT Code (Optional)', 'fields.swift.label')}
+          </Label>
           <Input 
             id="swiftCode"
             {...register('swiftCode')}
-            placeholder="ABCDSARI"
+            placeholder={auto('ABCDSARI', 'fields.swift.placeholder')}
           />
         </div>
       </div>
 
       <Alert>
         <AlertDescription>
-          <strong>Important:</strong> Please ensure your bank account details are accurate. 
-          Incorrect information may delay payments.
+          <strong>{auto('Important:', 'alert.title')} </strong>
+          {auto(
+            'Please ensure your bank account details are accurate. Incorrect information may delay payments.',
+            'alert.message'
+          )}
         </AlertDescription>
       </Alert>
 
       <div className="flex justify-between pt-4">
         <Button type="button" variant="outline" onClick={onBack}>
-          Back
+          {auto('Back', 'actions.back')}
         </Button>
         <Button type="submit" disabled={submitting}>
-          {submitting ? 'Submitting...' : 'Submit KYC'}
+          {submitting
+            ? auto('Submitting...', 'actions.submitting')
+            : auto('Submit KYC', 'actions.submit')}
         </Button>
       </div>
     </form>

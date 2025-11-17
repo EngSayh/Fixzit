@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { Star } from 'lucide-react';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 export interface RatingStats {
   averageRating: number;
@@ -26,6 +27,9 @@ interface RatingSummaryProps {
 
 export function RatingSummary({ stats, showVerified = true }: RatingSummaryProps) {
   const { averageRating, totalReviews, distribution, verifiedPurchasePercentage } = stats;
+  const auto = useAutoTranslator('seller.ratingSummary');
+  const reviewLabel =
+    totalReviews === 1 ? auto('review', 'reviews.single') : auto('reviews', 'reviews.plural');
 
   return (
     <div className="bg-white border rounded-lg p-6">
@@ -48,7 +52,9 @@ export function RatingSummary({ stats, showVerified = true }: RatingSummaryProps
             ))}
           </div>
           <div className="text-sm text-muted-foreground">
-            {totalReviews.toLocaleString()} {totalReviews === 1 ? 'review' : 'reviews'}
+            {auto('{{count}} {{label}}', 'reviews.summary')
+              .replace('{{count}}', totalReviews.toLocaleString())
+              .replace('{{label}}', reviewLabel)}
           </div>
         </div>
 
@@ -61,7 +67,12 @@ export function RatingSummary({ stats, showVerified = true }: RatingSummaryProps
 
             return (
               <div key={rating} className="flex items-center gap-3">
-                <span className="text-sm font-medium w-12">{rating} star</span>
+                <span className="text-sm font-medium w-12">
+                  {auto('{{rating}} star', 'distribution.label').replace(
+                    '{{rating}}',
+                    String(rating)
+                  )}
+                </span>
                 <div className="flex-1 bg-gray-200 rounded-full h-2.5">
                   <div
                     className="bg-yellow-400 h-2.5 rounded-full transition-all"
@@ -84,10 +95,13 @@ export function RatingSummary({ stats, showVerified = true }: RatingSummaryProps
       {showVerified && verifiedPurchasePercentage !== undefined && (
         <div className="flex items-center gap-2 text-sm">
           <div className="bg-success/10 text-success-dark px-3 py-1 rounded-full font-medium">
-            {verifiedPurchasePercentage}% Verified Purchases
+            {auto('{{percentage}}% Verified Purchases', 'verified.badge').replace(
+              '{{percentage}}',
+              String(verifiedPurchasePercentage)
+            )}
           </div>
           <span className="text-muted-foreground">
-            Reviews from confirmed buyers
+            {auto('Reviews from confirmed buyers', 'verified.caption')}
           </span>
         </div>
       )}

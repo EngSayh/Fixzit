@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Star, ShoppingCart } from 'lucide-react';
 import { AuctionWinner } from '@/services/souq/ads/auction-engine';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface ProductDetailAdProps {
   winners: AuctionWinner[];
@@ -42,6 +43,7 @@ export function ProductDetailAd({
 }: ProductDetailAdProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [trackedImpressions, setTrackedImpressions] = useState<Set<string>>(new Set());
+  const auto = useAutoTranslator('souq.productDetailAd');
 
   // Track impressions when widget enters viewport
   useEffect(() => {
@@ -154,9 +156,9 @@ export function ProductDetailAd({
       {/* Header */}
       <div className="p-4 border-b border-gray-200 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-gray-900">
-          Sponsored products related to this item
+          {auto('Sponsored products related to this item', 'header.title')}
         </h3>
-        <span className="text-xs text-gray-500">Ad</span>
+        <span className="text-xs text-gray-500">{auto('Ad', 'header.badge')}</span>
       </div>
 
       {/* Ads List */}
@@ -201,7 +203,7 @@ export function ProductDetailAd({
                   <div className="flex items-center gap-1">
                     {renderStars(product.rating)}
                     <span className="text-xs text-gray-600">
-                      ({product.totalReviews.toLocaleString()})
+                      {auto('({{count}} reviews)', 'rating.total').replace('{{count}}', product.totalReviews.toLocaleString())}
                     </span>
                   </div>
                 ) : null}
@@ -209,12 +211,12 @@ export function ProductDetailAd({
                 {/* Price */}
                 <div className="flex items-baseline gap-2">
                   <span className="text-base font-bold text-gray-900">
-                    {product.price.toFixed(2)} SAR
+                    {product.price.toFixed(2)} {auto('SAR', 'price.currency')}
                   </span>
                   {product.originalPrice &&
                     product.originalPrice > product.price && (
                       <span className="text-xs text-gray-500 line-through">
-                        {product.originalPrice.toFixed(2)} SAR
+                        {product.originalPrice.toFixed(2)} {auto('SAR', 'price.currency')}
                       </span>
                     )}
                 </div>
@@ -227,7 +229,7 @@ export function ProductDetailAd({
                         key={badge}
                         className="px-1.5 py-0.5 text-xs font-medium bg-primary/5 text-primary-dark rounded"
                       >
-                        {badge === 'fbf' ? 'FBF' : badge}
+                        {badge === 'fbf' ? auto('FBF', 'badge.fbf') : badge}
                       </span>
                     ))}
                   </div>
@@ -242,7 +244,7 @@ export function ProductDetailAd({
       {/* Footer */}
       <div className="p-3 bg-gray-50 border-t border-gray-200">
         <p className="text-xs text-gray-500 text-center">
-          Sponsored ads help sellers reach more customers
+          {auto('Sponsored ads help sellers reach more customers', 'footer.note')}
         </p>
       </div>
     </div>

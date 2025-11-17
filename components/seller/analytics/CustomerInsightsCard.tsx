@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface CustomerInsightsData {
   acquisition: {
@@ -29,6 +30,7 @@ interface CustomerInsightsCardProps {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardProps) {
+  const auto = useAutoTranslator('seller.analytics.customerInsights');
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en', {
       style: 'currency',
@@ -42,11 +44,13 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Customer Insights</CardTitle>
+          <CardTitle>{auto('Customer Insights', 'title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
-            <div className="text-muted-foreground">Loading customer data...</div>
+            <div className="text-muted-foreground">
+              {auto('Loading customer data...', 'state.loading')}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -57,11 +61,13 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Customer Insights</CardTitle>
+          <CardTitle>{auto('Customer Insights', 'title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
-            <div className="text-muted-foreground">No customer data available</div>
+            <div className="text-muted-foreground">
+              {auto('No customer data available', 'state.empty')}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -86,16 +92,22 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Customer Acquisition</CardTitle>
+            <CardTitle className="text-base">
+              {auto('Customer Acquisition', 'sections.acquisition.title')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
-                <div className="text-sm text-muted-foreground">New Customers</div>
+                <div className="text-sm text-muted-foreground">
+                  {auto('New Customers', 'sections.acquisition.newCustomers')}
+                </div>
                 <div className="text-3xl font-bold">{data.acquisition.newCustomers}</div>
               </div>
               <div className="space-y-2">
-                <div className="text-sm font-medium">Sources</div>
+                <div className="text-sm font-medium">
+                  {auto('Sources', 'sections.acquisition.sources')}
+                </div>
                 {Object.entries(data.acquisition.sources).map(([source, count]) => (
                   <div key={source} className="flex justify-between text-sm">
                     <span className="text-muted-foreground capitalize">{source}</span>
@@ -109,18 +121,24 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Customer Retention</CardTitle>
+            <CardTitle className="text-base">
+              {auto('Customer Retention', 'sections.retention.title')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
-                <div className="text-sm text-muted-foreground">Repeat Customer Rate</div>
+                <div className="text-sm text-muted-foreground">
+                  {auto('Repeat Customer Rate', 'sections.retention.repeatRate')}
+                </div>
                 <div className="text-3xl font-bold">
                   {data.retention.repeatCustomerRate.toFixed(1)}%
                 </div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground">Avg Lifetime Value</div>
+                <div className="text-sm text-muted-foreground">
+                  {auto('Avg Lifetime Value', 'sections.retention.ltv')}
+                </div>
                 <div className="text-2xl font-bold">
                   {formatCurrency(data.retention.averageLifetimeValue)}
                 </div>
@@ -133,12 +151,16 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
       {/* Geography Distribution */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Customer Geography</CardTitle>
+          <CardTitle className="text-base">
+            {auto('Customer Geography', 'sections.geography.title')}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <h4 className="text-sm font-medium mb-2">Top Cities</h4>
+              <h4 className="text-sm font-medium mb-2">
+                {auto('Top Cities', 'sections.geography.topCities')}
+              </h4>
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie
@@ -160,7 +182,9 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
               </ResponsiveContainer>
             </div>
             <div>
-              <h4 className="text-sm font-medium mb-2">Top Regions</h4>
+              <h4 className="text-sm font-medium mb-2">
+                {auto('Top Regions', 'sections.geography.topRegions')}
+              </h4>
               <div className="space-y-2">
                 {data.geography.topRegions.slice(0, 5).map((region, index) => (
                   <div key={region.region} className="flex items-center gap-2">
@@ -183,7 +207,9 @@ export function CustomerInsightsCard({ data, isLoading }: CustomerInsightsCardPr
       {demographicsData.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Customer Demographics</CardTitle>
+            <CardTitle className="text-base">
+              {auto('Customer Demographics', 'sections.demographics.title')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>

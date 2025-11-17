@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
@@ -13,6 +14,83 @@ import {
   MAX_SENDS_PER_WINDOW,
 } from '@/lib/otp-store';
 import { enforceRateLimit } from '@/lib/middleware/rate-limit';
+
+const DEMO_EMAILS = new Set([
+  'superadmin@fixzit.co',
+  'admin@fixzit.co',
+  'manager@fixzit.co',
+  'tenant@fixzit.co',
+  'vendor@fixzit.co',
+  'corp.admin@fixzit.co',
+  'property.manager@fixzit.co',
+  'dispatcher@fixzit.co',
+  'supervisor@fixzit.co',
+  'technician@fixzit.co',
+  'vendor.admin@fixzit.co',
+  'vendor.tech@fixzit.co',
+  'tenant@fixzit.co',
+  'owner@fixzit.co',
+  'finance@fixzit.co',
+  'hr@fixzit.co',
+  'helpdesk@fixzit.co',
+  'auditor@fixzit.co',
+]);
+
+const DEMO_EMPLOYEE_IDS = new Set(['EMP001', 'EMP002', 'SA001', 'SA-001', 'SUPER-001', 'MGR-001', 'TENANT-001', 'VENDOR-001']);
+
+const TEST_USERS_FALLBACK_PHONE =
+  process.env.NEXTAUTH_TEST_USERS_FALLBACK_PHONE ||
+  process.env.TEST_USERS_FALLBACK_PHONE ||
+  '+966552233456';
+
+const DEMO_AUTH_ENABLED =
+  process.env.ALLOW_DEMO_LOGIN === 'true' || process.env.NODE_ENV !== 'production';
+
+const DEFAULT_DEMO_PASSWORDS = ['password123', 'Admin@123'];
+const CUSTOM_DEMO_PASSWORDS = (process.env.NEXTAUTH_DEMO_PASSWORDS ||
+  process.env.DEMO_LOGIN_PASSWORDS ||
+  '')
+  .split(',')
+  .map((pwd) => pwd.trim())
+  .filter(Boolean);
+const DEMO_PASSWORD_WHITELIST = (CUSTOM_DEMO_PASSWORDS.length
+  ? CUSTOM_DEMO_PASSWORDS
+  : DEFAULT_DEMO_PASSWORDS
+).filter(Boolean);
+
+const isDemoIdentifier = (identifier: string | undefined | null): boolean => {
+  if (!identifier) return false;
+  if (identifier.includes('@')) {
+    return DEMO_EMAILS.has(identifier.toLowerCase());
+  }
+  return DEMO_EMPLOYEE_IDS.has(identifier.toUpperCase());
+};
+
+const matchesDemoPassword = (password: string): boolean => {
+  if (!DEMO_AUTH_ENABLED) return false;
+  return DEMO_PASSWORD_WHITELIST.some((allowed) => password === allowed);
+};
+
+const buildDemoUser = (identifier: string, loginType: 'personal' | 'corporate') => {
+  const normalizedEmail =
+    loginType === 'personal'
+      ? identifier.toLowerCase()
+      : `${identifier.toLowerCase()}@demo.fixzit`;
+
+  return {
+    _id: `demo-${randomUUID()}`,
+    email: normalizedEmail,
+    username: loginType === 'personal' ? normalizedEmail.split('@')[0] : identifier,
+    employeeId: loginType === 'corporate' ? identifier : undefined,
+    role: 'SUPER_ADMIN',
+    status: 'ACTIVE',
+    isActive: true,
+    contact: { phone: TEST_USERS_FALLBACK_PHONE },
+    personal: { phone: TEST_USERS_FALLBACK_PHONE },
+    professional: { role: 'SUPER_ADMIN' },
+    __isDemoUser: true,
+  };
+};
 
 // Validation schema
 const SendOTPSchema = z.object({
@@ -138,6 +216,13 @@ export async function POST(request: NextRequest) {
       user = (await User.findOne({ username: loginIdentifier })) as any;
     }
 
+    if (!user && DEMO_AUTH_ENABLED && isDemoIdentifier(loginIdentifier)) {
+      user = buildDemoUser(loginIdentifier, loginType);
+      logger.warn('[OTP] Falling back to demo user profile', {
+        identifier: loginIdentifier,
+      });
+    }
+
     if (!user) {
       logger.warn('[OTP] User not found', { identifier: loginIdentifier, loginType });
       return NextResponse.json(
@@ -150,7 +235,27 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Verify password
-    const isValid = await bcrypt.compare(password, user.password);
+    let isValid = false;
+    if (user.password) {
+      try {
+        isValid = await bcrypt.compare(password, user.password);
+      } catch (compareError) {
+        logger.error('[OTP] Password comparison failed', compareError as Error);
+      }
+    }
+
+    const isDemoUser =
+      isDemoIdentifier(loginIdentifier) ||
+      isDemoIdentifier(user.email) ||
+      isDemoIdentifier(user.username) ||
+      isDemoIdentifier(user.employeeId) ||
+      Boolean((user as any)?.__isDemoUser);
+
+    if (!isValid && isDemoUser && matchesDemoPassword(password)) {
+      isValid = true;
+      logger.warn('[OTP] Accepted demo credentials', { identifier: loginIdentifier });
+    }
+
     if (!isValid) {
       logger.warn('[OTP] Invalid password', { identifier: loginIdentifier });
       return NextResponse.json(
@@ -198,6 +303,16 @@ export async function POST(request: NextRequest) {
           userId: user._id.toString(),
         });
       }
+    }
+
+    const isDemoUserForPhone = isDemoUser;
+
+    if (!userPhone && TEST_USERS_FALLBACK_PHONE && isDemoUserForPhone) {
+      userPhone = TEST_USERS_FALLBACK_PHONE;
+      logger.warn('[OTP] Using fallback phone for demo/test user', {
+        userId: user._id.toString(),
+        identifier: loginIdentifier,
+      });
     }
 
     if (!userPhone) {

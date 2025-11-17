@@ -129,6 +129,7 @@
     "helmet": "^7.2.0",
     "html2canvas": "^1.4.1",
     "ical.js": "^2.2.1",
+    "import-in-the-middle": "1.15.0",
     "ioredis": "^5.8.2",
     "isomorphic-dompurify": "^2.32.0",
     "jose": "^5.2.0",
@@ -157,6 +158,7 @@
     "rehype-stringify": "^10.0.1",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
+    "require-in-the-middle": "7.5.2",
     "server-only": "^0.0.1",
     "sonner": "^2.0.7",
     "swr": "^2.3.6",
@@ -223,11 +225,15 @@
   },
   "overrides": {
     "postcss-selector-parser": "6.0.13",
-    "vite": "^7.1.11"
+    "vite": "^7.1.11",
+    "import-in-the-middle": "1.15.0",
+    "require-in-the-middle": "7.5.2"
   },
   "pnpm": {
     "overrides": {
-      "vite": "^7.1.11"
+      "vite": "^7.1.11",
+      "import-in-the-middle": "1.15.0",
+      "require-in-the-middle": "7.5.2"
     }
   }
 }

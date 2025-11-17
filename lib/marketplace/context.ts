@@ -4,7 +4,7 @@ import { jwtVerify } from 'jose';
 import { Types } from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import { objectIdFrom } from './objectIds';
-import { requireEnv, TEST_JWT_SECRET } from './env';
+import { requireEnv, TEST_JWT_SECRET } from '../env';
 
 export interface MarketplaceRequestContext {
   tenantKey: string;

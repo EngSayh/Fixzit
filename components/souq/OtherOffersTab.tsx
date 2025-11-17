@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface Offer {
   _id: string;
@@ -53,6 +54,7 @@ export default function OtherOffersTab({
   currency = 'SAR' 
 }: OtherOffersTabProps) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const auto = useAutoTranslator('souq.otherOffers');
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -78,7 +80,9 @@ export default function OtherOffersTab({
   if (offers.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">No other offers available for this product.</p>
+        <p className="text-gray-600">
+          {auto('No other offers available for this product.', 'emptyState.message')}
+        </p>
       </div>
     );
   }
@@ -87,24 +91,27 @@ export default function OtherOffersTab({
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">
-          {offers.length} seller{offers.length > 1 ? 's' : ''} offering this product
+          {offers.length}{' '}
+          {offers.length > 1
+            ? auto('sellers offering this product', 'heading.multiple')
+            : auto('seller offering this product', 'heading.single')}
         </h3>
         <select className="px-3 py-2 border border-gray-300 rounded-md text-sm">
-          <option value="price">Sort by: Price (Low to High)</option>
-          <option value="rating">Sort by: Customer Rating</option>
-          <option value="delivery">Sort by: Fastest Delivery</option>
+          <option value="price">{auto('Sort by: Price (Low to High)', 'sort.price')}</option>
+          <option value="rating">{auto('Sort by: Customer Rating', 'sort.rating')}</option>
+          <option value="delivery">{auto('Sort by: Fastest Delivery', 'sort.delivery')}</option>
         </select>
       </div>
 
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Price</TableHead>
-            <TableHead>Condition</TableHead>
-            <TableHead>Seller</TableHead>
-            <TableHead>Rating</TableHead>
-            <TableHead>Delivery</TableHead>
-            <TableHead>Qty</TableHead>
+            <TableHead>{auto('Price', 'table.price')}</TableHead>
+            <TableHead>{auto('Condition', 'table.condition')}</TableHead>
+            <TableHead>{auto('Seller', 'table.seller')}</TableHead>
+            <TableHead>{auto('Rating', 'table.rating')}</TableHead>
+            <TableHead>{auto('Delivery', 'table.delivery')}</TableHead>
+            <TableHead>{auto('Qty', 'table.quantity')}</TableHead>
             <TableHead></TableHead>
           </TableRow>
         </TableHeader>
@@ -126,11 +133,11 @@ export default function OtherOffersTab({
                     </div>
                     {offer.shippingCost > 0 ? (
                       <div className="text-xs text-gray-600">
-                        + {formatCurrency(offer.shippingCost)} shipping
+                        {auto('+ {{amount}} shipping', 'price.shipping').replace('{{amount}}', formatCurrency(offer.shippingCost))}
                       </div>
                     ) : (
                       <div className="text-xs text-success font-medium">
-                        FREE Shipping
+                        {auto('FREE Shipping', 'price.freeShipping')}
                       </div>
                     )}
                   </div>
@@ -151,12 +158,12 @@ export default function OtherOffersTab({
                     </div>
                     {offer.sellerId.accountHealth.status === 'excellent' && (
                       <Badge variant="outline" className="text-xs bg-success/5 text-success-dark border-green-300">
-                        Top Seller
+                        {auto('Top Seller', 'badge.topSeller')}
                       </Badge>
                     )}
                     {isWinner && (
                       <Badge className="text-xs bg-primary/10 text-primary-dark ml-1">
-                        Buy Box Winner
+                        {auto('Buy Box Winner', 'badge.buyBoxWinner')}
                       </Badge>
                     )}
                   </div>
@@ -176,7 +183,7 @@ export default function OtherOffersTab({
                     {offer.fulfillmentMethod === 'fbf' && (
                       <div className="flex items-center gap-1 text-xs text-primary">
                         <Truck className="w-3 h-3" />
-                        <span>FBF</span>
+                        <span>{auto('FBF', 'delivery.fbf')}</span>
                       </div>
                     )}
                   </div>
@@ -198,7 +205,6 @@ export default function OtherOffersTab({
                   </select>
                 </TableCell>
 
-                {/* Add to Cart */}
                 <TableCell>
                   {offer.availableQuantity > 0 ? (
                     <Button
@@ -206,10 +212,12 @@ export default function OtherOffersTab({
                       variant={isWinner ? 'default' : 'outline'}
                       size="sm"
                     >
-                      Add to Cart
+                      {auto('Add to Cart', 'actions.addToCart')}
                     </Button>
                   ) : (
-                    <span className="text-sm text-destructive">Out of Stock</span>
+                    <span className="text-sm text-destructive">
+                      {auto('Out of Stock', 'status.outOfStock')}
+                    </span>
                   )}
                 </TableCell>
               </TableRow>
@@ -220,12 +228,14 @@ export default function OtherOffersTab({
 
       {/* Summary */}
       <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-        <h4 className="font-semibold text-gray-900 mb-2">About these offers</h4>
+        <h4 className="font-semibold text-gray-900 mb-2">
+          {auto('About these offers', 'summary.title')}
+        </h4>
         <ul className="space-y-1 text-sm text-gray-600">
-          <li>• Prices and availability may change without notice</li>
-          <li>• Shipping costs are estimates and may vary based on your location</li>
-          <li>• All sellers must meet our quality standards</li>
-          <li>• FBF (Fulfillment by Fixzit) offers faster, more reliable delivery</li>
+          <li>• {auto('Prices and availability may change without notice', 'summary.pricesChange')}</li>
+          <li>• {auto('Shipping costs are estimates and may vary based on your location', 'summary.shipping')}</li>
+          <li>• {auto('All sellers must meet our quality standards', 'summary.quality')}</li>
+          <li>• {auto('FBF (Fulfillment by Fixzit) offers faster, more reliable delivery', 'summary.fbf')}</li>
         </ul>
       </div>
     </div>

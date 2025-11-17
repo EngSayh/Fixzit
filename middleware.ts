@@ -202,7 +202,7 @@ export async function middleware(request: NextRequest) {
     }
 
     const origin = request.headers.get('origin');
-    if (origin && !isAllowedOrigin(origin)) {
+    if (origin && !isOriginAllowed(origin)) {
       return NextResponse.json(
         { error: 'Origin not allowed' },
         { status: 403 }
