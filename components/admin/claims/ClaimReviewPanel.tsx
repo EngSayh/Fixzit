@@ -361,9 +361,7 @@ export default function ClaimReviewPanel() {
               <SelectTrigger className="w-full md:w-[200px]">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4" />
-                  <SelectValue>
-                    {statusFilter === 'all' ? 'الحالة' : statusFilter}
-                  </SelectValue>
+                  <SelectValue placeholder="الحالة" />
                 </div>
               </SelectTrigger>
               <SelectContent>
@@ -378,9 +376,7 @@ export default function ClaimReviewPanel() {
               <SelectTrigger className="w-full md:w-[200px]">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4" />
-                  <SelectValue>
-                    {priorityFilter === 'all' ? 'الأولوية' : priorityFilter}
-                  </SelectValue>
+                  <SelectValue placeholder="الأولوية" />
                 </div>
               </SelectTrigger>
               <SelectContent>
@@ -534,7 +530,7 @@ export default function ClaimReviewPanel() {
                     onValueChange={(value: any) => setDecisionData({ ...decisionData, outcome: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="اختر القرار" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="approve-full">موافقة كاملة (Full Refund)</SelectItem>

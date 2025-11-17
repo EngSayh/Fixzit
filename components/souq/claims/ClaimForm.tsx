@@ -4,12 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select';
+import { Select, SelectItem } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Upload, X, FileText, Image as ImageIcon, Video } from 'lucide-react';
@@ -238,19 +233,17 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
           {/* Claim Type */}
           <div className="space-y-2">
             <Label htmlFor="claimType">نوع المشكلة (Problem Type) *</Label>
-            <Select value={claimType} onValueChange={setClaimType}>
-              <SelectTrigger id="claimType">
-                {claimType 
-                  ? CLAIM_TYPES.find(t => t.value === claimType)?.label 
-                  : "اختر نوع المشكلة (Select problem type)"}
-              </SelectTrigger>
-              <SelectContent>
-                {CLAIM_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+            <Select
+              id="claimType"
+              value={claimType}
+              onValueChange={setClaimType}
+              placeholder="اختر نوع المشكلة (Select problem type)"
+            >
+              {CLAIM_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
+                </SelectItem>
+              ))}
             </Select>
           </div>
 

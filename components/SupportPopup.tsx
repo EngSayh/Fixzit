@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectItem } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Copy, Loader2 } from 'lucide-react';
 import { STORAGE_KEYS } from '@/config/constants';
@@ -359,17 +359,17 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
             </div>
             <div className="space-y-2">
               <Label htmlFor="module">{t('support.module', 'Module')}</Label>
-              <Select value={moduleKey} onValueChange={setModule}>
-                <SelectTrigger id="module">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MODULES.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {getModuleLabel(m)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Select
+                id="module"
+                value={moduleKey}
+                onValueChange={setModule}
+                placeholder={t('support.modulePlaceholder', 'Select module')}
+              >
+                {MODULES.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {getModuleLabel(m)}
+                  </SelectItem>
+                ))}
               </Select>
             </div>
           </div>
@@ -378,32 +378,32 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="category">{t('support.category', 'Category')}</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger id="category">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {getCategoryLabel(c)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Select
+                id="category"
+                value={category}
+                onValueChange={setCategory}
+                placeholder={t('support.categoryPlaceholder', 'Select category')}
+              >
+                {CATEGORIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {getCategoryLabel(c)}
+                  </SelectItem>
+                ))}
               </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="subCategory">{t('support.subCategory', 'Sub-Category')}</Label>
-              <Select value={subCategory} onValueChange={setSubCategory}>
-                <SelectTrigger id="subCategory">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(SUB_CATEGORIES[category] || []).map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {getSubCategoryLabel(s)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Select
+                id="subCategory"
+                value={subCategory}
+                onValueChange={setSubCategory}
+                placeholder={t('support.subCategoryPlaceholder', 'Select sub-category')}
+              >
+                {(SUB_CATEGORIES[category] || []).map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {getSubCategoryLabel(s)}
+                  </SelectItem>
+                ))}
               </Select>
             </div>
           </div>
@@ -412,32 +412,32 @@ ${!userSession && email ? `\n\n📧 ${t('support.welcomeEmailSent', 'Welcome Ema
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="type">{t('support.type', 'Type')}</Label>
-              <Select value={type} onValueChange={setType}>
-                <SelectTrigger id="type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TYPES.map((t_val) => (
-                    <SelectItem key={t_val} value={t_val}>
-                      {getTypeLabel(t_val)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Select
+                id="type"
+                value={type}
+                onValueChange={setType}
+                placeholder={t('support.typePlaceholder', 'Select type')}
+              >
+                {TYPES.map((t_val) => (
+                  <SelectItem key={t_val} value={t_val}>
+                    {getTypeLabel(t_val)}
+                  </SelectItem>
+                ))}
               </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="priority">{t('support.priority', 'Priority')}</Label>
-              <Select value={priority} onValueChange={setPriority}>
-                <SelectTrigger id="priority">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORITIES.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {getPriorityLabel(p)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Select
+                id="priority"
+                value={priority}
+                onValueChange={setPriority}
+                placeholder={t('support.priorityPlaceholder', 'Select priority')}
+              >
+                {PRIORITIES.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {getPriorityLabel(p)}
+                  </SelectItem>
+                ))}
               </Select>
             </div>
           </div>

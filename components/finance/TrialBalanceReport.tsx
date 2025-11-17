@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { Select, SelectItem } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { AlertTriangle, Loader2, RefreshCw, Download, CheckCircle, XCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { logger } from '@/lib/logger';
@@ -347,30 +347,38 @@ export default function TrialBalanceReport({
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 border-t pt-4">
             <div className="space-y-2">
               <Label htmlFor="fiscal-year">{t('finance.fiscalYear', 'Fiscal Year')}</Label>
-              <Select value={String(year)} onValueChange={(v) => setYear(parseInt(v, 10))} disabled={loading} placeholder={t('finance.selectYear', 'Select year')}>
-                <SelectTrigger id="fiscal-year">
-                </SelectTrigger>
-                <SelectContent>
-                  {[...Array(5)].map((_, i) => {
-                    const y = new Date().getFullYear() - i;
-                    return <SelectItem key={y} value={String(y)}>{y}</SelectItem>;
-                  })}
-                </SelectContent>
+              <Select
+                id="fiscal-year"
+                value={String(year)}
+                onValueChange={(v) => setYear(parseInt(v, 10))}
+                disabled={loading}
+                placeholder={t('finance.selectYear', 'Select year')}
+              >
+                {[...Array(5)].map((_, i) => {
+                  const y = new Date().getFullYear() - i;
+                  return (
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
+                  );
+                })}
               </Select>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="period">{t('finance.period', 'Period')}</Label>
-              <Select value={String(period)} onValueChange={(v) => setPeriod(parseInt(v, 10))} disabled={loading} placeholder={t('finance.selectPeriod', 'Select period')}>
-                <SelectTrigger id="period">
-                </SelectTrigger>
-                <SelectContent>
-                  {[...Array(12)].map((_, i) => (
-                    <SelectItem key={i + 1} value={String(i + 1)}>
-                      {new Date(2000, i).toLocaleString(locale, { month: 'long' })} ({i + 1})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Select
+                id="period"
+                value={String(period)}
+                onValueChange={(v) => setPeriod(parseInt(v, 10))}
+                disabled={loading}
+                placeholder={t('finance.selectPeriod', 'Select period')}
+              >
+                {[...Array(12)].map((_, i) => (
+                  <SelectItem key={i + 1} value={String(i + 1)}>
+                    {new Date(2000, i).toLocaleString(locale, { month: 'long' })} ({i + 1})
+                  </SelectItem>
+                ))}
               </Select>
             </div>
 

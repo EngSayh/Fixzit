@@ -5,12 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select';
+import { Select, SelectItem } from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -184,14 +179,15 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
           </div>
 
           {/* Status Filter */}
-          <Select value={statusFilter} onValueChange={handleStatusFilter}>
-            <SelectTrigger className="w-full md:w-[200px]">
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                <span>{statusFilter === 'all' ? 'الحالة (Status)' : statusFilter}</span>
-              </div>
-            </SelectTrigger>
-            <SelectContent>
+          <div className="relative w-full md:w-[200px]">
+            <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Select
+              value={statusFilter}
+              onValueChange={handleStatusFilter}
+              placeholder="الحالة (Status)"
+              className="pl-9"
+              wrapperClassName="w-full"
+            >
               <SelectItem value="all">جميع الحالات (All)</SelectItem>
               <SelectItem value="filed">تم التقديم</SelectItem>
               <SelectItem value="under-investigation">قيد التحقيق</SelectItem>
@@ -201,18 +197,19 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
               <SelectItem value="rejected">مرفوض</SelectItem>
               <SelectItem value="under-appeal">قيد الاستئناف</SelectItem>
               <SelectItem value="closed">مغلق</SelectItem>
-            </SelectContent>
-          </Select>
+            </Select>
+          </div>
 
           {/* Type Filter */}
-          <Select value={typeFilter} onValueChange={handleTypeFilter}>
-            <SelectTrigger className="w-full md:w-[200px]">
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                <span>{typeFilter === 'all' ? 'النوع (Type)' : typeFilter}</span>
-              </div>
-            </SelectTrigger>
-            <SelectContent>
+          <div className="relative w-full md:w-[200px]">
+            <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Select
+              value={typeFilter}
+              onValueChange={handleTypeFilter}
+              placeholder="النوع (Type)"
+              className="pl-9"
+              wrapperClassName="w-full"
+            >
               <SelectItem value="all">جميع الأنواع (All)</SelectItem>
               <SelectItem value="item-not-received">لم أستلم السلعة</SelectItem>
               <SelectItem value="defective">السلعة معيبة</SelectItem>
@@ -220,8 +217,8 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
               <SelectItem value="wrong-item">سلعة خاطئة</SelectItem>
               <SelectItem value="missing-parts">أجزاء ناقصة</SelectItem>
               <SelectItem value="counterfeit">سلعة مزيفة</SelectItem>
-            </SelectContent>
-          </Select>
+            </Select>
+          </div>
         </div>
 
         {/* Claims Table */}
