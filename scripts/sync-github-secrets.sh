@@ -160,15 +160,35 @@ fi
 if [ -z "$USER_ID" ]; then
     while true; do
         read -p "MongoDB user _id (24-char hex, or Enter to skip): " USER_ID
-        break
+        if [ -z "$USER_ID" ]; then
+            break
+        elif [[ "$USER_ID" =~ ^[0-9a-fA-F]{24}$ ]]; then
+            break
+        else
+            echo "  ⚠️  Invalid format. Must be 24 hexadecimal characters."
+        fi
     done
+    
     while true; do
         read -p "Test email (or Enter to skip): " USER_EMAIL
-        break
+        if [ -z "$USER_EMAIL" ]; then
+            break
+        elif [[ "$USER_EMAIL" =~ @.+\..+ ]]; then
+            break
+        else
+            echo "  ⚠️  Invalid format. Must contain @ and domain."
+        fi
     done
+    
     while true; do
         read -p "Test phone (+966XXXXXXXXX, or Enter to skip): " USER_PHONE
-        break
+        if [ -z "$USER_PHONE" ]; then
+            break
+        elif [[ "$USER_PHONE" =~ ^\+966[0-9]{9}$ ]]; then
+            break
+        else
+            echo "  ⚠️  Invalid format. Must be +966 followed by 9 digits."
+        fi
     done
 fi
 
@@ -227,13 +247,13 @@ PYEOF
 }
 
 # Update or add all notification credentials (only non-empty values)
-update_or_append "NOTIFICATIONS_SMOKE_USER_ID" "${USER_ID}"
-update_or_append "NOTIFICATIONS_SMOKE_EMAIL" "${USER_EMAIL}"
-update_or_append "NOTIFICATIONS_SMOKE_PHONE" "${USER_PHONE}"
-update_or_append "SENDGRID_API_KEY" "${SENDGRID_KEY}"
-update_or_append "TWILIO_ACCOUNT_SID" "${TWILIO_SID}"
-update_or_append "TWILIO_AUTH_TOKEN" "${TWILIO_TOKEN}"
-update_or_append "TWILIO_PHONE_NUMBER" "${TWILIO_PHONE}"
+update_or_append "NOTIFICATIONS_SMOKE_USER_ID" "${USER_ID}" || exit 1
+update_or_append "NOTIFICATIONS_SMOKE_EMAIL" "${USER_EMAIL}" || exit 1
+update_or_append "NOTIFICATIONS_SMOKE_PHONE" "${USER_PHONE}" || exit 1
+update_or_append "SENDGRID_API_KEY" "${SENDGRID_KEY}" || exit 1
+update_or_append "TWILIO_ACCOUNT_SID" "${TWILIO_SID}" || exit 1
+update_or_append "TWILIO_AUTH_TOKEN" "${TWILIO_TOKEN}" || exit 1
+update_or_append "TWILIO_PHONE_NUMBER" "${TWILIO_PHONE}" || exit 1
 
 echo ""
 echo "✅ Done! Updated .env.local with real credentials"
