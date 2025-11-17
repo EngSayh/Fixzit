@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'crypto';
-import { logger } from '@/lib/logger';
+import { logger } from './logger';
 
 const REGIONS: Record<string,string> = {
   KSA: 'https://secure.paytabs.sa', UAE: 'https://secure.paytabs.com',
@@ -193,6 +193,98 @@ function generateSignature(payload: Record<string, unknown>): string {
   const hmac = createHmac('sha256', PAYTABS_CONFIG.serverKey);
   hmac.update(canonicalString);
   return hmac.digest('hex');
+}
+
+export interface PaytabsPayoutRequest {
+  amount: number;
+  currency: string;
+  reference: string;
+  description?: string;
+  beneficiary: {
+    name: string;
+    iban: string;
+    bank?: string;
+    accountNumber?: string;
+  };
+  metadata?: Record<string, unknown>;
+}
+
+export type PaytabsPayoutResult =
+  | { success: true; payoutId: string; status?: string }
+  | { success: false; error: string };
+
+export async function createPayout(input: PaytabsPayoutRequest): Promise<PaytabsPayoutResult> {
+  validatePayTabsConfig();
+
+  const payload = {
+    profile_id: PAYTABS_CONFIG.profileId,
+    payout_reference: input.reference,
+    payout_amount: input.amount.toFixed(2),
+    payout_currency: input.currency,
+    payout_description: input.description ?? 'Fixzit payout',
+    beneficiary: {
+      name: input.beneficiary.name,
+      iban: input.beneficiary.iban,
+      bank: input.beneficiary.bank,
+      account_number: input.beneficiary.accountNumber,
+    },
+    metadata: input.metadata,
+  };
+
+  try {
+    const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/payouts`, {
+      method: 'POST',
+      headers: {
+        Authorization: PAYTABS_CONFIG.serverKey!,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      const errorMessage = data?.message || response.statusText || 'Payout request failed';
+      return { success: false, error: errorMessage };
+    }
+
+    return {
+      success: true,
+      payoutId: data?.payout_id ?? input.reference,
+      status: data?.payout_status,
+    };
+  } catch (error) {
+    logger.error('PayTabs payout error', { error });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'PayTabs payout error',
+    };
+  }
+}
+
+export async function queryPayoutStatus(payoutId: string): Promise<Record<string, unknown>> {
+  validatePayTabsConfig();
+
+  const response = await fetch(`${PAYTABS_CONFIG.baseUrl}/payment/payouts/query`, {
+    method: 'POST',
+    headers: {
+      Authorization: PAYTABS_CONFIG.serverKey!,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      profile_id: PAYTABS_CONFIG.profileId,
+      payout_id: payoutId,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const message = data?.message || response.statusText || 'Failed to query payout';
+    throw new Error(message);
+  }
+
+  return data as Record<string, unknown>;
 }
 
 // Payment methods supported in Saudi Arabia

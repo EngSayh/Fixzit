@@ -1,702 +1,1812 @@
 {
   "stats": {
-    "files": 500,
-    "usedKeys": 2179,
+    "files": 630,
+    "usedKeys": 2374,
     "hasDynamic": true,
-    "enCount": 2587,
-    "arCount": 2551,
-    "parityGap": 36
->>>>>>> feat/souq-marketplace-advanced
+    "enCount": 2729,
+    "arCount": 2729,
+    "parityGap": 0
   },
   "missing": {
-    "inAr": [
-      "marketplace.sellerOnboarding.progress.business",
-      "marketplace.sellerOnboarding.progress.contact",
-      "marketplace.sellerOnboarding.progress.kyc",
-      "marketplace.sellerOnboarding.progress.banking",
-      "marketplace.sellerOnboarding.headings.business",
-      "marketplace.sellerOnboarding.headings.contact",
-      "marketplace.sellerOnboarding.headings.kyc",
-      "marketplace.sellerOnboarding.headings.banking",
-      "marketplace.sellerOnboarding.fields.businessName",
-      "marketplace.sellerOnboarding.fields.businessType",
-      "marketplace.sellerOnboarding.fields.taxId",
-      "marketplace.sellerOnboarding.fields.contactName",
-      "marketplace.sellerOnboarding.fields.email",
-      "marketplace.sellerOnboarding.fields.phone",
-      "marketplace.sellerOnboarding.fields.address",
-      "marketplace.sellerOnboarding.fields.bankName",
-      "marketplace.sellerOnboarding.fields.accountNumber",
-      "marketplace.sellerOnboarding.fields.iban",
-      "marketplace.sellerOnboarding.options.selectType",
-      "marketplace.sellerOnboarding.options.soleProprietor",
-      "marketplace.sellerOnboarding.options.llc",
-      "marketplace.sellerOnboarding.options.corporation",
-      "marketplace.sellerOnboarding.documents.commercial",
-      "marketplace.sellerOnboarding.documents.tax",
-      "marketplace.sellerOnboarding.documents.hint",
-      "marketplace.sellerOnboarding.documents.chooseFile",
-      "marketplace.sellerOnboarding.errors.fileType",
-      "marketplace.sellerOnboarding.errors.fileSize",
-      "marketplace.sellerOnboarding.errors.stepRequired",
-      "marketplace.sellerOnboarding.errors.required",
-      "marketplace.sellerOnboarding.errors.submitFailed",
-      "marketplace.sellerOnboarding.banking.info",
-      "marketplace.sellerOnboarding.buttons.previous",
-      "marketplace.sellerOnboarding.buttons.next",
-      "marketplace.sellerOnboarding.buttons.submit",
-      "marketplace.sellerOnboarding.buttons.submitting"
-    ],
+    "inAr": [],
     "inEn": [],
     "used": [
       {
-        "key": "admin.redirecting",
-        "bare": "admin.redirecting",
+        "key": "aqar.map.auctions",
+        "bare": "aqar.map.auctions",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/admin/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/map/page.tsx"
         ]
       },
       {
-        "key": "admin.users.table.unknownUser",
-        "bare": "admin.users.table.unknownUser",
+        "key": "aqar.map.rnpl",
+        "bare": "aqar.map.rnpl",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/map/page.tsx"
         ]
       },
       {
-        "key": "admin.users.table.roleFallback",
-        "bare": "admin.users.table.roleFallback",
+        "key": "aqar.map.legend",
+        "bare": "aqar.map.legend",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/map/page.tsx"
         ]
       },
       {
-        "key": "admin.users.table.noActivity",
-        "bare": "admin.users.table.noActivity",
+        "key": "aqar.compliance.title",
+        "bare": "aqar.compliance.title",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "admin.users.table.departmentFallback",
-        "bare": "admin.users.table.departmentFallback",
+        "key": "aqar.compliance.desc",
+        "bare": "aqar.compliance.desc",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "admin.settings.fields.orgName",
-        "bare": "admin.settings.fields.orgName",
+        "key": "aqar.compliance.nafath",
+        "bare": "aqar.compliance.nafath",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "admin.settings.fields.timezone",
-        "bare": "admin.settings.fields.timezone",
+        "key": "aqar.compliance.nafath.desc",
+        "bare": "aqar.compliance.nafath.desc",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "admin.settings.fields.language",
-        "bare": "admin.settings.fields.language",
+        "key": "aqar.compliance.foreign",
+        "bare": "aqar.compliance.foreign",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "admin.settings.fields.featureToggle",
-        "bare": "admin.settings.fields.featureToggle",
+        "key": "aqar.compliance.foreign.desc",
+        "bare": "aqar.compliance.foreign.desc",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "admin.tabs.tenants",
-        "bare": "admin.tabs.tenants",
+        "key": "aqar.compliance.rnpl",
+        "bare": "aqar.compliance.rnpl",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "admin.tabs.billing",
-        "bare": "admin.tabs.billing",
+        "key": "aqar.compliance.rnpl.desc",
+        "bare": "aqar.compliance.rnpl.desc",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "admin.tenants.title",
-        "bare": "admin.tenants.title",
+        "key": "aqar.compliance.auctionCta",
+        "bare": "aqar.compliance.auctionCta",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "admin.tenants.subtitle",
-        "bare": "admin.tenants.subtitle",
+        "key": "aqar.compliance.rnplCta",
+        "bare": "aqar.compliance.rnplCta",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "admin.tenants.placeholder",
-        "bare": "admin.tenants.placeholder",
+        "key": "aqar.vr.tag",
+        "bare": "aqar.vr.tag",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "admin.billing.title",
-        "bare": "admin.billing.title",
+        "key": "aqar.vr.title",
+        "bare": "aqar.vr.title",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "admin.billing.subtitle",
-        "bare": "admin.billing.subtitle",
+        "key": "aqar.vr.desc",
+        "bare": "aqar.vr.desc",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "admin.billing.placeholder",
-        "bare": "admin.billing.placeholder",
+        "key": "aqar.vr.point1",
+        "bare": "aqar.vr.point1",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "compliance.title",
-        "bare": "compliance.title",
+        "key": "aqar.vr.point2",
+        "bare": "aqar.vr.point2",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/compliance/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "compliance.description",
-        "bare": "compliance.description",
+        "key": "aqar.vr.point3",
+        "bare": "aqar.vr.point3",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/compliance/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "crm.title",
-        "bare": "crm.title",
+        "key": "aqar.vr.demo",
+        "bare": "aqar.vr.demo",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/crm/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
         ]
       },
       {
-        "key": "crm.description",
-        "bare": "crm.description",
+        "key": "aqar.properties.badge.rnpl",
+        "bare": "aqar.properties.badge.rnpl",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/crm/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/properties/page.tsx"
         ]
       },
       {
-        "key": "dashboard.welcomeBack",
-        "bare": "dashboard.welcomeBack",
+        "key": "aqar.properties.badge.auction",
+        "bare": "aqar.properties.badge.auction",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/dashboard/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/properties/page.tsx"
         ]
       },
       {
-        "key": "common.user",
-        "bare": "common.user",
+        "key": "finance.reports.title",
+        "bare": "finance.reports.title",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/dashboard/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/page.tsx"
         ]
       },
       {
-        "key": "dashboard.sarPending",
-        "bare": "dashboard.sarPending",
+        "key": "finance.reports.subtitle",
+        "bare": "finance.reports.subtitle",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/dashboard/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/page.tsx"
         ]
       },
       {
-        "key": "marketplace.sellerOnboarding.errors.fileType",
-        "bare": "marketplace.sellerOnboarding.errors.fileType",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.errors.fileSize",
-        "bare": "marketplace.sellerOnboarding.errors.fileSize",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.errors.stepRequired",
-        "bare": "marketplace.sellerOnboarding.errors.stepRequired",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.errors.required",
-        "bare": "marketplace.sellerOnboarding.errors.required",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.errors.submitFailed",
-        "bare": "marketplace.sellerOnboarding.errors.submitFailed",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.progress.business",
-        "bare": "marketplace.sellerOnboarding.progress.business",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.progress.contact",
-        "bare": "marketplace.sellerOnboarding.progress.contact",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.progress.kyc",
-        "bare": "marketplace.sellerOnboarding.progress.kyc",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.progress.banking",
-        "bare": "marketplace.sellerOnboarding.progress.banking",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.headings.business",
-        "bare": "marketplace.sellerOnboarding.headings.business",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.headings.contact",
-        "bare": "marketplace.sellerOnboarding.headings.contact",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.headings.kyc",
-        "bare": "marketplace.sellerOnboarding.headings.kyc",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.headings.banking",
-        "bare": "marketplace.sellerOnboarding.headings.banking",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.fields.businessName",
-        "bare": "marketplace.sellerOnboarding.fields.businessName",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.fields.businessType",
-        "bare": "marketplace.sellerOnboarding.fields.businessType",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.options.selectType",
-        "bare": "marketplace.sellerOnboarding.options.selectType",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.options.soleProprietor",
-        "bare": "marketplace.sellerOnboarding.options.soleProprietor",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.options.llc",
-        "bare": "marketplace.sellerOnboarding.options.llc",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.options.corporation",
-        "bare": "marketplace.sellerOnboarding.options.corporation",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.fields.taxId",
-        "bare": "marketplace.sellerOnboarding.fields.taxId",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.fields.contactName",
-        "bare": "marketplace.sellerOnboarding.fields.contactName",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.fields.email",
-        "bare": "marketplace.sellerOnboarding.fields.email",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.fields.phone",
-        "bare": "marketplace.sellerOnboarding.fields.phone",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.fields.address",
-        "bare": "marketplace.sellerOnboarding.fields.address",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.documents.commercial",
-        "bare": "marketplace.sellerOnboarding.documents.commercial",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.documents.hint",
-        "bare": "marketplace.sellerOnboarding.documents.hint",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx",
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.documents.chooseFile",
-        "bare": "marketplace.sellerOnboarding.documents.chooseFile",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx",
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.documents.tax",
-        "bare": "marketplace.sellerOnboarding.documents.tax",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.banking.info",
-        "bare": "marketplace.sellerOnboarding.banking.info",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.fields.bankName",
-        "bare": "marketplace.sellerOnboarding.fields.bankName",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.fields.accountNumber",
-        "bare": "marketplace.sellerOnboarding.fields.accountNumber",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.fields.iban",
-        "bare": "marketplace.sellerOnboarding.fields.iban",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.buttons.previous",
-        "bare": "marketplace.sellerOnboarding.buttons.previous",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.buttons.next",
-        "bare": "marketplace.sellerOnboarding.buttons.next",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.buttons.submitting",
-        "bare": "marketplace.sellerOnboarding.buttons.submitting",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "marketplace.sellerOnboarding.buttons.submit",
-        "bare": "marketplace.sellerOnboarding.buttons.submit",
-        "inEN": true,
-        "inAR": false,
-        "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
-        ]
-      },
-      {
-        "key": "properties.title",
-        "bare": "properties.title",
+        "key": "login.errors.rateLimited",
+        "bare": "login.errors.rateLimited",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/properties/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx",
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx"
         ]
       },
       {
-        "key": "properties.description",
-        "bare": "properties.description",
+        "key": "login.errors.noPhone",
+        "bare": "login.errors.noPhone",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/properties/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx"
         ]
       },
       {
-        "key": "support.title",
-        "bare": "support.title",
+        "key": "login.errors.otpFailed",
+        "bare": "login.errors.otpFailed",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/support/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx"
         ]
       },
       {
-        "key": "vendors.title",
-        "bare": "vendors.title",
+        "key": "otp.errors.sessionExpired",
+        "bare": "otp.errors.sessionExpired",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/vendors/page.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx"
         ]
       },
       {
-        "key": "sidebar.expand",
-        "bare": "sidebar.expand",
+        "key": "otp.errors.resendFailed",
+        "bare": "otp.errors.resendFailed",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx",
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
         ]
       },
       {
-        "key": "sidebar.collapse",
-        "bare": "sidebar.collapse",
+        "key": "otp.errors.networkError",
+        "bare": "otp.errors.networkError",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx",
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx",
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
         ]
       },
       {
-        "key": "support.modules.",
-        "bare": "support.modules.",
+        "key": "marketplace.claims.buyer.title",
+        "bare": "marketplace.claims.buyer.title",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/SupportPopup.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/buyer/claims/page.tsx"
         ]
       },
       {
-        "key": "support.categories.",
-        "bare": "support.categories.",
+        "key": "marketplace.claims.buyer.subtitle",
+        "bare": "marketplace.claims.buyer.subtitle",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/SupportPopup.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/buyer/claims/page.tsx"
         ]
       },
       {
-        "key": "support.subCategories.",
-        "bare": "support.subCategories.",
+        "key": "marketplace.claims.buyer.newClaim",
+        "bare": "marketplace.claims.buyer.newClaim",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/SupportPopup.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/buyer/claims/page.tsx"
         ]
       },
       {
-        "key": "support.types.",
-        "bare": "support.types.",
+        "key": "marketplace.claims.seller.title",
+        "bare": "marketplace.claims.seller.title",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/SupportPopup.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/claims/page.tsx"
         ]
       },
       {
-        "key": "support.priorities.",
-        "bare": "support.priorities.",
+        "key": "marketplace.claims.seller.subtitle",
+        "bare": "marketplace.claims.seller.subtitle",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/SupportPopup.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/claims/page.tsx"
         ]
       },
       {
-        "key": "finance.accountType.",
-        "bare": "finance.accountType.",
+        "key": "marketplace.claims.seller.importantNotice",
+        "bare": "marketplace.claims.seller.importantNotice",
         "inEN": false,
         "inAR": false,
         "files": [
-          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/TrialBalanceReport.tsx"
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/claims/page.tsx"
+        ]
+      },
+      {
+        "key": "marketplace.claims.seller.responseDeadline",
+        "bare": "marketplace.claims.seller.responseDeadline",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/claims/page.tsx"
+        ]
+      },
+      {
+        "key": "marketplace.claims.seller.respondToClaim",
+        "bare": "marketplace.claims.seller.respondToClaim",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/claims/page.tsx"
+        ]
+      },
+      {
+        "key": "marketplace.claims.seller.respondToClaimSubtitle",
+        "bare": "marketplace.claims.seller.respondToClaimSubtitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/claims/page.tsx"
+        ]
+      },
+      {
+        "key": "marketplace.settlements.withdrawalSuccess",
+        "bare": "marketplace.settlements.withdrawalSuccess",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/settlements/page.tsx"
+        ]
+      },
+      {
+        "key": "marketplace.settlements.pleaseLogin",
+        "bare": "marketplace.settlements.pleaseLogin",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/settlements/page.tsx"
+        ]
+      },
+      {
+        "key": "marketplace.settlements.mustBeSeller",
+        "bare": "marketplace.settlements.mustBeSeller",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/settlements/page.tsx"
+        ]
+      },
+      {
+        "key": "marketplace.settlements.loading",
+        "bare": "marketplace.settlements.loading",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/settlements/page.tsx"
+        ]
+      },
+      {
+        "key": "marketplace.settlements.title",
+        "bare": "marketplace.settlements.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/settlements/page.tsx"
+        ]
+      },
+      {
+        "key": "marketplace.settlements.tabs.transactions",
+        "bare": "marketplace.settlements.tabs.transactions",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/settlements/page.tsx"
+        ]
+      },
+      {
+        "key": "marketplace.settlements.tabs.statements",
+        "bare": "marketplace.settlements.tabs.statements",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/settlements/page.tsx"
+        ]
+      },
+      {
+        "key": "marketplace.settlements.comingSoon",
+        "bare": "marketplace.settlements.comingSoon",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/settlements/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.features.catalog.title",
+        "bare": "souq.features.catalog.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.features.catalog.description",
+        "bare": "souq.features.catalog.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.features.vendors.title",
+        "bare": "souq.features.vendors.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.features.vendors.description",
+        "bare": "souq.features.vendors.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.features.rfqs.title",
+        "bare": "souq.features.rfqs.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.features.rfqs.description",
+        "bare": "souq.features.rfqs.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.features.orders.title",
+        "bare": "souq.features.orders.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.features.orders.description",
+        "bare": "souq.features.orders.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.features.shipping.title",
+        "bare": "souq.features.shipping.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.features.shipping.description",
+        "bare": "souq.features.shipping.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.features.reviews.title",
+        "bare": "souq.features.reviews.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.features.reviews.description",
+        "bare": "souq.features.reviews.description",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.hero.title",
+        "bare": "souq.hero.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.hero.subtitle",
+        "bare": "souq.hero.subtitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.hero.browseCatalog",
+        "bare": "souq.hero.browseCatalog",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.hero.viewVendors",
+        "bare": "souq.hero.viewVendors",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "souq.features.title",
+        "bare": "souq.features.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.errors.historyFetch",
+        "bare": "admin.notifications.errors.historyFetch",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.errors.noChannels",
+        "bare": "admin.notifications.errors.noChannels",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.errors.emptyFields",
+        "bare": "admin.notifications.errors.emptyFields",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.success",
+        "bare": "admin.notifications.success",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.errors.sendFailed",
+        "bare": "admin.notifications.errors.sendFailed",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.subtitle",
+        "bare": "admin.notifications.subtitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.hideHistory",
+        "bare": "admin.notifications.hideHistory",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.showHistory",
+        "bare": "admin.notifications.showHistory",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.recipientType",
+        "bare": "admin.notifications.recipientType",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.recipients.users",
+        "bare": "admin.notifications.recipients.users",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.recipients.tenants",
+        "bare": "admin.notifications.recipients.tenants",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.recipients.corporate",
+        "bare": "admin.notifications.recipients.corporate",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.recipients.all",
+        "bare": "admin.notifications.recipients.all",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.channels",
+        "bare": "admin.notifications.channels",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.comingSoon",
+        "bare": "admin.notifications.comingSoon",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.message",
+        "bare": "admin.notifications.message",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.priority",
+        "bare": "admin.notifications.priority",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.priority.low",
+        "bare": "admin.notifications.priority.low",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.priority.normal",
+        "bare": "admin.notifications.priority.normal",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.priority.high",
+        "bare": "admin.notifications.priority.high",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.priority.urgent",
+        "bare": "admin.notifications.priority.urgent",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.subject",
+        "bare": "admin.notifications.subject",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.subjectPlaceholder",
+        "bare": "admin.notifications.subjectPlaceholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.messageBody",
+        "bare": "admin.notifications.messageBody",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.messagePlaceholder",
+        "bare": "admin.notifications.messagePlaceholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.characters",
+        "bare": "admin.notifications.characters",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.preview",
+        "bare": "admin.notifications.preview",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.to",
+        "bare": "admin.notifications.to",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.via",
+        "bare": "admin.notifications.via",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.none",
+        "bare": "admin.notifications.none",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.noSubject",
+        "bare": "admin.notifications.noSubject",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.noMessage",
+        "bare": "admin.notifications.noMessage",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.sending",
+        "bare": "admin.notifications.sending",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.send",
+        "bare": "admin.notifications.send",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.important",
+        "bare": "admin.notifications.important",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.info.1",
+        "bare": "admin.notifications.info.1",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.info.2",
+        "bare": "admin.notifications.info.2",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.info.3",
+        "bare": "admin.notifications.info.3",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.info.4",
+        "bare": "admin.notifications.info.4",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.historyTitle",
+        "bare": "admin.notifications.historyTitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.noHistory",
+        "bare": "admin.notifications.noHistory",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "admin.notifications.sentBy",
+        "bare": "admin.notifications.sentBy",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+        ]
+      },
+      {
+        "key": "communications.title",
+        "bare": "communications.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.subtitle",
+        "bare": "communications.subtitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.export",
+        "bare": "communications.export",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.refresh",
+        "bare": "communications.refresh",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.stats.totalSent",
+        "bare": "communications.stats.totalSent",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.stats.deliveryRate",
+        "bare": "communications.stats.deliveryRate",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.stats.failureRate",
+        "bare": "communications.stats.failureRate",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.stats.byChannel",
+        "bare": "communications.stats.byChannel",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.search",
+        "bare": "communications.search",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.filter.allChannels",
+        "bare": "communications.filter.allChannels",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.filter.allStatuses",
+        "bare": "communications.filter.allStatuses",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.table.date",
+        "bare": "communications.table.date",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.table.user",
+        "bare": "communications.table.user",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.table.channel",
+        "bare": "communications.table.channel",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.table.recipient",
+        "bare": "communications.table.recipient",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.table.status",
+        "bare": "communications.table.status",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.table.message",
+        "bare": "communications.table.message",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.table.actions",
+        "bare": "communications.table.actions",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.loading",
+        "bare": "communications.loading",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.noData",
+        "bare": "communications.noData",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.view",
+        "bare": "communications.view",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.previous",
+        "bare": "communications.previous",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.page",
+        "bare": "communications.page",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.of",
+        "bare": "communications.of",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.next",
+        "bare": "communications.next",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.details.title",
+        "bare": "communications.details.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.details.user",
+        "bare": "communications.details.user",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.details.channel",
+        "bare": "communications.details.channel",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.details.status",
+        "bare": "communications.details.status",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.details.recipient",
+        "bare": "communications.details.recipient",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.details.subject",
+        "bare": "communications.details.subject",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.details.message",
+        "bare": "communications.details.message",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.details.sent",
+        "bare": "communications.details.sent",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.details.delivered",
+        "bare": "communications.details.delivered",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.details.error",
+        "bare": "communications.details.error",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "communications.details.metadata",
+        "bare": "communications.details.metadata",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+        ]
+      },
+      {
+        "key": "otp.errors.invalid",
+        "bare": "otp.errors.invalid",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "otp.errors.verifyFailed",
+        "bare": "otp.errors.verifyFailed",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "otp.title",
+        "bare": "otp.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "otp.subtitle",
+        "bare": "otp.subtitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "otp.devModeTitle",
+        "bare": "otp.devModeTitle",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "otp.useDevCode",
+        "bare": "otp.useDevCode",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "otp.devModeDescription",
+        "bare": "otp.devModeDescription",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "otp.label",
+        "bare": "otp.label",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "otp.expiresIn",
+        "bare": "otp.expiresIn",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "otp.expired",
+        "bare": "otp.expired",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "otp.verifying",
+        "bare": "otp.verifying",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "otp.verify",
+        "bare": "otp.verify",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "otp.didntReceive",
+        "bare": "otp.didntReceive",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "otp.resending",
+        "bare": "otp.resending",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "otp.resendIn",
+        "bare": "otp.resendIn",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "otp.resend",
+        "bare": "otp.resend",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "otp.backToLogin",
+        "bare": "otp.backToLogin",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+        ]
+      },
+      {
+        "key": "finance.balance.error",
+        "bare": "finance.balance.error",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx",
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.balance.title",
+        "bare": "finance.balance.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.balance.asOf",
+        "bare": "finance.balance.asOf",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.balance.assets",
+        "bare": "finance.balance.assets",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.balance.liabilities",
+        "bare": "finance.balance.liabilities",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.balance.equity",
+        "bare": "finance.balance.equity",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.balance.ok",
+        "bare": "finance.balance.ok",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.balance.notOk",
+        "bare": "finance.balance.notOk",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.income.error",
+        "bare": "finance.income.error",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/IncomeStatementWidget.tsx",
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/IncomeStatementWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.income.title",
+        "bare": "finance.income.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/IncomeStatementWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.income.period",
+        "bare": "finance.income.period",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/IncomeStatementWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.income.revenue",
+        "bare": "finance.income.revenue",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/IncomeStatementWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.income.expense",
+        "bare": "finance.income.expense",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/IncomeStatementWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.income.net",
+        "bare": "finance.income.net",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/IncomeStatementWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.owner.error",
+        "bare": "finance.owner.error",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx",
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.owner.title",
+        "bare": "finance.owner.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.owner.propertyId",
+        "bare": "finance.owner.propertyId",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.owner.prompt",
+        "bare": "finance.owner.prompt",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.owner.period",
+        "bare": "finance.owner.period",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.owner.opening",
+        "bare": "finance.owner.opening",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.owner.charges",
+        "bare": "finance.owner.charges",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.owner.receipts",
+        "bare": "finance.owner.receipts",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+        ]
+      },
+      {
+        "key": "finance.owner.ending",
+        "bare": "finance.owner.ending",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+        ]
+      },
+      {
+        "key": "status.dispatched",
+        "bare": "status.dispatched",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+        ]
+      },
+      {
+        "key": "status.inProgress",
+        "bare": "status.inProgress",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+        ]
+      },
+      {
+        "key": "status.onHold",
+        "bare": "status.onHold",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+        ]
+      },
+      {
+        "key": "status.verified",
+        "bare": "status.verified",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+        ]
+      },
+      {
+        "key": "status.closed",
+        "bare": "status.closed",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+        ]
+      },
+      {
+        "key": "status.cancelled",
+        "bare": "status.cancelled",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+        ]
+      },
+      {
+        "key": "workOrders.create.button",
+        "bare": "workOrders.create.button",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+        ]
+      },
+      {
+        "key": "workOrders.create.title",
+        "bare": "workOrders.create.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+        ]
+      },
+      {
+        "key": "workOrders.create.form.titleLabel",
+        "bare": "workOrders.create.form.titleLabel",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+        ]
+      },
+      {
+        "key": "workOrders.create.form.descriptionLabel",
+        "bare": "workOrders.create.form.descriptionLabel",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+        ]
+      },
+      {
+        "key": "workOrders.create.form.priorityLabel",
+        "bare": "workOrders.create.form.priorityLabel",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+        ]
+      },
+      {
+        "key": "workOrders.create.form.categoryLabel",
+        "bare": "workOrders.create.form.categoryLabel",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+        ]
+      },
+      {
+        "key": "workOrders.create.form.propertyIdLabel",
+        "bare": "workOrders.create.form.propertyIdLabel",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+        ]
+      },
+      {
+        "key": "workOrders.create.form.propertyIdPlaceholder",
+        "bare": "workOrders.create.form.propertyIdPlaceholder",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+        ]
+      },
+      {
+        "key": "workOrders.create.form.cancelButton",
+        "bare": "workOrders.create.form.cancelButton",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+        ]
+      },
+      {
+        "key": "workOrders.create.form.submitButton",
+        "bare": "workOrders.create.form.submitButton",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+        ]
+      },
+      {
+        "key": "search.results.title",
+        "bare": "search.results.title",
+        "inEN": false,
+        "inAR": false,
+        "files": [
+          "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/CommandPalette.tsx"
         ]
       }
     ]
@@ -759,6 +1869,12 @@
     "about.phoneLabel": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/about/page.tsx"
     ],
+    "marketplace.claims.admin.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/admin/claims/page.tsx"
+    ],
+    "marketplace.claims.admin.subtitle": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/admin/claims/page.tsx"
+    ],
     "admin.footer.accessDenied": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/admin/cms/footer/page.tsx"
     ],
@@ -801,8 +1917,11 @@
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/product/[slug]/page.tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/terms/page.tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/TopBar.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/IncomeStatementWidget.tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/JournalEntryForm.tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/JournalEntryForm.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/TrialBalanceReport.tsx"
     ],
     "admin.footer.pages.about": [
@@ -866,9 +1985,6 @@
     ],
     "admin.cms.loadError": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/admin/cms/page.tsx"
-    ],
-    "admin.cms.loadError": [
-      "/workspaces/Fixzit/app/admin/cms/page.tsx"
     ],
     "save.saving": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/admin/cms/page.tsx"
@@ -986,7 +2102,6 @@
     ],
     "admin.redirecting": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/admin/page.tsx"
->>>>>>> feat/souq-marketplace-advanced
     ],
     "admin.users.table.unknownUser": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
@@ -1077,9 +2192,6 @@
     "admin.settings.errors.save": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
     ],
-    "admin.common.loadingSession": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
-    ],
     "admin.tabs.users": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
     ],
@@ -1092,12 +2204,20 @@
     "admin.tabs.settings": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
     ],
+    "admin.tabs.notifications": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+    ],
+    "admin.tabs.communications": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
+    ],
     "admin.tabs.tenants": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
     ],
     "admin.tabs.billing": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
->>>>>>> feat/souq-marketplace-advanced
+    ],
+    "admin.common.loadingSession": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx"
     ],
     "admin.users.title": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/administration/page.tsx",
@@ -1303,6 +2423,15 @@
     "common.errors.unexpected": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/api/aqar/packages/route.ts"
     ],
+    "ats.errors.jobsFetchFailed": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/api/ats/jobs/route.ts"
+    ],
+    "ats.errors.jobPostLimitExceeded": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/api/ats/jobs/route.ts"
+    ],
+    "ats.errors.jobCreationFailed": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/api/ats/jobs/route.ts"
+    ],
     "aqar.filters.title": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/filters/page.tsx"
     ],
@@ -1390,10 +2519,19 @@
     "aqar.map.avgPrice": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/map/page.tsx"
     ],
+    "aqar.map.auctions": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/map/page.tsx"
+    ],
+    "aqar.map.rnpl": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/map/page.tsx"
+    ],
     "aqar.interactiveMap": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/map/page.tsx"
     ],
     "aqar.interactiveMap.desc": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/map/page.tsx"
+    ],
+    "aqar.map.legend": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/map/page.tsx"
     ],
     "aqar.title": [
@@ -1409,6 +2547,57 @@
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
     ],
     "aqar.realEstateFeatures": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.compliance.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.compliance.desc": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.compliance.nafath": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.compliance.nafath.desc": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.compliance.foreign": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.compliance.foreign.desc": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.compliance.rnpl": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.compliance.rnpl.desc": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.compliance.auctionCta": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.compliance.rnplCta": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.vr.tag": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.vr.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.vr.desc": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.vr.point1": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.vr.point2": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.vr.point3": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
+    ],
+    "aqar.vr.demo": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/page.tsx"
     ],
     "aqar.properties.error": [
@@ -1427,6 +2616,12 @@
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/properties/page.tsx"
     ],
     "aqar.properties.badge.fallback": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/properties/page.tsx"
+    ],
+    "aqar.properties.badge.rnpl": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/properties/page.tsx"
+    ],
+    "aqar.properties.badge.auction": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/properties/page.tsx"
     ],
     "aqar.properties.empty.title": [
@@ -2038,18 +3233,6 @@
     "common.selected": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/expenses/new/page.tsx"
     ],
-    "UNSAFE_DYNAMIC": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/expenses/new/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/ats/jobs/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/attendance/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/employees/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/leave/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/admin/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/orders/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/reports/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/settings/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
-    ],
     "finance.invoice.issueDateRequired": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/invoices/new/page.tsx"
     ],
@@ -2268,6 +3451,12 @@
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/page.tsx"
     ],
     "finance.due": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/page.tsx"
+    ],
+    "finance.reports.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/page.tsx"
+    ],
+    "finance.reports.subtitle": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/page.tsx"
     ],
     "finance.description": [
@@ -2557,7 +3746,8 @@
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/administration/page.tsx"
     ],
     "admin.notifications.title": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/administration/page.tsx"
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/administration/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
     ],
     "admin.notifications.description": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/administration/page.tsx"
@@ -2611,6 +3801,7 @@
     ],
     "sidebar.role": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/administration/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar (1).tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
     ],
     "admin.system.status": [
@@ -2952,14 +4143,16 @@
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/page.tsx"
     ],
     "status.submitted": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/orders/page.tsx"
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/orders/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
     ],
     "status.approved": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/orders/page.tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/vendors/page.tsx"
     ],
     "status.completed": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/orders/page.tsx"
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/orders/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
     ],
     "orders.tabs.purchase": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/orders/page.tsx"
@@ -3267,6 +4460,40 @@
     ],
     "vendor.code": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/vendors/page.tsx"
+    ],
+    "forgotPassword.success.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/forgot-password/page.tsx"
+    ],
+    "forgotPassword.success.message": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/forgot-password/page.tsx"
+    ],
+    "forgotPassword.success.hint": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/forgot-password/page.tsx"
+    ],
+    "forgotPassword.sendAnother": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/forgot-password/page.tsx"
+    ],
+    "forgotPassword.backToLogin": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/forgot-password/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/forgot-password/page.tsx"
+    ],
+    "forgotPassword.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/forgot-password/page.tsx"
+    ],
+    "forgotPassword.subtitle": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/forgot-password/page.tsx"
+    ],
+    "forgotPassword.emailLabel": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/forgot-password/page.tsx"
+    ],
+    "forgotPassword.emailPlaceholder": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/forgot-password/page.tsx"
+    ],
+    "forgotPassword.sending": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/forgot-password/page.tsx"
+    ],
+    "forgotPassword.submit": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/forgot-password/page.tsx"
     ],
     "helpCenter.tutorials.gettingStarted.title": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/help/page.tsx"
@@ -3605,6 +4832,15 @@
     "hr.ats.jobs.notPublished": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/ats/jobs/page.tsx"
     ],
+    "UNSAFE_DYNAMIC": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/ats/jobs/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/attendance/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/leave/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/admin/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/orders/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/reports/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/hooks/usePageLabels.ts"
+    ],
     "hr.attendance.filters.all": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/attendance/page.tsx"
     ],
@@ -3690,18 +4926,6 @@
     ],
     "hr.attendance.minutes": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/attendance/page.tsx"
-    ],
-    "hr.employees.status.active": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/employees/page.tsx"
-    ],
-    "hr.employees.status.inactive": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/employees/page.tsx"
-    ],
-    "hr.employees.status.onLeave": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/employees/page.tsx"
-    ],
-    "hr.employees.status.terminated": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/employees/page.tsx"
     ],
     "hr.employees.title": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/employees/page.tsx"
@@ -4038,11 +5262,13 @@
     ],
     "hr.settings.subtitle": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/settings/page.tsx"
->>>>>>> feat/souq-marketplace-advanced
     ],
     "common.refresh": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/settings/page.tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/work-orders/sla-watchlist/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/IncomeStatementWidget.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/TrialBalanceReport.tsx"
     ],
     "hr.settings.leaveTypes.title": [
@@ -4115,15 +5341,39 @@
     ],
     "login.errors.invalidCredentials": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/LoginForm.tsx"
+    ],
+    "login.errors.rateLimited": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx"
+    ],
+    "login.errors.noPhone": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx"
+    ],
+    "login.errors.otpFailed": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx"
+    ],
+    "login.errors.networkError": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/LoginForm.tsx"
     ],
     "login.errors.loginFailed": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/LoginForm.tsx"
     ],
-    "login.errors.networkError": [
+    "otp.errors.sessionExpired": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx"
+    ],
+    "otp.errors.resendFailed": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/LoginForm.tsx"
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.errors.networkError": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
     ],
     "login.success.title": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx",
@@ -4278,6 +5528,15 @@
     ],
     "marketplace.admin.error": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/admin/page.tsx"
+    ],
+    "marketplace.claims.buyer.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/buyer/claims/page.tsx"
+    ],
+    "marketplace.claims.buyer.subtitle": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/buyer/claims/page.tsx"
+    ],
+    "marketplace.claims.buyer.newClaim": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/buyer/claims/page.tsx"
     ],
     "marketplace.cart.title": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/cart/page.tsx"
@@ -4602,6 +5861,48 @@
     "marketplace.sellerOnboarding.buttons.submit": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller/onboarding/page.tsx"
     ],
+    "marketplace.claims.seller.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/claims/page.tsx"
+    ],
+    "marketplace.claims.seller.subtitle": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/claims/page.tsx"
+    ],
+    "marketplace.claims.seller.importantNotice": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/claims/page.tsx"
+    ],
+    "marketplace.claims.seller.responseDeadline": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/claims/page.tsx"
+    ],
+    "marketplace.claims.seller.respondToClaim": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/claims/page.tsx"
+    ],
+    "marketplace.claims.seller.respondToClaimSubtitle": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/claims/page.tsx"
+    ],
+    "marketplace.settlements.withdrawalSuccess": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/settlements/page.tsx"
+    ],
+    "marketplace.settlements.pleaseLogin": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/settlements/page.tsx"
+    ],
+    "marketplace.settlements.mustBeSeller": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/settlements/page.tsx"
+    ],
+    "marketplace.settlements.loading": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/settlements/page.tsx"
+    ],
+    "marketplace.settlements.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/settlements/page.tsx"
+    ],
+    "marketplace.settlements.tabs.transactions": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/settlements/page.tsx"
+    ],
+    "marketplace.settlements.tabs.statements": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/settlements/page.tsx"
+    ],
+    "marketplace.settlements.comingSoon": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/seller-central/settlements/page.tsx"
+    ],
     "marketplace.vendor.profile": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/vendor/portal/page.tsx"
     ],
@@ -4614,48 +5915,6 @@
     ],
     "marketplace.vendor.bulkUpload": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/vendor/portal/page.tsx"
-    ],
-    "common.pages.dashboard": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/not-found.tsx"
-    ],
-    "common.pages.properties": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/not-found.tsx"
-    ],
-    "common.pages.workOrders": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/not-found.tsx"
-    ],
-    "common.pages.marketplace": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/not-found.tsx"
-    ],
-    "common.pages.finance": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/not-found.tsx"
-    ],
-    "common.pages.hr": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/not-found.tsx"
-    ],
-    "common.pages.login": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/not-found.tsx"
-    ],
-    "errors.404.code": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/not-found.tsx"
-    ],
-    "errors.404.title": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/not-found.tsx"
-    ],
-    "errors.404.message": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/not-found.tsx"
-    ],
-    "common.actions.goToHomepage": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/not-found.tsx"
-    ],
-    "common.actions.goBack": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/not-found.tsx"
-    ],
-    "common.popularPages": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/not-found.tsx"
-    ],
-    "errors.404.helpText": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/not-found.tsx"
     ],
     "notifications.toast.noOrgId": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/notifications/page.tsx",
@@ -4825,90 +6084,6 @@
     ],
     "notifications.quickActions.clearAll": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/notifications/page.tsx"
-    ],
-    "landing.title": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.subtitle": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.hero.cta1": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.hero.cta2": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.hero.cta3": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.title": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.property.title": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.property.desc": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.property.cta": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.workorders.title": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.workorders.desc": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.workorders.cta": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.vendors.title": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.vendors.desc": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.vendors.cta": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.finance.title": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.finance.desc": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.finance.cta": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.crm.title": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.crm.desc": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.crm.cta": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.analytics.title": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.analytics.desc": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.features.analytics.cta": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.cta.title": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.cta.subtitle": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.cta.login": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
-    ],
-    "landing.cta.demo": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/page.tsx"
     ],
     "privacy.title": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/privacy/page.tsx",
@@ -5670,18 +6845,6 @@
     "souq.nav.orders": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/catalog/page.tsx"
     ],
-    "time.justNow": [
-      "/workspaces/Fixzit/components/TopBar.tsx"
-    ],
-    "time.mAgo": [
-      "/workspaces/Fixzit/components/TopBar.tsx"
-    ],
-    "time.hAgo": [
-      "/workspaces/Fixzit/components/TopBar.tsx"
-    ],
-    "time.dAgo": [
-      "/workspaces/Fixzit/components/TopBar.tsx"
-    ],
     "common.signIn": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/catalog/page.tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/TopBar.tsx"
@@ -5751,6 +6914,57 @@
     ],
     "souq.catalog.footer.cta": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/catalog/page.tsx"
+    ],
+    "souq.features.catalog.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+    ],
+    "souq.features.catalog.description": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+    ],
+    "souq.features.vendors.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+    ],
+    "souq.features.vendors.description": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+    ],
+    "souq.features.rfqs.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+    ],
+    "souq.features.rfqs.description": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+    ],
+    "souq.features.orders.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+    ],
+    "souq.features.orders.description": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+    ],
+    "souq.features.shipping.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+    ],
+    "souq.features.shipping.description": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+    ],
+    "souq.features.reviews.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+    ],
+    "souq.features.reviews.description": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+    ],
+    "souq.hero.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+    ],
+    "souq.hero.subtitle": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+    ],
+    "souq.hero.browseCatalog": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+    ],
+    "souq.hero.viewVendors": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
+    ],
+    "souq.features.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/souq/page.tsx"
     ],
     "support.title": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/support/page.tsx"
@@ -6184,6 +7398,18 @@
     "footer.copyright": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Footer.tsx"
     ],
+    "footer.breadcrumbLabel": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Footer.tsx"
+    ],
+    "footer.crumb.fixzit": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Footer.tsx"
+    ],
+    "footer.crumb.platform": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Footer.tsx"
+    ],
+    "footer.crumb.version": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Footer.tsx"
+    ],
     "loginPrompt.title": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/LoginPrompt.tsx"
     ],
@@ -6227,38 +7453,48 @@
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/LoginPrompt.tsx"
     ],
     "sidebar.mainNav": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar (1).tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
+    ],
+    "common.brand": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar (1).tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/TopBar.tsx"
+    ],
+    "sidebar.accountInfo": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar (1).tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
+    ],
+    "sidebar.planLabel": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar (1).tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
+    ],
+    "sidebar.modules": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar (1).tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
+    ],
+    "sidebar.noModules": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar (1).tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
+    ],
+    "sidebar.account": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar (1).tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar (1).tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
+    ],
+    "sidebar.help": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar (1).tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
+    ],
+    "sidebar.helpCenter": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar (1).tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
     ],
     "sidebar.expand": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
     ],
     "sidebar.collapse": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
-    ],
-    "common.brand": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/TopBar.tsx"
-    ],
-    "sidebar.accountInfo": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
-    ],
-    "sidebar.planLabel": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
-    ],
-    "sidebar.modules": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
-    ],
-    "sidebar.noModules": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
-    ],
-    "sidebar.account": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
-    ],
-    "sidebar.help": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
-    ],
-    "sidebar.helpCenter": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/Sidebar.tsx"
     ],
     "support.errorReport": [
@@ -6416,21 +7652,6 @@
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/SupportPopup.tsx"
     ],
     "support.subjectPlaceholder": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/SupportPopup.tsx"
-    ],
-    "support.modules.": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/SupportPopup.tsx"
-    ],
-    "support.categories.": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/SupportPopup.tsx"
-    ],
-    "support.subCategories.": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/SupportPopup.tsx"
-    ],
-    "support.types.": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/SupportPopup.tsx"
-    ],
-    "support.priorities.": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/SupportPopup.tsx"
     ],
     "support.descriptionPlaceholder": [
@@ -6629,6 +7850,240 @@
     "common.logout": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/TopBar.tsx"
     ],
+    "admin.notifications.errors.historyFetch": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.errors.noChannels": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.errors.emptyFields": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.success": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.errors.sendFailed": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.subtitle": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.hideHistory": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.showHistory": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.recipientType": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.recipients.users": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.recipients.tenants": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.recipients.corporate": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.recipients.all": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.channels": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.comingSoon": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.message": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.priority": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.priority.low": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.priority.normal": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.priority.high": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.priority.urgent": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.subject": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.subjectPlaceholder": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.messageBody": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.messagePlaceholder": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.characters": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.preview": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.to": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.via": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.none": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.noSubject": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.noMessage": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.sending": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.send": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.important": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.info.1": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.info.2": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.info.3": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.info.4": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.historyTitle": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.noHistory": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "admin.notifications.sentBy": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/AdminNotificationsTab.tsx"
+    ],
+    "communications.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.subtitle": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.export": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.refresh": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.stats.totalSent": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.stats.deliveryRate": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.stats.failureRate": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.stats.byChannel": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.search": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.filter.allChannels": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.filter.allStatuses": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.table.date": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.table.user": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.table.channel": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.table.recipient": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.table.status": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.table.message": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.table.actions": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.loading": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.noData": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.view": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.previous": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.page": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.of": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.next": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.details.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.details.user": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.details.channel": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.details.status": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.details.recipient": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.details.subject": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.details.message": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.details.sent": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.details.delivered": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.details.error": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
+    "communications.details.metadata": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/CommunicationDashboard.tsx"
+    ],
     "upgrade.error.invalidEmail": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/UpgradeModal.tsx"
     ],
@@ -6687,7 +8142,8 @@
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/UpgradeModal.tsx"
     ],
     "common.close": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/UpgradeModal.tsx"
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/admin/UpgradeModal.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/CommandPalette.tsx"
     ],
     "aqar.agent.listings": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/aqar/AgentCard.tsx",
@@ -7085,6 +8541,57 @@
     "login.passwordPlaceholder": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/LoginForm.tsx"
     ],
+    "otp.errors.invalid": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.errors.verifyFailed": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.subtitle": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.devModeTitle": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.useDevCode": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.devModeDescription": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.label": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.expiresIn": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.expired": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.verifying": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.verify": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.didntReceive": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.resending": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.resendIn": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.resend": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
+    "otp.backToLogin": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/OTPVerification.tsx"
+    ],
     "login.orContinueWith": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/SSOButtons.tsx"
     ],
@@ -7192,13 +8699,51 @@
     "careers.terms": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/careers/JobApplicationForm.tsx"
     ],
+    "common.pages.dashboard": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/errors/GlobalNotFound.tsx"
+    ],
+    "common.pages.properties": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/errors/GlobalNotFound.tsx"
+    ],
+    "common.pages.workOrders": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/errors/GlobalNotFound.tsx"
+    ],
+    "common.pages.marketplace": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/errors/GlobalNotFound.tsx"
+    ],
+    "common.pages.finance": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/errors/GlobalNotFound.tsx"
+    ],
+    "common.pages.hr": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/errors/GlobalNotFound.tsx"
+    ],
+    "common.pages.login": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/errors/GlobalNotFound.tsx"
+    ],
+    "errors.404.code": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/errors/GlobalNotFound.tsx"
+    ],
+    "errors.404.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/errors/GlobalNotFound.tsx"
+    ],
+    "errors.404.message": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/errors/GlobalNotFound.tsx"
+    ],
+    "common.actions.goToHomepage": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/errors/GlobalNotFound.tsx"
+    ],
+    "common.actions.goBack": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/errors/GlobalNotFound.tsx"
+    ],
+    "common.popularPages": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/errors/GlobalNotFound.tsx"
+    ],
+    "errors.404.helpText": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/errors/GlobalNotFound.tsx"
+    ],
     "common.error.loadData": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/AccountActivityViewer.tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/TrialBalanceReport.tsx"
-    ],
-    "common.error.loadData": [
-      "/workspaces/Fixzit/components/finance/AccountActivityViewer.tsx",
-      "/workspaces/Fixzit/components/finance/TrialBalanceReport.tsx"
     ],
     "Account Activity": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/AccountActivityViewer.tsx"
@@ -7332,6 +8877,50 @@
     "Select an account to view activity": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/AccountActivityViewer.tsx"
     ],
+    "finance.balance.error": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx"
+    ],
+    "finance.balance.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx"
+    ],
+    "finance.balance.asOf": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx"
+    ],
+    "finance.balance.assets": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx"
+    ],
+    "finance.balance.liabilities": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx"
+    ],
+    "finance.balance.equity": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx"
+    ],
+    "finance.balance.ok": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx"
+    ],
+    "finance.balance.notOk": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/BalanceSheetWidget.tsx"
+    ],
+    "finance.income.error": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/IncomeStatementWidget.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/IncomeStatementWidget.tsx"
+    ],
+    "finance.income.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/IncomeStatementWidget.tsx"
+    ],
+    "finance.income.period": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/IncomeStatementWidget.tsx"
+    ],
+    "finance.income.revenue": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/IncomeStatementWidget.tsx"
+    ],
+    "finance.income.expense": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/IncomeStatementWidget.tsx"
+    ],
+    "finance.income.net": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/IncomeStatementWidget.tsx"
+    ],
     "finance.journal.entryDetails": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/JournalEntryForm.tsx"
     ],
@@ -7431,9 +9020,36 @@
     "common.saveChanges": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/JournalEntryForm.tsx"
     ],
+    "finance.owner.error": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+    ],
+    "finance.owner.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+    ],
+    "finance.owner.propertyId": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+    ],
+    "finance.owner.prompt": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+    ],
+    "finance.owner.period": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+    ],
+    "finance.owner.opening": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+    ],
+    "finance.owner.charges": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+    ],
+    "finance.owner.receipts": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+    ],
+    "finance.owner.ending": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/OwnerStatementWidget.tsx"
+    ],
     "finance.trialBalance.error.load": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/TrialBalanceReport.tsx"
->>>>>>> feat/souq-marketplace-advanced
     ],
     "tb.col.code": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/TrialBalanceReport.tsx",
@@ -7456,9 +9072,6 @@
     ],
     "tb.col.balance": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/TrialBalanceReport.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/TrialBalanceReport.tsx"
-    ],
-    "finance.accountType.": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/TrialBalanceReport.tsx"
     ],
     "finance.trialBalance.title": [
@@ -7515,6 +9128,24 @@
     ],
     "finance.trialBalance.loadData": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/finance/TrialBalanceReport.tsx"
+    ],
+    "status.dispatched": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "status.inProgress": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "status.onHold": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "status.verified": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "status.closed": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "status.cancelled": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
     ],
     "workOrders.list.heading": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
@@ -7594,6 +9225,36 @@
     "workOrders.list.pagination.next": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
     ],
+    "workOrders.create.button": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "workOrders.create.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "workOrders.create.form.titleLabel": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "workOrders.create.form.descriptionLabel": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "workOrders.create.form.priorityLabel": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "workOrders.create.form.categoryLabel": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "workOrders.create.form.propertyIdLabel": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "workOrders.create.form.propertyIdPlaceholder": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "workOrders.create.form.cancelButton": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
+    "workOrders.create.form.submitButton": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/fm/WorkOrdersView.tsx"
+    ],
     "i18n.selectCurrencyLabel": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/i18n/CurrencySelector.tsx"
     ],
@@ -7626,13 +9287,57 @@
     "app.currentApp": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/AppSwitcher.tsx"
     ],
-    "search.results": [
+    "search.scope.all": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/CommandPalette.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/GlobalSearch.tsx"
+    ],
+    "search.saved.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/CommandPalette.tsx"
+    ],
+    "search.saved.empty": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/CommandPalette.tsx"
+    ],
+    "search.quickActions": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/CommandPalette.tsx"
+    ],
+    "search.quickActions.empty": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/CommandPalette.tsx"
+    ],
+    "search.results.loading": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/CommandPalette.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/CommandPalette.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/GlobalSearch.tsx"
+    ],
+    "search.results.title": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/CommandPalette.tsx"
+    ],
+    "search.results.empty": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/CommandPalette.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/GlobalSearch.tsx"
+    ],
+    "search.results.hint": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/CommandPalette.tsx"
+    ],
+    "search.error.generic": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/GlobalSearch.tsx"
+    ],
+    "search.global": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/GlobalSearch.tsx"
     ],
     "topbar.quickActions": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/QuickActions.tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/QuickActions.tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/QuickActions.tsx"
+    ],
+    "topbar.expandMenu": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/TopMegaMenu.tsx"
+    ],
+    "topbar.modules": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/TopMegaMenu.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/TopMegaMenu.tsx"
+    ],
+    "topbar.collapseMenu": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/topbar/TopMegaMenu.tsx"
     ],
     "navigation.back": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/ui/navigation-buttons.tsx"
@@ -7662,6 +9367,5 @@
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/ui/pagination.tsx"
     ]
   },
-  "timestamp": "2025-11-16T04:16:48.631Z"
->>>>>>> feat/souq-marketplace-advanced
+  "timestamp": "2025-11-17T07:35:38.956Z"
 }

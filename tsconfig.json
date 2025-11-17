@@ -24,6 +24,14 @@
         "name": "next"
       }
     ],
+    "types": [
+      "node",
+      "react",
+      "react-dom",
+      "next",
+      "google.maps",
+      "vitest/globals"
+    ],
     "rootDir": ".",
     "paths": {
       "@/*": [

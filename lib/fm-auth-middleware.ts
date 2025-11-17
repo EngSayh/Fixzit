@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
 import { can, Role, SubmoduleKey, Action, Plan } from '@/domain/fm/fm.behavior';
 import { connectDb } from '@/lib/mongo';
+import { Organization } from '@/server/models/Organization';
 
 export interface FMAuthContext {
   userId: string;
@@ -124,8 +125,6 @@ export async function requireFMAuth(
   try {
     await connectDb();
     // Always use ctx.orgId - don't allow callers to query other orgs
-    const { Organization } = await import('@/server/models/Organization');
-    // ✅ Organization.findOne is properly typed via OrganizationModel interface
     const org = await Organization.findOne({ orgId: ctx.orgId });
     
     if (org) {

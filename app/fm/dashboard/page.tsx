@@ -1,5 +1,6 @@
 'use client';
 import { logger } from '@/lib/logger';
+import { toFiniteNumber } from '@/lib/numbers';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -120,27 +121,38 @@ export default function DashboardPage() {
 
   const stats = {
     workOrders: {
-      total: workOrders?.total || 0,
-      pending: workOrders?.items?.filter((wo: WorkOrder) => wo.status === WOStatus.NEW).length || 0,
-      overdue: workOrders?.items?.filter((wo: WorkOrderWithDue) => {
-        if (!wo.dueAt) return false;
-        // Use epoch milliseconds for consistent UTC comparison
-        return Date.parse(wo.dueAt) < Date.now();
-      }).length || 0
+      total: toFiniteNumber(workOrders?.total),
+      pending: toFiniteNumber(
+        workOrders?.items?.filter((wo: WorkOrder) => wo.status === WOStatus.NEW).length
+      ),
+      overdue: toFiniteNumber(
+        workOrders?.items?.filter((wo: WorkOrderWithDue) => {
+          if (!wo.dueAt) return false;
+          return Date.parse(wo.dueAt) < Date.now();
+        }).length
+      )
     },
     properties: {
-      total: properties?.total || 0,
-      occupied: properties?.items?.filter((p: Property) => (p.details?.occupancyRate ?? 0) > 0).length || 0,
-      maintenance: properties?.items?.filter((p: Property) => p.maintenance?.issues?.some((i) => !i.resolved)).length || 0
+      total: toFiniteNumber(properties?.total),
+      occupied: toFiniteNumber(
+        properties?.items?.filter((p: Property) => (p.details?.occupancyRate ?? 0) > 0).length
+      ),
+      maintenance: toFiniteNumber(
+        properties?.items?.filter((p: Property) => p.maintenance?.issues?.some((i) => !i.resolved)).length
+      )
     },
     assets: {
-      total: assets?.total || 0,
-      critical: assets?.items?.filter((a: Asset) => a.criticality === 'CRITICAL').length || 0,
-      maintenance: assets?.items?.filter((a: Asset) => a.status === 'MAINTENANCE').length || 0
+      total: toFiniteNumber(assets?.total),
+      critical: toFiniteNumber(
+        assets?.items?.filter((a: Asset) => a.criticality === 'CRITICAL').length
+      ),
+      maintenance: toFiniteNumber(
+        assets?.items?.filter((a: Asset) => a.status === 'MAINTENANCE').length
+      )
     },
     finance: {
-      overdue: invoices?.total || 0,
-      amount: invoices?.items?.reduce((sum: number, inv: Invoice) => sum + inv.total, 0) || 0
+      overdue: toFiniteNumber(invoices?.total),
+      amount: toFiniteNumber(invoices?.items?.reduce((sum: number, inv: Invoice) => sum + inv.total, 0))
     }
   };
 
@@ -291,12 +303,12 @@ export default function DashboardPage() {
                     <div>
                       <p className="font-medium text-sm">{property.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {property.address?.city} • {property.units?.length || 0} {t('dashboard.units')}
+                        {property.address?.city} • {toFiniteNumber(property.units?.length)} {t('dashboard.units')}
                       </p>
                     </div>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {property.details?.occupancyRate || 0}% {t('dashboard.occupied')}
+                    {toFiniteNumber(property.details?.occupancyRate)}% {t('dashboard.occupied')}
                   </span>
                 </div>
               ))}

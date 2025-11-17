@@ -227,13 +227,13 @@ export default function PricingDashboardPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Product</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">SKU</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Price</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Buy Box</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Score</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Last Change</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">Product</th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">SKU</th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">Price</th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">Buy Box</th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">Score</th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">Last Change</th>
+                  <th className="text-start py-3 px-4 font-medium text-gray-700">Actions</th>
                 </tr>
               </thead>
               <tbody>

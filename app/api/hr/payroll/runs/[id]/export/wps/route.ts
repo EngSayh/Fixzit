@@ -41,7 +41,7 @@ export async function GET(
     }
 
     const periodMonth = new Date(run.periodEnd).toISOString().slice(0, 7);
-    const { file: wpsFile, errors } = generateWPSFile(run.lines, session.user.orgId, periodMonth);
+    const { file: wpsFile, errors } = await generateWPSFile(run.lines, session.user.orgId, periodMonth);
 
     if (!wpsFile.recordCount) {
       return NextResponse.json(

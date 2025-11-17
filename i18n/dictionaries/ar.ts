@@ -22545,7 +22545,7 @@ const ar = {
     recruiting: 'التوظيف',
     recruitment: 'إدارة التوظيف',
     applicant: 'نظام تتبع المتقدمين',
-    ats: 'نظام تتبع المتقدمين',
+    atsSystem: 'نظام تتبع المتقدمين',
     jobPostings: 'إعلانات الوظائف',
     sourcing: 'البحث عن المرشحين',
     candidates: 'إدارة المرشحين',
@@ -28478,22 +28478,6 @@ const ar = {
     staffScheduling: 'جدولة الموظفين',
     cateringOperations: 'عمليات التموين',
   },
-
-  // ATS (Applicant Tracking System) - نظام تتبع المتقدمين
-  ats: {
-    title: 'التوظيف (ATS)',
-    subtitle: 'نظام تتبع المتقدمين - إدارة الوظائف والطلبات والمقابلات',
-    errors: {
-      moduleDisabled: 'وحدة ATS غير مفعلة لمؤسستك. يرجى الترقية للوصول إلى ميزات التوظيف.',
-      seatLimitExceeded: 'تم تجاوز حد مقاعد ATS. الاستخدام الحالي: {{usage}}/{{limit}}. يرجى ترقية خطتك لإضافة المزيد من المستخدمين.',
-      jobPostLimitExceeded: 'تم الوصول إلى حد إعلانات الوظائف لخطة ATS الخاصة بك. لديك {{count}}/{{limit}} وظيفة نشطة. يرجى الترقية لنشر المزيد من الوظائف.',
-      authenticationRequired: 'مطلوب المصادقة للوصول إلى ميزات ATS',
-      insufficientPermissions: 'صلاحيات غير كافية لتنفيذ هذا الإجراء',
-      jobCreationFailed: 'فشل إنشاء إعلان الوظيفة',
-      jobsFetchFailed: 'فشل جلب الوظائف',
-    },
-  },
-
   ...arIndustryVerticals,
 
 };

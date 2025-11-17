@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Mail, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,12 +49,15 @@ export default function ForgotPassword() {
             <CheckCircle className="w-8 h-8 text-success" />
           </div>
           
-          <h1 className="text-2xl font-bold text-foreground mb-4">Check Your Email</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-4">
+            {t('forgotPassword.success.title', 'Check Your Email')}
+          </h1>
           <p className="text-muted-foreground mb-6">
-            We&apos;ve sent a password reset link to <strong>{email}</strong>
+            {t('forgotPassword.success.message', "We've sent a password reset link to")}{' '}
+            <strong>{email}</strong>
           </p>
           <p className="text-sm text-muted-foreground mb-8">
-            Didn&apos;t receive the email? Check your spam folder or try again.
+            {t('forgotPassword.success.hint', "Didn't receive the email? Check your spam folder or try again.")}
           </p>
           
           <div className="space-y-3">
@@ -61,12 +66,12 @@ export default function ForgotPassword() {
               variant="outline"
               className="w-full"
             >
-              Send Another Email
+              {t('forgotPassword.sendAnother', 'Send Another Email')}
             </Button>
             <Link href="/login">
               <Button variant="ghost" className="w-full">
                 <ArrowLeft className="w-4 h-4 me-2" />
-                Back to Login
+                {t('forgotPassword.backToLogin', 'Back to Login')}
               </Button>
             </Link>
           </div>
@@ -82,23 +87,25 @@ export default function ForgotPassword() {
           <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
             <Mail className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Reset Your Password</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            {t('forgotPassword.title', 'Reset Your Password')}
+          </h1>
           <p className="text-muted-foreground">
-            Enter your email address and we&apos;ll send you a link to reset your password.
+            {t('forgotPassword.subtitle', "Enter your email address and we'll send you a reset link.")}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
-              Email Address
+              {t('forgotPassword.emailLabel', 'Email Address')}
             </label>
             <div className="relative">
               <Mail className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" aria-hidden="true" />
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email address"
+                placeholder={t('forgotPassword.emailPlaceholder', 'Enter your email address')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="ps-10 h-12"
@@ -122,10 +129,10 @@ export default function ForgotPassword() {
             {loading ? (
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Sending Reset Link...
+                {t('forgotPassword.sending', 'Sending Reset Link...')}
               </div>
             ) : (
-              'Send Reset Link'
+              t('forgotPassword.submit', 'Send Reset Link')
             )}
           </Button>
         </form>
@@ -133,11 +140,10 @@ export default function ForgotPassword() {
         <div className="mt-6 text-center">
           <Link href="/login" className="text-primary hover:text-primary font-medium flex items-center justify-center gap-2 transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            Back to Login
+            {t('forgotPassword.backToLogin', 'Back to Login')}
           </Link>
         </div>
       </div>
     </div>
   );
 }
-

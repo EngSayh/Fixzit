@@ -216,6 +216,12 @@ export interface IOrganization {
     };
   };
 
+  members?: Array<{
+    userId: string;
+    role?: string;
+    email?: string;
+  }>;
+
   compliance: {
     status: TComplianceStatus;
     certifications?: Array<{
@@ -474,17 +480,6 @@ const OrganizationSchema = new Schema<IOrganization>(
       },
     },
 
-    modules: {
-      ats: {
-        enabled: { type: Boolean, default: false },
-        jobPostLimit: { type: Number, default: 5, min: 0 },
-        seats: { type: Number, default: 25, min: 0 },
-        seatWarningThreshold: { type: Number, default: 0.9, min: 0, max: 1 },
-        activatedAt: { type: Date },
-        billingPlan: { type: String, default: 'ATS_STARTER' },
-      },
-    },
-
     compliance: {
       status: { type: String, enum: ComplianceStatus, default: 'PENDING_REVIEW' },
       certifications: [
@@ -646,6 +641,7 @@ OrganizationSchema.statics.setSubscriptionStatus = async function (
 
 // ---------- Export ----------
 export const Organization =
-  (typeof models !== 'undefined' && models.Organization) ||
-  (model<IOrganization, OrganizationModel>('Organization', OrganizationSchema) as OrganizationModel);
+  (typeof models !== 'undefined' && models.Organization
+    ? (models.Organization as OrganizationModel)
+    : (model<IOrganization, OrganizationModel>('Organization', OrganizationSchema) as OrganizationModel));
 export type { OrganizationDoc, Features, Usage };

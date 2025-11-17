@@ -13,6 +13,7 @@
  */
 
 import { createHash } from 'crypto';
+import { logger } from '@/lib/logger';
 import { AttendanceRecord } from '@/server/models/hr.models';
 import type { PayrollLineDoc } from '@/server/models/hr.models';
 
@@ -24,6 +25,7 @@ import type { PayrollLineDoc } from '@/server/models/hr.models';
  */
 async function calculateWorkDays(
   employeeId: string,
+  orgId: string,
   periodMonth: string
 ): Promise<number> {
   try {
@@ -34,14 +36,16 @@ async function calculateWorkDays(
     
     // Query attendance records for the period
     const records = await AttendanceRecord.find({
+      orgId,
       employeeId,
+      isDeleted: false,
       date: {
         $gte: startDate,
         $lte: endDate
       },
       // Count all statuses except 'absent' and 'no-show'
       status: { $nin: ['absent', 'no-show', 'unpaid-leave'] }
-    }).lean();
+    }).select('date');
     
     // Count unique dates (in case of multiple clock-ins per day)
     const uniqueDates = new Set(
@@ -50,9 +54,14 @@ async function calculateWorkDays(
     
     return uniqueDates.size;
   } catch (error) {
-    // Fallback to calendar days in month if query fails
     const [year, month] = periodMonth.split('-').map(Number);
     const daysInMonth = new Date(year, month, 0).getDate();
+    logger.error('[WPS] Failed to calculate work days from attendance', {
+      employeeId,
+      orgId,
+      yearMonth: periodMonth,
+      error,
+    });
     return daysInMonth;
   }
 }
@@ -144,11 +153,10 @@ export async function generateWPSFile(
     // ✅ Calculate actual work days from attendance records
     let workDays = 30; // Default fallback
     if ((line as any).workDays && typeof (line as any).workDays === 'number') {
-      // Use pre-calculated value if provided
       workDays = (line as any).workDays;
     } else {
-      // Query attendance system for actual work days
-      workDays = await calculateWorkDays(line.employeeCode, periodMonth);
+      const attendanceEmployeeId = line.employeeId?.toString?.() ?? line.employeeCode;
+      workDays = await calculateWorkDays(attendanceEmployeeId, organizationId, periodMonth);
     }
     
     const record: WPSRecord = {
