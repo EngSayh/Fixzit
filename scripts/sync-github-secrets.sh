@@ -21,8 +21,21 @@ if [ -z "$REPO_SLUG" ]; then
     if [ -n "$GIT_REMOTE" ]; then
         # Extract owner/repo from URLs like:
         # - git@github.com:owner/repo.git
+        # - git@github.com:owner/repo
         # - https://github.com/owner/repo.git
-        REPO_SLUG=$(echo "$GIT_REMOTE" | sed -E 's|^.*[:/]([^/]+/[^/]+)\.git$|\1|' | sed 's/.git$//')
+        # - https://github.com/owner/repo
+        
+        # First, strip .git suffix if present
+        GIT_REMOTE_CLEAN="${GIT_REMOTE%.git}"
+        
+        # Extract last two path segments (owner/repo)
+        # Works for both SSH (git@github.com:owner/repo) and HTTPS (https://github.com/owner/repo)
+        REPO_SLUG=$(echo "$GIT_REMOTE_CLEAN" | sed -E 's|^.*[:/]([^/]+/[^/]+)$|\1|')
+        
+        # Validate we got owner/repo format (contains exactly one /)
+        if [[ ! "$REPO_SLUG" =~ ^[^/]+/[^/]+$ ]]; then
+            REPO_SLUG=""
+        fi
     fi
 fi
 
@@ -157,6 +170,7 @@ echo "📝 Updating .env.local..."
 cp "$ENV_FILE" "$ENV_FILE.backup.$(date +%Y%m%d_%H%M%S)"
 
 # Helper function to update or append key-value pairs (only if value non-empty)
+# Uses Python for safe replacement to handle special characters (&, |, \, newlines, etc.)
 update_or_append() {
     local key="$1"
     local value="$2"
@@ -168,8 +182,27 @@ update_or_append() {
     fi
     
     if grep -q "^${key}=" "$ENV_FILE"; then
-        # Key exists, update it
-        sed -i.tmp "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"
+        # Key exists, update it using Python for safe replacement
+        # Pass values via environment variables to avoid quoting issues
+        UPDATE_KEY="$key" UPDATE_VALUE="$value" UPDATE_FILE="$ENV_FILE" python3 - <<'PYEOF'
+import os
+
+key = os.environ['UPDATE_KEY']
+value = os.environ['UPDATE_VALUE']
+env_file = os.environ['UPDATE_FILE']
+
+with open(env_file, 'r') as f:
+    lines = f.readlines()
+
+# Find and replace the line with the key
+for i, line in enumerate(lines):
+    if line.startswith(key + '='):
+        lines[i] = key + '=' + value + '\n'
+        break
+
+with open(env_file, 'w') as f:
+    f.writelines(lines)
+PYEOF
         echo "  ✓ Updated $key"
     else
         # Key doesn't exist, append it
@@ -186,8 +219,6 @@ update_or_append "SENDGRID_API_KEY" "${SENDGRID_KEY}"
 update_or_append "TWILIO_ACCOUNT_SID" "${TWILIO_SID}"
 update_or_append "TWILIO_AUTH_TOKEN" "${TWILIO_TOKEN}"
 update_or_append "TWILIO_PHONE_NUMBER" "${TWILIO_PHONE}"
-
-rm -f "$ENV_FILE.tmp"
 
 echo ""
 echo "✅ Done! Updated .env.local with real credentials"
