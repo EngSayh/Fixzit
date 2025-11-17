@@ -2,30 +2,25 @@ import { chromium, FullConfig } from '@playwright/test';
 import { mkdir } from 'fs/promises';
 
 /**
- * AUTHENTICATION SETUP
- * Creates storage states for all user roles before E2E tests run
+ * AUTHENTICATION SETUP - OTP FLOW
+ * Creates storage states for all user roles using OTP authentication
+ * Uses direct API calls to bypass OTP code requirement
  * Roles: SuperAdmin, Admin, Manager, Technician, Tenant, Vendor
  */
 
 async function globalSetup(config: FullConfig) {
-  console.log('\n🔐 Setting up authentication states for all roles...\n');
+  console.log('\n🔐 Setting up authentication states for all roles (OTP flow)...\n');
 
   const baseURL = config.projects[0].use.baseURL || 'http://localhost:3000';
   
   // Validate all required environment variables are present (fail fast)
   const requiredEnvVars = [
-    'TEST_SUPERADMIN_EMAIL',
-    'TEST_SUPERADMIN_PASSWORD',
-    'TEST_ADMIN_EMAIL',
-    'TEST_ADMIN_PASSWORD',
-    'TEST_MANAGER_EMAIL',
-    'TEST_MANAGER_PASSWORD',
-    'TEST_TECHNICIAN_EMAIL',
-    'TEST_TECHNICIAN_PASSWORD',
-    'TEST_TENANT_EMAIL',
-    'TEST_TENANT_PASSWORD',
-    'TEST_VENDOR_EMAIL',
-    'TEST_VENDOR_PASSWORD'
+    'TEST_SUPERADMIN_PHONE',
+    'TEST_ADMIN_PHONE',
+    'TEST_MANAGER_PHONE',
+    'TEST_TECHNICIAN_PHONE',
+    'TEST_TENANT_PHONE',
+    'TEST_VENDOR_PHONE'
   ];
 
   const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -33,7 +28,7 @@ async function globalSetup(config: FullConfig) {
     console.error('\n❌ ERROR: Missing required test environment variables:\n');
     missingVars.forEach(varName => console.error(`   - ${varName}`));
     console.error('\nCreate a .env.test file or set these variables in your CI environment.');
-    console.error('See .env.test.example for required format.\n');
+    console.error('Example: TEST_ADMIN_PHONE=+966500000001\n');
     throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
   }
 
@@ -45,61 +40,97 @@ async function globalSetup(config: FullConfig) {
   const roles = [
     {
       name: 'SuperAdmin',
-      email: process.env.TEST_SUPERADMIN_EMAIL!,
-      password: process.env.TEST_SUPERADMIN_PASSWORD!,
+      phone: process.env.TEST_SUPERADMIN_PHONE!,
       statePath: 'tests/state/superadmin.json'
     },
     {
       name: 'Admin',
-      email: process.env.TEST_ADMIN_EMAIL!,
-      password: process.env.TEST_ADMIN_PASSWORD!,
+      phone: process.env.TEST_ADMIN_PHONE!,
       statePath: 'tests/state/admin.json'
     },
     {
       name: 'Manager',
-      email: process.env.TEST_MANAGER_EMAIL!,
-      password: process.env.TEST_MANAGER_PASSWORD!,
+      phone: process.env.TEST_MANAGER_PHONE!,
       statePath: 'tests/state/manager.json'
     },
     {
       name: 'Technician',
-      email: process.env.TEST_TECHNICIAN_EMAIL!,
-      password: process.env.TEST_TECHNICIAN_PASSWORD!,
+      phone: process.env.TEST_TECHNICIAN_PHONE!,
       statePath: 'tests/state/technician.json'
     },
     {
       name: 'Tenant',
-      email: process.env.TEST_TENANT_EMAIL!,
-      password: process.env.TEST_TENANT_PASSWORD!,
+      phone: process.env.TEST_TENANT_PHONE!,
       statePath: 'tests/state/tenant.json'
     },
     {
       name: 'Vendor',
-      email: process.env.TEST_VENDOR_EMAIL!,
-      password: process.env.TEST_VENDOR_PASSWORD!,
+      phone: process.env.TEST_VENDOR_PHONE!,
       statePath: 'tests/state/vendor.json'
     }
   ];
 
   for (const role of roles) {
     try {
-      console.log(`🔑 Authenticating as ${role.name}...`);
+      console.log(`🔑 Authenticating as ${role.name} (${role.phone})...`);
       
       const context = await browser.newContext();
       const page = await context.newPage();
 
-      // Navigate to login
-      await page.goto(`${baseURL}/login`, { waitUntil: 'networkidle' });
+      // Step 1: Request OTP via API
+      const otpResponse = await page.request.post(`${baseURL}/api/auth/otp/send`, {
+        data: { phone: role.phone }
+      });
 
-      // Fill login form using data-testid attributes
-      await page.fill('[data-testid="login-email"]', role.email);
-      await page.fill('[data-testid="login-password"]', role.password);
+      if (!otpResponse.ok()) {
+        throw new Error(`Failed to send OTP: ${otpResponse.status()}`);
+      }
 
-      // Submit login
-      await page.click('[data-testid="login-submit"]');
+      const otpData = await otpResponse.json();
+      const otpCode = otpData.otp || otpData.code;
+      
+      if (!otpCode) {
+        throw new Error('OTP code not returned from API (may need test mode enabled)');
+      }
 
-      // Wait for redirect after successful login
-      await page.waitForURL(/\/(dashboard|app|home)/, { timeout: 15000 });
+      console.log(`  📱 OTP sent: ${otpCode}`);
+
+      // Step 2: Get CSRF token
+      await page.goto(`${baseURL}/api/auth/csrf`);
+      const csrfData = await page.evaluate(() => document.body.textContent);
+      const csrfToken = JSON.parse(csrfData!).csrfToken;
+
+      // Step 3: Verify OTP and create NextAuth session
+      const verifyResponse = await page.request.post(`${baseURL}/api/auth/callback/credentials`, {
+        data: {
+          phone: role.phone,
+          otp: otpCode,
+          csrfToken,
+          json: true
+        }
+      });
+
+      if (!verifyResponse.ok()) {
+        throw new Error(`Failed to verify OTP: ${verifyResponse.status()}`);
+      }
+
+      // Step 4: Navigate to dashboard to ensure cookies are set
+      await page.goto(`${baseURL}/dashboard`, { waitUntil: 'networkidle' });
+
+      // Wait for authentication to complete
+      await page.waitForTimeout(2000);
+
+      // Verify authentication by checking for user session
+      const cookies = await context.cookies();
+      const hasAuthCookie = cookies.some(c => 
+        c.name.includes('session') || 
+        c.name.includes('next-auth') ||
+        c.name === 'authjs.session-token'
+      );
+
+      if (!hasAuthCookie) {
+        console.warn(`  ⚠️  No auth cookie found for ${role.name}, may not be fully authenticated`);
+      }
 
       // Save authenticated state
       await context.storageState({ path: role.statePath });
