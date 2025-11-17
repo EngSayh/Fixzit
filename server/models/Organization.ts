@@ -460,6 +460,17 @@ const OrganizationSchema = new Schema<IOrganization>(
           provider: { type: String, enum: SsoProvider },
           settings: Schema.Types.Mixed,
         },
+    },
+    },
+
+    modules: {
+      ats: {
+        enabled: { type: Boolean, default: false },
+        jobPostLimit: { type: Number, default: 10, min: 0 },
+        seats: { type: Number, default: 25, min: 0 },
+        seatWarningThreshold: { type: Number, default: 0.9, min: 0, max: 1 },
+        activatedAt: { type: Date },
+        billingPlan: { type: String, default: 'ATS_STARTER' },
       },
     },
 

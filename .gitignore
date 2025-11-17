@@ -10,6 +10,7 @@
 tests/playwright-artifacts/
 /playwright/.cache/
 /test-results/
+/tests/playwright-artifacts/
 /cypress/videos/
 /cypress/screenshots/
 tsconfig.tsbuildinfo
