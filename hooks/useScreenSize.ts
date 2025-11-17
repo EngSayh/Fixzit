@@ -53,6 +53,11 @@ const getScreenInfo = (): ScreenInfo => {
   };
 };
 
+/**
+ * Tracks viewport dimensions/orientation and exposes a rich `ScreenInfo` object
+ * along with a ready flag. Updates are debounced to prevent rapid re-renders
+ * during resize/rotation events.
+ */
 export function useScreenSize() {
   const [screenInfo, setScreenInfo] = useState<ScreenInfo>(() => getScreenInfo());
   const [isReady, setIsReady] = useState(false);
@@ -89,7 +94,10 @@ export function useScreenSize() {
   return { screenInfo, isReady, updateScreenInfo };
 }
 
-// Helper function to get responsive classes
+/**
+ * Returns a set of utility classes derived from the current screen info so
+ * components can stay responsive without duplicating breakpoint logic.
+ */
 export function getResponsiveClasses(screenInfo: ScreenInfo) {
   const { size, isMobile, isTablet, isDesktop } = screenInfo;
 

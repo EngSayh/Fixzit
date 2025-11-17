@@ -1,4 +1,3 @@
-// @ts-expect-error - supertest types not installed yet, run: pnpm add -D @types/supertest
 import request from 'supertest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';

@@ -1,12 +1,12 @@
 import { randomUUID } from 'crypto';
 import { logger } from '@/lib/logger';
-import { sendFCMNotification, sendEmailNotification, sendSMSNotification, sendWhatsAppNotification } from '@/lib/integrations/notifications';
+import { NOTIFY } from '@/domain/fm/fm.behavior';
+import { sendBulkNotifications, type BulkNotificationResult } from '@/lib/integrations/notifications';
+import { emitNotificationTelemetry } from '@/lib/telemetry';
 /**
  * FM Notification Template Engine
  * Generates notifications with deep links for various FM events
  */
-
-import { NOTIFY } from '@/domain/fm/fm.behavior';
 
 export type NotificationChannel = 'push' | 'email' | 'sms' | 'whatsapp';
 
@@ -172,102 +172,72 @@ export async function sendNotification(
     deepLink: notification.deepLink
   });
 
-  // Group recipients by preferred channels
-  const channelGroups: Record<NotificationChannel, NotificationRecipient[]> = {
-    push: [],
-    email: [],
-    sms: [],
-    whatsapp: []
-  };
-
-  notification.recipients.forEach(recipient => {
-    recipient.preferredChannels.forEach(channel => {
-      channelGroups[channel].push(recipient);
+  if (notification.recipients.length === 0) {
+    notification.status = 'failed';
+    notification.failureReason = 'No recipients provided';
+    logger.warn('[Notifications] Skipping sendNotification (no recipients)', {
+      id: notification.id,
+      event: notification.event
     });
+    return;
+  }
+
+  let result: BulkNotificationResult;
+
+  try {
+    result = await sendBulkNotifications(notification, notification.recipients);
+  } catch (error) {
+    notification.status = 'failed';
+    notification.failureReason = 'Bulk notification dispatch failed';
+    notification.sentAt = new Date();
+    logger.error('[Notifications] Failed to send notification', {
+      id: notification.id,
+      error
+    });
+    throw error;
+  }
+
+  notification.sentAt = new Date();
+
+  if (result.attempted === 0) {
+    notification.status = 'failed';
+    notification.failureReason = 'No valid channels or contact info';
+  } else if (result.failed === 0) {
+    notification.status = 'sent';
+  } else if (result.failed === result.attempted) {
+    notification.status = 'failed';
+    notification.failureReason = 'All notification attempts failed';
+  } else {
+    notification.status = 'partial_failure';
+    notification.failureReason = `${result.failed} of ${result.attempted} channel attempts failed`;
+  }
+
+  if (result.issues.length > 0) {
+    logger.warn('[Notifications] Issues encountered while dispatching', {
+      id: notification.id,
+      issues: result.issues
+    });
+  }
+
+  logger.info('[Notifications] Notification dispatch complete', {
+    id: notification.id,
+    status: notification.status,
+    attempted: result.attempted,
+    failed: result.failed,
+    skipped: result.skipped
   });
 
-  // Send via push notifications
-  if (channelGroups.push.length > 0) {
-    await sendPushNotifications(notification, channelGroups.push);
-  }
-
-  // Send via email
-  if (channelGroups.email.length > 0) {
-    await sendEmailNotifications(notification, channelGroups.email);
-  }
-
-  // Send via SMS
-  if (channelGroups.sms.length > 0) {
-    await sendSMSNotifications(notification, channelGroups.sms);
-  }
-
-  // Send via WhatsApp
-  if (channelGroups.whatsapp.length > 0) {
-    await sendWhatsAppNotifications(notification, channelGroups.whatsapp);
-  }
-
-  notification.status = 'sent';
-  notification.sentAt = new Date();
-}
-
-/**
- * Send push notifications (Web Push API / Firebase Cloud Messaging)
- */
-async function sendPushNotifications(
-  notification: NotificationPayload,
-  recipients: NotificationRecipient[]
-): Promise<void> {
-  logger.info('[Notifications] Sending push', { recipientCount: recipients.length });
-  
-  // Send via FCM to each recipient
-  await Promise.allSettled(
-    recipients.map(recipient => sendFCMNotification(recipient.userId, notification))
-  );
-}
-
-/**
- * Send email notifications
- */
-async function sendEmailNotifications(
-  notification: NotificationPayload,
-  recipients: NotificationRecipient[]
-): Promise<void> {
-  logger.info('[Notifications] Sending email', { recipientCount: recipients.length });
-  
-  // Send via SendGrid to each recipient
-  await Promise.allSettled(
-    recipients.map(recipient => sendEmailNotification(recipient, notification))
-  );
-}
-
-/**
- * Send SMS notifications
- */
-async function sendSMSNotifications(
-  notification: NotificationPayload,
-  recipients: NotificationRecipient[]
-): Promise<void> {
-  logger.info('[Notifications] Sending SMS', { recipientCount: recipients.length });
-  
-  // Send via Twilio to each recipient
-  await Promise.allSettled(
-    recipients.map(recipient => sendSMSNotification(recipient, notification))
-  );
-}
-
-/**
- * Send WhatsApp notifications
- */
-async function sendWhatsAppNotifications(
-  notification: NotificationPayload,
-  recipients: NotificationRecipient[]
-): Promise<void> {
-  logger.info('[Notifications] Sending WhatsApp', { recipientCount: recipients.length });
-  
-  // Send via WhatsApp Business API to each recipient
-  await Promise.allSettled(
-    recipients.map(recipient => sendWhatsAppNotification(recipient, notification))
-  );
+  emitNotificationTelemetry({
+    notificationId: notification.id,
+    event: notification.event,
+    status: notification.status,
+    attempted: result.attempted,
+    failed: result.failed,
+    skipped: result.skipped,
+    issues: result.issues
+  }).catch(error => {
+    logger.warn('[Notifications] Telemetry emission failed', { id: notification.id, error });
+  });
 }
 
 /**
