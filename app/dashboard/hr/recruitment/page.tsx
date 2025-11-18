@@ -575,19 +575,19 @@ export default function RecruitmentPage() {
                   </h2>
                   <div className="flex gap-2">
                     <select className="px-3 py-2 border rounded-md text-sm">
-                      <option value="all">All Status</option>
-                      <option value="scheduled">Scheduled</option>
-                      <option value="completed">Completed</option>
-                      <option value="cancelled">Cancelled</option>
-                      <option value="no-show">No Show</option>
+                      <option value="all">{auto('All Status', 'interviews.filters.status.all')}</option>
+                      <option value="scheduled">{auto('Scheduled', 'interviews.filters.status.scheduled')}</option>
+                      <option value="completed">{auto('Completed', 'interviews.filters.status.completed')}</option>
+                      <option value="cancelled">{auto('Cancelled', 'interviews.filters.status.cancelled')}</option>
+                      <option value="no-show">{auto('No Show', 'interviews.filters.status.noShow')}</option>
                     </select>
                     <select className="px-3 py-2 border rounded-md text-sm">
-                      <option value="all">All Stages</option>
-                      <option value="screening">Screening</option>
-                      <option value="technical">Technical</option>
-                      <option value="hr">HR Round</option>
-                      <option value="final">Final Round</option>
-                      <option value="panel">Panel</option>
+                      <option value="all">{auto('All Stages', 'interviews.filters.stage.all')}</option>
+                      <option value="screening">{auto('Screening', 'interviews.filters.stage.screening')}</option>
+                      <option value="technical">{auto('Technical', 'interviews.filters.stage.technical')}</option>
+                      <option value="hr">{auto('HR Round', 'interviews.filters.stage.hr')}</option>
+                      <option value="final">{auto('Final Round', 'interviews.filters.stage.final')}</option>
+                      <option value="panel">{auto('Panel', 'interviews.filters.stage.panel')}</option>
                     </select>
                   </div>
                 </div>
