@@ -31,6 +31,12 @@ interface PMPlan {
 
 export default function PreventiveMaintenancePage() {
   const { t } = useTranslation();
+  const propertyFilterOptions = [
+    { value: 'all', key: 'workOrders.pm.filters.allProperties', fallback: 'All Properties' },
+    { value: 'tower-a', key: 'workOrders.pm.filters.towerA', fallback: 'Tower A' },
+    { value: 'tower-b', key: 'workOrders.pm.filters.towerB', fallback: 'Tower B' },
+    { value: 'villa-complex', key: 'workOrders.pm.filters.villaComplex', fallback: 'Villa Complex' },
+  ];
   
   // Fetch PM plans from API
   const { data: response } = useSWR('/api/pm/plans?status=ACTIVE', fetcher, {
@@ -116,18 +122,20 @@ export default function PreventiveMaintenancePage() {
       {/* PM Schedule Table */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">PM Schedules</h3>
+          <h3 className="text-lg font-semibold">{t('workOrders.pm.schedulesTitle', 'PM Schedules')}</h3>
           <div className="flex gap-2">
             <input
               type="text"
-              placeholder="Search schedules..."
+              placeholder={t('workOrders.pm.filters.search', 'Search schedules...')}
+              aria-label={t('workOrders.pm.filters.search', 'Search schedules...')}
               className="px-3 py-2 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent"
             />
             <select className="px-3 py-2 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-primary focus:border-transparent">
-              <option>All Properties</option>
-              <option>Tower A</option>
-              <option>Tower B</option>
-              <option>Villa Complex</option>
+              {propertyFilterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -151,7 +159,7 @@ export default function PreventiveMaintenancePage() {
               {pmSchedules.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">
-                    No PM plans found. Create your first preventive maintenance schedule.
+                    {t('workOrders.pm.emptyState', 'No PM plans found. Create your first preventive maintenance schedule.')}
                   </td>
                 </tr>
               ) : (
@@ -178,7 +186,9 @@ export default function PreventiveMaintenancePage() {
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
                           <button className="text-primary hover:text-primary">{t('common.edit', 'Edit')}</button>
-                          <button className="text-success hover:text-success-foreground">Generate</button>
+                          <button className="text-success hover:text-success-foreground">
+                            {t('workOrders.pm.generate', 'Generate')}
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -223,4 +233,3 @@ export default function PreventiveMaintenancePage() {
     </div>
   );
 }
-

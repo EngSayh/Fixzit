@@ -5,10 +5,34 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { CheckCircle2, DownloadCloud, Cpu } from 'lucide-react';
 
 const STEPS = [
-  { key: 'compliance', description: 'Nafath + FAL + foreign ownership checks' },
-  { key: 'immersive', description: 'Upload VR/AR assets and IoT manifest' },
-  { key: 'pricing', description: 'Run dynamic pricing insights & RNPL eligibility' },
-  { key: 'publish', description: 'Publish to Fixzit app switcher + offline caches' },
+  {
+    key: 'compliance',
+    titleKey: 'aqar.post.steps.compliance.title',
+    titleFallback: 'Compliance checks',
+    descKey: 'aqar.post.steps.compliance.desc',
+    descFallback: 'Nafath + FAL + foreign ownership checks',
+  },
+  {
+    key: 'immersive',
+    titleKey: 'aqar.post.steps.immersive.title',
+    titleFallback: 'Immersive assets',
+    descKey: 'aqar.post.steps.immersive.desc',
+    descFallback: 'Upload VR/AR assets and IoT manifest',
+  },
+  {
+    key: 'pricing',
+    titleKey: 'aqar.post.steps.pricing.title',
+    titleFallback: 'Pricing insights',
+    descKey: 'aqar.post.steps.pricing.desc',
+    descFallback: 'Run dynamic pricing insights & RNPL eligibility',
+  },
+  {
+    key: 'publish',
+    titleKey: 'aqar.post.steps.publish.title',
+    titleFallback: 'Publish & cache',
+    descKey: 'aqar.post.steps.publish.desc',
+    descFallback: 'Publish to Fixzit app switcher + offline caches',
+  },
 ];
 
 export default function PostListingPage() {
@@ -40,10 +64,10 @@ export default function PostListingPage() {
           >
             <div>
               <p className="font-semibold text-foreground">
-                {t(`aqar.post.steps.${step.key}.title`, step.description)}
+                {t(step.titleKey, step.titleFallback)}
               </p>
               <p className="text-sm text-muted-foreground">
-                {t(`aqar.post.steps.${step.key}.desc`, step.description)}
+                {t(step.descKey, step.descFallback)}
               </p>
             </div>
             {index < activeStep ? (

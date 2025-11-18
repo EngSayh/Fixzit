@@ -317,33 +317,33 @@ export default function FeatureSettingsPage() {
 
       {/* Customer & User Lifecycle */}
       <FeatureToggleGroup
-        title="Customer & User Management"
-        description="Features related to customer lifecycle, family management, and HR"
+        title={auto('Customer & User Management', 'groups.customer.title')}
+        description={auto('Features related to customer lifecycle, family management, and HR', 'groups.customer.description')}
       >
         <FeatureToggle
           id="referral-program"
-          label="Referral Program"
-          description="Allow users to refer others and earn rewards"
+          label={auto('Referral Program', 'features.referralProgram.label')}
+          description={auto('Allow users to refer others and earn rewards', 'features.referralProgram.description')}
           enabled={features.referralProgram}
           onChange={(enabled) => handleFeatureChange('referralProgram', enabled)}
           loading={loadingFeatures.includes('referralProgram')}
-          badge="New"
+          badge={auto('New', 'badges.new')}
         />
         
         <FeatureToggle
           id="family-management"
-          label="Family Management"
-          description="Enable family member invitations and shared access"
+          label={auto('Family Management', 'features.familyManagement.label')}
+          description={auto('Enable family member invitations and shared access', 'features.familyManagement.description')}
           enabled={features.familyManagement}
           onChange={(enabled) => handleFeatureChange('familyManagement', enabled)}
           loading={loadingFeatures.includes('familyManagement')}
-          badge="Beta"
+          badge={auto('Beta', 'badges.beta')}
         />
         
         <FeatureToggle
           id="hr-module"
-          label="HR Module"
-          description="Employee management and vacation tracking"
+          label={auto('HR Module', 'features.hrModule.label')}
+          description={auto('Employee management and vacation tracking', 'features.hrModule.description')}
           enabled={features.hrModule}
           onChange={(enabled) => handleFeatureChange('hrModule', enabled)}
           loading={loadingFeatures.includes('hrModule')}
@@ -351,8 +351,8 @@ export default function FeatureSettingsPage() {
         
         <FeatureToggle
           id="vacation-requests"
-          label="Vacation Requests"
-          description="Allow employees to submit vacation requests"
+          label={auto('Vacation Requests', 'features.vacationRequests.label')}
+          description={auto('Allow employees to submit vacation requests', 'features.vacationRequests.description')}
           enabled={features.vacationRequests}
           onChange={(enabled) => handleFeatureChange('vacationRequests', enabled)}
           loading={loadingFeatures.includes('vacationRequests')}
@@ -361,13 +361,13 @@ export default function FeatureSettingsPage() {
 
       {/* Legal & Contract Management */}
       <FeatureToggleGroup
-        title="Legal & Contracts"
-        description="Contract management and legal document features"
+        title={auto('Legal & Contracts', 'groups.legal.title')}
+        description={auto('Contract management and legal document features', 'groups.legal.description')}
       >
         <FeatureToggle
           id="electronic-contracts"
-          label="Electronic Contracts"
-          description="Enable digital contract signing via Ejar"
+          label={auto('Electronic Contracts', 'features.electronicContracts.label')}
+          description={auto('Enable digital contract signing via Ejar', 'features.electronicContracts.description')}
           enabled={features.electronicContracts}
           onChange={(enabled) => handleFeatureChange('electronicContracts', enabled)}
           loading={loadingFeatures.includes('electronicContracts')}
@@ -375,24 +375,24 @@ export default function FeatureSettingsPage() {
         
         <FeatureToggle
           id="electronic-attorneys"
-          label="Electronic Attorneys"
-          description="Power of Attorney management system"
+          label={auto('Electronic Attorneys', 'features.electronicAttorneys.label')}
+          description={auto('Power of Attorney management system', 'features.electronicAttorneys.description')}
           enabled={features.electronicAttorneys}
           onChange={(enabled) => handleFeatureChange('electronicAttorneys', enabled)}
           loading={loadingFeatures.includes('electronicAttorneys')}
-          badge="Coming Soon"
+          badge={auto('Coming Soon', 'badges.comingSoon')}
         />
       </FeatureToggleGroup>
 
       {/* Financial & Accounting */}
       <FeatureToggleGroup
-        title="Financial & Accounting"
-        description="Payment processing, invoicing, and financial features"
+        title={auto('Financial & Accounting', 'groups.finance.title')}
+        description={auto('Payment processing, invoicing, and financial features', 'groups.finance.description')}
       >
         <FeatureToggle
           id="auto-payments"
-          label="Auto Payments"
-          description="Automatic payment processing via Stripe/Tap"
+          label={auto('Auto Payments', 'features.autoPayments.label')}
+          description={auto('Automatic payment processing via Stripe/Tap', 'features.autoPayments.description')}
           enabled={features.autoPayments}
           onChange={(enabled) => handleFeatureChange('autoPayments', enabled)}
           loading={loadingFeatures.includes('autoPayments')}
@@ -400,8 +400,8 @@ export default function FeatureSettingsPage() {
         
         <FeatureToggle
           id="payment-links"
-          label="Payment Links"
-          description="Generate payment links for tenants"
+          label={auto('Payment Links', 'features.paymentLinks.label')}
+          description={auto('Generate payment links for tenants', 'features.paymentLinks.description')}
           enabled={features.paymentLinks}
           onChange={(enabled) => handleFeatureChange('paymentLinks', enabled)}
           loading={loadingFeatures.includes('paymentLinks')}
@@ -409,35 +409,35 @@ export default function FeatureSettingsPage() {
         
         <FeatureToggle
           id="receipt-vouchers"
-          label="Receipt Vouchers with QR"
-          description="Generate receipt vouchers with QR codes"
+          label={auto('Receipt Vouchers with QR', 'features.receiptVouchers.label')}
+          description={auto('Generate receipt vouchers with QR codes', 'features.receiptVouchers.description')}
           enabled={features.receiptVouchers}
           onChange={(enabled) => handleFeatureChange('receiptVouchers', enabled)}
           loading={loadingFeatures.includes('receiptVouchers')}
-          badge="New"
+          badge={auto('New', 'badges.new')}
         />
         
         <FeatureToggle
           id="ejar-wallet"
-          label="Ejar Wallet Integration"
-          description="Connect with Ejar digital wallet"
+          label={auto('Ejar Wallet Integration', 'features.ejarWallet.label')}
+          description={auto('Connect with Ejar digital wallet', 'features.ejarWallet.description')}
           enabled={features.ejarWallet}
           onChange={(enabled) => handleFeatureChange('ejarWallet', enabled)}
           loading={loadingFeatures.includes('ejarWallet')}
           locked={true}
-          onLockedClick={() => handleLockedFeatureClick('Ejar Wallet Integration')}
+          onLockedClick={() => handleLockedFeatureClick(auto('Ejar Wallet Integration', 'features.ejarWallet.label'))}
         />
       </FeatureToggleGroup>
 
       {/* Service & Maintenance */}
       <FeatureToggleGroup
-        title="Service & Maintenance"
-        description="Maintenance request management and service provider features"
+        title={auto('Service & Maintenance', 'groups.service.title')}
+        description={auto('Maintenance request management and service provider features', 'groups.service.description')}
       >
         <FeatureToggle
           id="service-ratings"
-          label="Service Ratings"
-          description="Allow customers to rate service providers"
+          label={auto('Service Ratings', 'features.serviceRatings.label')}
+          description={auto('Allow customers to rate service providers', 'features.serviceRatings.description')}
           enabled={features.serviceRatings}
           onChange={(enabled) => handleFeatureChange('serviceRatings', enabled)}
           loading={loadingFeatures.includes('serviceRatings')}
@@ -445,18 +445,18 @@ export default function FeatureSettingsPage() {
         
         <FeatureToggle
           id="warranty-tracker"
-          label="Warranty Tracker"
-          description="Track appliance and equipment warranties"
+          label={auto('Warranty Tracker', 'features.warrantyTracker.label')}
+          description={auto('Track appliance and equipment warranties', 'features.warrantyTracker.description')}
           enabled={features.warrantyTracker}
           onChange={(enabled) => handleFeatureChange('warrantyTracker', enabled)}
           loading={loadingFeatures.includes('warrantyTracker')}
-          badge="Beta"
+          badge={auto('Beta', 'badges.beta')}
         />
         
         <FeatureToggle
           id="spare-parts-approval"
-          label="Spare Parts Approval"
-          description="Require tenant approval for spare parts purchases"
+          label={auto('Spare Parts Approval', 'features.sparePartsApproval.label')}
+          description={auto('Require tenant approval for spare parts purchases', 'features.sparePartsApproval.description')}
           enabled={features.sparePartsApproval}
           onChange={(enabled) => handleFeatureChange('sparePartsApproval', enabled)}
           loading={loadingFeatures.includes('sparePartsApproval')}
@@ -464,8 +464,8 @@ export default function FeatureSettingsPage() {
         
         <FeatureToggle
           id="emergency-maintenance"
-          label="Emergency Maintenance"
-          description="24/7 emergency maintenance requests"
+          label={auto('Emergency Maintenance', 'features.emergencyMaintenance.label')}
+          description={auto('24/7 emergency maintenance requests', 'features.emergencyMaintenance.description')}
           enabled={features.emergencyMaintenance}
           onChange={(enabled) => handleFeatureChange('emergencyMaintenance', enabled)}
           loading={loadingFeatures.includes('emergencyMaintenance')}
@@ -474,23 +474,23 @@ export default function FeatureSettingsPage() {
 
       {/* Marketplace & Project Bidding */}
       <FeatureToggleGroup
-        title="Marketplace & Projects"
-        description="Project bidding, vendor management, and e-commerce"
+        title={auto('Marketplace & Projects', 'groups.marketplace.title')}
+        description={auto('Project bidding, vendor management, and e-commerce', 'groups.marketplace.description')}
       >
         <FeatureToggle
           id="project-bidding"
-          label="Project Bidding System"
-          description="Allow contractors to bid on projects"
+          label={auto('Project Bidding System', 'features.projectBidding.label')}
+          description={auto('Allow contractors to bid on projects', 'features.projectBidding.description')}
           enabled={features.projectBidding}
           onChange={(enabled) => handleFeatureChange('projectBidding', enabled)}
           loading={loadingFeatures.includes('projectBidding')}
-          badge="New"
+          badge={auto('New', 'badges.new')}
         />
         
         <FeatureToggle
           id="vendor-verification"
-          label="Vendor Verification"
-          description="Background checks and document verification for vendors"
+          label={auto('Vendor Verification', 'features.vendorVerification.label')}
+          description={auto('Background checks and document verification for vendors', 'features.vendorVerification.description')}
           enabled={features.vendorVerification}
           onChange={(enabled) => handleFeatureChange('vendorVerification', enabled)}
           loading={loadingFeatures.includes('vendorVerification')}
@@ -498,8 +498,8 @@ export default function FeatureSettingsPage() {
         
         <FeatureToggle
           id="online-store"
-          label="Online Store (Souq)"
-          description="Public e-commerce store for products and services"
+          label={auto('Online Store (Souq)', 'features.onlineStore.label')}
+          description={auto('Public e-commerce store for products and services', 'features.onlineStore.description')}
           enabled={features.onlineStore}
           onChange={(enabled) => handleFeatureChange('onlineStore', enabled)}
           loading={loadingFeatures.includes('onlineStore')}
@@ -508,13 +508,13 @@ export default function FeatureSettingsPage() {
 
       {/* System & Administration */}
       <FeatureToggleGroup
-        title="System & Security"
-        description="Administrative and security features"
+        title={auto('System & Security', 'groups.system.title')}
+        description={auto('Administrative and security features', 'groups.system.description')}
       >
         <FeatureToggle
           id="audit-logging"
-          label="Audit Logging"
-          description="Track all database changes and user actions"
+          label={auto('Audit Logging', 'features.auditLogging.label')}
+          description={auto('Track all database changes and user actions', 'features.auditLogging.description')}
           enabled={features.auditLogging}
           onChange={(enabled) => handleFeatureChange('auditLogging', enabled)}
           loading={loadingFeatures.includes('auditLogging')}
@@ -523,29 +523,29 @@ export default function FeatureSettingsPage() {
         
         <FeatureToggle
           id="two-factor-auth"
-          label="Two-Factor Authentication"
-          description="Require 2FA for admin accounts"
+          label={auto('Two-Factor Authentication', 'features.twoFactorAuth.label')}
+          description={auto('Require 2FA for admin accounts', 'features.twoFactorAuth.description')}
           enabled={features.twoFactorAuth}
           onChange={(enabled) => handleFeatureChange('twoFactorAuth', enabled)}
           loading={loadingFeatures.includes('twoFactorAuth')}
-          badge="Recommended"
+          badge={auto('Recommended', 'badges.recommended')}
         />
         
         <FeatureToggle
           id="api-access"
-          label="API Access"
-          description="Enable third-party API integrations"
+          label={auto('API Access', 'features.apiAccess.label')}
+          description={auto('Enable third-party API integrations', 'features.apiAccess.description')}
           enabled={features.apiAccess}
           onChange={(enabled) => handleFeatureChange('apiAccess', enabled)}
           loading={loadingFeatures.includes('apiAccess')}
           locked={true}
-          onLockedClick={() => handleLockedFeatureClick('API Access')}
+          onLockedClick={() => handleLockedFeatureClick(auto('API Access', 'features.apiAccess.label'))}
         />
         
         <FeatureToggle
           id="data-export"
-          label="Data Export"
-          description="Allow users to export their data"
+          label={auto('Data Export', 'features.dataExport.label')}
+          description={auto('Allow users to export their data', 'features.dataExport.description')}
           enabled={features.dataExport}
           onChange={(enabled) => handleFeatureChange('dataExport', enabled)}
           loading={loadingFeatures.includes('dataExport')}
@@ -554,23 +554,23 @@ export default function FeatureSettingsPage() {
 
       {/* Cross-Platform Features */}
       <FeatureToggleGroup
-        title="Cross-Platform Features"
-        description="Mobile app and notification settings"
+        title={auto('Cross-Platform Features', 'groups.crossPlatform.title')}
+        description={auto('Mobile app and notification settings', 'groups.crossPlatform.description')}
       >
         <FeatureToggle
           id="mobile-app"
-          label="Mobile App Access"
-          description="Enable iOS and Android mobile applications"
+          label={auto('Mobile App Access', 'features.mobileApp.label')}
+          description={auto('Enable iOS and Android mobile applications', 'features.mobileApp.description')}
           enabled={features.mobileApp}
           onChange={(enabled) => handleFeatureChange('mobileApp', enabled)}
           loading={loadingFeatures.includes('mobileApp')}
-          badge="Coming Soon"
+          badge={auto('Coming Soon', 'badges.comingSoon')}
         />
         
         <FeatureToggle
           id="push-notifications"
-          label="Push Notifications"
-          description="Send push notifications to mobile devices"
+          label={auto('Push Notifications', 'features.pushNotifications.label')}
+          description={auto('Send push notifications to mobile devices', 'features.pushNotifications.description')}
           enabled={features.pushNotifications}
           onChange={(enabled) => handleFeatureChange('pushNotifications', enabled)}
           loading={loadingFeatures.includes('pushNotifications')}
@@ -578,8 +578,8 @@ export default function FeatureSettingsPage() {
         
         <FeatureToggle
           id="sms-notifications"
-          label="SMS Notifications"
-          description="Send SMS notifications via Twilio/Unifonic"
+          label={auto('SMS Notifications', 'features.smsNotifications.label')}
+          description={auto('Send SMS notifications via Twilio/Unifonic', 'features.smsNotifications.description')}
           enabled={features.smsNotifications}
           onChange={(enabled) => handleFeatureChange('smsNotifications', enabled)}
           loading={loadingFeatures.includes('smsNotifications')}
@@ -587,20 +587,22 @@ export default function FeatureSettingsPage() {
         
         <FeatureToggle
           id="whatsapp-notifications"
-          label="WhatsApp Notifications"
-          description="Send notifications via WhatsApp Business API"
+          label={auto('WhatsApp Notifications', 'features.whatsappNotifications.label')}
+          description={auto('Send notifications via WhatsApp Business API', 'features.whatsappNotifications.description')}
           enabled={features.whatsappNotifications}
           onChange={(enabled) => handleFeatureChange('whatsappNotifications', enabled)}
           loading={loadingFeatures.includes('whatsappNotifications')}
           locked={true}
-          onLockedClick={() => handleLockedFeatureClick('WhatsApp Notifications')}
+          onLockedClick={() =>
+            handleLockedFeatureClick(auto('WhatsApp Notifications', 'features.whatsappNotifications.label'))
+          }
         />
       </FeatureToggleGroup>
 
       {/* Save Button (optional, changes are auto-saved) */}
       <div className="flex justify-end pt-6 border-t border-border dark:border-gray-700">
         <p className="text-sm text-muted-foreground dark:text-muted-foreground">
-          Changes are saved automatically
+          {auto('Changes are saved automatically', 'footer.autoSaved')}
         </p>
       </div>
 

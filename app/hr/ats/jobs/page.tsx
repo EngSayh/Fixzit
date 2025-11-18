@@ -127,6 +127,11 @@ export default function AtsJobsPage() {
     { value: 'remote', label: t('hr.ats.jobs.filters.jobTypeRemote', 'Remote') },
     { value: 'hybrid', label: t('hr.ats.jobs.filters.jobTypeHybrid', 'Hybrid') },
   ];
+  const locationModeLabels: Record<string, { key: string; fallback: string }> = {
+    remote: { key: 'hr.ats.jobs.location.remote', fallback: 'Remote' },
+    hybrid: { key: 'hr.ats.jobs.location.hybrid', fallback: 'Hybrid' },
+    onsite: { key: 'hr.ats.jobs.location.onsite', fallback: 'Onsite' },
+  };
 
   const formatStatusBadge = (status: string) => {
     switch (status) {
@@ -156,8 +161,17 @@ export default function AtsJobsPage() {
   const formatLocation = (job: JobPosting) => {
     const parts = [job.location?.city, job.location?.country].filter(Boolean);
     const locationString = parts.join(', ');
-    if (job.location?.mode && job.location.mode !== 'onsite') {
-      return `${locationString} • ${t(`hr.ats.jobs.location.${job.location.mode}`, job.location.mode)}`;
+    const mode = job.location?.mode;
+    if (mode && mode !== 'onsite') {
+      const modeConfig = locationModeLabels[mode] ?? {
+        key: 'hr.ats.jobs.location.unspecifiedMode',
+        fallback: mode,
+      };
+      const modeLabel = t(modeConfig.key, modeConfig.fallback);
+      return locationString ? `${locationString} • ${modeLabel}` : modeLabel;
+    }
+    if (!locationString && mode === 'onsite') {
+      return t(locationModeLabels.onsite.key, locationModeLabels.onsite.fallback);
     }
     return locationString || t('hr.ats.jobs.location.unspecified', 'TBD');
   };

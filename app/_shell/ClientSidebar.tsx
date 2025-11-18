@@ -301,6 +301,18 @@ const ITEM_TRANSLATIONS: Record<string, { key: string; fallback: string }> = {
   "Settings": { key: "sidebar.legacy.items.settings", fallback: "Settings" },
 };
 
+const getSectionTranslation = (title: string) =>
+  SECTION_TRANSLATIONS[title] ?? {
+    key: `sidebar.legacy.sections.${slugifyKey(title)}`,
+    fallback: title,
+  };
+
+const getItemTranslation = (label: string) =>
+  ITEM_TRANSLATIONS[label] ?? {
+    key: `sidebar.legacy.items.${slugifyKey(label)}`,
+    fallback: label,
+  };
+
 type LocalizedSection = {
   id: string;
   title: string;
@@ -400,20 +412,18 @@ export default function ClientSidebar() {
   const navSections = useMemo<LocalizedSection[]>(() => {
     return NAV_BASE.map((section) => {
       const sectionId = slugifyKey(section.title);
-      const title = t(
-        `sidebar.legacy.sections.${sectionId}`,
-        section.title
-      );
+      const sectionTranslation = getSectionTranslation(section.title);
+      const title = t(sectionTranslation.key, sectionTranslation.fallback);
       const items = section.items
         .filter((item) => hasAccess(role, item.path))
-        .map((item) => ({
-          ...item,
-          label: t(
-            `sidebar.legacy.items.${slugifyKey(item.label)}`,
-            item.label
-          ),
-          badge: item.badgeKey ? counters[item.badgeKey] ?? 0 : 0,
-        }));
+        .map((item) => {
+          const itemTranslation = getItemTranslation(item.label);
+          return {
+            ...item,
+            label: t(itemTranslation.key, itemTranslation.fallback),
+            badge: item.badgeKey ? counters[item.badgeKey] ?? 0 : 0,
+          };
+        });
       return { id: sectionId, title, items };
     }).filter((section) => section.items.length > 0);
   }, [role, counters, t]);

@@ -622,7 +622,7 @@ export default function CareersPage() {
                                 className="bg-primary hover:bg-primary/90 text-white px-6 py-2"
                               >
                                 <Send className="w-4 h-4 me-2" />
-                                Apply Now
+                                {auto('Apply Now', 'form.applyCta')}
                               </Button>
                             </div>
                           </div>
@@ -642,7 +642,9 @@ export default function CareersPage() {
         <Dialog open={showApplyForm} onOpenChange={setShowApplyForm}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-2xl">Apply for {selectedJob.title}</DialogTitle>
+              <DialogTitle className="text-2xl">
+                {auto('Apply for {{jobTitle}}', 'form.dialogTitle', { jobTitle: selectedJob.title })}
+              </DialogTitle>
               <p className="text-muted-foreground">
                 {selectedJob.department} • {selectedJob.location} • {selectedJob.type}
               </p>
@@ -651,22 +653,22 @@ export default function CareersPage() {
             <form onSubmit={handleSubmitApplication} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="firstName">First Name *</Label>
+                  <Label htmlFor="firstName">{auto('First Name *', 'form.firstName.label')}</Label>
                   <Input
                     id="firstName"
                     name="firstName"
                     required
-                    placeholder="Enter your first name"
+                    placeholder={auto('Enter your first name', 'form.firstName.placeholder')}
                     defaultValue={session?.user?.name?.split(' ')[0] || ''}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="lastName">Last Name *</Label>
+                  <Label htmlFor="lastName">{auto('Last Name *', 'form.lastName.label')}</Label>
                   <Input
                     id="lastName"
                     name="lastName"
                     required
-                    placeholder="Enter your last name"
+                    placeholder={auto('Enter your last name', 'form.lastName.placeholder')}
                     defaultValue={session?.user?.name?.split(' ').slice(1).join(' ') || ''}
                   />
                 </div>
@@ -674,47 +676,50 @@ export default function CareersPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="email">Email Address *</Label>
+                  <Label htmlFor="email">{auto('Email Address *', 'form.email.label')}</Label>
                   <Input
                     id="email"
                     name="email"
                     type="email"
                     required
-                    placeholder="Enter your email"
+                    placeholder={auto('Enter your email', 'form.email.placeholder')}
                     defaultValue={session?.user?.email || ''}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="phone">Phone Number *</Label>
+                  <Label htmlFor="phone">{auto('Phone Number *', 'form.phone.label')}</Label>
                   <Input
                     id="phone"
                     name="phone"
                     type="tel"
                     required
-                    placeholder="Enter your phone number"
+                    placeholder={auto('Enter your phone number', 'form.phone.placeholder')}
                   />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="coverLetter">Cover Letter *</Label>
+                <Label htmlFor="coverLetter">{auto('Cover Letter *', 'form.coverLetter.label')}</Label>
                 <Textarea
                   id="coverLetter"
                   name="coverLetter"
                   rows={4}
                   required
-                  placeholder="Tell us why you're interested in this position and what makes you a great fit..."
+                  placeholder={auto(
+                    "Tell us why you're interested in this position and what makes you a great fit...",
+                    'form.coverLetter.placeholder'
+                  )}
                 />
               </div>
 
               <div>
-                <Label htmlFor="resume">Resume/CV *</Label>
+                <Label htmlFor="resume">{auto('Resume/CV *', 'form.resume.label')}</Label>
                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-border border-dashed rounded-2xl">
                   <div className="space-y-1 text-center">
                     <Upload className="mx-auto h-12 w-12 text-muted-foreground" />
                     <div className="flex text-sm text-muted-foreground">
                       <label htmlFor="resume" className="relative cursor-pointer bg-card rounded-2xl font-medium text-primary hover:text-primary">
-                        <span>Upload a file</span>
+                        <span>{auto('Upload a file', 'form.resume.upload')}</span>
                         <input
                           id="resume"
                           name="resume"
@@ -724,9 +729,11 @@ export default function CareersPage() {
                           className="sr-only"
                         />
                       </label>
-                      <p className="ps-1">or drag and drop</p>
+                      <p className="ps-1">{auto('or drag and drop', 'form.resume.dragDrop')}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">PDF, DOC, DOCX up to 10MB</p>
+                    <p className="text-xs text-muted-foreground">
+                      {auto('PDF, DOC, DOCX up to 10MB', 'form.resume.hint')}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -738,7 +745,7 @@ export default function CareersPage() {
                   onClick={() => setShowApplyForm(false)}
                   disabled={isSubmitting}
                 >
-                  Cancel
+                  {auto('Cancel', 'form.actions.cancel')}
                 </Button>
                 <Button
                   type="submit"
@@ -748,12 +755,12 @@ export default function CareersPage() {
                   {isSubmitting ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin me-2" />
-                      Submitting...
+                      {auto('Submitting...', 'form.actions.submitting')}
                     </>
                   ) : (
                     <>
                       <Send className="w-4 h-4 me-2" />
-                      Submit Application
+                      {auto('Submit Application', 'form.actions.submit')}
                     </>
                   )}
                 </Button>

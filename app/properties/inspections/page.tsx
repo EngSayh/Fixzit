@@ -51,6 +51,28 @@ export default function PropertiesInspectionsPage() {
       nextDue: '2025-05-15'
     }
   ];
+  const propertyOptions = [
+    { value: 'all', key: 'properties.filters.allProperties', fallback: 'All Properties' },
+    { value: 'tower-a', key: 'properties.filters.towerA', fallback: 'Tower A' },
+    { value: 'tower-b', key: 'properties.filters.towerB', fallback: 'Tower B' },
+    { value: 'villa-complex', key: 'properties.filters.villaComplex', fallback: 'Villa Complex' },
+  ];
+
+  const inspectionTypeOptions = [
+    { value: 'all', key: 'properties.inspections.filters.types.all', fallback: 'All Types' },
+    { value: 'safety', key: 'properties.inspections.filters.types.safety', fallback: 'Safety' },
+    { value: 'fire', key: 'properties.inspections.filters.types.fireSafety', fallback: 'Fire Safety' },
+    { value: 'mechanical', key: 'properties.inspections.filters.types.mechanical', fallback: 'Mechanical' },
+    { value: 'electrical', key: 'properties.inspections.filters.types.electrical', fallback: 'Electrical' },
+  ];
+
+  const inspectionStatusOptions = [
+    { value: 'all', key: 'properties.inspections.filters.status.all', fallback: 'All Status' },
+    { value: 'scheduled', key: 'properties.inspections.filters.status.scheduled', fallback: 'Scheduled' },
+    { value: 'in-progress', key: 'properties.inspections.filters.status.inProgress', fallback: 'In Progress' },
+    { value: 'completed', key: 'properties.inspections.filters.status.completed', fallback: 'Completed' },
+    { value: 'overdue', key: 'properties.inspections.filters.status.overdue', fallback: 'Overdue' },
+  ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -132,31 +154,32 @@ export default function PropertiesInspectionsPage() {
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
             <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              <option>All Properties</option>
-              <option>Tower A</option>
-              <option>Tower B</option>
-              <option>Villa Complex</option>
+              {propertyOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex-1 min-w-48">
             <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              <option>All Types</option>
-              <option>Safety</option>
-              <option>Fire Safety</option>
-              <option>Mechanical</option>
-              <option>Electrical</option>
+              {inspectionTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex-1 min-w-48">
             <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              <option>All Status</option>
-              <option>Scheduled</option>
-              <option>In Progress</option>
-              <option>Completed</option>
-              <option>Overdue</option>
+              {inspectionStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
             </select>
           </div>
-          <button className="btn-primary">Filter</button>
+          <button className="btn-primary">{t('common.filter', 'Filter')}</button>
         </div>
       </div>
 
@@ -295,4 +318,3 @@ export default function PropertiesInspectionsPage() {
     </div>
   );
 }
-

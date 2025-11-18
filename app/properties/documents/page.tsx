@@ -62,6 +62,28 @@ export default function PropertiesDocumentsPage() {
       size: '1.5 MB'
     }
   ];
+  const propertyOptions = [
+    { value: 'all', key: 'properties.filters.allProperties', fallback: 'All Properties' },
+    { value: 'tower-a', key: 'properties.filters.towerA', fallback: 'Tower A' },
+    { value: 'tower-b', key: 'properties.filters.towerB', fallback: 'Tower B' },
+    { value: 'villa-complex', key: 'properties.filters.villaComplex', fallback: 'Villa Complex' },
+  ];
+
+  const documentTypeOptions = [
+    { value: 'all', key: 'properties.documents.filters.types.all', fallback: 'All Types' },
+    { value: 'legal', key: 'properties.documents.filters.types.legal', fallback: 'Legal' },
+    { value: 'safety', key: 'properties.documents.filters.types.safety', fallback: 'Safety' },
+    { value: 'contract', key: 'properties.documents.filters.types.contract', fallback: 'Contract' },
+    { value: 'insurance', key: 'properties.documents.filters.types.insurance', fallback: 'Insurance' },
+  ];
+
+  const documentStatusOptions = [
+    { value: 'all', key: 'properties.documents.filters.status.all', fallback: 'All Status' },
+    { value: 'active', key: 'properties.documents.filters.status.active', fallback: 'Active' },
+    { value: 'expiring', key: 'properties.documents.filters.status.expiringSoon', fallback: 'Expiring Soon' },
+    { value: 'expired', key: 'properties.documents.filters.status.expired', fallback: 'Expired' },
+    { value: 'pending', key: 'properties.documents.filters.status.pendingReview', fallback: 'Pending Review' },
+  ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -155,31 +177,32 @@ export default function PropertiesDocumentsPage() {
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
             <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              <option>All Properties</option>
-              <option>Tower A</option>
-              <option>Tower B</option>
-              <option>Villa Complex</option>
+              {propertyOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex-1 min-w-48">
             <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              <option>All Types</option>
-              <option>Legal</option>
-              <option>Safety</option>
-              <option>Contract</option>
-              <option>Insurance</option>
+              {documentTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex-1 min-w-48">
             <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              <option>All Status</option>
-              <option>Active</option>
-              <option>Expiring Soon</option>
-              <option>Expired</option>
-              <option>Pending Review</option>
+              {documentStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
             </select>
           </div>
-          <button className="btn-primary">Filter</button>
+          <button className="btn-primary">{t('common.filter', 'Filter')}</button>
         </div>
       </div>
 
@@ -338,4 +361,3 @@ export default function PropertiesDocumentsPage() {
     </div>
   );
 }
-

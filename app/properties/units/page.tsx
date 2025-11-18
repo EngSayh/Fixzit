@@ -51,6 +51,28 @@ export default function PropertiesUnitsPage() {
       occupancy: 'occupied'
     }
   ];
+  const propertyOptions = [
+    { value: 'all', key: 'properties.filters.allProperties', fallback: 'All Properties' },
+    { value: 'tower-a', key: 'properties.filters.towerA', fallback: 'Tower A' },
+    { value: 'tower-b', key: 'properties.filters.towerB', fallback: 'Tower B' },
+    { value: 'villa-complex', key: 'properties.filters.villaComplex', fallback: 'Villa Complex' },
+  ];
+
+  const unitTypeOptions = [
+    { value: 'all', key: 'properties.units.filters.types.all', fallback: 'All Types' },
+    { value: 'studio', key: 'properties.units.filters.types.studio', fallback: 'Studio' },
+    { value: '1br', key: 'properties.units.filters.types.1br', fallback: '1BR Apartment' },
+    { value: '2br', key: 'properties.units.filters.types.2br', fallback: '2BR Apartment' },
+    { value: '3br', key: 'properties.units.filters.types.3br', fallback: '3BR Apartment' },
+    { value: 'villa', key: 'properties.units.filters.types.villa', fallback: 'Villa' },
+  ];
+
+  const unitStatusOptions = [
+    { value: 'all', key: 'properties.units.filters.status.all', fallback: 'All Status' },
+    { value: 'occupied', key: 'properties.units.filters.status.occupied', fallback: 'Occupied' },
+    { value: 'vacant', key: 'properties.units.filters.status.vacant', fallback: 'Vacant' },
+    { value: 'maintenance', key: 'properties.units.filters.status.maintenance', fallback: 'Maintenance' },
+  ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -130,31 +152,32 @@ export default function PropertiesUnitsPage() {
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
             <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              <option>All Properties</option>
-              <option>Tower A</option>
-              <option>Tower B</option>
-              <option>Villa Complex</option>
+              {propertyOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex-1 min-w-48">
             <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              <option>All Types</option>
-              <option>Studio</option>
-              <option>1BR Apartment</option>
-              <option>2BR Apartment</option>
-              <option>3BR Apartment</option>
-              <option>Villa</option>
+              {unitTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex-1 min-w-48">
             <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              <option>All Status</option>
-              <option>Occupied</option>
-              <option>Vacant</option>
-              <option>Maintenance</option>
+              {unitStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(option.key, option.fallback)}
+                </option>
+              ))}
             </select>
           </div>
-          <button className="btn-primary">Filter</button>
+          <button className="btn-primary">{t('common.filter', 'Filter')}</button>
         </div>
       </div>
 
@@ -248,4 +271,3 @@ export default function PropertiesUnitsPage() {
     </div>
   );
 }
-
