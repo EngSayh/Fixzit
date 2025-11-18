@@ -1,0 +1,16 @@
+{
+  "en": {
+    "projects.createProject": "Create Project",
+    "projects.newProject": "New Project",
+    "projects.projectName": "Project Name *",
+    "projects.recentApprovals": "Recent Approvals",
+    "projects.title": "Projects"
+  },
+  "ar": {
+    "projects.createProject": "إنشاء مشروع",
+    "projects.newProject": "مشروع جديد",
+    "projects.projectName": "اسم المشروع *",
+    "projects.recentApprovals": "الموافقات الأخيرة",
+    "projects.title": "المشاريع"
+  }
+}

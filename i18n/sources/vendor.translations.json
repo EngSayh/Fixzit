@@ -1,0 +1,16 @@
+{
+  "en": {
+    "vendor.category": "Category",
+    "vendor.code": "Vendor Code",
+    "vendor.responseTime": "Response Time",
+    "vendor.services": "Services",
+    "vendor.type": "Vendor Type"
+  },
+  "ar": {
+    "vendor.category": "الفئة",
+    "vendor.code": "رمز البائع",
+    "vendor.responseTime": "وقت الاستجابة",
+    "vendor.services": "الخدمات",
+    "vendor.type": "نوع البائع"
+  }
+}

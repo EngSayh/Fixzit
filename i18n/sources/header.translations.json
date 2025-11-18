@@ -1,0 +1,12 @@
+{
+  "en": {
+    "header.inbox": "Inbox",
+    "header.myWork": "My Work",
+    "header.notifications": "Notifications"
+  },
+  "ar": {
+    "header.inbox": "الوارد",
+    "header.myWork": "عملي",
+    "header.notifications": "الإشعارات"
+  }
+}

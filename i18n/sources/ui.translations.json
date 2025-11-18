@@ -1,0 +1,40 @@
+{
+  "en": {
+    "ui.accept": "Accept",
+    "ui.decreaseFontSize": "Decrease font size",
+    "ui.featuredPosition": "Featured Position",
+    "ui.increaseFontSize": "Increase font size",
+    "ui.markAsRead": "Mark as read",
+    "ui.openHelp": "Open Help",
+    "ui.quickActions": "Quick actions",
+    "ui.record": "Record",
+    "ui.reject": "Reject",
+    "ui.saveChanges": "Save Changes",
+    "ui.signInRequired": "Sign In Required",
+    "ui.signInToContinue": "Sign in to continue",
+    "ui.switchApplication": "Switch application",
+    "ui.toggleNotifications": "Toggle notifications",
+    "ui.toggleSidebar": "Toggle Sidebar",
+    "ui.unsavedChanges": "Unsaved Changes",
+    "ui.urgentPosition": "Urgent Position"
+  },
+  "ar": {
+    "ui.accept": "قبول",
+    "ui.decreaseFontSize": "تقليل حجم الخط",
+    "ui.featuredPosition": "وظيفة مميزة",
+    "ui.increaseFontSize": "زيادة حجم الخط",
+    "ui.markAsRead": "وضع علامة كمقروء",
+    "ui.openHelp": "فتح المساعدة",
+    "ui.quickActions": "إجراءات سريعة",
+    "ui.record": "تسجيل",
+    "ui.reject": "رفض",
+    "ui.saveChanges": "حفظ التغييرات",
+    "ui.signInRequired": "تسجيل الدخول مطلوب",
+    "ui.signInToContinue": "سجل الدخول للمتابعة",
+    "ui.switchApplication": "تبديل التطبيق",
+    "ui.toggleNotifications": "تبديل الإشعارات",
+    "ui.toggleSidebar": "تبديل الشريط الجانبي",
+    "ui.unsavedChanges": "تغييرات غير محفوظة",
+    "ui.urgentPosition": "وظيفة عاجلة"
+  }
+}

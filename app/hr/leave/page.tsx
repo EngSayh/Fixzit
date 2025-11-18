@@ -60,6 +60,12 @@ export default function LeavePage() {
     reason: '',
   });
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const leaveStatusLabels: Record<LeaveStatus, { key: string; fallback: string }> = {
+    PENDING: { key: 'hr.leave.status.pending', fallback: 'Pending' },
+    APPROVED: { key: 'hr.leave.status.approved', fallback: 'Approved' },
+    REJECTED: { key: 'hr.leave.status.rejected', fallback: 'Rejected' },
+    CANCELLED: { key: 'hr.leave.status.cancelled', fallback: 'Cancelled' },
+  };
 
   useEffect(() => {
     void fetchRequests();
@@ -265,7 +271,7 @@ export default function LeavePage() {
             >
               {status === 'ALL'
                 ? t('hr.leave.filter.all', 'All')
-                : t(`hr.leave.status.${status.toLowerCase()}`, status)}
+                : t(leaveStatusLabels[status].key, leaveStatusLabels[status].fallback)}
             </Button>
           ))}
         </div>
@@ -484,7 +490,7 @@ export default function LeavePage() {
                     </p>
                   </div>
                   <Badge className={getStatusBadge(request.status)}>
-                    {t(`hr.leave.status.${request.status.toLowerCase()}`, request.status)}
+                    {t(leaveStatusLabels[request.status].key, leaveStatusLabels[request.status].fallback)}
                   </Badge>
                 </div>
                 {request.status === 'PENDING' && (

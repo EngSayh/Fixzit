@@ -1,0 +1,36 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Ensure translation artifacts are up-to-date before committing
+echo "🔄 Checking i18n artifacts..."
+
+# Check if any translation source files were modified
+TRANSLATION_SOURCES_CHANGED=$(git diff --cached --name-only | grep -E "^i18n/(sources/.*\.json|new-translations\.ts)$")
+
+if [ -n "$TRANSLATION_SOURCES_CHANGED" ]; then
+  echo "📦 Translation sources changed, regenerating dictionaries..."
+  npm run i18n:build
+  
+  # Add generated files to commit
+  git add i18n/generated/*.dictionary.json
+  
+  echo "✅ Translation artifacts updated"
+fi
+
+# Run TypeScript check
+echo "🔍 Running TypeScript check..."
+pnpm tsc --noEmit
+
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript errors found. Please fix before committing."
+  exit 1
+fi
+
+# Run high-fidelity coverage check (EN/AR only, non-blocking warning)
+echo "🌐 Checking translation coverage..."
+pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar --silent || {
+  echo "⚠️  Translation coverage issues detected (not blocking)"
+  echo "   Run: pnpm i18n:coverage --locales=en,ar"
+}
+
+echo "✅ Pre-commit checks passed!"

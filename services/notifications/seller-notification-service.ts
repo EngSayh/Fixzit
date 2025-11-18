@@ -1,7 +1,16 @@
 import { logger } from '@/lib/logger';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { sendSMS as sendSMSViaService } from '@/lib/sms';
-import { newTranslations } from '@/i18n/new-translations';
+import { loadTranslations } from '@/lib/i18n/translation-loader';
+
+// Lazy-load translations
+let translations: ReturnType<typeof loadTranslations> | null = null;
+function getTranslations() {
+  if (!translations) {
+    translations = loadTranslations();
+  }
+  return translations;
+}
 
 /**
  * Seller Notification Templates for Souq Marketplace
@@ -98,8 +107,8 @@ const templateTranslations: Record<TemplateKey, TranslationConfig> = {
 const FALLBACK_LOCALE: Locale = 'en';
 
 const translationCatalog: Record<Locale, Record<string, string>> = {
-  en: { ...newTranslations.en },
-  ar: { ...newTranslations.ar },
+  en: { ...getTranslations().en },
+  ar: { ...getTranslations().ar },
 };
 
 // Escape regex metacharacters to prevent ReDoS attacks

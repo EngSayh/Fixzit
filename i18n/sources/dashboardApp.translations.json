@@ -1,0 +1,38 @@
+{
+  "en": {
+    "dashboardApp.acMaintenance": "AC Maintenance",
+    "dashboardApp.monthlyRent": "Monthly Rent",
+    "dashboardApp.monthlyRevenue": "Monthly Revenue",
+    "dashboardApp.occupancyRate": "Occupancy Rate",
+    "dashboardApp.openWorkOrders": "Open Work Orders",
+    "dashboardApp.propertyTowerA": "Property Tower A",
+    "dashboardApp.recentTransactions": "Recent Transactions",
+    "dashboardApp.recentWorkOrders": "Recent Work Orders",
+    "dashboardApp.statusCompleted": "Completed",
+    "dashboardApp.statusInProgress": "In Progress",
+    "dashboardApp.statusPending": "Pending",
+    "dashboardApp.tenant": "Tenant",
+    "dashboardApp.title": "Dashboard",
+    "dashboardApp.totalProperties": "Total Properties",
+    "dashboardApp.unit": "Unit",
+    "dashboardApp.welcome": "Welcome back"
+  },
+  "ar": {
+    "dashboardApp.acMaintenance": "صيانة التكييف",
+    "dashboardApp.monthlyRent": "إيجار شهري",
+    "dashboardApp.monthlyRevenue": "الإيرادات الشهرية",
+    "dashboardApp.occupancyRate": "معدل الإشغال",
+    "dashboardApp.openWorkOrders": "أوامر العمل المفتوحة",
+    "dashboardApp.propertyTowerA": "عقار برج A",
+    "dashboardApp.recentTransactions": "المعاملات الأخيرة",
+    "dashboardApp.recentWorkOrders": "أوامر العمل الأخيرة",
+    "dashboardApp.statusCompleted": "مكتمل",
+    "dashboardApp.statusInProgress": "قيد التنفيذ",
+    "dashboardApp.statusPending": "معلق",
+    "dashboardApp.tenant": "مستأجر",
+    "dashboardApp.title": "لوحة التحكم",
+    "dashboardApp.totalProperties": "إجمالي العقارات",
+    "dashboardApp.unit": "وحدة",
+    "dashboardApp.welcome": "مرحباً بعودتك"
+  }
+}

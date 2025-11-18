@@ -1,0 +1,16 @@
+{
+  "en": {
+    "maintenance.asset": "Asset",
+    "maintenance.assigned": "Assigned to",
+    "maintenance.description": "Manage equipment maintenance schedules and tasks",
+    "maintenance.due": "Due",
+    "maintenance.tasks": "Maintenance Tasks"
+  },
+  "ar": {
+    "maintenance.asset": "الأصل",
+    "maintenance.assigned": "مُسند إلى",
+    "maintenance.description": "إدارة جداول الصيانة والمهام للمعدات",
+    "maintenance.due": "تاريخ الاستحقاق",
+    "maintenance.tasks": "مهام الصيانة"
+  }
+}

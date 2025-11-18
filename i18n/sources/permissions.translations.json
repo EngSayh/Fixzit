@@ -1,0 +1,36 @@
+{
+  "en": {
+    "permissions.approve": "Approve",
+    "permissions.archive": "Archive",
+    "permissions.create": "Create",
+    "permissions.delete": "Delete",
+    "permissions.download": "Download",
+    "permissions.edit": "Edit",
+    "permissions.export": "Export",
+    "permissions.import": "Import",
+    "permissions.manage": "Manage",
+    "permissions.publish": "Publish",
+    "permissions.reject": "Reject",
+    "permissions.restore": "Restore",
+    "permissions.share": "Share",
+    "permissions.upload": "Upload",
+    "permissions.view": "View"
+  },
+  "ar": {
+    "permissions.approve": "موافقة",
+    "permissions.archive": "أرشفة",
+    "permissions.create": "إنشاء",
+    "permissions.delete": "حذف",
+    "permissions.download": "تحميل",
+    "permissions.edit": "تعديل",
+    "permissions.export": "تصدير",
+    "permissions.import": "استيراد",
+    "permissions.manage": "إدارة",
+    "permissions.publish": "نشر",
+    "permissions.reject": "رفض",
+    "permissions.restore": "استعادة",
+    "permissions.share": "مشاركة",
+    "permissions.upload": "رفع",
+    "permissions.view": "عرض"
+  }
+}

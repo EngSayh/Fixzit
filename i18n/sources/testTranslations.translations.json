@@ -1,0 +1,26 @@
+{
+  "en": {
+    "testTranslations.currentLanguage": "Current Language:",
+    "testTranslations.instructions.step1": "If you see \"❌ MISSING\", the translation key does not exist.",
+    "testTranslations.instructions.step2": "If you see the localized text, the translation is working.",
+    "testTranslations.instructions.step3": "Try switching language using the TopBar language selector.",
+    "testTranslations.instructions.title": "Instructions:",
+    "testTranslations.section.keyLabel": "Key:",
+    "testTranslations.section.keys": "Translation Keys Test:",
+    "testTranslations.section.missing": "❌ MISSING",
+    "testTranslations.section.translationLabel": "Translation:",
+    "testTranslations.title": "Translation Test Page"
+  },
+  "ar": {
+    "testTranslations.currentLanguage": "اللغة الحالية:",
+    "testTranslations.instructions.step1": "إذا رأيت \"❌ مفقود\"، فالمفتاح غير موجود.",
+    "testTranslations.instructions.step2": "إذا رأيت النص المترجم، فالترجمة تعمل.",
+    "testTranslations.instructions.step3": "جرّب تبديل اللغة من محدد اللغة في الشريط العلوي.",
+    "testTranslations.instructions.title": "الإرشادات:",
+    "testTranslations.section.keyLabel": "المفتاح:",
+    "testTranslations.section.keys": "اختبار مفاتيح الترجمة:",
+    "testTranslations.section.missing": "❌ مفقود",
+    "testTranslations.section.translationLabel": "الترجمة:",
+    "testTranslations.title": "صفحة اختبار الترجمة"
+  }
+}

@@ -18,6 +18,10 @@ import CurrencySelector from '@/components/i18n/CurrencySelector';
 import dynamic from 'next/dynamic';
 
 import { logger } from '@/lib/logger';
+
+// Check if OTP is required (matches auth.config.ts logic)
+const REQUIRE_SMS_OTP = process.env.NEXT_PUBLIC_REQUIRE_SMS_OTP !== 'false';
+
 const GoogleSignInButton = dynamic(() => import('@/components/auth/GoogleSignInButton'), {
   loading: () => (
     <div className="w-full p-3 border border-border rounded-2xl bg-muted animate-pulse h-12" />
@@ -204,7 +208,34 @@ export default function LoginPage() {
     try {
       const identifier = loginMethod === 'personal' ? email.trim() : employeeNumber.trim();
       
-      // Step 1: Send OTP to user's phone
+      // If OTP not required, login directly without SMS verification
+      if (!REQUIRE_SMS_OTP) {
+        const result = await signIn('credentials', {
+          identifier,
+          password,
+          rememberMe,
+          redirect: false,
+        });
+
+        if (result?.error) {
+          setErrors({
+            general: t('login.errors.invalidCredentials', 'Invalid email/employee number or password')
+          });
+          setLoading(false);
+          return;
+        }
+
+        if (result?.ok) {
+          setSuccess(true);
+          const redirectTo = postLoginRedirect();
+          setTimeout(() => {
+            router.replace(redirectTo);
+          }, 500);
+        }
+        return;
+      }
+
+      // Step 1: Send OTP to user's phone (only when OTP is required)
       const otpResponse = await fetch('/api/auth/otp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

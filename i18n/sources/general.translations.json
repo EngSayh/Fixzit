@@ -1,0 +1,20 @@
+{
+  "en": {
+    "general.accountStatus": "Account Status",
+    "general.admin": "Admin",
+    "general.annual": "Annual",
+    "general.category": "Category",
+    "general.connectedToReports": "Connected to Reports API endpoints.",
+    "general.getStarted": "Get started by adding your first property to the portfolio.",
+    "general.totalArea": "Total Area"
+  },
+  "ar": {
+    "general.accountStatus": "حالة الحساب",
+    "general.admin": "المشرف",
+    "general.annual": "سنوي",
+    "general.category": "الفئة",
+    "general.connectedToReports": "متصل بنقاط نهاية API للتقارير.",
+    "general.getStarted": "ابدأ بإضافة عقارك الأول إلى المحفظة.",
+    "general.totalArea": "المساحة الكلية"
+  }
+}

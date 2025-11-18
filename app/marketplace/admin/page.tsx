@@ -40,9 +40,25 @@ interface Category {
   slug: string;
   name?: { en: string };
 }
+const APPROVAL_STATUS_LABELS: Record<string, { key: string; fallback: string }> = {
+  APPROVAL: { key: 'marketplace.orders.status.approval', fallback: 'Awaiting approval' },
+  PENDING: { key: 'marketplace.orders.status.pending', fallback: 'Pending' },
+  CONFIRMED: { key: 'marketplace.orders.status.confirmed', fallback: 'Confirmed' },
+  FULFILLED: { key: 'marketplace.orders.status.fulfilled', fallback: 'Fulfilled' },
+  DELIVERED: { key: 'marketplace.orders.status.delivered', fallback: 'Delivered' },
+  CANCELLED: { key: 'marketplace.orders.status.cancelled', fallback: 'Cancelled' },
+};
 
 export default async function MarketplaceAdminPage() {
   const { t } = await getServerI18n();
+  const formatApprovalStatus = (status?: string | null) => {
+    if (!status) {
+      return t('marketplace.orders.status.unknown', 'Unknown');
+    }
+    const normalized = status.toUpperCase();
+    const config = APPROVAL_STATUS_LABELS[normalized];
+    return config ? t(config.key, config.fallback) : status;
+  };
 
   try {
     const [, productsResponse, ordersResponse, rfqResponse] = await Promise.all([
@@ -142,7 +158,7 @@ export default async function MarketplaceAdminPage() {
                       {order.totals.grand.toFixed(2)} {order.currency}
                     </td>
                     <td className="py-2">
-                      {t(`marketplace.orders.status.${order.approvals?.status?.toLowerCase?.() ?? 'unknown'}`, order.approvals?.status ?? 'N/A')}
+                      {formatApprovalStatus(order.approvals?.status)}
                     </td>
                     <td className="py-2"><ClientDate date={order.createdAt} format="medium" /></td>
                   </tr>

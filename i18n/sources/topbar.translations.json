@@ -1,0 +1,26 @@
+{
+  "en": {
+    "topbar.apps.aqar": "Aqar Souq",
+    "topbar.apps.fm": "Fixzit Facility Management (FM)",
+    "topbar.apps.souq": "Fixzit Souq",
+    "topbar.appSwitcher.ariaLabel": "Switch application menu",
+    "topbar.appSwitcher.entities": "{{count}} searchable entities",
+    "topbar.appSwitcher.label": "Switch Application",
+    "topbar.collapseMenu": "Hide menu",
+    "topbar.expandMenu": "Show menu",
+    "topbar.modules": "Modules",
+    "topbar.quickActions": "Quick Actions"
+  },
+  "ar": {
+    "topbar.apps.aqar": "سوق عقار",
+    "topbar.apps.fm": "إدارة منشآت فيكزيت (FM)",
+    "topbar.apps.souq": "سوق فيكزيت",
+    "topbar.appSwitcher.ariaLabel": "قائمة تبديل التطبيق",
+    "topbar.appSwitcher.entities": "{{count}} عنصر قابل للبحث",
+    "topbar.appSwitcher.label": "تبديل التطبيق",
+    "topbar.collapseMenu": "إخفاء القائمة",
+    "topbar.expandMenu": "عرض القائمة",
+    "topbar.modules": "الوحدات",
+    "topbar.quickActions": "إجراءات سريعة"
+  }
+}

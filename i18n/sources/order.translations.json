@@ -1,0 +1,20 @@
+{
+  "en": {
+    "order.amount": "Amount",
+    "order.date": "Order Date",
+    "order.delivery": "Delivery",
+    "order.items": "Items",
+    "order.po": "PO",
+    "order.total": "Total",
+    "order.vendor": "Vendor"
+  },
+  "ar": {
+    "order.amount": "المبلغ",
+    "order.date": "تاريخ الطلب",
+    "order.delivery": "تاريخ التسليم",
+    "order.items": "العناصر",
+    "order.po": "أمر شراء",
+    "order.total": "المجموع",
+    "order.vendor": "المورد"
+  }
+}

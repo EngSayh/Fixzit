@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import ClientDate from '@/components/ClientDate';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface Vendor {
   id: string;
@@ -65,22 +66,38 @@ export default function VendorDetailsPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const orgId = session?.user?.orgId;
+  const { t } = useTranslation();
 
   const handleDelete = async () => {
-    if (!confirm(`Delete vendor "${vendor?.name}"? This cannot be undone.`)) return;
-    if (!orgId) return toast.error('Organization ID missing');
+    const confirmMessage = t(
+      'fm.vendors.detail.actions.confirmDelete',
+      'Delete vendor "{{name}}"? This cannot be undone.'
+    ).replace('{{name}}', vendor?.name ?? '');
 
-    const toastId = toast.loading('Deleting vendor...');
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+    if (!orgId) {
+      toast.error(t('fm.vendors.detail.errors.noOrgId', 'Organization ID missing'));
+      return;
+    }
+
+    const toastId = toast.loading(t('fm.vendors.detail.toasts.deleting', 'Deleting vendor...'));
     try {
       const res = await fetch(`/api/vendors/${params.id}`, {
         method: 'DELETE',
         headers: { 'x-tenant-id': orgId }
       });
       if (!res.ok) throw new Error('Failed to delete vendor');
-      toast.success('Vendor deleted successfully', { id: toastId });
+      toast.success(t('fm.vendors.detail.toasts.success', 'Vendor deleted successfully'), { id: toastId });
       router.push('/fm/vendors');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete vendor', { id: toastId });
+      const message = error instanceof Error ? error.message : 'Failed to delete vendor';
+      const failureMessage = t(
+        'fm.vendors.detail.toasts.failure',
+        'Failed to delete vendor: {{message}}'
+      ).replace('{{message}}', message);
+      toast.error(failureMessage, { id: toastId });
     }
   };
 
@@ -104,8 +121,8 @@ export default function VendorDetailsPage() {
   );
 
   if (!session) return <CardGridSkeleton count={3} />;
-  if (!orgId) return <div>Error: No organization ID found in session</div>;
-  if (error) return <div>Failed to load vendor</div>;
+  if (!orgId) return <div>{t('fm.vendors.detail.errors.noOrgId', 'Error: No organization ID found in session')}</div>;
+  if (error) return <div>{t('fm.vendors.detail.errors.loadFailed', 'Failed to load vendor')}</div>;
   if (isLoading || !vendor) return <CardGridSkeleton count={3} />;
 
   return (

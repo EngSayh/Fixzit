@@ -1,0 +1,12 @@
+{
+  "en": {
+    "chat.error.general": "Sorry, I encountered an error. Please try again.",
+    "chat.error.noAnswer": "I didn't receive a response. Please try again.",
+    "chat.welcome": "Hello! I'm your Fixzit AI assistant. How can I help you today?"
+  },
+  "ar": {
+    "chat.error.general": "عذراً، حدث خطأ. يرجى المحاولة مرة أخرى.",
+    "chat.error.noAnswer": "لم أتلق رداً. يرجى المحاولة مرة أخرى.",
+    "chat.welcome": "مرحباً! أنا مساعد فيكزيت الذكي. كيف يمكنني مساعدتك اليوم؟"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "en": {
+    "time.afternoon": "Afternoon",
+    "time.am": "AM",
+    "time.dAgo": "d ago",
+    "time.duration": "Duration",
+    "time.evening": "Evening",
+    "time.hAgo": "h ago",
+    "time.hour": "Hour",
+    "time.hours": "Hours",
+    "time.justNow": "Just now",
+    "time.mAgo": "m ago",
+    "time.minute": "Minute",
+    "time.minutes": "Minutes",
+    "time.morning": "Morning",
+    "time.night": "Night",
+    "time.pm": "PM",
+    "time.second": "Second",
+    "time.seconds": "Seconds",
+    "time.timeZone": "Time Zone"
+  },
+  "ar": {
+    "time.afternoon": "ظهراً",
+    "time.am": "ص",
+    "time.dAgo": "ي",
+    "time.duration": "المدة",
+    "time.evening": "مساءً",
+    "time.hAgo": "س",
+    "time.hour": "ساعة",
+    "time.hours": "ساعات",
+    "time.justNow": "الآن",
+    "time.mAgo": "د",
+    "time.minute": "دقيقة",
+    "time.minutes": "دقائق",
+    "time.morning": "صباحاً",
+    "time.night": "ليلاً",
+    "time.pm": "م",
+    "time.second": "ثانية",
+    "time.seconds": "ثواني",
+    "time.timeZone": "المنطقة الزمنية"
+  }
+}

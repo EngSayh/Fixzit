@@ -2,88 +2,124 @@
 
 import { useTranslation } from '@/contexts/TranslationContext';
 
-const PAGE_LABEL_FALLBACKS = {
+const PAGE_LABELS = {
   workOrders: {
-    title: 'Work Orders',
-    subtitle: 'Dispatch, preventive programs, and SLA tracking',
+    titleKey: 'pageLabels.workOrders.title',
+    subtitleKey: 'pageLabels.workOrders.subtitle',
+    titleFallback: 'Work Orders',
+    subtitleFallback: 'Dispatch, preventive programs, and SLA tracking',
   },
   properties: {
-    title: 'Properties',
-    subtitle: 'Full building, unit, and tenant records',
+    titleKey: 'pageLabels.properties.title',
+    subtitleKey: 'pageLabels.properties.subtitle',
+    titleFallback: 'Properties',
+    subtitleFallback: 'Full building, unit, and tenant records',
   },
   assets: {
-    title: 'Assets',
-    subtitle: 'Asset registry with lifecycle and maintenance data',
+    titleKey: 'pageLabels.assets.title',
+    subtitleKey: 'pageLabels.assets.subtitle',
+    titleFallback: 'Assets',
+    subtitleFallback: 'Asset registry with lifecycle and maintenance data',
   },
   tenants: {
-    title: 'Tenants',
-    subtitle: 'Lease management, communications, and collections',
+    titleKey: 'pageLabels.tenants.title',
+    subtitleKey: 'pageLabels.tenants.subtitle',
+    titleFallback: 'Tenants',
+    subtitleFallback: 'Lease management, communications, and collections',
   },
   vendors: {
-    title: 'Vendors',
-    subtitle: 'Preferred suppliers, compliance, and performance',
+    titleKey: 'pageLabels.vendors.title',
+    subtitleKey: 'pageLabels.vendors.subtitle',
+    titleFallback: 'Vendors',
+    subtitleFallback: 'Preferred suppliers, compliance, and performance',
   },
   projects: {
-    title: 'Projects',
-    subtitle: 'Capital planning and execution tracking',
+    titleKey: 'pageLabels.projects.title',
+    subtitleKey: 'pageLabels.projects.subtitle',
+    titleFallback: 'Projects',
+    subtitleFallback: 'Capital planning and execution tracking',
   },
   rfqs: {
-    title: 'RFQs',
-    subtitle: 'Request for quotations and bidding workflows',
+    titleKey: 'pageLabels.rfqs.title',
+    subtitleKey: 'pageLabels.rfqs.subtitle',
+    titleFallback: 'RFQs',
+    subtitleFallback: 'Request for quotations and bidding workflows',
   },
   invoices: {
-    title: 'Invoices',
-    subtitle: 'Billing pipeline, approvals, and collections',
+    titleKey: 'pageLabels.invoices.title',
+    subtitleKey: 'pageLabels.invoices.subtitle',
+    titleFallback: 'Invoices',
+    subtitleFallback: 'Billing pipeline, approvals, and collections',
   },
   finance: {
-    title: 'Finance',
-    subtitle: 'Expenses, budgets, ledgers, and financial reporting',
+    titleKey: 'pageLabels.finance.title',
+    subtitleKey: 'pageLabels.finance.subtitle',
+    titleFallback: 'Finance',
+    subtitleFallback: 'Expenses, budgets, ledgers, and financial reporting',
   },
   hr: {
-    title: 'Human Resources',
-    subtitle: 'People operations, payroll, and attendance',
+    titleKey: 'pageLabels.hr.title',
+    subtitleKey: 'pageLabels.hr.subtitle',
+    titleFallback: 'Human Resources',
+    subtitleFallback: 'People operations, payroll, and attendance',
   },
   administration: {
-    title: 'Administration',
-    subtitle: 'Governance, policies, and asset oversight',
+    titleKey: 'pageLabels.administration.title',
+    subtitleKey: 'pageLabels.administration.subtitle',
+    titleFallback: 'Administration',
+    subtitleFallback: 'Governance, policies, and asset oversight',
   },
   crm: {
-    title: 'CRM',
-    subtitle: 'Customer relationships, leads, and contracts',
+    titleKey: 'pageLabels.crm.title',
+    subtitleKey: 'pageLabels.crm.subtitle',
+    titleFallback: 'CRM',
+    subtitleFallback: 'Customer relationships, leads, and contracts',
   },
   marketplace: {
-    title: 'Marketplace',
-    subtitle: 'Souq vendor catalogues and procurement requests',
+    titleKey: 'pageLabels.marketplace.title',
+    subtitleKey: 'pageLabels.marketplace.subtitle',
+    titleFallback: 'Marketplace',
+    subtitleFallback: 'Souq vendor catalogues and procurement requests',
   },
   support: {
-    title: 'Support',
-    subtitle: 'Ticketing, SLAs, and omni-channel care',
+    titleKey: 'pageLabels.support.title',
+    subtitleKey: 'pageLabels.support.subtitle',
+    titleFallback: 'Support',
+    subtitleFallback: 'Ticketing, SLAs, and omni-channel care',
   },
   compliance: {
-    title: 'Compliance',
-    subtitle: 'Contracts, disputes, audits, and risk tracking',
+    titleKey: 'pageLabels.compliance.title',
+    subtitleKey: 'pageLabels.compliance.subtitle',
+    titleFallback: 'Compliance',
+    subtitleFallback: 'Contracts, disputes, audits, and risk tracking',
   },
   reports: {
-    title: 'Reports',
-    subtitle: 'Operational and financial analytics dashboards',
+    titleKey: 'pageLabels.reports.title',
+    subtitleKey: 'pageLabels.reports.subtitle',
+    titleFallback: 'Reports',
+    subtitleFallback: 'Operational and financial analytics dashboards',
   },
   system: {
-    title: 'System',
-    subtitle: 'User access, integrations, and billing controls',
+    titleKey: 'pageLabels.system.title',
+    subtitleKey: 'pageLabels.system.subtitle',
+    titleFallback: 'System',
+    subtitleFallback: 'User access, integrations, and billing controls',
   },
   settings: {
-    title: 'Settings',
-    subtitle: 'Account preferences and personalization',
+    titleKey: 'pageLabels.settings.title',
+    subtitleKey: 'pageLabels.settings.subtitle',
+    titleFallback: 'Settings',
+    subtitleFallback: 'Account preferences and personalization',
   },
 } as const;
 
-export type PageLabelKey = keyof typeof PAGE_LABEL_FALLBACKS;
+export type PageLabelKey = keyof typeof PAGE_LABELS;
+export const PAGE_LABEL_KEYS = Object.keys(PAGE_LABELS) as PageLabelKey[];
 
 export function usePageLabels(pageKey: PageLabelKey) {
   const { t } = useTranslation();
-  const fallback = PAGE_LABEL_FALLBACKS[pageKey];
-  const title = t(`pageLabels.${pageKey}.title`, fallback.title);
-  const subtitle = t(`pageLabels.${pageKey}.subtitle`, fallback.subtitle);
+  const config = PAGE_LABELS[pageKey];
+  const title = t(config.titleKey, config.titleFallback);
+  const subtitle = t(config.subtitleKey, config.subtitleFallback);
   return { title, subtitle };
 }
-

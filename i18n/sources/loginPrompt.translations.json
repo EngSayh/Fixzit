@@ -1,0 +1,34 @@
+{
+  "en": {
+    "loginPrompt.benefit1": "Access all platform features",
+    "loginPrompt.benefit2": "Track your requests and work orders",
+    "loginPrompt.benefit3": "Manage properties and assets",
+    "loginPrompt.benefit4": "Connect with vendors",
+    "loginPrompt.benefit5": "Get personalized support",
+    "loginPrompt.benefitsTitle": "Why sign in?",
+    "loginPrompt.contactSupport": "Contact Support",
+    "loginPrompt.description": "You need to be logged in to access this feature",
+    "loginPrompt.needHelp": "Need help?",
+    "loginPrompt.signInButton": "Sign In",
+    "loginPrompt.signUpButton": "Create Account",
+    "loginPrompt.title": "Please Sign In",
+    "loginPrompt.welcomeBack": "Welcome Back",
+    "loginPrompt.welcomeMessage": "Sign in to continue your journey"
+  },
+  "ar": {
+    "loginPrompt.benefit1": "الوصول إلى جميع ميزات المنصة",
+    "loginPrompt.benefit2": "تتبع طلباتك وأوامر العمل",
+    "loginPrompt.benefit3": "إدارة العقارات والأصول",
+    "loginPrompt.benefit4": "التواصل مع البائعين",
+    "loginPrompt.benefit5": "الحصول على دعم مخصص",
+    "loginPrompt.benefitsTitle": "لماذا تسجل الدخول؟",
+    "loginPrompt.contactSupport": "اتصل بالدعم",
+    "loginPrompt.description": "تحتاج إلى تسجيل الدخول للوصول إلى هذه الميزة",
+    "loginPrompt.needHelp": "تحتاج مساعدة؟",
+    "loginPrompt.signInButton": "تسجيل الدخول",
+    "loginPrompt.signUpButton": "إنشاء حساب",
+    "loginPrompt.title": "يرجى تسجيل الدخول",
+    "loginPrompt.welcomeBack": "مرحباً بعودتك",
+    "loginPrompt.welcomeMessage": "سجل الدخول للاستمرار في رحلتك"
+  }
+}

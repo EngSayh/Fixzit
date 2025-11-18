@@ -1,0 +1,16 @@
+{
+  "en": {
+    "assets.assetType": "Asset Type",
+    "assets.newAsset": "New Asset",
+    "assets.noAssetsFound": "No Assets Found",
+    "assets.title": "Assets",
+    "assets.uploadedBy": "Uploaded By"
+  },
+  "ar": {
+    "assets.assetType": "نوع الأصل",
+    "assets.newAsset": "أصل جديد",
+    "assets.noAssetsFound": "لا توجد أصول",
+    "assets.title": "الأصول",
+    "assets.uploadedBy": "رفع بواسطة"
+  }
+}

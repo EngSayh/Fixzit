@@ -1,0 +1,40 @@
+{
+  "en": {
+    "about.clients": "Active Clients",
+    "about.contactDesc": "Contact our team today to learn how Fixzit can help your organization",
+    "about.contactSection": "Get in Touch",
+    "about.contactTitle": "Ready to Transform Your Property Management?",
+    "about.contentSection": "Our Vision",
+    "about.email": "info@fixzit.app",
+    "about.emailLabel": "Send us an email",
+    "about.experience": "Years Experience",
+    "about.metaDesc": "Learn about Fixzit, the comprehensive solution for property management, maintenance, and facilities in the GCC",
+    "about.metaTitle": "About Fixzit - Leading Property & Facilities Management Platform",
+    "about.phone": "+968 9999 9999",
+    "about.phoneLabel": "Call us",
+    "about.properties": "Properties Under Management",
+    "about.statsSection": "Our Stats",
+    "about.subtitle": "A unified platform for property management, maintenance, facilities, and finance",
+    "about.title": "We're Building the Next Generation of Property Management Solutions",
+    "about.uptime": "System Uptime"
+  },
+  "ar": {
+    "about.clients": "عميل نشط",
+    "about.contactDesc": "تواصل مع فريقنا اليوم لمعرفة كيف يمكن لـ Fixzit أن يساعد مؤسستك",
+    "about.contactSection": "تواصل معنا",
+    "about.contactTitle": "هل أنت مستعد لتحويل إدارة عقاراتك؟",
+    "about.contentSection": "رؤيتنا",
+    "about.email": "info@fixzit.app",
+    "about.emailLabel": "أرسل لنا بريدًا إلكترونيًا",
+    "about.experience": "سنوات من الخبرة",
+    "about.metaDesc": "تعرف على Fixzit، الحل الشامل لإدارة العقارات والصيانة والمرافق في دول مجلس التعاون الخليجي",
+    "about.metaTitle": "عن Fixzit - منصة إدارة الأملاك والصيانة الرائدة",
+    "about.phone": "+968 9999 9999",
+    "about.phoneLabel": "اتصل بنا",
+    "about.properties": "عقار تحت الإدارة",
+    "about.statsSection": "إحصائياتنا",
+    "about.subtitle": "منصة موحدة لإدارة العقارات والصيانة والمرافق والشؤون المالية",
+    "about.title": "نحن نبني الجيل التالي من حلول إدارة العقارات",
+    "about.uptime": "وقت تشغيل النظام"
+  }
+}

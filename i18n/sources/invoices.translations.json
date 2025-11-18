@@ -1,0 +1,16 @@
+{
+  "en": {
+    "invoices.financeReadyInvoices": "Finance ready invoices",
+    "invoices.invoiceType": "Invoice Type",
+    "invoices.newInvoice": "New Invoice",
+    "invoices.subtitle": "ZATCA compliant e-invoicing with QR codes",
+    "invoices.title": "Invoices"
+  },
+  "ar": {
+    "invoices.financeReadyInvoices": "فواتير جاهزة للمالية",
+    "invoices.invoiceType": "نوع الفاتورة",
+    "invoices.newInvoice": "فاتورة جديدة",
+    "invoices.subtitle": "فوترة إلكترونية متوافقة مع هيئة الزكاة والضريبة مع رموز QR",
+    "invoices.title": "الفواتير"
+  }
+}

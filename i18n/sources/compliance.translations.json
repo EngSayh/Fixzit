@@ -1,0 +1,14 @@
+{
+  "en": {
+    "compliance.description": "Coming online — UI wired, API scaffolded.",
+    "compliance.issuesDetected": "Issues Detected",
+    "compliance.subtitle": "Compliance interface loads here.",
+    "compliance.title": "Compliance & Legal"
+  },
+  "ar": {
+    "compliance.description": "قريباً - الواجهة جاهزة وواجهة البرمجة قيد الإعداد.",
+    "compliance.issuesDetected": "المشاكل المكتشفة",
+    "compliance.subtitle": "واجهة الامتثال يتم تحميلها هنا.",
+    "compliance.title": "الامتثال"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "en": {
+    "unsaved.cancel": "Cancel",
+    "unsaved.cancelled": "Changes were not saved.",
+    "unsaved.discardChanges": "Discard Changes",
+    "unsaved.message": "You have unsaved changes. Are you sure you want to leave without saving?",
+    "unsaved.save": "Save",
+    "unsaved.saveChanges": "Save Changes",
+    "unsaved.saved": "Your changes have been saved successfully.",
+    "unsaved.saveMessage": "Are you sure you want to save these changes?",
+    "unsaved.saveTitle": "Save Changes",
+    "unsaved.stayHere": "Stay Here",
+    "unsaved.warningMessage": "You have unsaved changes. Would you like to save them before leaving?",
+    "unsaved.warningTitle": "Unsaved Changes"
+  },
+  "ar": {
+    "unsaved.cancel": "إلغاء",
+    "unsaved.cancelled": "لم يتم حفظ التغييرات.",
+    "unsaved.discardChanges": "تجاهل التغييرات",
+    "unsaved.message": "لديك تغييرات غير محفوظة. هل أنت متأكد أنك تريد المغادرة دون الحفظ؟",
+    "unsaved.save": "حفظ",
+    "unsaved.saveChanges": "حفظ التغييرات",
+    "unsaved.saved": "تم حفظ تغييراتك بنجاح.",
+    "unsaved.saveMessage": "هل أنت متأكد أنك تريد حفظ هذه التغييرات؟",
+    "unsaved.saveTitle": "حفظ التغييرات",
+    "unsaved.stayHere": "البقاء هنا",
+    "unsaved.warningMessage": "لديك تغييرات غير محفوظة. هل تريد حفظها قبل المغادرة؟",
+    "unsaved.warningTitle": "تغييرات غير محفوظة"
+  }
+}

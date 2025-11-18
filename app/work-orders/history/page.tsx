@@ -42,17 +42,17 @@ export default function ServiceHistoryPage() {
   ];
 
   const propertyOptions = [
-    { value: 'all', key: 'allProperties', fallback: 'All Properties' },
-    { value: 'tower-a', key: 'towerA', fallback: 'Tower A' },
-    { value: 'tower-b', key: 'towerB', fallback: 'Tower B' },
-    { value: 'villa-complex', key: 'villaComplex', fallback: 'Villa Complex' }
+    { value: 'all', key: 'workOrders.history.filters.allProperties', fallback: 'All Properties' },
+    { value: 'tower-a', key: 'workOrders.history.filters.towerA', fallback: 'Tower A' },
+    { value: 'tower-b', key: 'workOrders.history.filters.towerB', fallback: 'Tower B' },
+    { value: 'villa-complex', key: 'workOrders.history.filters.villaComplex', fallback: 'Villa Complex' }
   ];
 
   const technicianOptions = [
-    { value: 'all', key: 'allTechnicians', fallback: 'All Technicians' },
-    { value: 'ahmed', key: 'technicianAhmed', fallback: 'Ahmed Al-Rashid' },
-    { value: 'mohammed', key: 'technicianMohammed', fallback: 'Mohammed Al-Saud' },
-    { value: 'omar', key: 'technicianOmar', fallback: 'Omar Al-Fahad' }
+    { value: 'all', key: 'workOrders.history.filters.allTechnicians', fallback: 'All Technicians' },
+    { value: 'ahmed', key: 'workOrders.history.filters.technicianAhmed', fallback: 'Ahmed Al-Rashid' },
+    { value: 'mohammed', key: 'workOrders.history.filters.technicianMohammed', fallback: 'Mohammed Al-Saud' },
+    { value: 'omar', key: 'workOrders.history.filters.technicianOmar', fallback: 'Omar Al-Fahad' }
   ];
 
   const getStatusColor = (status: string) => {
@@ -125,7 +125,7 @@ export default function ServiceHistoryPage() {
             <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
               {propertyOptions.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {t(`workOrders.history.filters.${option.key}`, option.fallback)}
+                  {t(option.key, option.fallback)}
                 </option>
               ))}
             </select>
@@ -134,7 +134,7 @@ export default function ServiceHistoryPage() {
             <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
               {technicianOptions.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {t(`workOrders.history.filters.${option.key}`, option.fallback)}
+                  {t(option.key, option.fallback)}
                 </option>
               ))}
             </select>

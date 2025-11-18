@@ -1,0 +1,14 @@
+{
+  "en": {
+    "documents.documentTemplates": "Document Templates",
+    "documents.propertyDocuments": "Property Documents",
+    "documents.subtitle": "Manage property documents, certificates, and legal files",
+    "documents.title": "Document Library"
+  },
+  "ar": {
+    "documents.documentTemplates": "قوالب المستندات",
+    "documents.propertyDocuments": "مستندات العقار",
+    "documents.subtitle": "إدارة مستندات العقارات والشهادات والملفات القانونية",
+    "documents.title": "مكتبة المستندات"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "en": {
+    "success.created": "Created successfully",
+    "success.deleted": "Deleted successfully",
+    "success.loginSuccess": "Login successful",
+    "success.paymentProcessed": "Payment for invoice INV-1234 has been processed successfully",
+    "success.saved": "Saved successfully",
+    "success.signupSuccess": "Account created successfully",
+    "success.updated": "Updated successfully"
+  },
+  "ar": {
+    "success.created": "تم الإنشاء بنجاح",
+    "success.deleted": "تم الحذف بنجاح",
+    "success.loginSuccess": "تم تسجيل الدخول بنجاح",
+    "success.paymentProcessed": "تمت معالجة الدفع للفاتورة INV-1234 بنجاح",
+    "success.saved": "تم الحفظ بنجاح",
+    "success.signupSuccess": "تم إنشاء الحساب بنجاح",
+    "success.updated": "تم التحديث بنجاح"
+  }
+}

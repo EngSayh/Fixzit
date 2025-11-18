@@ -1,0 +1,38 @@
+{
+  "en": {
+    "phoneFormats.area": "Area Code",
+    "phoneFormats.country": "Country Code",
+    "phoneFormats.extension": "Extension",
+    "phoneFormats.fax": "Fax",
+    "phoneFormats.format": "Phone Format",
+    "phoneFormats.international": "International Format",
+    "phoneFormats.invalid": "Invalid Number",
+    "phoneFormats.landline": "Landline",
+    "phoneFormats.local": "Local Format",
+    "phoneFormats.mobile": "Mobile",
+    "phoneFormats.national": "National Format",
+    "phoneFormats.number": "Phone Number",
+    "phoneFormats.phone": "Phone",
+    "phoneFormats.separator": "Separator",
+    "phoneFormats.valid": "Valid Number",
+    "phoneFormats.validate": "Validate"
+  },
+  "ar": {
+    "phoneFormats.area": "رمز المنطقة",
+    "phoneFormats.country": "رمز الدولة",
+    "phoneFormats.extension": "التحويلة",
+    "phoneFormats.fax": "فاكس",
+    "phoneFormats.format": "تنسيق الهاتف",
+    "phoneFormats.international": "تنسيق دولي",
+    "phoneFormats.invalid": "رقم غير صالح",
+    "phoneFormats.landline": "خط أرضي",
+    "phoneFormats.local": "تنسيق محلي",
+    "phoneFormats.mobile": "جوال",
+    "phoneFormats.national": "تنسيق وطني",
+    "phoneFormats.number": "رقم الهاتف",
+    "phoneFormats.phone": "الهاتف",
+    "phoneFormats.separator": "الفاصل",
+    "phoneFormats.valid": "رقم صالح",
+    "phoneFormats.validate": "التحقق"
+  }
+}

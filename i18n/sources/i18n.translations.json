@@ -1,0 +1,14 @@
+{
+  "en": {
+    "i18n.filterCurrencies": "Type to filter currencies",
+    "i18n.filterLanguages": "Type to filter languages",
+    "i18n.selectCurrencyLabel": "Select currency",
+    "i18n.selectLanguageLabel": "Select language"
+  },
+  "ar": {
+    "i18n.filterCurrencies": "ابحث عن العملات",
+    "i18n.filterLanguages": "ابحث عن اللغات",
+    "i18n.selectCurrencyLabel": "اختر العملة",
+    "i18n.selectLanguageLabel": "اختر اللغة"
+  }
+}

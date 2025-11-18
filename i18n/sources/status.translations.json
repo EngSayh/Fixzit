@@ -1,0 +1,40 @@
+{
+  "en": {
+    "status.active": "Active",
+    "status.approved": "Approved",
+    "status.cancelled": "Cancelled",
+    "status.closed": "Closed",
+    "status.completed": "Completed",
+    "status.dispatched": "Dispatched",
+    "status.draft": "Draft",
+    "status.inactive": "Inactive",
+    "status.inProgress": "In Progress",
+    "status.onHold": "On Hold",
+    "status.open": "Open",
+    "status.pending": "Pending",
+    "status.published": "Published",
+    "status.rejected": "Rejected",
+    "status.submitted": "Submitted",
+    "status.suspended": "Suspended",
+    "status.verified": "Verified"
+  },
+  "ar": {
+    "status.active": "نشط",
+    "status.approved": "تمت الموافقة",
+    "status.cancelled": "تم الإلغاء",
+    "status.closed": "مغلق",
+    "status.completed": "مكتمل",
+    "status.dispatched": "مُرسَل",
+    "status.draft": "مسودة",
+    "status.inactive": "غير نشط",
+    "status.inProgress": "في تَقَدم",
+    "status.onHold": "في الانتظار",
+    "status.open": "مفتوح",
+    "status.pending": "معلق",
+    "status.published": "منشور",
+    "status.rejected": "مرفوض",
+    "status.submitted": "تم التقديم",
+    "status.suspended": "موقوف",
+    "status.verified": "تم التحقق منه"
+  }
+}

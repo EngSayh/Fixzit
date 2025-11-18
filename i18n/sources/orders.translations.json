@@ -1,0 +1,40 @@
+{
+  "en": {
+    "orders.amount": "Amount",
+    "orders.delivery": "Delivery",
+    "orders.description": "Description",
+    "orders.items": "Items",
+    "orders.location": "Location",
+    "orders.orderDate": "Order Date",
+    "orders.pageDescription": "Manage purchase orders and service orders",
+    "orders.priority": "Priority",
+    "orders.purchaseOrder": "PO",
+    "orders.purchaseOrders": "Purchase Orders",
+    "orders.service": "Service",
+    "orders.serviceOrder": "SO",
+    "orders.serviceOrders": "Service Orders",
+    "orders.tabs.purchase": "Purchase Orders",
+    "orders.tabs.service": "Service Orders",
+    "orders.total": "Total",
+    "orders.vendor": "Vendor"
+  },
+  "ar": {
+    "orders.amount": "المبلغ",
+    "orders.delivery": "تاريخ التسليم",
+    "orders.description": "الوصف",
+    "orders.items": "العناصر",
+    "orders.location": "الموقع",
+    "orders.orderDate": "تاريخ الطلب",
+    "orders.pageDescription": "إدارة أوامر الشراء وطلبات الخدمة",
+    "orders.priority": "الأولوية",
+    "orders.purchaseOrder": "أمر شراء",
+    "orders.purchaseOrders": "أوامر الشراء",
+    "orders.service": "الخدمة",
+    "orders.serviceOrder": "طلب خدمة",
+    "orders.serviceOrders": "طلبات الخدمة",
+    "orders.tabs.purchase": "أوامر الشراء",
+    "orders.tabs.service": "أوامر الخدمة",
+    "orders.total": "المجموع",
+    "orders.vendor": "المورد"
+  }
+}

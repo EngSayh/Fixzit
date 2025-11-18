@@ -1,0 +1,42 @@
+{
+  "en": {
+    "calendar.addEvent": "Add Event",
+    "calendar.agenda": "Agenda",
+    "calendar.allDay": "All Day",
+    "calendar.attendees": "Attendees",
+    "calendar.day": "Day",
+    "calendar.endDate": "End Date",
+    "calendar.endTime": "End Time",
+    "calendar.eventDescription": "Event Description",
+    "calendar.eventTitle": "Event Title",
+    "calendar.location": "Location",
+    "calendar.month": "Month",
+    "calendar.reminder": "Reminder",
+    "calendar.repeat": "Repeat",
+    "calendar.startDate": "Start Date",
+    "calendar.startTime": "Start Time",
+    "calendar.title": "Calendar",
+    "calendar.today": "Today",
+    "calendar.week": "Week"
+  },
+  "ar": {
+    "calendar.addEvent": "إضافة حدث",
+    "calendar.agenda": "جدول الأعمال",
+    "calendar.allDay": "طوال اليوم",
+    "calendar.attendees": "الحاضرون",
+    "calendar.day": "يوم",
+    "calendar.endDate": "تاريخ النهاية",
+    "calendar.endTime": "وقت النهاية",
+    "calendar.eventDescription": "وصف الحدث",
+    "calendar.eventTitle": "عنوان الحدث",
+    "calendar.location": "الموقع",
+    "calendar.month": "شهر",
+    "calendar.reminder": "تذكير",
+    "calendar.repeat": "تكرار",
+    "calendar.startDate": "تاريخ البداية",
+    "calendar.startTime": "وقت البداية",
+    "calendar.title": "التقويم",
+    "calendar.today": "اليوم",
+    "calendar.week": "أسبوع"
+  }
+}

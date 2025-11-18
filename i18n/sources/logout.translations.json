@@ -1,0 +1,10 @@
+{
+  "en": {
+    "logout.pleaseWait": "Please wait",
+    "logout.signingOut": "Signing out..."
+  },
+  "ar": {
+    "logout.pleaseWait": "يرجى الانتظار",
+    "logout.signingOut": "جاري تسجيل الخروج..."
+  }
+}

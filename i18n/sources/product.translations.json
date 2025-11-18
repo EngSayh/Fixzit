@@ -1,0 +1,32 @@
+{
+  "en": {
+    "product.aboutDesc": "Technical data sheets (MSDS/COA), installation notes, and compliance info.",
+    "product.aboutTitle": "About this item",
+    "product.addToCart": "Add to Cart",
+    "product.backorder": "Backorder",
+    "product.brand": "Brand",
+    "product.buyNow": "Buy Now (PO)",
+    "product.days": "days",
+    "product.inStock": "In Stock",
+    "product.lead": "Lead",
+    "product.minQty": "Min Qty",
+    "product.notFound": "Not found",
+    "product.standards": "Standards",
+    "product.uom": "UOM"
+  },
+  "ar": {
+    "product.aboutDesc": "أوراق البيانات الفنية (MSDS/COA)، ملاحظات التركيب، ومعلومات الامتثال.",
+    "product.aboutTitle": "عن هذا المنتج",
+    "product.addToCart": "إضافة إلى السلة",
+    "product.backorder": "طلب مسبق",
+    "product.brand": "العلامة التجارية",
+    "product.buyNow": "اشتر الآن (أمر شراء)",
+    "product.days": "أيام",
+    "product.inStock": "متوفر في المخزون",
+    "product.lead": "مدة التوصيل",
+    "product.minQty": "الحد الأدنى للكمية",
+    "product.notFound": "غير موجود",
+    "product.standards": "المعايير",
+    "product.uom": "وحدة القياس"
+  }
+}

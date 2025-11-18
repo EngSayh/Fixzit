@@ -1,0 +1,40 @@
+{
+  "en": {
+    "crm.activities": "Activities",
+    "crm.addContact": "Add Contact",
+    "crm.closingDate": "Closing Date",
+    "crm.company": "Company",
+    "crm.contactDetails": "Contact Details",
+    "crm.contactName": "Contact Name",
+    "crm.contacts": "Contacts",
+    "crm.dealValue": "Deal Value",
+    "crm.description": "Coming online — UI wired, API scaffolded.",
+    "crm.industry": "Industry",
+    "crm.leads": "Leads",
+    "crm.leadSource": "Lead Source",
+    "crm.leadStatus": "Lead Status",
+    "crm.notes": "Notes",
+    "crm.opportunities": "Opportunities",
+    "crm.pipeline": "Pipeline",
+    "crm.title": "CRM"
+  },
+  "ar": {
+    "crm.activities": "الأنشطة",
+    "crm.addContact": "إضافة جهة اتصال",
+    "crm.closingDate": "تاريخ الإغلاق",
+    "crm.company": "الشركة",
+    "crm.contactDetails": "تفاصيل جهة الاتصال",
+    "crm.contactName": "الاسم",
+    "crm.contacts": "جهات الاتصال",
+    "crm.dealValue": "قيمة الصفقة",
+    "crm.description": "قريباً - الواجهة جاهزة وواجهة البرمجة قيد الإعداد.",
+    "crm.industry": "الصناعة",
+    "crm.leads": "العملاء المحتملون",
+    "crm.leadSource": "مصدر العميل المحتمل",
+    "crm.leadStatus": "حالة العميل المحتمل",
+    "crm.notes": "الملاحظات",
+    "crm.opportunities": "الفرص",
+    "crm.pipeline": "خط الأنابيب",
+    "crm.title": "إدارة علاقات العملاء"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "en": {
+    "app.aqar": "Real Estate Marketplace (Aqar Souq)",
+    "app.currentApp": "Current App",
+    "app.fm": "Facility Management (FM)",
+    "app.searchableEntities": "searchable entities",
+    "app.souq": "Materials Marketplace (Fixizit Souq)",
+    "app.switchApplication": "Switch Application"
+  },
+  "ar": {
+    "app.aqar": "سوق العقارات (Aqar Souq)",
+    "app.currentApp": "التطبيق الحالي",
+    "app.fm": "إدارة المنشآت (FM)",
+    "app.searchableEntities": "كيانات قابلة للبحث",
+    "app.souq": "سوق Fixzit للمواد",
+    "app.switchApplication": "تبديل التطبيق"
+  }
+}

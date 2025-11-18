@@ -116,6 +116,27 @@ export default function AtsJobsPage() {
     { value: 'archived', label: t('hr.ats.jobs.filters.statusArchived', 'Archived') },
     { value: 'all', label: t('hr.ats.jobs.filters.statusAll', 'All statuses') },
   ];
+  const jobStatusLabels: Record<string, { key: string; fallback: string }> = {
+    published: { key: 'hr.ats.jobs.status.published', fallback: 'Published' },
+    pending: { key: 'hr.ats.jobs.status.pending', fallback: 'Pending' },
+    draft: { key: 'hr.ats.jobs.status.draft', fallback: 'Draft' },
+    closed: { key: 'hr.ats.jobs.status.closed', fallback: 'Closed' },
+    archived: { key: 'hr.ats.jobs.status.archived', fallback: 'Archived' },
+  };
+  const jobTypeLabels: Record<string, { key: string; fallback: string }> = {
+    'full-time': { key: 'hr.ats.jobs.jobType.full-time', fallback: 'Full-time' },
+    'part-time': { key: 'hr.ats.jobs.jobType.part-time', fallback: 'Part-time' },
+    contract: { key: 'hr.ats.jobs.jobType.contract', fallback: 'Contract' },
+    temporary: { key: 'hr.ats.jobs.jobType.temporary', fallback: 'Temporary' },
+    internship: { key: 'hr.ats.jobs.jobType.internship', fallback: 'Internship' },
+    remote: { key: 'hr.ats.jobs.jobType.remote', fallback: 'Remote' },
+    hybrid: { key: 'hr.ats.jobs.jobType.hybrid', fallback: 'Hybrid' },
+    unspecified: { key: 'hr.ats.jobs.jobType.unspecified', fallback: 'Unspecified' },
+  };
+  const jobVisibilityLabels: Record<string, { key: string; fallback: string }> = {
+    internal: { key: 'hr.ats.jobs.visibility.internal', fallback: 'Internal' },
+    public: { key: 'hr.ats.jobs.visibility.public', fallback: 'Public' },
+  };
 
   const jobTypeOptions: { value: string; label: string }[] = [
     { value: 'all', label: t('hr.ats.jobs.filters.jobTypeAll', 'All job types') },
@@ -335,7 +356,11 @@ export default function AtsJobsPage() {
                         <div className="flex flex-col gap-1">
                           <span className="font-semibold text-foreground">{job.title}</span>
                           <Badge className={formatStatusBadge(job.status)}>
-                            {t(`hr.ats.jobs.status.${job.status}`, job.status)}
+                        {(() => {
+                          const statusKey = (job.status || '').toLowerCase();
+                          const label = jobStatusLabels[statusKey];
+                          return t(label?.key ?? 'hr.ats.jobs.status.pending', label?.fallback ?? job.status);
+                        })()}
                           </Badge>
                         </div>
                       </td>
@@ -346,7 +371,11 @@ export default function AtsJobsPage() {
                         {formatLocation(job)}
                       </td>
                       <td className="px-4 py-3 align-top">
-                        {t(`hr.ats.jobs.jobType.${job.jobType ?? 'unspecified'}`, job.jobType || '—')}
+                      {(() => {
+                        const typeKey = (job.jobType || 'unspecified').toLowerCase();
+                        const label = jobTypeLabels[typeKey] ?? jobTypeLabels.unspecified;
+                        return t(label.key, label.fallback);
+                      })()}
                       </td>
                       <td className="px-4 py-3 align-top">
                         {job.applicationCount ?? 0}
@@ -360,10 +389,11 @@ export default function AtsJobsPage() {
                       </td>
                       <td className="px-4 py-3 align-top">
                         <Badge variant="outline">
-                          {t(
-                            `hr.ats.jobs.visibility.${job.visibility ?? 'internal'}`,
-                            job.visibility ?? 'internal'
-                          )}
+                          {(() => {
+                            const visibilityKey = (job.visibility || 'internal').toLowerCase();
+                            const label = jobVisibilityLabels[visibilityKey] ?? jobVisibilityLabels.internal;
+                            return t(label.key, label.fallback);
+                          })()}
                         </Badge>
                       </td>
                     </tr>

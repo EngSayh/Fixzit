@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import ClientDate from '@/components/ClientDate';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface MaintenanceIssue {
   resolved?: boolean;
@@ -41,22 +42,38 @@ export default function PropertyDetailsPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const orgId = session?.user?.orgId;
+  const { t } = useTranslation();
 
   const handleDelete = async () => {
-    if (!confirm(`Delete property "${property?.name}"? This cannot be undone.`)) return;
-    if (!orgId) return toast.error('Organization ID missing');
+    const confirmMessage = t(
+      'fm.properties.detail.actions.confirmDelete',
+      'Delete property "{{name}}"? This cannot be undone.'
+    ).replace('{{name}}', property?.name ?? '');
 
-    const toastId = toast.loading('Deleting property...');
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+    if (!orgId) {
+      toast.error(t('fm.properties.detail.errors.noOrgId', 'Organization ID missing'));
+      return;
+    }
+
+    const toastId = toast.loading(t('fm.properties.detail.toasts.deleting', 'Deleting property...'));
     try {
       const res = await fetch(`/api/properties/${params.id}`, {
         method: 'DELETE',
         headers: { 'x-tenant-id': orgId }
       });
       if (!res.ok) throw new Error('Failed to delete property');
-      toast.success('Property deleted successfully', { id: toastId });
+      toast.success(t('fm.properties.detail.toasts.success', 'Property deleted successfully'), { id: toastId });
       router.push('/fm/properties');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete property', { id: toastId });
+      const message = error instanceof Error ? error.message : 'Failed to delete property';
+      const failureMessage = t(
+        'fm.properties.detail.toasts.failure',
+        'Failed to delete property: {{message}}'
+      ).replace('{{message}}', message);
+      toast.error(failureMessage, { id: toastId });
     }
   };
 
@@ -80,8 +97,8 @@ export default function PropertyDetailsPage() {
   );
 
   if (!session) return <CardGridSkeleton count={3} />;
-  if (!orgId) return <div>Error: No organization ID found in session</div>;
-  if (error) return <div>Failed to load property</div>;
+  if (!orgId) return <div>{t('fm.properties.detail.errors.noOrgId', 'Error: No organization ID found in session')}</div>;
+  if (error) return <div>{t('fm.properties.detail.errors.loadFailed', 'Failed to load property')}</div>;
   if (isLoading || !property) return <CardGridSkeleton count={3} />;
 
   return (
@@ -394,4 +411,3 @@ export default function PropertyDetailsPage() {
     </div>
   );
 }
-

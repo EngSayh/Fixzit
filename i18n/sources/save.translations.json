@@ -1,0 +1,14 @@
+{
+  "en": {
+    "save.failed": "Save failed",
+    "save.networkError": "Failed: network error",
+    "save.saving": "Saving...",
+    "save.success": "Saved successfully"
+  },
+  "ar": {
+    "save.failed": "فشل الحفظ",
+    "save.networkError": "فشل: خطأ في الشبكة",
+    "save.saving": "جارٍ الحفظ...",
+    "save.success": "تم الحفظ بنجاح"
+  }
+}

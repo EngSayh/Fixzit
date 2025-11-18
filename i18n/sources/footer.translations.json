@@ -1,0 +1,40 @@
+{
+  "en": {
+    "footer.about": "About",
+    "footer.backHome": "Back to Home",
+    "footer.brand": "Fixzit",
+    "footer.breadcrumbLabel": "Fixzit trail",
+    "footer.careers": "Careers",
+    "footer.company": "Company",
+    "footer.copyright": "Fixzit. All rights reserved.",
+    "footer.crumb.fixzit": "Fixzit",
+    "footer.crumb.platform": "Design System",
+    "footer.crumb.version": "v2",
+    "footer.description": "Facility management + marketplaces in one platform.",
+    "footer.help": "Help Center",
+    "footer.legal": "Legal",
+    "footer.privacy": "Privacy",
+    "footer.support": "Support",
+    "footer.terms": "Terms",
+    "footer.ticket": "Open a ticket"
+  },
+  "ar": {
+    "footer.about": "معلومات عنا",
+    "footer.backHome": "العودة إلى الصفحة الرئيسية",
+    "footer.brand": "فيكزيت",
+    "footer.breadcrumbLabel": "مسار فيكزت",
+    "footer.careers": "الوظائف",
+    "footer.company": "الشركة",
+    "footer.copyright": "فيكزيت. جميع الحقوق محفوظة.",
+    "footer.crumb.fixzit": "فيكزت",
+    "footer.crumb.platform": "نظام التصميم",
+    "footer.crumb.version": "الإصدار 2",
+    "footer.description": "إدارة المنشآت + الأسواق في منصة واحدة.",
+    "footer.help": "مركز المساعدة",
+    "footer.legal": "قانوني",
+    "footer.privacy": "الخصوصية",
+    "footer.support": "الدعم",
+    "footer.terms": "الشروط",
+    "footer.ticket": "فتح تذكرة"
+  }
+}

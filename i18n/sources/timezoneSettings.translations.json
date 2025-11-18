@@ -1,0 +1,40 @@
+{
+  "en": {
+    "timezoneSettings.abbreviation": "Abbreviation",
+    "timezoneSettings.auto": "Auto Detect",
+    "timezoneSettings.city": "City",
+    "timezoneSettings.convert": "Convert Time",
+    "timezoneSettings.current": "Current Time",
+    "timezoneSettings.default": "Default Timezone",
+    "timezoneSettings.display": "Display Format",
+    "timezoneSettings.dst": "Daylight Saving Time",
+    "timezoneSettings.hideTimezone": "Hide Timezone",
+    "timezoneSettings.hours12": "12-hour",
+    "timezoneSettings.hours24": "24-hour",
+    "timezoneSettings.manual": "Manual Selection",
+    "timezoneSettings.offset": "UTC Offset",
+    "timezoneSettings.region": "Region",
+    "timezoneSettings.settings": "Timezone Settings",
+    "timezoneSettings.showTimezone": "Show Timezone",
+    "timezoneSettings.timezone": "Timezone"
+  },
+  "ar": {
+    "timezoneSettings.abbreviation": "الاختصار",
+    "timezoneSettings.auto": "كشف تلقائي",
+    "timezoneSettings.city": "المدينة",
+    "timezoneSettings.convert": "تحويل الوقت",
+    "timezoneSettings.current": "الوقت الحالي",
+    "timezoneSettings.default": "المنطقة الزمنية الافتراضية",
+    "timezoneSettings.display": "تنسيق العرض",
+    "timezoneSettings.dst": "التوقيت الصيفي",
+    "timezoneSettings.hideTimezone": "إخفاء المنطقة الزمنية",
+    "timezoneSettings.hours12": "12 ساعة",
+    "timezoneSettings.hours24": "24 ساعة",
+    "timezoneSettings.manual": "تحديد يدوي",
+    "timezoneSettings.offset": "فارق UTC",
+    "timezoneSettings.region": "المنطقة",
+    "timezoneSettings.settings": "إعدادات المنطقة الزمنية",
+    "timezoneSettings.showTimezone": "إظهار المنطقة الزمنية",
+    "timezoneSettings.timezone": "المنطقة الزمنية"
+  }
+}

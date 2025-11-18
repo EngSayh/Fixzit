@@ -104,8 +104,18 @@ export default function AttendancePage() {
 
   const selectedEmployeeObj = employees.find((emp) => emp._id === selectedEmployee);
 
-  const formatStatus = (status: AttendanceStatus) =>
-    t(`hr.attendance.status.${status.toLowerCase()}`, status.replace('_', ' '));
+  const attendanceStatusLabels: Record<AttendanceStatus, { key: string; fallback: string }> = {
+    PRESENT: { key: 'hr.attendance.status.present', fallback: 'Present' },
+    ABSENT: { key: 'hr.attendance.status.absent', fallback: 'Absent' },
+    LATE: { key: 'hr.attendance.status.late', fallback: 'Late' },
+    ON_LEAVE: { key: 'hr.attendance.status.on_leave', fallback: 'On Leave' },
+    OFF: { key: 'hr.attendance.status.off', fallback: 'Off' },
+  };
+
+  const formatStatus = (status: AttendanceStatus) => {
+    const config = attendanceStatusLabels[status];
+    return t(config.key, config.fallback);
+  };
 
   const filteredEntries = useMemo(() => {
     return entries.filter((entry) => {
@@ -130,6 +140,11 @@ export default function AttendancePage() {
     { value: 'IMPORT', label: t('hr.attendance.filters.sourceImport', 'Bulk import') },
     { value: 'BIOMETRIC', label: t('hr.attendance.filters.sourceBiometric', 'Biometric device') },
   ];
+  const attendanceSourceLabels: Record<'MANUAL' | 'IMPORT' | 'BIOMETRIC', { key: string; fallback: string }> = {
+    MANUAL: { key: 'hr.attendance.filters.sourceManual', fallback: 'Manual' },
+    IMPORT: { key: 'hr.attendance.filters.sourceImport', fallback: 'Bulk import' },
+    BIOMETRIC: { key: 'hr.attendance.filters.sourceBiometric', fallback: 'Biometric device' },
+  };
 
   const handleExportCsv = () => {
     if (!filteredEntries.length) return;
@@ -307,7 +322,10 @@ export default function AttendancePage() {
                       </td>
                       <td className="px-4 py-3">
                         {entry.source
-                          ? t(`hr.attendance.source.${entry.source.toLowerCase()}`, entry.source.toLowerCase())
+                          ? t(
+                              attendanceSourceLabels[entry.source]?.key ?? 'hr.attendance.filters.sourceAll',
+                              attendanceSourceLabels[entry.source]?.fallback ?? entry.source.toLowerCase()
+                            )
                           : '—'}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">

@@ -1,0 +1,36 @@
+{
+  "en": {
+    "terms.binding": "Binding Agreement",
+    "terms.bindingDesc": "By using Fixzit, you agree to abide by these terms",
+    "terms.clear": "Clear Language",
+    "terms.clearDesc": "No complex legalese - just simple, straightforward terms",
+    "terms.contactDesc": "Contact our legal team for any clarifications",
+    "terms.contactTitle": "Terms Questions?",
+    "terms.email": "legal@fixzit.app",
+    "terms.fair": "Fair Terms",
+    "terms.fairDesc": "Our terms are designed to protect both users and our platform",
+    "terms.lastUpdated": "Last updated",
+    "terms.phone": "+968 9999 9999",
+    "terms.subtitle": "Please read these terms carefully before using our services.",
+    "terms.title": "Terms of Service",
+    "terms.updated": "Regularly Updated",
+    "terms.updatedDesc": "We review and update our terms to reflect changes in our services"
+  },
+  "ar": {
+    "terms.binding": "اتفاقية ملزمة",
+    "terms.bindingDesc": "باستخدام Fixzit، فإنك توافق على الالتزام بهذه الشروط",
+    "terms.clear": "لغة واضحة",
+    "terms.clearDesc": "لا يوجد مصطلحات قانونية معقدة - فقط شروط بسيطة ومباشرة",
+    "terms.contactDesc": "تواصل مع فريقنا القانوني لأي توضيحات",
+    "terms.contactTitle": "أسئلة حول الشروط؟",
+    "terms.email": "legal@fixzit.app",
+    "terms.fair": "شروط عادلة",
+    "terms.fairDesc": "شروطنا مصممة لحماية كل من المستخدمين ومنصتنا",
+    "terms.lastUpdated": "آخر تحديث",
+    "terms.phone": "+968 9999 9999",
+    "terms.subtitle": "يرجى قراءة هذه الشروط بعناية قبل استخدام خدماتنا.",
+    "terms.title": "شروط الخدمة",
+    "terms.updated": "محدثة بانتظام",
+    "terms.updatedDesc": "نقوم بمراجعة وتحديث شروطنا لتعكس التغييرات في خدماتنا"
+  }
+}

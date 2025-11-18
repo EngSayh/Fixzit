@@ -115,32 +115,44 @@ function objectLiteralToKeySet(objLiteral) {
 
 // Parse TranslationContext.tsx for ar/en keys
 async function loadCatalogKeys(ctxPath) {
-  const source = await readText(ctxPath);
-
-  const arBlock = extractLocaleObject(source, 'ar');
-  const enBlock = extractLocaleObject(source, 'en');
-
-  if (!arBlock || !enBlock) {
-    return { ar: new Set(), en: new Set(), errors: ['Could not locate ar/en blocks in TranslationContext.tsx'] };
-  }
-  const arKeys = objectLiteralToKeySet(arBlock);
-  const enKeys = objectLiteralToKeySet(enBlock);
+  const arKeys = new Set();
+  const enKeys = new Set();
+  const errors = [];
+  let hasPrimaryCatalog = false;
 
   const generatedPath = path.join(ROOT, 'i18n', 'new-translations.ts');
   if (await exists(generatedPath)) {
     try {
-      const generated = await readText(generatedPath);
-      const keyRegex = /'([^']+)'\s*:\s*'[^']*'/g;
-      for (const match of generated.matchAll(keyRegex)) {
-        const key = match[1];
-        arKeys.add(key);
-        enKeys.add(key);
+      const source = await readText(generatedPath);
+      const arBlock = extractLocaleObject(source, 'ar');
+      const enBlock = extractLocaleObject(source, 'en');
+      if (arBlock && enBlock) {
+        objectLiteralToKeySet(arBlock).forEach(key => arKeys.add(key));
+        objectLiteralToKeySet(enBlock).forEach(key => enKeys.add(key));
+        hasPrimaryCatalog = true;
+      } else {
+        errors.push('Could not parse ar/en blocks in i18n/new-translations.ts');
       }
     } catch (err) {
-      console.warn(`⚠️  Failed to parse ${generatedPath}: ${err.message}`);
+      errors.push(`Failed to parse i18n/new-translations.ts: ${err.message}`);
+    }
+  } else {
+    errors.push('Translation catalog not found at i18n/new-translations.ts');
+  }
+
+  if (!hasPrimaryCatalog) {
+    const source = await readText(ctxPath);
+    const arBlock = extractLocaleObject(source, 'ar');
+    const enBlock = extractLocaleObject(source, 'en');
+    if (!arBlock || !enBlock) {
+      errors.push('Could not locate ar/en blocks in TranslationContext.tsx');
+    } else {
+      objectLiteralToKeySet(arBlock).forEach(key => arKeys.add(key));
+      objectLiteralToKeySet(enBlock).forEach(key => enKeys.add(key));
     }
   }
-  return { ar: arKeys, en: enKeys, errors: [] };
+
+  return { ar: arKeys, en: enKeys, errors };
 }
 
 // Find i18n keys used in code

@@ -64,13 +64,19 @@ export async function logSecurityEvent(event: SecurityEvent): Promise<void> {
   // incrementMetric(`security_events_total`, { type: event.type, path: event.path });
 
   // File-based logging (for development/debugging)
-  if (process.env.NODE_ENV === 'development' && process.env.LOG_SECURITY_EVENTS === 'file') {
-    const fs = require('fs').promises;
-    const path = require('path');
-    const logDir = path.join(process.cwd(), 'logs', 'security');
-    const logFile = path.join(logDir, `${event.type}-${new Date().toISOString().split('T')[0]}.log`);
-    
+  // NOTE: File system access is NOT available in Edge Runtime (middleware)
+  // This block only runs in Node.js runtime (API routes, server components)
+  if (
+    process.env.NODE_ENV === 'development' && 
+    process.env.LOG_SECURITY_EVENTS === 'file' &&
+    typeof process.cwd === 'function' // Check if running in Node.js runtime
+  ) {
     try {
+      const fs = require('fs').promises;
+      const path = require('path');
+      const logDir = path.join(process.cwd(), 'logs', 'security');
+      const logFile = path.join(logDir, `${event.type}-${new Date().toISOString().split('T')[0]}.log`);
+      
       await fs.mkdir(logDir, { recursive: true });
       await fs.appendFile(logFile, JSON.stringify(logEntry) + '\n');
     } catch (err) {

@@ -66,7 +66,9 @@
     "tools/**/*",
     "i18n/dictionaries/en.ts",
     "i18n/dictionaries/ar.ts",
-    "i18n/dictionaries/ar-industries.ts"
+    "i18n/dictionaries/ar-industries.ts",
+    "i18n/new-translations.ts",
+    "i18n/sources/**/*"
   ],
   "ts-node": {
     "compilerOptions": {

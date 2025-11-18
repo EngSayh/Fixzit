@@ -18,10 +18,10 @@ interface ReportRow {
   disableActions?: boolean
 }
 
-const statusColorMap: Record<ReportRow['status'], string> = {
-  ready: 'hsl(var(--success))',
-  running: 'hsl(var(--warning))',
-  error: 'hsl(var(--destructive))'
+const statusAppearance: Record<ReportRow['status'], { className: string; titleKey: string; fallback: string }> = {
+  ready: { className: 'text-success', titleKey: 'reports.status.ready', fallback: 'Ready' },
+  running: { className: 'text-warning', titleKey: 'reports.status.running', fallback: 'Running' },
+  error: { className: 'text-destructive', titleKey: 'reports.status.error', fallback: 'Error' }
 }
 
 export default function Reports() {
@@ -144,8 +144,8 @@ export default function Reports() {
                         <td>{row.name}</td>
                         <td>{row.type}</td>
                         <td>{row.lastRun}</td>
-                        <td style={{ color: statusColorMap[row.status] }}>
-                          {t(`reports.status.${row.status}`, row.status)}
+                        <td className={statusAppearance[row.status].className}>
+                          {t(statusAppearance[row.status].titleKey, statusAppearance[row.status].fallback)}
                         </td>
                         <td>
                           {row.actionType === 'download' ? (

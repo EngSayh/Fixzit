@@ -1,0 +1,18 @@
+{
+  "en": {
+    "tb.col.balance": "Balance",
+    "tb.col.code": "Code",
+    "tb.col.credit": "Credit",
+    "tb.col.debit": "Debit",
+    "tb.col.name": "Account Name",
+    "tb.col.type": "Type"
+  },
+  "ar": {
+    "tb.col.balance": "الرصيد",
+    "tb.col.code": "الرمز",
+    "tb.col.credit": "دائن",
+    "tb.col.debit": "مدين",
+    "tb.col.name": "اسم الحساب",
+    "tb.col.type": "النوع"
+  }
+}

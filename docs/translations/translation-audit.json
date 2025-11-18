@@ -1,10 +1,10 @@
 {
   "stats": {
     "files": 652,
-    "usedKeys": 2500,
-    "hasDynamic": true,
-    "enCount": 3914,
-    "arCount": 3914,
+    "usedKeys": 2518,
+    "hasDynamic": false,
+    "enCount": 29672,
+    "arCount": 29672,
     "parityGap": 0
   },
   "missing": {
@@ -905,17 +905,6 @@
     ],
     "aqar.post.offline.desc": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/post/page.tsx"
-    ],
-    "UNSAFE_DYNAMIC": [
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/post/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/ats/jobs/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/attendance/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/hr/leave/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/admin/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/orders/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/reports/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/work-orders/history/page.tsx",
-      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/hooks/usePageLabels.ts"
     ],
     "aqar.properties.error": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/aqar/properties/page.tsx"
@@ -1829,6 +1818,9 @@
     "finance.invoice.customerSelected": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/invoices/new/page.tsx"
     ],
+    "finance.errors.noOrgSession": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/page.tsx"
+    ],
     "finance.title": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/page.tsx"
     ],
@@ -1855,6 +1847,19 @@
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/page.tsx"
     ],
     "finance.reports.subtitle": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/page.tsx"
+    ],
+    "finance.errors.noOrgId": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/page.tsx"
+    ],
+    "finance.invoice.toast.unknownError": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/page.tsx"
+    ],
+    "finance.invoice.actions.post": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/page.tsx"
+    ],
+    "finance.invoice.actions.void": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/finance/page.tsx"
     ],
     "finance.description": [
@@ -2648,6 +2653,25 @@
     "order.po": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/page.tsx"
     ],
+    "fm.properties.detail.actions.confirmDelete": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/properties/[id]/page.tsx"
+    ],
+    "fm.properties.detail.errors.noOrgId": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/properties/[id]/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/properties/[id]/page.tsx"
+    ],
+    "fm.properties.detail.toasts.deleting": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/properties/[id]/page.tsx"
+    ],
+    "fm.properties.detail.toasts.success": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/properties/[id]/page.tsx"
+    ],
+    "fm.properties.detail.toasts.failure": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/properties/[id]/page.tsx"
+    ],
+    "fm.properties.detail.errors.loadFailed": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/properties/[id]/page.tsx"
+    ],
     "fm.properties.title": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/properties/page.tsx"
     ],
@@ -2839,6 +2863,25 @@
     ],
     "fm.tenants.createTenant": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/tenants/page.tsx"
+    ],
+    "fm.vendors.detail.actions.confirmDelete": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/vendors/[id]/page.tsx"
+    ],
+    "fm.vendors.detail.errors.noOrgId": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/vendors/[id]/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/vendors/[id]/page.tsx"
+    ],
+    "fm.vendors.detail.toasts.deleting": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/vendors/[id]/page.tsx"
+    ],
+    "fm.vendors.detail.toasts.success": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/vendors/[id]/page.tsx"
+    ],
+    "fm.vendors.detail.toasts.failure": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/vendors/[id]/page.tsx"
+    ],
+    "fm.vendors.detail.errors.loadFailed": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/vendors/[id]/page.tsx"
     ],
     "nav.vendors": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/fm/vendors/page.tsx"
@@ -3767,6 +3810,7 @@
     "login.errors.invalidCredentials": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx",
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/login/page.tsx",
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/auth/LoginForm.tsx"
     ],
     "login.errors.rateLimited": [
@@ -3908,6 +3952,9 @@
     ],
     "logout.pleaseWait": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/logout/page.tsx"
+    ],
+    "marketplace.orders.status.unknown": [
+      "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/admin/page.tsx"
     ],
     "marketplace.admin.title": [
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/app/marketplace/admin/page.tsx"
@@ -7953,5 +8000,5 @@
       "/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/components/ui/pagination.tsx"
     ]
   },
-  "timestamp": "2025-11-18T06:18:26.406Z"
+  "timestamp": "2025-11-18T07:34:15.575Z"
 }

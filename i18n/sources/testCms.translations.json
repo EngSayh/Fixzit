@@ -1,0 +1,14 @@
+{
+  "en": {
+    "testCms.links.about": "About Us",
+    "testCms.links.privacy": "Privacy Policy",
+    "testCms.links.terms": "Terms of Service",
+    "testCms.title": "CMS Test Links"
+  },
+  "ar": {
+    "testCms.links.about": "معلومات عنا",
+    "testCms.links.privacy": "سياسة الخصوصية",
+    "testCms.links.terms": "شروط الخدمة",
+    "testCms.title": "روابط اختبار نظام إدارة المحتوى"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "en": {
+    "privacy.compliant": "Regulation Compliant",
+    "privacy.compliantDesc": "We follow all international and local data protection standards",
+    "privacy.contactDesc": "Contact our privacy team for any inquiries",
+    "privacy.contactTitle": "Privacy Questions?",
+    "privacy.email": "privacy@fixzit.app",
+    "privacy.encrypted": "Encrypted Data",
+    "privacy.encryptedDesc": "All your data is protected with bank-level encryption",
+    "privacy.lastUpdated": "Last updated",
+    "privacy.phone": "+968 9999 9999",
+    "privacy.subtitle": "Your privacy is our priority. Learn how we protect and manage your data.",
+    "privacy.title": "Privacy Policy",
+    "privacy.transparent": "Transparent Practices",
+    "privacy.transparentDesc": "We're clear about how your data is collected and used",
+    "privacy.yourRights": "Your Rights",
+    "privacy.yourRightsDesc": "You have full control over your personal data"
+  },
+  "ar": {
+    "privacy.compliant": "متوافق مع اللوائح",
+    "privacy.compliantDesc": "نتبع جميع معايير حماية البيانات الدولية والمحلية",
+    "privacy.contactDesc": "تواصل مع فريق الخصوصية لدينا لأي استفسارات",
+    "privacy.contactTitle": "أسئلة حول الخصوصية؟",
+    "privacy.email": "privacy@fixzit.app",
+    "privacy.encrypted": "بيانات مشفرة",
+    "privacy.encryptedDesc": "جميع بياناتك محمية بتشفير من المستوى المصرفي",
+    "privacy.lastUpdated": "آخر تحديث",
+    "privacy.phone": "+968 9999 9999",
+    "privacy.subtitle": "خصوصيتك أولويتنا. تعرف على كيفية حماية بياناتك وإدارتها.",
+    "privacy.title": "سياسة الخصوصية",
+    "privacy.transparent": "ممارسات شفافة",
+    "privacy.transparentDesc": "نحن واضحون بشأن كيفية جمع بياناتك واستخدامها",
+    "privacy.yourRights": "حقوقك",
+    "privacy.yourRightsDesc": "لديك التحكم الكامل في بياناتك الشخصية"
+  }
+}

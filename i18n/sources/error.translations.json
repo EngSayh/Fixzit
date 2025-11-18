@@ -1,0 +1,14 @@
+{
+  "en": {
+    "error.boundary.desc": "We're sorry, an unexpected error occurred",
+    "error.boundary.ref": "Reference #",
+    "error.boundary.refresh": "Refresh Page",
+    "error.boundary.title": "Something went wrong"
+  },
+  "ar": {
+    "error.boundary.desc": "نعتذر، حدث خطأ غير متوقع",
+    "error.boundary.ref": "رقم المرجع",
+    "error.boundary.refresh": "تحديث الصفحة",
+    "error.boundary.title": "حدث خطأ ما"
+  }
+}

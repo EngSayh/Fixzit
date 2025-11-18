@@ -1,0 +1,24 @@
+{
+  "en": {
+    "roles.admin": "Admin",
+    "roles.employee": "Employee",
+    "roles.guest": "Guest",
+    "roles.manager": "Manager",
+    "roles.propertyManager": "Property Manager",
+    "roles.superadmin": "Super Admin",
+    "roles.tenant": "Tenant",
+    "roles.user": "User",
+    "roles.vendor": "Vendor"
+  },
+  "ar": {
+    "roles.admin": "مسؤول",
+    "roles.employee": "موظف",
+    "roles.guest": "ضيف",
+    "roles.manager": "مدير",
+    "roles.propertyManager": "مدير عقار",
+    "roles.superadmin": "المسؤول الأعلى",
+    "roles.tenant": "مستأجر",
+    "roles.user": "مستخدم",
+    "roles.vendor": "مورد"
+  }
+}

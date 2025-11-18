@@ -5,7 +5,9 @@
  * Used by: LanguageSelector, TranslationProvider, SignupPage, etc.
  */
 
-export type LanguageCode = 'ar' | 'en' | 'fr' | 'pt' | 'ru' | 'es' | 'ur' | 'hi' | 'zh';
+// Only English/Arabic have production-ready translations. Additional locales can be
+// reintroduced here once professional translations land.
+export type LanguageCode = 'ar' | 'en';
 
 export interface LanguageOption {
   language: LanguageCode;
@@ -44,90 +46,6 @@ export const LANGUAGE_OPTIONS: LanguageOption[] = [
     locale: 'en-GB',
     country: 'United Kingdom',
     keywords: ['english', 'uk', 'us'],
-  },
-  {
-    language: 'fr',
-    code: 'fr',
-    native: 'Français',
-    english: 'French',
-    flag: '🇫🇷',
-    dir: 'ltr',
-    iso: 'FR-FR',
-    locale: 'fr-FR',
-    country: 'France',
-    keywords: ['french', 'france'],
-  },
-  {
-    language: 'pt',
-    code: 'pt',
-    native: 'Português',
-    english: 'Portuguese',
-    flag: '🇵🇹',
-    dir: 'ltr',
-    iso: 'PT-PT',
-    locale: 'pt-PT',
-    country: 'Portugal',
-    keywords: ['portuguese', 'brazil', 'portugal'],
-  },
-  {
-    language: 'ru',
-    code: 'ru',
-    native: 'Русский',
-    english: 'Russian',
-    flag: '🇷🇺',
-    dir: 'ltr',
-    iso: 'RU-RU',
-    locale: 'ru-RU',
-    country: 'Russia',
-    keywords: ['russian', 'russia'],
-  },
-  {
-    language: 'es',
-    code: 'es',
-    native: 'Español',
-    english: 'Spanish',
-    flag: '🇪🇸',
-    dir: 'ltr',
-    iso: 'ES-ES',
-    locale: 'es-ES',
-    country: 'Spain',
-    keywords: ['spanish', 'latam'],
-  },
-  {
-    language: 'ur',
-    code: 'ur',
-    native: 'اردو',
-    english: 'Urdu',
-    flag: '🇵🇰',
-    dir: 'rtl',
-    iso: 'UR-PK',
-    locale: 'ur-PK',
-    country: 'Pakistan',
-    keywords: ['urdu', 'pk'],
-  },
-  {
-    language: 'hi',
-    code: 'hi',
-    native: 'हिन्दी',
-    english: 'Hindi',
-    flag: '🇮🇳',
-    dir: 'ltr',
-    iso: 'HI-IN',
-    locale: 'hi-IN',
-    country: 'India',
-    keywords: ['hindi', 'india'],
-  },
-  {
-    language: 'zh',
-    code: 'zh',
-    native: '中文',
-    english: 'Chinese',
-    flag: '🇨🇳',
-    dir: 'ltr',
-    iso: 'ZH-CN',
-    locale: 'zh-CN',
-    country: 'China',
-    keywords: ['chinese', 'mandarin'],
   },
 ];
 

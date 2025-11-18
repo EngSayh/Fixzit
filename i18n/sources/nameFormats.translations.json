@@ -1,0 +1,40 @@
+{
+  "en": {
+    "nameFormats.display": "Display Name",
+    "nameFormats.first": "First Name",
+    "nameFormats.firstLast": "First Last",
+    "nameFormats.format": "Name Format",
+    "nameFormats.full": "Full Name",
+    "nameFormats.initials": "Initials",
+    "nameFormats.last": "Last Name",
+    "nameFormats.lastFirst": "Last, First",
+    "nameFormats.legal": "Legal Name",
+    "nameFormats.maiden": "Maiden Name",
+    "nameFormats.middle": "Middle Name",
+    "nameFormats.name": "Name",
+    "nameFormats.nickname": "Nickname",
+    "nameFormats.order": "Order",
+    "nameFormats.preferred": "Preferred Name",
+    "nameFormats.prefix": "Prefix",
+    "nameFormats.suffix": "Suffix"
+  },
+  "ar": {
+    "nameFormats.display": "اسم العرض",
+    "nameFormats.first": "الاسم الأول",
+    "nameFormats.firstLast": "الأول الأخير",
+    "nameFormats.format": "تنسيق الاسم",
+    "nameFormats.full": "الاسم الكامل",
+    "nameFormats.initials": "الأحرف الأولى",
+    "nameFormats.last": "اسم العائلة",
+    "nameFormats.lastFirst": "الأخير، الأول",
+    "nameFormats.legal": "الاسم القانوني",
+    "nameFormats.maiden": "اسم العائلة قبل الزواج",
+    "nameFormats.middle": "الاسم الأوسط",
+    "nameFormats.name": "الاسم",
+    "nameFormats.nickname": "الكنية",
+    "nameFormats.order": "الترتيب",
+    "nameFormats.preferred": "الاسم المفضل",
+    "nameFormats.prefix": "البادئة",
+    "nameFormats.suffix": "اللاحقة"
+  }
+}

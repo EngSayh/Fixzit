@@ -61,7 +61,11 @@ export default function FinancePage() {
   }
 
   if (!orgId) {
-    return <p>Error: No organization ID found in session</p>;
+    return (
+      <p className="text-destructive">
+        {t('finance.errors.noOrgSession', 'Error: No organization ID found in session')}
+      </p>
+    );
   }
 
   const list = data?.data ?? [];
@@ -99,8 +103,22 @@ export default function FinancePage() {
                 <Separator />
                 <div className="text-sm">{t('finance.total', 'Total')}: {inv.total} {inv.currency} ({t('finance.vat', 'VAT')} {inv.vatAmount})</div>
                 <div className="flex gap-2 pt-2">
-                  <Action id={inv.id} action="POST" disabled={inv.status!=="DRAFT"} onDone={()=>mutate()} orgId={orgId} />
-                  <Action id={inv.id} action="VOID" disabled={inv.status==="VOID"} onDone={()=>mutate()} orgId={orgId} />
+                  <Action
+                    id={inv.id}
+                    action="POST"
+                    disabled={inv.status !== "DRAFT"}
+                    onDone={() => mutate()}
+                    orgId={orgId}
+                    t={t}
+                  />
+                  <Action
+                    id={inv.id}
+                    action="VOID"
+                    disabled={inv.status === "VOID"}
+                    onDone={() => mutate()}
+                    orgId={orgId}
+                    t={t}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -125,14 +143,50 @@ export default function FinancePage() {
   );
 }
 
-function Action({ id, action, disabled, onDone, orgId }:{ id:string; action:"POST"|"VOID"; disabled?:boolean; onDone:()=>void; orgId:string }) {
+type FinanceAction = 'POST' | 'VOID';
+
+const ACTION_COPY: Record<FinanceAction, { loadingKey: string; loadingFallback: string; successKey: string; successFallback: string; failureKey: string; failureFallback: string }> = {
+  POST: {
+    loadingKey: 'finance.invoice.toast.posting',
+    loadingFallback: 'Posting invoice...',
+    successKey: 'finance.invoice.toast.postSuccess',
+    successFallback: 'Invoice posted successfully',
+    failureKey: 'finance.invoice.toast.postFailure',
+    failureFallback: 'Failed to post invoice: {{message}}',
+  },
+  VOID: {
+    loadingKey: 'finance.invoice.toast.voiding',
+    loadingFallback: 'Voiding invoice...',
+    successKey: 'finance.invoice.toast.voidSuccess',
+    successFallback: 'Invoice voided successfully',
+    failureKey: 'finance.invoice.toast.voidFailure',
+    failureFallback: 'Failed to void invoice: {{message}}',
+  },
+};
+
+function Action({
+  id,
+  action,
+  disabled,
+  onDone,
+  orgId,
+  t,
+}: {
+  id: string;
+  action: FinanceAction;
+  disabled?: boolean;
+  onDone: () => void;
+  orgId: string;
+  t: ReturnType<typeof useTranslation>['t'];
+}) {
   async function go() {
     if (!orgId) {
-      toast.error('No organization ID found');
+      toast.error(t('finance.errors.noOrgId', 'No organization ID found'));
       return;
     }
 
-    const toastId = toast.loading(`${action === 'POST' ? 'Posting' : 'Voiding'} invoice...`);
+    const copy = ACTION_COPY[action];
+    const toastId = toast.loading(t(copy.loadingKey, copy.loadingFallback));
 
     try {
       const response = await fetch(`/api/finance/invoices/${id}`, {
@@ -145,18 +199,35 @@ function Action({ id, action, disabled, onDone, orgId }:{ id:string; action:"POS
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        toast.error(`Failed to ${action} invoice: ${error.error || 'Unknown error'}`, { id: toastId });
-      } else {
-        toast.success(`Invoice ${action === 'POST' ? 'posted' : 'voided'} successfully`, { id: toastId });
-        onDone();
+        const error = await response.json().catch(() => ({}));
+        const message = error?.error || t('finance.invoice.toast.unknownError', 'Unknown error');
+        toast.error(
+          t(copy.failureKey, copy.failureFallback).replace('{{message}}', message),
+          { id: toastId }
+        );
+        return;
       }
+
+      toast.success(t(copy.successKey, copy.successFallback), { id: toastId });
+      onDone();
     } catch (error) {
       logger.error(`Error ${action} invoice:`, error);
-      toast.error(`Error: Failed to ${action} invoice`, { id: toastId });
+      toast.error(
+        t(copy.failureKey, copy.failureFallback).replace(
+          '{{message}}',
+          error instanceof Error ? error.message : t('finance.invoice.toast.unknownError', 'Unknown error')
+        ),
+        { id: toastId }
+      );
     }
   }
-  return <Button variant="secondary" disabled={disabled} onClick={go}>{action}</Button>;
+  return (
+    <Button variant="secondary" disabled={disabled} onClick={go}>
+      {action === 'POST'
+        ? t('finance.invoice.actions.post', 'Post invoice')
+        : t('finance.invoice.actions.void', 'Void invoice')}
+    </Button>
+  );
 }
 
 interface InvoiceLine {

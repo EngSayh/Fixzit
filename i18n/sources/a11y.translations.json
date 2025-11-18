@@ -1,0 +1,14 @@
+{
+  "en": {
+    "a11y.currencySelectorHelp": "Use arrow keys to navigate, Enter to select, Esc to close",
+    "a11y.hidePassword": "Hide password",
+    "a11y.languageSelectorHelp": "Select your preferred language for the interface",
+    "a11y.showPassword": "Show password"
+  },
+  "ar": {
+    "a11y.currencySelectorHelp": "استخدم مفاتيح الأسهم للتنقل، إدخال للتحديد، Esc للإغلاق",
+    "a11y.hidePassword": "إخفاء كلمة المرور",
+    "a11y.languageSelectorHelp": "اختر اللغة المفضلة لديك للواجهة",
+    "a11y.showPassword": "إظهار كلمة المرور"
+  }
+}

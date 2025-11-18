@@ -1,0 +1,14 @@
+{
+  "en": {
+    "pagination.of": "of",
+    "pagination.results": "results",
+    "pagination.showing": "Showing",
+    "pagination.to": "to"
+  },
+  "ar": {
+    "pagination.of": "من",
+    "pagination.results": "نتيجة",
+    "pagination.showing": "عرض",
+    "pagination.to": "إلى"
+  }
+}

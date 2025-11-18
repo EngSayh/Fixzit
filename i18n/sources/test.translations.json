@@ -1,0 +1,10 @@
+{
+  "en": {
+    "test.page.description": "This is a simple test page.",
+    "test.page.title": "Test Page"
+  },
+  "ar": {
+    "test.page.description": "هذه صفحة اختبار بسيطة.",
+    "test.page.title": "صفحة الاختبار"
+  }
+}
