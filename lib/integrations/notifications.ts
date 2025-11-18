@@ -1,9 +1,23 @@
-import admin from 'firebase-admin';
-import sgMail from '@sendgrid/mail';
-import twilio from 'twilio';
 import axios from 'axios';
 import { logger } from '@/lib/logger';
 import type { NotificationChannel, NotificationPayload, NotificationRecipient } from '@/lib/fm-notifications';
+import type { messaging } from 'firebase-admin';
+
+// Dynamic imports for heavy packages to reduce TypeScript server memory usage
+// - firebase-admin: 51 type definition files
+// - twilio: 678 type definition files (biggest contributor to TS server OOM)
+// - @sendgrid/mail: ~20 type definition files
+type FirebaseAdmin = typeof import('firebase-admin');
+type Twilio = typeof import('twilio');
+type SendGridMail = typeof import('@sendgrid/mail');
+
+async function resolveModuleDefault<T>(importPromise: Promise<unknown>): Promise<T> {
+  const module = (await importPromise) as { default?: T };
+  if (module && typeof module === 'object' && 'default' in module && module.default) {
+    return module.default;
+  }
+  return module as unknown as T;
+}
 
 /**
  * External Notification Service Integrations
@@ -30,15 +44,19 @@ export interface BulkNotificationResult {
 // =============================================================================
 
 let fcmInitialized = false;
+let adminInstance: FirebaseAdmin | null = null;
 
-function initializeFCM() {
-  if (fcmInitialized) return;
+async function initializeFCM() {
+  if (fcmInitialized) return adminInstance!;
 
   try {
     if (!process.env.FIREBASE_ADMIN_PROJECT_ID) {
       logger.warn('[FCM] Firebase credentials not configured');
-      return;
+      throw new Error('FCM not configured');
     }
+
+    const admin = await resolveModuleDefault<FirebaseAdmin>(import('firebase-admin'));
+    adminInstance = admin;
 
     admin.initializeApp({
       credential: admin.credential.cert({
@@ -50,8 +68,10 @@ function initializeFCM() {
 
     fcmInitialized = true;
     logger.info('[FCM] Initialized successfully');
+    return admin;
   } catch (error) {
     logger.error('[FCM] Initialization failed', { error });
+    throw error;
   }
 }
 
@@ -60,9 +80,9 @@ export async function sendFCMNotification(
   notification: NotificationPayload
 ): Promise<void> {
   try {
-    initializeFCM();
+    const admin = await initializeFCM();
 
-    if (!fcmInitialized) {
+    if (!fcmInitialized || !adminInstance) {
       const error = new Error('FCM not configured');
       logger.warn('[FCM] Skipping push notification (not initialized)');
       throw error;
@@ -76,7 +96,7 @@ export async function sendFCMNotification(
     }
 
     // Build FCM message
-    const message: admin.messaging.MulticastMessage = {
+    const message: messaging.MulticastMessage = {
       tokens,
       notification: {
         title: notification.title,
@@ -126,7 +146,7 @@ export async function sendFCMNotification(
     // Remove invalid tokens
     if (response.failureCount > 0) {
       const failedTokens = response.responses
-        .map((resp, idx) => (!resp.success ? tokens[idx] : null))
+        .map((resp: messaging.SendResponse, idx: number) => (!resp.success ? tokens[idx] : null))
         .filter(Boolean) as string[];
 
       await removeInvalidFCMTokens(userId, failedTokens);
@@ -168,21 +188,26 @@ async function removeInvalidFCMTokens(userId: string, tokens: string[]): Promise
 // =============================================================================
 
 let sendGridInitialized = false;
+let sgMailInstance: SendGridMail | null = null;
 
-function initializeSendGrid() {
-  if (sendGridInitialized) return;
+async function initializeSendGrid() {
+  if (sendGridInitialized) return sgMailInstance!;
 
   try {
     if (!process.env.SENDGRID_API_KEY) {
       logger.warn('[SendGrid] API key not configured');
-      return;
+      throw new Error('SendGrid not configured');
     }
 
+    const sgMail = await resolveModuleDefault<SendGridMail>(import('@sendgrid/mail'));
+    sgMailInstance = sgMail;
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     sendGridInitialized = true;
     logger.info('[SendGrid] Initialized successfully');
+    return sgMail;
   } catch (error) {
     logger.error('[SendGrid] Initialization failed', { error });
+    throw error;
   }
 }
 
@@ -191,9 +216,9 @@ export async function sendEmailNotification(
   notification: NotificationPayload
 ): Promise<void> {
   try {
-    initializeSendGrid();
+    const sgMail = await initializeSendGrid();
 
-    if (!sendGridInitialized) {
+    if (!sendGridInitialized || !sgMailInstance) {
       logger.warn('[SendGrid] Skipping email notification (not initialized)');
       throw new Error('SendGrid not configured');
     }
@@ -244,11 +269,16 @@ export async function sendEmailNotification(
       to: recipient.email,
       subject: notification.title
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorDetails =
+      typeof error === 'object' && error !== null
+        ? (error as { message?: string; code?: unknown; response?: { body?: unknown } })
+        : undefined;
+
     logger.error('[SendGrid] Failed to send email', {
-      error: error.message,
-      code: error.code,
-      response: error.response?.body
+      error: errorDetails?.message ?? (error instanceof Error ? error.message : String(error)),
+      code: errorDetails?.code,
+      response: errorDetails?.response?.body
     });
     throw error;
   }
@@ -289,25 +319,28 @@ function buildEmailHTML(notification: NotificationPayload, recipient: Notificati
 // Twilio - SMS Notifications
 // =============================================================================
 
-let twilioClient: twilio.Twilio | null = null;
+let twilioClient: any | null = null;
 
-function initializeTwilio() {
-  if (twilioClient) return;
+async function initializeTwilio() {
+  if (twilioClient) return twilioClient;
 
   try {
     if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
       logger.warn('[Twilio] Credentials not configured');
-      return;
+      throw new Error('Twilio not configured');
     }
 
-    twilioClient = twilio(
+    const TwilioClient = await resolveModuleDefault<Twilio>(import('twilio'));
+    twilioClient = TwilioClient(
       process.env.TWILIO_ACCOUNT_SID,
       process.env.TWILIO_AUTH_TOKEN
     );
 
     logger.info('[Twilio] Initialized successfully');
+    return twilioClient;
   } catch (error) {
     logger.error('[Twilio] Initialization failed', { error });
+    throw error;
   }
 }
 
@@ -316,7 +349,7 @@ export async function sendSMSNotification(
   notification: NotificationPayload
 ): Promise<void> {
   try {
-    initializeTwilio();
+    await initializeTwilio();
 
     if (!twilioClient) {
       logger.warn('[Twilio] Skipping SMS notification (not initialized)');
@@ -347,11 +380,16 @@ export async function sendSMSNotification(
       sid: response.sid,
       status: response.status
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const details =
+      typeof error === 'object' && error !== null
+        ? (error as { message?: string; code?: unknown; status?: unknown })
+        : undefined;
+
     logger.error('[Twilio] Failed to send SMS', {
-      error: error.message,
-      code: error.code,
-      status: error.status
+      error: details?.message ?? (error instanceof Error ? error.message : String(error)),
+      code: details?.code,
+      status: details?.status
     });
     throw error;
   }
@@ -421,10 +459,15 @@ export async function sendWhatsAppNotification(
       messageId: response.data.messages?.[0]?.id,
       template: templateName
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const details =
+      typeof error === 'object' && error !== null
+        ? (error as { message?: string; response?: { data?: unknown } })
+        : undefined;
+
     logger.error('[WhatsApp] Failed to send message', {
-      error: error.message,
-      response: error.response?.data
+      error: details?.message ?? (error instanceof Error ? error.message : String(error)),
+      response: details?.response?.data
     });
     throw error;
   }

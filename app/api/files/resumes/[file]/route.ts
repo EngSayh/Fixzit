@@ -8,7 +8,7 @@ import { getPresignedGetUrl, buildResumeKey } from '@/lib/storage/s3';
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 // Resume files are stored under a non-public project directory with UUID-based names
 const BASE_DIR = path.join(process.cwd(), 'private-uploads', 'resumes');
@@ -31,19 +31,16 @@ const BASE_DIR = path.join(process.cwd(), 'private-uploads', 'resumes');
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest, props: { params: Promise<{ file: string }> }) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   const params = await props.params;
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     const allowed = new Set(['SUPER_ADMIN','ADMIN','HR']);
     if (!allowed.has(user.role || '')) return createSecureResponse({ error: 'Forbidden' }, 403, req);
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
 
     const url = new URL(req.url);
     const token = url.searchParams.get('token') || '';
@@ -75,19 +72,16 @@ export async function GET(req: NextRequest, props: { params: Promise<{ file: str
 }
 
 export async function POST(req: NextRequest, props: { params: Promise<{ file: string }> }) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   const params = await props.params;
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     const allowed = new Set(['SUPER_ADMIN','ADMIN','HR']);
     if (!allowed.has(user.role || '')) return createSecureResponse({ error: 'Forbidden' }, 403, req);
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     const expires = Date.now() + 1000 * 60 * 10; // 10 minutes
     const safeName = path.basename(params.file);
     const tenant = String(user.tenantId || 'global');
@@ -136,4 +130,3 @@ function contentTypeFromName(name: string) {
   if (lower.endsWith('.txt')) return 'text/plain';
   return 'application/octet-stream';
 }
-

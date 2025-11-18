@@ -169,8 +169,9 @@ async function createUsers() {
           console.log(`✅ Created: ${userData.email} (${userData.professional.role})`);
           created++;
         }
-      } catch (error: any) {
-        console.error(`❌ Error creating ${userData.email}:`, error.message);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`❌ Error creating ${userData.email}:`, message);
       }
     }
     

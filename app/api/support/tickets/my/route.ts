@@ -8,7 +8,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -31,13 +31,6 @@ export const dynamic = 'force-dynamic';
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest){
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     await connectToDatabase();
     
@@ -45,6 +38,10 @@ export async function GET(req: NextRequest){
     let user;
     try {
       user = await getSessionUser(req);
+      const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+      if (!rl.allowed) {
+        return rateLimitError();
+      }
     } catch (authError) {
       logger.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
       return createSecureResponse({ error: 'Unauthorized' }, 401, req);
@@ -60,4 +57,3 @@ export async function GET(req: NextRequest){
     return createSecureResponse({ error: 'Failed to fetch your tickets' }, 500, req);
   }
 }
-

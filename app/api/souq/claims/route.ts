@@ -95,8 +95,14 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const type = searchParams.get('type');
     const priority = searchParams.get('priority');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    
+    // Robust parsing with validation and bounds
+    const pageRaw = searchParams.get('page');
+    const limitRaw = searchParams.get('limit');
+    const pageParsed = pageRaw ? parseInt(pageRaw, 10) : 1;
+    const limitParsed = limitRaw ? parseInt(limitRaw, 10) : 20;
+    const page = Number.isFinite(pageParsed) && pageParsed > 0 ? pageParsed : 1;
+    const limit = Number.isFinite(limitParsed) ? Math.min(Math.max(1, limitParsed), 100) : 20;
 
     const filters: Record<string, unknown> = {
       limit,
@@ -107,6 +113,10 @@ export async function GET(request: NextRequest) {
       filters.buyerId = session.user.id;
     } else if (view === 'seller') {
       filters.sellerId = session.user.id;
+    } else if (view === 'admin') {
+      // Admin view: no buyer/seller filtering
+      // TODO: Add role-based access control when auth.ts supports roles
+      // For now, admin view shows all claims
     } else {
       // Default to buyer view
       filters.buyerId = session.user.id;

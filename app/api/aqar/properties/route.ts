@@ -5,7 +5,7 @@ import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 // Query: /api/aqar/properties?city=&district=&type=&bedsMin=&bathsMin=&areaMin=&areaMax=&priceMin=&priceMax=&sort=&page=&pageSize=
 // sort: newest|price_asc|price_desc|area_desc
@@ -28,13 +28,6 @@ import { getClientIP } from '@/server/security/headers';
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     let user;
     try {
@@ -42,6 +35,10 @@ export async function GET(req: NextRequest) {
     } catch {
       // Fallback for dev/guest exploration: restrict to demo tenant
       user = { id: 'guest', role: 'SUPER_ADMIN' as unknown, orgId: 'demo-tenant', tenantId: 'demo-tenant' };
+    }
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
     }
 
     await connectToDatabase();
@@ -108,5 +105,4 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }
-
 

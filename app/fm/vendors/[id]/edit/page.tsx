@@ -1,5 +1,6 @@
 'use client';
 import { logger } from '@/lib/logger';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 import { useState } from 'react';
 import useSWR from 'swr';
@@ -77,6 +78,7 @@ export default function EditVendorPage() {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
+  const auto = useAutoTranslator('fm.vendors.edit');
   const orgId = session?.user?.orgId;
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -84,7 +86,7 @@ export default function EditVendorPage() {
   // ✅ FIX 3: Handle HTTP errors properly to prevent crash on 404/500
   const fetcher = (url: string) => {
     if (!orgId) {
-      return Promise.reject(new Error('No organization ID'));
+      return Promise.reject(new Error(auto('No organization ID', 'errors.noOrg')));
     }
     return fetch(url, { 
       headers: { 'x-tenant-id': orgId } 
@@ -109,7 +111,7 @@ export default function EditVendorPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!orgId) return toast.error('Organization ID missing');
+    if (!orgId) return toast.error(auto('Organization ID missing', 'errors.noOrg'));
     
     setIsSaving(true);
     setErrors({});
@@ -168,7 +170,7 @@ export default function EditVendorPage() {
         throw new Error(errorData.message || 'Failed to update vendor');
       }
 
-      toast.success('Vendor updated successfully');
+      toast.success(auto('Vendor updated successfully', 'toast.success'));
       router.push(`/fm/vendors/${params.id}`);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -179,9 +181,9 @@ export default function EditVendorPage() {
           }
         });
         setErrors(fieldErrors);
-        toast.error('Please fix validation errors');
+        toast.error(auto('Please fix validation errors', 'toast.validation'));
       } else {
-        toast.error(error instanceof Error ? error.message : 'Failed to update vendor');
+        toast.error(error instanceof Error ? error.message : auto('Failed to update vendor', 'toast.error'));
       }
     } finally {
       setIsSaving(false);
@@ -189,8 +191,8 @@ export default function EditVendorPage() {
   };
 
   if (!session) return <CardGridSkeleton count={1} />;
-  if (!orgId) return <div>Error: No organization ID found in session</div>;
-  if (error) return <div>Failed to load vendor</div>;
+  if (!orgId) return <div className="text-destructive">{auto('Error: No organization ID found in session', 'errors.noOrgSession')}</div>;
+  if (error) return <div className="text-destructive">{auto('Failed to load vendor', 'errors.loadFailed')}</div>;
   if (isLoading || !vendor) return <CardGridSkeleton count={1} />;
 
   return (
@@ -203,8 +205,12 @@ export default function EditVendorPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">Edit Vendor</h1>
-          <p className="text-muted-foreground">Update vendor information</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            {auto('Edit Vendor', 'header.title')}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto('Update vendor information', 'header.subtitle')}
+          </p>
         </div>
       </div>
 
@@ -212,17 +218,17 @@ export default function EditVendorPage() {
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
+            <CardTitle>{auto('Basic Information', 'card.basic')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Vendor Name */}
             <div className="space-y-2">
-              <Label htmlFor="name">Vendor Name *</Label>
+              <Label htmlFor="name">{auto('Vendor Name *', 'form.labels.name')}</Label>
               <Input
                 id="name"
                 name="name"
                 defaultValue={vendor.name}
-                placeholder="Enter vendor name"
+                placeholder={auto('Enter vendor name', 'form.placeholders.name')}
                 required
               />
               {errors.name && (
@@ -232,12 +238,12 @@ export default function EditVendorPage() {
 
             {/* Vendor Code */}
             <div className="space-y-2">
-              <Label htmlFor="code">Vendor Code *</Label>
+              <Label htmlFor="code">{auto('Vendor Code *', 'form.labels.code')}</Label>
               <Input
                 id="code"
                 name="code"
                 defaultValue={vendor.code}
-                placeholder="e.g., VEN-001"
+                placeholder={auto('e.g., VEN-001', 'form.placeholders.code')}
                 required
               />
               {errors.code && (
@@ -248,12 +254,12 @@ export default function EditVendorPage() {
             {/* Type & Status */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="type">Type *</Label>
+                <Label htmlFor="type">{auto('Type *', 'form.labels.type')}</Label>
                 <Input
                   id="type"
                   name="type"
                   defaultValue={vendor.type}
-                  placeholder="e.g., Contractor, Supplier"
+                  placeholder={auto('e.g., Contractor, Supplier', 'form.placeholders.type')}
                   required
                 />
                 {errors.type && (
@@ -262,14 +268,14 @@ export default function EditVendorPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="status">Status *</Label>
-                <Select name="status" defaultValue={vendor.status} placeholder="Select status">
+                <Label htmlFor="status">{auto('Status *', 'form.labels.status')}</Label>
+                <Select name="status" defaultValue={vendor.status} >
                   <SelectContent>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="APPROVED">Approved</SelectItem>
-                    <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                    <SelectItem value="REJECTED">Rejected</SelectItem>
-                    <SelectItem value="BLACKLISTED">Blacklisted</SelectItem>
+                    <SelectItem value="PENDING">{auto('Pending', 'form.status.pending')}</SelectItem>
+                    <SelectItem value="APPROVED">{auto('Approved', 'form.status.approved')}</SelectItem>
+                    <SelectItem value="SUSPENDED">{auto('Suspended', 'form.status.suspended')}</SelectItem>
+                    <SelectItem value="REJECTED">{auto('Rejected', 'form.status.rejected')}</SelectItem>
+                    <SelectItem value="BLACKLISTED">{auto('Blacklisted', 'form.status.blacklisted')}</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.status && (
@@ -283,17 +289,17 @@ export default function EditVendorPage() {
         {/* Contact Information */}
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle>Contact Information</CardTitle>
+            <CardTitle>{auto('Contact Information', 'card.contact')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Contact Name */}
             <div className="space-y-2">
-              <Label htmlFor="contactName">Contact Person Name</Label>
+              <Label htmlFor="contactName">{auto('Contact Person Name', 'form.labels.contactName')}</Label>
               <Input
                 id="contactName"
                 name="contactName"
                 defaultValue={vendor.contact?.primary?.name || ''}
-                placeholder="Enter contact person name"
+                placeholder={auto('Enter contact person name', 'form.placeholders.contactName')}
               />
               {errors['contact.primary.name'] && (
                 <p className="text-sm text-destructive">{errors['contact.primary.name']}</p>
@@ -317,12 +323,12 @@ export default function EditVendorPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="contactPhone">Phone</Label>
+                <Label htmlFor="contactPhone">{auto('Phone', 'form.labels.contactPhone')}</Label>
                 <Input
                   id="contactPhone"
                   name="contactPhone"
                   defaultValue={vendor.contact?.primary?.phone || ''}
-                  placeholder="+966XXXXXXXXX"
+                  placeholder={auto('+966XXXXXXXXX', 'form.placeholders.contactPhone')}
                 />
                 {errors['contact.primary.phone'] && (
                   <p className="text-sm text-destructive">{errors['contact.primary.phone']}</p>
@@ -332,12 +338,12 @@ export default function EditVendorPage() {
 
             {/* Mobile */}
             <div className="space-y-2">
-              <Label htmlFor="contactMobile">Mobile</Label>
+              <Label htmlFor="contactMobile">{auto('Mobile', 'form.labels.contactMobile')}</Label>
               <Input
                 id="contactMobile"
                 name="contactMobile"
                 defaultValue={vendor.contact?.primary?.mobile || ''}
-                placeholder="+966XXXXXXXXX"
+                placeholder={auto('+966XXXXXXXXX', 'form.placeholders.contactMobile')}
               />
               {errors['contact.primary.mobile'] && (
                 <p className="text-sm text-destructive">{errors['contact.primary.mobile']}</p>
@@ -346,46 +352,48 @@ export default function EditVendorPage() {
 
             {/* Address */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Address</h3>
+              <h3 className="text-lg font-semibold">
+                {auto('Address', 'form.section.address')}
+              </h3>
               
               <div className="space-y-2">
-                <Label htmlFor="addressStreet">Street</Label>
+                <Label htmlFor="addressStreet">{auto('Street', 'form.labels.street')}</Label>
                 <Input
                   id="addressStreet"
                   name="addressStreet"
                   defaultValue={vendor.contact?.address?.street || ''}
-                  placeholder="Street address"
+                  placeholder={auto('Street address', 'form.placeholders.street')}
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="addressCity">City</Label>
+                  <Label htmlFor="addressCity">{auto('City', 'form.labels.city')}</Label>
                   <Input
                     id="addressCity"
                     name="addressCity"
                     defaultValue={vendor.contact?.address?.city || ''}
-                    placeholder="City"
+                    placeholder={auto('City', 'form.placeholders.city')}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="addressRegion">Region</Label>
+                  <Label htmlFor="addressRegion">{auto('Region', 'form.labels.region')}</Label>
                   <Input
                     id="addressRegion"
                     name="addressRegion"
                     defaultValue={vendor.contact?.address?.region || ''}
-                    placeholder="Region"
+                    placeholder={auto('Region', 'form.placeholders.region')}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="addressPostalCode">Postal Code</Label>
+                  <Label htmlFor="addressPostalCode">{auto('Postal Code', 'form.labels.postalCode')}</Label>
                   <Input
                     id="addressPostalCode"
                     name="addressPostalCode"
                     defaultValue={vendor.contact?.address?.postalCode || ''}
-                    placeholder="12345"
+                    placeholder={auto('12345', 'form.placeholders.postalCode')}
                   />
                 </div>
               </div>
@@ -396,42 +404,42 @@ export default function EditVendorPage() {
         {/* Business Information */}
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle>Business Information</CardTitle>
+            <CardTitle>{auto('Business Information', 'card.business')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Specializations */}
             <div className="space-y-2">
-              <Label htmlFor="specializations">Specializations</Label>
+              <Label htmlFor="specializations">{auto('Specializations', 'form.labels.specializations')}</Label>
               <Input
                 id="specializations"
                 name="specializations"
                 defaultValue={vendor.business?.specializations?.join(', ') || ''}
-                placeholder="e.g., Electrical, Plumbing, HVAC (comma-separated)"
+                placeholder={auto('e.g., Electrical, Plumbing, HVAC (comma-separated)', 'form.placeholders.specializations')}
               />
               <p className="text-sm text-muted-foreground">
-                Enter multiple specializations separated by commas
+                {auto('Enter multiple specializations separated by commas', 'form.helpers.specializations')}
               </p>
             </div>
 
             {/* CR Number & Tax Number */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="crNumber">CR Number</Label>
+                <Label htmlFor="crNumber">{auto('CR Number', 'form.labels.crNumber')}</Label>
                 <Input
                   id="crNumber"
                   name="crNumber"
                   defaultValue={vendor.business?.crNumber || ''}
-                  placeholder="Commercial Registration Number"
+                  placeholder={auto('Commercial Registration Number', 'form.placeholders.crNumber')}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="taxNumber">Tax Number</Label>
+                <Label htmlFor="taxNumber">{auto('Tax Number', 'form.labels.taxNumber')}</Label>
                 <Input
                   id="taxNumber"
                   name="taxNumber"
                   defaultValue={vendor.business?.taxNumber || ''}
-                  placeholder="Tax Registration Number"
+                  placeholder={auto('Tax Registration Number', 'form.placeholders.taxNumber')}
                 />
               </div>
             </div>
@@ -439,17 +447,17 @@ export default function EditVendorPage() {
             {/* License */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="licenseNumber">License Number</Label>
+                <Label htmlFor="licenseNumber">{auto('License Number', 'form.labels.licenseNumber')}</Label>
                 <Input
                   id="licenseNumber"
                   name="licenseNumber"
                   defaultValue={vendor.business?.licenseNumber || ''}
-                  placeholder="License Number"
+                  placeholder={auto('License Number', 'form.placeholders.licenseNumber')}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="licenseExpiry">License Expiry</Label>
+                <Label htmlFor="licenseExpiry">{auto('License Expiry', 'form.labels.licenseExpiry')}</Label>
                 <Input
                   id="licenseExpiry"
                   name="licenseExpiry"
@@ -461,7 +469,7 @@ export default function EditVendorPage() {
 
             {/* Insurance Expiry */}
             <div className="space-y-2">
-              <Label htmlFor="insuranceExpiry">Insurance Expiry</Label>
+              <Label htmlFor="insuranceExpiry">{auto('Insurance Expiry', 'form.labels.insuranceExpiry')}</Label>
               <Input
                 id="insuranceExpiry"
                 name="insuranceExpiry"
@@ -472,12 +480,12 @@ export default function EditVendorPage() {
 
             {/* Business Description */}
             <div className="space-y-2">
-              <Label htmlFor="businessDescription">Business Description</Label>
+              <Label htmlFor="businessDescription">{auto('Business Description', 'form.labels.businessDescription')}</Label>
               <Textarea
                 id="businessDescription"
                 name="businessDescription"
                 defaultValue={vendor.business?.description || ''}
-                placeholder="Describe the vendor's business, services, and capabilities..."
+                placeholder={auto("Describe the vendor's business, services, and capabilities...", 'form.placeholders.businessDescription')}
                 rows={4}
               />
             </div>
@@ -488,12 +496,12 @@ export default function EditVendorPage() {
         <div className="flex justify-end gap-4 mt-6">
           <Link href={`/fm/vendors/${params.id}`}>
             <Button type="button" variant="outline">
-              Cancel
+              {auto('Cancel', 'actions.cancel')}
             </Button>
           </Link>
           <Button type="submit" disabled={isSaving}>
             <Save className="h-4 w-4 me-2" />
-            {isSaving ? 'Saving...' : 'Save Changes'}
+            {isSaving ? auto('Saving...', 'actions.saving') : auto('Save Changes', 'actions.save')}
           </Button>
         </div>
       </form>

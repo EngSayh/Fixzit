@@ -77,12 +77,13 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
 
   useEffect(() => {
     fetchClaims();
-  }, [currentPage, statusFilter, typeFilter, searchQuery]);
+  }, [view, currentPage, statusFilter, typeFilter, searchQuery]);
 
   const fetchClaims = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
+        view: view,  // Add view parameter for buyer/seller/admin context
         page: currentPage.toString(),
         limit: pageSize.toString(),
       });
@@ -91,7 +92,7 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
         params.append('status', statusFilter);
       }
       if (typeFilter !== 'all') {
-        params.append('claimType', typeFilter);
+        params.append('type', typeFilter);  // Changed from 'claimType' to 'type' to match API
       }
       if (searchQuery) {
         params.append('search', searchQuery);
@@ -211,11 +212,11 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
               wrapperClassName="w-full"
             >
               <SelectItem value="all">جميع الأنواع (All)</SelectItem>
-              <SelectItem value="item-not-received">لم أستلم السلعة</SelectItem>
+              <SelectItem value="item_not_received">لم أستلم السلعة</SelectItem>
               <SelectItem value="defective">السلعة معيبة</SelectItem>
-              <SelectItem value="not-as-described">لا تطابق الوصف</SelectItem>
-              <SelectItem value="wrong-item">سلعة خاطئة</SelectItem>
-              <SelectItem value="missing-parts">أجزاء ناقصة</SelectItem>
+              <SelectItem value="not_as_described">لا تطابق الوصف</SelectItem>
+              <SelectItem value="wrong_item">سلعة خاطئة</SelectItem>
+              <SelectItem value="missing_parts">أجزاء ناقصة</SelectItem>
               <SelectItem value="counterfeit">سلعة مزيفة</SelectItem>
             </Select>
           </div>

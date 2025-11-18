@@ -150,6 +150,31 @@ export async function verifyPayment(tranRef: string): Promise<unknown> {
 }
 
 export function validateCallback(payload: Record<string, unknown>, signature: string): boolean {
+  if (!payload || typeof payload !== 'object') {
+    return false;
+  }
+
+  // SECURITY: Only bypass validation with explicit development override
+  if (!PAYTABS_CONFIG.serverKey) {
+    const DEV_OVERRIDE = 
+      process.env.NODE_ENV === 'development' && 
+      process.env.DISABLE_PAYTABS_VALIDATION === 'true';
+    
+    if (DEV_OVERRIDE) {
+      logger.warn('⚠️  INSECURE: PayTabs server key missing - bypassing validation (explicit dev override)');
+      return true;
+    }
+    
+    logger.error('PayTabs server key missing - rejecting callback (production safety)');
+    return false;
+  }
+
+  // SECURITY: Reject missing signatures (fail closed)
+  if (!signature) {
+    logger.error('PayTabs callback signature missing - rejecting callback');
+    return false;
+  }
+
   // Implement signature validation according to PayTabs documentation
   const calculatedSignature = generateSignature(payload);
   

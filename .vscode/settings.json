@@ -12,7 +12,8 @@
 
   // TypeScript/Node Memory Settings for Large Projects (25K+ files)
   // Root Cause Fix: Exit Code 5 = OOM caused by TS server + extension host + Turbopack cache
-  // 2025-11-10: Increased to 8GB to handle large codebase without crashes
+  // 2025-11-18: Use separate tsconfig.editor.json to exclude heavy packages (twilio=678 files, sentry=197, aws-sdk=128)
+  "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.tsserver.maxTsServerMemory": 8192, // Increased from 3GB to 8GB
   "typescript.tsserver.experimental.enableProjectDiagnostics": false, // Disable project-wide diagnostics
   "typescript.preferences.includePackageJsonAutoImports": "off",
@@ -30,9 +31,25 @@
       "**/e2e-test-results",
       "**/playwright-report",
       "**/test-results",
-      "**/jscpd-report"
+      "**/jscpd-report",
+      "**/tests",
+      "**/qa",
+      "**/scripts",
+      "**/tools",
+      "**/services",
+      "**/server",
+      "**/jobs",
+      "**/models"
+    ],
+    "excludeFiles": [
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/*.spec.ts",
+      "**/*.spec.tsx"
     ]
   },
+  "typescript.tsserver.pluginPaths": [],
+  "typescript.locale": "en",
 
   "terminal.integrated.env.windows": {
     "NODE_OPTIONS": "--max-old-space-size=8192"
@@ -98,7 +115,12 @@
   "chat.notifyWindowOnConfirmation": true,
   
   // Disable MCP discovery
-  "chat.mcp.discovery.enabled": false,
+  "chat.mcp.discovery.enabled": {
+    "claude-desktop": false,
+    "windsurf": false,
+    "cursor-global": false,
+    "cursor-workspace": false
+  },
 
   // Limit CodeRabbit's automatic review scope to avoid token/context exhaustion
   // and reduce extension timeouts on large repositories. These safer defaults
@@ -170,7 +192,15 @@
     "**/e2e-test-results": true,
     "**/playwright-report": true,
     "**/test-results": true,
-    "**/jscpd-report": true
+    "**/jscpd-report": true,
+    "**/tests": true,
+    "**/qa": true,
+    "**/scripts": true,
+    "**/tools": true,
+    "**/*.test.ts": true,
+    "**/*.test.tsx": true,
+    "**/*.spec.ts": true,
+    "**/*.spec.tsx": true
   },
 
   // Files to hide from explorer to reduce clutter and memory

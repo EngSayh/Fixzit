@@ -24,7 +24,15 @@ export default function BuyerClaimsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
   const [showNewClaimDialog, setShowNewClaimDialog] = useState(false);
-  const [selectedOrder] = useState<{ orderId: string; itemName: string; orderAmount: number; orderDate: string; sellerId: string; sellerName: string } | null>(null);
+  const [selectedOrder] = useState<{
+    orderId: string;
+    itemName: string;
+    orderAmount: number;
+    orderDate: string;
+    sellerId: string;
+    sellerName: string;
+    productId: string;
+  } | null>(null);
 
   const handleSelectClaim = (claimId: string) => {
     setSelectedClaimId(claimId);

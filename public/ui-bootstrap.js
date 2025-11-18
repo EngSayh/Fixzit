@@ -4,6 +4,65 @@
     if (window.__uiBoot) return;
     window.__uiBoot = true;
 
+    const translations = {
+        en: {
+            'nav.dashboard': 'Dashboard',
+            'nav.properties': 'Properties',
+            'nav.workOrders': 'Work Orders',
+            'nav.reports': 'Reports',
+            'nav.tenants': 'Tenants',
+            'sidebar.toggle': 'Toggle Sidebar',
+            'footer.brand': 'Fixzit Enterprise',
+            'footer.about': 'About Us',
+            'footer.features': 'Features',
+            'footer.contact': 'Contact',
+            'footer.solutions': 'Solutions',
+            'footer.propertyManagement': 'Property Management',
+            'footer.workOrders': 'Work Orders',
+            'footer.financialTracking': 'Financial Tracking',
+            'footer.support': 'Support',
+            'footer.helpCenter': 'Help Center',
+            'footer.documentation': 'Documentation',
+            'footer.training': 'Training',
+            'footer.copyright': '© 2024 Fixzit Enterprise. All rights reserved.',
+            'login.invalid': 'Invalid credentials. Please try again.',
+        },
+        ar: {
+            'nav.dashboard': 'لوحة التحكم',
+            'nav.properties': 'العقارات',
+            'nav.workOrders': 'أوامر العمل',
+            'nav.reports': 'التقارير',
+            'nav.tenants': 'المستأجرون',
+            'sidebar.toggle': 'تبديل الشريط الجانبي',
+            'footer.brand': 'فيكزيت إنتربرايز',
+            'footer.about': 'من نحن',
+            'footer.features': 'المميزات',
+            'footer.contact': 'تواصل معنا',
+            'footer.solutions': 'الحلول',
+            'footer.propertyManagement': 'إدارة العقارات',
+            'footer.workOrders': 'أوامر العمل',
+            'footer.financialTracking': 'المتابعة المالية',
+            'footer.support': 'الدعم',
+            'footer.helpCenter': 'مركز المساعدة',
+            'footer.documentation': 'التوثيق',
+            'footer.training': 'التدريب',
+            'footer.copyright': '© 2024 فيكزيت إنتربرايز. جميع الحقوق محفوظة.',
+            'login.invalid': 'بيانات اعتماد غير صحيحة. حاول مرة أخرى.',
+        },
+    };
+
+    function getLocale() {
+        const docLang = document.documentElement.lang || navigator.language || 'en';
+        return docLang.toLowerCase().startsWith('ar') ? 'ar' : 'en';
+    }
+
+    const locale = getLocale();
+
+    function translate(key, fallback) {
+        const dict = translations[locale] || translations.en;
+        return dict[key] || fallback;
+    }
+
     // View Management Functions
     window.showLogin = function() {
         const modal = document.getElementById('loginModal');
@@ -60,11 +119,11 @@
 
         // Update page title
         const titles = {
-            dashboard: 'Dashboard',
-            properties: 'Properties',
-            workorders: 'Work Orders', 
-            reports: 'Reports',
-            tenants: 'Tenants'
+            dashboard: translate('nav.dashboard', 'Dashboard'),
+            properties: translate('nav.properties', 'Properties'),
+            workorders: translate('nav.workOrders', 'Work Orders'), 
+            reports: translate('nav.reports', 'Reports'),
+            tenants: translate('nav.tenants', 'Tenants')
         };
 
         const pageTitle = document.querySelector('.page-title');
@@ -126,7 +185,7 @@
             toggleBtn.className = 'sidebar-toggle';
             toggleBtn.innerHTML = '☰';
             toggleBtn.onclick = toggleSidebar;
-            toggleBtn.title = 'Toggle Sidebar';
+            toggleBtn.title = translate('sidebar.toggle', 'Toggle Sidebar');
             toggleBtn.style.marginRight = '15px';
             navLeft.insertBefore(toggleBtn, navLeft.firstChild);
             console.log('✅ Sidebar toggle added');
@@ -139,32 +198,32 @@
             footer.innerHTML = `
                 <div class="footer-content">
                     <div class="footer-section">
-                        <h4>Fixzit Enterprise</h4>
+                        <h4>${translate('footer.brand', 'Fixzit Enterprise')}</h4>
                         <ul>
-                            <li><a href="#">About Us</a></li>
-                            <li><a href="#">Features</a></li>
-                            <li><a href="#">Contact</a></li>
+                            <li><a href="#">${translate('footer.about', 'About Us')}</a></li>
+                            <li><a href="#">${translate('footer.features', 'Features')}</a></li>
+                            <li><a href="#">${translate('footer.contact', 'Contact')}</a></li>
                         </ul>
                     </div>
                     <div class="footer-section">
-                        <h4>Solutions</h4>
+                        <h4>${translate('footer.solutions', 'Solutions')}</h4>
                         <ul>
-                            <li><a href="#">Property Management</a></li>
-                            <li><a href="#">Work Orders</a></li>
-                            <li><a href="#">Financial Tracking</a></li>
+                            <li><a href="#">${translate('footer.propertyManagement', 'Property Management')}</a></li>
+                            <li><a href="#">${translate('footer.workOrders', 'Work Orders')}</a></li>
+                            <li><a href="#">${translate('footer.financialTracking', 'Financial Tracking')}</a></li>
                         </ul>
                     </div>
                     <div class="footer-section">
-                        <h4>Support</h4>
+                        <h4>${translate('footer.support', 'Support')}</h4>
                         <ul>
-                            <li><a href="#">Help Center</a></li>
-                            <li><a href="#">Documentation</a></li>
-                            <li><a href="#">Training</a></li>
+                            <li><a href="#">${translate('footer.helpCenter', 'Help Center')}</a></li>
+                            <li><a href="#">${translate('footer.documentation', 'Documentation')}</a></li>
+                            <li><a href="#">${translate('footer.training', 'Training')}</a></li>
                         </ul>
                     </div>
                 </div>
                 <div class="footer-bottom">
-                    <p>&copy; 2024 Fixzit Enterprise. All rights reserved.</p>
+                    <p>${translate('footer.copyright', '© 2024 Fixzit Enterprise. All rights reserved.')}</p>
                 </div>
             `;
             document.body.appendChild(footer);
@@ -186,7 +245,7 @@
                         showApp();
                         console.log('✅ Login successful');
                     } else {
-                        alert('Invalid credentials. Please try again.');
+                        alert(translate('login.invalid', 'Invalid credentials. Please try again.'));
                     }
                 } catch (error) {
                     console.error('Login error:', error);

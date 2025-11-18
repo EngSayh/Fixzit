@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { TableSkeleton } from '@/components/skeletons';
 import ClientDate from '@/components/ClientDate';
 import { logger } from '@/lib/logger';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 interface TicketMessage {
   from: string;
   text: string;
@@ -32,6 +33,7 @@ export default function MyTicketsPage() {
   const userId = session?.user?.id;
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [replyText, setReplyText] = useState('');
+  const auto = useAutoTranslator('support.myTickets');
 
   const fetcher = (url: string) => {
     // Auth cookie is sent automatically by browser
@@ -54,16 +56,16 @@ export default function MyTicketsPage() {
   }
 
   if (!userId) {
-    return <p>Error: No user ID found in session</p>;
+    return <p className="text-destructive">{auto('Error: No user ID found in session', 'errors.noUser')}</p>;
   }
 
   const sendReply = async () => {
     if (!selectedTicket || !replyText.trim()) {
-      toast.error('Please enter a reply message.');
+      toast.error(auto('Please enter a reply message.', 'toast.missingReply'));
       return;
     }
     
-    const toastId = toast.loading('Sending reply...');
+    const toastId = toast.loading(auto('Sending reply...', 'toast.sending'));
     
     try {
       const res = await fetch(`/api/support/tickets/${selectedTicket.id}/reply`, {
@@ -76,7 +78,7 @@ export default function MyTicketsPage() {
       });
       
       if (res.ok) {
-        toast.success('Reply sent successfully', { id: toastId });
+        toast.success(auto('Reply sent successfully', 'toast.sent'), { id: toastId });
         setReplyText('');
         await mutate();
         // Refresh selected ticket
@@ -86,11 +88,14 @@ export default function MyTicketsPage() {
         }
       } else {
         const error = await res.json();
-        toast.error(`Failed to send reply: ${error.error || 'Please try again.'}`, { id: toastId });
+        toast.error(
+          `${auto('Failed to send reply', 'toast.failed')} ${error.error || auto('Please try again.', 'toast.retry')}`,
+          { id: toastId }
+        );
       }
     } catch (error) {
       logger.error('Error sending reply:', error);
-      toast.error('An error occurred. Please try again.', { id: toastId });
+      toast.error(auto('An error occurred. Please try again.', 'toast.genericError'), { id: toastId });
     }
   };
 
@@ -98,8 +103,12 @@ export default function MyTicketsPage() {
     <div className="mx-auto max-w-6xl p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">My Support Tickets</h1>
-          <p className="text-muted-foreground">View and manage your support requests</p>
+          <h1 className="text-2xl font-bold text-foreground">
+            {auto('My Support Tickets', 'header.title')}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto('View and manage your support requests', 'header.subtitle')}
+          </p>
         </div>
         <button 
           onClick={() => {
@@ -109,7 +118,7 @@ export default function MyTicketsPage() {
           }}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-colors"
         >
-          New Ticket
+          {auto('New Ticket', 'actions.newTicket')}
         </button>
       </div>
 
@@ -121,11 +130,15 @@ export default function MyTicketsPage() {
           <div className="lg:col-span-1">
             <div className="bg-card rounded-2xl shadow-md border border-border">
               <div className="p-4 border-b border-border">
-                <h2 className="font-semibold text-foreground">Your Tickets</h2>
+                <h2 className="font-semibold text-foreground">
+                  {auto('Your Tickets', 'tickets.list.title')}
+                </h2>
               </div>
               <div className="divide-y divide-border">
                 {data?.items?.length === 0 ? (
-                  <p className="p-4 text-muted-foreground text-center">No tickets yet</p>
+                  <p className="p-4 text-muted-foreground text-center">
+                    {auto('No tickets yet', 'tickets.list.empty')}
+                  </p>
                 ) : (
                   data?.items?.map((ticket: Ticket) => (
                   <div
@@ -176,7 +189,10 @@ export default function MyTicketsPage() {
                     selectedTicket.priority === 'Medium' ? 'bg-accent/10 text-accent-foreground' :
                     'bg-muted text-foreground'
                   }`}>
-                    {selectedTicket.priority} Priority
+                    {auto('{{priority}} Priority', 'tickets.details.priority').replace(
+                      '{{priority}}',
+                      selectedTicket.priority
+                    )}
                   </span>
                 </div>
               </div>
@@ -194,7 +210,9 @@ export default function MyTicketsPage() {
                     }`}>
                       <div className="flex justify-between items-start mb-1">
                         <p className="text-xs font-medium text-muted-foreground">
-                          {msg.byRole === 'ADMIN' ? 'Support Team' : 'You'}
+                          {msg.byRole === 'ADMIN'
+                            ? auto('Support Team', 'tickets.messages.support')
+                            : auto('You', 'tickets.messages.you')}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           <ClientDate date={msg.at || msg.timestamp} format="medium" />
@@ -210,24 +228,26 @@ export default function MyTicketsPage() {
               {selectedTicket.status !== 'Closed' && (
                 <div className="p-4 border-t border-border">
                   <textarea
-                    aria-label="Type your reply to this support ticket"
+                    aria-label={auto('Type your reply to this support ticket', 'tickets.reply.aria')}
                     value={replyText}
                     onChange={e => setReplyText(e.target.value)}
-                    placeholder="Type your reply..."
+                    placeholder={auto('Type your reply...', 'tickets.reply.placeholder')}
                     className="w-full px-3 py-2 border border-border rounded-2xl h-24"
                   />
                   <button
                     onClick={sendReply}
                     className="mt-2 px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90"
                   >
-                    Send Reply
+                    {auto('Send Reply', 'tickets.reply.send')}
                   </button>
                 </div>
               )}
             </div>
           ) : (
             <div className="bg-card rounded-2xl shadow-md border border-border p-8 text-center">
-              <p className="text-muted-foreground">Select a ticket to view details</p>
+              <p className="text-muted-foreground">
+                {auto('Select a ticket to view details', 'tickets.details.emptyState')}
+              </p>
             </div>
           )}
         </div>
@@ -236,4 +256,3 @@ export default function MyTicketsPage() {
     </div>
   );
 }
-

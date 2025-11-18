@@ -56,7 +56,8 @@ describe('sendBulkNotifications', () => {
       attempted: 4,
       succeeded: 4,
       failed: 0,
-      skipped: 0
+      skipped: 0,
+      issues: expect.any(Array)
     });
   });
 

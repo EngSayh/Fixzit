@@ -19,6 +19,7 @@ import {
   Briefcase, Plus, Search, Calendar, DollarSign, Users, Eye, Edit, Trash2, 
   Construction, Hammer, PaintBucket, Building 
 } from 'lucide-react';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface ProjectItem {
   id: string;
@@ -44,6 +45,7 @@ interface ProjectItem {
 
 export default function ProjectsPage() {
   const { data: session } = useSession();
+  const auto = useAutoTranslator('fm.projects');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -79,7 +81,9 @@ export default function ProjectsPage() {
   if (!orgId) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-destructive">Error: No organization ID found. Please contact support.</p>
+        <p className="text-destructive">
+          {auto('Error: No organization ID found. Please contact support.', 'errors.noOrg')}
+        </p>
       </div>
     );
   }
@@ -89,19 +93,23 @@ export default function ProjectsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Project Management</h1>
-          <p className="text-muted-foreground">Gantt tracking, milestones, and resource management</p>
+          <h1 className="text-3xl font-bold text-foreground">
+            {auto('Project Management', 'header.title')}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto('Gantt tracking, milestones, and resource management', 'header.subtitle')}
+          </p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-primary hover:bg-primary">
               <Plus className="w-4 h-4 me-2" />
-              New Project
+              {auto('New Project', 'actions.new')}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl">
             <DialogHeader>
-              <DialogTitle>Create New Project</DialogTitle>
+              <DialogTitle>{auto('Create New Project', 'dialog.title')}</DialogTitle>
             </DialogHeader>
             <CreateProjectForm orgId={orgId} onCreated={() => { mutate(); setCreateOpen(false); }} />
           </DialogContent>
@@ -116,33 +124,39 @@ export default function ProjectsPage() {
               <div className="relative">
                 <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder="Search projects..."
+                  placeholder={auto('Search projects...', 'filters.searchPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="ps-10"
                 />
               </div>
             </div>
-              <Select value={typeFilter} onValueChange={setTypeFilter} placeholder="Project Type" className="w-48">
+              <Select value={typeFilter} onValueChange={setTypeFilter} className="w-48">
+                <SelectTrigger>
+                  <SelectValue placeholder={auto('Project Type', 'filters.type')} />
+                </SelectTrigger>
                 <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
-                <SelectItem value="NEW_CONSTRUCTION">New Construction</SelectItem>
-                <SelectItem value="RENOVATION">Renovation</SelectItem>
-                <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
-                <SelectItem value="FIT_OUT">Fit Out</SelectItem>
-                <SelectItem value="DEMOLITION">Demolition</SelectItem>
+                <SelectItem value="">{auto('All Types', 'filters.allTypes')}</SelectItem>
+                <SelectItem value="NEW_CONSTRUCTION">{auto('New Construction', 'filters.types.newConstruction')}</SelectItem>
+                <SelectItem value="RENOVATION">{auto('Renovation', 'filters.types.renovation')}</SelectItem>
+                <SelectItem value="MAINTENANCE">{auto('Maintenance', 'filters.types.maintenance')}</SelectItem>
+                <SelectItem value="FIT_OUT">{auto('Fit Out', 'filters.types.fitOut')}</SelectItem>
+                <SelectItem value="DEMOLITION">{auto('Demolition', 'filters.types.demolition')}</SelectItem>
               </SelectContent>
             </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-48">
+              <Select value={statusFilter} onValueChange={setStatusFilter} className="w-48">
+                <SelectTrigger>
+                  <SelectValue placeholder={auto('Status', 'filters.status')} />
+                </SelectTrigger>
                 <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
-                <SelectItem value="PLANNING">Planning</SelectItem>
-                <SelectItem value="APPROVED">Approved</SelectItem>
-                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                <SelectItem value="ON_HOLD">On Hold</SelectItem>
-                <SelectItem value="COMPLETED">Completed</SelectItem>
-                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                <SelectItem value="CLOSED">Closed</SelectItem>
+                <SelectItem value="">{auto('All Status', 'filters.allStatus')}</SelectItem>
+                <SelectItem value="PLANNING">{auto('Planning', 'status.planning')}</SelectItem>
+                <SelectItem value="APPROVED">{auto('Approved', 'status.approved')}</SelectItem>
+                <SelectItem value="IN_PROGRESS">{auto('In Progress', 'status.inProgress')}</SelectItem>
+                <SelectItem value="ON_HOLD">{auto('On Hold', 'status.onHold')}</SelectItem>
+                <SelectItem value="COMPLETED">{auto('Completed', 'status.completed')}</SelectItem>
+                <SelectItem value="CANCELLED">{auto('Cancelled', 'status.cancelled')}</SelectItem>
+                <SelectItem value="CLOSED">{auto('Closed', 'status.closed')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -165,11 +179,15 @@ export default function ProjectsPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Briefcase className="w-12 h-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">No Projects Found</h3>
-                <p className="text-muted-foreground mb-4">Get started by creating your first project.</p>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {auto('No Projects Found', 'empty.title')}
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {auto('Get started by creating your first project.', 'empty.subtitle')}
+                </p>
                 <Button onClick={() => setCreateOpen(true)} className="bg-primary hover:bg-primary">
                   <Plus className="w-4 h-4 me-2" />
-                  Create Project
+                  {auto('Create Project', 'actions.create')}
                 </Button>
               </CardContent>
             </Card>
@@ -182,21 +200,34 @@ export default function ProjectsPage() {
 
 function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgId?: string; onUpdated: () => void }) {
   const router = useRouter();
+  const auto = useAutoTranslator('fm.projects.card');
   const handleDelete = async () => {
-    if (!confirm(`Delete project "${project.name}"? This cannot be undone.`)) return;
-    if (!orgId) return toast.error('Organization ID missing');
+    if (
+      !confirm(
+        auto('Delete project "{{name}}"? This cannot be undone.', 'actions.confirmDelete').replace(
+          '{{name}}',
+          project.name ?? ''
+        )
+      )
+    ) {
+      return;
+    }
+    if (!orgId) return toast.error(auto('Organization ID missing', 'errors.noOrg'));
 
-    const toastId = toast.loading('Deleting project...');
+    const toastId = toast.loading(auto('Deleting project...', 'toast.deleting'));
     try {
       const res = await fetch(`/api/projects/${project.id}`, {
         method: 'DELETE',
         headers: { 'x-tenant-id': orgId }
       });
-      if (!res.ok) throw new Error('Failed to delete project');
-      toast.success('Project deleted successfully', { id: toastId });
+      if (!res.ok) throw new Error(auto('Failed to delete project', 'toast.deleteFailed'));
+      toast.success(auto('Project deleted successfully', 'toast.deleteSuccess'), { id: toastId });
       onUpdated();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete project', { id: toastId });
+      toast.error(
+        error instanceof Error ? error.message : auto('Failed to delete project', 'toast.deleteFailed'),
+        { id: toastId }
+      );
     }
   };
 
@@ -262,7 +293,9 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
         {/* Progress Indicators */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Overall Progress</span>
+            <span className="text-muted-foreground">
+              {auto('Overall Progress', 'overall')}
+            </span>
             <span className="font-medium">{project.progress?.overall || 0}%</span>
           </div>
           <div className="w-full bg-muted rounded-full h-2">
@@ -279,23 +312,26 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
           <div>
             <div className="flex items-center text-muted-foreground">
               <Calendar className="w-4 h-4 me-1" />
-              Timeline
+              {auto('Timeline', 'timeline')}
             </div>
             <p className="font-medium mt-1">
               {daysRemaining !== null ? (
                 daysRemaining > 0 
-                  ? `${daysRemaining} days left`
-                  : `${Math.abs(daysRemaining)} days overdue`
-              ) : 'No deadline'}
+                  ? auto('{{count}} days left', 'daysLeft').replace('{{count}}', String(daysRemaining))
+                  : auto('{{count}} days overdue', 'daysOverdue').replace(
+                      '{{count}}',
+                      String(Math.abs(daysRemaining))
+                    )
+              ) : auto('No deadline', 'noDeadline')}
             </p>
           </div>
           <div>
             <div className="flex items-center text-muted-foreground">
               <DollarSign className="w-4 h-4 me-1" />
-              Budget
+              {auto('Budget', 'budget')}
             </div>
             <p className="font-medium mt-1">
-              {project.budget?.total?.toLocaleString() || 'N/A'} {project.budget?.currency || 'SAR'}
+              {(project.budget?.total?.toLocaleString() || auto('N/A', 'notAvailable')) + ' ' + (project.budget?.currency || 'SAR')}
             </p>
           </div>
         </div>
@@ -338,6 +374,7 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
 }
 
 function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId: string }) {
+  const auto = useAutoTranslator('fm.projects.form');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -364,11 +401,11 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
     e.preventDefault();
 
     if (!orgId) {
-      toast.error('No organization ID found');
+      toast.error(auto('No organization ID found', 'errors.noOrg'));
       return;
     }
 
-    const toastId = toast.loading('Creating project...');
+    const toastId = toast.loading(auto('Creating project...', 'loading'));
 
     try {
       const response = await fetch('/api/projects', {
@@ -381,15 +418,21 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
       });
 
       if (response.ok) {
-        toast.success('Project created successfully', { id: toastId });
+        toast.success(auto('Project created successfully', 'success'), { id: toastId });
         onCreated();
       } else {
         const error = await response.json();
-        toast.error(`Failed to create project: ${error.error || 'Unknown error'}`, { id: toastId });
+        toast.error(
+          auto('Failed to create project: {{error}}', 'failed').replace(
+            '{{error}}',
+            error.error || auto('Unknown error', 'unknown')
+          ),
+          { id: toastId }
+        );
       }
     } catch (error) {
       logger.error('Error creating project:', error);
-      toast.error('Error creating project. Please try again.', { id: toastId });
+      toast.error(auto('Error creating project. Please try again.', 'error'), { id: toastId });
     }
   };
 
@@ -397,7 +440,9 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
     <form onSubmit={handleSubmit} className="space-y-4 max-h-96 overflow-y-auto">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Project Name *</label>
+          <label className="block text-sm font-medium mb-1">
+            {auto('Project Name *', 'labels.projectName')}
+          </label>
           <Input
             value={formData.name}
             onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -405,24 +450,38 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Type *</label>
+          <label className="block text-sm font-medium mb-1">
+            {auto('Type *', 'labels.type')}
+          </label>
           <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
             <SelectTrigger>
-              <SelectValue placeholder="Select type" />
+              <SelectValue placeholder={auto('Select type', 'placeholders.type')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="NEW_CONSTRUCTION">New Construction</SelectItem>
-              <SelectItem value="RENOVATION">Renovation</SelectItem>
-              <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
-              <SelectItem value="FIT_OUT">Fit Out</SelectItem>
-              <SelectItem value="DEMOLITION">Demolition</SelectItem>
+              <SelectItem value="NEW_CONSTRUCTION">
+                {auto('New Construction', 'options.newConstruction')}
+              </SelectItem>
+              <SelectItem value="RENOVATION">
+                {auto('Renovation', 'options.renovation')}
+              </SelectItem>
+              <SelectItem value="MAINTENANCE">
+                {auto('Maintenance', 'options.maintenance')}
+              </SelectItem>
+              <SelectItem value="FIT_OUT">
+                {auto('Fit Out', 'options.fitOut')}
+              </SelectItem>
+              <SelectItem value="DEMOLITION">
+                {auto('Demolition', 'options.demolition')}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">Description</label>
+        <label className="block text-sm font-medium mb-1">
+          {auto('Description', 'labels.description')}
+        </label>
         <Textarea
           value={formData.description}
           onChange={(e) => setFormData({...formData, description: e.target.value})}
@@ -432,7 +491,9 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Start Date *</label>
+          <label className="block text-sm font-medium mb-1">
+            {auto('Start Date *', 'labels.startDate')}
+          </label>
           <Input
             type="date"
             value={formData.timeline.startDate}
@@ -441,7 +502,9 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">End Date *</label>
+          <label className="block text-sm font-medium mb-1">
+            {auto('End Date *', 'labels.endDate')}
+          </label>
           <Input
             type="date"
             value={formData.timeline.endDate}
@@ -453,7 +516,9 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Budget *</label>
+          <label className="block text-sm font-medium mb-1">
+            {auto('Budget *', 'labels.budget')}
+          </label>
           <Input
             type="number"
             value={formData.budget.total}
@@ -462,7 +527,9 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">City</label>
+          <label className="block text-sm font-medium mb-1">
+            {auto('City', 'labels.city')}
+          </label>
           <Input
             value={formData.location.city}
             onChange={(e) => setFormData({...formData, location: {...formData.location, city: e.target.value}})}
@@ -472,7 +539,7 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
 
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="submit" className="bg-primary hover:bg-primary">
-          Create Project
+          {auto('Create Project', 'submit')}
         </Button>
       </div>
     </form>

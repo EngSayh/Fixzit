@@ -95,7 +95,7 @@ services:
     ports:
       - "7700:7700"
     environment:
-      - MEILI_MASTER_KEY=master_key_dev
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}  # Set in .env.souq: MEILI_MASTER_KEY=$(openssl rand -base64 32)
   
   minio:
     image: minio/minio

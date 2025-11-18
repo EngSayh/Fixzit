@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Wallet, AlertCircle, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 // ==========================================
 // TYPES
@@ -33,6 +34,7 @@ export default function FinanceDashboard() {
   const [activeTab, setActiveTab] = useState('invoices');
   const [counters, setCounters] = useState<FinanceCounters | null>(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   // Fetch counters
   useEffect(() => {
@@ -58,20 +60,22 @@ export default function FinanceDashboard() {
 
   // Tabs
   const tabs = [
-    { id: 'invoices', label: 'Invoices', count: counters?.invoices.unpaid },
-    { id: 'payments', label: 'Payments' },
-    { id: 'expenses', label: 'Expenses' },
-    { id: 'budgets', label: 'Budgets' },
-    { id: 'reports', label: 'Reports' },
+    { id: 'invoices', label: t('dashboard.finance.tabs.invoices', 'Invoices'), count: counters?.invoices.unpaid },
+    { id: 'payments', label: t('dashboard.finance.tabs.payments', 'Payments') },
+    { id: 'expenses', label: t('dashboard.finance.tabs.expenses', 'Expenses') },
+    { id: 'budgets', label: t('dashboard.finance.tabs.budgets', 'Budgets') },
+    { id: 'reports', label: t('dashboard.finance.tabs.reports', 'Reports') },
   ];
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Finance</h1>
+        <h1 className="text-3xl font-bold text-foreground">
+          {t('dashboard.finance.header.title', 'Finance')}
+        </h1>
         <p className="text-muted-foreground">
-          Manage invoices, payments, and financial reports
+          {t('dashboard.finance.header.subtitle', 'Manage invoices, payments, and financial reports')}
         </p>
       </div>
 
@@ -106,7 +110,7 @@ export default function FinanceDashboard() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Invoices
+                  {t('dashboard.finance.cards.totalInvoices', 'Total Invoices')}
                 </CardTitle>
                 <Wallet className="w-4 h-4 text-muted-foreground" />
               </CardHeader>
@@ -121,7 +125,7 @@ export default function FinanceDashboard() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Unpaid
+                  {t('dashboard.finance.cards.unpaid', 'Unpaid')}
                 </CardTitle>
                 <AlertCircle className="w-4 h-4 text-orange-500" />
               </CardHeader>
@@ -136,7 +140,7 @@ export default function FinanceDashboard() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Overdue
+                  {t('dashboard.finance.cards.overdue', 'Overdue')}
                 </CardTitle>
                 <AlertCircle className="w-4 h-4 text-destructive" />
               </CardHeader>
@@ -151,7 +155,7 @@ export default function FinanceDashboard() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Paid
+                  {t('dashboard.finance.cards.paid', 'Paid')}
                 </CardTitle>
                 <CheckCircle className="w-4 h-4 text-success" />
               </CardHeader>
@@ -166,13 +170,15 @@ export default function FinanceDashboard() {
           {/* Invoice List Placeholder */}
           <Card>
             <CardHeader>
-              <CardTitle>Recent Invoices</CardTitle>
+              <CardTitle>
+                {t('dashboard.finance.cards.recentInvoices', 'Recent Invoices')}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-center py-8 text-muted-foreground">
-                <p>Invoice list will be displayed here</p>
+                <p>{t('dashboard.finance.cards.recentPlaceholder', 'Invoice list will be displayed here')}</p>
                 <p className="text-sm mt-2">
-                  Implement data table with filters, sorting, and actions
+                  {t('dashboard.finance.cards.recentHint', 'Implement data table with filters, sorting, and actions')}
                 </p>
               </div>
             </CardContent>
@@ -185,8 +191,10 @@ export default function FinanceDashboard() {
         <Card>
           <CardContent className="py-8">
             <div className="text-center text-muted-foreground">
-              <p className="font-medium">{tabs.find(t => t.id === activeTab)?.label}</p>
-              <p className="text-sm mt-2">Content will be implemented here</p>
+              <p className="font-medium">{tabs.find(tab => tab.id === activeTab)?.label}</p>
+              <p className="text-sm mt-2">
+                {t('dashboard.finance.tabs.placeholder', 'Content will be implemented here')}
+              </p>
             </div>
           </CardContent>
         </Card>

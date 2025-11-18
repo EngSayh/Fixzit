@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { getClientIP } from '@/server/security/headers';
+import { logSecurityEvent } from '@/lib/monitoring/security-events';
 
 type RateLimitOptions = {
   /**
@@ -37,6 +38,19 @@ export function enforceRateLimit(
 
   const result = rateLimit(key, options.requests ?? 30, options.windowMs ?? 60_000);
   if (!result.allowed) {
+    // Log security event for monitoring
+    logSecurityEvent({
+      type: 'rate_limit',
+      ip: identifier,
+      path: new URL(request.url).pathname,
+      timestamp: new Date().toISOString(),
+      metadata: {
+        limit: options.requests ?? 30,
+        windowMs: options.windowMs ?? 60_000,
+        keyPrefix: prefix,
+      },
+    }).catch(err => console.error('[RateLimit] Failed to log security event:', err));
+    
     return rateLimitError();
   }
 

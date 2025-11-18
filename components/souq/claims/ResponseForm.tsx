@@ -23,13 +23,13 @@ interface ResponseFormProps {
   onCancel?: () => void;
 }
 
-type SolutionType = 'full-refund' | 'partial-refund' | 'replacement' | 'dispute';
+type SolutionType = 'refund_full' | 'refund_partial' | 'replacement' | 'dispute';
 
 export default function ResponseForm({ claimId, claimDetails, onSuccess, onCancel }: ResponseFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [solutionType, setSolutionType] = useState<SolutionType>('dispute');
-  const [message, setMessage] = useState('');
+  const [responseText, setResponseText] = useState('');  // Changed from 'message' to match API
   const [partialRefundAmount, setPartialRefundAmount] = useState('');
   const [error, setError] = useState('');
 
@@ -38,12 +38,12 @@ export default function ResponseForm({ claimId, claimDetails, onSuccess, onCance
     setError('');
 
     // Validation
-    if (message.trim().length < 20) {
+    if (responseText.trim().length < 20) {
       setError('الرجاء تقديم رد تفصيلي (20 حرف على الأقل) - Please provide detailed response (minimum 20 characters)');
       return;
     }
 
-    if (solutionType === 'partial-refund') {
+    if (solutionType === 'refund_partial') {
       const amount = parseFloat(partialRefundAmount);
       if (isNaN(amount) || amount <= 0 || amount > claimDetails.claimAmount) {
         setError(`المبلغ يجب أن يكون بين 0 و ${claimDetails.claimAmount} SAR (Amount must be between 0 and ${claimDetails.claimAmount} SAR)`);
@@ -58,9 +58,9 @@ export default function ResponseForm({ claimId, claimDetails, onSuccess, onCance
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          solutionType,
-          message,
-          partialRefundAmount: solutionType === 'partial-refund' ? parseFloat(partialRefundAmount) : undefined,
+          responseText,  // API expects responseText, not message
+          proposedSolution: solutionType,  // Already in correct underscore format
+          partialRefundAmount: solutionType === 'refund_partial' ? parseFloat(partialRefundAmount) : undefined,  // Convert to number
         }),
       });
 
@@ -118,8 +118,8 @@ export default function ResponseForm({ claimId, claimDetails, onSuccess, onCance
               <div className="space-y-3">
                 {/* Full Refund */}
                 <div className="flex items-start space-x-2 space-x-reverse border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                  <RadioGroupItem value="full-refund" id="full-refund" className="mt-1" />
-                  <Label htmlFor="full-refund" className="flex-1 cursor-pointer">
+                  <RadioGroupItem value="refund_full" id="refund_full" className="mt-1" />
+                  <Label htmlFor="refund_full" className="flex-1 cursor-pointer">
                     <div className="flex items-center gap-2 mb-1">
                       <CheckCircle2 className="w-4 h-4 text-success" />
                       <span className="font-medium">استرجاع كامل (Full Refund)</span>
@@ -134,8 +134,8 @@ export default function ResponseForm({ claimId, claimDetails, onSuccess, onCance
 
                 {/* Partial Refund */}
                 <div className="flex items-start space-x-2 space-x-reverse border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                  <RadioGroupItem value="partial-refund" id="partial-refund" className="mt-1" />
-                  <Label htmlFor="partial-refund" className="flex-1 cursor-pointer">
+                  <RadioGroupItem value="refund_partial" id="refund_partial" className="mt-1" />
+                  <Label htmlFor="refund_partial" className="flex-1 cursor-pointer">
                     <div className="flex items-center gap-2 mb-1">
                       <CheckCircle2 className="w-4 h-4 text-primary" />
                       <span className="font-medium">استرجاع جزئي (Partial Refund)</span>
@@ -145,7 +145,7 @@ export default function ResponseForm({ claimId, claimDetails, onSuccess, onCance
                       <br />
                       Offer to refund a partial amount
                     </p>
-                    {solutionType === 'partial-refund' && (
+                    {solutionType === 'refund_partial' && (
                       <div className="mt-2">
                         <Label htmlFor="partialAmount" className="text-xs">
                           المبلغ المقترح (Proposed Amount) *
@@ -213,13 +213,13 @@ export default function ResponseForm({ claimId, claimDetails, onSuccess, onCance
             <Textarea
               id="message"
               placeholder="اشرح موقفك بالتفصيل... (Explain your position in detail...)"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              value={responseText}
+              onChange={(e) => setResponseText(e.target.value)}
               rows={8}
               className="resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              {message.length}/1000 - الحد الأدنى 20 حرف (Minimum 20 characters)
+              {responseText.length}/1000 - الحد الأدنى 20 حرف (Minimum 20 characters)
             </p>
           </div>
 

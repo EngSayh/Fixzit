@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { MapPin, Clock, DollarSign, Users, FileText, Send, Upload, Star, AlertTriangle } from 'lucide-react';
 import ClientDate from '@/components/ClientDate';
 import { logger } from '@/lib/logger';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 interface Job {
   id: string;
   title: string;
@@ -36,6 +37,7 @@ export default function CareersPage() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showApplyForm, setShowApplyForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const auto = useAutoTranslator('careers.page');
 
   // Comprehensive job data
   const jobs: Job[] = [
@@ -353,22 +355,24 @@ export default function CareersPage() {
       <section className="bg-gradient-to-r from-primary via-primary to-success text-primary-foreground py-16">{/* FIXED: Using CSS variables for theming */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Join Our Team</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              {auto('Join Our Team', 'hero.title')}
+            </h1>
             <p className="text-xl md:text-2xl mb-8 opacity-90">
-              Build your career with Fixzit Enterprise - where innovation meets opportunity
+              {auto('Build your career with Fixzit Enterprise - where innovation meets opportunity', 'hero.subtitle')}
             </p>
             <div className="flex flex-wrap justify-center gap-8 text-center">
               <div className="flex items-center gap-2">
                 <Users className="w-6 h-6" />
-                <span className="text-lg">50+ Employees</span>
+                <span className="text-lg">{auto('50+ Employees', 'hero.statEmployees')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-6 h-6" />
-                <span className="text-lg">3 Cities</span>
+                <span className="text-lg">{auto('3 Cities', 'hero.statCities')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="w-6 h-6" />
-                <span className="text-lg">Growing Fast</span>
+                <span className="text-lg">{auto('Growing Fast', 'hero.statGrowth')}</span>
               </div>
             </div>
           </div>
@@ -379,9 +383,11 @@ export default function CareersPage() {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">Current Openings</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-4">
+              {auto('Current Openings', 'listings.title')}
+            </h2>
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-              Explore exciting career opportunities and join our growing team of professionals
+              {auto('Explore exciting career opportunities and join our growing team of professionals', 'listings.subtitle')}
             </p>
           </div>
 
@@ -453,7 +459,9 @@ export default function CareersPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <h4 className="font-semibold text-sm mb-2">Requirements:</h4>
+                      <h4 className="font-semibold text-sm mb-2">
+                        {auto('Requirements:', 'job.requirementsTitle')}
+                      </h4>
                       <ul className="text-sm text-muted-foreground space-y-1">
                         {job.requirements.slice(0, 2).map((req) => (
                           <li key={req} className="flex items-start gap-2">
@@ -469,7 +477,9 @@ export default function CareersPage() {
                       </ul>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-sm mb-2">Benefits:</h4>
+                      <h4 className="font-semibold text-sm mb-2">
+                        {auto('Benefits:', 'job.benefitsTitle')}
+                      </h4>
                       <ul className="text-sm text-muted-foreground space-y-1">
                         {job.benefits.slice(0, 2).map((benefit) => (
                           <li key={benefit} className="flex items-start gap-2">
@@ -755,4 +765,3 @@ export default function CareersPage() {
     </div>
   );
 }
-

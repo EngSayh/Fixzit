@@ -5,12 +5,14 @@ import { logger } from '@/lib/logger';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Building2, Home, Key, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface PropertyCounters {
   properties: { total: number; vacant: number; occupied: number; occupancy_rate: number };
 }
 
 export default function PropertiesDashboard() {
+  const auto = useAutoTranslator('dashboard.properties');
   const [activeTab, setActiveTab] = useState('overview');
   const [counters, setCounters] = useState<PropertyCounters | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,7 +21,7 @@ export default function PropertiesDashboard() {
     const fetchData = async () => {
       try {
         const response = await fetch('/api/counters');
-        if (!response.ok) throw new Error('Failed to fetch counters');
+        if (!response.ok) throw new Error(auto('Failed to fetch counters', 'errors.fetch'));
         const data = await response.json();
         setCounters({
           properties: data.properties || { total: 0, vacant: 0, occupied: 0, occupancy_rate: 0 },
@@ -34,16 +36,20 @@ export default function PropertiesDashboard() {
   }, []);
 
   const tabs = [
-    { id: 'overview', label: 'Overview', count: counters?.properties.total },
-    { id: 'leases', label: 'Leases' },
-    { id: 'maintenance', label: 'Maintenance' },
+    { id: 'overview', label: auto('Overview', 'tabs.overview'), count: counters?.properties.total },
+    { id: 'leases', label: auto('Leases', 'tabs.leases') },
+    { id: 'maintenance', label: auto('Maintenance', 'tabs.maintenance') },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Properties</h1>
-        <p className="text-muted-foreground">Manage properties, leases, and maintenance</p>
+        <h1 className="text-3xl font-bold text-foreground">
+          {auto('Properties', 'header.title')}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto('Manage properties, leases, and maintenance', 'header.subtitle')}
+        </p>
       </div>
 
       <div className="flex items-center gap-2 border-b">
@@ -72,7 +78,9 @@ export default function PropertiesDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Properties</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto('Total Properties', 'metrics.total')}
+              </CardTitle>
               <Building2 className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -81,7 +89,9 @@ export default function PropertiesDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Occupied</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto('Occupied', 'metrics.occupied')}
+              </CardTitle>
               <Home className="w-4 h-4 text-success" />
             </CardHeader>
             <CardContent>
@@ -90,7 +100,9 @@ export default function PropertiesDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Vacant</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto('Vacant', 'metrics.vacant')}
+              </CardTitle>
               <Key className="w-4 h-4 text-orange-500" />
             </CardHeader>
             <CardContent>
@@ -99,7 +111,9 @@ export default function PropertiesDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Occupancy Rate</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto('Occupancy Rate', 'metrics.occupancy')}
+              </CardTitle>
               <TrendingUp className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent>
@@ -116,7 +130,9 @@ export default function PropertiesDashboard() {
           <CardContent className="py-8">
             <div className="text-center text-muted-foreground">
               <p className="font-medium">{tabs.find(t => t.id === activeTab)?.label}</p>
-              <p className="text-sm mt-2">Content will be implemented here</p>
+              <p className="text-sm mt-2">
+                {auto('Content will be implemented here', 'placeholder.description')}
+              </p>
             </div>
           </CardContent>
         </Card>

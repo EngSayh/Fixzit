@@ -22,6 +22,9 @@ interface IndexResult {
   executionTime?: number;
 }
 
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
 async function createATSIndexes() {
   console.log('🚀 Starting ATS Index Creation...\n');
   
@@ -54,12 +57,12 @@ async function createATSIndexes() {
         executionTime: Date.now() - start1
       });
       console.log('  ✓ Created index: orgId + status');
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.push({
         collection: 'jobs',
         index: 'orgId_1_status_1',
         success: false,
-        error: error.message
+        error: getErrorMessage(error)
       });
       console.log('  ✗ Failed: orgId + status');
     }
@@ -77,12 +80,12 @@ async function createATSIndexes() {
         executionTime: Date.now() - start2
       });
       console.log('  ✓ Created unique index: slug');
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.push({
         collection: 'jobs',
         index: 'slug_1_unique',
         success: false,
-        error: error.message
+        error: getErrorMessage(error)
       });
       console.log('  ✗ Failed: slug (may already exist)');
     }
@@ -100,12 +103,12 @@ async function createATSIndexes() {
         executionTime: Date.now() - start3
       });
       console.log('  ✓ Created index: orgId + createdAt (desc)');
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.push({
         collection: 'jobs',
         index: 'orgId_1_createdAt_-1',
         success: false,
-        error: error.message
+        error: getErrorMessage(error)
       });
       console.log('  ✗ Failed: orgId + createdAt');
     }
@@ -127,12 +130,12 @@ async function createATSIndexes() {
         executionTime: Date.now() - start4
       });
       console.log('  ✓ Created compound index: orgId + stage + createdAt (desc)');
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.push({
         collection: 'applications',
         index: 'orgId_1_stage_1_createdAt_-1',
         success: false,
-        error: error.message
+        error: getErrorMessage(error)
       });
       console.log('  ✗ Failed: orgId + stage + createdAt');
     }
@@ -150,12 +153,12 @@ async function createATSIndexes() {
         executionTime: Date.now() - start5
       });
       console.log('  ✓ Created unique index: jobId + candidateId');
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.push({
         collection: 'applications',
         index: 'jobId_1_candidateId_1_unique',
         success: false,
-        error: error.message
+        error: getErrorMessage(error)
       });
       console.log('  ✗ Failed: jobId + candidateId (may already exist)');
     }
@@ -173,12 +176,12 @@ async function createATSIndexes() {
         executionTime: Date.now() - start6
       });
       console.log('  ✓ Created index: orgId + score (desc)');
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.push({
         collection: 'applications',
         index: 'orgId_1_score_-1',
         success: false,
-        error: error.message
+        error: getErrorMessage(error)
       });
       console.log('  ✗ Failed: orgId + score');
     }
@@ -200,12 +203,12 @@ async function createATSIndexes() {
         executionTime: Date.now() - start7
       });
       console.log('  ✓ Created index: orgId + scheduledAt');
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.push({
         collection: 'interviews',
         index: 'orgId_1_scheduledAt_1',
         success: false,
-        error: error.message
+        error: getErrorMessage(error)
       });
       console.log('  ✗ Failed: orgId + scheduledAt');
     }
@@ -223,12 +226,12 @@ async function createATSIndexes() {
         executionTime: Date.now() - start8
       });
       console.log('  ✓ Created index: applicationId + status');
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.push({
         collection: 'interviews',
         index: 'applicationId_1_status_1',
         success: false,
-        error: error.message
+        error: getErrorMessage(error)
       });
       console.log('  ✗ Failed: applicationId + status');
     }
@@ -246,12 +249,12 @@ async function createATSIndexes() {
         executionTime: Date.now() - start9
       });
       console.log('  ✓ Created compound index: orgId + status + scheduledAt');
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.push({
         collection: 'interviews',
         index: 'orgId_1_status_1_scheduledAt_1',
         success: false,
-        error: error.message
+        error: getErrorMessage(error)
       });
       console.log('  ✗ Failed: orgId + status + scheduledAt');
     }
@@ -273,12 +276,12 @@ async function createATSIndexes() {
         executionTime: Date.now() - start10
       });
       console.log('  ✓ Created unique index: email');
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.push({
         collection: 'candidates',
         index: 'email_1_unique',
         success: false,
-        error: error.message
+        error: getErrorMessage(error)
       });
       console.log('  ✗ Failed: email (may already exist)');
     }
@@ -296,12 +299,12 @@ async function createATSIndexes() {
         executionTime: Date.now() - start11
       });
       console.log('  ✓ Created index: orgId + createdAt (desc)');
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.push({
         collection: 'candidates',
         index: 'orgId_1_createdAt_-1',
         success: false,
-        error: error.message
+        error: getErrorMessage(error)
       });
       console.log('  ✗ Failed: orgId + createdAt');
     }
@@ -323,12 +326,12 @@ async function createATSIndexes() {
         executionTime: Date.now() - start12
       });
       console.log('  ✓ Created unique index: orgId');
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.push({
         collection: 'ats_settings',
         index: 'orgId_1_unique',
         success: false,
-        error: error.message
+        error: getErrorMessage(error)
       });
       console.log('  ✗ Failed: orgId (may already exist)');
     }

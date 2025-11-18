@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Search, MapPin, Bed, Bath, Square } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslation } from '@/contexts/TranslationContext';
+import RecommendationRail from '@/components/aqar/RecommendationRail';
 
 type ApiProperty = {
   id: string;
@@ -63,6 +64,8 @@ export default function AqarPropertiesPage() {
     });
   }, [items, query]);
 
+  const aiCity = filtered[0]?.address?.city;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="mb-6 flex flex-col md:flex-row gap-4 md:items-center">
@@ -82,6 +85,12 @@ export default function AqarPropertiesPage() {
           {t('aqar.properties.count', '{{count}} properties').replace('{{count}}', filtered.length.toString())}
         </div>
       </div>
+
+      {aiCity && (
+        <div className="mt-6">
+          <RecommendationRail city={aiCity} />
+        </div>
+      )}
 
       {loading && (
         <div className="text-muted-foreground">

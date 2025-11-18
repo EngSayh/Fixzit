@@ -5,7 +5,7 @@ import { upsertArticleEmbeddings, deleteArticleEmbeddings } from '@/kb/ingest';
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 import { logger } from '@/lib/logger';
 /**
@@ -26,17 +26,14 @@ import { logger } from '@/lib/logger';
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user || !['SUPER_ADMIN','ADMIN'].includes(user.role)) {
       return createSecureResponse({ error: 'Forbidden' }, 403, req);
+    }
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
     }
     const body = await req.json().catch(() => ({} as unknown));
     const { articleId, content, lang, roleScopes, route } = body || {};
@@ -64,17 +61,14 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user || !['SUPER_ADMIN','ADMIN'].includes(user.role)) {
       return createSecureResponse({ error: 'Forbidden' }, 403, req);
+    }
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
     }
     const url = new URL(req.url);
     const articleId = url.searchParams.get('articleId');
@@ -85,5 +79,4 @@ export async function DELETE(req: NextRequest) {
     return createSecureResponse({ error: 'Delete failed' }, 500, req);
   }
 }
-
 

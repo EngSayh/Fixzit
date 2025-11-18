@@ -8,7 +8,7 @@ import { nanoid } from "nanoid";
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 // Comprehensive Bid interface matching all properties a bid can have
 interface Bid {
@@ -75,16 +75,13 @@ const submitBidSchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     await connectToDatabase();
 
     const data = submitBidSchema.parse(await req.json());
@@ -146,16 +143,13 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 }
 
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     await connectToDatabase();
 
     const rfq = await RFQ.findOne({ _id: params.id, tenantId: user.tenantId });

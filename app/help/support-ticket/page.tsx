@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { FormWithNavigation } from '@/components/ui/navigation-buttons';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 /**
  * Renders a support ticket submission form and handles creating tickets via the app API.
@@ -16,6 +17,7 @@ import { FormWithNavigation } from '@/components/ui/navigation-buttons';
  * @returns The support ticket page as a React element.
  */
 export default function SupportTicketPage() {
+  const auto = useAutoTranslator('help.supportTicket');
   const { data: session } = useSession();
   
   const [formData, setFormData] = useState({
@@ -71,7 +73,13 @@ export default function SupportTicketPage() {
         const apiMsg = (payload && (payload.error || payload.message)) || `Request failed (${res.status})`;
         throw new Error(apiMsg);
       }
-      setToast({ type: 'success', message: 'Support Ticket Created Successfully! Our team will respond within 24 hours.' });
+      setToast({
+        type: 'success',
+        message: auto(
+          'Support Ticket Created Successfully! Our team will respond within 24 hours.',
+          'toast.success'
+        ),
+      });
       setFormData({
         subject: '',
         module: 'FM',
@@ -83,7 +91,10 @@ export default function SupportTicketPage() {
         phone: ''
       });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'There was an error submitting your ticket. Please try again.';
+      const msg =
+        err instanceof Error
+          ? err.message
+          : auto('There was an error submitting your ticket. Please try again.', 'toast.error');
       setToast({ type: 'error', message: msg });
     } finally {
       setIsSubmitting(false);
@@ -107,9 +118,11 @@ export default function SupportTicketPage() {
         )}
         <div className="bg-card rounded-2xl shadow-xl p-8">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-foreground mb-2">Create Support Ticket</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              {auto('Create Support Ticket', 'header.title')}
+            </h1>
             <p className="text-muted-foreground">
-              Fill out the form below and our support team will get back to you within 24 hours.
+              {auto('Fill out the form below and our support team will get back to you within 24 hours.', 'header.subtitle')}
             </p>
           </div>
 
@@ -123,7 +136,7 @@ export default function SupportTicketPage() {
             {/* Subject */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
-                Subject *
+                {auto('Subject *', 'form.subject.label')}
               </label>
               <input
                 type="text"
@@ -131,7 +144,7 @@ export default function SupportTicketPage() {
                 value={formData.subject}
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Brief description of your issue"
+                placeholder={auto('Brief description of your issue', 'form.subject.placeholder')}
                 required
               />
             </div>
@@ -140,7 +153,7 @@ export default function SupportTicketPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Module
+                  {auto('Module', 'form.module.label')}
                 </label>
                 <select
                   name="module"
@@ -148,17 +161,17 @@ export default function SupportTicketPage() {
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-card"
                 >
-                  <option value="FM">Facility Management</option>
-                  <option value="Souq">Marketplace</option>
-                  <option value="Aqar">Real Estate</option>
-                  <option value="Account">Account</option>
-                  <option value="Billing">Billing</option>
-                  <option value="Other">Other</option>
+                  <option value="FM">{auto('Facility Management', 'form.module.options.fm')}</option>
+                  <option value="Souq">{auto('Marketplace', 'form.module.options.souq')}</option>
+                  <option value="Aqar">{auto('Real Estate', 'form.module.options.aqar')}</option>
+                  <option value="Account">{auto('Account', 'form.module.options.account')}</option>
+                  <option value="Billing">{auto('Billing', 'form.module.options.billing')}</option>
+                  <option value="Other">{auto('Other', 'form.module.options.other')}</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Type
+                  {auto('Type', 'form.type.label')}
                 </label>
                 <select
                   name="type"
@@ -166,12 +179,12 @@ export default function SupportTicketPage() {
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-card"
                 >
-                  <option value="Bug">Bug Report</option>
-                  <option value="Feature">Feature Request</option>
-                  <option value="Complaint">Complaint</option>
-                  <option value="Billing">Billing Issue</option>
-                  <option value="Access">Access Issue</option>
-                  <option value="Other">Other</option>
+                  <option value="Bug">{auto('Bug Report', 'form.type.options.bug')}</option>
+                  <option value="Feature">{auto('Feature Request', 'form.type.options.feature')}</option>
+                  <option value="Complaint">{auto('Complaint', 'form.type.options.complaint')}</option>
+                  <option value="Billing">{auto('Billing Issue', 'form.type.options.billing')}</option>
+                  <option value="Access">{auto('Access Issue', 'form.type.options.access')}</option>
+                  <option value="Other">{auto('Other', 'form.type.options.other')}</option>
                 </select>
               </div>
             </div>
@@ -179,7 +192,7 @@ export default function SupportTicketPage() {
             {/* Priority */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
-                Priority
+                {auto('Priority', 'form.priority.label')}
               </label>
               <select
                 name="priority"
@@ -187,24 +200,24 @@ export default function SupportTicketPage() {
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-card"
               >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-                <option value="Urgent">Urgent</option>
+                <option value="Low">{auto('Low', 'form.priority.options.low')}</option>
+                <option value="Medium">{auto('Medium', 'form.priority.options.medium')}</option>
+                <option value="High">{auto('High', 'form.priority.options.high')}</option>
+                <option value="Urgent">{auto('Urgent', 'form.priority.options.urgent')}</option>
               </select>
             </div>
 
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
-                Description *
+                {auto('Description *', 'form.description.label')}
               </label>
               <textarea
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32 resize-none"
-                placeholder="Please provide detailed information about your issue or request..."
+                placeholder={auto('Please provide detailed information about your issue or request...', 'form.description.placeholder')}
                 required
               />
             </div>
@@ -213,7 +226,7 @@ export default function SupportTicketPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted rounded-2xl">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Your Name *
+                  {auto('Your Name *', 'form.name.label')}
                 </label>
                 <input
                   type="text"
@@ -221,13 +234,13 @@ export default function SupportTicketPage() {
                   value={formData.name}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter your full name"
+                  placeholder={auto('Enter your full name', 'form.name.placeholder')}
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Email *
+                  {auto('Email *', 'form.email.label')}
                 </label>
                 <input
                   type="email"
@@ -235,7 +248,7 @@ export default function SupportTicketPage() {
                   value={formData.email}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="your.email@example.com"
+                  placeholder={auto('your.email@example.com', 'form.email.placeholder')}
                   required
                 />
               </div>
@@ -244,7 +257,7 @@ export default function SupportTicketPage() {
             <div className="p-4 bg-muted rounded-2xl">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Phone (optional)
+                  {auto('Phone (optional)', 'form.phone.label')}
                 </label>
                 <input
                   type="tel"
@@ -252,9 +265,18 @@ export default function SupportTicketPage() {
                   value={formData.phone}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-border rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="+966 XX XXX XXXX"
+                  placeholder={auto('+966 XX XXX XXXX', 'form.phone.placeholder')}
                 />
               </div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <button
+                type="submit"
+                className="px-6 py-3 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50"
+                disabled={isSubmitting}
+              >
+                {auto('Submit Ticket', 'actions.submit')}
+              </button>
             </div>
           </FormWithNavigation>
         </div>

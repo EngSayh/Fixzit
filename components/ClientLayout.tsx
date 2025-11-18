@@ -14,8 +14,11 @@ import { UserRole, type UserRoleType } from '@/types/user';
 import useSWR from 'swr';
 import type { BadgeCounts } from '@/config/navigation';
 
-const countersFetcher = async (url: string) => {
-  const response = await fetch(url, { credentials: 'include' });
+const countersFetcher = async (url: string, init?: RequestInit) => {
+  const response = await fetch(url, { 
+    credentials: 'include',
+    signal: init?.signal 
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch counters');
   }
@@ -116,6 +119,34 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     }
   }, [language, isRTL]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
+    let unmounted = false;
+    const flagKey = '__fixzit_sw_ready';
+    const windowRecord = window as unknown as Record<string, unknown>;
+    if (windowRecord[flagKey]) {
+      return;
+    }
+    const registerSW = async () => {
+      try {
+        await navigator.serviceWorker.register('/sw.js');
+        if (!unmounted) {
+          windowRecord[flagKey] = true;
+        }
+      } catch (error) {
+        if (!unmounted) {
+          logger.debug('Service worker registration failed', error);
+        }
+      }
+    };
+    registerSW();
+    return () => {
+      unmounted = true;
+    };
+  }, []);
+
   // ⚡ FIXED: Unified auth check - fetch JWT auth if NextAuth isn't authenticated
   useEffect(() => {
     let abort = false;
@@ -146,6 +177,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const shouldFetchCounters = isAuthenticated && !isLandingPage && !isAuthPage;
   const { data: counterData } = useSWR(shouldFetchCounters ? '/api/counters' : null, countersFetcher, {
     revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 60000,
   });
   const badgeCounts = useMemo(() => mapCountersToBadgeCounts(counterData), [counterData]);
 

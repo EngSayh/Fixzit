@@ -5,6 +5,13 @@ import { logger } from '@/lib/logger';
 import { verifyToken } from '@/lib/auth';
 import { ALL_ROLES, type UserRoleType } from '@/types/user';
 
+export class UnauthorizedError extends Error {
+  constructor(message: string = 'Unauthenticated') {
+    super(message);
+    this.name = 'UnauthorizedError';
+  }
+}
+
 export type SessionUser = {
   id: string;
   role: UserRoleType;
@@ -143,7 +150,7 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
       
       if (!roleValue || !ALL_ROLES.includes(roleValue as UserRoleType)) {
         logger.error('Invalid role in NextAuth session', { role: roleValue, userId: session.user.id });
-        throw new Error('Unauthenticated');
+        throw new UnauthorizedError('Unauthenticated');
       }
       
       role = roleValue as UserRoleType;
@@ -214,7 +221,7 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
   
   // If no auth found, throw error
   if (!userId || !orgId || !role) {
-    throw new Error("Unauthenticated");
+    throw new UnauthorizedError('Unauthenticated');
   }
   
   // Load RBAC data from database
@@ -241,8 +248,11 @@ export function requireAbility(ability: Parameters<typeof can>[1]) {
       }
       return user;
     } catch (error: unknown) {
+      if (error instanceof UnauthorizedError) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      if (errorMessage === "Unauthenticated" || errorMessage === "Invalid or expired token") {
+      if (errorMessage === "Invalid or expired token") {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       return NextResponse.json({ error: "Authentication error" }, { status: 500 });

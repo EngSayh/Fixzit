@@ -85,16 +85,13 @@ class Logger {
         
         if (Sentry) {
           // Pass original Error if available, otherwise create new Error with cause
-          let errorToCapture: Error;
-          if (message instanceof Error) {
-            errorToCapture = message;
-          } else if (context?.error instanceof Error) {
-            errorToCapture = context.error;
-          } else {
-            errorToCapture = new Error(message, {
-              cause: context?.error
-            } as ErrorOptions);
-          }
+          const ctxError = context?.error;
+          const errorToCapture =
+            ctxError instanceof Error
+              ? ctxError
+              : new Error(message, {
+                  cause: ctxError instanceof Error ? ctxError : undefined,
+                } as ErrorOptions);
           
           Sentry.captureException(errorToCapture, {
             level: 'error',

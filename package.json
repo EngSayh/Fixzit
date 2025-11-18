@@ -59,6 +59,7 @@
     "scan:i18n:v2": "node scripts/i18n-scan-v2.mjs",
     "scan:i18n:audit": "node scripts/audit-translations.mjs",
     "scan:api": "node scripts/api-scan-v2.mjs",
+    "i18n:build": "tsx scripts/generate-dictionaries-json.ts",
     "fixzit:agent": "node scripts/fixzit-agent.mjs --report --port 3000 --keepAlive true --limit=0",
     "fixzit:agent:apply": "node scripts/fixzit-agent.mjs --apply --report --port 3000 --keepAlive true --limit=0",
     "fixzit:agent:stop": "node scripts/stop-dev.js",

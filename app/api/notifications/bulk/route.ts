@@ -7,7 +7,7 @@ import { ObjectId } from "mongodb";
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 const bulkActionSchema = z.object({
   action: z.enum(["mark-read", "mark-unread", "archive", "delete"]),
@@ -32,16 +32,13 @@ const bulkActionSchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   let tenantId: string;
   try {
     const user = await getSessionUser(req);
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     tenantId = user.orgId;
   } catch {
     return createSecureResponse({ error: 'Unauthorized' }, 401, req);

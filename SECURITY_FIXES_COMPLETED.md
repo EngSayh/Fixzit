@@ -12,11 +12,11 @@
 
 | Issue | Severity | Files Fixed | Status |
 |-------|----------|-------------|--------|
-| Hardcoded JWT secrets | 🔴 CRITICAL | 12 files | ✅ Fixed |
+| Hardcoded JWT secrets | 🔴 CRITICAL | 6 production + 2 scripts | ✅ Code Fixed |
 | Hardcoded Docker secrets | 🔴 CRITICAL | 2 compose files | ✅ Fixed |
-| Missing rate limiting | 🔴 CRITICAL | 5 API routes | ✅ Fixed |
-| Inconsistent CORS | 🟡 HIGH | 3 files | ✅ Fixed |
-| Insecure MongoDB URI | 🟡 HIGH | 1 file | ✅ Fixed |
+| Missing rate limiting | 🔴 CRITICAL | 5 API routes | ✅ Code Fixed ⚠️ Manual Test |
+| Inconsistent CORS | 🟡 HIGH | 3 files | ✅ Fixed ⚠️ Permissive |
+| Insecure MongoDB URI | 🟡 HIGH | 1 file (mongo.ts) | ✅ Fixed |
 
 ---
 
@@ -54,25 +54,25 @@ export function requireEnv(name: string, options: RequireEnvOptions = {}): strin
 }
 ```
 
-**Updated Files (Core Application - 6 files):**
-1. ✅ `lib/mongo.ts` - Uses `requireEnv('JWT_SECRET')` + enforces Atlas-only in production
-2. ✅ `lib/marketplace/context.ts` - Uses `requireEnv('JWT_SECRET', { testFallback })`
-3. ✅ `lib/startup-checks.ts` - Uses `requireEnv('JWT_SECRET')`
-4. ✅ `lib/meilisearch.ts` - Uses `requireEnv('MEILI_MASTER_KEY', { testFallback })`
-5. ✅ `lib/security/cors-allowlist.ts` - NEW: Unified CORS origin validation
-6. ✅ `tests/setup.ts` - Uses `requireEnv('JWT_SECRET', { testFallback })`
+**Updated Files (Core Application - 3 production runtime files):**
+1. ✅ `lib/marketplace/context.ts` - Uses `requireEnv('JWT_SECRET', { testFallback })`
+2. ✅ `lib/startup-checks.ts` - Uses `requireEnv('JWT_SECRET')`
+3. ✅ `lib/meilisearch.ts` - Uses `requireEnv('MEILI_MASTER_KEY', { testFallback })`
 
-**Updated Files (Utility Scripts - 2 files):**
-7. ✅ `scripts/server.js` - Uses `requireEnv('JWT_SECRET')`
-8. ✅ `scripts/test-auth-fix.js` - Uses `requireEnv('JWT_SECRET')`
+**Updated Files (Test/Development - 3 files):**
+4. ✅ `tests/setup.ts` - Uses `requireEnv('JWT_SECRET', { testFallback })`
+5. ✅ `scripts/server.js` - Uses `requireEnv('JWT_SECRET')`
+6. ✅ `scripts/test-auth-fix.js` - Uses `requireEnv('JWT_SECRET')`
 
-**Updated Files (Infrastructure - 3 files):**
-9. ✅ `docker-compose.yml` - Requires `JWT_SECRET`, `MONGO_INITDB_ROOT_PASSWORD`, `MEILI_MASTER_KEY` (fail-fast)
-10. ✅ `docker-compose.souq.yml` - Requires secrets, no hardcoded defaults
-11. ✅ `middleware.ts` - Uses shared CORS allowlist helper
-12. ✅ `server/security/headers.ts` - Uses shared CORS allowlist helper
+**Infrastructure Files (Hardened - 3 files):**
+7. ✅ `docker-compose.yml` - Requires `JWT_SECRET`, `MONGO_INITDB_ROOT_PASSWORD`, `MEILI_MASTER_KEY` (fail-fast)
+8. ✅ `docker-compose.souq.yml` - Requires secrets, no hardcoded defaults
+9. ✅ `lib/security/cors-allowlist.ts` - NEW: Unified CORS origin validation
 
-**Total Files Secured:** 12 production files + infrastructure configs
+**Files Using getEnv (Still Secure - Has Dev Fallbacks):**
+⚠️ `lib/mongo.ts` - Uses `getEnv('MONGODB_URI')` with localhost fallback in dev, but enforces Atlas-only in production via `assertNotLocalhostInProd()`
+
+**Total Files Secured:** 6 production files (3 runtime + 3 test/dev) + 3 infrastructure configs
 
 **Files Still Using Direct Access (Dev/Setup Scripts - Not Production Critical):**
 - ⚠️ `scripts/fix-server.sh` - Checks `process.env.JWT_SECRET`, logs error if missing (dev script)
@@ -254,9 +254,26 @@ export function enforceRateLimit(
 | `/api/souq/claims/*/evidence` | 30 | 2 min | Allow bulk evidence uploads |
 | `/api/souq/claims/*/response` | 30 | 2 min | Allow seller documentation |
 
-**Result:** 🎯 **All high-risk endpoints protected** with IP-based rate limiting
+**Result:** 🎯 **All high-risk endpoints protected** with IP-based rate limiting (code verified)
 
-**Note:** Rate limiting is implemented in code but not yet covered by automated integration tests. Manual verification needed.
+**⚠️ Verification Status:**
+- ✅ **Code implementation:** All 5 routes call `enforceRateLimit()` with documented thresholds
+- ✅ **File verification:** Confirmed in `app/api/auth/otp/send/route.ts` (lines 34-40), `app/api/auth/otp/verify/route.ts` (lines 34-40), `app/api/souq/claims/route.ts` (lines 11-17), `app/api/souq/claims/[id]/evidence/route.ts` (lines 14-20), `app/api/souq/claims/[id]/response/route.ts` (lines 14-20)
+- ⚠️ **Manual testing:** NOT YET DONE - Need to verify 429 responses after limit exceeded
+- ⚠️ **Automated tests:** NOT YET IMPLEMENTED - No CI/CD coverage for rate limiting
+- ⚠️ **Production monitoring:** NOT YET CONFIGURED - No alerting on rate limit hits
+
+**Manual Testing Required:**
+```bash
+# Test OTP rate limiting (should return 429 after 10th request)
+for i in {1..15}; do
+  curl -X POST http://localhost:3000/api/auth/otp/send \
+    -H "Content-Type: application/json" \
+    -d '{"phoneNumber":"+966501234567"}'
+  echo "Request $i"
+done
+# Expected: Requests 1-10 succeed, 11-15 return 429 Too Many Requests
+```
 
 ---
 
@@ -268,7 +285,7 @@ export function enforceRateLimit(
 
 **Middleware Changes:**
 ```typescript
-// middleware.ts - CORS enforcement added
+// lib/security/cors-allowlist.ts - Unified CORS validation
 const STATIC_ALLOWED_ORIGINS = [
   'https://fixzit.sa',
   'https://www.fixzit.sa',
@@ -276,29 +293,36 @@ const STATIC_ALLOWED_ORIGINS = [
   'https://dashboard.fixzit.sa',
   'https://staging.fixzit.sa',
 ];
-const DEV_ORIGINS = ['http://localhost:3000', 'http://localhost:3001'];
-const ENV_ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || '')
-  .split(',')
-  .map(origin => origin.trim())
-  .filter(Boolean);
+const DEV_ALLOWED_ORIGINS = ['http://localhost:3000', 'http://localhost:3001'];
 
-function isAllowedOrigin(origin: string | null): boolean {
-  if (!origin) return true; // same-origin requests
-  if (process.env.NODE_ENV !== 'production' && DEV_ORIGINS.includes(origin)) return true;
-  return [...STATIC_ALLOWED_ORIGINS, ...ENV_ALLOWED_ORIGINS].includes(origin);
+// Parses CORS_ORIGINS and FRONTEND_URL env vars (comma-separated)
+function buildAllowedOrigins(): string[] {
+  const envOrigins = parseOrigins(process.env.CORS_ORIGINS);
+  const frontendOrigins = parseOrigins(process.env.FRONTEND_URL);
+  return Array.from(new Set([...STATIC_ALLOWED_ORIGINS, ...frontendOrigins, ...envOrigins]));
 }
 
-// In middleware handler
-if (isApiRequest) {
-  const origin = request.headers.get('origin');
-  if (origin && !isAllowedOrigin(origin)) {
-    return NextResponse.json(
-      { error: 'Origin not allowed' },
-      { status: 403 }
-    );
-  }
+export function isOriginAllowed(origin: string | null): boolean {
+  if (!origin) return true; // No Origin header = same-origin or non-browser request
+  const allowedOrigins = getAllowedOriginsSet();
+  if (allowedOrigins.has(origin)) return true;
+  // Dev mode: auto-allow localhost
+  return process.env.NODE_ENV !== 'production' && DEV_ALLOWED_ORIGINS.includes(origin);
+}
+
+export function resolveAllowedOrigin(origin: string | null): string | undefined {
+  if (origin && isOriginAllowed(origin)) return origin;
+  // Dev mode without Origin header: default to localhost:3000
+  if (process.env.NODE_ENV !== 'production') return DEV_ALLOWED_ORIGINS[0];
+  return undefined;
 }
 ```
+
+**⚠️ Note on CORS Permissiveness:**
+- **Production:** Only whitelisted domains in `STATIC_ALLOWED_ORIGINS` + `CORS_ORIGINS` env var
+- **Development:** Automatically allows `localhost:3000/3001` even without Origin header
+- **ENV var merging:** Any values in `CORS_ORIGINS` or `FRONTEND_URL` are trusted without URL validation
+- **Recommendation:** Consider adding protocol/domain validation for `CORS_ORIGINS` parsing
 
 **Next.js Config:**
 ```javascript
@@ -718,11 +742,12 @@ Before deploying to production:
 ## 🎯 Results
 
 ### Security Vulnerabilities Addressed
-- ✅ **12 production files secured** → All use `requireEnv()` with fail-fast validation
+- ✅ **6 production files secured** → Use `requireEnv()` with fail-fast validation (3 runtime + 3 test/dev)
+- ⚠️ **1 file uses getEnv** → `lib/mongo.ts` has dev fallback but production validation
 - ✅ **2 Docker Compose files hardened** → All secrets now required (fail-fast)
-- ✅ **5 API routes protected** → Rate limiting (OTP send/verify, claims, evidence, response)
-- ✅ **3 CORS entry points unified** → Single allowlist, consistent policy
-- ✅ **MongoDB Atlas-only enforced** → Production rejects non-Atlas URIs
+- ✅ **5 API routes protected** → Rate limiting code implemented (manual testing pending)
+- ⚠️ **CORS unified but permissive** → Single allowlist, but merges untrusted `CORS_ORIGINS` env var
+- ✅ **MongoDB Atlas-only enforced** → `lib/mongo.ts` rejects localhost in production
 
 ### Implementation Status
 - ✅ **Code changes:** All committed and verified
@@ -735,17 +760,40 @@ Before deploying to production:
 ### Code Quality Improvements
 - ✅ **TypeScript errors:** 0 (unchanged)
 - ✅ **ESLint warnings:** 0 (unchanged)
-- ✅ **Security audit:** No critical issues
-- ✅ **Test coverage:** 78% (maintained)
+- ⚠️ **Security audit:** Manual code review only (no automated scanner output)
+- ✅ **Test coverage:** 78% (maintained, but no security-specific tests)
+
+### Security Assessment (Manual)
+**Estimated Score:** ~85-90/100 (manual assessment, not verified by automated tools)
+
+**Reasoning:**
+- ✅ **Strong:** Docker secrets fail-fast, JWT secret in production code
+- ✅ **Good:** Rate limiting implemented, MongoDB production validation
+- ⚠️ **Medium:** CORS permissive in dev, no automated security tests
+- ⚠️ **Needs work:** No monitoring/alerting, manual testing not yet done
+
+**Recommended Tools for Verification:**
+```bash
+# Run security audits
+pnpm audit --production          # Check npm dependencies
+npx snyk test                    # Snyk vulnerability scan
+npx owasp-dependency-check       # OWASP dependency checker
+
+# Dynamic testing
+pnpm test                         # Run existing test suite
+# Then: OWASP ZAP scan on running app
+```
 
 ### Production Readiness
-- ✅ **Authentication:** Secure (production code uses `requireEnv()`)
-- ✅ **API Protection:** Rate limiting implemented in code
-- ✅ **CORS:** Whitelist configured in middleware
-- ✅ **Database:** Production validation enabled
-- ✅ **Documentation:** Complete
-- ⚠️ **Testing:** Manual verification recommended
-- ⚠️ **Monitoring:** No alerting configured for security events yet
+- ✅ **Authentication:** Secure (3 runtime files use `requireEnv()`)
+- ⚠️ **API Protection:** Rate limiting code in place, but NOT manually tested
+- ⚠️ **CORS:** Whitelist configured, but dev mode permissive + merges untrusted env vars
+- ✅ **Database:** Production validation enabled in `lib/mongo.ts`
+- ⚠️ **Documentation:** Complete but overstated implementation status
+- ❌ **Testing:** Manual verification NOT YET DONE
+- ❌ **Automated Security Tests:** NOT IMPLEMENTED
+- ❌ **Monitoring:** No alerting configured for security events
+- ❌ **Security Scan:** No automated scanner output available
 
 ---
 
@@ -765,23 +813,40 @@ Before deploying to production:
 
 ---
 
-## ✅ Sign-Off
+## ⚠️ Sign-Off
 
 **Security Fixes Completed:** November 17, 2025  
-**Status:** 🟡 **READY FOR STAGING VALIDATION**  
+**Status:** 🟡 **READY FOR STAGING VALIDATION** (Code changes complete, testing pending)  
+
+**What's Actually Done:**
+- ✅ Code changes committed and verified in files
+- ✅ Docker secrets require environment variables (fail-fast)
+- ✅ Rate limiting implemented in 5 routes (code verified)
+- ✅ CORS allowlist configured (but permissive in dev)
+- ✅ MongoDB production validation enabled
+
+**What's NOT Done (Blockers for Production):**
+- ❌ Manual security testing (rate limiting 429 responses not verified)
+- ❌ Automated security scan (no pnpm audit / Snyk / ZAP output)
+- ❌ Monitoring/alerting for security events (no dashboards or alerts)
+- ❌ Security review with team (no peer review documented)
+- ❌ CORS env var validation (arbitrary values from `CORS_ORIGINS` trusted)
+- ❌ Notification credentials populated (RTL QA pending)
 
 **Next Steps Before Production:**
-1. ✅ Deploy to staging environment
-2. ⚠️ Run manual security tests (rate limiting, CORS, auth)
-3. ⚠️ Run automated security scan (npm audit, Snyk, OWASP ZAP)
-4. ⚠️ Set up monitoring/alerting for security events
-5. ⚠️ Conduct security review with team
-6. ✅ Deploy to production with confidence
+1. ⚠️ **Manual Testing:** Run rate limiting tests, verify 429 responses
+2. ⚠️ **Automated Scans:** Run `pnpm audit`, Snyk, OWASP ZAP - document results
+3. ⚠️ **CORS Hardening:** Add URL validation for `CORS_ORIGINS` parsing
+4. ⚠️ **Monitoring Setup:** Configure security event alerting (rate limits, auth failures)
+5. ⚠️ **Team Review:** Schedule security review meeting, document approval
+6. ⚠️ **RTL QA:** Complete notification testing with real credentials
+7. ✅ **Then:** Deploy to staging → production
 
 **Completed By:** User (Sultan Al-Hassni)  
-**Verified By:** GitHub Copilot  
-**Approval Status:** Code changes complete, validation pending
+**Code Review:** GitHub Copilot (automated)  
+**Security Review:** ⚠️ PENDING  
+**Approval Status:** Code complete, manual validation REQUIRED before production
 
 ---
 
-**🎉 All critical security code changes have been implemented! Manual verification and automated testing recommended before production deployment.**
+**⚠️ All critical security code changes have been implemented and committed. However, manual testing, automated security scans, and team review are REQUIRED before production deployment. Current status: Code ready, validation pending.**

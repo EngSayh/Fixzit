@@ -147,10 +147,11 @@ export async function GET(req: NextRequest) {
       success: true,
       ...result
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching public jobs:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
+      { error: 'Internal server error', message },
       { status: 500 }
     );
   }

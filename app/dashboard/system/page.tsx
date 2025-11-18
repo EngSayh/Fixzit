@@ -5,12 +5,14 @@ import { logger } from '@/lib/logger';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Users, Shield, Building } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface SystemCounters {
   system: { users: number; roles: number; tenants: number };
 }
 
 export default function SystemDashboard() {
+  const auto = useAutoTranslator('dashboard.system');
   const [activeTab, setActiveTab] = useState('users');
   const [counters, setCounters] = useState<SystemCounters | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,7 +21,7 @@ export default function SystemDashboard() {
     const fetchData = async () => {
       try {
         const response = await fetch('/api/counters');
-        if (!response.ok) throw new Error('Failed to fetch counters');
+        if (!response.ok) throw new Error(auto('Failed to fetch counters', 'errors.fetch'));
         const data = await response.json();
         setCounters({
           system: data.system || { users: 0, roles: 0, tenants: 0 },
@@ -34,18 +36,22 @@ export default function SystemDashboard() {
   }, []);
 
   const tabs = [
-    { id: 'users', label: 'Users', count: counters?.system.users },
-    { id: 'roles', label: 'Roles & Permissions' },
-    { id: 'billing', label: 'Billing' },
-    { id: 'integrations', label: 'Integrations' },
-    { id: 'settings', label: 'System Settings' },
+    { id: 'users', label: auto('Users', 'tabs.users'), count: counters?.system.users },
+    { id: 'roles', label: auto('Roles & Permissions', 'tabs.roles') },
+    { id: 'billing', label: auto('Billing', 'tabs.billing') },
+    { id: 'integrations', label: auto('Integrations', 'tabs.integrations') },
+    { id: 'settings', label: auto('System Settings', 'tabs.settings') },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">System Admin</h1>
-        <p className="text-muted-foreground">Manage users, roles, and system settings</p>
+        <h1 className="text-3xl font-bold text-foreground">
+          {auto('System Admin', 'header.title')}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto('Manage users, roles, and system settings', 'header.subtitle')}
+        </p>
       </div>
 
       <div className="flex items-center gap-2 border-b">
@@ -74,7 +80,9 @@ export default function SystemDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto('Total Users', 'metrics.totalUsers')}
+              </CardTitle>
               <Users className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -83,7 +91,9 @@ export default function SystemDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Roles</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto('Roles', 'metrics.roles')}
+              </CardTitle>
               <Shield className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent>
@@ -92,7 +102,9 @@ export default function SystemDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Tenants</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto('Tenants', 'metrics.tenants')}
+              </CardTitle>
               <Building className="w-4 h-4 text-success" />
             </CardHeader>
             <CardContent>
@@ -107,7 +119,9 @@ export default function SystemDashboard() {
           <CardContent className="py-8">
             <div className="text-center text-muted-foreground">
               <p className="font-medium">{tabs.find(t => t.id === activeTab)?.label}</p>
-              <p className="text-sm mt-2">Content will be implemented here</p>
+              <p className="text-sm mt-2">
+                {auto('Content will be implemented here', 'placeholder.description')}
+              </p>
             </div>
           </CardContent>
         </Card>

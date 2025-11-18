@@ -9,6 +9,7 @@ import { TableSkeleton } from '@/components/skeletons';
 import ClientDate from '@/components/ClientDate';
 
 import { logger } from '@/lib/logger';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 interface TicketItem {
   id: string;
   code?: string;
@@ -20,6 +21,7 @@ interface TicketItem {
 }
 
 export default function SupportTicketsPage() {
+  const auto = useAutoTranslator('fm.supportTickets');
   const { data: session } = useSession();
   const orgId = session?.user?.orgId;
   const [status, setStatus] = useState('');
@@ -27,7 +29,7 @@ export default function SupportTicketsPage() {
 
   const fetcher = (url: string) => {
     if (!orgId) {
-      return Promise.reject(new Error('No organization ID'));
+      return Promise.reject(new Error(auto('No organization ID', 'errors.missingOrg')));
     }
     return fetch(url, { 
       headers: { 'x-tenant-id': orgId } 
@@ -46,11 +48,11 @@ export default function SupportTicketsPage() {
 
   const updateTicket = async (id: string, updates: { status?: string }) => {
     if (!orgId) {
-      toast.error('No organization ID found');
-      return;
-    }
+        toast.error(auto('No organization ID found', 'errors.missingOrg'));
+        return;
+      }
 
-    const toastId = toast.loading('Updating ticket status...');
+    const toastId = toast.loading(auto('Updating ticket status...', 'toast.updating'));
 
     try {
       const res = await fetch(`/api/support/tickets/${id}`, {
@@ -63,15 +65,21 @@ export default function SupportTicketsPage() {
       });
 
       if (res.ok) {
-        toast.success('Ticket status updated successfully', { id: toastId });
+        toast.success(auto('Ticket status updated successfully', 'toast.success'), { id: toastId });
         mutate();
       } else {
         const error = await res.json();
-        toast.error(`Failed to update ticket: ${error.error || 'Unknown error'}`, { id: toastId });
+        const detail = error?.error || auto('Unknown error', 'errors.unknown');
+        toast.error(
+          auto('Failed to update ticket: {{message}}', 'toast.updateFailed', {
+            message: detail,
+          }),
+          { id: toastId }
+        );
       }
     } catch (error) {
       logger.error('Error updating ticket:', error);
-      toast.error('Error updating ticket. Please try again.', { id: toastId });
+      toast.error(auto('Error updating ticket. Please try again.', 'toast.genericError'), { id: toastId });
     }
   };
 
@@ -82,7 +90,9 @@ export default function SupportTicketsPage() {
   if (!orgId) {
     return (
       <div className="p-6">
-        <p className="text-destructive">Error: No organization ID found in session</p>
+        <p className="text-destructive">
+          {auto('Error: No organization ID found in session', 'errors.noOrgInSession')}
+        </p>
       </div>
     );
   }
@@ -91,8 +101,12 @@ export default function SupportTicketsPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Support Tickets</h1>
-          <p className="text-muted-foreground">Manage customer support requests</p>
+          <h1 className="text-2xl font-bold text-foreground">
+            {auto('Support Tickets', 'header.title')}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto('Manage customer support requests', 'header.subtitle')}
+          </p>
         </div>
       </div>
 
@@ -103,12 +117,12 @@ export default function SupportTicketsPage() {
           onChange={e => setStatus(e.target.value)}
           className="px-3 py-2 border border-border rounded-2xl"
         >
-          <option value="">All Status</option>
-          <option value="New">New</option>
-          <option value="Open">Open</option>
-          <option value="Waiting">Waiting</option>
-          <option value="Resolved">Resolved</option>
-          <option value="Closed">Closed</option>
+          <option value="">{auto('All Status', 'filters.status.all')}</option>
+          <option value="New">{auto('New', 'filters.status.new')}</option>
+          <option value="Open">{auto('Open', 'filters.status.open')}</option>
+          <option value="Waiting">{auto('Waiting', 'filters.status.waiting')}</option>
+          <option value="Resolved">{auto('Resolved', 'filters.status.resolved')}</option>
+          <option value="Closed">{auto('Closed', 'filters.status.closed')}</option>
         </select>
         
         <select
@@ -116,11 +130,11 @@ export default function SupportTicketsPage() {
           onChange={e => setPriority(e.target.value)}
           className="px-3 py-2 border border-border rounded-2xl"
         >
-          <option value="">All Priority</option>
-          <option value="Low">Low</option>
-          <option value="Medium">Medium</option>
-          <option value="High">High</option>
-          <option value="Urgent">Urgent</option>
+          <option value="">{auto('All Priority', 'filters.priority.all')}</option>
+          <option value="Low">{auto('Low', 'filters.priority.low')}</option>
+          <option value="Medium">{auto('Medium', 'filters.priority.medium')}</option>
+          <option value="High">{auto('High', 'filters.priority.high')}</option>
+          <option value="Urgent">{auto('Urgent', 'filters.priority.urgent')}</option>
         </select>
       </div>
 
@@ -133,13 +147,27 @@ export default function SupportTicketsPage() {
             <table className="w-full">
               <thead className="bg-muted border-b border-border">
                 <tr>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Code</th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Subject</th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Module</th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Priority</th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Status</th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Created</th>
-                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">Actions</th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    {auto('Code', 'table.code')}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    {auto('Subject', 'table.subject')}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    {auto('Module', 'table.module')}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    {auto('Priority', 'table.priority')}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    {auto('Status', 'table.status')}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    {auto('Created', 'table.created')}
+                  </th>
+                  <th className="px-6 py-3 text-start text-xs font-medium text-muted-foreground uppercase">
+                    {auto('Actions', 'table.actions')}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -170,22 +198,26 @@ export default function SupportTicketsPage() {
                       onChange={e => updateTicket(ticket.id, { status: e.target.value })}
                       className="text-sm border border-border rounded px-2 py-1"
                     >
-                      <option value="New">New</option>
-                      <option value="Open">Open</option>
-                      <option value="Waiting">Waiting</option>
-                      <option value="Resolved">Resolved</option>
-                      <option value="Closed">Closed</option>
+                      <option value="New">{auto('New', 'filters.status.new')}</option>
+                      <option value="Open">{auto('Open', 'filters.status.open')}</option>
+                      <option value="Waiting">{auto('Waiting', 'filters.status.waiting')}</option>
+                      <option value="Resolved">{auto('Resolved', 'filters.status.resolved')}</option>
+                      <option value="Closed">{auto('Closed', 'filters.status.closed')}</option>
                     </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {ticket.createdAt ? <ClientDate date={ticket.createdAt} format="date-only" /> : 'N/A'}
+                    {ticket.createdAt ? (
+                      <ClientDate date={ticket.createdAt} format="date-only" />
+                    ) : (
+                      auto('N/A', 'table.notAvailable')
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <Link 
                       href={`/fm/support/tickets/${ticket.id}`} 
                       className="text-primary hover:text-primary/90 hover:underline"
                     >
-                      View
+                      {auto('View', 'table.view')}
                     </Link>
                   </td>
                 </tr>
@@ -198,4 +230,3 @@ export default function SupportTicketsPage() {
     </div>
   );
 }
-

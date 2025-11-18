@@ -4,19 +4,12 @@ import { AtsSettings } from '@/server/models/AtsSettings';
 import { atsRBAC } from '@/lib/ats/rbac';
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 /**
  * GET /api/ats/settings - Get ATS settings for organization
  */
 export async function GET(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     await connectToDatabase();
 
@@ -24,6 +17,10 @@ export async function GET(req: NextRequest) {
     const authResult = await atsRBAC(req, ['settings:read']);
     if (!authResult.authorized) {
       return authResult.response;
+    }
+    const rl = rateLimit(buildRateLimitKey(req, authResult.userId), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
     }
 
     const { orgId } = authResult;
@@ -54,10 +51,11 @@ export async function GET(req: NextRequest) {
         updatedAt: settings.updatedAt
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching ATS settings:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
+      { error: 'Internal server error', message },
       { status: 500 }
     );
   }
@@ -67,13 +65,6 @@ export async function GET(req: NextRequest) {
  * PATCH /api/ats/settings - Update ATS settings
  */
 export async function PATCH(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 30, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     await connectToDatabase();
 
@@ -81,6 +72,10 @@ export async function PATCH(req: NextRequest) {
     const authResult = await atsRBAC(req, ['settings:update']);
     if (!authResult.authorized) {
       return authResult.response;
+    }
+    const rl = rateLimit(buildRateLimitKey(req, authResult.userId), 30, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
     }
 
     const { orgId } = authResult;
@@ -153,10 +148,11 @@ export async function PATCH(req: NextRequest) {
         updatedAt: settings.updatedAt
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating ATS settings:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
+      { error: 'Internal server error', message },
       { status: 500 }
     );
   }

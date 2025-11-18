@@ -5,12 +5,14 @@ import { logger } from '@/lib/logger';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ShoppingBag, Package, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface MarketplaceCounters {
   marketplace: { listings: number; orders: number; reviews: number };
 }
 
 export default function MarketplaceDashboard() {
+  const auto = useAutoTranslator('dashboard.marketplace');
   const [activeTab, setActiveTab] = useState('vendors');
   const [counters, setCounters] = useState<MarketplaceCounters | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,7 +36,7 @@ export default function MarketplaceDashboard() {
           return;
         }
         
-        if (!response.ok) throw new Error('Failed to fetch counters');
+        if (!response.ok) throw new Error(auto('Failed to fetch counters', 'errors.fetch'));
         const data = await response.json();
         
         if (mounted) {
@@ -63,17 +65,21 @@ export default function MarketplaceDashboard() {
   }, []);
 
   const tabs = [
-    { id: 'vendors', label: 'Vendors' },
-    { id: 'catalog', label: 'Catalog', count: counters?.marketplace.listings },
-    { id: 'orders', label: 'Orders', count: counters?.marketplace.orders },
-    { id: 'rfqs', label: 'RFQs' },
+    { id: 'vendors', label: auto('Vendors', 'tabs.vendors') },
+    { id: 'catalog', label: auto('Catalog', 'tabs.catalog'), count: counters?.marketplace.listings },
+    { id: 'orders', label: auto('Orders', 'tabs.orders'), count: counters?.marketplace.orders },
+    { id: 'rfqs', label: auto('RFQs', 'tabs.rfqs') },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Marketplace</h1>
-        <p className="text-muted-foreground">Manage vendors, catalog, and orders</p>
+        <h1 className="text-3xl font-bold text-foreground">
+          {auto('Marketplace', 'header.title')}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto('Manage vendors, catalog, and orders', 'header.subtitle')}
+        </p>
       </div>
 
       <div className="flex items-center gap-2 border-b">
@@ -102,7 +108,9 @@ export default function MarketplaceDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Active Listings</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto('Active Listings', 'metrics.listings')}
+              </CardTitle>
               <Package className="w-4 h-4 text-success" />
             </CardHeader>
             <CardContent>
@@ -111,7 +119,9 @@ export default function MarketplaceDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Orders</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto('Orders', 'metrics.orders')}
+              </CardTitle>
               <ShoppingBag className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent>
@@ -120,7 +130,9 @@ export default function MarketplaceDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Reviews</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto('Reviews', 'metrics.reviews')}
+              </CardTitle>
               <Star className="w-4 h-4 text-orange-500" />
             </CardHeader>
             <CardContent>
@@ -135,7 +147,9 @@ export default function MarketplaceDashboard() {
           <CardContent className="py-8">
             <div className="text-center text-muted-foreground">
               <p className="font-medium">{tabs.find(t => t.id === activeTab)?.label}</p>
-              <p className="text-sm mt-2">Content will be implemented here</p>
+              <p className="text-sm mt-2">
+                {auto('Content will be implemented here', 'placeholder.description')}
+              </p>
             </div>
           </CardContent>
         </Card>

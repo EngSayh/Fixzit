@@ -46,12 +46,17 @@ async function seedTestUsers() {
           await (User as any).create(userWithHashedPassword);
           console.log(`✅ Created: ${userData.email} (${userData.professional.role})`);
           created++;
-        } catch (error: any) {
-          if (error.code === 11000) {
-            console.log(`⏭️  Duplicate: ${userData.email} - ${JSON.stringify(error.keyValue)}`);
+        } catch (error: unknown) {
+          const duplicateKey =
+            typeof error === 'object' && error !== null
+              ? (error as { code?: number; keyValue?: unknown })
+              : undefined;
+          if (duplicateKey?.code === 11000) {
+            console.log(`⏭️  Duplicate: ${userData.email} - ${JSON.stringify(duplicateKey.keyValue)}`);
             skipped++;
           } else {
-            console.error(`❌ Error: ${userData.email} - ${error.message}`);
+            const message = error instanceof Error ? error.message : String(error);
+            console.error(`❌ Error: ${userData.email} - ${message}`);
           }
         }
       }

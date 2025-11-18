@@ -10,7 +10,7 @@ import { logger } from '@/lib/logger';
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 const schema = z.object({
   to: z.enum([
@@ -47,15 +47,13 @@ const schema = z.object({
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }>}): Promise<NextResponse> {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  const params = await props.params;
+  const user = await getSessionUser(req);
+  const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
   if (!rl.allowed) {
     return rateLimitError();
   }
 
-  const params = await props.params;
-  const user = await getSessionUser(req);
   await connectToDatabase();
 
   const body = schema.parse(await req.json());

@@ -132,9 +132,11 @@ describe('Pricing Service Unit Tests', () => {
           modules: ['AQAR'],
           billingCycle: 'MONTHLY',
         });
-      } catch (error: any) {
-        expect(error.code).toBe('INVALID_INPUT');
-        expect(error.message).toContain('Invalid pricing parameters');
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(PricingError);
+        const pricingError = error as PricingError;
+        expect(pricingError.code).toBe('INVALID_INPUT');
+        expect(pricingError.message).toContain('Invalid pricing parameters');
       }
     });
 
@@ -351,11 +353,12 @@ describe('Pricing Service Unit Tests', () => {
           billingCycle: 'MONTHLY',
         });
         throw new Error('Should have thrown PricingError');
-      } catch (error: any) {
+      } catch (error: unknown) {
         expect(error).toBeInstanceOf(PricingError);
-        expect(error.code).toBe('TIER_NOT_FOUND');
-        expect(error.details?.seats).toBe(15);
-        expect(error.details?.availableTiers).toBeDefined();
+        const pricingError = error as PricingError;
+        expect(pricingError.code).toBe('TIER_NOT_FOUND');
+        expect(pricingError.details?.seats).toBe(15);
+        expect(pricingError.details?.availableTiers).toBeDefined();
       }
     });
   });
@@ -425,11 +428,12 @@ describe('Pricing Service Unit Tests', () => {
           billingCycle: 'MONTHLY',
         });
         throw new Error('Should have thrown PricingError');
-      } catch (error: any) {
+      } catch (error: unknown) {
         expect(error).toBeInstanceOf(PricingError);
-        expect(error.code).toBe('MODULE_NOT_FOUND');
-        expect(error.details?.module).toBe('NONEXISTENT');
-        expect(error.details?.availableModules).toEqual(['AQAR', 'FM', 'HR']);
+        const pricingError = error as PricingError;
+        expect(pricingError.code).toBe('MODULE_NOT_FOUND');
+        expect(pricingError.details?.module).toBe('NONEXISTENT');
+        expect(pricingError.details?.availableModules).toEqual(['AQAR', 'FM', 'HR']);
       }
     });
   });
@@ -563,10 +567,11 @@ describe('Pricing Service Unit Tests', () => {
           billingCycle: 'MONTHLY',
         });
         throw new Error('Should have thrown PricingError');
-      } catch (error: any) {
+      } catch (error: unknown) {
         expect(error).toBeInstanceOf(PricingError);
-        expect(error.code).toBe('PRICEBOOK_NOT_FOUND');
-        expect(error.details?.currency).toBe('USD');
+        const pricingError = error as PricingError;
+        expect(pricingError.code).toBe('PRICEBOOK_NOT_FOUND');
+        expect(pricingError.details?.currency).toBe('USD');
       }
 
       // Reactivate for other tests
@@ -585,9 +590,10 @@ describe('Pricing Service Unit Tests', () => {
           billingCycle: 'MONTHLY',
         });
         throw new Error('Should have thrown PricingError');
-      } catch (error: any) {
+      } catch (error: unknown) {
         expect(error).toBeInstanceOf(PricingError);
-        expect(error.code).toBe('INVALID_INPUT');
+        const pricingError = error as PricingError;
+        expect(pricingError.code).toBe('INVALID_INPUT');
       }
     });
   });
@@ -660,14 +666,16 @@ describe('Pricing Service Unit Tests', () => {
           modules: [],
           billingCycle: 'INVALID' as any,
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         expect(error).toBeInstanceOf(PricingError);
-        expect(error.name).toBe('PricingError');
-        expect(error.code).toBe('INVALID_INPUT');
-        expect(error.message).toContain('Invalid pricing parameters');
-        expect(error.details).toBeDefined();
-        expect(error.details.errors).toBeInstanceOf(Array);
-        expect(error.details.errors.length).toBeGreaterThan(0);
+        const pricingError = error as PricingError;
+        expect(pricingError.name).toBe('PricingError');
+        expect(pricingError.code).toBe('INVALID_INPUT');
+        expect(pricingError.message).toContain('Invalid pricing parameters');
+        const details = pricingError.details as { errors?: unknown[] } | undefined;
+        expect(details).toBeDefined();
+        expect(Array.isArray(details?.errors)).toBe(true);
+        expect((details?.errors ?? []).length).toBeGreaterThan(0);
       }
     });
 
@@ -679,12 +687,14 @@ describe('Pricing Service Unit Tests', () => {
           modules: ['NONEXISTENT_MODULE'],
           billingCycle: 'MONTHLY',
         });
-      } catch (error: any) {
-        expect(error.message).toContain('NONEXISTENT_MODULE');
-        expect(error.details.module).toBe('NONEXISTENT_MODULE');
-        expect(error.details.availableModules).toBeInstanceOf(Array);
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(PricingError);
+        const pricingError = error as PricingError;
+        expect(pricingError.message).toContain('NONEXISTENT_MODULE');
+        expect(pricingError.details?.module).toBe('NONEXISTENT_MODULE');
+        expect(pricingError.details?.availableModules).toBeInstanceOf(Array);
         // Error should tell user what modules ARE available
-        expect(error.details.availableModules).toContain('AQAR');
+        expect(pricingError.details?.availableModules).toContain('AQAR');
       }
     });
   });

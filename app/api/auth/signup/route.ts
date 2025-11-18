@@ -8,6 +8,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { zodValidationError, rateLimitError, duplicateKeyError, handleApiError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
+import { Types } from 'mongoose';
 
 const signupSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -90,6 +91,22 @@ export async function POST(req: NextRequest) {
     
     const body = signupSchema.parse(requestBody);
 
+    // Resolve default organization - must be explicitly configured
+    // SECURITY: Never fallback to arbitrary user's orgId (breaks tenant isolation)
+    let resolvedOrgId = process.env.PUBLIC_ORG_ID || process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID;
+    
+    if (!resolvedOrgId) {
+      throw new Error(
+        'Default organization not configured. Set PUBLIC_ORG_ID, TEST_ORG_ID, or DEFAULT_ORG_ID environment variable with a valid ObjectId.'
+      );
+    }
+    
+    if (!Types.ObjectId.isValid(resolvedOrgId)) {
+      throw new Error(
+        `Invalid default organization ID: ${resolvedOrgId}. Must be a valid MongoDB ObjectId.`
+      );
+    }
+
     // 🛑 SECURITY FIX: Public signup MUST NOT be able to set admin roles.
     // The 'userType' from the client is only a hint for data categorization.
     // The 'role' assigned is ALWAYS the lowest-privilege personal user.
@@ -116,13 +133,15 @@ export async function POST(req: NextRequest) {
     
     // Get or create organization for new user
     // For public signups, use default PUBLIC org or create personal org
-    const defaultOrgId = process.env.PUBLIC_ORG_ID || 'ORG-00000001'; // Default public org
+    const defaultOrgId = resolvedOrgId; // Default public org
 
     // ✅ FIX: Add try/catch around the 'create' to handle race conditions
     let newUser;
+    const newUserId = new Types.ObjectId();
     try {
       // Use nested User model schema from @/server/models/User
       newUser = await User.create({
+        _id: newUserId,
         orgId: defaultOrgId, // Required by tenant isolation plugin
         code,
         username: code, // Use unique code as username (no more conflicts)
@@ -159,6 +178,7 @@ export async function POST(req: NextRequest) {
           preferredCurrency: body.preferredCurrency || 'SAR',
           authProvider: 'credentials',
         },
+        createdBy: newUserId,
       });
     } catch (dbError: unknown) {
       // 🔒 TYPE SAFETY: Handle MongoDB duplicate key error with type guard

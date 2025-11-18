@@ -18,6 +18,8 @@ import { isValidObjectIdSafe } from '@/lib/api/validation';
 import mongoose from 'mongoose';
 
 import { logger } from '@/lib/logger';
+import { normalizeImmersive, normalizeProptech } from '@/app/api/aqar/listings/normalizers';
+import { AqarFmLifecycleService } from '@/services/aqar/fm-lifecycle-service';
 export const runtime = 'nodejs';
 
 // GET /api/aqar/listings/[id]
@@ -37,7 +39,9 @@ export async function GET(
       }
       
       const listing = await (AqarListing as any).findById(id)
-        .select('_id title price areaSqm city status media amenities location analytics rnplEligible auction')
+        .select(
+          '_id title price areaSqm city status media amenities location intent propertyType analytics rnplEligible auction proptech immersive pricingInsights pricing ai fmLifecycle iotFeatures'
+        )
         .lean();
       
       if (!listing) {
@@ -90,6 +94,8 @@ export async function PATCH(
     }
     
     const body = await request.json();
+    const transactionValue = typeof body.transactionValue === 'number' ? body.transactionValue : undefined;
+    const vatAmount = typeof body.vatAmount === 'number' ? body.vatAmount : undefined;
     
     // Update allowed fields
     const allowedFields = [
@@ -110,6 +116,8 @@ export async function PATCH(
     ] as const;
     
     // Validate and assign fields with type/enum checks
+    const prevStatus = listing.status;
+
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
         const value = body[field];
@@ -148,7 +156,28 @@ export async function PATCH(
       }
     }
     
+    if ('proptech' in body) {
+      const normalized = normalizeProptech(body.proptech);
+      listing.proptech = normalized;
+    }
+    if ('immersive' in body) {
+      const normalizedImmersive = normalizeImmersive(body.immersive);
+      listing.immersive = normalizedImmersive;
+    }
+
     await listing.save();
+
+    const statusChanged = body.status && body.status !== prevStatus;
+    if (statusChanged) {
+      await AqarFmLifecycleService.handleStatusChange({
+        listingId: id,
+        nextStatus: body.status,
+        prevStatus,
+        actorId: user.id,
+        transactionValue,
+        vatAmount,
+      });
+    }
     
     return NextResponse.json({ listing });
   } catch (error) {

@@ -7,7 +7,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { rateLimit } from '@/server/security/rateLimit';
 import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 const updateAssetSchema = z.object({
   name: z.string().min(1).optional(),
@@ -71,16 +71,13 @@ const updateAssetSchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     await connectToDatabase();
 
     const asset = await Asset.findOne({
@@ -164,16 +161,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
  * - 500 with an error message for other failures
  */
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   const params = await props.params;
   try {
     const user = await getSessionUser(req);
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     await connectToDatabase();
 
     const asset = await Asset.findOneAndUpdate(

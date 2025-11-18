@@ -1,8 +1,9 @@
 import { cookies } from 'next/headers';
 import { findLanguageByCode } from '@/data/language-options';
 import { NextRequest } from 'next/server';
-import enMessages from '@/i18n/dictionaries/en';
-import arMessages from '@/i18n/dictionaries/ar';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import type { SupportedTranslationLocale, TranslationDictionary } from '@/i18n/dictionaries/types';
 
 // eslint-disable-next-line no-unused-vars
 type TFn = (key: string, fallback?: string) => string;
@@ -46,7 +47,29 @@ export async function getServerI18n() {
   }
 }
 
-type _Messages = typeof enMessages;
+const GENERATED_DICTIONARY_DIR = path.join(process.cwd(), 'i18n', 'generated');
+const DICTIONARY_CACHE: Partial<Record<SupportedTranslationLocale, TranslationDictionary>> = {};
+
+function loadDictionary(locale: SupportedTranslationLocale): TranslationDictionary {
+  if (DICTIONARY_CACHE[locale]) {
+    return DICTIONARY_CACHE[locale] as TranslationDictionary;
+  }
+
+  const filePath = path.join(GENERATED_DICTIONARY_DIR, `${locale}.dictionary.json`);
+
+  try {
+    const raw = readFileSync(filePath, 'utf-8');
+    const parsed = JSON.parse(raw) as TranslationDictionary;
+    DICTIONARY_CACHE[locale] = parsed;
+    return parsed;
+  } catch (err) {
+    console.error(`[i18n] Failed to load dictionary ${locale}:`, err);
+    if (locale !== 'en') {
+      return loadDictionary('en');
+    }
+    throw err;
+  }
+}
 
 export async function getServerTranslation(request: NextRequest) {
   // Get locale from cookie or Accept-Language header
@@ -54,7 +77,8 @@ export async function getServerTranslation(request: NextRequest) {
   const headerLocale = request.headers.get('accept-language')?.split(',')[0]?.split('-')[0];
   const locale = cookieLocale || headerLocale || 'en';
   
-  const messages = locale === 'ar' ? arMessages : enMessages;
+  const chosenLocale: SupportedTranslationLocale = locale === 'ar' ? 'ar' : 'en';
+  const messages = loadDictionary(chosenLocale);
   
   return function t(key: string): string {
     const keys = key.split('.');

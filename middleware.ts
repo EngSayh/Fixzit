@@ -1,9 +1,10 @@
-/* eslint-disable no-unused-vars */
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { logger } from '@/lib/logger';
 import { handlePreflight } from '@/server/security/headers';
 import { isOriginAllowed } from '@/lib/security/cors-allowlist';
+import { logSecurityEvent } from '@/lib/monitoring/security-events';
+import { getClientIP } from '@/server/security/headers';
 
 // ⚡ PERFORMANCE OPTIMIZATION: Lazy-load auth only for protected routes
 // Previously: auth imported eagerly (adds ~30-40 KB to middleware bundle)
@@ -110,6 +111,7 @@ const publicApiPrefixes = [
   '/api/marketplace/products',
   '/api/marketplace/search',
   '/api/webhooks',
+  // SECURITY: /api/admin/* endpoints require auth - do NOT add to public list
 ];
 
 // Dev helpers gate
@@ -203,6 +205,18 @@ export async function middleware(request: NextRequest) {
 
     const origin = request.headers.get('origin');
     if (origin && !isOriginAllowed(origin)) {
+      // Log CORS block for monitoring
+      logSecurityEvent({
+        type: 'cors_block',
+        ip: getClientIP(request),
+        path: pathname,
+        timestamp: new Date().toISOString(),
+        metadata: {
+          origin,
+          method,
+        },
+      }).catch(err => console.error('[CORS] Failed to log security event:', err));
+      
       return NextResponse.json(
         { error: 'Origin not allowed' },
         { status: 403 }
@@ -259,8 +273,13 @@ export async function middleware(request: NextRequest) {
       
       if (!hasAdminAccess) {
         // Fallback to legacy role check
-        const adminRoles = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN']);
+        const adminRoles = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN']);
         if (!adminRoles.has(user.role)) {
+          logger.warn('[Middleware] API admin access denied', {
+            path: pathname,
+            role: user.role,
+            permissions: user.permissions,
+          });
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
       }
@@ -300,7 +319,7 @@ export async function middleware(request: NextRequest) {
     
     if (!hasAdminAccess) {
       // Fallback to legacy role check
-      const adminRoles = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN']);
+      const adminRoles = new Set(['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN']);
       if (!adminRoles.has(user.role)) {
         return NextResponse.redirect(new URL('/login', request.url));
       }

@@ -66,10 +66,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Super admin check
-    if (session.user.role !== 'SUPER_ADMIN') {
+    // Super admin or delegated permission check
+    const sessionUser = session.user as { role?: string; permissions?: string[]; roles?: string[] };
+    const role = sessionUser.role || 'GUEST';
+    const permissions = sessionUser.permissions || [];
+    const hasBroadcastPermission =
+      permissions.includes('notifications.broadcast') ||
+      permissions.includes('notifications.*');
+    // Check authorization: single role field OR roles array (normalized to uppercase)
+    const isAuthorizedRole = 
+      role === 'SUPER_ADMIN' || 
+      role === 'ADMIN' || 
+      role === 'CORPORATE_ADMIN' || 
+      (Array.isArray(sessionUser.roles) && sessionUser.roles.includes('SUPER_ADMIN'));
+
+    if (!isAuthorizedRole && !hasBroadcastPermission) {
+      logger.warn('[Admin Notification] Broadcast denied for user', {
+        role,
+        permissionsCount: permissions.length,
+        userEmail: session.user.email,
+      });
       return NextResponse.json(
-        { success: false, error: 'Forbidden: Super Admin access required' },
+        { success: false, error: 'Forbidden: broadcast permission required' },
         { status: 403 }
       );
     }

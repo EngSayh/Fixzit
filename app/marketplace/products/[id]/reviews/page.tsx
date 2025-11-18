@@ -5,10 +5,8 @@
 
 import React from 'react';
 import { Metadata } from 'next';
-import { ReviewList } from '@/components/seller/reviews/ReviewList';
-import { RatingSummary } from '@/components/seller/reviews/RatingSummary';
 import { reviewService } from '@/services/souq/reviews/review-service';
-import Link from 'next/link';
+import { ProductReviewsClient } from '@/components/marketplace/ProductReviewsClient';
 
 export const metadata: Metadata = {
   title: 'Product Reviews',
@@ -55,46 +53,39 @@ export default async function ProductReviewsPage({
     },
   };
 
+  const normalizedReviews = reviewsData.reviews.map((review) => {
+    const rawId =
+      review.reviewId ||
+      (typeof review._id === 'string'
+        ? review._id
+        : (review._id as { toString?: () => string } | undefined)?.toString?.()) ||
+      `review-${Math.random().toString(36).slice(2)}`;
+
+    return {
+      _id: rawId,
+      rating: review.rating,
+      title: review.title,
+      comment: review.content,
+      createdAt: review.createdAt ? new Date(review.createdAt).toISOString() : undefined,
+      author: {
+        name: review.customerName,
+        verifiedPurchase: review.isVerifiedPurchase,
+      },
+    };
+  });
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">Customer Reviews</h1>
-            <p className="text-muted-foreground mt-1">
-              Real feedback from verified buyers
-            </p>
-          </div>
-          <Link
-            href={`/marketplace/products/${productId}`}
-            className="px-4 py-2 border rounded-lg hover:bg-white"
-          >
-            Back to Product
-          </Link>
-        </div>
-
-        {/* Rating Summary */}
-        <div className="mb-8">
-          <RatingSummary
-            stats={{
-              averageRating: stats.averageRating,
-              totalReviews: stats.totalReviews,
-              distribution,
-              verifiedPurchasePercentage: Math.round(
-                (stats.verifiedPurchaseCount / stats.totalReviews) * 100
-              ),
-            }}
-            showVerified={true}
-          />
-        </div>
-
-        {/* Reviews List */}
-        <ReviewList
-          productId={productId}
-          initialReviews={reviewsData.reviews}
-        />
-      </div>
-    </div>
+    <ProductReviewsClient
+      productId={productId}
+      stats={{
+        averageRating: stats.averageRating,
+        totalReviews: stats.totalReviews,
+        distribution,
+        verifiedPurchasePercentage: Math.round(
+          stats.totalReviews > 0 ? (stats.verifiedPurchaseCount / stats.totalReviews) * 100 : 0
+        ),
+      }}
+      initialReviews={normalizedReviews}
+    />
   );
 }

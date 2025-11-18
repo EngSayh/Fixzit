@@ -5,7 +5,7 @@ import { getPresignedPutUrl, buildResumeKey } from '@/lib/storage/s3';
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 /**
  * @openapi
@@ -25,19 +25,16 @@ import { getClientIP } from '@/server/security/headers';
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     const role = user.role || '';
     const allowed = new Set(['SUPER_ADMIN','ADMIN','HR']);
     if (!allowed.has(role)) return createSecureResponse({ error: 'Forbidden' }, 403, req);
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     const body = await req.json().catch(() => ({} as unknown));
     const { fileName, contentType } = body || {};
     if (!fileName || !contentType) return createSecureResponse({ error: 'Missing fileName or contentType' }, 400, req);
@@ -48,4 +45,3 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ error: 'Failed to presign' }, 500, req);
   }
 }
-

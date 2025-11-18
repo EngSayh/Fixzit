@@ -52,6 +52,14 @@ export interface PropertyCardProps {
       phone?: string;
     };
   };
+  rnplEligible?: boolean;
+  aiScore?: number;
+  proptech?: {
+    smartHomeLevel?: string;
+  };
+  immersive?: {
+    vrTour?: { ready?: boolean };
+  };
 }
 
 export default function PropertyCard({ property }: { property: PropertyCardProps }) {
@@ -146,11 +154,11 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
         
         {/* Badges */}
         <div className="absolute top-3 start-3 flex flex-col gap-2">
-          {property.featured && (
-            <span className="bg-gradient-to-r from-warning to-warning-dark text-white px-3 py-1 rounded-full text-xs font-semibold">
-              {t('aqar.propertyCard.featured', 'Featured')}
-            </span>
-          )}
+        {property.featured && (
+          <span className="bg-gradient-to-r from-warning to-warning-dark text-white px-3 py-1 rounded-full text-xs font-semibold">
+            {t('aqar.propertyCard.featured', 'Featured')}
+          </span>
+        )}
           {property.verified && (
             <span className="bg-success text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -169,6 +177,26 @@ export default function PropertyCard({ property }: { property: PropertyCardProps
               : t('aqar.propertyCard.forRent', 'For Rent')
             }
           </span>
+          {property.aiScore !== undefined && (
+            <span className="bg-card/80 text-primary border border-primary/30 px-3 py-1 rounded-full text-xs font-semibold">
+              {t('aqar.propertyCard.ai', 'AI')} {Math.round(property.aiScore)}
+            </span>
+          )}
+          {property.proptech?.smartHomeLevel === 'ADVANCED' && (
+            <span className="bg-muted text-foreground px-3 py-1 rounded-full text-xs font-semibold">
+              {t('aqar.propertyCard.smartHome', 'Smart Home')}
+            </span>
+          )}
+          {property.immersive?.vrTour?.ready && (
+            <span className="bg-primary/80 text-white px-3 py-1 rounded-full text-xs font-semibold">
+              {t('aqar.propertyCard.vr', 'VR tour')}
+            </span>
+          )}
+          {property.rnplEligible && (
+            <span className="bg-success text-white px-3 py-1 rounded-full text-xs font-semibold">
+              {t('aqar.propertyCard.rnpl', 'RNPL')}
+            </span>
+          )}
         </div>
 
         {/* Favorite Button */}

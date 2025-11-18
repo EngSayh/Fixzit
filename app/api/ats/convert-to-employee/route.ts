@@ -9,7 +9,7 @@ import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { rateLimit } from '@/server/security/rateLimit';
 import {notFoundError, validationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 /**
  * @openapi
@@ -29,16 +29,13 @@ import { getClientIP } from '@/server/security/headers';
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
-    await connectToDatabase();
     const user = await getSessionUser(req);
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+    await connectToDatabase();
     
     // Verify user authentication
     if (!user) {
@@ -101,6 +98,5 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ error: "Failed to convert to employee" }, 500, req);
   }
 }
-
 
 

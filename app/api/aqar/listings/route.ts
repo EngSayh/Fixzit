@@ -11,6 +11,8 @@ import { connectDb } from '@/lib/mongo';
 import { AqarListing, AqarPackage } from '@/models/aqar';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { ok, badRequest, forbidden, serverError } from '@/lib/api/http';
+import { normalizeImmersive, normalizeProptech } from '@/app/api/aqar/listings/normalizers';
+import { AqarRecommendationEngine } from '@/services/aqar/recommendation-engine';
 
 export const runtime = 'nodejs';
 
@@ -75,8 +77,9 @@ export async function POST(request: NextRequest) {
       
       // Create listing
       const orgId = user.orgId || user.id;
+      const { proptech: proptechRaw, immersive: immersiveRaw, ...restBody } = body;
       const listingPayload = {
-        ...body,
+        ...restBody,
         orgId,
         listerId: user.id,
         location: {
@@ -118,6 +121,20 @@ export async function POST(request: NextRequest) {
         };
       }
 
+      const proptechPayload = normalizeProptech(proptechRaw);
+      if (proptechPayload) {
+        listingPayload.proptech = proptechPayload;
+      } else {
+        delete listingPayload.proptech;
+      }
+
+      const immersivePayload = normalizeImmersive(immersiveRaw);
+      if (immersivePayload) {
+        listingPayload.immersive = immersivePayload;
+      } else {
+        delete listingPayload.immersive;
+      }
+
       const created = await (AqarListing as any).create(listingPayload);
       
       // Sanitize response
@@ -137,6 +154,18 @@ export async function POST(request: NextRequest) {
         createdAt,
       } =
         created.toObject?.() ?? created;
+      
+      void AqarRecommendationEngine.refreshForListing(_id.toString(), {
+        intent: body.intent,
+        propertyTypes: body.propertyType ? [body.propertyType] : undefined,
+        preferredCity: body.city,
+        updateAiSnapshot: true,
+      }).catch((error: Error) => {
+        logger.warn('AQAR_RECO_BOOTSTRAP_FAILED', {
+          listingId: _id.toString(),
+          error: error?.message,
+        });
+      });
       
       return ok(
         {

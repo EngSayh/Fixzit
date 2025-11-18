@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 
 import { logger } from '@/lib/logger';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 interface PartItem {
   id: string;
   name: string;
@@ -26,6 +27,7 @@ interface SelectedPartItem {
 export default function WorkOrderPartsPage() {
   const params = useParams();
   const workOrderId = params.id;
+  const auto = useAutoTranslator('workOrders.parts');
   
   const [search, setSearch] = useState('');
   const [parts, setParts] = useState<PartItem[]>([]);
@@ -100,14 +102,17 @@ export default function WorkOrderPartsPage() {
     
     logger.info('Creating PO:', { po });
     // In production, send to API
-    toast.success('Purchase Order created successfully!');
+    toast.success(auto('Purchase Order created successfully!', 'toast.success'));
   };
   
   return (
     <div className="min-h-screen bg-muted">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold text-foreground mb-6">
-          Add Parts to Work Order #{workOrderId}
+          {auto('Add Parts to Work Order #{{id}}', 'header.title').replace(
+            '{{id}}',
+            String(workOrderId ?? '')
+          )}
         </h1>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -119,7 +124,7 @@ export default function WorkOrderPartsPage() {
                   <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Search parts from marketplace..."
+                    placeholder={auto('Search parts from marketplace...', 'search.placeholder')}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="w-full ps-10 pe-4 py-2 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -128,22 +133,33 @@ export default function WorkOrderPartsPage() {
               </div>
               
               {loading ? (
-                <div className="text-center py-8">Loading...</div>
+                <div className="text-center py-8">
+                  {auto('Loading...', 'state.loading')}
+                </div>
               ) : (
                 <div className="grid gap-4">
                   {parts.map((part) => (
                     <div key={part.id} className="border rounded-2xl p-4 flex items-center justify-between">
                       <div>
                         <h3 className="font-semibold">{part.title}</h3>
-                        <p className="text-sm text-muted-foreground">{part.category} • Stock: {part.stock}</p>
-                        <p className="text-lg font-bold text-success">SAR {part.price}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {auto('{{category}} • Stock: {{stock}}', 'list.categoryStock')
+                            .replace('{{category}}', part.category)
+                            .replace('{{stock}}', String(part.stock))}
+                        </p>
+                        <p className="text-lg font-bold text-success">
+                          {auto('SAR {{price}}', 'list.price').replace(
+                            '{{price}}',
+                            part.price.toString()
+                          )}
+                        </p>
                       </div>
                       <button
                         onClick={() => addPart(part)}
                         className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 flex items-center gap-2"
                       >
                         <Plus className="h-4 w-4" />
-                        Add
+                        {auto('Add', 'actions.add')}
                       </button>
                     </div>
                   ))}
@@ -157,11 +173,13 @@ export default function WorkOrderPartsPage() {
             <div className="bg-card rounded-2xl shadow p-6 sticky top-4">
               <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <ShoppingCart className="h-5 w-5" />
-                Selected Parts
+                {auto('Selected Parts', 'selected.title')}
               </h2>
               
               {selectedParts.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No parts selected</p>
+                <p className="text-muted-foreground text-center py-8">
+                  {auto('No parts selected', 'selected.empty')}
+                </p>
               ) : (
                 <>
                   <div className="space-y-3 mb-4">
@@ -193,7 +211,10 @@ export default function WorkOrderPartsPage() {
                             </button>
                           </div>
                           <span className="font-semibold">
-                            SAR {(part.price * part.quantity).toFixed(2)}
+                            {auto('SAR {{total}}', 'selected.lineTotal').replace(
+                              '{{total}}',
+                              (part.price * part.quantity).toFixed(2)
+                            )}
                           </span>
                         </div>
                       </div>
@@ -202,16 +223,23 @@ export default function WorkOrderPartsPage() {
                   
                   <div className="border-t pt-4">
                     <div className="flex justify-between mb-4">
-                      <span className="font-semibold">Total</span>
+                      <span className="font-semibold">
+                        {auto('Total', 'selected.total')}
+                      </span>
                       <span className="font-bold text-xl text-success">
-                        SAR {selectedParts.reduce((sum, p) => sum + (p.price * p.quantity), 0).toFixed(2)}
+                        {auto('SAR {{total}}', 'selected.grandTotal').replace(
+                          '{{total}}',
+                          selectedParts
+                            .reduce((sum, p) => sum + (p.price * p.quantity), 0)
+                            .toFixed(2)
+                        )}
                       </span>
                     </div>
                     <button
                       onClick={createPurchaseOrder}
                       className="w-full py-3 bg-success text-white rounded-2xl hover:bg-success/90"
                     >
-                      Create Purchase Order
+                      {auto('Create Purchase Order', 'actions.createPO')}
                     </button>
                   </div>
                 </>

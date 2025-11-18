@@ -5,6 +5,7 @@ import { renderMarkdownSanitized } from '@/lib/markdown';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import ClientDate from '@/components/ClientDate';
+import { getServerI18n } from '@/lib/i18n/server';
 
 export const revalidate = 60;
 
@@ -22,6 +23,7 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
   if (!a) {
     notFound();
   }
+  const { t } = await getServerI18n();
   // Derive dir from Accept-Language (simple heuristic); ClientLayout will enforce on client
   const accept = (await headers()).get('accept-language') || '';
   const isRTL = accept.toLowerCase().startsWith('ar');
@@ -31,9 +33,11 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
       <section className="bg-gradient-to-r from-primary to-success text-primary-foreground py-8">
         <div className="mx-auto max-w-4xl px-6">
           <div className="flex items-center gap-2 text-sm mb-2 opacity-90">
-            <Link href="/help" className="hover:underline">Help Center</Link>
+            <Link href="/help" className="hover:underline">
+              {t('help.article.breadcrumb.home', 'Help Center')}
+            </Link>
             <span>/</span>
-            <span>{a.category || 'General'}</span>
+            <span>{a.category || t('help.article.categoryFallback', 'General')}</span>
           </div>
           <h1 className="text-3xl font-bold">{a.title}</h1>
         </div>
@@ -50,12 +54,15 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
             
             <div className="mt-8 pt-6 border-t border-border">
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <div>Last updated {a.updatedAt ? <ClientDate date={a.updatedAt} format="date-only" /> : ''}</div>
+                <div>
+                  {t('help.article.updated', 'Last updated')}{' '}
+                  {a.updatedAt ? <ClientDate date={a.updatedAt} format="date-only" /> : ''}
+                </div>
                 <Link 
                   href="/help" 
                   className="text-primary hover:text-primary/80 font-medium"
                 >
-                  ← All articles
+                  {t('help.article.breadcrumb.back', '← All articles')}
                 </Link>
               </div>
             </div>
@@ -64,25 +71,37 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
           {/* Sidebar */}
           <aside className="space-y-4">
             <div className="bg-card rounded-2xl shadow-md border border-border p-4">
-              <h3 className="font-semibold text-foreground mb-3">Was this helpful?</h3>
+              <h3 className="font-semibold text-foreground mb-3">
+                {t('help.article.feedback.prompt', 'Was this helpful?')}
+              </h3>
               <div className="flex gap-2">
-                <button aria-label="Mark article as helpful" className="flex-1 px-3 py-2 border border-border rounded-2xl hover:bg-muted">
-                  👍 Yes
+                <button
+                  aria-label={t('help.article.feedback.helpfulAria', 'Mark article as helpful')}
+                  className="flex-1 px-3 py-2 border border-border rounded-2xl hover:bg-muted"
+                >
+                  {t('help.article.feedback.yes', '👍 Yes')}
                 </button>
-                <button aria-label="Mark article as not helpful" className="flex-1 px-3 py-2 border border-border rounded-2xl hover:bg-muted">
-                  👎 No
+                <button
+                  aria-label={t('help.article.feedback.notHelpfulAria', 'Mark article as not helpful')}
+                  className="flex-1 px-3 py-2 border border-border rounded-2xl hover:bg-muted"
+                >
+                  {t('help.article.feedback.no', '👎 No')}
                 </button>
               </div>
             </div>
             
             <div className="bg-primary text-primary-foreground rounded-2xl p-4">
-              <h4 className="font-semibold mb-2">Still need help?</h4>
-              <p className="text-sm mb-3">Our support team is here to assist you.</p>
+              <h4 className="font-semibold mb-2">
+                {t('help.article.sidebar.ctaTitle', 'Still need help?')}
+              </h4>
+              <p className="text-sm mb-3">
+                {t('help.article.sidebar.ctaSubtitle', 'Our support team is here to assist you.')}
+              </p>
               <Link 
                 href="/support/my-tickets"
                 className="block w-full bg-card text-primary px-4 py-2 rounded-2xl font-medium hover:bg-muted text-center"
               >
-                Contact Support
+                {t('help.article.sidebar.cta', 'Contact Support')}
               </Link>
             </div>
           </aside>

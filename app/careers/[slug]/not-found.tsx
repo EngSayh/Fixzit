@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { getServerI18n } from '@/lib/i18n/server';
 
-export default function JobNotFound() {
+export default async function JobNotFound() {
+  const { t } = await getServerI18n();
   return (
     <div className="min-h-screen bg-card flex items-center justify-center px-4">
       <div className="max-w-md text-center">
@@ -20,13 +22,14 @@ export default function JobNotFound() {
             />
           </svg>
         </div>
-        
         <h1 className="text-3xl font-bold text-foreground mb-2">
-          Job Not Found
+          {t('careers.notFound.title', 'Job Not Found')}
         </h1>
-        
         <p className="text-muted-foreground mb-6">
-          This job posting may have been closed, removed, or the link may be invalid.
+          {t(
+            'careers.notFound.description',
+            'This job posting may have been closed, removed, or the link may be invalid.'
+          )}
         </p>
         
         <div className="space-y-3">
@@ -36,7 +39,7 @@ export default function JobNotFound() {
                      hover:bg-primary/90 transition-colors font-semibold
                      focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
-            View All Open Positions
+            {t('careers.notFound.viewAll', 'View All Open Positions')}
           </Link>
           
           <Link
@@ -45,14 +48,14 @@ export default function JobNotFound() {
                      rounded-2xl hover:bg-muted transition-colors font-semibold
                      focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
-            Go to Homepage
+            {t('careers.notFound.goHome', 'Go to Homepage')}
           </Link>
         </div>
         
         <p className="text-sm text-muted-foreground mt-6">
-          Looking for something specific?{' '}
+          {t('careers.notFound.footerPrompt', 'Looking for something specific?')}{' '}
           <Link href="/support" className="text-primary hover:text-primary underline">
-            Contact our HR team
+            {t('careers.notFound.contact', 'Contact our HR team')}
           </Link>
         </p>
       </div>

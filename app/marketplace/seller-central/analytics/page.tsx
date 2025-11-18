@@ -176,21 +176,25 @@ export default function AnalyticsPage() {
         { metric: auto('Total Revenue', 'export.totalRevenue'), value: `${sales.revenue.total.toFixed(2)} SAR`, trend: formatTrendValue(sales.revenue.trend) },
         { metric: auto('Total Orders', 'export.totalOrders'), value: sales.orders.total.toString(), trend: formatTrendValue(sales.orders.trend) },
         { metric: auto('Average Order Value', 'export.avgOrderValue'), value: `${sales.averageOrderValue.current.toFixed(2)} SAR`, trend: formatTrendValue(sales.averageOrderValue.trend) },
-        { metric: auto('New Customers', 'export.newCustomers'), value: customers.acquisition.newCustomers.toString(), trend: 'N/A' },
+        {
+          metric: auto('New Customers', 'export.newCustomers'),
+          value: customers.acquisition.newCustomers.toString(),
+          trend: auto('N/A', 'export.notAvailable'),
+        },
         { metric: auto('Conversion Rate', 'export.conversionRate'), value: `${sales.conversionRate.current.toFixed(2)}%`, trend: formatTrendValue(sales.conversionRate.trend) },
       ];
       
       const filename = `analytics-${period}-${new Date().toISOString().split('T')[0]}.csv`;
       exportToCSV(exportData, filename, [
-        { key: 'metric', label: 'Metric' },
-        { key: 'value', label: 'Value' },
-        { key: 'trend', label: 'Trend' },
+        { key: 'metric', label: auto('Metric', 'export.table.metric') },
+        { key: 'value', label: auto('Value', 'export.table.value') },
+        { key: 'trend', label: auto('Trend', 'export.table.trend') },
       ]);
       
       logger.info('Analytics exported to CSV', { period, filename });
     } catch (error) {
       logger.error('Failed to export CSV', { error });
-      alert('Failed to export data. Please try again.');
+      alert(auto('Failed to export data. Please try again.', 'alerts.exportFailed'));
     }
   };
 
@@ -208,11 +212,31 @@ export default function AnalyticsPage() {
       
       // Prepare export data
       const exportData = [
-        { metric: 'Total Revenue', value: `${sales.revenue.total.toFixed(2)} SAR`, trend: formatTrendValue(sales.revenue.trend) },
-        { metric: 'Total Orders', value: String(sales.orders.total), trend: formatTrendValue(sales.orders.trend) },
-        { metric: 'Average Order Value', value: `${sales.averageOrderValue.current.toFixed(2)} SAR`, trend: formatTrendValue(sales.averageOrderValue.trend) },
-        { metric: 'New Customers', value: String(customers.acquisition.newCustomers), trend: 'N/A' },
-        { metric: 'Conversion Rate', value: `${sales.conversionRate.current.toFixed(2)}%`, trend: formatTrendValue(sales.conversionRate.trend) },
+        {
+          metric: auto('Total Revenue', 'export.totalRevenue'),
+          value: `${sales.revenue.total.toFixed(2)} SAR`,
+          trend: formatTrendValue(sales.revenue.trend),
+        },
+        {
+          metric: auto('Total Orders', 'export.totalOrders'),
+          value: String(sales.orders.total),
+          trend: formatTrendValue(sales.orders.trend),
+        },
+        {
+          metric: auto('Average Order Value', 'export.avgOrderValue'),
+          value: `${sales.averageOrderValue.current.toFixed(2)} SAR`,
+          trend: formatTrendValue(sales.averageOrderValue.trend),
+        },
+        {
+          metric: auto('New Customers', 'export.newCustomers'),
+          value: String(customers.acquisition.newCustomers),
+          trend: auto('N/A', 'export.notAvailable'),
+        },
+        {
+          metric: auto('Conversion Rate', 'export.conversionRate'),
+          value: `${sales.conversionRate.current.toFixed(2)}%`,
+          trend: formatTrendValue(sales.conversionRate.trend),
+        },
       ];
       
       const filename = `analytics-${period}-${new Date().toISOString().split('T')[0]}.pdf`;

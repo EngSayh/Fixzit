@@ -524,8 +524,9 @@ async function seedChartOfAccounts() {
           accountMap.set(accountData.accountCode, account._id);
           console.log(`✅ Created: ${accountData.accountCode} - ${accountData.accountName}`);
           stats.created++;
-        } catch (error: any) {
-          console.error(`❌ Error creating ${accountData.accountCode}:`, error.message);
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.error(`❌ Error creating ${accountData.accountCode}:`, message);
           stats.errors++;
         }
       }
@@ -556,8 +557,9 @@ async function seedChartOfAccounts() {
           accountMap.set(accountData.accountCode, account._id);
           console.log(`✅ Created: ${accountData.accountCode} - ${accountData.accountName}`);
           stats.created++;
-        } catch (error: any) {
-          console.error(`❌ Error creating ${accountData.accountCode}:`, error.message);
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.error(`❌ Error creating ${accountData.accountCode}:`, message);
           stats.errors++;
         }
       }

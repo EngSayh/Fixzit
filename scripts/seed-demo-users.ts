@@ -272,12 +272,17 @@ async function seedDemoUsers() {
           await User.create(userWithHashedPassword);
           console.log(`✅ Created user: ${userData.email} (${userData.professional?.role || 'user'})`);
           created++;
-        } catch (error: any) {
-          if (error.code === 11000) {
+        } catch (error: unknown) {
+          const duplicate =
+            typeof error === 'object' && error !== null
+              ? (error as { code?: number })
+              : undefined;
+          if (duplicate?.code === 11000) {
             console.log(`⏭️  User already exists: ${userData.email}`);
             skipped++;
           } else {
-            console.error(`❌ Error creating ${userData.email}:`, error.message);
+            const message = error instanceof Error ? error.message : String(error);
+            console.error(`❌ Error creating ${userData.email}:`, message);
           }
         }
       }

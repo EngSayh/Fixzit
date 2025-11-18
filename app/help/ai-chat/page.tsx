@@ -5,6 +5,7 @@ import { Bot, User, X, Send } from 'lucide-react';
 import ClientDate from '@/components/ClientDate';
 
 import { logger } from '@/lib/logger';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 interface Citation {
   title: string;
   slug: string;
@@ -19,11 +20,15 @@ interface Message {
 }
 
 export default function AIChatPage() {
+  const auto = useAutoTranslator('help.aiChat');
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       type: 'bot',
-      content: 'Hello! I\'m Fixzit AI Assistant. I can help you with questions about Fixzit Enterprise, guide you through features, and provide support. How can I help you today?',
+      content: auto(
+        "Hello! I'm Fixzit AI Assistant. I can help you with questions about Fixzit Enterprise, guide you through features, and provide support. How can I help you today?",
+        'intro'
+      ),
       timestamp: new Date()
     }
   ]);
@@ -70,7 +75,8 @@ export default function AIChatPage() {
         const botMessage = {
           id: crypto.randomUUID(),
           type: 'bot' as const,
-          content: `I apologize, but I encountered an error: ${errorMessage}. Please try again.`,
+          content: auto('I apologize, but I encountered an error: {{message}}. Please try again.', 'errors.api')
+            .replace('{{message}}', errorMessage),
           timestamp: new Date()
         };
         setMessages(prev => [...prev, botMessage]);
@@ -82,7 +88,12 @@ export default function AIChatPage() {
       const botMessage = {
         id: crypto.randomUUID(),
         type: 'bot' as const,
-        content: data.answer || "I'm here to help! However, I encountered an issue processing your request. Please try again.",
+        content:
+          data.answer ||
+          auto(
+            "I'm here to help! However, I encountered an issue processing your request. Please try again.",
+            'errors.generic'
+          ),
         citations: data.citations as Array<{ title: string; slug: string }> | undefined,
         timestamp: new Date()
       };
@@ -92,7 +103,10 @@ export default function AIChatPage() {
       const errorMessage = {
         id: crypto.randomUUID(),
         type: 'bot' as const,
-        content: 'I apologize, but I encountered an error. Please try again or contact support if the problem persists.',
+        content: auto(
+          'I apologize, but I encountered an error. Please try again or contact support if the problem persists.',
+          'errors.fallback'
+        ),
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -119,13 +133,17 @@ export default function AIChatPage() {
                 <Bot className="w-5 h-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">Fixzit AI Assistant</h1>
-                <p className="text-sm text-muted-foreground">Ask me anything about Fixzit!</p>
+                <h1 className="text-xl font-bold text-foreground">
+                  {auto('Fixzit AI Assistant', 'header.title')}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {auto('Ask me anything about Fixzit!', 'header.subtitle')}
+                </p>
               </div>
             </div>
             <button
               onClick={() => window.close()}
-              aria-label="Close chat"
+              aria-label={auto('Close chat', 'header.closeAria')}
               className="text-muted-foreground hover:text-muted-foreground p-2 rounded-2xl hover:bg-muted"
             >
               <X className="w-5 h-5" />
@@ -156,7 +174,9 @@ export default function AIChatPage() {
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   {message.type === 'bot' && message.citations && message.citations.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-border">
-                      <p className="text-sm font-medium mb-2">📚 Related Help Articles:</p>
+                      <p className="text-sm font-medium mb-2">
+                        📚 {auto('Related Help Articles:', 'messages.citationsTitle')}
+                      </p>
                       <ul className="space-y-1">
                         {message.citations.map((citation, i) => (
                           <li key={citation.slug}>
@@ -184,7 +204,7 @@ export default function AIChatPage() {
                   <Bot className="w-4 h-4 text-primary-foreground" />
                 </div>
                 <div className="bg-muted p-4 rounded-2xl">
-                  <p className="text-sm text-muted-foreground">Thinking...</p>
+                  <p className="text-sm text-muted-foreground">{auto('Thinking...', 'messages.thinking')}</p>
                 </div>
               </div>
             )}
@@ -193,28 +213,30 @@ export default function AIChatPage() {
           {/* Input */}
           <div className="p-6 border-t border-border">
             <div className="flex gap-3">
-              <label htmlFor="chat-input" className="sr-only">Chat message</label>
+              <label htmlFor="chat-input" className="sr-only">
+                {auto('Chat message', 'input.label')}
+              </label>
               <input
                 id="chat-input"
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ask me anything about Fixzit..."
+                placeholder={auto('Ask me anything about Fixzit...', 'input.placeholder')}
                 className="flex-1 px-4 py-3 border border-border rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isLoading}
               />
               <button
                 onClick={sendMessage}
                 disabled={!input.trim() || isLoading}
-                aria-label="Send message"
+                aria-label={auto('Send message', 'input.sendAria')}
                 className="px-4 py-3 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="w-4 h-4" />
               </button>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              Press Enter to send
+              {auto('Press Enter to send', 'input.hint')}
             </p>
           </div>
         </div>

@@ -4,8 +4,10 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { JobApplicationForm } from '@/components/careers/JobApplicationForm';
 import { sanitizeHtml } from '@/lib/sanitize-html';
+import { getServerI18n } from '@/lib/i18n/server';
 
 export default async function JobDetailPage({ params }: { params: { slug: string } }) {
+  const { t } = await getServerI18n();
   await connectToDatabase();
   
   // Use server-only environment variable (not NEXT_PUBLIC_)
@@ -26,13 +28,15 @@ export default async function JobDetailPage({ params }: { params: { slug: string
           className="text-primary hover:text-primary transition-colors inline-flex items-center gap-1"
         >
           <span aria-hidden="true">&larr;</span>
-          <span>Back to Careers</span>
+          <span>{t('careers.detail.back', 'Back to Careers')}</span>
         </Link>
         <h1 className="text-3xl font-bold mt-3">{job.title}</h1>
         <div className="text-muted-foreground mt-1">{job.department}</div>
         <div className="mt-6 space-y-4">
           <div>
-            <h3 className="font-semibold">Description</h3>
+            <h3 className="font-semibold">
+              {t('careers.detail.description', 'Description')}
+            </h3>
             <div
               className="prose dark:prose-invert"
               dangerouslySetInnerHTML={{ __html: sanitizeHtml(job.descriptionHtml || job.description || '') }}
@@ -40,7 +44,9 @@ export default async function JobDetailPage({ params }: { params: { slug: string
           </div>
           {Array.isArray(job.requirements) && job.requirements.length > 0 && (
             <div>
-              <h3 className="font-semibold">Requirements</h3>
+              <h3 className="font-semibold">
+                {t('careers.detail.requirements', 'Requirements')}
+              </h3>
               <ul className="list-disc ms-6 text-foreground">
                 {job.requirements.map((r: string) => <li key={r}>{r}</li>)}
               </ul>
@@ -48,7 +54,9 @@ export default async function JobDetailPage({ params }: { params: { slug: string
           )}
           {Array.isArray(job.benefits) && job.benefits.length > 0 && (
             <div>
-              <h3 className="font-semibold">Benefits</h3>
+              <h3 className="font-semibold">
+                {t('careers.detail.benefits', 'Benefits')}
+              </h3>
               <ul className="list-disc ms-6 text-foreground">
                 {job.benefits.map((b: string) => <li key={b}>{b}</li>)}
               </ul>
@@ -62,4 +70,3 @@ export default async function JobDetailPage({ params }: { params: { slug: string
     </div>
   );
 }
-

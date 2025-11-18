@@ -8,7 +8,7 @@ import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
 import type { NotificationDoc } from '@/lib/models';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 const notificationSchema = z.object({
   title: z.string().min(1),
@@ -46,13 +46,6 @@ const escapeRegex = (input: string) => input.replace(/[.*+?^${}()|[\]\\]/g, "\\$
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") || "").trim();
   const category = searchParams.get("category") || "";
@@ -66,6 +59,10 @@ export async function GET(req: NextRequest) {
   let orgId: string;
   try {
     const user = await getSessionUser(req);
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     orgId = user.orgId;
   } catch {
     return createSecureResponse({ error: 'Unauthorized' }, 401, req);
@@ -112,16 +109,13 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   let orgId: string;
   try {
     const user = await getSessionUser(req);
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     orgId = user.orgId;
   } catch {
     return createSecureResponse({ error: 'Unauthorized' }, 401, req);
@@ -146,4 +140,3 @@ export async function POST(req: NextRequest) {
   const result = await notifications.insertOne(doc);
   return NextResponse.json({ ...doc, id: result.insertedId }, { status: 201 });
 }
-

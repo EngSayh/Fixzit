@@ -5,12 +5,14 @@ import { logger } from '@/lib/logger';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { MessageSquare, AlertCircle, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface SupportCounters {
   support: { open: number; pending: number; resolved: number };
 }
 
 export default function SupportDashboard() {
+  const auto = useAutoTranslator('dashboard.support');
   const [activeTab, setActiveTab] = useState('tickets');
   const [counters, setCounters] = useState<SupportCounters | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,7 +21,7 @@ export default function SupportDashboard() {
     const fetchData = async () => {
       try {
         const response = await fetch('/api/counters');
-        if (!response.ok) throw new Error('Failed to fetch counters');
+        if (!response.ok) throw new Error(auto('Failed to fetch counters', 'errors.fetch'));
         const data = await response.json();
         setCounters({
           support: data.support || { open: 0, pending: 0, resolved: 0 },
@@ -34,17 +36,21 @@ export default function SupportDashboard() {
   }, []);
 
   const tabs = [
-    { id: 'tickets', label: 'Tickets', count: counters?.support.open },
-    { id: 'knowledge', label: 'Knowledge Base' },
-    { id: 'chat', label: 'Live Chat' },
-    { id: 'sla', label: 'SLA Management' },
+    { id: 'tickets', label: auto('Tickets', 'tabs.tickets'), count: counters?.support.open },
+    { id: 'knowledge', label: auto('Knowledge Base', 'tabs.knowledge') },
+    { id: 'chat', label: auto('Live Chat', 'tabs.chat') },
+    { id: 'sla', label: auto('SLA Management', 'tabs.sla') },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Support</h1>
-        <p className="text-muted-foreground">Manage tickets, KB, and customer support</p>
+        <h1 className="text-3xl font-bold text-foreground">
+          {auto('Support', 'header.title')}
+        </h1>
+        <p className="text-muted-foreground">
+          {auto('Manage tickets, KB, and customer support', 'header.subtitle')}
+        </p>
       </div>
 
       <div className="flex items-center gap-2 border-b">
@@ -73,7 +79,9 @@ export default function SupportDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Open Tickets</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto('Open Tickets', 'metrics.open')}
+              </CardTitle>
               <MessageSquare className="w-4 h-4 text-destructive" />
             </CardHeader>
             <CardContent>
@@ -82,7 +90,9 @@ export default function SupportDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto('Pending', 'metrics.pending')}
+              </CardTitle>
               <AlertCircle className="w-4 h-4 text-orange-500" />
             </CardHeader>
             <CardContent>
@@ -91,7 +101,9 @@ export default function SupportDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Resolved</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {auto('Resolved', 'metrics.resolved')}
+              </CardTitle>
               <CheckCircle className="w-4 h-4 text-success" />
             </CardHeader>
             <CardContent>
@@ -106,7 +118,9 @@ export default function SupportDashboard() {
           <CardContent className="py-8">
             <div className="text-center text-muted-foreground">
               <p className="font-medium">{tabs.find(t => t.id === activeTab)?.label}</p>
-              <p className="text-sm mt-2">Content will be implemented here</p>
+              <p className="text-sm mt-2">
+                {auto('Content will be implemented here', 'placeholder.description')}
+              </p>
             </div>
           </CardContent>
         </Card>

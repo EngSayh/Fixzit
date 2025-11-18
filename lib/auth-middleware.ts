@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
+import { auth } from '@/auth';
 
 export interface AuthenticatedUser {
   id: string;
@@ -20,22 +21,36 @@ export async function getSessionUser(req: NextRequest): Promise<AuthenticatedUse
     }
   }
   
-  if (!authToken) {
-    throw new Error('No authentication token found');
+  if (authToken) {
+    const payload = await verifyToken(authToken);
+    if (payload) {
+      return {
+        id: payload.id,
+        email: payload.email,
+        role: payload.role,
+        orgId: payload.orgId,
+      };
+    }
   }
 
-  const payload = await verifyToken(authToken);
-  if (!payload) {
-    throw new Error('Invalid authentication token');
+  const session = await auth();
+  if (session?.user?.id && session.user.orgId) {
+    // SECURITY: Reject sessions without valid email (no fake fallbacks)
+    if (!session.user.email) {
+      throw new Error('Session missing user email - cannot authenticate');
+    }
+    
+    const role = session.user.role || 'USER';
+    return {
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.name || session.user.email,
+      role,
+      orgId: session.user.orgId,
+    };
   }
 
-  return {
-    id: payload.id,
-    email: payload.email,
-  // name: payload.name || 'User', // Removed, not present in AuthToken
-    role: payload.role,
-    orgId: payload.orgId
-  };
+  throw new Error(authToken ? 'Invalid authentication token' : 'No authentication token found');
 }
 
 export function requireAbility(action: string) {

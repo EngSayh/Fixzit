@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDb } from '@/lib/mongo';
 import { AqarListing } from '@/models/aqar';
+import { SmartHomeLevel } from '@/models/aqar/Listing';
 
 import { logger } from '@/lib/logger';
 export const runtime = 'nodejs'; // Atlas Search requires Node.js runtime
@@ -39,6 +40,10 @@ export async function GET(request: NextRequest) {
     const maxArea = parseNum(searchParams.get('maxArea'));
     const furnishing = searchParams.get('furnishing');
     const amenities = searchParams.get('amenities')?.split(',').filter(Boolean);
+    const smartHomeLevel = searchParams.get('smartHomeLevel');
+    const proptechFeatures = searchParams.get('proptechFeatures')?.split(',').filter(Boolean);
+    const hasVr = searchParams.get('hasVr');
+    const minAiScore = parseNum(searchParams.get('minAiScore'));
     
     // Geo search with bounded radiusKm (0.1km to 20km - capped for DoS prevention)
     const lat = parseNum(searchParams.get('lat'));
@@ -82,6 +87,18 @@ export async function GET(request: NextRequest) {
     }
     if (furnishing) query.furnishing = furnishing;
     if (amenities && amenities.length > 0) query.amenities = { $all: amenities };
+    if (smartHomeLevel && Object.values(SmartHomeLevel).includes(smartHomeLevel as SmartHomeLevel)) {
+      query['proptech.smartHomeLevel'] = smartHomeLevel;
+    }
+    if (proptechFeatures && proptechFeatures.length > 0) {
+      query['proptech.features'] = { $all: proptechFeatures };
+    }
+    if (hasVr === 'true') {
+      query['immersive.vrTour.ready'] = true;
+    }
+    if (minAiScore !== undefined) {
+      query['ai.recommendationScore'] = { $gte: minAiScore };
+    }
     
     // Geo search
     if (lat !== undefined && lng !== undefined && radiusKm !== undefined) {

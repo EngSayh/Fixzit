@@ -20,6 +20,7 @@ import {
   MapPin, Eye, Send, Clock,
   Shield, Package, Wrench, Building2
 } from 'lucide-react';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface RFQItem {
   id: string;
@@ -52,6 +53,7 @@ interface RFQItem {
 }
 
 export default function RFQsPage() {
+  const auto = useAutoTranslator('fm.rfqs');
   const { data: session } = useSession();
   const orgId = session?.user?.orgId;
   const [search, setSearch] = useState('');
@@ -61,7 +63,7 @@ export default function RFQsPage() {
 
   const fetcher = (url: string) => {
     if (!orgId) {
-      return Promise.reject(new Error('No organization ID'));
+      return Promise.reject(new Error(auto('No organization ID', 'errors.noOrg')));
     }
     return fetch(url, { 
       headers: { 'x-tenant-id': orgId } 
@@ -83,7 +85,7 @@ export default function RFQsPage() {
   }
 
   if (!orgId) {
-    return <p>Error: No organization ID found in session</p>;
+    return <p className="text-destructive">{auto('Error: No organization ID found in session', 'errors.noOrgSession')}</p>;
   }
 
   const rfqs = data?.items || [];
@@ -93,19 +95,23 @@ export default function RFQsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">RFQs & Bidding</h1>
-          <p className="text-muted-foreground">City-bounded procurement with 3-bid collection</p>
+          <h1 className="text-3xl font-bold">
+            {auto('RFQs & Bidding', 'header.title')}
+          </h1>
+          <p className="text-muted-foreground">
+            {auto('City-bounded procurement with 3-bid collection', 'header.subtitle')}
+          </p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-teal-600 hover:bg-teal-700">
               <Plus className="w-4 h-4 me-2" />
-              New RFQ
+              {auto('New RFQ', 'actions.newRfq')}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create Request for Quotation</DialogTitle>
+              <DialogTitle>{auto('Create Request for Quotation', 'actions.createTitle')}</DialogTitle>
             </DialogHeader>
             <CreateRFQForm orgId={orgId} onCreated={() => { mutate(); setCreateOpen(false); }} />
           </DialogContent>
@@ -120,34 +126,40 @@ export default function RFQsPage() {
               <div className="relative">
                 <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder="Search RFQs..."
+                  placeholder={auto('Search RFQs...', 'filters.searchPlaceholder')}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="ps-10"
                 />
               </div>
             </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter} placeholder="Status" className="w-48">
+              <Select value={statusFilter} onValueChange={setStatusFilter} className="w-48">
+                <SelectTrigger>
+                  <SelectValue placeholder={auto('Status', 'filters.status')} />
+                </SelectTrigger>
                 <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-                <SelectItem value="PUBLISHED">Published</SelectItem>
-                <SelectItem value="BIDDING">Bidding</SelectItem>
-                <SelectItem value="CLOSED">Closed</SelectItem>
-                <SelectItem value="AWARDED">Awarded</SelectItem>
-                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-              <Select value={categoryFilter} onValueChange={setCategoryFilter} placeholder="Category" className="w-48">
+                  <SelectItem value="">{auto('All Status', 'filters.allStatus')}</SelectItem>
+                  <SelectItem value="DRAFT">{auto('Draft', 'filters.statusOptions.draft')}</SelectItem>
+                  <SelectItem value="PUBLISHED">{auto('Published', 'filters.statusOptions.published')}</SelectItem>
+                  <SelectItem value="BIDDING">{auto('Bidding', 'filters.statusOptions.bidding')}</SelectItem>
+                  <SelectItem value="CLOSED">{auto('Closed', 'filters.statusOptions.closed')}</SelectItem>
+                  <SelectItem value="AWARDED">{auto('Awarded', 'filters.statusOptions.awarded')}</SelectItem>
+                  <SelectItem value="CANCELLED">{auto('Cancelled', 'filters.statusOptions.cancelled')}</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter} className="w-48">
+                <SelectTrigger>
+                  <SelectValue placeholder={auto('Category', 'filters.category')} />
+                </SelectTrigger>
                 <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
-                <SelectItem value="Construction">Construction</SelectItem>
-                <SelectItem value="Maintenance">Maintenance</SelectItem>
-                <SelectItem value="Supplies">Supplies</SelectItem>
-                <SelectItem value="Services">Services</SelectItem>
-                <SelectItem value="Equipment">Equipment</SelectItem>
-              </SelectContent>
-            </Select>
+                  <SelectItem value="">{auto('All Categories', 'filters.allCategories')}</SelectItem>
+                  <SelectItem value="Construction">{auto('Construction', 'filters.categories.construction')}</SelectItem>
+                  <SelectItem value="Maintenance">{auto('Maintenance', 'filters.categories.maintenance')}</SelectItem>
+                  <SelectItem value="Supplies">{auto('Supplies', 'filters.categories.supplies')}</SelectItem>
+                  <SelectItem value="Services">{auto('Services', 'filters.categories.services')}</SelectItem>
+                  <SelectItem value="Equipment">{auto('Equipment', 'filters.categories.equipment')}</SelectItem>
+                </SelectContent>
+              </Select>
           </div>
         </CardContent>
       </Card>
@@ -168,11 +180,15 @@ export default function RFQsPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <FileText className="w-12 h-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">No RFQs Found</h3>
-                <p className="text-muted-foreground mb-4">Get started by creating your first request for quotation.</p>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {auto('No RFQs Found', 'empty.title')}
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {auto('Get started by creating your first request for quotation.', 'empty.subtitle')}
+                </p>
                 <Button onClick={() => setCreateOpen(true)} className="bg-teal-600 hover:bg-teal-700">
                   <Plus className="w-4 h-4 me-2" />
-                  Create RFQ
+                  {auto('Create RFQ', 'actions.create')}
                 </Button>
               </CardContent>
             </Card>
@@ -185,22 +201,35 @@ export default function RFQsPage() {
 
 function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUpdated: () => void }) {
   const router = useRouter();
+  const auto = useAutoTranslator('fm.rfqs.card');
 
   const handlePublish = async () => {
-    if (!confirm(`Publish RFQ "${rfq.title}"? This will make it visible to vendors.`)) return;
-    if (!orgId) return toast.error('Organization ID missing');
+    if (
+      !confirm(
+        auto('Publish RFQ "{{title}}"? This will make it visible to vendors.', 'confirm.publish').replace(
+          '{{title}}',
+          rfq.title || ''
+        )
+      )
+    ) {
+      return;
+    }
+    if (!orgId) return toast.error(auto('Organization ID missing', 'errors.noOrg'));
 
-    const toastId = toast.loading('Publishing RFQ...');
+    const toastId = toast.loading(auto('Publishing RFQ...', 'toast.publishing'));
     try {
       const res = await fetch(`/api/rfqs/${rfq.id}/publish`, {
         method: 'POST',
         headers: { 'x-tenant-id': orgId, 'Content-Type': 'application/json' }
       });
-      if (!res.ok) throw new Error('Failed to publish RFQ');
-      toast.success('RFQ published successfully', { id: toastId });
+      if (!res.ok) throw new Error(auto('Failed to publish RFQ', 'toast.publishFailed'));
+      toast.success(auto('RFQ published successfully', 'toast.publishSuccess'), { id: toastId });
       onUpdated();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to publish RFQ', { id: toastId });
+      toast.error(
+        error instanceof Error ? error.message : auto('Failed to publish RFQ', 'toast.publishFailed'),
+        { id: toastId }
+      );
     }
   };
 
@@ -244,6 +273,11 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
     ? Math.min((rfq.bids?.length || 0) / rfq.bidding.targetBids * 100, 100)
     : 0;
 
+  const statusKey = (rfq.status || '').toLowerCase();
+  const statusLabel = statusKey
+    ? auto(statusKey.replace('_', ' '), `status.${statusKey}`)
+    : auto('Unknown', 'status.unknown');
+
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">
@@ -256,7 +290,7 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
             </div>
           </div>
           <Badge className={getStatusColor(rfq.status || '')}>
-            {rfq.status?.toLowerCase() || ''}
+            {statusLabel}
           </Badge>
         </div>
       </CardHeader>
@@ -267,7 +301,12 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
           <MapPin className="w-4 h-4 me-1 rtl:ml-1 rtl:mr-0" />
           <span>{rfq.location?.city}</span>
           {rfq.location?.radius && (
-            <span className="ms-2 rtl:mr-2 rtl:ml-0">• {rfq.location.radius}km radius</span>
+            <span className="ms-2 rtl:mr-2 rtl:ml-0">
+              • {auto('{{radius}}km radius', 'location.radius').replace(
+                '{{radius}}',
+                String(rfq.location.radius)
+              )}
+            </span>
           )}
         </div>
 
@@ -275,9 +314,13 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
         {rfq.status === 'BIDDING' && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Bid Collection</span>
+              <span className="text-muted-foreground">
+                {auto('Bid Collection', 'progress.title')}
+              </span>
               <span className="font-medium">
-                {rfq.bids?.length || 0}/{rfq.bidding?.targetBids || 3} bids
+                {auto('{{current}}/{{target}} bids', 'progress.count')
+                  .replace('{{current}}', String(rfq.bids?.length || 0))
+                  .replace('{{target}}', String(rfq.bidding?.targetBids || 3))}
               </span>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
@@ -293,27 +336,29 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
 
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <div className="flex items-center text-muted-foreground">
-              <Clock className="w-4 h-4 me-1" />
-              Deadline
+              <div className="flex items-center text-muted-foreground">
+                <Clock className="w-4 h-4 me-1" />
+                {auto('Deadline', 'card.deadline')}
+              </div>
+              <p className="font-medium mt-1">
+                {daysRemaining !== null ? (
+                  daysRemaining > 0 
+                    ? auto('{{days}} days left', 'card.daysLeft').replace('{{days}}', String(daysRemaining))
+                    : auto('Closed', 'card.closed')
+                ) : auto('No deadline', 'card.noDeadline')}
+              </p>
             </div>
-            <p className="font-medium mt-1">
-              {daysRemaining !== null ? (
-                daysRemaining > 0 
-                  ? `${daysRemaining} days left`
-                  : `Closed`
-              ) : 'No deadline'}
-            </p>
-          </div>
-          <div>
-            <div className="flex items-center text-muted-foreground">
-              <DollarSign className="w-4 h-4 me-1" />
-              Budget
+            <div>
+              <div className="flex items-center text-muted-foreground">
+                <DollarSign className="w-4 h-4 me-1" />
+                {auto('Budget', 'card.budget')}
+              </div>
+              <p className="font-medium mt-1">
+                {(rfq.budget?.estimated?.toLocaleString() || auto('N/A', 'card.notAvailable')) +
+                  ' ' +
+                  (rfq.budget?.currency || 'SAR')}
+              </p>
             </div>
-            <p className="font-medium mt-1">
-              {rfq.budget?.estimated?.toLocaleString() || 'N/A'} {rfq.budget?.currency || 'SAR'}
-            </p>
-          </div>
         </div>
 
         <div className="flex items-center justify-between pt-2">
@@ -321,13 +366,13 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
             {rfq.bidding?.anonymous && (
               <div className="flex items-center text-muted-foreground">
                 <Shield className="w-4 h-4 me-1" />
-                <span>Anonymous</span>
+                <span>{auto('Anonymous', 'badges.anonymous')}</span>
               </div>
             )}
             {rfq.compliance?.cityBounded && (
               <div className="flex items-center text-muted-foreground">
                 <MapPin className="w-4 h-4 me-1" />
-                <span>City Only</span>
+                <span>{auto('City Only', 'badges.cityOnly')}</span>
               </div>
             )}
           </div>
@@ -356,6 +401,7 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
 }
 
 function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: string }) {
+  const auto = useAutoTranslator('fm.rfqs.form');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -425,11 +471,11 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
     e.preventDefault();
 
     if (!orgId) {
-      toast.error('No organization ID found');
+      toast.error(auto('No organization ID found', 'form.errors.noOrg'));
       return;
     }
 
-    const toastId = toast.loading('Creating RFQ...');
+    const toastId = toast.loading(auto('Creating RFQ...', 'form.toast.creating'));
 
     try {
       const response = await fetch('/api/rfqs', {
@@ -442,15 +488,21 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
       });
 
       if (response.ok) {
-        toast.success('RFQ created successfully', { id: toastId });
+        toast.success(auto('RFQ created successfully', 'form.toast.success'), { id: toastId });
         onCreated();
       } else {
         const error = await response.json();
-        toast.error(`Failed to create RFQ: ${error.error || 'Unknown error'}`, { id: toastId });
+        toast.error(
+          auto('Failed to create RFQ: {{error}}', 'form.toast.failed').replace(
+            '{{error}}',
+            error.error || auto('Unknown error', 'form.toast.unknown')
+          ),
+          { id: toastId }
+        );
       }
     } catch (error) {
       logger.error('Error creating RFQ:', error);
-      toast.error('Error creating RFQ. Please try again.', { id: toastId });
+      toast.error(auto('Error creating RFQ. Please try again.', 'form.toast.error'), { id: toastId });
     }
   };
 
@@ -458,7 +510,9 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">RFQ Title *</label>
+          <label className="block text-sm font-medium mb-1">
+            {auto('RFQ Title *', 'form.labels.title')}
+          </label>
           <Input
             value={formData.title}
             onChange={(e) => setFormData({...formData, title: e.target.value})}
@@ -466,24 +520,38 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Category *</label>
+          <label className="block text-sm font-medium mb-1">
+            {auto('Category *', 'form.labels.category')}
+          </label>
           <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
             <SelectTrigger>
-              <SelectValue placeholder="Select category" />
+              <SelectValue placeholder={auto('Select category', 'form.placeholders.category')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Construction">Construction</SelectItem>
-              <SelectItem value="Maintenance">Maintenance</SelectItem>
-              <SelectItem value="Supplies">Supplies</SelectItem>
-              <SelectItem value="Services">Services</SelectItem>
-              <SelectItem value="Equipment">Equipment</SelectItem>
+              <SelectItem value="Construction">
+                {auto('Construction', 'form.categories.construction')}
+              </SelectItem>
+              <SelectItem value="Maintenance">
+                {auto('Maintenance', 'form.categories.maintenance')}
+              </SelectItem>
+              <SelectItem value="Supplies">
+                {auto('Supplies', 'form.categories.supplies')}
+              </SelectItem>
+              <SelectItem value="Services">
+                {auto('Services', 'form.categories.services')}
+              </SelectItem>
+              <SelectItem value="Equipment">
+                {auto('Equipment', 'form.categories.equipment')}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">Description *</label>
+        <label className="block text-sm font-medium mb-1">
+          {auto('Description *', 'form.labels.description')}
+        </label>
         <Textarea
           value={formData.description}
           onChange={(e) => setFormData({...formData, description: e.target.value})}
@@ -494,7 +562,9 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
 
       <div className="grid grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">City *</label>
+          <label className="block text-sm font-medium mb-1">
+            {auto('City *', 'form.labels.city')}
+          </label>
           <Input
             value={formData.location.city}
             onChange={(e) => setFormData({...formData, location: {...formData.location, city: e.target.value}})}
@@ -502,7 +572,9 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Service Radius (km)</label>
+          <label className="block text-sm font-medium mb-1">
+            {auto('Service Radius (km)', 'form.labels.radius')}
+          </label>
           <Input
             type="number"
             value={formData.location.radius}
@@ -510,7 +582,9 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Target Bids</label>
+          <label className="block text-sm font-medium mb-1">
+            {auto('Target Bids', 'form.labels.targetBids')}
+          </label>
           <Input
             type="number"
             value={formData.bidding.targetBids}
@@ -521,7 +595,9 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
 
       <div className="grid grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Bid Deadline *</label>
+          <label className="block text-sm font-medium mb-1">
+            {auto('Bid Deadline *', 'form.labels.bidDeadline')}
+          </label>
           <Input
             type="date"
             value={formData.timeline.bidDeadline}
@@ -530,7 +606,9 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Start Date *</label>
+          <label className="block text-sm font-medium mb-1">
+            {auto('Start Date *', 'form.labels.startDate')}
+          </label>
           <Input
             type="date"
             value={formData.timeline.startDate}
@@ -539,7 +617,9 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Completion Date *</label>
+          <label className="block text-sm font-medium mb-1">
+            {auto('Completion Date *', 'form.labels.completionDate')}
+          </label>
           <Input
             type="date"
             value={formData.timeline.completionDate}
@@ -550,7 +630,9 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">Estimated Budget *</label>
+        <label className="block text-sm font-medium mb-1">
+          {auto('Estimated Budget *', 'form.labels.estimatedBudget')}
+        </label>
         <Input
           type="number"
           value={formData.budget.estimated}
@@ -560,7 +642,9 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
       </div>
 
       <div className="space-y-2">
-        <label className="block text-sm font-medium">Compliance Requirements</label>
+        <label className="block text-sm font-medium">
+          {auto('Compliance Requirements', 'form.labels.compliance')}
+        </label>
         <div className="flex flex-wrap gap-4">
           <label className="flex items-center">
             <input
@@ -569,7 +653,7 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
               onChange={(e) => setFormData({...formData, compliance: {...formData.compliance, cityBounded: e.target.checked}})}
               className="me-2"
             />
-            City Bounded
+            {auto('City Bounded', 'form.compliance.cityBounded')}
           </label>
           <label className="flex items-center">
             <input
@@ -578,7 +662,7 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
               onChange={(e) => setFormData({...formData, compliance: {...formData.compliance, insuranceRequired: e.target.checked}})}
               className="me-2"
             />
-            Insurance Required
+            {auto('Insurance Required', 'form.compliance.insurance')}
           </label>
           <label className="flex items-center">
             <input
@@ -587,14 +671,14 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
               onChange={(e) => setFormData({...formData, bidding: {...formData.bidding, anonymous: e.target.checked}})}
               className="me-2"
             />
-            Anonymous Bidding
+            {auto('Anonymous Bidding', 'form.compliance.anonymous')}
           </label>
         </div>
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="submit" className="bg-teal-600 hover:bg-teal-700">
-          Create RFQ
+          {auto('Create RFQ', 'form.actions.submit')}
         </Button>
       </div>
     </form>

@@ -5,6 +5,7 @@ import PDPBuyBox from '@/components/marketplace/PDPBuyBox';
 import ProductCard from '@/components/marketplace/ProductCard';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
 import { getServerI18n } from '@/lib/i18n/server';
+import type { Metadata } from 'next';
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
@@ -44,6 +45,37 @@ interface Product {
     reserved: number;
     location?: string;
   };
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const resolvedParams = await params;
+  const { t } = await getServerI18n();
+  const titleSuffix = t('marketplace.product.metadata.title', 'Fixzit Marketplace');
+  const descriptionBase = t('marketplace.product.metadata.description', 'Shop trusted industrial and FM suppliers across the region.');
+
+  try {
+    const productResponse = await serverFetchJsonWithTenant<{ data: { product: Product } }>(
+      `/api/marketplace/products/${resolvedParams.slug}`
+    );
+    const product = productResponse.data.product;
+    const productName = product?.title?.en ?? resolvedParams.slug;
+    const summary = product?.summary?.trim();
+
+    return {
+      title: `${productName} | ${titleSuffix}`,
+      description: summary ? `${summary} - ${descriptionBase}` : `${productName} - ${descriptionBase}`,
+    };
+  } catch (error) {
+    logger.warn('MARKETPLACE_PDP_METADATA_FALLBACK', {
+      slug: resolvedParams.slug,
+      error: (error as Error)?.message ?? String(error),
+    });
+
+    return {
+      title: `${resolvedParams.slug} | ${titleSuffix}`,
+      description: descriptionBase,
+    };
+  }
 }
 
 export default async function ProductDetail(props: ProductPageProps) {

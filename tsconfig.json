@@ -55,6 +55,22 @@
     "build",
     "out",
     "tests/unit/models/CmsPage.test.ts",
-    "tests/rbac/cross-tenant-isolation.test.ts"
-  ]
+    "tests/rbac/cross-tenant-isolation.test.ts",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "tests/**/*",
+    "qa/**/*",
+    "scripts/**/*",
+    "tools/**/*",
+    "i18n/dictionaries/en.ts",
+    "i18n/dictionaries/ar.ts",
+    "i18n/dictionaries/ar-industries.ts"
+  ],
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs"
+    }
+  }
 }

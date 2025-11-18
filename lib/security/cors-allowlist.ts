@@ -13,7 +13,28 @@ function parseOrigins(value?: string | null): string[] {
   return value
     .split(',')
     .map((origin) => origin.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((origin) => {
+      // Validate URL structure
+      try {
+        const url = new URL(origin);
+        // Only allow http/https protocols
+        if (!['http:', 'https:'].includes(url.protocol)) {
+          console.warn(`[CORS] Invalid protocol in origin: ${origin}`);
+          return false;
+        }
+        // Disallow localhost in production CORS_ORIGINS
+        if (process.env.NODE_ENV === 'production' && 
+            (url.hostname === 'localhost' || url.hostname === '127.0.0.1')) {
+          console.warn(`[CORS] Localhost not allowed in production CORS_ORIGINS: ${origin}`);
+          return false;
+        }
+        return true;
+      } catch (err) {
+        console.warn(`[CORS] Invalid URL in CORS_ORIGINS: ${origin}`, err);
+        return false;
+      }
+    });
 }
 
 function buildAllowedOrigins(): string[] {
@@ -27,7 +48,12 @@ export function getAllowedOriginsSet(): Set<string> {
 }
 
 export function isOriginAllowed(origin: string | null): boolean {
-  if (!origin) return true;
+  // No Origin header behavior:
+  // - Development: Allow (same-origin requests from localhost)
+  // - Production: Reject for security (enforce explicit origin validation)
+  if (!origin) {
+    return process.env.NODE_ENV !== 'production';
+  }
   const allowedOrigins = getAllowedOriginsSet();
   if (allowedOrigins.has(origin)) {
     return true;

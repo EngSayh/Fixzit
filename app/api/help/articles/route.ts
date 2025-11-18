@@ -7,7 +7,7 @@ import { Filter, Document } from 'mongodb';
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -68,16 +68,14 @@ const COLLECTION = 'helparticles';
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest){
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
+
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
     const url = new URL(req.url);
     const sp = url.searchParams;
     const category = sp.get("category") || undefined;

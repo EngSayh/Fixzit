@@ -1,4 +1,6 @@
-export const arIndustryVerticals = {
+import type { TranslationDictionary } from './types';
+
+export const arIndustryVerticals: TranslationDictionary = {
 fashionRetail: {
   title: 'تجزئة الأزياء',
   description: 'إدارة تجارة الملابس والأزياء',
@@ -869,4 +871,4 @@ ats: {
     invalidTransition: 'انتقال مرحلة غير صالح',
   },
 },
-} as const;
+};

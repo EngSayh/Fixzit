@@ -26,6 +26,28 @@ const MISSING_KEY_PATTERNS = [
   /\[object Object\]/i
 ];
 
+const TRANSLATION_CALL_EXCLUSIONS = new Set([
+  'woff',
+  'woff2',
+  'ttf',
+  'otf',
+  'font/woff',
+  'font/woff2',
+  'font/otf',
+]);
+
+function isFalsePositiveTranslationCall(call: string): boolean {
+  if (/\.(woff2?|ttf|eot|otf)\)$/i.test(call)) {
+    return true;
+  }
+  const match = call.match(/['"]([^'"]+)['"]/i);
+  if (!match) {
+    return false;
+  }
+  const key = match[1]?.toLowerCase();
+  return !!key && TRANSLATION_CALL_EXCLUSIONS.has(key);
+}
+
 test.describe('i18n: No Missing Translation Keys', () => {
   // Set higher timeout for slow pages
   test.setTimeout(60000);
@@ -58,10 +80,7 @@ test.describe('i18n: No Missing Translation Keys', () => {
       // Exclude font file extensions (woff, woff2, ttf, etc.)
       if (htmlContent.includes('t(') || htmlContent.includes('translate(')) {
         const rawCalls = htmlContent.match(/(?:t|translate)\(['"][^'"]+['"]\)/g);
-        const filteredCalls = rawCalls?.filter(call => {
-          // Filter out font file extensions like .p.woff2)
-          return !/\.(woff2?|ttf|eot|otf)\)$/.test(call);
-        });
+        const filteredCalls = rawCalls?.filter(call => !isFalsePositiveTranslationCall(call));
         if (filteredCalls && filteredCalls.length > 0) {
           foundIssues.push(`Raw translation calls in HTML: ${filteredCalls.slice(0, 3).join(', ')}`);
         }

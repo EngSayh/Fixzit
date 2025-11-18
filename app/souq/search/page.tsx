@@ -7,6 +7,7 @@ import SearchFilters from '@/components/souq/SearchFilters';
 import { Grid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface Product {
   fsin: string;
@@ -38,6 +39,7 @@ interface SearchResponse {
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
+  const auto = useAutoTranslator('souq.search');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('relevance');
   const [results, setResults] = useState<SearchResponse | null>(null);
@@ -73,20 +75,20 @@ export default function SearchPage() {
 
         const response = await fetch(`/api/souq/search?${params.toString()}`);
         
-        if (!response.ok) throw new Error('Search failed');
+        if (!response.ok) throw new Error(auto('Search failed', 'errors.searchFailed'));
         
         const data = await response.json();
         setResults(data.data);
       } catch (err) {
         console.error('Search failed:', err);
-        setError('Failed to load search results. Please try again.');
+        setError(auto('Failed to load search results. Please try again.', 'errors.loadFailed'));
       } finally {
         setLoading(false);
       }
     };
 
     fetchResults();
-  }, [query, page, category, minPrice, maxPrice, minRating, badges, sortBy]);
+  }, [query, page, category, minPrice, maxPrice, minRating, badges, sortBy, auto]);
 
   // Handle sort change
   const handleSortChange = (newSort: string) => {
@@ -126,10 +128,19 @@ export default function SearchPage() {
                     <div className="h-6 w-48 bg-gray-200 animate-pulse rounded"></div>
                   ) : results ? (
                     <p className="text-sm text-gray-600">
-                      {results.totalHits.toLocaleString()} results
-                      {query && ` for "${query}"`}
+                      {auto('{{count}} results', 'results.count').replace(
+                        '{{count}}',
+                        results.totalHits.toLocaleString()
+                      )}
+                      {query &&
+                        auto(' for "{{query}}"', 'results.forQuery').replace('{{query}}', query)}
                       {results.processingTimeMs && (
-                        <span className="text-gray-400"> ({results.processingTimeMs}ms)</span>
+                        <span className="text-gray-400">
+                          {auto(' ({{time}}ms)', 'results.processingTime').replace(
+                            '{{time}}',
+                            String(results.processingTimeMs)
+                          )}
+                        </span>
                       )}
                     </p>
                   ) : null}
@@ -142,11 +153,11 @@ export default function SearchPage() {
                     onChange={(e) => handleSortChange(e.target.value)}
                     className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="relevance">Most Relevant</option>
-                    <option value="price_asc">Price: Low to High</option>
-                    <option value="price_desc">Price: High to Low</option>
-                    <option value="rating">Highest Rated</option>
-                    <option value="newest">Newest First</option>
+                    <option value="relevance">{auto('Most Relevant', 'sort.relevance')}</option>
+                    <option value="price_asc">{auto('Price: Low to High', 'sort.priceAsc')}</option>
+                    <option value="price_desc">{auto('Price: High to Low', 'sort.priceDesc')}</option>
+                    <option value="rating">{auto('Highest Rated', 'sort.rating')}</option>
+                    <option value="newest">{auto('Newest First', 'sort.newest')}</option>
                   </select>
 
                   {/* View Toggle */}
@@ -201,17 +212,20 @@ export default function SearchPage() {
             {!loading && !error && results && results.hits.length === 0 && (
               <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  No results found
+                  {auto('No results found', 'noResults.title')}
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  Try adjusting your search or filters to find what you're looking for
+                  {auto(
+                    "Try adjusting your search or filters to find what you're looking for",
+                    'noResults.description'
+                  )}
                 </p>
                 <div className="text-sm text-gray-500">
-                  <p className="mb-2">Suggestions:</p>
+                  <p className="mb-2">{auto('Suggestions:', 'noResults.suggestions.title')}</p>
                   <ul className="space-y-1">
-                    <li>• Check your spelling</li>
-                    <li>• Try more general keywords</li>
-                    <li>• Remove some filters</li>
+                    <li>• {auto('Check your spelling', 'noResults.suggestions.spelling')}</li>
+                    <li>• {auto('Try more general keywords', 'noResults.suggestions.general')}</li>
+                    <li>• {auto('Remove some filters', 'noResults.suggestions.filters')}</li>
                   </ul>
                 </div>
               </div>
@@ -282,6 +296,9 @@ export default function SearchPage() {
 
 // Product Card Component
 function ProductCard({ product, viewMode }: { product: Product; viewMode: 'grid' | 'list' }) {
+  const auto = useAutoTranslator('souq.search');
+  const currency = auto('SAR', 'currency');
+
   if (viewMode === 'list') {
     return (
       <Link
@@ -320,10 +337,12 @@ function ProductCard({ product, viewMode }: { product: Product; viewMode: 'grid'
             </div>
             <div className="flex items-center justify-between">
               <p className="text-2xl font-bold text-gray-900">
-                {product.price.toFixed(2)} <span className="text-sm">SAR</span>
+                {product.price.toFixed(2)} <span className="text-sm">{currency}</span>
               </p>
               {!product.inStock && (
-                <span className="text-sm text-destructive font-medium">Out of Stock</span>
+                <span className="text-sm text-destructive font-medium">
+                  {auto('Out of Stock', 'product.outOfStock')}
+                </span>
               )}
             </div>
           </div>
@@ -355,10 +374,12 @@ function ProductCard({ product, viewMode }: { product: Product; viewMode: 'grid'
         <span className="text-sm text-gray-500">({product.totalReviews})</span>
       </div>
       <p className="text-xl font-bold text-gray-900 mb-2">
-        {product.price.toFixed(2)} <span className="text-sm">SAR</span>
+        {product.price.toFixed(2)} <span className="text-sm">{currency}</span>
       </p>
       {!product.inStock && (
-        <span className="text-sm text-destructive font-medium">Out of Stock</span>
+        <span className="text-sm text-destructive font-medium">
+          {auto('Out of Stock', 'product.outOfStock')}
+        </span>
       )}
     </Link>
   );

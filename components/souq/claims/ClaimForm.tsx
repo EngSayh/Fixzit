@@ -18,6 +18,7 @@ interface ClaimFormProps {
     orderDate: string;
     sellerId: string;
     sellerName: string;
+    productId: string;  // Added: Required for API payload
   };
   onSuccess?: (_claimId: string) => void;
   onCancel?: () => void;
@@ -30,12 +31,12 @@ interface EvidenceFile {
 }
 
 const CLAIM_TYPES = [
-  { value: 'item-not-received', label: 'لم أستلم السلعة (Item Not Received)' },
-  { value: 'defective', label: 'السلعة معيبة (Defective Item)' },
-  { value: 'not-as-described', label: 'لا تطابق الوصف (Not as Described)' },
-  { value: 'wrong-item', label: 'سلعة خاطئة (Wrong Item Sent)' },
-  { value: 'missing-parts', label: 'أجزاء ناقصة (Missing Parts)' },
-  { value: 'counterfeit', label: 'سلعة مزيفة (Counterfeit Item)' },
+  { value: 'item_not_received', apiValue: 'item_not_received', label: 'لم أستلم السلعة (Item Not Received)', reason: 'Item never arrived' },
+  { value: 'defective_item', apiValue: 'defective_item', label: 'السلعة معيبة (Defective Item)', reason: 'Item is damaged or defective' },
+  { value: 'not_as_described', apiValue: 'not_as_described', label: 'لا تطابق الوصف (Not as Described)', reason: 'Item does not match listing description' },
+  { value: 'wrong_item', apiValue: 'wrong_item', label: 'سلعة خاطئة (Wrong Item Sent)', reason: 'Received incorrect product' },
+  { value: 'missing_parts', apiValue: 'missing_parts', label: 'أجزاء ناقصة (Missing Parts)', reason: 'Item is incomplete or missing components' },
+  { value: 'counterfeit', apiValue: 'counterfeit', label: 'سلعة مزيفة (Counterfeit Item)', reason: 'Suspected counterfeit or fake product' },
 ];
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -148,15 +149,24 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
         });
       }
 
-      // Create claim
+      // Create claim with all required fields matching API contract
+      const selectedClaimType = CLAIM_TYPES.find(t => t.value === claimType);
+      if (!selectedClaimType) {
+        throw new Error('Invalid claim type selected');
+      }
+
       const response = await fetch('/api/souq/claims', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId,
-          claimType,
+          sellerId: orderDetails.sellerId,
+          productId: orderDetails.productId,
+          type: selectedClaimType.apiValue,  // Use API enum format
+          reason: selectedClaimType.reason,   // Auto-fill reason based on type
           description,
           evidence: evidenceUrls,
+          orderAmount: orderDetails.orderAmount,  // Required number field
         }),
       });
 

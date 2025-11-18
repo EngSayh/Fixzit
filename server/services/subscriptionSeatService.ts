@@ -342,9 +342,10 @@ export async function bulkAllocateSeats(
     try {
       await allocateSeat(subscriptionId, allocation.userId, allocation.moduleKey, allocatedBy);
       results.success++;
-    } catch (error: any) {
+    } catch (error: unknown) {
       results.failed++;
-      results.errors.push(`${allocation.userId}/${allocation.moduleKey}: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      results.errors.push(`${allocation.userId}/${allocation.moduleKey}: ${message}`);
     }
   }
 

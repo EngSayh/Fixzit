@@ -54,7 +54,8 @@ interface ClaimForReview {
   buyerName: string;
   sellerName: string;
   fraudScore: number;
-  recommendedAction: 'approve-full' | 'approve-partial' | 'reject';
+  riskLevel: 'low' | 'medium' | 'high';
+  recommendedAction: 'approve-full' | 'approve-partial' | 'reject' | 'pending-review';
   confidence: number;
   evidenceCount: number;
   createdAt: string;
@@ -91,6 +92,7 @@ export default function ClaimReviewPanel() {
     setLoading(true);
     try {
       const params = new URLSearchParams({
+        view: 'admin',  // Use standard endpoint with admin view
         status: statusFilter,
       });
       if (priorityFilter !== 'all') {
@@ -100,10 +102,19 @@ export default function ClaimReviewPanel() {
         params.append('search', searchQuery);
       }
 
-      const response = await fetch(`/api/souq/claims/admin/review?${params.toString()}`);
+      // TODO: Create dedicated /api/souq/claims/admin/review endpoint with fraud detection
+      // For now, use standard endpoint with view=admin and add default fraud scores
+      const response = await fetch(`/api/souq/claims?${params.toString()}`);
       if (response.ok) {
-        const data = await response.json();
-        setClaims(data.claims);
+        const data: { claims: Partial<ClaimForReview>[] } = await response.json();
+        // Transform response to add fraud detection defaults until proper endpoint exists
+        const claimsWithDefaults: ClaimForReview[] = data.claims.map((claim: Partial<ClaimForReview>) => ({
+          ...claim,
+          fraudScore: claim.fraudScore ?? 0,
+          riskLevel: claim.riskLevel ?? 'low',
+          recommendedAction: claim.recommendedAction ?? 'pending-review',
+        } as ClaimForReview));
+        setClaims(claimsWithDefaults);
       }
     } catch (error) {
       console.error('Failed to fetch claims:', error);
@@ -114,10 +125,14 @@ export default function ClaimReviewPanel() {
 
   const handleMakeDecision = (claim: ClaimForReview) => {
     setSelectedClaim(claim);
+    const recommended =
+      claim.recommendedAction === 'pending-review'
+        ? 'approve-full'
+        : claim.recommendedAction;
     setDecisionData({
-      outcome: claim.recommendedAction,
+      outcome: recommended as DecisionData['outcome'],
       reason: '',
-      refundAmount: claim.recommendedAction === 'approve-full' ? claim.claimAmount : undefined,
+      refundAmount: recommended === 'approve-full' ? claim.claimAmount : undefined,
     });
     setShowDecisionDialog(true);
   };

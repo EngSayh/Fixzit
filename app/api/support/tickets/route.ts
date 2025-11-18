@@ -9,7 +9,7 @@ import crypto from "crypto";
 import { rateLimit } from '@/server/security/rateLimit';
 import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 const createSchema = z.object({
   subject: z.string().min(4),
@@ -40,16 +40,14 @@ const createSchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest){
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
+    const user = await getSessionUser(req).catch(() => null);
+    const rl = rateLimit(buildRateLimitKey(req, user?.id ?? null), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     await connectToDatabase();
-    const user = await getSessionUser(req).catch(()=>null);
     const body = createSchema.parse(await req.json());
 
     // Generate cryptographically secure ticket code
@@ -83,24 +81,21 @@ export async function POST(req: NextRequest){
 
 // Admin list with filters
 export async function GET(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
-    await connectToDatabase();
-    
     // Handle authentication separately to return 401 instead of 500
     let user;
     try {
       user = await getSessionUser(req);
+      const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+      if (!rl.allowed) {
+        return rateLimitError();
+      }
     } catch (authError) {
       logger.error('Authentication failed:', authError instanceof Error ? authError.message : 'Unknown error');
       return createSecureResponse({ error: 'Unauthorized' }, 401, req);
     }
+    
+    await connectToDatabase();
     
     if (!user || !["SUPER_ADMIN","SUPPORT","CORPORATE_ADMIN"].includes(user.role)){
       return createSecureResponse({ error: "Forbidden"}, 403, req);

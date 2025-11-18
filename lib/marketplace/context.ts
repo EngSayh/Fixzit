@@ -15,6 +15,9 @@ export interface MarketplaceRequestContext {
 }
 
 async function decodeToken(token?: string | null) {
+  if (!token) {
+    return undefined;
+  }
   try {
     const secret = new TextEncoder().encode(
       requireEnv('JWT_SECRET', { testFallback: TEST_JWT_SECRET })

@@ -181,8 +181,9 @@ async function createTextIndexes() {
           console.log(`      - ${idx.name}: ${keyStr}`);
         });
 
-      } catch (error: any) {
-        console.error(`   ❌ Error: ${error.message}`);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`   ❌ Error: ${message}`);
         errorCount++;
       }
 
@@ -209,8 +210,9 @@ async function createTextIndexes() {
       console.log('   4. Consider adding more indexes based on query patterns');
     }
 
-  } catch (error: any) {
-    console.error('💥 Fatal error:', error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('💥 Fatal error:', message);
     console.error(error);
     process.exit(1);
   } finally {

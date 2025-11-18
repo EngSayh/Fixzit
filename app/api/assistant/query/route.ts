@@ -8,7 +8,7 @@ import { getSessionUser, type SessionUser } from "@/server/middleware/withAuthRb
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 const BodySchema = z.object({
   question: z.string().min(1)});
@@ -104,13 +104,6 @@ function isMyTickets(question: string) {
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     await connectToDatabase(); // ensure DB/init (real or mock)
   } catch {}
@@ -120,6 +113,11 @@ export async function POST(req: NextRequest) {
     user = await getSessionUser(req);
   } catch {
     user = null; // allow public help queries without actions
+  }
+
+  const rl = rateLimit(buildRateLimitKey(req, user?.id ?? null), 60, 60_000);
+  if (!rl.allowed) {
+    return rateLimitError();
   }
 
   let body: z.infer<typeof BodySchema>;
@@ -258,5 +256,4 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ answer, citations });
 }
-
 

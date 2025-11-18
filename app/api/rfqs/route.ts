@@ -6,7 +6,7 @@ import { getSessionUser } from "@/server/middleware/withAuthRbac";
 import { rateLimit } from '@/server/security/rateLimit';
 import {zodValidationError, rateLimitError, handleApiError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 const createRFQSchema = z.object({
   title: z.string().min(1),
@@ -119,13 +119,6 @@ async function resolveSessionUser(req: NextRequest) {
  *         description: Rate limit exceeded
  */
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     const user = await resolveSessionUser(req);
     if (!user) {
@@ -136,6 +129,10 @@ export async function POST(req: NextRequest) {
         { error: 'Unauthorized', message: 'Missing tenant context' },
         { status: 401 }
       );
+    }
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
     }
     await connectToDatabase();
 
@@ -164,13 +161,6 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     const user = await resolveSessionUser(req);
     if (!user) {
@@ -181,6 +171,10 @@ export async function GET(req: NextRequest) {
         { error: 'Unauthorized', message: 'Missing tenant context' },
         { status: 401 }
       );
+    }
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
     }
     await connectToDatabase();
 

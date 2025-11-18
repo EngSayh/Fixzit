@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Map, Building2, Home, Search, Filter, Heart, TrendingUp, Star, Gavel, ShieldCheck, BadgeDollarSign, PlaySquare } from "lucide-react";
+import { Map as MapIcon, Building2, Home, Search, Filter, Heart, TrendingUp, Star, Gavel, ShieldCheck, BadgeDollarSign, PlaySquare, Sparkles, Bot, Cloud } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
 import VRTour from "@/components/aqar/VRTour";
 
 type FeatureConfig = {
   titleKey: string;
   descriptionKey: string;
-  icon: typeof Map;
+  icon: typeof MapIcon;
   link: string;
   fallbackTitle: string;
   fallbackDescription: string;
@@ -18,7 +18,7 @@ const AQAR_FEATURES: FeatureConfig[] = [
   {
     titleKey: 'aqar.interactiveMap',
     descriptionKey: 'aqar.interactiveMap.desc',
-    icon: Map,
+    icon: MapIcon,
     link: '/aqar/map',
     fallbackTitle: 'Interactive Property Map',
     fallbackDescription: 'Explore properties on an interactive map with real-time data'
@@ -167,6 +167,39 @@ export default function AqarPage() {
                 </Link>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* Innovation Rail */}
+      <section className="py-10 px-4 sm:px-6 lg:px-8 bg-muted/30 border-y border-border">
+        <div className="max-w-6xl mx-auto grid gap-4 md:grid-cols-3">
+          <div className="p-5 bg-card rounded-2xl border border-border space-y-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Sparkles className="w-4 h-4 text-primary" />
+              {t('aqar.superpowers.ai.title', 'محرك التوصيات الذكي')}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t('aqar.superpowers.ai.desc', 'يتعلم من مشاهدات Fixzit Souq ويقترح عقارات جاهزة للتمويل.') }
+            </p>
+          </div>
+          <div className="p-5 bg-card rounded-2xl border border-border space-y-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Bot className="w-4 h-4 text-success" />
+              {t('aqar.superpowers.assistant.title', 'مساعد AR/VR + RNPL')}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t('aqar.superpowers.assistant.desc', 'جولات افتراضية، دعم مباشر، وتوقيع زاتكا في نفس الجلسة.')}
+            </p>
+          </div>
+          <div className="p-5 bg-card rounded-2xl border border-border space-y-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Cloud className="w-4 h-4 text-warning" />
+              {t('aqar.superpowers.offline.title', 'حزم Offline للميدان')}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t('aqar.superpowers.offline.desc', 'حمّل القوائم، الخرائط، وبيانات IoT للاستخدام دون إنترنت للمشاريع البعيدة.')}
+            </p>
           </div>
         </div>
       </section>

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
 const updateNotificationSchema = z.object({
   read: z.boolean().optional(),
@@ -31,18 +31,15 @@ const updateNotificationSchema = z.object({
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   const params = await props.params;
   let orgId: string;
   try {
     const user = await getSessionUser(req);
     orgId = user.orgId;
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
   } catch {
     return createSecureResponse({ error: 'Unauthorized' }, 401, req);
   }
@@ -82,18 +79,15 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 }
 
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
-  // Rate limiting
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   const params = await props.params;
   let orgId: string;
   try {
     const user = await getSessionUser(req);
     orgId = user.orgId;
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
   } catch {
     return createSecureResponse({ error: 'Unauthorized' }, 401, req);
   }

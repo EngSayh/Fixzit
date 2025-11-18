@@ -8,6 +8,7 @@ import { UpgradeModal } from '@/components/admin/UpgradeModal';
 import toast from 'react-hot-toast';
 
 import { logger } from '@/lib/logger';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 /**
  * Feature flags configuration type
  */
@@ -59,6 +60,7 @@ interface FeatureFlags {
  */
 export default function FeatureSettingsPage() {
   const { data: session, status } = useSession();
+  const auto = useAutoTranslator('admin.featureSettings');
   const [loading, setLoading] = useState(true);
   const [loadingFeatures, setLoadingFeatures] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -207,16 +209,16 @@ export default function FeatureSettingsPage() {
             </svg>
             <div className="ms-3">
               <h3 className="text-lg font-medium text-warning-foreground dark:text-warning-foreground">
-                Authentication Required
+                {auto('Authentication Required', 'authRequired.title')}
               </h3>
               <p className="mt-2 text-sm text-warning dark:text-warning">
-                You must be logged in to access Feature Settings.
+                {auto('You must be logged in to access Feature Settings.', 'authRequired.description')}
               </p>
               <a
                 href="/login"
                 className="mt-4 inline-block px-4 py-2 bg-warning text-white rounded hover:bg-warning/90"
               >
-                Go to Login
+                {auto('Go to Login', 'authRequired.cta')}
               </a>
             </div>
           </div>
@@ -236,19 +238,22 @@ export default function FeatureSettingsPage() {
             </svg>
             <div className="ms-3">
               <h3 className="text-lg font-medium text-destructive-foreground dark:text-destructive-foreground">
-                Access Denied
+                {auto('Access Denied', 'accessDenied.title')}
               </h3>
               <p className="mt-2 text-sm text-destructive dark:text-destructive">
-                You do not have permission to access Feature Settings. This page is restricted to Super Admin users only.
+                {auto(
+                  'You do not have permission to access Feature Settings. This page is restricted to Super Admin users only.',
+                  'accessDenied.description'
+                )}
               </p>
               <p className="mt-2 text-sm text-destructive dark:text-destructive">
-                Your role: <strong>{session.user?.role || 'Unknown'}</strong>
+                {auto('Your role', 'accessDenied.roleLabel')}: <strong>{session.user?.role || 'Unknown'}</strong>
               </p>
               <a
                 href="/dashboard"
                 className="mt-4 inline-block px-4 py-2 bg-destructive text-white rounded hover:bg-destructive/90"
               >
-                Return to Dashboard
+                {auto('Return to Dashboard', 'accessDenied.cta')}
               </a>
             </div>
           </div>
@@ -284,7 +289,7 @@ export default function FeatureSettingsPage() {
             </svg>
             <div className="ms-3 flex-1">
               <h3 className="text-sm font-medium text-destructive-foreground dark:text-destructive-foreground">
-                Error Loading Feature Settings
+                {auto('Error Loading Feature Settings', 'errors.loadTitle')}
               </h3>
               <p className="mt-1 text-sm text-destructive dark:text-destructive">
                 {error}
@@ -293,7 +298,7 @@ export default function FeatureSettingsPage() {
                 onClick={() => window.location.reload()}
                 className="mt-3 text-sm font-medium text-destructive dark:text-destructive hover:text-destructive dark:hover:text-destructive"
               >
-                Retry
+                {auto('Retry', 'errors.retry')}
               </button>
             </div>
           </div>
@@ -303,10 +308,10 @@ export default function FeatureSettingsPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground dark:text-white">
-          Feature Settings
+          {auto('Feature Settings', 'header.title')}
         </h1>
         <p className="mt-2 text-muted-foreground dark:text-muted-foreground">
-          Enable or disable platform features. Changes take effect immediately.
+          {auto('Enable or disable platform features. Changes take effect immediately.', 'header.subtitle')}
         </p>
       </div>
 

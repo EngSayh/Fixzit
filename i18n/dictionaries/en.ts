@@ -1,4 +1,6 @@
-const en = {
+import type { TranslationDictionary } from './types';
+
+const en: TranslationDictionary = {
   common: {
     appName: 'Fixzit Enterprise',
     brand: 'FIXZIT ENTERPRISE',

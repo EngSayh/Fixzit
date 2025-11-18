@@ -239,7 +239,7 @@ export async function GET(req: NextRequest) {
     const normalizedResults = results
       .sort((a, b) => (b.score || 0) - (a.score || 0))
       .slice(0, 20)
-      .map(({ score, ...rest }) => rest);
+      .map(({ score: _score, ...rest }) => rest);
     return createSecureResponse({ results: normalizedResults }, 200, req);
 
   } catch (error) {

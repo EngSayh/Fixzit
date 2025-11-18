@@ -6,6 +6,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { getUserFromToken } from '@/lib/auth';
 import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { createSecureResponse, getClientIP } from '@/server/security/headers';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { z } from 'zod';
 
@@ -55,13 +56,6 @@ async function tryGetSessionUser(req: NextRequest) {
  *         description: Rate limit exceeded
  */
 export async function GET(req: NextRequest) {
-  // Rate limiting with secure IP extraction
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     // Try session-based auth first (cookies), fallback to Bearer token
     let user = await tryGetSessionUser(req);
@@ -97,6 +91,11 @@ export async function GET(req: NextRequest) {
       return createSecureResponse({ error: 'Insufficient permissions to view invoices' }, 403, req);
     }
 
+    const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     const { searchParams } = new URL(req.url);
     const q = searchParams.get("q") || undefined;
     const status = searchParams.get("status") || undefined;
@@ -114,13 +113,6 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  // Rate limiting with secure IP extraction
-  const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
-  if (!rl.allowed) {
-    return rateLimitError();
-  }
-
   try {
     // Authentication & Authorization
     const token = req.headers.get('authorization')?.replace('Bearer ', '')?.trim();
@@ -167,4 +159,3 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ error: 'Failed to create invoice', correlationId }, 400, req);
   }
 }
-

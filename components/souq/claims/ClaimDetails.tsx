@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -118,16 +118,18 @@ export default function ClaimDetails({ claimId, userRole, onActionRequired }: Cl
   const [activeTab, setActiveTab] = useState('overview');
 
   // Fetch claim details
-  useState(() => {
+  useEffect(() => {
     fetchClaimDetails();
-  });
+  }, [claimId]);
 
   const fetchClaimDetails = async () => {
+    setLoading(true);
     try {
       const response = await fetch(`/api/souq/claims/${claimId}`);
       if (response.ok) {
         const data = await response.json();
-        setClaim(data);
+        // Unwrap response - API returns { claim } or { claim: {...} }
+        setClaim(data.claim || data);
       }
     } catch (error) {
       console.error('Failed to fetch claim:', error);

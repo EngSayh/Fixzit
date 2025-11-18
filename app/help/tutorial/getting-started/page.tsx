@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle, Circle, Play, BookOpen, Clock } from 'lucide-react';
 import { renderMarkdownSanitized } from '@/lib/markdown';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 // HTML escape utility for fallback rendering
 const escapeHtml = (str: string) => str
@@ -15,6 +16,7 @@ const escapeHtml = (str: string) => str
   .replace(/'/g, '&#39;');
 
 export default function GettingStartedTutorial() {
+  const auto = useAutoTranslator('help.gettingStarted');
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [renderedContent, setRenderedContent] = useState<string>('');
@@ -450,8 +452,23 @@ Continue to learn about tenant relations!
     setCompletedSteps(prev => new Set([...prev, stepIndex]));
   };
 
-  const currentStepData = tutorial.steps[currentStep];
-  const progress = ((currentStep + 1) / tutorial.steps.length) * 100;
+  const localizedTutorial = {
+    ...tutorial,
+    title: auto(tutorial.title, 'tutorial.title'),
+    description: auto(tutorial.description, 'tutorial.description'),
+    duration: auto(tutorial.duration, 'tutorial.duration'),
+    difficulty: auto(tutorial.difficulty, 'tutorial.difficulty'),
+    steps: tutorial.steps.map((step) => ({
+      ...step,
+      title: auto(step.title, `steps.${step.id}.title`),
+      description: auto(step.description, `steps.${step.id}.description`),
+      content: auto(step.content, `steps.${step.id}.content`),
+      tips: step.tips?.map((tip, index) => auto(tip, `steps.${step.id}.tips.${index}`)) ?? [],
+    })),
+  };
+
+  const currentStepData = localizedTutorial.steps[currentStep];
+  const progress = ((currentStep + 1) / localizedTutorial.steps.length) * 100;
 
   // Render markdown content when step changes
   useEffect(() => {
@@ -476,32 +493,34 @@ Continue to learn about tenant relations!
             className="inline-flex items-center gap-2 text-primary hover:text-primary mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Help Center
+            {auto('Back to Help Center', 'header.backLink')}
           </Link>
 
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">{tutorial.title}</h1>
+              <h1 className="text-3xl font-bold text-foreground mb-2">{localizedTutorial.title}</h1>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
-                  {tutorial.duration}
+                  {localizedTutorial.duration}
                 </div>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                   tutorial.difficulty === 'Beginner' ? 'bg-success/10 text-success' :
                   tutorial.difficulty === 'Intermediate' ? 'bg-warning/10 text-warning' :
                   'bg-destructive/10 text-destructive'
                 }`}>
-                  {tutorial.difficulty}
+                  {localizedTutorial.difficulty}
                 </span>
                 <div className="flex items-center gap-1">
                   <BookOpen className="w-4 h-4" />
-                  {tutorial.steps.length} steps
+                  {localizedTutorial.steps.length} {auto('steps', 'header.stepsLabel')}
                 </div>
               </div>
             </div>
             <div className="text-end">
-              <div className="text-sm text-muted-foreground">Progress</div>
+              <div className="text-sm text-muted-foreground">
+                {auto('Progress', 'progress.label')}
+              </div>
               <div className="w-32 bg-muted rounded-full h-2 mt-1">
                 <div
                   className="bg-primary h-2 rounded-full transition-all duration-300"
@@ -509,7 +528,7 @@ Continue to learn about tenant relations!
                 ></div>
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                {currentStep + 1} of {tutorial.steps.length}
+                {currentStep + 1} {auto('of', 'progress.of')} {localizedTutorial.steps.length}
               </div>
             </div>
           </div>
@@ -519,9 +538,11 @@ Continue to learn about tenant relations!
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-card rounded-2xl shadow-sm border border-border p-4 sticky top-6">
-              <h3 className="font-semibold text-foreground mb-4">Tutorial Steps</h3>
+              <h3 className="font-semibold text-foreground mb-4">
+                {auto('Tutorial Steps', 'sidebar.title')}
+              </h3>
               <div className="space-y-2">
-                {tutorial.steps.map((step, index) => (
+                {localizedTutorial.steps.map((step, index) => (
                   <button
                     key={step.id}
                     onClick={() => setCurrentStep(index)}
@@ -542,7 +563,7 @@ Continue to learn about tenant relations!
                         <Circle className="w-4 h-4 text-muted-foreground" />
                       )}
                       <div>
-                        <div className="font-medium text-sm">{step.title}</div>
+                       <div className="font-medium text-sm">{step.title}</div>
                         <div className="text-xs text-muted-foreground">{step.description}</div>
                       </div>
                     </div>
@@ -559,7 +580,9 @@ Continue to learn about tenant relations!
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-2">
                   <Play className="w-5 h-5 text-primary" />
-                  <span className="text-sm font-medium text-primary">Step {currentStep + 1}</span>
+                  <span className="text-sm font-medium text-primary">
+                    {auto('Step {{number}}', 'content.stepLabel').replace('{{number}}', String(currentStep + 1))}
+                  </span>
                 </div>
                 <h2 className="text-2xl font-bold text-foreground mb-2">{currentStepData.title}</h2>
                 <p className="text-muted-foreground">{currentStepData.description}</p>
@@ -573,7 +596,9 @@ Continue to learn about tenant relations!
               {/* Tips */}
               {currentStepData.tips && (
                 <div className="mt-8 p-4 bg-primary/10 rounded-2xl">
-                  <h4 className="font-semibold text-primary mb-2">💡 Tips</h4>
+                  <h4 className="font-semibold text-primary mb-2">
+                    💡 {auto('Tips', 'content.tipsTitle')}
+                  </h4>
                   <ul className="space-y-1">
                     {currentStepData.tips.map((tip, i) => (
                       <li key={i} className="text-primary text-sm flex items-start gap-2">
@@ -592,7 +617,7 @@ Continue to learn about tenant relations!
                   disabled={currentStep === 0}
                   className="flex items-center gap-2 px-4 py-2 text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  ← Previous
+                  ← {auto('Previous', 'actions.previous')}
                 </button>
 
                 <button
@@ -600,15 +625,15 @@ Continue to learn about tenant relations!
                   className="flex items-center gap-2 px-4 py-2 bg-success text-white rounded-2xl hover:bg-success transition-colors"
                 >
                   <CheckCircle className="w-4 h-4" />
-                  Mark Complete
+                  {auto('Mark Complete', 'actions.markComplete')}
                 </button>
 
                 <button
-                  onClick={() => setCurrentStep(Math.min(tutorial.steps.length - 1, currentStep + 1))}
-                  disabled={currentStep === tutorial.steps.length - 1}
+                  onClick={() => setCurrentStep(Math.min(localizedTutorial.steps.length - 1, currentStep + 1))}
+                  disabled={currentStep === localizedTutorial.steps.length - 1}
                   className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  Next →
+                  {auto('Next', 'actions.next')} →
                 </button>
               </div>
             </div>

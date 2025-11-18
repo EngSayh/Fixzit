@@ -4,11 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { MapPin, Home, Users, Wrench } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 export default function PropertyDetailPage() {
   const params = useParams();
   const propertyId = params.id;
   const { isRTL } = useTranslation();
+  const auto = useAutoTranslator('properties.detail');
   
   const [property] = useState({
     id: propertyId,
@@ -85,7 +87,9 @@ export default function PropertyDetailPage() {
                 <Home className="h-6 w-6 text-primary" />
               </div>
               <div className={isRTL ? 'text-right' : ''}>
-                <p className="text-sm text-muted-foreground">Type</p>
+                <p className="text-sm text-muted-foreground">
+                  {auto('Type', 'stats.type')}
+                </p>
                 <p className="font-semibold">{property.type}</p>
               </div>
             </div>
@@ -95,7 +99,9 @@ export default function PropertyDetailPage() {
                 <Home className="h-6 w-6 text-success" />
               </div>
               <div className={isRTL ? 'text-right' : ''}>
-                <p className="text-sm text-muted-foreground">Units</p>
+                <p className="text-sm text-muted-foreground">
+                  {auto('Units', 'stats.units')}
+                </p>
                 <p className="font-semibold">{property.units}</p>
               </div>
             </div>
@@ -105,7 +111,9 @@ export default function PropertyDetailPage() {
                 <Users className="h-6 w-6 text-accent" />
               </div>
               <div className={isRTL ? 'text-right' : ''}>
-                <p className="text-sm text-muted-foreground">Occupancy</p>
+                <p className="text-sm text-muted-foreground">
+                  {auto('Occupancy', 'stats.occupancy')}
+                </p>
                 <p className="font-semibold">{property.occupancy}%</p>
               </div>
             </div>
@@ -115,7 +123,9 @@ export default function PropertyDetailPage() {
                 <Wrench className="h-6 w-6 text-destructive" />
               </div>
               <div className={isRTL ? 'text-right' : ''}>
-                <p className="text-sm text-muted-foreground">Open Work Orders</p>
+                <p className="text-sm text-muted-foreground">
+                  {auto('Open Work Orders', 'stats.workOrders')}
+                </p>
                 <p className="font-semibold">{property.openWorkOrders}</p>
               </div>
             </div>
@@ -123,7 +133,9 @@ export default function PropertyDetailPage() {
           
           {/* Map */}
           <div className="p-6">
-            <h2 className="text-lg font-semibold mb-4">Location</h2>
+            <h2 className="text-lg font-semibold mb-4">
+              {auto('Location', 'map.title')}
+            </h2>
             <div 
               id="property-map" 
               className="w-full h-96 rounded-2xl border"
@@ -134,13 +146,13 @@ export default function PropertyDetailPage() {
           {/* Actions */}
           <div className={`p-6 border-t bg-muted flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <button className="px-4 py-2 bg-primary text-white rounded-2xl hover:bg-primary/90 transition-colors">
-              View Units
+              {auto('View Units', 'actions.viewUnits')}
             </button>
             <button className="px-4 py-2 bg-success text-white rounded-2xl hover:bg-success-dark transition-colors">
-              Create Work Order
+              {auto('Create Work Order', 'actions.createWorkOrder')}
             </button>
             <button className="px-4 py-2 border border-border rounded-2xl hover:bg-muted transition-colors">
-              View Reports
+              {auto('View Reports', 'actions.viewReports')}
             </button>
           </div>
         </div>

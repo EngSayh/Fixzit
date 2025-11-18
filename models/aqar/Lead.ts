@@ -34,6 +34,14 @@ export enum LeadSource {
   EMAIL = 'EMAIL',                           // Email inquiry
   WALK_IN = 'WALK_IN',                       // Walk-in to office
 }
+
+export enum LeadChannel {
+  FORM = 'FORM',
+  CALL_REVEAL = 'CALL_REVEAL',
+  WHATSAPP_CLICK = 'WHATSAPP_CLICK',
+  BOOKING_REQUEST = 'BOOKING_REQUEST',
+  AUCTION_BID = 'AUCTION_BID',
+}
 /* eslint-enable no-unused-vars */
 
 export interface ILead extends Document {
@@ -58,6 +66,7 @@ export interface ILead extends Document {
   // Intent
   intent: LeadIntent;
   message?: string;
+  channel: LeadChannel;
   
   // Status & assignment
   status: LeadStatus;
@@ -131,6 +140,11 @@ const LeadSchema = new Schema<ILead>(
       index: true,
     },
     message: { type: String, maxlength: 2000 },
+    channel: {
+      type: String,
+      enum: Object.values(LeadChannel),
+      default: LeadChannel.FORM,
+    },
     
     status: {
       type: String,

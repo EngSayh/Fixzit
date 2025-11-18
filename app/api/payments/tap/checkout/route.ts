@@ -9,11 +9,47 @@ import {
   buildRedirectUrls,
   buildWebhookConfig,
   type TapChargeRequest,
+  type TapChargeResponse,
 } from '@/lib/finance/tap-payments';
 import { getSessionUser } from '@/lib/auth-middleware';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { TapTransaction } from '@/server/models/finance/TapTransaction';
 import { Invoice } from '@/server/models/Invoice';
+
+// SECURITY: Explicit non-empty string validation (not just truthy check)
+const TAP_PAYMENTS_CONFIGURED = 
+  typeof process.env.TAP_SECRET_KEY === 'string' && 
+  process.env.TAP_SECRET_KEY.trim() !== '' &&
+  typeof process.env.TAP_PUBLIC_KEY === 'string' && 
+  process.env.TAP_PUBLIC_KEY.trim() !== '';
+
+type ChargeResult = Pick<TapChargeResponse, 'id' | 'status' | 'transaction' | 'metadata' | 'reference' | 'currency' | 'amount'>;
+
+function buildMockCharge(params: {
+  correlationId: string;
+  amountHalalas: number;
+  currency: string;
+  baseUrl: string;
+  metadata?: TapChargeRequest['metadata'];
+  reference?: TapChargeRequest['reference'];
+}): ChargeResult {
+  const createdAtIso = new Date().toISOString();
+  return {
+    id: `chg_mock_${params.correlationId}`,  // Use Tap-valid format (starts with chg_)
+    status: 'INITIATED',
+    currency: params.currency,
+    amount: params.amountHalalas,
+    transaction: {
+      timezone: 'UTC',
+      created: createdAtIso,
+      url: `${params.baseUrl}/payments/mock/${params.correlationId}`,
+      expiry: { period: 15, type: 'MINUTES' },
+      asynchronous: false,
+    },
+    metadata: params.metadata,
+    reference: params.reference,
+  };
+}
 
 const CheckoutRequestSchema = z.object({
   amount: z.number().positive(),
@@ -184,13 +220,23 @@ export async function POST(req: NextRequest) {
     };
 
     // Create charge with Tap API
-    const charge = await tapPayments.createCharge(chargeRequest);
+    const charge: ChargeResult = TAP_PAYMENTS_CONFIGURED
+      ? await tapPayments.createCharge(chargeRequest)
+      : buildMockCharge({
+          correlationId,
+          amountHalalas: amountInHalalas,
+          currency,
+          baseUrl,
+          metadata: chargeRequest.metadata,
+          reference: chargeRequest.reference,
+        });
 
     logger.info('[POST /api/payments/tap/checkout] Charge created successfully', {
       correlationId,
       chargeId: charge.id,
       status: charge.status,
       transactionUrl: charge.transaction.url,
+      tapConfigured: TAP_PAYMENTS_CONFIGURED,
     });
 
     const expiresAt = charge.transaction.expiry

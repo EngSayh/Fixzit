@@ -8,6 +8,32 @@ const IMAGE_CACHE = 'fixzit-images-v1.1.0';
 const ARABIC_CACHE = 'fixzit-arabic-v1.1.0';
 const FONT_CACHE = 'fixzit-fonts-v1.1.0';
 
+const swTranslations = {
+  en: {
+    'sw.offline.title': 'Offline - Fixzit Souq',
+    'sw.offline.heading': "You're Offline",
+    'sw.offline.message': 'Please check your internet connection and try again. Fixzit Souq requires an internet connection to function properly.',
+    'sw.offline.button': 'Try Again',
+    'sw.offline.subtitle': 'Enterprise facilities platform',
+    'sw.offline.short': 'Offline',
+  },
+  ar: {
+    'sw.offline.title': 'غير متصل - فكسيت سوق',
+    'sw.offline.heading': 'أنت غير متصل',
+    'sw.offline.message': 'يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى. تتطلب فكسيت سوق اتصالاً بالإنترنت للعمل بشكل صحيح.',
+    'sw.offline.button': 'حاول مرة أخرى',
+    'sw.offline.subtitle': 'منصة إدارة المرافق للمؤسسات',
+    'sw.offline.short': 'غير متصل',
+  },
+};
+
+const getSwLocale = (lang = '') => (lang.toLowerCase().startsWith('ar') ? 'ar' : 'en');
+
+const swTranslate = (locale, key, fallback) => {
+  const dict = swTranslations[locale] || swTranslations.en;
+  return dict[key] || fallback;
+};
+
 // Assets to cache immediately - Enhanced for Arabic Support
 const STATIC_ASSETS = [
   '/',
@@ -349,8 +375,9 @@ async function getOfflineFallback(request) {
       }
     });
   }
-  
-  return new Response('Offline', { status: 503 });
+
+  const shortLabel = swTranslate(shouldShowArabic ? 'ar' : 'en', 'sw.offline.short', 'Offline');
+  return new Response(shortLabel, { status: 503 });
 }
 
 // Get user language preference from cache or default
@@ -370,13 +397,14 @@ async function getUserLanguagePreference() {
 
 // Arabic-optimized offline page
 function getArabicOfflinePage() {
+  const locale = 'ar';
   return `
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>غير متصل - فكسيت سوق</title>
+      <title>${swTranslate(locale, 'sw.offline.title', 'غير متصل - فكسيت سوق')}</title>
       <style>
         body { 
           font-family: 'Tajawal', 'Noto Sans Arabic', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -405,10 +433,10 @@ function getArabicOfflinePage() {
     <body>
       <div class="offline-container">
         <div class="offline-icon">📱</div>
-        <h1>أنت غير متصل</h1>
-        <p>يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى. تتطلب فكسيت سوق اتصالاً بالإنترنت للعمل بشكل صحيح.</p>
-        <button onclick="window.location.reload()">حاول مرة أخرى</button>
-        <p class="subtitle">منصة إدارة المرافق للمؤسسات</p>
+        <h1>${swTranslate(locale, 'sw.offline.heading', 'أنت غير متصل')}</h1>
+        <p>${swTranslate(locale, 'sw.offline.message', 'يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى. تتطلب فكسيت سوق اتصالاً بالإنترنت للعمل بشكل صحيح.')}</p>
+        <button onclick="window.location.reload()">${swTranslate(locale, 'sw.offline.button', 'حاول مرة أخرى')}</button>
+        <p class="subtitle">${swTranslate(locale, 'sw.offline.subtitle', 'منصة إدارة المرافق للمؤسسات')}</p>
       </div>
     </body>
     </html>
@@ -417,13 +445,15 @@ function getArabicOfflinePage() {
 
 // Bilingual offline page
 function getBilingualOfflinePage() {
+  const enLocale = 'en';
+  const arLocale = 'ar';
   return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Offline - Fixzit Souq</title>
+      <title>${swTranslate(enLocale, 'sw.offline.title', 'Offline - Fixzit Souq')}</title>
       <style>
         body { 
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Tajawal', sans-serif;
@@ -455,14 +485,14 @@ function getBilingualOfflinePage() {
     <body>
       <div class="offline-container">
         <div class="offline-icon">📱</div>
-        <h1>You're Offline</h1>
-        <p>Please check your internet connection and try again. Fixzit Souq requires an internet connection to function properly.</p>
-        <button onclick="window.location.reload()">Try Again</button>
+        <h1>${swTranslate(enLocale, 'sw.offline.heading', "You're Offline")}</h1>
+        <p>${swTranslate(enLocale, 'sw.offline.message', 'Please check your internet connection and try again. Fixzit Souq requires an internet connection to function properly.')}</p>
+        <button onclick="window.location.reload()">${swTranslate(enLocale, 'sw.offline.button', 'Try Again')}</button>
         
         <div class="arabic">
-          <h1>أنت غير متصل</h1>
-          <p>يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى. تتطلب فكسيت سوق اتصالاً بالإنترنت للعمل بشكل صحيح.</p>
-          <button onclick="window.location.reload()">حاول مرة أخرى</button>
+          <h1>${swTranslate(arLocale, 'sw.offline.heading', 'أنت غير متصل')}</h1>
+          <p>${swTranslate(arLocale, 'sw.offline.message', 'يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى. تتطلب فكسيت سوق اتصالاً بالإنترنت للعمل بشكل صحيح.')}</p>
+          <button onclick="window.location.reload()">${swTranslate(arLocale, 'sw.offline.button', 'حاول مرة أخرى')}</button>
         </div>
       </div>
     </body>

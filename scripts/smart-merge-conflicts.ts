@@ -234,8 +234,9 @@ for (const file of conflictingFiles) {
     } else {
       failed++;
     }
-  } catch (error: any) {
-    console.log(`❌ Error resolving ${file}: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.log(`❌ Error resolving ${file}: ${message}`);
     failed++;
   }
 }

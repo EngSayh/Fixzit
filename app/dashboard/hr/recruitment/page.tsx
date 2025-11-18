@@ -10,6 +10,8 @@ import type { ATSRole } from '@/lib/ats/rbac';
 import ApplicationsKanban from '@/components/ats/ApplicationsKanban';
 import { AnalyticsOverview } from '@/components/ats/AnalyticsOverview';
 import ClientDate from '@/components/ClientDate';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 /**
  * ATS Recruitment Dashboard (Monday.com-style)
@@ -48,6 +50,8 @@ const fetcher = async (url: string) => {
 export default function RecruitmentPage() {
   const { data: session } = useSession();
   const router = useRouter();
+  const { t } = useTranslation();
+  const auto = useAutoTranslator('dashboard.hrRecruitment');
   const [activeTab, setActiveTab] = useState<string>('jobs');
   const [applicationsView, setApplicationsView] = useState<'list' | 'kanban'>('list');
   const [currentDate, setCurrentDate] = useState<Date | null>(null);
@@ -169,8 +173,12 @@ export default function RecruitmentPage() {
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="text-6xl mb-4">🔒</div>
-          <h2 className="text-xl font-bold mb-2">ATS Not Enabled</h2>
-          <p className="text-muted-foreground mb-4">Redirecting to upgrade page...</p>
+          <h2 className="text-xl font-bold mb-2">
+            {auto('ATS Not Enabled', 'upgrade.title')}
+          </h2>
+          <p className="text-muted-foreground mb-4">
+            {auto('Redirecting to upgrade page...', 'upgrade.subtitle')}
+          </p>
         </div>
       </div>
     );
@@ -182,15 +190,20 @@ export default function RecruitmentPage() {
       <div className="border-b bg-background px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Recruitment (ATS)</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              {t('dashboard.hrRecruitment.header.title', 'Recruitment (ATS)')}
+            </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Applicant Tracking System - Manage jobs, applications, and interviews
+              {t(
+                'dashboard.hrRecruitment.header.subtitle',
+                'Applicant Tracking System - Manage jobs, applications, and interviews'
+              )}
             </p>
           </div>
           
           {canManageJobs && (
             <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
-              + New Job
+              {auto('+ New Job', 'actions.newJob')}
             </button>
           )}
         </div>
@@ -200,48 +213,48 @@ export default function RecruitmentPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
         <TabsList className="w-full justify-start rounded-none border-b bg-background px-6 h-12 overflow-x-auto">
           <TabsTrigger value="jobs" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
-            📋 Jobs
+            {auto('📋 Jobs', 'tabs.jobs')}
           </TabsTrigger>
 
           {canViewApplications && (
             <TabsTrigger value="applications" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
-              📝 Applications
+              {auto('📝 Applications', 'tabs.applications')}
             </TabsTrigger>
           )}
 
           {canViewApplications && (
             <TabsTrigger value="pipeline" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
-              🌀 Pipeline
+              {auto('🌀 Pipeline', 'tabs.pipeline')}
             </TabsTrigger>
           )}
 
           {canViewApplications && (
             <TabsTrigger value="candidates" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
-              👥 Candidates
+              {auto('👥 Candidates', 'tabs.candidates')}
             </TabsTrigger>
           )}
 
           {canScheduleInterviews && (
             <TabsTrigger value="interviews" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
-              🗓️ Interviews
+              {auto('🗓️ Interviews', 'tabs.interviews')}
             </TabsTrigger>
           )}
 
           {canViewApplications && (
             <TabsTrigger value="offers" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
-              📄 Offers
+              {auto('📄 Offers', 'tabs.offers')}
             </TabsTrigger>
           )}
 
           {canViewApplications && (
             <TabsTrigger value="analytics" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
-              📈 Analytics
+              {auto('📈 Analytics', 'tabs.analytics')}
             </TabsTrigger>
           )}
 
           {canViewSettings && (
             <TabsTrigger value="settings" className="data-[state=active]:border-b-2 data-[state=active]:border-primary">
-              ⚙️ Settings
+              {auto('⚙️ Settings', 'tabs.settings')}
             </TabsTrigger>
           )}
         </TabsList>
@@ -252,38 +265,46 @@ export default function RecruitmentPage() {
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <p className="text-muted-foreground">Loading jobs...</p>
+                <p className="text-muted-foreground">
+                  {auto('Loading jobs...', 'jobs.loading')}
+                </p>
               </div>
             </div>
           ) : jobsError ? (
             <div className="bg-destructive/10 border border-destructive rounded-lg p-6 text-center">
               <div className="text-4xl mb-4">⚠️</div>
-              <h3 className="text-lg font-semibold text-destructive mb-2">Error Loading Jobs</h3>
+              <h3 className="text-lg font-semibold text-destructive mb-2">
+                {auto('Error Loading Jobs', 'jobs.errorTitle')}
+              </h3>
               <p className="text-sm text-muted-foreground">{jobsError.message}</p>
             </div>
           ) : jobs.length === 0 ? (
             <div className="bg-card border rounded-lg p-8 text-center">
               <div className="text-6xl mb-4">📋</div>
-              <h2 className="text-xl font-semibold mb-2">No Jobs Yet</h2>
+              <h2 className="text-xl font-semibold mb-2">
+                {auto('No Jobs Yet', 'jobs.emptyTitle')}
+              </h2>
               <p className="text-muted-foreground mb-4">
-                Get started by creating your first job posting.
+                {auto('Get started by creating your first job posting.', 'jobs.emptySubtitle')}
               </p>
               {canManageJobs && (
                 <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
-                  + Create First Job
+                  {auto('+ Create First Job', 'jobs.createFirst')}
                 </button>
               )}
             </div>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">All Jobs ({jobsCount})</h2>
+                <h2 className="text-lg font-semibold">
+                  {auto('All Jobs ({{count}})', 'jobs.listTitle', { count: jobsCount })}
+                </h2>
                 <div className="flex gap-2">
                   <select className="px-3 py-2 border rounded-md text-sm">
-                    <option value="all">All Status</option>
-                    <option value="published">Published</option>
-                    <option value="draft">Draft</option>
-                    <option value="closed">Closed</option>
+                    <option value="all">{auto('All Status', 'jobs.filters.all')}</option>
+                    <option value="published">{auto('Published', 'jobs.filters.published')}</option>
+                    <option value="draft">{auto('Draft', 'jobs.filters.draft')}</option>
+                    <option value="closed">{auto('Closed', 'jobs.filters.closed')}</option>
                   </select>
                 </div>
               </div>
@@ -304,19 +325,21 @@ export default function RecruitmentPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                          <span>📍 {job.location?.city || 'Remote'}</span>
-                          <span>💼 {job.jobType || 'Full-time'}</span>
-                          <span>🏢 {job.department || 'N/A'}</span>
+                          <span>📍 {job.location?.city || auto('Remote', 'jobs.locationRemote')}</span>
+                          <span>💼 {job.jobType || auto('Full-time', 'jobs.fullTime')}</span>
+                          <span>🏢 {job.department || auto('N/A', 'jobs.departmentFallback')}</span>
                         </div>
                         <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                          {job.description || 'No description'}
+                          {job.description || auto('No description', 'jobs.noDescription')}
                         </p>
                         <div className="flex items-center gap-4 text-sm">
                           <span className="text-muted-foreground">
-                            📝 {job.applicationCount || 0} applications
+                            {auto('📝 {{count}} applications', 'jobs.applicationCount', {
+                              count: job.applicationCount || 0,
+                            })}
                           </span>
                           <span className="text-muted-foreground">
-                            📅 Posted{' '}
+                            {auto('📅 Posted', 'jobs.postedLabel')}{' '}
                             <ClientDate
                               date={job.createdAt}
                               format="date-only"
@@ -328,11 +351,11 @@ export default function RecruitmentPage() {
                       </div>
                       <div className="flex gap-2 ml-4">
                         <button className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
-                          View
+                          {auto('View', 'jobs.actions.view')}
                         </button>
                         {canManageJobs && (
                           <button className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
-                            Edit
+                            {auto('Edit', 'jobs.actions.edit')}
                           </button>
                         )}
                       </div>
@@ -351,27 +374,40 @@ export default function RecruitmentPage() {
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Loading applications...</p>
+                  <p className="text-muted-foreground">
+                    {auto('Loading applications...', 'applications.loading')}
+                  </p>
                 </div>
               </div>
             ) : applicationsError ? (
               <div className="bg-destructive/10 border border-destructive rounded-lg p-6 text-center">
                 <div className="text-4xl mb-4">⚠️</div>
-                <h3 className="text-lg font-semibold text-destructive mb-2">Error Loading Applications</h3>
+                <h3 className="text-lg font-semibold text-destructive mb-2">
+                  {auto('Error Loading Applications', 'applications.errorTitle')}
+                </h3>
                 <p className="text-sm text-muted-foreground">{applicationsError.message}</p>
               </div>
             ) : applications.length === 0 ? (
               <div className="bg-card border rounded-lg p-8 text-center">
                 <div className="text-6xl mb-4">📝</div>
-                <h2 className="text-xl font-semibold mb-2">No Applications Yet</h2>
+                <h2 className="text-xl font-semibold mb-2">
+                  {auto('No Applications Yet', 'applications.emptyTitle')}
+                </h2>
                 <p className="text-muted-foreground mb-4">
-                  Applications will appear here once candidates apply to your published jobs.
+                  {auto(
+                    'Applications will appear here once candidates apply to your published jobs.',
+                    'applications.emptySubtitle'
+                  )}
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">All Applications ({applicationsCount})</h2>
+                  <h2 className="text-lg font-semibold">
+                    {auto('All Applications ({{count}})', 'applications.listTitle', {
+                      count: applicationsCount,
+                    })}
+                  </h2>
                   <div className="flex gap-2">
                     {/* View Toggle */}
                     <div className="flex border rounded-md overflow-hidden">
@@ -383,7 +419,7 @@ export default function RecruitmentPage() {
                             : 'bg-background hover:bg-accent'
                         }`}
                       >
-                        📋 List
+                        {auto('📋 List', 'applications.viewList')}
                       </button>
                       <button
                         onClick={() => setApplicationsView('kanban')}
@@ -393,18 +429,18 @@ export default function RecruitmentPage() {
                             : 'bg-background hover:bg-accent'
                         }`}
                       >
-                        📊 Kanban
+                        {auto('📊 Kanban', 'applications.viewKanban')}
                       </button>
                     </div>
                     
                     <select className="px-3 py-2 border rounded-md text-sm">
-                      <option value="all">All Stages</option>
-                      <option value="applied">Applied</option>
-                      <option value="screening">Screening</option>
-                      <option value="interview">Interview</option>
-                      <option value="offer">Offer</option>
-                      <option value="hired">Hired</option>
-                      <option value="rejected">Rejected</option>
+                      <option value="all">{auto('All Stages', 'applications.filters.all')}</option>
+                      <option value="applied">{auto('Applied', 'applications.filters.applied')}</option>
+                      <option value="screening">{auto('Screening', 'applications.filters.screening')}</option>
+                      <option value="interview">{auto('Interview', 'applications.filters.interview')}</option>
+                      <option value="offer">{auto('Offer', 'applications.filters.offer')}</option>
+                      <option value="hired">{auto('Hired', 'applications.filters.hired')}</option>
+                      <option value="rejected">{auto('Rejected', 'applications.filters.rejected')}</option>
                     </select>
                   </div>
                 </div>
@@ -498,32 +534,45 @@ export default function RecruitmentPage() {
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Loading interviews...</p>
+                  <p className="text-muted-foreground">
+                    {auto('Loading interviews...', 'interviews.loading')}
+                  </p>
                 </div>
               </div>
             ) : interviewsError ? (
               <div className="bg-destructive/10 border border-destructive rounded-lg p-6 text-center">
                 <div className="text-4xl mb-4">⚠️</div>
-                <h3 className="text-lg font-semibold text-destructive mb-2">Error Loading Interviews</h3>
+                <h3 className="text-lg font-semibold text-destructive mb-2">
+                  {auto('Error Loading Interviews', 'interviews.errorTitle')}
+                </h3>
                 <p className="text-sm text-muted-foreground">{interviewsError.message}</p>
               </div>
             ) : interviews.length === 0 ? (
               <div className="bg-card border rounded-lg p-8 text-center">
                 <div className="text-6xl mb-4">🗓️</div>
-                <h2 className="text-xl font-semibold mb-2">No Interviews Scheduled</h2>
+                <h2 className="text-xl font-semibold mb-2">
+                  {auto('No Interviews Scheduled', 'interviews.emptyTitle')}
+                </h2>
                 <p className="text-muted-foreground mb-4">
-                  Schedule interviews with candidates to move them through the pipeline.
+                  {auto(
+                    'Schedule interviews with candidates to move them through the pipeline.',
+                    'interviews.emptySubtitle'
+                  )}
                 </p>
                 {canScheduleInterviews && (
                   <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
-                    + Schedule Interview
+                    {auto('+ Schedule Interview', 'interviews.scheduleCta')}
                   </button>
                 )}
               </div>
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">Upcoming Interviews ({interviewsCount})</h2>
+                  <h2 className="text-lg font-semibold">
+                    {auto('Upcoming Interviews ({{count}})', 'interviews.listTitle', {
+                      count: interviewsCount,
+                    })}
+                  </h2>
                   <div className="flex gap-2">
                     <select className="px-3 py-2 border rounded-md text-sm">
                       <option value="all">All Status</option>
@@ -675,7 +724,7 @@ export default function RecruitmentPage() {
                             )}
                             {interview.status === 'completed' && !interview.feedback?.overall && (
                               <button className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
-                                Add Feedback
+                                {auto('Add Feedback', 'interviews.addFeedback')}
                               </button>
                             )}
                           </div>
@@ -701,8 +750,12 @@ export default function RecruitmentPage() {
             {candidateRows.length === 0 ? (
               <div className="bg-card border rounded-lg p-8 text-center">
                 <div className="text-6xl mb-4">👥</div>
-                <h2 className="text-xl font-semibold mb-2">No Candidates Yet</h2>
-                <p className="text-muted-foreground">New applicants will appear here for quick review.</p>
+                <h2 className="text-xl font-semibold mb-2">
+                  {auto('No Candidates Yet', 'candidates.emptyTitle')}
+                </h2>
+                <p className="text-muted-foreground">
+                  {auto('New applicants will appear here for quick review.', 'candidates.emptySubtitle')}
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto border rounded-xl">
@@ -730,8 +783,12 @@ export default function RecruitmentPage() {
                         <td className="px-4 py-3 text-sm">{candidate.experience ? `${candidate.experience} yrs` : '—'}</td>
                         <td className="px-4 py-3 text-sm">
                           <div className="flex gap-2">
-                            <button className="px-3 py-1 border rounded-md text-xs">Profile</button>
-                            <button className="px-3 py-1 border rounded-md text-xs">Notes</button>
+                            <button className="px-3 py-1 border rounded-md text-xs">
+                              {auto('Profile', 'candidates.actions.profile')}
+                            </button>
+                            <button className="px-3 py-1 border rounded-md text-xs">
+                              {auto('Notes', 'candidates.actions.notes')}
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -750,21 +807,27 @@ export default function RecruitmentPage() {
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Loading analytics...</p>
+                  <p className="text-muted-foreground">
+                    {auto('Loading analytics...', 'analytics.loading')}
+                  </p>
                 </div>
               </div>
             ) : analyticsError ? (
               <div className="bg-destructive/10 border border-destructive rounded-lg p-6 text-center">
                 <div className="text-4xl mb-4">⚠️</div>
-                <h3 className="text-lg font-semibold text-destructive mb-2">Error Loading Analytics</h3>
+                <h3 className="text-lg font-semibold text-destructive mb-2">
+                  {auto('Error Loading Analytics', 'analytics.errorTitle')}
+                </h3>
                 <p className="text-sm text-muted-foreground">{analyticsError.message}</p>
               </div>
             ) : !analytics ? (
               <div className="bg-card border rounded-lg p-8 text-center">
                 <div className="text-6xl mb-4">📊</div>
-                <h2 className="text-xl font-semibold mb-2">No Data Yet</h2>
+                <h2 className="text-xl font-semibold mb-2">
+                  {auto('No Data Yet', 'analytics.emptyTitle')}
+                </h2>
                 <p className="text-muted-foreground">
-                  Analytics will appear once you have applications in your pipeline.
+                  {auto('Analytics will appear once you have applications in your pipeline.', 'analytics.emptySubtitle')}
                 </p>
               </div>
             ) : (
@@ -778,8 +841,12 @@ export default function RecruitmentPage() {
             {offerRows.length === 0 ? (
               <div className="bg-card border rounded-lg p-8 text-center">
                 <div className="text-6xl mb-4">📄</div>
-                <h2 className="text-xl font-semibold mb-2">No Offers Yet</h2>
-                <p className="text-muted-foreground">Candidates moved to the offer stage will show up here.</p>
+                <h2 className="text-xl font-semibold mb-2">
+                  {auto('No Offers Yet', 'offers.emptyTitle')}
+                </h2>
+                <p className="text-muted-foreground">
+                  {auto('Candidates moved to the offer stage will show up here.', 'offers.emptySubtitle')}
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto border rounded-xl">
@@ -832,35 +899,52 @@ export default function RecruitmentPage() {
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Loading settings...</p>
+                  <p className="text-muted-foreground">
+                    {auto('Loading settings...', 'settings.loading')}
+                  </p>
                 </div>
               </div>
             ) : settingsError ? (
               <div className="bg-destructive/10 border border-destructive rounded-lg p-6 text-center">
                 <div className="text-4xl mb-4">⚠️</div>
-                <h3 className="text-lg font-semibold text-destructive mb-2">Error Loading Settings</h3>
+                <h3 className="text-lg font-semibold text-destructive mb-2">
+                  {auto('Error Loading Settings', 'settings.errorTitle')}
+                </h3>
                 <p className="text-sm text-muted-foreground">{settingsError.message}</p>
               </div>
             ) : (
               <div className="space-y-6 max-w-4xl">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold">ATS Settings</h2>
-                    <p className="text-sm text-muted-foreground">Configure screening rules and scoring weights</p>
+                    <h2 className="text-lg font-semibold">
+                      {auto('ATS Settings', 'settings.title')}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      {auto('Configure screening rules and scoring weights', 'settings.subtitle')}
+                    </p>
                   </div>
                 </div>
 
                 {/* Scoring Weights */}
                 <div className="bg-card border rounded-lg p-6">
-                  <h3 className="text-lg font-semibold mb-4">Application Scoring Weights</h3>
+                  <h3 className="text-lg font-semibold mb-4">
+                    {auto('Application Scoring Weights', 'settings.scoring.title')}
+                  </h3>
                   <p className="text-sm text-muted-foreground mb-6">
-                    Adjust how different factors contribute to candidate scores (must total 100%)
+                    {auto(
+                      'Adjust how different factors contribute to candidate scores (must total 100%)',
+                      'settings.scoring.subtitle'
+                    )}
                   </p>
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium block mb-2">
-                          Skills Match ({settings?.scoringWeights?.skills ? Math.round(settings.scoringWeights.skills * 100) : 60}%)
+                          {auto('Skills Match ({{percent}}%)', 'settings.scoring.skills', {
+                            percent: settings?.scoringWeights?.skills
+                              ? Math.round(settings.scoringWeights.skills * 100)
+                              : 60,
+                          })}
                         </label>
                         <input
                           type="range"
@@ -873,7 +957,11 @@ export default function RecruitmentPage() {
                       </div>
                       <div>
                         <label className="text-sm font-medium block mb-2">
-                          Experience ({settings?.scoringWeights?.experience ? Math.round(settings.scoringWeights.experience * 100) : 30}%)
+                          {auto('Experience ({{percent}}%)', 'settings.scoring.experience', {
+                            percent: settings?.scoringWeights?.experience
+                              ? Math.round(settings.scoringWeights.experience * 100)
+                              : 30,
+                          })}
                         </label>
                         <input
                           type="range"
@@ -886,7 +974,11 @@ export default function RecruitmentPage() {
                       </div>
                       <div>
                         <label className="text-sm font-medium block mb-2">
-                          Culture Fit ({settings?.scoringWeights?.culture ? Math.round(settings.scoringWeights.culture * 100) : 5}%)
+                          {auto('Culture Fit ({{percent}}%)', 'settings.scoring.culture', {
+                            percent: settings?.scoringWeights?.culture
+                              ? Math.round(settings.scoringWeights.culture * 100)
+                              : 5,
+                          })}
                         </label>
                         <input
                           type="range"
@@ -899,7 +991,11 @@ export default function RecruitmentPage() {
                       </div>
                       <div>
                         <label className="text-sm font-medium block mb-2">
-                          Education ({settings?.scoringWeights?.education ? Math.round(settings.scoringWeights.education * 100) : 5}%)
+                          {auto('Education ({{percent}}%)', 'settings.scoring.education', {
+                            percent: settings?.scoringWeights?.education
+                              ? Math.round(settings.scoringWeights.education * 100)
+                              : 5,
+                          })}
                         </label>
                         <input
                           type="range"
@@ -925,14 +1021,18 @@ export default function RecruitmentPage() {
 
                 {/* Knockout Rules */}
                 <div className="bg-card border rounded-lg p-6">
-                  <h3 className="text-lg font-semibold mb-4">Knockout Rules</h3>
+                  <h3 className="text-lg font-semibold mb-4">
+                    {auto('Knockout Rules', 'settings.knockout.title')}
+                  </h3>
                   <p className="text-sm text-muted-foreground mb-6">
-                    Automatically reject candidates who don't meet minimum requirements
+                    {auto("Automatically reject candidates who don't meet minimum requirements", 'settings.knockout.subtitle')}
                   </p>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
                       <div>
-                        <div className="font-medium">Minimum Years of Experience</div>
+                        <div className="font-medium">
+                          {auto('Minimum Years of Experience', 'settings.knockout.minExperience')}
+                        </div>
                         <div className="text-sm text-muted-foreground">
                           Current: {settings?.knockoutRules?.minYears || 0} years
                         </div>
@@ -944,7 +1044,9 @@ export default function RecruitmentPage() {
                     
                     <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
                       <div>
-                        <div className="font-medium">Auto-Reject Missing Experience</div>
+                        <div className="font-medium">
+                          {auto('Auto-Reject Missing Experience', 'settings.knockout.autoRejectExperience')}
+                        </div>
                         <div className="text-sm text-muted-foreground">
                           Reject if experience field is empty
                         </div>
@@ -954,13 +1056,17 @@ export default function RecruitmentPage() {
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
                           : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
                       }`}>
-                        {settings?.knockoutRules?.autoRejectMissingExperience ? 'Enabled' : 'Disabled'}
+                        {settings?.knockoutRules?.autoRejectMissingExperience
+                          ? auto('Enabled', 'settings.status.enabled')
+                          : auto('Disabled', 'settings.status.disabled')}
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between p-4 bg-accent rounded-lg">
                       <div>
-                        <div className="font-medium">Auto-Reject Missing Skills</div>
+                        <div className="font-medium">
+                          {auto('Auto-Reject Missing Skills', 'settings.knockout.autoRejectSkills')}
+                        </div>
                         <div className="text-sm text-muted-foreground">
                           Reject if required skills are missing
                         </div>
@@ -970,12 +1076,16 @@ export default function RecruitmentPage() {
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
                           : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
                       }`}>
-                        {settings?.knockoutRules?.autoRejectMissingSkills ? 'Enabled' : 'Disabled'}
+                        {settings?.knockoutRules?.autoRejectMissingSkills
+                          ? auto('Enabled', 'settings.status.enabled')
+                          : auto('Disabled', 'settings.status.disabled')}
                       </div>
                     </div>
 
                     <div className="p-4 bg-accent rounded-lg">
-                      <div className="font-medium mb-2">Required Skills</div>
+                      <div className="font-medium mb-2">
+                        {auto('Required Skills', 'settings.knockout.requiredSkills')}
+                      </div>
                       <div className="flex flex-wrap gap-2">
                         {settings?.knockoutRules?.requiredSkills && settings.knockoutRules.requiredSkills.length > 0 ? (
                           settings.knockoutRules.requiredSkills.map((skill: string, idx: number) => (
@@ -984,7 +1094,9 @@ export default function RecruitmentPage() {
                             </span>
                           ))
                         ) : (
-                          <span className="text-sm text-muted-foreground">No required skills configured</span>
+                          <span className="text-sm text-muted-foreground">
+                            {auto('No required skills configured', 'settings.knockout.none')}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -993,9 +1105,11 @@ export default function RecruitmentPage() {
 
                 {/* Email Templates Placeholder */}
                 <div className="bg-card border rounded-lg p-6">
-                  <h3 className="text-lg font-semibold mb-4">Email Templates</h3>
+                  <h3 className="text-lg font-semibold mb-4">
+                    {auto('Email Templates', 'settings.email.title')}
+                  </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Customize automated email notifications
+                    {auto('Customize automated email notifications', 'settings.email.subtitle')}
                   </p>
                   <div className="space-y-3">
                     <div className="p-4 bg-accent rounded-lg flex items-center justify-between">

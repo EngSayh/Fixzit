@@ -1,6 +1,7 @@
 import { arIndustryVerticals } from './ar-industries';
+import type { TranslationDictionary } from './types';
 
-const ar = {
+const ar: TranslationDictionary = {
   common: {
     appName: 'فيكزت إنتربرايز',
     brand: 'فيكزت إنتربرايز',
