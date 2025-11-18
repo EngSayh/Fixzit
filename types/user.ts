@@ -7,6 +7,7 @@ export const UserRole = {
   SUPER_ADMIN: "SUPER_ADMIN",
   CORPORATE_ADMIN: "CORPORATE_ADMIN", 
   ADMIN: "ADMIN",
+  MANAGER: "MANAGER",
   FM_MANAGER: "FM_MANAGER",
   PROPERTY_MANAGER: "PROPERTY_MANAGER",
   FINANCE: "FINANCE",
@@ -31,7 +32,7 @@ export const ALL_ROLES = Object.values(UserRole);
 
 // Role categories for grouping
 export const ADMIN_ROLES = [UserRole.SUPER_ADMIN, UserRole.CORPORATE_ADMIN, UserRole.ADMIN] as const;
-export const FM_ROLES = [UserRole.FM_MANAGER, UserRole.PROPERTY_MANAGER, UserRole.DISPATCHER, UserRole.TECHNICIAN] as const;
+export const FM_ROLES = [UserRole.MANAGER, UserRole.FM_MANAGER, UserRole.PROPERTY_MANAGER, UserRole.DISPATCHER, UserRole.TECHNICIAN] as const;
 export const BUSINESS_ROLES = [UserRole.FINANCE, UserRole.HR, UserRole.PROCUREMENT] as const;
 export const EXTERNAL_ROLES = [UserRole.VENDOR, UserRole.CUSTOMER] as const;
 export const PROPERTY_ROLES = [UserRole.OWNER, UserRole.TENANT] as const;

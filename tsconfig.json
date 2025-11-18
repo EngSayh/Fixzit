@@ -72,7 +72,8 @@
   ],
   "ts-node": {
     "compilerOptions": {
-      "module": "commonjs"
+      "module": "esnext",
+      "moduleResolution": "node16"
     }
   }
 }

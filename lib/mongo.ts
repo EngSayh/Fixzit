@@ -58,8 +58,14 @@ interface DatabaseHandle {
 const rawMongoUri = getEnv('MONGODB_URI');
 const dbName = process.env.MONGODB_DB || 'fixzit';
 const isProd = process.env.NODE_ENV === 'production';
+const allowLocalMongo = process.env.ALLOW_LOCAL_MONGODB === 'true';
+const disableMongoForBuild = process.env.DISABLE_MONGODB_FOR_BUILD === 'true';
 
 function resolveMongoUri(): string {
+  if (disableMongoForBuild) {
+    return 'mongodb://disabled-for-build';
+  }
+
   if (rawMongoUri && rawMongoUri.trim().length > 0) {
     return rawMongoUri;
   }
@@ -79,7 +85,7 @@ function validateMongoUri(uri: string): void {
 }
 
 function assertNotLocalhostInProd(uri: string): void {
-  if (!isProd) return;
+  if (!isProd || allowLocalMongo || disableMongoForBuild) return;
   const localPatterns = ['mongodb://localhost', 'mongodb://127.0.0.1', 'mongodb://0.0.0.0'];
   if (localPatterns.some(pattern => uri.startsWith(pattern))) {
     throw new Error(
@@ -89,7 +95,7 @@ function assertNotLocalhostInProd(uri: string): void {
 }
 
 function assertAtlasUriInProd(uri: string): void {
-  if (!isProd) return;
+  if (!isProd || allowLocalMongo || disableMongoForBuild) return;
   if (!uri.startsWith('mongodb+srv://')) {
     throw new Error(
       'FATAL: Production deployments require a MongoDB Atlas connection string (mongodb+srv://).'
@@ -110,26 +116,38 @@ const globalObj = (typeof global !== 'undefined' ? global : globalThis) as typeo
 let conn = globalObj._mongoose as Promise<DatabaseHandle>;
 
 if (!conn) {
-  const connectionUri = resolveMongoUri();
-  validateMongoUri(connectionUri);
-  assertNotLocalhostInProd(connectionUri);
-  assertAtlasUriInProd(connectionUri);
+  if (disableMongoForBuild) {
+    logger.warn('[Mongo] DISABLE_MONGODB_FOR_BUILD enabled – returning stub database handle');
+    conn = globalObj._mongoose = Promise.resolve({
+      collection: () => {
+        throw new Error('MongoDB disabled via DISABLE_MONGODB_FOR_BUILD');
+      },
+    } as unknown as DatabaseHandle);
+  } else {
+    const connectionUri = resolveMongoUri();
+    validateMongoUri(connectionUri);
+    assertNotLocalhostInProd(connectionUri);
+    assertAtlasUriInProd(connectionUri);
 
-  conn = globalObj._mongoose = mongoose.connect(connectionUri, {
-    dbName,
-    autoIndex: true,
-    maxPoolSize: 10,
-    serverSelectionTimeoutMS: 8000,
-    connectTimeoutMS: 8000,
-    retryWrites: true,
-    tls: isTlsEnabled(connectionUri),
-    w: 'majority',
-  }).then(m => {
-    return m.connection.db as unknown as DatabaseHandle;
-  }).catch((err) => {
-    logger.error('ERROR: mongoose.connect() failed', { error: err?.message || err });
-    throw new Error(`MongoDB connection failed: ${err?.message || err}. Please ensure MongoDB is running.`);
-  });
+    conn = globalObj._mongoose = mongoose
+      .connect(connectionUri, {
+        dbName,
+        autoIndex: true,
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 8000,
+        connectTimeoutMS: 8000,
+        retryWrites: true,
+        tls: isTlsEnabled(connectionUri),
+        w: 'majority',
+      })
+      .then((m) => {
+        return m.connection.db as unknown as DatabaseHandle;
+      })
+      .catch((err) => {
+        logger.error('ERROR: mongoose.connect() failed', { error: err?.message || err });
+        throw new Error(`MongoDB connection failed: ${err?.message || err}. Please ensure MongoDB is running.`);
+      });
+  }
 }
 
 export const db = conn;

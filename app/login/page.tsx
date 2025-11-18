@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { signIn, getCsrfToken } from 'next-auth/react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import LanguageSelector from '@/components/i18n/LanguageSelector';
 import CurrencySelector from '@/components/i18n/CurrencySelector';
@@ -95,6 +95,7 @@ export default function LoginPage() {
   // OTP state
   const [showOTP, setShowOTP] = useState(false);
   const [otpState, setOtpState] = useState<OTPState | null>(null);
+  const [csrfToken, setCsrfToken] = useState<string | undefined>();
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -105,6 +106,19 @@ export default function LoginPage() {
 
   const emailRegex = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
   const empRegex = useMemo(() => /^EMP\d+$/i, []);
+
+  // Fetch CSRF token on mount
+  useEffect(() => {
+    const fetchCsrf = async () => {
+      try {
+        const token = await getCsrfToken();
+        setCsrfToken(token);
+      } catch (error) {
+        logger.error('Failed to fetch CSRF token', error instanceof Error ? error : new Error(String(error)));
+      }
+    };
+    fetchCsrf();
+  }, []);
 
   // Quick login helper for demo credentials
   const quickLogin = (credential: DemoCredential) => {
@@ -214,6 +228,7 @@ export default function LoginPage() {
           identifier,
           password,
           rememberMe,
+          csrfToken,
           redirect: false,
         });
 
@@ -302,6 +317,7 @@ export default function LoginPage() {
         password,
         rememberMe,
         otpToken,
+        csrfToken,
         redirect: false,
       });
 

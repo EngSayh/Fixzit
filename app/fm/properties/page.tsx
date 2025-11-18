@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { CardGridSkeleton } from '@/components/skeletons';
 import { Building2, Plus, Search, MapPin, Eye, Edit, Trash2, Home, Building, Factory, Map } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useSupportOrg } from '@/contexts/SupportOrgContext';
 
 import { logger } from '@/lib/logger';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
@@ -46,7 +47,9 @@ interface PropertyItem {
 export default function PropertiesPage() {
   const { t } = useTranslation();
   const { data: session } = useSession();
-  const orgId = session?.user?.orgId;
+  const { effectiveOrgId, canImpersonate, supportOrg } = useSupportOrg();
+  const orgId = effectiveOrgId ?? undefined;
+  const needsOrgSelection = !orgId && canImpersonate;
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
@@ -55,9 +58,7 @@ export default function PropertiesPage() {
     if (!orgId) {
       return Promise.reject(new Error('No organization ID'));
     }
-    return fetch(url, { 
-      headers: { 'x-tenant-id': orgId } 
-    })
+    return fetch(url)
       .then(r => r.json())
       .catch(error => {
         logger.error('FM properties fetch error', { error });
@@ -75,7 +76,23 @@ export default function PropertiesPage() {
   }
 
   if (!orgId) {
-    return <p>Error: No organization ID found in session</p>;
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="properties" />
+        <div className="rounded-xl border border-border bg-card/30 p-6 space-y-3">
+          <p className="text-destructive font-semibold">
+            {needsOrgSelection
+              ? t('fm.properties.errors.selectOrg', 'Select a customer organization to manage properties.')
+              : t('fm.errors.noOrgSession', 'Error: No organization ID found in session')}
+          </p>
+          {needsOrgSelection && (
+            <p className="text-sm text-muted-foreground">
+              {t('fm.properties.errors.selectOrgHint', 'Use the Support Organization switcher in the top bar.')}
+            </p>
+          )}
+        </div>
+      </div>
+    );
   }
 
   const properties = data?.items || [];
@@ -83,6 +100,11 @@ export default function PropertiesPage() {
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="properties" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.properties.support.activeOrg', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -174,20 +196,36 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
   const { t } = useTranslation();
   
   const handleDelete = async () => {
-    if (!confirm(`Delete property "${property.name}"? This cannot be undone.`)) return;
-    if (!orgId) return toast.error('Organization ID missing');
+    const confirmMessage = t(
+      'fm.properties.confirmDelete',
+      'Delete property "{{name}}"? This cannot be undone.'
+    ).replace('{{name}}', property.name || '');
+    if (!confirm(confirmMessage)) return;
+    if (!orgId) return toast.error(t('fm.errors.orgIdMissing', 'Organization ID missing from session'));
 
-    const toastId = toast.loading('Deleting property...');
+    const toastId = toast.loading(t('fm.properties.toast.deleting', 'Deleting property...'));
     try {
       const res = await fetch(`/api/properties/${property.id}`, {
         method: 'DELETE',
         headers: { 'x-tenant-id': orgId }
       });
-      if (!res.ok) throw new Error('Failed to delete property');
-      toast.success('Property deleted successfully', { id: toastId });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        const message =
+          (error && typeof error === 'object' && 'error' in error && typeof error.error === 'string'
+            ? error.error
+            : t('fm.properties.errors.deleteUnknown', 'Failed to delete property'));
+        throw new Error(message);
+      }
+      toast.success(t('fm.properties.toast.deleteSuccess', 'Property deleted successfully'), { id: toastId });
       onUpdated();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete property', { id: toastId });
+      const message =
+        error instanceof Error ? error.message : t('fm.properties.errors.deleteUnknown', 'Failed to delete property');
+      toast.error(
+        t('fm.properties.toast.deleteFailed', 'Failed to delete property: {{message}}').replace('{{message}}', message),
+        { id: toastId }
+      );
     }
   };
 
@@ -328,7 +366,7 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
   );
 }
 
-function CreatePropertyForm({ onCreated, orgId }: { onCreated: () => void; orgId: string }) {
+export function CreatePropertyForm({ onCreated, orgId }: { onCreated: () => void; orgId: string }) {
   const { t } = useTranslation();
   
   const [formData, setFormData] = useState({
@@ -390,11 +428,11 @@ function CreatePropertyForm({ onCreated, orgId }: { onCreated: () => void; orgId
     e.preventDefault();
 
     if (!orgId) {
-      toast.error('No organization ID found');
+      toast.error(t('fm.errors.noOrgSession', 'Error: No organization ID found in session'));
       return;
     }
 
-    const toastId = toast.loading('Creating property...');
+    const toastId = toast.loading(t('fm.properties.toast.creating', 'Creating property...'));
 
     try {
       const response = await fetch('/api/properties', {
@@ -407,15 +445,25 @@ function CreatePropertyForm({ onCreated, orgId }: { onCreated: () => void; orgId
       });
 
       if (response.ok) {
-        toast.success('Property created successfully', { id: toastId });
+        toast.success(t('fm.properties.toast.createSuccess', 'Property created successfully'), { id: toastId });
         onCreated();
       } else {
-        const error = await response.json();
-        toast.error(`Failed to create property: ${error.error || 'Unknown error'}`, { id: toastId });
+        const error = await response.json().catch(() => ({}));
+        const message =
+          (error && typeof error === 'object' && 'error' in error && typeof error.error === 'string'
+            ? error.error
+            : t('fm.properties.errors.unknown', 'Unknown error'));
+        toast.error(
+          t('fm.properties.toast.createFailed', 'Failed to create property: {{message}}').replace(
+            '{{message}}',
+            message
+          ),
+          { id: toastId }
+        );
       }
     } catch (error) {
       logger.error('Error creating property:', error);
-      toast.error('Error creating property. Please try again.', { id: toastId });
+      toast.error(t('fm.properties.toast.createUnknown', 'Error creating property. Please try again.'), { id: toastId });
     }
   };
 

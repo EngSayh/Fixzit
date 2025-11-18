@@ -23,24 +23,30 @@ import {
   Shield,
   Bell
 } from 'lucide-react';
-import { type UserRoleType } from '@/types/user';
+import { UserRole as UserRoleEnum, type UserRoleType } from '@/types/user';
 
 // ==========================================
 // Types & Interfaces
 // ==========================================
 
-export type UserRole = 
-  | 'SUPER_ADMIN' 
-  | 'ADMIN' 
-  | 'MANAGER'
-  | 'PROPERTY_MANAGER'
-  | 'OWNER'
-  | 'TENANT'
-  | 'VENDOR'
-  | 'EMPLOYEE'
-  | 'GUEST';
+type GuestRole = 'guest' | 'GUEST';
+type RoleAlias = 'PROPERTY_ADMIN' | 'FINANCE_ADMIN' | 'BILLING_ADMIN';
 
-export type SubscriptionPlan = 'FREE' | 'PRO' | 'ENTERPRISE' | 'CUSTOM';
+export type NavigationRole = UserRoleType | GuestRole | RoleAlias;
+
+type UserRoleInput = NavigationRole;
+
+export const SUBSCRIPTION_PLAN_KEYS = [
+  'DEFAULT',
+  'FREE',
+  'BASIC',
+  'STANDARD',
+  'PRO',
+  'PREMIUM',
+  'ENTERPRISE',
+  'CUSTOM',
+] as const;
+export type SubscriptionPlan = typeof SUBSCRIPTION_PLAN_KEYS[number];
 
 // Badge counts type for dynamic badge values
 export interface BadgeCounts {
@@ -83,7 +89,7 @@ export interface NavigationItem {
   badge?: NavigationBadge;
   
   // Access control
-  roles?: UserRole[];
+  roles?: NavigationRole[];
   subscriptionPlans?: SubscriptionPlan[];
   permissions?: string[];
   
@@ -109,9 +115,10 @@ export interface NavigationSection {
   label: string;
   labelAr?: string;
   items: NavigationItem[];
-  roles?: UserRole[];
+  roles?: NavigationRole[];
   subscriptionPlans?: SubscriptionPlan[];
   collapsed?: boolean;
+  permissions?: string[];
 }
 
 export interface NavigationConfig {
@@ -124,6 +131,119 @@ export interface NavigationConfig {
     rtlSupport: boolean;
   };
 }
+
+const ROLE_EQUIVALENTS: Record<string, string[]> = {
+  MANAGER: ['FM_MANAGER'],
+  FM_MANAGER: ['MANAGER'],
+  SUPER_ADMIN: ['CORPORATE_ADMIN'],
+  ADMIN: ['CORPORATE_ADMIN'],
+  CORPORATE_ADMIN: ['SUPER_ADMIN', 'ADMIN'],
+  PROPERTY_ADMIN: ['PROPERTY_MANAGER'],
+  FINANCE_ADMIN: ['FINANCE'],
+  BILLING_ADMIN: ['FINANCE'],
+  GUEST: ['guest'],
+};
+
+export const ROLE_ALIASES: Readonly<Record<string, readonly string[]>> = ROLE_EQUIVALENTS;
+
+const USER_ROLE_VALUES = new Set(Object.values(UserRoleEnum));
+
+const normalizeRoleValue = (role?: string): string | null => {
+  if (!role) return null;
+  return role.trim().toUpperCase() || null;
+};
+
+const expandRoleValue = (role?: string): string[] => {
+  const normalized = normalizeRoleValue(role);
+  if (!normalized) {
+    return [];
+  }
+
+  const equivalents = ROLE_EQUIVALENTS[normalized] ?? [];
+  const normalizedEquivalents = equivalents
+    .map((value) => normalizeRoleValue(value))
+    .filter((value): value is string => Boolean(value));
+
+  return [normalized, ...normalizedEquivalents];
+};
+
+const coerceRoleValue = (role: NavigationRole): NavigationRole => {
+  const normalized = normalizeRoleValue(role);
+  if (!normalized) {
+    return role;
+  }
+  if (normalized === 'GUEST') {
+    return 'guest';
+  }
+  if (USER_ROLE_VALUES.has(normalized as UserRoleType)) {
+    return normalized as UserRoleType;
+  }
+  return role;
+};
+
+const roleIsAllowed = (allowedRoles: NavigationRole[] | undefined, role: UserRoleInput): boolean => {
+  if (!allowedRoles?.length) {
+    return true;
+  }
+
+  const targetSet = new Set(expandRoleValue(role));
+  if (!targetSet.size) {
+    return false;
+  }
+
+  return allowedRoles.some((allowedRole) => {
+    const allowedValues = expandRoleValue(allowedRole);
+    return allowedValues.some((value) => targetSet.has(value));
+  });
+};
+
+if (process.env.NODE_ENV !== 'production') {
+  const managerNormalization = roleIsAllowed(['MANAGER'], 'FM_MANAGER');
+  const corporateNormalization = roleIsAllowed(['SUPER_ADMIN'], 'CORPORATE_ADMIN');
+  const propertyNormalization = roleIsAllowed(['PROPERTY_MANAGER'], 'PROPERTY_MANAGER');
+  const financeNormalization = roleIsAllowed(['FINANCE'], 'BILLING_ADMIN');
+
+  if (!managerNormalization || !corporateNormalization || !propertyNormalization || !financeNormalization) {
+    console.warn('[navigation] Role normalization failed', {
+      managerNormalization,
+      corporateNormalization,
+      propertyNormalization,
+      financeNormalization,
+    });
+  }
+}
+
+const normalizePermission = (permission?: string): string | null => {
+  if (!permission) return null;
+  return permission.trim().toLowerCase() || null;
+};
+
+const hasRequiredPermissions = (
+  requiredPermissions: string[] | undefined,
+  userPermissions: readonly string[] = []
+): boolean => {
+  if (!requiredPermissions?.length) {
+    return true;
+  }
+
+  const normalizedUserPermissions = new Set(
+    userPermissions
+      .map((permission) => normalizePermission(permission))
+      .filter((permission): permission is string => Boolean(permission))
+  );
+
+  if (!normalizedUserPermissions.size) {
+    return false;
+  }
+
+  return requiredPermissions.every((permission) => {
+    const normalized = normalizePermission(permission);
+    if (!normalized) {
+      return false;
+    }
+    return normalizedUserPermissions.has(normalized);
+  });
+};
 
 // ------------------------------------------
 // Sidebar module metadata (Governance V5)
@@ -170,6 +290,67 @@ export const MODULE_PATHS = {
   reports: '/fm/reports',
   system: '/fm/system',
 } as const;
+
+
+const MODULE_SLUG_LOOKUP = Object.entries(MODULE_PATHS).reduce<Record<string, ModuleId>>(
+  (acc, [moduleId, modulePath]) => {
+    const slug = modulePath.replace(/^\/fm\//, '');
+    acc[slug] = moduleId as ModuleId;
+    return acc;
+  },
+  {} as Record<string, ModuleId>
+);
+
+function normalizeHref(href?: string): string | undefined {
+  if (!href || !href.startsWith('/fm/')) {
+    return href;
+  }
+
+  const [pathPart, query] = href.split('?');
+  const rest = pathPart.slice('/fm/'.length);
+  const [slug, ...segments] = rest.split('/');
+  const moduleId = MODULE_SLUG_LOOKUP[slug];
+  if (!moduleId) {
+    return href;
+  }
+
+  let resolved = MODULE_PATHS[moduleId];
+  if (segments.length) {
+    resolved += `/${segments.join('/')}`;
+  }
+  if (query) {
+    resolved += `?${query}`;
+  }
+  return resolved;
+}
+
+function normalizeNavigationItems(items: NavigationItem[]): NavigationItem[] {
+  return items.map((item) => {
+    const normalizedRoles = item.roles?.map(coerceRoleValue);
+    const normalized: NavigationItem = {
+      ...item,
+      href: normalizeHref(item.href),
+      roles: normalizedRoles,
+    };
+
+    if (item.children) {
+      normalized.children = normalizeNavigationItems(item.children);
+    }
+
+    return normalized;
+  });
+}
+
+function normalizeNavigationConfig(config: NavigationConfig): NavigationConfig {
+  return {
+    ...config,
+    sections: config.sections.map((section) => ({
+      ...section,
+      roles: section.roles?.map(coerceRoleValue),
+      items: normalizeNavigationItems(section.items),
+    })),
+  };
+}
 
 export interface ModuleItem {
   id: ModuleId;
@@ -361,9 +542,9 @@ export const MODULE_SUB_VIEWS: Partial<Record<ModuleId, ModuleSubView[]>> = {
     { id: 'finance-reports', name: 'nav.finance.reports', fallbackLabel: 'Finance Reports', kind: 'query', value: 'reports' },
   ],
   hr: [
-    { id: 'hr-directory', name: 'nav.hr.directory', fallbackLabel: 'Employee Directory', kind: 'path', value: '/employees' },
+    { id: 'hr-directory', name: 'nav.hr.directory', fallbackLabel: 'Employee Directory', kind: 'path', value: `${MODULE_PATHS.hr}/employees` },
     { id: 'hr-attendance', name: 'nav.hr.attendanceLeave', fallbackLabel: 'Attendance & Leave', kind: 'query', value: 'attendance' },
-    { id: 'hr-payroll', name: 'nav.hr.payroll', fallbackLabel: 'Payroll', kind: 'path', value: '/payroll' },
+    { id: 'hr-payroll', name: 'nav.hr.payroll', fallbackLabel: 'Payroll', kind: 'path', value: `${MODULE_PATHS.hr}/payroll` },
     { id: 'hr-recruitment', name: 'nav.hr.recruitment', fallbackLabel: 'Recruitment (ATS)', kind: 'query', value: 'recruitment' },
     { id: 'hr-training', name: 'nav.hr.training', fallbackLabel: 'Training', kind: 'query', value: 'training' },
     { id: 'hr-performance', name: 'nav.hr.performance', fallbackLabel: 'Performance', kind: 'query', value: 'performance' },
@@ -414,12 +595,16 @@ export const MODULE_SUB_VIEWS: Partial<Record<ModuleId, ModuleSubView[]>> = {
 const ALL_MODULE_IDS = MODULES.map((m) => m.id);
 const CORE_PLAN: ModuleId[] = ['dashboard', 'work_orders', 'properties', 'support'];
 const PRO_PLAN: ModuleId[] = [...CORE_PLAN, 'finance', 'hr', 'crm', 'marketplace', 'reports'];
+const STANDARD_PLAN: ModuleId[] = CORE_PLAN;
+const PREMIUM_PLAN: ModuleId[] = PRO_PLAN;
 
-export const SUBSCRIPTION_PLANS: Record<string, readonly ModuleId[]> = {
+export const SUBSCRIPTION_PLANS: Record<SubscriptionPlan, readonly ModuleId[]> = {
   DEFAULT: ALL_MODULE_IDS,
   FREE: CORE_PLAN,
   BASIC: CORE_PLAN,
+  STANDARD: STANDARD_PLAN,
   PRO: PRO_PLAN,
+  PREMIUM: PREMIUM_PLAN,
   ENTERPRISE: ALL_MODULE_IDS,
   CUSTOM: ALL_MODULE_IDS,
 };
@@ -451,10 +636,11 @@ const customerOnly: ModuleId[] = ['dashboard', 'support'];
 const complianceOnly: ModuleId[] = ['dashboard', 'compliance', 'reports'];
 const viewerOnly: ModuleId[] = ['dashboard', 'reports'];
 
-export const ROLE_PERMISSIONS: Record<UserRoleType | 'guest', readonly ModuleId[]> = {
+export const ROLE_PERMISSIONS = {
   SUPER_ADMIN: fullAccess,
   CORPORATE_ADMIN: fullAccess,
   ADMIN: adminCore,
+  MANAGER: fmLeadership,
   FM_MANAGER: fmLeadership,
   PROPERTY_MANAGER: propertyOps,
   FINANCE: financeOnly,
@@ -472,7 +658,79 @@ export const ROLE_PERMISSIONS: Record<UserRoleType | 'guest', readonly ModuleId[
   SUPPORT: ['dashboard', 'support'],
   // External roles fall back to view-only
   guest: viewerOnly,
+} satisfies Record<UserRoleType | 'guest', readonly ModuleId[]>;
+
+const CANONICAL_ROLE_SET = new Set(
+  Object.keys(ROLE_PERMISSIONS)
+    .map((roleKey) => normalizeRoleValue(roleKey))
+    .filter((value): value is string => Boolean(value))
+);
+
+export const resolveNavigationRole = (role?: string): UserRoleType | 'guest' => {
+  const expandedValues = expandRoleValue(role);
+  for (const value of expandedValues) {
+    if (value && CANONICAL_ROLE_SET.has(value)) {
+      return value === 'GUEST' ? 'guest' : (value as UserRoleType);
+    }
+  }
+  return 'guest';
 };
+
+const moduleRoleAccess: Record<ModuleId, Set<NavigationRole>> = ALL_MODULE_IDS.reduce(
+  (acc, moduleId) => {
+    acc[moduleId] = new Set<NavigationRole>();
+    return acc;
+  },
+  {} as Record<ModuleId, Set<NavigationRole>>
+);
+
+Object.entries(ROLE_PERMISSIONS).forEach(([roleKey, modules]) => {
+  const normalizedRole = normalizeRoleValue(roleKey);
+  if (!normalizedRole) {
+    return;
+  }
+
+  modules.forEach((moduleId) => {
+    moduleRoleAccess[moduleId]?.add(normalizedRole as NavigationRole);
+  });
+});
+
+const moduleRolesCache = new Map<string, NavigationRole[]>();
+
+const moduleRoles = (...moduleIds: ModuleId[]): NavigationRole[] => {
+  if (!moduleIds.length) {
+    return [];
+  }
+
+  const cacheKey = [...moduleIds].sort().join('|');
+  const cached = moduleRolesCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const result = new Set<NavigationRole>();
+  moduleIds.forEach((moduleId) => {
+    moduleRoleAccess[moduleId]?.forEach((role) => result.add(role));
+  });
+
+  const roleList = Array.from(result);
+  moduleRolesCache.set(cacheKey, roleList);
+  return roleList;
+};
+
+const DASHBOARD_ROLES = moduleRoles('dashboard');
+const REPORT_ROLES = moduleRoles('reports');
+const PROPERTIES_ROLES = moduleRoles('properties');
+const WORK_ORDER_ROLES = moduleRoles('work_orders');
+const FACILITY_ROLES = moduleRoles('properties', 'work_orders');
+const MARKETPLACE_ROLES = moduleRoles('marketplace');
+const REAL_ESTATE_ROLES = PROPERTIES_ROLES;
+const FINANCE_ROLES = moduleRoles('finance');
+const HR_ROLES = moduleRoles('hr');
+const CRM_ROLES = moduleRoles('crm');
+const SUPPORT_ROLES = moduleRoles('support');
+const ADMIN_ROLES = moduleRoles('administration', 'system');
+const COMPLIANCE_ROLES = moduleRoles('compliance');
 
 export const USER_LINKS: readonly UserLinkItem[] = [
   {
@@ -521,7 +779,7 @@ export const USER_LINKS: readonly UserLinkItem[] = [
 // Navigation Configuration
 // ==========================================
 
-export const navigationConfig: NavigationConfig = {
+const rawNavigationConfig: NavigationConfig = {
   settings: {
     collapsible: true,
     persistState: true,
@@ -537,6 +795,7 @@ export const navigationConfig: NavigationConfig = {
       id: 'dashboard',
       label: 'Dashboard',
       labelAr: 'لوحة التحكم',
+      roles: DASHBOARD_ROLES,
       items: [
         {
           id: 'overview',
@@ -544,7 +803,7 @@ export const navigationConfig: NavigationConfig = {
           labelAr: 'نظرة عامة',
           href: '/dashboard',
           iconName: 'LayoutDashboard',
-          roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'PROPERTY_MANAGER', 'OWNER'],
+          roles: DASHBOARD_ROLES,
         },
         {
           id: 'analytics',
@@ -552,8 +811,8 @@ export const navigationConfig: NavigationConfig = {
           labelAr: 'التحليلات',
           href: '/dashboard/analytics',
           iconName: 'BarChart3',
-          roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
           subscriptionPlans: ['PRO', 'ENTERPRISE'],
+          roles: DASHBOARD_ROLES,
         },
         {
           id: 'reports',
@@ -561,7 +820,7 @@ export const navigationConfig: NavigationConfig = {
           labelAr: 'التقارير',
           href: '/dashboard/reports',
           iconName: 'FileText',
-          roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'PROPERTY_MANAGER', 'OWNER'],
+          roles: REPORT_ROLES,
         },
       ],
     },
@@ -573,34 +832,29 @@ export const navigationConfig: NavigationConfig = {
       id: 'facility_management',
       label: 'Facility Management',
       labelAr: 'إدارة المرافق',
+      roles: FACILITY_ROLES,
+      permissions: ['module:fm'],
       items: [
         {
           id: 'properties',
           label: 'Properties',
           labelAr: 'العقارات',
-          href: '/fm/properties',
+          href: MODULE_PATHS.properties,
           iconName: 'Building2',
-          roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'PROPERTY_MANAGER', 'OWNER'],
+          roles: PROPERTIES_ROLES,
           children: [
             {
               id: 'property_list',
               label: 'Property List',
               labelAr: 'قائمة العقارات',
-              href: '/fm/properties',
+              href: MODULE_PATHS.properties,
             },
             {
               id: 'add_property',
               label: 'Add Property',
               labelAr: 'إضافة عقار',
-              href: '/fm/properties/add',
-              roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
-            },
-            {
-              id: 'property_types',
-              label: 'Property Types',
-              labelAr: 'أنواع العقارات',
-              href: '/fm/properties/types',
-              roles: ['SUPER_ADMIN', 'ADMIN'],
+              href: `${MODULE_PATHS.properties}/new`,
+              roles: ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN', 'FM_MANAGER'],
             },
           ],
         },
@@ -608,21 +862,21 @@ export const navigationConfig: NavigationConfig = {
           id: 'units',
           label: 'Units',
           labelAr: 'الوحدات',
-          href: '/fm/units',
+          href: `${MODULE_PATHS.properties}/units`,
           iconName: 'Home',
-          roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'PROPERTY_MANAGER', 'OWNER'],
+          roles: PROPERTIES_ROLES,
           children: [
             {
               id: 'unit_list',
               label: 'Unit List',
               labelAr: 'قائمة الوحدات',
-              href: '/fm/units',
+              href: `${MODULE_PATHS.properties}/units`,
             },
             {
               id: 'vacant_units',
               label: 'Vacant Units',
               labelAr: 'الوحدات الشاغرة',
-              href: '/fm/units?status=vacant',
+              href: `${MODULE_PATHS.properties}/units?status=vacant`,
               badge: {
                 key: 'vacant_units',
                 color: 'green',
@@ -633,7 +887,7 @@ export const navigationConfig: NavigationConfig = {
               id: 'occupied_units',
               label: 'Occupied Units',
               labelAr: 'الوحدات المشغولة',
-              href: '/fm/units?status=occupied',
+              href: `${MODULE_PATHS.properties}/units?status=occupied`,
             },
           ],
         },
@@ -641,9 +895,9 @@ export const navigationConfig: NavigationConfig = {
           id: 'work_orders',
           label: 'Work Orders',
           labelAr: 'أوامر العمل',
-          href: '/fm/work-orders',
+          href: MODULE_PATHS.work_orders,
           iconName: 'Wrench',
-          roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'PROPERTY_MANAGER', 'EMPLOYEE', 'TENANT'],
+          roles: WORK_ORDER_ROLES,
           badge: {
             key: 'work_orders',
             color: 'red',
@@ -655,13 +909,13 @@ export const navigationConfig: NavigationConfig = {
               id: 'all_work_orders',
               label: 'All Work Orders',
               labelAr: 'جميع أوامر العمل',
-              href: '/fm/work-orders',
+              href: MODULE_PATHS.work_orders,
             },
             {
               id: 'pending_work_orders',
               label: 'Pending',
               labelAr: 'قيد الانتظار',
-              href: '/fm/work-orders?status=pending',
+              href: `${MODULE_PATHS.work_orders}?status=pending`,
               badge: {
                 key: 'pending_work_orders',
                 color: 'yellow',
@@ -672,7 +926,7 @@ export const navigationConfig: NavigationConfig = {
               id: 'in_progress_work_orders',
               label: 'In Progress',
               labelAr: 'قيد التنفيذ',
-              href: '/fm/work-orders?status=in_progress',
+              href: `${MODULE_PATHS.work_orders}?status=in_progress`,
               badge: {
                 key: 'in_progress_work_orders',
                 color: 'blue',
@@ -683,8 +937,8 @@ export const navigationConfig: NavigationConfig = {
               id: 'create_work_order',
               label: 'Create Work Order',
               labelAr: 'إنشاء أمر عمل',
-              href: '/fm/work-orders/create',
-              roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'PROPERTY_MANAGER', 'TENANT'],
+              href: `${MODULE_PATHS.work_orders}/new`,
+              roles: ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN', 'FM_MANAGER', 'PROPERTY_MANAGER', 'TENANT'],
             },
           ],
         },
@@ -692,29 +946,16 @@ export const navigationConfig: NavigationConfig = {
           id: 'assets',
           label: 'Assets',
           labelAr: 'الأصول',
-          href: '/fm/assets',
+          href: `${MODULE_PATHS.administration}/assets`,
           iconName: 'Package',
-          roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'PROPERTY_MANAGER'],
+          roles: PROPERTIES_ROLES,
           subscriptionPlans: ['PRO', 'ENTERPRISE'],
           children: [
             {
               id: 'asset_list',
               label: 'Asset List',
               labelAr: 'قائمة الأصول',
-              href: '/fm/assets',
-            },
-            {
-              id: 'maintenance_schedules',
-              label: 'Maintenance Schedules',
-              labelAr: 'جداول الصيانة',
-              href: '/fm/assets/maintenance',
-            },
-            {
-              id: 'asset_tracking',
-              label: 'Asset Tracking',
-              labelAr: 'تتبع الأصول',
-              href: '/fm/assets/tracking',
-              subscriptionPlans: ['ENTERPRISE'],
+              href: `${MODULE_PATHS.administration}/assets`,
             },
           ],
         },
@@ -722,28 +963,21 @@ export const navigationConfig: NavigationConfig = {
           id: 'tenants',
           label: 'Tenants',
           labelAr: 'المستأجرون',
-          href: '/fm/tenants',
+          href: `${MODULE_PATHS.properties}/tenants`,
           iconName: 'Users',
-          roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'PROPERTY_MANAGER', 'OWNER'],
+          roles: PROPERTIES_ROLES,
           children: [
             {
               id: 'tenant_list',
               label: 'Tenant List',
               labelAr: 'قائمة المستأجرين',
-              href: '/fm/tenants',
+              href: `${MODULE_PATHS.properties}/tenants`,
             },
             {
               id: 'lease_agreements',
               label: 'Lease Agreements',
               labelAr: 'اتفاقيات الإيجار',
-              href: '/fm/tenants/leases',
-            },
-            {
-              id: 'tenant_portal',
-              label: 'Tenant Portal',
-              labelAr: 'بوابة المستأجرين',
-              href: '/fm/tenants/portal',
-              isNew: true,
+              href: `${MODULE_PATHS.properties}/leases`,
             },
           ],
         },
@@ -757,33 +991,40 @@ export const navigationConfig: NavigationConfig = {
       id: 'marketplace',
       label: 'Souq Marketplace',
       labelAr: 'سوق الخدمات',
+      roles: MARKETPLACE_ROLES,
+      permissions: ['module:marketplace'],
       items: [
         {
           id: 'vendors',
           label: 'Vendors',
           labelAr: 'الموردون',
-          href: '/souq/vendors',
+          href: `${MODULE_PATHS.marketplace}/vendors`,
           iconName: 'Store',
-          roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'PROPERTY_MANAGER', 'VENDOR'],
+          roles: MARKETPLACE_ROLES,
           children: [
             {
               id: 'vendor_directory',
               label: 'Vendor Directory',
               labelAr: 'دليل الموردين',
-              href: '/souq/vendors',
+              href: `${MODULE_PATHS.marketplace}/vendors`,
             },
             {
               id: 'vendor_registration',
               label: 'Vendor Registration',
               labelAr: 'تسجيل المورد',
-              href: '/souq/vendors/register',
-              roles: ['SUPER_ADMIN', 'ADMIN'],
+              href: `${MODULE_PATHS.marketplace}/vendors/new`,
+              roles: [
+                UserRoleEnum.SUPER_ADMIN,
+                UserRoleEnum.CORPORATE_ADMIN,
+                UserRoleEnum.ADMIN,
+                UserRoleEnum.PROCUREMENT,
+              ],
             },
             {
               id: 'vendor_ratings',
               label: 'Ratings & Reviews',
               labelAr: 'التقييمات والمراجعات',
-              href: '/souq/vendors/ratings',
+              href: `${MODULE_PATHS.marketplace}/vendors`,
             },
           ],
         },
@@ -791,28 +1032,34 @@ export const navigationConfig: NavigationConfig = {
           id: 'products',
           label: 'Products',
           labelAr: 'المنتجات',
-          href: '/souq/products',
+          href: `${MODULE_PATHS.marketplace}/listings`,
           iconName: 'ShoppingBag',
-          roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'PROPERTY_MANAGER', 'VENDOR'],
+          roles: MARKETPLACE_ROLES,
           children: [
             {
               id: 'product_catalog',
               label: 'Product Catalog',
               labelAr: 'كتالوج المنتجات',
-              href: '/souq/products',
+              href: `${MODULE_PATHS.marketplace}/listings`,
             },
             {
               id: 'categories',
               label: 'Categories',
               labelAr: 'الفئات',
-              href: '/souq/products/categories',
+              href: `${MODULE_PATHS.marketplace}/listings?view=categories`,
             },
             {
               id: 'inventory',
               label: 'Inventory',
               labelAr: 'المخزون',
-              href: '/souq/products/inventory',
-              roles: ['SUPER_ADMIN', 'ADMIN', 'VENDOR'],
+              href: `${MODULE_PATHS.marketplace}/listings?view=inventory`,
+              roles: [
+                UserRoleEnum.SUPER_ADMIN,
+                UserRoleEnum.CORPORATE_ADMIN,
+                UserRoleEnum.ADMIN,
+                UserRoleEnum.PROCUREMENT,
+                UserRoleEnum.VENDOR,
+              ],
             },
           ],
         },
@@ -820,27 +1067,27 @@ export const navigationConfig: NavigationConfig = {
           id: 'services',
           label: 'Services',
           labelAr: 'الخدمات',
-          href: '/souq/services',
+          href: `${MODULE_PATHS.marketplace}`,
           iconName: 'Settings',
-          roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'PROPERTY_MANAGER', 'VENDOR'],
+          roles: MARKETPLACE_ROLES,
           children: [
             {
               id: 'service_catalog',
               label: 'Service Catalog',
               labelAr: 'كتالوج الخدمات',
-              href: '/souq/services',
+              href: `${MODULE_PATHS.marketplace}`,
             },
             {
               id: 'service_packages',
               label: 'Service Packages',
               labelAr: 'حزم الخدمات',
-              href: '/souq/services/packages',
+              href: `${MODULE_PATHS.marketplace}?view=packages`,
             },
             {
               id: 'service_booking',
               label: 'Service Booking',
               labelAr: 'حجز الخدمات',
-              href: '/souq/services/booking',
+              href: `${MODULE_PATHS.marketplace}?view=booking`,
             },
           ],
         },
@@ -848,29 +1095,36 @@ export const navigationConfig: NavigationConfig = {
           id: 'rfqs',
           label: 'RFQs',
           labelAr: 'طلبات التسعير',
-          href: '/souq/rfqs',
+          href: `${MODULE_PATHS.marketplace}/orders`,
           iconName: 'FileSearch',
-          roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'PROPERTY_MANAGER', 'VENDOR'],
+          roles: MARKETPLACE_ROLES,
           children: [
             {
               id: 'rfq_list',
               label: 'RFQ List',
               labelAr: 'قائمة طلبات التسعير',
-              href: '/souq/rfqs',
+              href: `${MODULE_PATHS.marketplace}/orders`,
             },
             {
               id: 'create_rfq',
               label: 'Create RFQ',
               labelAr: 'إنشاء طلب تسعير',
-              href: '/souq/rfqs/create',
-              roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'PROPERTY_MANAGER'],
+              href: `${MODULE_PATHS.marketplace}/orders/new`,
+              roles: [
+                UserRoleEnum.SUPER_ADMIN,
+                UserRoleEnum.CORPORATE_ADMIN,
+                UserRoleEnum.ADMIN,
+                UserRoleEnum.FM_MANAGER,
+                UserRoleEnum.PROPERTY_MANAGER,
+                UserRoleEnum.PROCUREMENT,
+              ],
             },
             {
               id: 'my_bids',
               label: 'My Bids',
               labelAr: 'عروضي',
-              href: '/souq/rfqs/my-bids',
-              roles: ['VENDOR'],
+              href: `${MODULE_PATHS.marketplace}/orders`,
+              roles: [UserRoleEnum.VENDOR],
             },
           ],
         },
@@ -878,9 +1132,9 @@ export const navigationConfig: NavigationConfig = {
           id: 'orders',
           label: 'Orders',
           labelAr: 'الطلبات',
-          href: '/souq/orders',
+          href: `${MODULE_PATHS.marketplace}/orders`,
           iconName: 'ShoppingCart',
-          roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'PROPERTY_MANAGER', 'VENDOR'],
+          roles: MARKETPLACE_ROLES,
           badge: {
             key: 'marketplace_orders',
             color: 'blue',
@@ -891,19 +1145,19 @@ export const navigationConfig: NavigationConfig = {
               id: 'all_orders',
               label: 'All Orders',
               labelAr: 'جميع الطلبات',
-              href: '/souq/orders',
+              href: `${MODULE_PATHS.marketplace}/orders`,
             },
             {
               id: 'purchase_orders',
               label: 'Purchase Orders',
               labelAr: 'طلبات الشراء',
-              href: '/souq/orders/purchase',
+              href: `${MODULE_PATHS.marketplace}/orders?view=purchase`,
             },
             {
               id: 'order_tracking',
               label: 'Order Tracking',
               labelAr: 'تتبع الطلبات',
-              href: '/souq/orders/tracking',
+              href: `${MODULE_PATHS.marketplace}/orders?view=tracking`,
             },
           ],
         },
@@ -917,122 +1171,90 @@ export const navigationConfig: NavigationConfig = {
       id: 'real_estate',
       label: 'Aqar Real Estate',
       labelAr: 'عقار العقارات',
-      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'OWNER'],
+      roles: REAL_ESTATE_ROLES,
       subscriptionPlans: ['PRO', 'ENTERPRISE'],
       items: [
         {
           id: 'listings',
           label: 'Listings',
           labelAr: 'القوائم',
-          href: '/aqar/listings',
+          href: '/aqar/properties',
           iconName: 'MapPin',
           children: [
             {
               id: 'active_listings',
               label: 'Active Listings',
               labelAr: 'القوائم النشطة',
-              href: '/aqar/listings?status=active',
+              href: '/aqar/properties?status=active',
             },
             {
               id: 'draft_listings',
               label: 'Draft Listings',
               labelAr: 'المسودات',
-              href: '/aqar/listings?status=draft',
+              href: '/aqar/properties?status=draft',
             },
             {
               id: 'create_listing',
               label: 'Create Listing',
               labelAr: 'إنشاء قائمة',
-              href: '/aqar/listings/create',
+              href: '/aqar/listings/new',
             },
           ],
         },
         {
-          id: 'projects',
-          label: 'Projects',
-          labelAr: 'المشاريع',
-          href: '/aqar/projects',
-          iconName: 'Building',
+          id: 'search_filters',
+          label: 'Search & Filters',
+          labelAr: 'البحث والفلاتر',
+          href: '/aqar/filters',
+          iconName: 'Filter',
           children: [
             {
-              id: 'project_list',
-              label: 'Project List',
-              labelAr: 'قائمة المشاريع',
-              href: '/aqar/projects',
+              id: 'advanced_filters',
+              label: 'Advanced Filters',
+              labelAr: 'فلاتر متقدمة',
+              href: '/aqar/filters',
             },
             {
-              id: 'development_projects',
-              label: 'Development Projects',
-              labelAr: 'مشاريع التطوير',
-              href: '/aqar/projects/development',
+              id: 'rnpl_filters',
+              label: 'RNPL Eligible',
+              labelAr: 'جاهز لبرامج RNPL',
+              href: '/aqar/filters?rnplEligible=true',
             },
             {
-              id: 'project_sales',
-              label: 'Project Sales',
-              labelAr: 'مبيعات المشاريع',
-              href: '/aqar/projects/sales',
+              id: 'auction_filters',
+              label: 'Auctions & Deposits',
+              labelAr: 'المزادات والودائع',
+              href: '/aqar/filters?intent=AUCTION',
             },
           ],
         },
         {
-          id: 'agents',
-          label: 'Agents',
-          labelAr: 'الوكلاء',
-          href: '/aqar/agents',
-          iconName: 'UserCheck',
+          id: 'auctions',
+          label: 'Auctions',
+          labelAr: 'المزادات',
+          href: '/aqar/auctions',
+          iconName: 'Gavel',
           children: [
             {
-              id: 'agent_directory',
-              label: 'Agent Directory',
-              labelAr: 'دليل الوكلاء',
-              href: '/aqar/agents',
+              id: 'auction_catalog',
+              label: 'Auction Catalog',
+              labelAr: 'كتالوج المزادات',
+              href: '/aqar/auctions',
             },
             {
-              id: 'agent_performance',
-              label: 'Performance',
-              labelAr: 'الأداء',
-              href: '/aqar/agents/performance',
-            },
-            {
-              id: 'commissions',
-              label: 'Commissions',
-              labelAr: 'العمولات',
-              href: '/aqar/agents/commissions',
+              id: 'auction_map',
+              label: 'Auction Map View',
+              labelAr: 'خريطة المزادات',
+              href: '/aqar/map?intent=AUCTION',
             },
           ],
         },
         {
-          id: 'leads',
-          label: 'Leads',
-          labelAr: 'العملاء المحتملون',
-          href: '/aqar/leads',
-          iconName: 'Target',
-          badge: {
-            key: 'aqar_leads',
-            color: 'green',
-            variant: 'solid',
-          },
-          children: [
-            {
-              id: 'lead_management',
-              label: 'Lead Management',
-              labelAr: 'إدارة العملاء المحتملين',
-              href: '/aqar/leads',
-            },
-            {
-              id: 'lead_scoring',
-              label: 'Lead Scoring',
-              labelAr: 'تقييم العملاء',
-              href: '/aqar/leads/scoring',
-              subscriptionPlans: ['ENTERPRISE'],
-            },
-            {
-              id: 'conversion_tracking',
-              label: 'Conversion Tracking',
-              labelAr: 'تتبع التحويل',
-              href: '/aqar/leads/conversion',
-            },
-          ],
+          id: 'valuations',
+          label: 'Valuations',
+          labelAr: 'التقييمات',
+          href: '/aqar/valuation/new',
+          iconName: 'ShieldCheck',
         },
       ],
     },
@@ -1044,26 +1266,32 @@ export const navigationConfig: NavigationConfig = {
       id: 'finance',
       label: 'Finance',
       labelAr: 'المالية',
-      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
+      roles: FINANCE_ROLES,
+      permissions: ['module:finance'],
       items: [
         {
           id: 'invoices',
           label: 'Invoices',
           labelAr: 'الفواتير',
-          href: '/finance/invoices',
+          href: `${MODULE_PATHS.finance}/invoices`,
           iconName: 'FileText',
+          badge: {
+            key: 'pending_invoices',
+            color: 'yellow',
+            variant: 'solid',
+          },
           children: [
             {
               id: 'all_invoices',
               label: 'All Invoices',
               labelAr: 'جميع الفواتير',
-              href: '/finance/invoices',
+              href: `${MODULE_PATHS.finance}/invoices`,
             },
             {
               id: 'pending_invoices',
               label: 'Pending',
               labelAr: 'قيد الانتظار',
-              href: '/finance/invoices?status=pending',
+              href: `${MODULE_PATHS.finance}/invoices?status=pending`,
               badge: {
                 key: 'pending_invoices',
                 color: 'yellow',
@@ -1074,7 +1302,7 @@ export const navigationConfig: NavigationConfig = {
               id: 'overdue_invoices',
               label: 'Overdue',
               labelAr: 'متأخرة',
-              href: '/finance/invoices?status=overdue',
+              href: `${MODULE_PATHS.finance}/invoices?status=overdue`,
               badge: {
                 key: 'overdue_invoices',
                 color: 'red',
@@ -1085,7 +1313,7 @@ export const navigationConfig: NavigationConfig = {
               id: 'create_invoice',
               label: 'Create Invoice',
               labelAr: 'إنشاء فاتورة',
-              href: '/finance/invoices/create',
+              href: `${MODULE_PATHS.finance}/invoices/new`,
             },
           ],
         },
@@ -1093,26 +1321,26 @@ export const navigationConfig: NavigationConfig = {
           id: 'payments',
           label: 'Payments',
           labelAr: 'المدفوعات',
-          href: '/finance/payments',
+          href: `${MODULE_PATHS.finance}/payments`,
           iconName: 'CreditCard',
           children: [
             {
               id: 'payment_history',
               label: 'Payment History',
               labelAr: 'تاريخ المدفوعات',
-              href: '/finance/payments',
+              href: `${MODULE_PATHS.finance}/payments`,
             },
             {
               id: 'payment_methods',
               label: 'Payment Methods',
               labelAr: 'طرق الدفع',
-              href: '/finance/payments/methods',
+              href: `${MODULE_PATHS.finance}/payments/methods`,
             },
             {
               id: 'recurring_payments',
               label: 'Recurring Payments',
               labelAr: 'المدفوعات المتكررة',
-              href: '/finance/payments/recurring',
+              href: `${MODULE_PATHS.finance}/payments/recurring`,
             },
           ],
         },
@@ -1120,26 +1348,26 @@ export const navigationConfig: NavigationConfig = {
           id: 'expenses',
           label: 'Expenses',
           labelAr: 'المصروفات',
-          href: '/finance/expenses',
+          href: `${MODULE_PATHS.finance}/expenses`,
           iconName: 'Receipt',
           children: [
             {
               id: 'expense_tracking',
               label: 'Expense Tracking',
               labelAr: 'تتبع المصروفات',
-              href: '/finance/expenses',
+              href: `${MODULE_PATHS.finance}/expenses`,
             },
             {
               id: 'expense_categories',
               label: 'Categories',
               labelAr: 'الفئات',
-              href: '/finance/expenses/categories',
+              href: `${MODULE_PATHS.finance}/expenses/categories`,
             },
             {
               id: 'expense_reports',
               label: 'Expense Reports',
               labelAr: 'تقارير المصروفات',
-              href: '/finance/expenses/reports',
+              href: `${MODULE_PATHS.finance}/expenses/reports`,
             },
           ],
         },
@@ -1147,7 +1375,7 @@ export const navigationConfig: NavigationConfig = {
           id: 'accounting',
           label: 'Accounting',
           labelAr: 'المحاسبة',
-          href: '/finance/accounting',
+          href: `${MODULE_PATHS.finance}/accounting`,
           iconName: 'Calculator',
           subscriptionPlans: ['PRO', 'ENTERPRISE'],
           children: [
@@ -1155,19 +1383,19 @@ export const navigationConfig: NavigationConfig = {
               id: 'chart_of_accounts',
               label: 'Chart of Accounts',
               labelAr: 'دليل الحسابات',
-              href: '/finance/accounting/accounts',
+              href: `${MODULE_PATHS.finance}/accounting/accounts`,
             },
             {
               id: 'general_ledger',
               label: 'General Ledger',
               labelAr: 'دفتر الأستاذ العام',
-              href: '/finance/accounting/ledger',
+              href: `${MODULE_PATHS.finance}/accounting/ledger`,
             },
             {
               id: 'financial_statements',
               label: 'Financial Statements',
               labelAr: 'القوائم المالية',
-              href: '/finance/accounting/statements',
+              href: `${MODULE_PATHS.finance}/accounting/statements`,
             },
           ],
         },
@@ -1175,7 +1403,7 @@ export const navigationConfig: NavigationConfig = {
           id: 'budgeting',
           label: 'Budgeting',
           labelAr: 'الميزانية',
-          href: '/finance/budgeting',
+          href: `${MODULE_PATHS.finance}/budgeting`,
           iconName: 'TrendingUp',
           subscriptionPlans: ['ENTERPRISE'],
           isNew: true,
@@ -1184,19 +1412,19 @@ export const navigationConfig: NavigationConfig = {
               id: 'budget_planning',
               label: 'Budget Planning',
               labelAr: 'تخطيط الميزانية',
-              href: '/finance/budgeting/planning',
+              href: `${MODULE_PATHS.finance}/budgeting/planning`,
             },
             {
               id: 'budget_tracking',
               label: 'Budget Tracking',
               labelAr: 'تتبع الميزانية',
-              href: '/finance/budgeting/tracking',
+              href: `${MODULE_PATHS.finance}/budgeting/tracking`,
             },
             {
               id: 'variance_analysis',
               label: 'Variance Analysis',
               labelAr: 'تحليل الانحراف',
-              href: '/finance/budgeting/variance',
+              href: `${MODULE_PATHS.finance}/budgeting/variance`,
             },
           ],
         },
@@ -1210,33 +1438,34 @@ export const navigationConfig: NavigationConfig = {
       id: 'human_resources',
       label: 'Human Resources',
       labelAr: 'الموارد البشرية',
-      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
+      roles: HR_ROLES,
       subscriptionPlans: ['PRO', 'ENTERPRISE'],
+      permissions: ['module:hr'],
       items: [
         {
           id: 'employees',
           label: 'Employees',
           labelAr: 'الموظفون',
-          href: '/hr/employees',
+          href: `${MODULE_PATHS.hr}/employees`,
           iconName: 'Users',
           children: [
             {
               id: 'employee_directory',
               label: 'Employee Directory',
               labelAr: 'دليل الموظفين',
-              href: '/hr/employees',
+              href: `${MODULE_PATHS.hr}/employees`,
             },
             {
               id: 'employee_onboarding',
               label: 'Onboarding',
               labelAr: 'إدماج الموظفين',
-              href: '/hr/employees/onboarding',
+              href: `${MODULE_PATHS.hr}/employees/onboarding`,
             },
             {
               id: 'performance_reviews',
               label: 'Performance Reviews',
               labelAr: 'تقييمات الأداء',
-              href: '/hr/employees/performance',
+              href: `${MODULE_PATHS.hr}/employees/performance`,
             },
           ],
         },
@@ -1244,20 +1473,20 @@ export const navigationConfig: NavigationConfig = {
           id: 'recruitment',
           label: 'Recruitment',
           labelAr: 'التوظيف',
-          href: '/hr/recruitment',
+          href: `${MODULE_PATHS.hr}/recruitment`,
           iconName: 'UserPlus',
           children: [
             {
               id: 'job_postings',
               label: 'Job Postings',
               labelAr: 'الوظائف المنشورة',
-              href: '/hr/recruitment/jobs',
+              href: `${MODULE_PATHS.hr}/recruitment/jobs`,
             },
             {
               id: 'applications',
               label: 'Applications',
               labelAr: 'الطلبات',
-              href: '/hr/recruitment/applications',
+              href: `${MODULE_PATHS.hr}/recruitment/applications`,
               badge: {
                 key: 'hr_applications',
                 color: 'blue',
@@ -1268,7 +1497,7 @@ export const navigationConfig: NavigationConfig = {
               id: 'interview_scheduling',
               label: 'Interview Scheduling',
               labelAr: 'جدولة المقابلات',
-              href: '/hr/recruitment/interviews',
+              href: `${MODULE_PATHS.hr}/recruitment/interviews`,
             },
           ],
         },
@@ -1276,7 +1505,7 @@ export const navigationConfig: NavigationConfig = {
           id: 'payroll',
           label: 'Payroll',
           labelAr: 'كشوف المرتبات',
-          href: '/hr/payroll',
+          href: `${MODULE_PATHS.hr}/payroll`,
           iconName: 'DollarSign',
           subscriptionPlans: ['ENTERPRISE'],
           children: [
@@ -1284,19 +1513,19 @@ export const navigationConfig: NavigationConfig = {
               id: 'payroll_processing',
               label: 'Payroll Processing',
               labelAr: 'معالجة الرواتب',
-              href: '/hr/payroll/processing',
+              href: `${MODULE_PATHS.hr}/payroll/processing`,
             },
             {
               id: 'salary_structure',
               label: 'Salary Structure',
               labelAr: 'هيكل الرواتب',
-              href: '/hr/payroll/salary',
+              href: `${MODULE_PATHS.hr}/payroll/salary`,
             },
             {
               id: 'tax_calculations',
               label: 'Tax Calculations',
               labelAr: 'حسابات الضرائب',
-              href: '/hr/payroll/taxes',
+              href: `${MODULE_PATHS.hr}/payroll/taxes`,
             },
           ],
         },
@@ -1304,26 +1533,26 @@ export const navigationConfig: NavigationConfig = {
           id: 'attendance',
           label: 'Attendance',
           labelAr: 'الحضور',
-          href: '/hr/attendance',
+          href: `${MODULE_PATHS.hr}/attendance`,
           iconName: 'Clock',
           children: [
             {
               id: 'time_tracking',
               label: 'Time Tracking',
               labelAr: 'تتبع الوقت',
-              href: '/hr/attendance/tracking',
+              href: `${MODULE_PATHS.hr}/attendance/tracking`,
             },
             {
               id: 'leave_management',
               label: 'Leave Management',
               labelAr: 'إدارة الإجازات',
-              href: '/hr/attendance/leave',
+              href: `${MODULE_PATHS.hr}/attendance/leave`,
             },
             {
               id: 'overtime_tracking',
               label: 'Overtime Tracking',
               labelAr: 'تتبع الوقت الإضافي',
-              href: '/hr/attendance/overtime',
+              href: `${MODULE_PATHS.hr}/attendance/overtime`,
             },
           ],
         },
@@ -1337,7 +1566,7 @@ export const navigationConfig: NavigationConfig = {
       id: 'crm',
       label: 'CRM',
       labelAr: 'إدارة علاقات العملاء',
-      roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER'],
+      roles: CRM_ROLES,
       subscriptionPlans: ['PRO', 'ENTERPRISE'],
       items: [
         {
@@ -1371,7 +1600,7 @@ export const navigationConfig: NavigationConfig = {
           id: 'deals',
           label: 'Deals',
           labelAr: 'الصفقات',
-          href: '/crm/deals',
+          href: `${MODULE_PATHS.crm}/deals`,
           iconName: 'Handshake',
           badge: {
             key: 'crm_deals',
@@ -1383,7 +1612,7 @@ export const navigationConfig: NavigationConfig = {
               id: 'deal_pipeline',
               label: 'Deal Pipeline',
               labelAr: 'خط أنابيب الصفقات',
-              href: '/crm/deals',
+              href: `${MODULE_PATHS.crm}/deals`,
             },
             {
               id: 'won_deals',
@@ -1464,14 +1693,15 @@ export const navigationConfig: NavigationConfig = {
       id: 'support',
       label: 'Support',
       labelAr: 'الدعم',
+      roles: SUPPORT_ROLES,
       items: [
         {
           id: 'tickets',
           label: 'Support Tickets',
           labelAr: 'تذاكر الدعم',
-          href: '/support/tickets',
+          href: '/fm/support/tickets',
           iconName: 'MessageSquare',
-          roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'EMPLOYEE'],
+          roles: SUPPORT_ROLES,
           badge: {
             key: 'open_support_tickets',
             color: 'red',
@@ -1483,19 +1713,33 @@ export const navigationConfig: NavigationConfig = {
               id: 'open_tickets',
               label: 'Open Tickets',
               labelAr: 'التذاكر المفتوحة',
-              href: '/support/tickets?status=open',
+              href: '/fm/support/tickets?status=open',
             },
             {
               id: 'assigned_tickets',
               label: 'Assigned to Me',
               labelAr: 'مُخصصة لي',
-              href: '/support/tickets?assignee=me',
+              href: '/fm/support/tickets?assignee=me',
             },
             {
               id: 'escalated_tickets',
               label: 'Escalated',
               labelAr: 'مُتصاعدة',
-              href: '/support/tickets?status=escalated',
+              href: '/fm/support/tickets?status=escalated',
+            },
+            {
+              id: 'create_support_ticket',
+              label: 'Create Ticket',
+              labelAr: 'إنشاء تذكرة',
+              href: '/fm/support/tickets/new',
+              roles: ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN', 'FM_MANAGER', 'EMPLOYEE', 'SUPPORT'],
+            },
+            {
+              id: 'major_incident_escalation',
+              label: 'Major Incident Escalation',
+              labelAr: 'تصعيد حادثة كبرى',
+              href: '/fm/support/escalations/new',
+              roles: ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN', 'FM_MANAGER', 'SUPPORT'],
             },
           ],
         },
@@ -1532,8 +1776,64 @@ export const navigationConfig: NavigationConfig = {
           labelAr: 'الدردشة المباشرة',
           href: '/support/chat',
           iconName: 'MessageCircle',
-          roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'EMPLOYEE'],
+          roles: ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'ADMIN', 'FM_MANAGER', 'EMPLOYEE', 'SUPPORT'],
           isNew: true,
+        },
+      ],
+    },
+
+    // ==========================================
+    // Compliance & Legal Section
+    // ==========================================
+    {
+      id: 'compliance_module',
+      label: 'Compliance & Legal',
+      labelAr: 'الامتثال والشؤون القانونية',
+      roles: COMPLIANCE_ROLES,
+      items: [
+        {
+          id: 'compliance_overview',
+          label: 'Overview',
+          labelAr: 'نظرة عامة',
+          href: '/fm/compliance',
+          iconName: 'ShieldCheck',
+        },
+        {
+          id: 'compliance_audits',
+          label: 'Audit Programs',
+          labelAr: 'برامج التدقيق',
+          href: '/fm/compliance/audits',
+          iconName: 'ClipboardCheck',
+          children: [
+            {
+              id: 'compliance_audits_new',
+              label: 'Plan Audit',
+              labelAr: 'خطة تدقيق',
+              href: '/fm/compliance/audits/new',
+            },
+          ],
+        },
+        {
+          id: 'compliance_policies',
+          label: 'Policy Library',
+          labelAr: 'مكتبة السياسات',
+          href: '/fm/compliance/policies',
+          iconName: 'BookCheck',
+          children: [
+            {
+              id: 'compliance_policy_draft',
+              label: 'Draft Policy',
+              labelAr: 'مسودة سياسة',
+              href: '/fm/administration/policies/new',
+            },
+          ],
+        },
+        {
+          id: 'compliance_contract_entry',
+          label: 'Contracts & Obligations',
+          labelAr: 'العقود والالتزامات',
+          href: '/fm/compliance/contracts/new',
+          iconName: 'FileSignature',
         },
       ],
     },
@@ -1545,7 +1845,8 @@ export const navigationConfig: NavigationConfig = {
       id: 'administration',
       label: 'Administration',
       labelAr: 'الإدارة',
-      roles: ['SUPER_ADMIN', 'ADMIN'],
+      roles: ADMIN_ROLES,
+      permissions: ['module:administration'],
       items: [
         {
           id: 'organization',
@@ -1771,22 +2072,28 @@ export const navigationConfig: NavigationConfig = {
   ],
 };
 
+export const navigationConfig = normalizeNavigationConfig(rawNavigationConfig);
+
 // ==========================================
 // Helper Functions
 // ==========================================
 
 /**
- * Filter navigation items based on user role and subscription plan
+ * Filter navigation items based on role/subscription with legacy role normalization (e.g. MANAGER ⇔ FM_MANAGER).
  */
 export function filterNavigation(
   config: NavigationConfig,
-  userRole: UserRole,
-  subscriptionPlan: SubscriptionPlan
+  userRole: UserRoleInput,
+  subscriptionPlan: SubscriptionPlan,
+  userPermissions: string[] = []
 ): NavigationConfig {
   const filteredSections = config.sections
     .map(section => {
       // Check section-level permissions
-      if (section.roles && !section.roles.includes(userRole)) {
+      if (!roleIsAllowed(section.roles, userRole)) {
+        return null;
+      }
+      if (!hasRequiredPermissions(section.permissions, userPermissions)) {
         return null;
       }
       if (section.subscriptionPlans && !section.subscriptionPlans.includes(subscriptionPlan)) {
@@ -1794,7 +2101,12 @@ export function filterNavigation(
       }
 
       // Filter section items
-      const filteredItems = filterNavigationItems(section.items, userRole, subscriptionPlan);
+      const filteredItems = filterNavigationItems(
+        section.items,
+        userRole,
+        subscriptionPlan,
+        userPermissions
+      );
       
       if (filteredItems.length === 0) {
         return null;
@@ -1818,16 +2130,20 @@ export function filterNavigation(
  */
 function filterNavigationItems(
   items: NavigationItem[],
-  userRole: UserRole,
-  subscriptionPlan: SubscriptionPlan
+  userRole: UserRoleInput,
+  subscriptionPlan: SubscriptionPlan,
+  userPermissions: string[]
 ): NavigationItem[] {
   return items
     .map(item => {
       // Check item-level permissions
-      if (item.roles && !item.roles.includes(userRole)) {
+      if (!roleIsAllowed(item.roles, userRole)) {
         return null;
       }
       if (item.subscriptionPlans && !item.subscriptionPlans.includes(subscriptionPlan)) {
+        return null;
+      }
+      if (!hasRequiredPermissions(item.permissions, userPermissions)) {
         return null;
       }
       if (item.hidden) {
@@ -1836,7 +2152,7 @@ function filterNavigationItems(
 
       // Filter children recursively
       const filteredChildren = item.children
-        ? filterNavigationItems(item.children, userRole, subscriptionPlan)
+        ? filterNavigationItems(item.children, userRole, subscriptionPlan, userPermissions)
         : undefined;
 
       return {
@@ -1917,17 +2233,21 @@ function findBreadcrumbInItems(
 }
 
 /**
- * Check if user has access to specific navigation item
+ * Returns true when a user with the given role/subscription can reach the item (alias-aware).
  */
 export function hasAccessToItem(
   item: NavigationItem,
-  userRole: UserRole,
-  subscriptionPlan: SubscriptionPlan
+  userRole: UserRoleInput,
+  subscriptionPlan: SubscriptionPlan,
+  userPermissions: string[] = []
 ): boolean {
-  if (item.roles && !item.roles.includes(userRole)) {
+  if (!roleIsAllowed(item.roles, userRole)) {
     return false;
   }
   if (item.subscriptionPlans && !item.subscriptionPlans.includes(subscriptionPlan)) {
+    return false;
+  }
+  if (!hasRequiredPermissions(item.permissions, userPermissions)) {
     return false;
   }
   if (item.hidden) {

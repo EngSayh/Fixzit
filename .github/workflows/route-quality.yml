@@ -1,0 +1,33 @@
+name: Route Quality
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  route-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify route aliases
+        run: pnpm run check:route-aliases
+      - name: Generate alias metrics artifact
+        run: pnpm run check:route-aliases:json
+      - name: Archive route metrics snapshot
+        run: pnpm run archive:route-metrics
+      - name: Verify routes (alias + HTTP)
+        run: pnpm run verify:routes
+      - name: Run translation audit
+        run: pnpm run scan:i18n:audit
+      - name: Check translation coverage
+        run: pnpm run i18n:coverage

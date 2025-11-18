@@ -239,7 +239,7 @@ const MODULE_SCOPE_CONFIG: Record<ModuleScope, ModuleScopeConfig> = {
         id: 'assign_wo',
         labelKey: 'dashboard.assignWorkOrder',
         fallbackLabel: 'Assign Work Order',
-        href: '/fm/work-orders/assign',
+        href: '/fm/work-orders/board',
         permission: 'wo.assign',
         roles: ['SUPER_ADMIN', 'CORPORATE_ADMIN', 'FM_MANAGER', 'DISPATCHER'],
       },
@@ -504,7 +504,6 @@ const MODULE_ROUTE_MATCHERS: { pattern: RegExp; scope: ModuleScope }[] = [
   { pattern: /^\/(fm\/)?compliance/i, scope: 'compliance' },
   { pattern: /^\/(fm\/)?reports/i, scope: 'reports' },
   { pattern: /^\/(fm\/)?system/i, scope: 'system' },
-  { pattern: /^\/marketplace\/real-estate/i, scope: 'marketplace_real_estate' },
   { pattern: /^\/aqar/i, scope: 'marketplace_real_estate' },
   { pattern: /^\/marketplace/i, scope: 'marketplace_materials' },
   { pattern: /^\/souq/i, scope: 'marketplace_materials' },
@@ -513,7 +512,7 @@ const MODULE_ROUTE_MATCHERS: { pattern: RegExp; scope: ModuleScope }[] = [
 ];
 
 export function detectAppFromPath(pathname: string): AppKey {
-  if (pathname.startsWith('/aqar') || pathname.startsWith('/marketplace/real-estate')) {
+  if (pathname.startsWith('/aqar')) {
     return 'aqar';
   }
   if (pathname.startsWith('/marketplace') || pathname.startsWith('/souq')) {

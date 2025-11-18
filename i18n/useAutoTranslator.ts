@@ -47,8 +47,21 @@ const interpolate = (template: string, params?: InterpolationParams) => {
 export const useAutoTranslator = (scope: string) => {
   const { t } = useTranslation();
   return (fallback: string, id?: string, params?: InterpolationParams) => {
-    const slug = id ? slugify(id) : slugify(fallback);
-    const template = t(`auto.${scope}.${slug}`, fallback);
+    let translationKey: string;
+
+    if (id) {
+      if (id.startsWith(`${scope}.`) || id.startsWith('auto.')) {
+        translationKey = id;
+      } else if (id.includes('.')) {
+        translationKey = `${scope}.${id}`;
+      } else {
+        translationKey = `auto.${scope}.${slugify(id)}`;
+      }
+    } else {
+      translationKey = `auto.${scope}.${slugify(fallback)}`;
+    }
+
+    const template = t(translationKey, fallback);
     return interpolate(template, params);
   };
 };

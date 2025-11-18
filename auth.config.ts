@@ -4,6 +4,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { otpSessionStore } from '@/lib/otp-store';
+import type { UserRoleType } from '@/types/user';
 // NOTE: Mongoose imports MUST be dynamic inside authorize() to avoid Edge Runtime issues
 // import { User } from '@/server/models/User'; // ❌ Breaks Edge Runtime
 // import { verifyPassword } from '@/lib/auth'; // ❌ Imports User model
@@ -363,7 +364,8 @@ export const authConfig = {
       // Add user info to token on first sign-in
       if (user) {
         token.id = user.id;
-        token.role = (user as ExtendedUser).role as 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'VENDOR' | 'OWNER' | 'TENANT' | 'VIEWER' | 'GUEST' || 'GUEST';
+        const normalizedRole = (user as ExtendedUser).role?.toUpperCase() as UserRoleType | undefined;
+        token.role = normalizedRole ?? (token.role as UserRoleType | 'GUEST') ?? 'GUEST';
         token.orgId = (user as ExtendedUser).orgId || null;
         
         // Handle rememberMe for credentials provider

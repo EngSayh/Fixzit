@@ -12,6 +12,7 @@ import { CurrencyProvider } from '@/contexts/CurrencyContext';
 import { ResponsiveProvider } from '@/contexts/ResponsiveContext';
 import { FormStateProvider } from '@/contexts/FormStateContext';
 import { TopBarProvider } from '@/contexts/TopBarContext';
+import { SupportOrgProvider } from '@/contexts/SupportOrgContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
 /**
@@ -44,9 +45,11 @@ export default function PublicProviders({ children }: { children: React.ReactNod
                 <FormStateProvider>
                   {/* Provide translations for public pages (TopBar and other global UI) */}
                   <TranslationProvider>
-                    <TopBarProvider>
-                      {children}
-                    </TopBarProvider>
+                    <SupportOrgProvider>
+                      <TopBarProvider>
+                        {children}
+                      </TopBarProvider>
+                    </SupportOrgProvider>
                   </TranslationProvider>
                 </FormStateProvider>
               </CurrencyProvider>

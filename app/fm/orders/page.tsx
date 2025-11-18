@@ -93,25 +93,45 @@ export default function OrdersPage() {
   const serviceOrders = filteredOrders.filter((o: Order) => o.type === 'SERVICE');
 
   const handleDelete = async (orderId: string, orderNumber: string) => {
-    if (!confirm(`Delete order "${orderNumber}"? This cannot be undone.`)) return;
-    if (!orgId) return toast.error('Organization ID missing');
+    const confirmMessage = t('orders.confirmDelete', 'Delete order "{{number}}"? This cannot be undone.').replace(
+      '{{number}}',
+      orderNumber
+    );
+    if (!confirm(confirmMessage)) return;
+    if (!orgId) return toast.error(t('fm.errors.orgIdMissing', 'Organization ID missing from session'));
 
-    const toastId = toast.loading('Deleting order...');
+    const toastId = toast.loading(t('orders.toast.deleting', 'Deleting order...'));
     try {
       const res = await fetch(`/api/marketplace/orders/${orderId}`, {
         method: 'DELETE',
         headers: { 'x-tenant-id': orgId }
       });
-      if (!res.ok) throw new Error('Failed to delete order');
-      toast.success('Order deleted successfully', { id: toastId });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        const message =
+          (error && typeof error === 'object' && 'error' in error && typeof error.error === 'string'
+            ? error.error
+            : t('orders.errors.deleteUnknown', 'Failed to delete order'));
+        throw new Error(message);
+      }
+      toast.success(t('orders.toast.deleteSuccess', 'Order deleted successfully'), { id: toastId });
       mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete order', { id: toastId });
+      const message =
+        error instanceof Error ? error.message : t('orders.errors.deleteUnknown', 'Failed to delete order');
+      toast.error(
+        t('orders.toast.deleteFailed', 'Failed to delete order: {{message}}').replace('{{message}}', message),
+        { id: toastId }
+      );
     }
   };
 
   const exportOrdersCsv = (ordersList: Order[], type: string) => {
-    if (ordersList.length === 0) return toast(`No ${type} orders to export`);
+    if (ordersList.length === 0) {
+      return toast(
+        t('orders.export.empty', 'No {{type}} orders to export').replace('{{type}}', type)
+      );
+    }
     const rows = [['Order Number', 'Vendor', 'Total', 'Status', 'Date', 'Delivery Date']];
     for (const o of ordersList) {
       rows.push([
@@ -131,7 +151,9 @@ export default function OrdersPage() {
     a.download = `${type}-orders-export-${new Date().toISOString()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`Exported ${ordersList.length} orders`);
+    toast.success(
+      t('orders.export.success', 'Exported {{count}} orders').replace('{{count}}', String(ordersList.length))
+    );
   };
 
   const getStatusColor = (status: string) => {
@@ -151,9 +173,21 @@ export default function OrdersPage() {
 
   // Loading state
   if (!session) return <CardGridSkeleton count={4} />;
-  if (!orgId) return <div className="p-6 text-center text-destructive">Error: Organization ID missing from session</div>;
+  if (!orgId) {
+    return (
+      <div className="p-6 text-center text-destructive">
+        {t('fm.errors.orgIdMissing', 'Error: Organization ID missing from session')}
+      </div>
+    );
+  }
   if (isLoading) return <CardGridSkeleton count={4} />;
-  if (error) return <div className="p-6 text-center text-destructive">Failed to load orders: {error.message}</div>;
+  if (error) {
+    return (
+      <div className="p-6 text-center text-destructive">
+        {t('orders.errors.loadFailed', 'Failed to load orders: {{message}}').replace('{{message}}', error.message)}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

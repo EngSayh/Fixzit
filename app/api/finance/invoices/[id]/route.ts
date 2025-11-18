@@ -6,6 +6,7 @@ import { z } from 'zod';
 import {zodValidationError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
+import { canEditInvoices } from '@/lib/auth/role-guards';
 
 // Restrict status updates to valid enum values only
 const invoiceUpdateSchema = z.object({
@@ -30,7 +31,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id:stri
     }
 
     // Role-based access control - only finance roles can modify invoices
-    if (!['SUPER_ADMIN', 'ADMIN', 'FINANCE_ADMIN', 'BILLING_ADMIN'].includes(user.role)) {
+    if (!canEditInvoices(user.role)) {
       return createSecureResponse({ error: 'Insufficient permissions to modify invoices' }, 403, req);
     }
 
@@ -45,4 +46,3 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id:stri
     return createSecureResponse({ error: 'Failed to update invoice' }, 400, req);
   }
 }
-

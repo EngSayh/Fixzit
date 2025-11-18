@@ -9,7 +9,7 @@ TRANSLATION_SOURCES_CHANGED=$(git diff --cached --name-only | grep -E "^i18n/(so
 
 if [ -n "$TRANSLATION_SOURCES_CHANGED" ]; then
   echo "📦 Translation sources changed, regenerating dictionaries..."
-  npm run i18n:build
+  pnpm run i18n:build
   
   # Add generated files to commit
   git add i18n/generated/*.dictionary.json
@@ -26,11 +26,18 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# Run translation audit (non-blocking while known gaps are being fixed)
+echo "🧪 Auditing translation keys..."
+if ! pnpm run scan:i18n:audit; then
+  echo "⚠️  Translation audit reported issues (non-blocking)"
+  echo "   Resolve by adding the missing keys listed above."
+fi
+
 # Run high-fidelity coverage check (EN/AR only, non-blocking warning)
 echo "🌐 Checking translation coverage..."
-pnpm tsx scripts/detect-unlocalized-strings.ts --locales=en,ar --silent || {
+pnpm run i18n:coverage -- --locales=en,ar --silent || {
   echo "⚠️  Translation coverage issues detected (not blocking)"
-  echo "   Run: pnpm i18n:coverage --locales=en,ar"
+  echo "   Run: pnpm i18n:coverage -- --locales=en,ar"
 }
 
 echo "✅ Pre-commit checks passed!"

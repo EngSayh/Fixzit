@@ -1,2 +1,171 @@
-export { default } from '@/app/work-orders/new/page';
-export * from '@/app/work-orders/new/page';
+'use client';
+
+import React from 'react';
+import { useTranslation } from '@/contexts/TranslationContext';
+
+export default function NewWorkOrderPage() {
+  const { t } = useTranslation();
+  
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{t('workOrders.new.title', 'New Work Order')}</h1>
+          <p className="text-muted-foreground">{t('workOrders.new.subtitle', 'Create a new work order for maintenance or services')}</p>
+        </div>
+        <div className="flex gap-2">
+          <button className="btn-secondary">{t('common.save', 'Save Draft')}</button>
+          <button className="btn-primary">{t('workOrders.board.createWO', 'Create Work Order')}</button>
+        </div>
+      </div>
+
+      {/* Form */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Form */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">{t('workOrders.new.basicInfo', 'Basic Information')}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t('workOrders.title', 'Work Order Title')} *
+                </label>
+                <input
+                  type="text"
+                  placeholder={t('workOrders.new.titlePlaceholder', 'Enter work order title...')}
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t('workOrders.priority', 'Priority')} *
+                </label>
+                <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                  <option value="">{t('workOrders.selectPriority', 'Select Priority')}</option>
+                  <option value="P1">{t('workOrders.priority.p1', 'P1 - Critical')}</option>
+                  <option value="P2">{t('workOrders.priority.p2', 'P2 - High')}</option>
+                  <option value="P3">{t('workOrders.priority.p3', 'P3 - Medium')}</option>
+                  <option value="P4">{t('workOrders.priority.p4', 'P4 - Low')}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">{t('workOrders.new.propertyLocation', 'Property & Location')}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t('common.property', 'Property')} *
+                </label>
+                <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                  <option value="">{t('common.selectProperty', 'Select Property')}</option>
+                  <option value="tower-a">Tower A</option>
+                  <option value="tower-b">Tower B</option>
+                  <option value="villa-9">Villa 9</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t('common.location', 'Unit/Location')}
+                </label>
+                <input
+                  type="text"
+                  placeholder={t('workOrders.new.locationPlaceholder', 'Unit number or specific location...')}
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">{t('common.description', 'Description')}</h3>
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                {t('common.description', 'Work Description')} *
+              </label>
+              <textarea
+                rows={4}
+                placeholder={t('workOrders.new.descriptionPlaceholder', 'Describe the work that needs to be done...')}
+                className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">{t('workOrders.new.assignmentScheduling', 'Assignment & Scheduling')}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t('workOrders.assignTo', 'Assign To')}
+                </label>
+                <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                  <option value="">{t('workOrders.selectTechnician', 'Select Technician')}</option>
+                  <option value="tech-1">Ahmed Al-Rashid</option>
+                  <option value="tech-2">Mohammed Al-Saud</option>
+                  <option value="tech-3">Omar Al-Fahad</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  {t('common.dueDate', 'Due Date')}
+                </label>
+                <input
+                  type="date"
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">{t('workOrders.attachments', 'Attachments')}</h3>
+            <div className="border-2 border-dashed border-border rounded-2xl p-6 text-center">
+              <div className="text-muted-foreground mb-2">📎</div>
+              <p className="text-sm text-muted-foreground">{t('workOrders.dropFiles', 'Drop files here or click to upload')}</p>
+              <button className="mt-2 text-sm text-primary hover:underline">
+                {t('common.chooseFiles', 'Choose Files')}
+              </button>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">{t('workOrders.quickActions', 'Quick Actions')}</h3>
+            <div className="space-y-2">
+              <button className="w-full btn-ghost text-start">
+                📋 {t('workOrders.createFromTemplate', 'Create from Template')}
+              </button>
+              <button className="w-full btn-ghost text-start">
+                📞 {t('workOrders.emergencyContact', 'Emergency Contact')}
+              </button>
+              <button className="w-full btn-ghost text-start">
+                📊 {t('workOrders.costCalculator', 'Cost Calculator')}
+              </button>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 className="text-lg font-semibold mb-4">{t('workOrders.recentActivity', 'Recent Activity')}</h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-[hsl(var(--success)) / 0.2] rounded-full"></div>
+                <span className="text-muted-foreground">{t('workOrders.formAutoSaved', 'Form auto-saved')}</span>
+                <span className="text-muted-foreground ms-auto">2m ago</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-primary/20 rounded-full"></div>
+                <span className="text-muted-foreground">{t('workOrders.propertySelected', 'Property selected')}</span>
+                <span className="text-muted-foreground ms-auto">5m ago</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

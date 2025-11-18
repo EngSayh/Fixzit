@@ -26,12 +26,12 @@ async function updateTestUsersPhone() {
     
     // Test user emails and their phone numbers
     const testUsers = [
-      { email: 'superadmin@test.fixzit.co', phone: '+966501234567' },
-      { email: 'admin@test.fixzit.co', phone: '+966501234568' },
-      { email: 'property-manager@test.fixzit.co', phone: '+966501234569' },
-      { email: 'technician@test.fixzit.co', phone: '+966501234570' },
-      { email: 'tenant@test.fixzit.co', phone: '+966501234571' },
-      { email: 'vendor@test.fixzit.co', phone: '+966501234572' },
+      { email: 'superadmin@test.fixzit.co', phone: '+966552233456' },
+      { email: 'admin@test.fixzit.co', phone: '+966552233456' },
+      { email: 'property-manager@test.fixzit.co', phone: '+966552233456' },
+      { email: 'technician@test.fixzit.co', phone: '+966552233456' },
+      { email: 'tenant@test.fixzit.co', phone: '+966552233456' },
+      { email: 'vendor@test.fixzit.co', phone: '+966552233456' },
     ];
 
     let updated = 0;

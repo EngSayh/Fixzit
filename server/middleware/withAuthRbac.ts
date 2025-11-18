@@ -20,6 +20,8 @@ export type SessionUser = {
   isSuperAdmin?: boolean;
   permissions?: string[];
   roles?: string[];
+  realOrgId?: string;
+  impersonatedOrgId?: string | null;
 };
 
 /**
@@ -136,6 +138,9 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
   let userId: string | undefined;
   let orgId: string | undefined;
   let role: UserRoleType | undefined;
+  let realOrgId: string | undefined;
+  let impersonatedOrgId: string | null = null;
+  let sessionIsSuperAdmin = false;
   
   // Try NextAuth session first (proper way)
   try {
@@ -143,7 +148,17 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
     
     if (session?.user?.id) {
       userId = session.user.id;
-      orgId = session.user.orgId || '';
+      const sessionOrgId = session.user.orgId || '';
+      realOrgId = sessionOrgId || undefined;
+      sessionIsSuperAdmin = Boolean((session.user as { isSuperAdmin?: boolean }).isSuperAdmin);
+      const supportOrgOverride =
+        sessionIsSuperAdmin ? req.cookies.get('support_org_id')?.value ?? undefined : undefined;
+      if (supportOrgOverride) {
+        orgId = supportOrgOverride;
+        impersonatedOrgId = supportOrgOverride;
+      } else {
+        orgId = sessionOrgId || '';
+      }
       
       // Validate role before casting
       const roleValue = session.user.role;
@@ -159,29 +174,35 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
     logger.error('Failed to get NextAuth session', { error: e });
   }
   
-  // Fallback to x-user header (for middleware-set headers)
-  if (!userId) {
-    const xUserHeader = req.headers.get("x-user");
-    
-    if (xUserHeader) {
-      try {
-        const parsed = JSON.parse(xUserHeader);
-        const tenantValue = parsed.orgId || parsed.tenantId;
-        
-        // Validate role before casting
-        const roleValue = parsed.role;
-        
-        if (!roleValue || !ALL_ROLES.includes(roleValue as UserRoleType)) {
-          logger.warn('Invalid role in x-user header', { role: roleValue });
-          // Skip this header, continue to next auth method
-        } else if (parsed.id && tenantValue) {
-          userId = parsed.id;
-          orgId = tenantValue;
-          role = roleValue as UserRoleType;
-        }
-      } catch (e) {
-        logger.error('Failed to parse x-user header', { error: e });
+  // Inspect middleware-provided x-user header to capture impersonation context
+  const xUserHeader = req.headers.get("x-user");
+  if (xUserHeader) {
+    try {
+      const parsed = JSON.parse(xUserHeader);
+      const tenantValue = parsed.orgId || parsed.tenantId;
+      const roleValue = parsed.role;
+      if (tenantValue && !orgId) {
+        orgId = tenantValue;
       }
+      if (parsed.id && !userId) {
+        userId = parsed.id;
+      }
+      if (roleValue && ALL_ROLES.includes(roleValue as UserRoleType) && !role) {
+        role = roleValue as UserRoleType;
+      } else if (roleValue && !ALL_ROLES.includes(roleValue as UserRoleType)) {
+        logger.warn('Invalid role in x-user header', { role: roleValue });
+      }
+      if (!realOrgId && (parsed.realOrgId || tenantValue)) {
+        realOrgId = parsed.realOrgId || tenantValue;
+      }
+      if (!impersonatedOrgId && parsed.impersonatedOrgId) {
+        impersonatedOrgId = parsed.impersonatedOrgId;
+      }
+      if (parsed.isSuperAdmin) {
+        sessionIsSuperAdmin = true;
+      }
+    } catch (e) {
+      logger.error('Failed to parse x-user header', { error: e });
     }
   }
   
@@ -224,17 +245,27 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
     throw new UnauthorizedError('Unauthenticated');
   }
   
+  const rbacOrgId = realOrgId || orgId;
+  const effectiveRealOrgId = realOrgId ?? orgId;
+  
   // Load RBAC data from database
-  const rbacData = await loadRBACData(userId, orgId);
+  const rbacData = await loadRBACData(userId, rbacOrgId);
+  const isSuperAdmin = rbacData.isSuperAdmin || sessionIsSuperAdmin;
+  const permissions = isSuperAdmin ? ['*'] : rbacData.permissions;
+  const roles = isSuperAdmin
+    ? Array.from(new Set([...(rbacData.roles || []), 'super_admin']))
+    : rbacData.roles;
   
   return {
     id: userId,
     role: role,
     orgId: orgId,
     tenantId: orgId,
-    isSuperAdmin: rbacData.isSuperAdmin,
-    permissions: rbacData.permissions,
-    roles: rbacData.roles,
+    isSuperAdmin,
+    permissions,
+    roles,
+    realOrgId: effectiveRealOrgId,
+    impersonatedOrgId,
   };
 }
 

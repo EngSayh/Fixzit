@@ -12,6 +12,7 @@ import { rateLimitError, zodValidationError } from '@/server/utils/errorResponse
 import { createSecureResponse } from '@/server/security/headers';
 import { z } from 'zod';
 import { getClientIP } from '@/server/security/headers';
+import { canManageSubscriptions } from '@/lib/auth/role-guards';
 
 const subscriptionSchema = z.object({
   customer: z.object({
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Role-based access control - only billing admins or org admins can subscribe
-    if (!['SUPER_ADMIN', 'ADMIN', 'BILLING_ADMIN'].includes(user.role)) {
+    if (!canManageSubscriptions(user.role)) {
       return createSecureResponse({ error: 'Insufficient permissions to manage subscriptions' }, 403, req);
     }
 
@@ -159,6 +160,5 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ error: 'Failed to create subscription' }, 500, req);
   }
 }
-
 
 

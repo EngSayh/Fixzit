@@ -29,6 +29,7 @@ import { TopMegaMenu } from './topbar/TopMegaMenu';
 import Portal from './Portal';
 import { logger } from '@/lib/logger';
 import { useTopBar } from '@/contexts/TopBarContext';
+import SupportOrgSwitcher from '@/components/support/SupportOrgSwitcher';
 
 // Type definitions
 interface OrgSettings {
@@ -98,8 +99,9 @@ export default function TopBar() {
   const pathname = usePathname();
 
   // ✅ FIXED: Single auth system - NextAuth only
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const isAuthenticated = status === 'authenticated';
+  const isSuperAdmin = Boolean((session?.user as { isSuperAdmin?: boolean })?.isSuperAdmin);
 
   // Context hooks
   const { hasUnsavedChanges, clearAllUnsavedChanges } = useFormState();
@@ -418,6 +420,10 @@ export default function TopBar() {
             </Button>
           )}
           
+          {isAuthenticated && isSuperAdmin && (
+            <SupportOrgSwitcher />
+          )}
+
           {/* Quick Actions (authenticated only) */}
           {isAuthenticated && <QuickActions />}
           

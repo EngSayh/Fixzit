@@ -68,7 +68,7 @@ const publicMarketplaceRoutes = [
   '/souq/vendors',
   '/aqar',
   '/aqar/map',
-  '/aqar/search',
+  '/aqar/filters',
   '/aqar/properties',
 ];
 
@@ -78,10 +78,6 @@ const protectedMarketplaceActions = [
   '/souq/purchase',
   '/souq/my-orders',
   '/souq/my-rfqs',
-  '/aqar/favorites',
-  '/aqar/listings',
-  '/aqar/my-properties',
-  '/aqar/bookings',
 ];
 
 const fmRoutes = [
@@ -140,7 +136,7 @@ async function getAuthSession(request: NextRequest): Promise<SessionUser | null>
     
     // Type assertion for NextAuth middleware wrapper
     type AuthMiddleware = (
-      _handler: (req: WrappedReq) => Promise<SessionUser | null>
+      _handler: (_req: WrappedReq) => Promise<SessionUser | null>
     ) => (_request: NextRequest) => Promise<SessionUser | null>;
     const wrappedAuth = auth as unknown as AuthMiddleware;
     
@@ -178,16 +174,28 @@ function hasAnyPermission(user: SessionUser | null, permissions: string[]): bool
 
 function attachUserHeaders(req: NextRequest, user: SessionUser): NextResponse {
   const headers = new Headers(req.headers);
-  headers.set('x-user', JSON.stringify({ 
-    id: user.id, 
-    email: user.email, 
-    role: user.role, 
-    orgId: user.orgId,
+  const supportOrgId = user.isSuperAdmin ? req.cookies.get('support_org_id')?.value : undefined;
+  const effectiveOrgId = supportOrgId || user.orgId || null;
+
+  const payload = {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    orgId: effectiveOrgId,
+    realOrgId: user.orgId,
     isSuperAdmin: user.isSuperAdmin,
     permissions: user.permissions,
     roles: user.roles,
-  }));
-  if (user.orgId) headers.set('x-org-id', user.orgId);
+    impersonatedOrgId: supportOrgId || null,
+  };
+
+  headers.set('x-user', JSON.stringify(payload));
+  if (effectiveOrgId) {
+    headers.set('x-org-id', effectiveOrgId);
+  }
+  if (supportOrgId) {
+    headers.set('x-impersonated-org-id', supportOrgId);
+  }
   return NextResponse.next({ request: { headers } });
 }
 

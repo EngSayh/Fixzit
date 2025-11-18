@@ -14,6 +14,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface DailyPageView {
   date: string;
@@ -52,6 +53,7 @@ interface TrafficAnalyticsProps {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
+  const auto = useAutoTranslator('seller.analytics.traffic');
   const formatDuration = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -62,11 +64,13 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Traffic Analytics</CardTitle>
+          <CardTitle>{auto('Traffic Analytics', 'title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
-            <div className="text-muted-foreground">Loading traffic data...</div>
+            <div className="text-muted-foreground">
+              {auto('Loading traffic data...', 'state.loading')}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -77,11 +81,13 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Traffic Analytics</CardTitle>
+          <CardTitle>{auto('Traffic Analytics', 'title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
-            <div className="text-muted-foreground">No traffic data available</div>
+            <div className="text-muted-foreground">
+              {auto('No traffic data available', 'state.empty')}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -115,7 +121,9 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Page Views</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {auto('Total Page Views', 'metrics.totalPageViews')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{data.pageViews.total.toLocaleString()}</div>
@@ -123,7 +131,9 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Avg Session Duration</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {auto('Avg Session Duration', 'metrics.avgSessionDuration')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -133,7 +143,9 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pages Per Session</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {auto('Pages Per Session', 'metrics.pagesPerSession')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -143,7 +155,9 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Bounce Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {auto('Bounce Rate', 'metrics.bounceRate')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -156,7 +170,7 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
       {/* Page Views Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Page Views Over Time</CardTitle>
+          <CardTitle>{auto('Page Views Over Time', 'charts.pageViews')}</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={250}>
@@ -174,9 +188,9 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
                             <span className="text-[0.70rem] uppercase text-muted-foreground">
                               {payload[0].payload.date}
                             </span>
-                            <span className="font-bold">
-                              {payload[0].value?.toLocaleString()} views
-                            </span>
+                          <span className="font-bold">
+                            {payload[0].value?.toLocaleString()} {auto('views', 'tooltip.views')}
+                          </span>
                           </div>
                         </div>
                       </div>
@@ -185,7 +199,7 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
                   return null;
                 }}
               />
-              <Bar dataKey="views" fill="#8884d8" name="Page Views" />
+              <Bar dataKey="views" fill="#8884d8" name={auto('Page Views', 'charts.pageViews')} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -195,7 +209,7 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Traffic Sources</CardTitle>
+            <CardTitle>{auto('Traffic Sources', 'charts.sources')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
@@ -223,7 +237,7 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Device Breakdown</CardTitle>
+            <CardTitle>{auto('Device Breakdown', 'charts.devices')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>

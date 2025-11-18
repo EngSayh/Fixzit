@@ -131,7 +131,7 @@ export default function AgentCard({ agent, compact = false }: { agent: AgentCard
 
   return (
     <Link 
-      href={`/aqar/agents/${agent.id}`}
+      href={`/aqar/properties?agent=${agent.id}`}
       className="block bg-card rounded-2xl shadow-md hover:shadow-xl transition-shadow overflow-hidden group"
     >
       {/* Header with Tier Badge */}

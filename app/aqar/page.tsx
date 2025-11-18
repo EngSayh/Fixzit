@@ -27,7 +27,7 @@ const AQAR_FEATURES: FeatureConfig[] = [
     titleKey: 'aqar.searchProperties',
     descriptionKey: 'aqar.propertySearch.desc',
     icon: Search,
-    link: '/aqar/search',
+    link: '/aqar/filters',
     fallbackTitle: 'Property Search',
     fallbackDescription: 'Advanced search with filters for location, price, and features'
   },
@@ -43,7 +43,7 @@ const AQAR_FEATURES: FeatureConfig[] = [
     titleKey: 'aqar.myListings',
     descriptionKey: 'aqar.myListings.desc',
     icon: Home,
-    link: '/aqar/listings',
+    link: '/aqar/properties',
     fallbackTitle: 'My Listings',
     fallbackDescription: 'Manage your property listings and inquiries'
   },
@@ -59,7 +59,7 @@ const AQAR_FEATURES: FeatureConfig[] = [
     titleKey: 'aqar.favorites',
     descriptionKey: 'aqar.favorites.desc',
     icon: Heart,
-    link: '/aqar/favorites',
+    link: '/aqar/properties',
     fallbackTitle: 'Favorites',
     fallbackDescription: 'Save and organize your favorite properties'
   },
@@ -67,7 +67,7 @@ const AQAR_FEATURES: FeatureConfig[] = [
     titleKey: 'aqar.marketTrends',
     descriptionKey: 'aqar.marketTrends.desc',
     icon: TrendingUp,
-    link: '/aqar/trends',
+    link: '/aqar/auctions',
     fallbackTitle: 'Market Trends',
     fallbackDescription: 'View market analysis and property value trends'
   },
@@ -99,7 +99,7 @@ const AQAR_FEATURES: FeatureConfig[] = [
     titleKey: 'aqar.premiumListings',
     descriptionKey: 'aqar.premiumListings.desc',
     icon: Star,
-    link: '/aqar/premium',
+    link: '/aqar/properties?tag=premium',
     fallbackTitle: 'Premium Listings',
     fallbackDescription: 'Access exclusive premium property listings'
   }
@@ -126,7 +126,7 @@ export default function AqarPage() {
               {t('aqar.exploreMap', 'Explore Map')}
             </Link>
             <Link
-              href="/aqar/search"
+              href="/aqar/filters"
               className="px-6 py-3 bg-white/20 hover:bg-white/30 text-white font-semibold rounded-2xl transition-colors"
             >
               {t('aqar.searchProperties', 'Search Properties')}

@@ -16,7 +16,15 @@
     "orders.tabs.purchase": "Purchase Orders",
     "orders.tabs.service": "Service Orders",
     "orders.total": "Total",
-    "orders.vendor": "Vendor"
+    "orders.vendor": "Vendor",
+    "orders.confirmDelete": "Delete order \"{{number}}\"? This cannot be undone.",
+    "orders.toast.deleting": "Deleting order...",
+    "orders.toast.deleteSuccess": "Order deleted successfully",
+    "orders.toast.deleteFailed": "Failed to delete order: {{message}}",
+    "orders.errors.deleteUnknown": "Failed to delete order",
+    "orders.export.empty": "No {{type}} orders to export",
+    "orders.export.success": "Exported {{count}} orders",
+    "orders.errors.loadFailed": "Failed to load orders: {{message}}"
   },
   "ar": {
     "orders.amount": "المبلغ",
@@ -35,6 +43,14 @@
     "orders.tabs.purchase": "أوامر الشراء",
     "orders.tabs.service": "أوامر الخدمة",
     "orders.total": "المجموع",
-    "orders.vendor": "المورد"
+    "orders.vendor": "المورد",
+    "orders.confirmDelete": "حذف الطلب \"{{number}}\"؟ لا يمكن التراجع عن ذلك.",
+    "orders.toast.deleting": "جارٍ حذف الطلب...",
+    "orders.toast.deleteSuccess": "تم حذف الطلب بنجاح",
+    "orders.toast.deleteFailed": "فشل حذف الطلب: {{message}}",
+    "orders.errors.deleteUnknown": "فشل حذف الطلب",
+    "orders.export.empty": "لا توجد طلبات {{type}} للتصدير",
+    "orders.export.success": "تم تصدير {{count}} من الطلبات",
+    "orders.errors.loadFailed": "فشل تحميل الطلبات: {{message}}"
   }
 }

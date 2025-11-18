@@ -3,6 +3,7 @@ import { logger } from '@/lib/logger';
 import ServiceContract from '@/server/models/ServiceContract';
 import { NextRequest } from 'next/server';
 import { getUserFromToken } from '@/lib/auth';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { rateLimit } from '@/server/security/rateLimit';
 import { createSecureResponse } from '@/server/security/headers';
 import { 
@@ -12,6 +13,26 @@ import {
 } from '@/server/utils/errorResponses';
 import { z } from 'zod';
 import { getClientIP } from '@/server/security/headers';
+
+function isUnauthenticatedError(error: unknown): boolean {
+  return error instanceof Error && error.message.toLowerCase().includes('unauthenticated');
+}
+
+async function resolveUser(req: NextRequest) {
+  try {
+    return await getSessionUser(req);
+  } catch (error) {
+    if (!isUnauthenticatedError(error)) {
+      throw error;
+    }
+  }
+
+  const token = req.headers.get('authorization')?.replace('Bearer ', '')?.trim();
+  if (!token) {
+    return null;
+  }
+  return getUserFromToken(token);
+}
 
 const contractSchema = z.object({
   scope: z.enum(['OWNER_GROUP', 'PROPERTY']),
@@ -50,15 +71,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Authentication & Authorization
-    const token = req.headers.get('authorization')?.replace('Bearer ', '')?.trim();
-    if (!token) {
-      return createErrorResponse('Authentication required', 401, req);
-    }
-
-    const user = await getUserFromToken(token);
+    const user = await resolveUser(req);
     if (!user) {
-      return createErrorResponse('Invalid token', 401, req);
+      return createErrorResponse('Authentication required', 401, req);
     }
 
     // Ensure user has tenant context
@@ -99,7 +114,6 @@ export async function POST(req: NextRequest) {
     return createErrorResponse('Internal server error', 500, req);
   }
 }
-
 
 
 

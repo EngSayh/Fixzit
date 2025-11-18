@@ -141,7 +141,7 @@ export default function VendorPortalPage() {
 
           {/* Manage Products */}
           <Link 
-            href="/marketplace/vendor/products"
+            href="/marketplace/vendor"
             className="group rounded-2xl bg-card p-6 shadow-sm border border-border hover:shadow-lg transition-all hover:-translate-y-1"
           >
             <div className="flex items-start gap-4">
@@ -161,7 +161,7 @@ export default function VendorPortalPage() {
 
           {/* Bulk Upload */}
           <Link 
-            href="/marketplace/vendor/products/bulk"
+            href="/marketplace/vendor/products/upload?mode=bulk"
             className="group rounded-2xl bg-card p-6 shadow-sm border border-border hover:shadow-lg transition-all hover:-translate-y-1"
           >
             <div className="flex items-start gap-4">
@@ -179,41 +179,21 @@ export default function VendorPortalPage() {
             </div>
           </Link>
 
-          {/* Analytics */}
+          {/* Seller Central */}
           <Link 
-            href="/marketplace/vendor/analytics"
+            href="/marketplace/seller-central"
             className="group rounded-2xl bg-card p-6 shadow-sm border border-border hover:shadow-lg transition-all hover:-translate-y-1"
           >
             <div className="flex items-start gap-4">
               <div className="rounded-2xl bg-primary/10 p-3 group-hover:bg-primary transition-colors">
-                <BarChart3 className="h-6 w-6 text-primary group-hover:text-white" />
+                <Settings className="h-6 w-6 text-primary group-hover:text-white" />
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-foreground mb-1">
-                  Analytics & Reports
+                  {t('marketplace.vendor.sellerCentral', 'Seller Central Apps')}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  View sales trends, revenue reports, and performance metrics
-                </p>
-              </div>
-            </div>
-          </Link>
-
-          {/* Settings */}
-          <Link 
-            href="/marketplace/vendor/settings"
-            className="group rounded-2xl bg-card p-6 shadow-sm border border-border hover:shadow-lg transition-all hover:-translate-y-1"
-          >
-            <div className="flex items-start gap-4">
-              <div className="rounded-2xl bg-muted p-3 group-hover:bg-muted transition-colors">
-                <Settings className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-foreground mb-1">
-                  Settings
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Update business details, payment info, and notification preferences
+                  {t('marketplace.vendor.sellerCentral.desc', 'Jump into analytics, advertising, pricing, and compliance tools.')}
                 </p>
               </div>
             </div>
@@ -227,7 +207,7 @@ export default function VendorPortalPage() {
             Check out our vendor guide to learn how to optimize your product listings and increase sales.
           </p>
           <Link 
-            href="/marketplace/vendor/guide"
+            href="/support"
             className="inline-flex items-center gap-2 rounded-2xl bg-card px-4 py-2 text-sm font-semibold text-primary hover:bg-muted transition-colors"
           >
             View Vendor Guide

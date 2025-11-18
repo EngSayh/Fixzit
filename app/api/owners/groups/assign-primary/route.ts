@@ -8,6 +8,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
+import { canManageOwnerGroups } from '@/lib/auth/role-guards';
 
 const assignPrimarySchema = z.object({
   buildingId: z.string().min(1),
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Role-based access control - only property admins can assign owner groups
-    if (!['SUPER_ADMIN', 'ADMIN', 'PROPERTY_ADMIN', 'MANAGER'].includes(user.role)) {
+    if (!canManageOwnerGroups(user.role)) {
       return createSecureResponse({ error: 'Insufficient permissions to manage owner groups' }, 403, req);
     }
 
@@ -83,5 +84,4 @@ export async function POST(req: NextRequest) {
     return createSecureResponse({ error: 'Failed to assign owner group' }, 500, req);
   }
 }
-
 

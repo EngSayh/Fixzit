@@ -1,3 +1,177 @@
-// Route alias for /app/fm/properties/inspections/new -> @/app/properties/inspections/page
-export { default } from '@/app/properties/inspections/page';
-export * from '@/app/properties/inspections/page';
+'use client';
+
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { ClipboardCheck, MapPinned, Users } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+
+export default function CreateInspectionPage() {
+  const auto = useAutoTranslator('fm.properties.inspections.new');
+  const [form, setForm] = useState({
+    property: '',
+    type: '',
+    window: '',
+    duration: '',
+    scope: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!form.property || !form.type || !form.window) {
+      toast.error(auto('Please complete the required fields.', 'form.validation'));
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const response = await fetch('/api/properties', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.property,
+          type: 'COMMERCIAL',
+          subtype: form.type,
+          description: form.scope,
+          address: {
+            street: form.property,
+            city: 'Riyadh',
+            region: 'Riyadh',
+            coordinates: { lat: 24.7136, lng: 46.6753 },
+          },
+          tags: ['inspection', form.type],
+        }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.error ?? 'Failed to schedule inspection');
+      }
+      toast.success(auto('Inspection request captured.', 'next.success'));
+      setForm({ property: '', type: '', window: '', duration: '', scope: '' });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Request failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="properties" />
+
+      <header className="space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">{auto('Scheduler', 'header.kicker')}</p>
+        <h1 className="text-3xl font-semibold">{auto('Schedule a new inspection', 'header.title')}</h1>
+        <p className="text-muted-foreground">
+          {auto(
+            'Capture the basic scope, assets, and team members before dispatching to vendors.',
+            'header.subtitle'
+          )}
+        </p>
+      </header>
+
+      <form onSubmit={handleSubmit}>
+        <Card>
+        <CardHeader>
+          <CardTitle>{auto('Inspection details', 'form.title')}</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            {auto('This data feeds the dispatch API and work order templates.', 'form.subtitle')}
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="property">{auto('Property / asset', 'form.property')}</Label>
+              <Input
+                id="property"
+                placeholder={auto('Olaya Tower 2 - PH Level', 'form.property.placeholder')}
+                value={form.property}
+                onChange={(event) => setForm((prev) => ({ ...prev, property: event.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="type">{auto('Inspection type', 'form.type')}</Label>
+              <Select
+                value={form.type}
+                onValueChange={(value) => setForm((prev) => ({ ...prev, type: value }))}
+              >
+                <SelectTrigger id="type">
+                  <SelectValue placeholder={auto('Select type', 'form.type.placeholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="handover">{auto('Handover', 'form.type.handover')}</SelectItem>
+                  <SelectItem value="preventive">{auto('Preventive', 'form.type.preventive')}</SelectItem>
+                  <SelectItem value="corrective">{auto('Corrective', 'form.type.corrective')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="window">{auto('Preferred window', 'form.window')}</Label>
+              <Input
+                id="window"
+                type="date"
+                value={form.window}
+                onChange={(event) => setForm((prev) => ({ ...prev, window: event.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="duration">{auto('Duration (hours)', 'form.duration')}</Label>
+              <Input
+                id="duration"
+                type="number"
+                placeholder="4"
+                value={form.duration}
+                onChange={(event) => setForm((prev) => ({ ...prev, duration: event.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="scope">{auto('Scope / notes', 'form.scope')}</Label>
+            <Textarea
+              id="scope"
+              rows={4}
+              placeholder={auto('Inspect all HVAC equipment…', 'form.scope.placeholder')}
+              value={form.scope}
+              onChange={(event) => setForm((prev) => ({ ...prev, scope: event.target.value }))}
+            />
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline">
+              <MapPinned className="mr-2 h-4 w-4" />
+              {auto('Add location pin', 'form.addLocation')}
+            </Button>
+            <Button variant="outline">
+              <Users className="mr-2 h-4 w-4" />
+              {auto('Assign internal reviewer', 'form.assignReviewer')}
+            </Button>
+          </div>
+        </CardContent>
+        </Card>
+
+        <Card className="mt-6 border-dashed border-border/70">
+          <CardHeader>
+            <CardTitle>{auto('Next steps', 'next.title')}</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {auto('Save to draft or push directly to /api/properties.', 'next.subtitle')}
+            </p>
+          </CardHeader>
+          <CardContent className="flex gap-3">
+            <Button type="button" variant="outline" onClick={() => setForm({ property: '', type: '', window: '', duration: '', scope: '' })}>
+              {auto('Reset form', 'next.reset')}
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              <ClipboardCheck className="mr-2 h-4 w-4" />
+              {submitting ? auto('Submitting...', 'next.submitting') : auto('Create inspection', 'next.create')}
+            </Button>
+          </CardContent>
+        </Card>
+      </form>
+    </div>
+  );
+}

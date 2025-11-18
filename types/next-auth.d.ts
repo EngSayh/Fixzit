@@ -3,6 +3,11 @@
 
 import 'next-auth';
 import 'next-auth/jwt';
+import type { UserRoleType } from '@/types/user';
+import type { SubscriptionPlan } from '@/config/navigation';
+
+type SessionRole = UserRoleType | 'GUEST';
+type SessionPlan = SubscriptionPlan | 'STARTER' | 'PROFESSIONAL';
 
 declare module 'next-auth' {
   interface Session {
@@ -11,8 +16,8 @@ declare module 'next-auth' {
       name?: string | null;
       email?: string | null;
       image?: string | null;
-      role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'VENDOR' | 'OWNER' | 'TENANT' | 'VIEWER' | 'GUEST';
-      subscriptionPlan: 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE' | 'DEFAULT';
+      role: SessionRole;
+      subscriptionPlan: SessionPlan;
       locale?: string;
       orgId: string | null;
       sessionId: string | null;
@@ -26,8 +31,8 @@ declare module 'next-auth' {
 
   interface User {
     id: string;
-    role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'VENDOR' | 'OWNER' | 'TENANT' | 'VIEWER' | 'GUEST';
-    subscriptionPlan: 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE' | 'DEFAULT';
+    role: SessionRole;
+    subscriptionPlan: SessionPlan;
     locale?: string;
     orgId: string | null;
     sessionId: string | null;
@@ -41,8 +46,8 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
-    role: 'SUPER_ADMIN' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'VENDOR' | 'OWNER' | 'TENANT' | 'VIEWER' | 'GUEST';
-    subscriptionPlan: 'FREE' | 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE' | 'DEFAULT';
+    role: SessionRole;
+    subscriptionPlan: SessionPlan;
     locale?: string;
     orgId: string | null;
     isSuperAdmin?: boolean;

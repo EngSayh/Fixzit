@@ -12,13 +12,20 @@
 
   // TypeScript/Node Memory Settings for Large Projects (25K+ files)
   // Root Cause Fix: Exit Code 5 = OOM caused by TS server + extension host + Turbopack cache
-  // 2025-11-18: Use separate tsconfig.editor.json to exclude heavy packages (twilio=678 files, sentry=197, aws-sdk=128)
+  // 2025-11-18: CRITICAL MEMORY OPTIMIZATION - Reduced from 40GB usage
   "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.tsserver.maxTsServerMemory": 8192, // Increased from 3GB to 8GB
+  "typescript.tsserver.maxTsServerMemory": 2048, // REDUCED to 2GB to prevent OOM
   "typescript.tsserver.experimental.enableProjectDiagnostics": false, // Disable project-wide diagnostics
   "typescript.preferences.includePackageJsonAutoImports": "off",
   "typescript.disableAutomaticTypeAcquisition": true,
   "typescript.suggest.includeAutomaticOptionalChainCompletions": false, // Reduce memory overhead
+  "typescript.tsserver.useSyntaxServer": "always", // CHANGED: Always use lightweight syntax server
+  "typescript.surveys.enabled": false,
+  "typescript.suggest.enabled": false, // DISABLED: Major memory savings
+  "typescript.updateImportsOnFileMove.enabled": "never", // Expensive operation
+  "typescript.implementationsCodeLens.enabled": false,
+  "typescript.referencesCodeLens.enabled": false,
+  "javascript.suggest.enabled": false, // DISABLED: Memory savings
   "typescript.tsserver.watchOptions": {
     "excludeDirectories": [
       "**/node_modules",
@@ -39,7 +46,14 @@
       "**/services",
       "**/server",
       "**/jobs",
-      "**/models"
+      "**/models",
+      "**/public",
+      "**/assets",
+      "**/docs",
+      "**/DAILY_PROGRESS_REPORTS",
+      "**/deployment",
+      "**/aws",
+      "**/kb"
     ],
     "excludeFiles": [
       "**/*.test.ts",
@@ -52,13 +66,13 @@
   "typescript.locale": "en",
 
   "terminal.integrated.env.windows": {
-    "NODE_OPTIONS": "--max-old-space-size=8192"
+    "NODE_OPTIONS": "--max-old-space-size=2048"
   },
   "terminal.integrated.env.linux": {
-    "NODE_OPTIONS": "--max-old-space-size=8192"
+    "NODE_OPTIONS": "--max-old-space-size=2048"
   },
   "terminal.integrated.env.osx": {
-    "NODE_OPTIONS": "--max-old-space-size=8192"
+    "NODE_OPTIONS": "--max-old-space-size=2048"
   },
 
   // Git Branch Protection
@@ -200,7 +214,16 @@
     "**/*.test.ts": true,
     "**/*.test.tsx": true,
     "**/*.spec.ts": true,
-    "**/*.spec.tsx": true
+    "**/*.spec.tsx": true,
+    "**/public": true,
+    "**/assets": true,
+    "**/DAILY_PROGRESS_REPORTS": true,
+    "**/docs": true,
+    "**/deployment": true,
+    "**/aws": true,
+    "**/kb": true,
+    "**/*.md": true,
+    "**/*.log": true
   },
 
   // Files to hide from explorer to reduce clutter and memory
@@ -213,6 +236,46 @@
 
   // Limit open editors to prevent memory bloat
   "workbench.editor.limit.enabled": true,
-  "workbench.editor.limit.value": 10,
-  "workbench.editor.limit.perEditorGroup": true
+  "workbench.editor.limit.value": 3, // REDUCED from 5 to 3
+  "workbench.editor.limit.perEditorGroup": true,
+  "workbench.editor.closeOnFileDelete": true,
+  "workbench.editor.highlightModifiedTabs": false,
+
+  // Additional Memory Optimizations - AGGRESSIVE SETTINGS
+  "editor.suggest.showStatusBar": false,
+  "editor.hover.delay": 1500, // Increased delay
+  "editor.hover.enabled": false, // DISABLED: Major memory savings
+  "editor.quickSuggestions": false, // DISABLED completely
+  "editor.parameterHints.enabled": false,
+  "editor.codeLens": false, // ADDED: Disable code lens
+  "editor.semanticHighlighting.enabled": false, // ADDED: Disable semantic highlighting
+  "editor.bracketPairColorization.enabled": false, // ADDED: Disable bracket colorization
+  "editor.maxTokenizationLineLength": 1000, // ADDED: Reduce tokenization
+  "editor.minimap.enabled": false, // ADDED: Disable minimap
+  "breadcrumbs.enabled": false,
+  "explorer.compactFolders": false,
+  "explorer.incrementalNaming": "disabled",
+  "workbench.tree.indent": 10,
+  "workbench.tree.renderIndentGuides": "none",
+
+  // Disable memory-intensive features - AGGRESSIVE MODE
+  "git.decorations.enabled": false,
+  "git.autorefresh": false,
+  "git.enableSmartCommit": false,
+  "git.untrackedChanges": "hidden", // ADDED: Hide untracked files
+  "git.ignoreLimitWarning": true, // ADDED: Ignore limits
+  "emmet.showExpandedAbbreviation": "never",
+  "html.autoClosingTags": false,
+  "javascript.autoClosingTags": false,
+  "typescript.autoClosingTags": false,
+  
+  // ADDED: Additional critical memory optimizations
+  "files.maxMemoryForLargeFilesMB": 1024, // Reduced from default 4096
+  "search.maxResults": 500, // Limit search results
+  "search.followSymlinks": false, // Don't follow symlinks
+  "diffEditor.ignoreTrimWhitespace": true,
+  "diffEditor.maxComputationTime": 1000,
+  "terminal.integrated.persistentSessionScrollback": 100, // Reduced scrollback
+  "problems.maxCursorTasks": 100, // Limit problem matcher tasks
+  "debug.javascript.codelens.npmScripts": "never" // Disable npm script codelens
 }

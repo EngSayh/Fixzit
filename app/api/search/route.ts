@@ -14,7 +14,7 @@ function generateHref(entity: string, id: string): string {
   const baseRoutes: Record<string, string> = {
     work_orders: '/fm/work-orders',
     properties: '/fm/properties',
-    units: '/fm/units',
+    units: '/fm/properties/units',
     tenants: '/fm/tenants',
     vendors: '/souq/vendors',
     invoices: '/finance/invoices',
@@ -22,9 +22,9 @@ function generateHref(entity: string, id: string): string {
     services: '/souq/services',
     rfqs: '/souq/rfqs',
     orders: '/souq/orders',
-    listings: '/aqar/listings',
-    projects: '/aqar/projects',
-    agents: '/aqar/agents'
+    listings: '/aqar/properties',
+    projects: '/aqar/properties',
+    agents: '/aqar'
   };
   
   const basePath = baseRoutes[entity] || '/dashboard';

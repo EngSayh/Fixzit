@@ -8,13 +8,13 @@ import { User } from '../server/models/User';
 import { hashPassword } from '../lib/auth';
 
 const demoPhones = {
-  superadmin: process.env.DEMO_SUPERADMIN_PHONE || process.env.NEXTAUTH_SUPERADMIN_FALLBACK_PHONE || '+966500000001',
-  admin: process.env.DEMO_ADMIN_PHONE || '+966500000002',
-  manager: process.env.DEMO_MANAGER_PHONE || '+966500000003',
-  tenant: process.env.DEMO_TENANT_PHONE || '+966500000004',
-  vendor: process.env.DEMO_VENDOR_PHONE || '+966500000005',
-  emp001: process.env.DEMO_EMP001_PHONE || '+966500000006',
-  emp002: process.env.DEMO_EMP002_PHONE || '+966500000007',
+  superadmin: process.env.DEMO_SUPERADMIN_PHONE || process.env.NEXTAUTH_SUPERADMIN_FALLBACK_PHONE || '+966552233456',
+  admin: process.env.DEMO_ADMIN_PHONE || '+966552233456',
+  manager: process.env.DEMO_MANAGER_PHONE || '+966552233456',
+  tenant: process.env.DEMO_TENANT_PHONE || '+966552233456',
+  vendor: process.env.DEMO_VENDOR_PHONE || '+966552233456',
+  emp001: process.env.DEMO_EMP001_PHONE || '+966552233456',
+  emp002: process.env.DEMO_EMP002_PHONE || '+966552233456',
 } as const;
 
 const demoUsers = [

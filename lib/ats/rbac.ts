@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import type { IOrganization } from '@/server/models/Organization';
-import { UserRole } from '@/types/user';
 import { getServerTranslation } from '@/lib/i18n/server';
+import {
+  ATSRole,
+  ATSPermission,
+  hasAnyPermission,
+  hasPermission,
+  mapUserRoleToATSRole,
+} from '@/lib/ats/permissions';
 
 export type AtsModuleAccess = {
   enabled: boolean;
@@ -18,146 +24,11 @@ const DEFAULT_ATS_MODULE: AtsModuleAccess = {
   seatUsage: 0,
 };
 
-/**
- * ATS RBAC Roles (6 roles)
- */
-export type ATSRole = 
-  | 'Super Admin'        // Global: all tenants + impersonation
-  | 'Corporate Admin'    // Org-wide: full ATS access
-  | 'HR Manager'         // Dept: create jobs, manage applications, interviews
-  | 'Recruiter'          // Dept: view jobs, manage applications, schedule interviews
-  | 'Hiring Manager'     // Dept: view jobs/apps, add feedback, approve offers
-  | 'Candidate';         // Public: apply to jobs, view own applications
-
 const ATS_UPGRADE_PATH = '/billing/upgrade?feature=ats';
 const ATS_SEAT_USER_ROLES = ['HR', 'CORPORATE_ADMIN', 'ADMIN', 'FM_MANAGER', 'PROPERTY_MANAGER'];
 const ATS_SEAT_PROFESSIONAL_ROLES = ['HR Manager', 'Recruiter', 'Hiring Manager', 'Corporate Admin', 'Talent Acquisition Lead'];
 const ATS_SEAT_REQUIRED_ROLES: ATSRole[] = ['Corporate Admin', 'HR Manager', 'Recruiter', 'Hiring Manager'];
 
-/**
- * Map platform UserRole to ATSRole
- * Handles the mismatch between session.user.role (SUPER_ADMIN) and ATSRole ('Super Admin')
- */
-function mapUserRoleToATSRole(userRole: string): ATSRole {
-  // Direct mapping for known platform roles
-  const roleMap: Record<string, ATSRole> = {
-    [UserRole.SUPER_ADMIN]: 'Super Admin',
-    [UserRole.CORPORATE_ADMIN]: 'Corporate Admin',
-    [UserRole.HR]: 'HR Manager',
-    // Default mappings for other roles
-    [UserRole.ADMIN]: 'HR Manager',
-    [UserRole.FM_MANAGER]: 'Hiring Manager',
-    [UserRole.PROPERTY_MANAGER]: 'Hiring Manager',
-  };
-  
-  return roleMap[userRole] || 'Candidate';
-}
-
-/**
- * ATS Permissions Matrix
- */
-export type ATSPermission = 
-  // Jobs
-  | 'jobs:create'
-  | 'jobs:read'
-  | 'jobs:update'
-  | 'jobs:delete'
-  | 'jobs:publish'
-  
-  // Applications
-  | 'applications:create'  // Candidates can apply
-  | 'applications:read'
-  | 'applications:update'
-  | 'applications:delete'
-  | 'applications:score'
-  | 'applications:stage-transition'
-  
-  // Interviews
-  | 'interviews:create'
-  | 'interviews:read'
-  | 'interviews:update'
-  | 'interviews:delete'
-  | 'interviews:feedback'
-  
-  // Candidates
-  | 'candidates:read'
-  | 'candidates:update'
-  | 'candidates:delete'
-  | 'candidates:export'
-  
-  // Settings
-  | 'settings:read'
-  | 'settings:update'
-  
-  // Impersonation
-  | 'tenant:impersonate';
-
-/**
- * Role → Permissions Mapping
- */
-const ROLE_PERMISSIONS: Record<ATSRole, ATSPermission[]> = {
-  'Super Admin': [
-    'jobs:create', 'jobs:read', 'jobs:update', 'jobs:delete', 'jobs:publish',
-    'applications:create', 'applications:read', 'applications:update', 'applications:delete', 'applications:score', 'applications:stage-transition',
-    'interviews:create', 'interviews:read', 'interviews:update', 'interviews:delete', 'interviews:feedback',
-    'candidates:read', 'candidates:update', 'candidates:delete', 'candidates:export',
-    'settings:read', 'settings:update',
-    'tenant:impersonate'
-  ],
-  'Corporate Admin': [
-    'jobs:create', 'jobs:read', 'jobs:update', 'jobs:delete', 'jobs:publish',
-    'applications:read', 'applications:update', 'applications:delete', 'applications:score', 'applications:stage-transition',
-    'interviews:create', 'interviews:read', 'interviews:update', 'interviews:delete', 'interviews:feedback',
-    'candidates:read', 'candidates:update', 'candidates:delete', 'candidates:export',
-    'settings:read', 'settings:update'
-  ],
-  'HR Manager': [
-    'jobs:create', 'jobs:read', 'jobs:update', 'jobs:publish',
-    'applications:read', 'applications:update', 'applications:score', 'applications:stage-transition',
-    'interviews:create', 'interviews:read', 'interviews:update', 'interviews:feedback',
-    'candidates:read', 'candidates:update', 'candidates:export',
-    'settings:read'
-  ],
-  'Recruiter': [
-    'jobs:read',
-    'applications:read', 'applications:update', 'applications:score', 'applications:stage-transition',
-    'interviews:create', 'interviews:read', 'interviews:update',
-    'candidates:read', 'candidates:update'
-  ],
-  'Hiring Manager': [
-    'jobs:read',
-    'applications:read', 'applications:update',
-    'interviews:read', 'interviews:feedback',
-    'candidates:read'
-  ],
-  'Candidate': [
-    'applications:create',  // Apply to jobs
-    'applications:read',    // View own applications only
-    'jobs:read'             // View public job postings
-  ]
-};
-
-/**
- * Check if role has permission
- */
-export function hasPermission(role: ATSRole, permission: ATSPermission): boolean {
-  const permissions = ROLE_PERMISSIONS[role];
-  return permissions.includes(permission);
-}
-
-/**
- * Check if user has ANY of the specified permissions
- */
-export function hasAnyPermission(role: ATSRole, permissions: ATSPermission[]): boolean {
-  return permissions.some(p => hasPermission(role, p));
-}
-
-/**
- * Check if user has ALL of the specified permissions
- */
-export function hasAllPermissions(role: ATSRole, permissions: ATSPermission[]): boolean {
-  return permissions.every(p => hasPermission(role, p));
-}
 
 /**
  * ATS RBAC Middleware

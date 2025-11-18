@@ -12,6 +12,7 @@ import {
   Legend,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface DailyRevenue {
   date: string;
@@ -49,6 +50,7 @@ interface SalesChartProps {
 }
 
 export function SalesChart({ data, isLoading, period: _period }: SalesChartProps) {
+  const auto = useAutoTranslator('seller.analytics.salesChart');
   const chartData = useMemo(() => {
     if (!data?.revenue.daily) return [];
     
@@ -79,11 +81,13 @@ export function SalesChart({ data, isLoading, period: _period }: SalesChartProps
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Sales Performance</CardTitle>
+          <CardTitle>{auto('Sales Performance', 'title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
-            <div className="text-muted-foreground">Loading sales data...</div>
+            <div className="text-muted-foreground">
+              {auto('Loading sales data...', 'state.loading')}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -94,11 +98,13 @@ export function SalesChart({ data, isLoading, period: _period }: SalesChartProps
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Sales Performance</CardTitle>
+          <CardTitle>{auto('Sales Performance', 'title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80 flex items-center justify-center">
-            <div className="text-muted-foreground">No sales data available</div>
+            <div className="text-muted-foreground">
+              {auto('No sales data available', 'state.empty')}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -108,31 +114,39 @@ export function SalesChart({ data, isLoading, period: _period }: SalesChartProps
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Sales Performance</CardTitle>
+        <CardTitle>{auto('Sales Performance', 'title')}</CardTitle>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
           <div>
-            <div className="text-sm text-muted-foreground">Total Revenue</div>
+            <div className="text-sm text-muted-foreground">
+              {auto('Total Revenue', 'metrics.totalRevenue')}
+            </div>
             <div className="text-2xl font-bold">{formatCurrency(data.revenue.total)}</div>
             <div className={`text-sm ${data.revenue.trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatTrend(data.revenue.trend)}
             </div>
           </div>
           <div>
-            <div className="text-sm text-muted-foreground">Total Orders</div>
+            <div className="text-sm text-muted-foreground">
+              {auto('Total Orders', 'metrics.totalOrders')}
+            </div>
             <div className="text-2xl font-bold">{data.orders.total}</div>
             <div className={`text-sm ${data.orders.trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatTrend(data.orders.trend)}
             </div>
           </div>
           <div>
-            <div className="text-sm text-muted-foreground">Avg Order Value</div>
+            <div className="text-sm text-muted-foreground">
+              {auto('Avg Order Value', 'metrics.avgOrderValue')}
+            </div>
             <div className="text-2xl font-bold">{formatCurrency(data.averageOrderValue.current)}</div>
             <div className={`text-sm ${data.averageOrderValue.trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatTrend(data.averageOrderValue.trend)}
             </div>
           </div>
           <div>
-            <div className="text-sm text-muted-foreground">Conversion Rate</div>
+            <div className="text-sm text-muted-foreground">
+              {auto('Conversion Rate', 'metrics.conversionRate')}
+            </div>
             <div className="text-2xl font-bold">{data.conversionRate.current.toFixed(2)}%</div>
             <div className={`text-sm ${data.conversionRate.trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatTrend(data.conversionRate.trend)}
@@ -168,7 +182,7 @@ export function SalesChart({ data, isLoading, period: _period }: SalesChartProps
                       <div className="grid grid-cols-2 gap-2">
                         <div className="flex flex-col">
                           <span className="text-[0.70rem] uppercase text-muted-foreground">
-                            Date
+                            {auto('Date', 'tooltip.date')}
                           </span>
                           <span className="font-bold text-muted-foreground">
                             {payload[0].payload.date}
@@ -176,7 +190,7 @@ export function SalesChart({ data, isLoading, period: _period }: SalesChartProps
                         </div>
                         <div className="flex flex-col">
                           <span className="text-[0.70rem] uppercase text-muted-foreground">
-                            Revenue
+                            {auto('Revenue', 'tooltip.revenue')}
                           </span>
                           <span className="font-bold">
                             {formatCurrency(payload[0].value as number)}
@@ -189,14 +203,14 @@ export function SalesChart({ data, isLoading, period: _period }: SalesChartProps
                 return null;
               }}
             />
-            <Legend />
+            <Legend formatter={(value) => (value === 'revenue' ? auto('Revenue', 'chart.legend.revenue') : value)} />
             <Area
               type="monotone"
               dataKey="revenue"
               stroke="#8884d8"
               fillOpacity={1}
               fill="url(#colorRevenue)"
-              name="Revenue"
+              name={auto('Revenue', 'chart.legend.revenue')}
             />
           </AreaChart>
         </ResponsiveContainer>

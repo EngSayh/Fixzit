@@ -9,6 +9,7 @@ import { createSecureResponse, getClientIP } from '@/server/security/headers';
 import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 import {zodValidationError, rateLimitError} from '@/server/utils/errorResponses';
 import { z } from 'zod';
+import { canEditInvoices, canViewInvoices } from '@/lib/auth/role-guards';
 
 const invoiceCreateSchema = z.object({
   customerId: z.string().optional(),
@@ -87,7 +88,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Role-based access control - only finance roles can view invoices
-    if (!['SUPER_ADMIN', 'ADMIN', 'FINANCE_ADMIN', 'BILLING_ADMIN', 'MANAGER'].includes(user.role)) {
+    if (!canViewInvoices(user.role)) {
       return createSecureResponse({ error: 'Insufficient permissions to view invoices' }, 403, req);
     }
 
@@ -134,7 +135,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Role-based access control - only finance roles can create invoices
-    if (!['SUPER_ADMIN', 'ADMIN', 'FINANCE_ADMIN', 'BILLING_ADMIN'].includes(user.role)) {
+    if (!canEditInvoices(user.role)) {
       return createSecureResponse({ error: 'Insufficient permissions to create invoices' }, 403, req);
     }
 

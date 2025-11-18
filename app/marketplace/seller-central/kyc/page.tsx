@@ -101,7 +101,7 @@ export default function SellerKYCPage() {
           <p className="text-gray-600 mb-6">
             {auto('Your seller account has been verified and approved. You can now start listing products.', 'approved.description')}
           </p>
-          <Button onClick={() => window.location.href = '/marketplace/seller-central/dashboard'}>
+          <Button onClick={() => window.location.href = '/marketplace/seller-central'}>
             {auto('Go to Seller Dashboard', 'approved.cta')}
           </Button>
         </Card>

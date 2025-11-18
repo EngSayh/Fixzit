@@ -270,13 +270,15 @@ pnpm check:nav-routes
 
 ### Full Route Verification:
 ```bash
-pnpm verify:routes
+pnpm verify:routes            # deterministic alias/nav check
+pnpm verify:routes:http     # HTTP crawl (build + Next.js)
 ```
 
 ### Expected Results:
-- [ ] All route checks pass
-- [ ] Nav routes check included automatically
-- [ ] Exit code 0 (success)
+- [ ] Both commands exit 0
+- [ ] \`_artifacts/route-aliases.json\` updated
+- [ ] \`_artifacts/route-http.log\` shows only 200 responses
+- [ ] Nav/route-reference checks included automatically
 
 ---
 

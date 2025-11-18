@@ -197,7 +197,7 @@ export function generateLinks(
     'work-order': `/fm/work-orders/${id}`,
     'approval': `/approvals/quote/${id}`,
     'property': `/fm/properties/${id}`,
-    'unit': `/fm/units/${id}`,
+    'unit': `/fm/properties/units/${id}`,
     'tenant': `/fm/tenants/${id}`,
     'financial': `/financials/statements/property/${id}`
   };

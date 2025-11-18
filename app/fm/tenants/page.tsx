@@ -12,8 +12,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { CardGridSkeleton } from '@/components/skeletons';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Users, Plus, Search, Mail, Phone, MapPin, Eye, Edit, Trash2, User, Building, Shield } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { CreateTenantForm } from '@/components/fm/tenants/CreateTenantForm';
 
 import { logger } from '@/lib/logger';
 interface TenantProperty {
@@ -45,6 +47,14 @@ interface Tenant {
   properties?: TenantProperty[];
 }
 
+const sarCurrencyFormatter = new Intl.NumberFormat('en-SA', {
+  style: 'currency',
+  currency: 'SAR',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
+
 export default function TenantsPage() {
   const { t } = useTranslation();
   const { data: session } = useSession();
@@ -67,7 +77,7 @@ export default function TenantsPage() {
       });
   };
 
-  const { data, mutate, isLoading } = useSWR(
+  const { data, mutate, isLoading, error } = useSWR(
     orgId ? `/api/tenants?search=${encodeURIComponent(search)}&type=${typeFilter}` : null,
     fetcher
   );
@@ -77,10 +87,15 @@ export default function TenantsPage() {
   }
 
   if (!orgId) {
-    return <p>Error: No organization ID found in session</p>;
+    return (
+      <p className="text-destructive">
+        {t('fm.errors.noOrgSession', 'Error: No organization ID found in session')}
+      </p>
+    );
   }
 
   const tenants = data?.items || [];
+  const showEmptyState = !isLoading && !error && tenants.length === 0;
 
   return (
     <div className="space-y-6">
@@ -121,17 +136,32 @@ export default function TenantsPage() {
                 />
               </div>
             </div>
-              <Select value={typeFilter} onValueChange={setTypeFilter} placeholder={t('fm.tenants.tenantType', 'Tenant Type')} className="w-48">
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder={t('fm.tenants.tenantType', 'Tenant Type')} />
+                </SelectTrigger>
                 <SelectContent>
-                <SelectItem value="">{t('fm.properties.allTypes', 'All Types')}</SelectItem>
-                <SelectItem value="INDIVIDUAL">{t('fm.tenants.individual', 'Individual')}</SelectItem>
-                <SelectItem value="COMPANY">{t('fm.tenants.company', 'Company')}</SelectItem>
-                <SelectItem value="GOVERNMENT">{t('fm.tenants.government', 'Government')}</SelectItem>
-              </SelectContent>
-            </Select>
+                  <SelectItem value="">{t('fm.properties.allTypes', 'All Types')}</SelectItem>
+                  <SelectItem value="INDIVIDUAL">{t('fm.tenants.individual', 'Individual')}</SelectItem>
+                  <SelectItem value="COMPANY">{t('fm.tenants.company', 'Company')}</SelectItem>
+                  <SelectItem value="GOVERNMENT">{t('fm.tenants.government', 'Government')}</SelectItem>
+                </SelectContent>
+              </Select>
           </div>
         </CardContent>
       </Card>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>{t('fm.tenants.errors.failedToLoadTitle', 'Unable to load tenants')}</AlertTitle>
+          <AlertDescription className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <span>{t('fm.tenants.errors.failedToLoadDescription', 'Something went wrong while contacting the server. Please retry.')}</span>
+            <Button variant="outline" size="sm" onClick={() => mutate()}>
+              {t('common.retry', 'Retry')}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Tenants Grid */}
       {isLoading ? (
@@ -140,12 +170,12 @@ export default function TenantsPage() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {(tenants as Tenant[]).map((tenant) => (
-              <TenantCard key={tenant.id} tenant={tenant} onUpdated={mutate} />
+              <TenantCard key={tenant.id} tenant={tenant} />
             ))}
           </div>
 
           {/* Empty State */}
-          {tenants.length === 0 && (
+          {showEmptyState && (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Users className="w-12 h-12 text-muted-foreground mb-4" />
@@ -164,8 +194,18 @@ export default function TenantsPage() {
   );
 }
 
-function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
+function TenantCard({ tenant }: { tenant: Tenant }) {
   const { t } = useTranslation();
+  const missingValue = t('common.notAvailable', 'Not available');
+  const primaryEmail = tenant.contact?.primary?.email?.trim();
+  const primaryPhone = tenant.contact?.primary?.phone?.trim();
+  const locationParts = [
+    tenant.address?.current?.city?.trim(),
+    tenant.address?.current?.region?.trim()
+  ].filter(Boolean);
+  const location = locationParts.join(', ') || missingValue;
+  const outstandingBalance = tenant.financial?.outstandingBalance ?? 0;
+  const outstandingBalanceDisplay = sarCurrencyFormatter.format(outstandingBalance);
   
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -228,19 +268,17 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
       <CardContent className="space-y-4">
         <div className="flex items-center text-sm text-muted-foreground">
           <Mail className="w-4 h-4 me-1" />
-          <span>{tenant.contact?.primary?.email}</span>
+          <span>{primaryEmail || t('fm.tenants.noEmail', 'No email on file')}</span>
         </div>
 
-        {tenant.contact?.primary?.phone && (
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Phone className="w-4 h-4 me-1" />
-            <span>{tenant.contact.primary.phone}</span>
-          </div>
-        )}
+        <div className="flex items-center text-sm text-muted-foreground">
+          <Phone className="w-4 h-4 me-1" />
+          <span>{primaryPhone || t('fm.tenants.noPhone', 'No phone on file')}</span>
+        </div>
 
         <div className="flex items-center text-sm text-muted-foreground">
           <MapPin className="w-4 h-4 me-1" />
-          <span>{tenant.address?.current?.city}, {tenant.address?.current?.region}</span>
+          <span>{location}</span>
         </div>
 
         <Separator />
@@ -259,7 +297,7 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">{t('fm.tenants.outstandingBalance', 'Outstanding Balance')}:</span>
             <span className="text-sm font-medium">
-              {tenant.financial?.outstandingBalance?.toLocaleString() || '0'} SAR
+              {outstandingBalanceDisplay}
             </span>
           </div>
         </div>
@@ -277,201 +315,5 @@ function TenantCard({ tenant }: { tenant: Tenant; onUpdated: () => void }) {
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-function CreateTenantForm({ onCreated, orgId }: { onCreated: () => void; orgId: string }) {
-  const { t } = useTranslation();
-  const [formData, setFormData] = useState({
-    name: '',
-    type: '',
-    contact: {
-      primary: {
-        name: '',
-        title: '',
-        email: '',
-        phone: '',
-        mobile: ''
-      },
-      secondary: {
-        name: '',
-        email: '',
-        phone: ''
-      },
-      emergency: {
-        name: '',
-        relationship: '',
-        phone: ''
-      }
-    },
-    identification: {
-      nationalId: '',
-      companyRegistration: '',
-      taxId: '',
-      licenseNumber: ''
-    },
-    address: {
-      current: {
-        street: '',
-        city: '',
-        region: '',
-        postalCode: ''
-      },
-      permanent: {
-        street: '',
-        city: '',
-        region: '',
-        postalCode: ''
-      }
-    },
-    preferences: {
-      communication: {
-        email: true,
-        sms: false,
-        phone: false,
-        app: false
-      },
-      notifications: {
-        maintenance: true,
-        rent: true,
-        events: false,
-        announcements: false
-      },
-      language: 'ar',
-      timezone: 'Asia/Riyadh'
-    },
-    tags: [] as string[]
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!orgId) {
-      toast.error('No organization ID found');
-      return;
-    }
-
-    const toastId = toast.loading('Creating tenant...');
-
-    try {
-      const response = await fetch('/api/tenants', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'x-tenant-id': orgId 
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (response.ok) {
-        toast.success('Tenant created successfully', { id: toastId });
-        onCreated();
-      } else {
-        const error = await response.json();
-        toast.error(`Failed to create tenant: ${error.error || 'Unknown error'}`, { id: toastId });
-      }
-    } catch (error) {
-      logger.error('Error creating tenant:', error);
-      toast.error('Error creating tenant. Please try again.', { id: toastId });
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-96 overflow-y-auto">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.tenants.tenantName', 'Tenant Name')} *</label>
-          <Input
-            value={formData.name}
-            onChange={(e) => setFormData({...formData, name: e.target.value})}
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.type', 'Type')} *</label>
-          <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
-            <SelectTrigger>
-              <SelectValue placeholder={t('fm.properties.selectType', 'Select type')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="INDIVIDUAL">{t('fm.tenants.individual', 'Individual')}</SelectItem>
-              <SelectItem value="COMPANY">{t('fm.tenants.company', 'Company')}</SelectItem>
-              <SelectItem value="GOVERNMENT">{t('fm.tenants.government', 'Government')}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.tenants.primaryContactName', 'Primary Contact Name')} *</label>
-          <Input
-            value={formData.contact.primary.name}
-            onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, name: e.target.value}}})}
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.tenants.email', 'Email')} *</label>
-          <Input
-            type="email"
-            value={formData.contact.primary.email}
-            onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, email: e.target.value}}})}
-            required
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.tenants.phone', 'Phone')}</label>
-          <Input
-            value={formData.contact.primary.phone}
-            onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, phone: e.target.value}}})}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.tenants.mobile', 'Mobile')}</label>
-          <Input
-            value={formData.contact.primary.mobile}
-            onChange={(e) => setFormData({...formData, contact: {...formData.contact, primary: {...formData.contact.primary, mobile: e.target.value}}})}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.city', 'City')} *</label>
-          <Input
-            value={formData.address.current.city}
-            onChange={(e) => setFormData({...formData, address: {...formData.address, current: {...formData.address.current, city: e.target.value}}})}
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">{t('fm.properties.region', 'Region')} *</label>
-          <Input
-            value={formData.address.current.region}
-            onChange={(e) => setFormData({...formData, address: {...formData.address, current: {...formData.address.current, region: e.target.value}}})}
-            required
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">{t('fm.properties.streetAddress', 'Street Address')} *</label>
-        <Input
-          value={formData.address.current.street}
-          onChange={(e) => setFormData({...formData, address: {...formData.address, current: {...formData.address.current, street: e.target.value}}})}
-          required
-        />
-      </div>
-
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button type="submit" className="bg-secondary hover:bg-secondary/90">
-          {t('fm.tenants.createTenant', 'Create Tenant')}
-        </Button>
-      </div>
-    </form>
   );
 }

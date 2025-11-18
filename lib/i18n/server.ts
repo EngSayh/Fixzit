@@ -5,8 +5,17 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { SupportedTranslationLocale, TranslationDictionary } from '@/i18n/dictionaries/types';
 
-// eslint-disable-next-line no-unused-vars
-type TFn = (key: string, fallback?: string) => string;
+type TranslationValues = Record<string, string | number>;
+
+type TFn = (key: string, fallback?: string, values?: TranslationValues) => string;
+
+const interpolate = (text: string, values?: TranslationValues) => {
+  if (!values) return text;
+  return text.replace(/{{\s*(\w+)\s*}}/g, (_, token) => {
+    const value = values[token.trim()];
+    return value === undefined ? '' : String(value);
+  });
+};
 
 /**
  * Minimal server-side i18n helper.
@@ -31,19 +40,19 @@ export async function getServerI18n() {
     const langOption = langCode ? findLanguageByCode(langCode) : undefined;
     const isRTL = !!langOption && langOption.dir === 'rtl';
 
-    const t: TFn = (key: string, fallback: string = key) => {
+    const t: TFn = (key: string, fallback: string = key, values?: TranslationValues) => {
       // Minimal server-side behavior: return the fallback so existing calls with
       // explicit fallback strings continue to render correctly server-side.
-      return fallback;
+      return interpolate(fallback, values);
     };
 
     return { t, isRTL } as { t: TFn; isRTL: boolean };
    
   } catch (_err) {
     return {
-      t: (k: string, f: string = k) => f,
+      t: (k: string, f: string = k, values?: TranslationValues) => interpolate(f, values),
       isRTL: false,
-    };
+    } as { t: TFn; isRTL: boolean };
   }
 }
 
@@ -80,7 +89,7 @@ export async function getServerTranslation(request: NextRequest) {
   const chosenLocale: SupportedTranslationLocale = locale === 'ar' ? 'ar' : 'en';
   const messages = loadDictionary(chosenLocale);
   
-  return function t(key: string): string {
+  return function t(key: string, fallback?: string, values?: TranslationValues): string {
     const keys = key.split('.');
     let value: unknown = messages;
     
@@ -88,10 +97,13 @@ export async function getServerTranslation(request: NextRequest) {
       if (value && typeof value === 'object' && k in value) {
         value = (value as Record<string, unknown>)[k];
       } else {
-        return key; // Return key if translation not found
+        return interpolate(fallback ?? key, values);
       }
     }
     
-    return typeof value === 'string' ? value : key;
+    if (typeof value === 'string') {
+      return interpolate(value, values);
+    }
+    return interpolate(fallback ?? key, values);
   };
 }

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Separator } from "@/components/ui/separator";
 import { CardGridSkeleton } from '@/components/skeletons';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useSupportOrg } from '@/contexts/SupportOrgContext';
 import Decimal from 'decimal.js';
 
 import { logger } from '@/lib/logger';
@@ -21,7 +22,9 @@ import OwnerStatementWidget from '@/components/finance/OwnerStatementWidget';
 export default function FinancePage() {
   const { t } = useTranslation();
   const { data: session } = useSession();
-  const orgId = session?.user?.orgId;
+  const { effectiveOrgId, canImpersonate, supportOrg } = useSupportOrg();
+  const orgId = effectiveOrgId ?? undefined;
+  const needsOrgSelection = !orgId && canImpersonate;
   const [q, setQ] = useState("");
 
   // ✅ HYDRATION FIX: Set default dates after client hydration
@@ -62,9 +65,24 @@ export default function FinancePage() {
 
   if (!orgId) {
     return (
-      <p className="text-destructive">
-        {t('finance.errors.noOrgSession', 'Error: No organization ID found in session')}
-      </p>
+      <div className="rounded-xl border border-border bg-card/30 p-6 space-y-3">
+        <p className="text-destructive font-semibold">
+          {needsOrgSelection
+            ? t(
+                'finance.support.selectOrg',
+                'Select a customer organization to enable finance data.'
+              )
+            : t('finance.errors.noOrgSession', 'Error: No organization ID found in session')}
+        </p>
+        {needsOrgSelection && (
+          <p className="text-sm text-muted-foreground">
+            {t(
+              'finance.support.selectOrgHint',
+              'Use the Support Organization switcher in the top bar to search by corporate ID.'
+            )}
+          </p>
+        )}
+      </div>
     );
   }
 
@@ -76,6 +94,11 @@ export default function FinancePage() {
         <h1 className="text-2xl font-bold">{t('finance.title', 'Finance — Invoices')}</h1>
         <CreateInvoice orgId={orgId} onCreated={()=>mutate()} />
       </div>
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {`${t('finance.support.activeOrg', 'Support context')}: ${supportOrg.name}`}
+        </div>
+      )}
       <div className="flex gap-2 mb-4">
         <Input
           placeholder={t('finance.searchPlaceholder', 'Search by number/customer')}

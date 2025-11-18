@@ -262,7 +262,7 @@ Page × Role × Actions = Test Cases
 Example:
 /dashboard × admin × [view, navigate, interact] = 10 test cases
 /dashboard × manager × [view, navigate, interact] = 10 test cases
-... (75+ pages × 5 roles = 375+ potential test cases)
+... (roughly 200 pages × 4–5 roles = 800–1,000 potential test cases)
 ```
 
 ### 3.4 E2E Test Scenarios by Role
@@ -758,7 +758,7 @@ npm run test:e2e -- --reporter=html
 
 1. **Test Framework Migration** - 15 files remaining
    - Mitigation: Follow established patterns, allocate sufficient time
-2. **E2E Test Coverage** - Large scope (375+ potential tests)
+2. **E2E Test Coverage** - Large scope (≈1k potential tests across roles/pages)
    - Mitigation: Prioritize critical paths, batch execution
 3. **Security Issues** - Unknown quantity
    - Mitigation: Comprehensive audit, security review

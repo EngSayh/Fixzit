@@ -3,7 +3,7 @@ import { join } from "path";
 
 const ROOT = process.cwd();
 const APP = join(ROOT, "app");
-const BASE = "http://localhost:3000";
+const BASE = process.env.ROUTE_VERIFY_BASE || "http://localhost:3000";
 const pages: string[] = [];
 
 function crawl(dir: string, pathParts: string[] = []) {

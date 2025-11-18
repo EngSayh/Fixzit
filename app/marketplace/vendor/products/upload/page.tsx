@@ -161,7 +161,7 @@ export default function VendorProductUploadPage() {
       toast.success('Product uploaded successfully! Pending admin approval.');
       
       setTimeout(() => {
-        router.push('/marketplace/vendor/products');
+        router.push('/marketplace/vendor');
       }, 2000);
 
     } catch (error) {

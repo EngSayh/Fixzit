@@ -14,26 +14,29 @@ import {
 // ✅ FIX: Import centralized storage and cookie keys
 import { STORAGE_KEYS, COOKIE_KEYS, APP_DEFAULTS } from '@/config/constants';
 // ✅ MIGRATION: Load from JSON artifacts instead of 59k-line TS literal
-import { loadTranslations } from '@/lib/i18n/translation-loader';
-
-// Lazy-load translations on first use
-let translationsCache: ReturnType<typeof loadTranslations> | null = null;
-function getTranslations() {
-  if (!translationsCache) {
-    translationsCache = loadTranslations();
-  }
-  return translationsCache;
-}
+// Client-side: Import translations directly from generated files
+import enTranslations from '@/i18n/generated/en.dictionary.json';
+import arTranslations from '@/i18n/generated/ar.dictionary.json';
 
 export type Language = LanguageCode;
 
 /* eslint-disable no-unused-vars */
+type TranslationValues = Record<string, string | number>;
+
+const interpolatePlaceholders = (text: string, values?: TranslationValues) => {
+  if (!values) return text;
+  return text.replace(/{{\s*(\w+)\s*}}/g, (_, token) => {
+    const value = values[token.trim()];
+    return value === undefined ? '' : String(value);
+  });
+};
+
 interface TranslationContextType {
   language: Language;
   locale: string;
   setLanguage: (lang: Language) => void;
   setLocale: (locale: string) => void;
-  t: (key: string, fallback?: string) => string;
+  t: (key: string, fallback?: string, values?: TranslationValues) => string;
   isRTL: boolean;
 }
 /* eslint-enable no-unused-vars */
@@ -43,15 +46,11 @@ const TranslationContext = createContext<TranslationContextType | undefined>(und
 // Translation data
 type TranslationMap = Record<Language, Record<string, string>>;
 
-function buildTranslationDictionary(): TranslationMap {
-  const bundle = getTranslations() as Partial<TranslationMap>;
-  return LANGUAGE_OPTIONS.reduce((acc, option) => {
-    acc[option.language] = bundle[option.language] ?? {};
-    return acc;
-  }, {} as TranslationMap);
-}
-
-const translations = buildTranslationDictionary();
+// Build translations from imported JSON files
+const translations: TranslationMap = {
+  en: enTranslations as Record<string, string>,
+  ar: arTranslations as Record<string, string>,
+};
 
 
 // ✅ FIX: Use centralized APP_DEFAULTS instead of hardcoded 'ar'
@@ -132,16 +131,16 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
   const locale = currentOption.locale;
   const isRTL = currentOption.dir === 'rtl';
 
-  const t = (key: string, fallback: string = key): string => {
+  const t = (key: string, fallback: string = key, values?: TranslationValues): string => {
     try {
       const langData = translations[language as LanguageCode];
       // First check current language, then fallback to English, then use fallback string
       const enData = translations.en;
       const result = langData?.[key] ?? enData?.[key] ?? fallback;
-      return result;
+      return interpolatePlaceholders(result, values);
     } catch (error) {
       logger.warn(`Translation error for key '${key}'`, { error });
-      return fallback;
+      return interpolatePlaceholders(fallback, values);
     }
   };
 
@@ -182,9 +181,8 @@ export function useTranslation() {
             logger.warn('Could not save locale preference', { error });
           }
         },
-        t: (key: string, fallback: string = key): string => {
-          return fallback;
-        },
+        t: (key: string, fallback: string = key, values?: TranslationValues): string =>
+          interpolatePlaceholders(fallback, values),
         isRTL: true
       };
       return fallbackContext;
@@ -199,7 +197,8 @@ export function useTranslation() {
       locale: APP_DEFAULTS.locale,
       setLanguage: (_lang: Language) => {},
       setLocale: () => {},
-      t: (key: string, fallback: string = key): string => fallback,
+      t: (key: string, fallback: string = key, values?: TranslationValues): string =>
+        interpolatePlaceholders(fallback, values),
       isRTL: true
     };
   }

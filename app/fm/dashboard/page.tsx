@@ -116,7 +116,11 @@ export default function DashboardPage() {
   }
 
   if (!orgId) {
-    return <p>Error: No organization ID found in session</p>;
+    return (
+      <p className="text-destructive">
+        {t('dashboard.errors.noOrgSession', 'Error: No organization ID found in session')}
+      </p>
+    );
   }
 
   const stats = {

@@ -1,3 +1,2 @@
-// Route alias for /app/marketplace/orders/new -> @/app/marketplace/orders/page
-export { default } from '@/app/marketplace/orders/page';
-export * from '@/app/marketplace/orders/page';
+export { default } from '@/app/fm/marketplace/orders/new/page';
+export * from '@/app/fm/marketplace/orders/new/page';

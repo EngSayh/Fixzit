@@ -157,6 +157,14 @@ async function loadCatalogKeys(ctxPath) {
 
 // Find i18n keys used in code
 function findUsedKeys(fileContent, filePath, used, fileMap) {
+  const relativePath = path.relative(ROOT, filePath).replace(/\\/g, '/');
+  const normalizedPath = relativePath ? path.posix.join('Fixzit', relativePath) : 'Fixzit';
+  const appendFile = (key) => {
+    if (!fileMap[key]) fileMap[key] = [];
+    if (!fileMap[key].includes(normalizedPath)) {
+      fileMap[key].push(normalizedPath);
+    }
+  };
   // t('key') / t("key")
   const tCall = /\bt\s*\(\s*(['"])([^'"]+)\1/g;
   // t(`literal`) — unsafe dynamic
@@ -170,8 +178,7 @@ function findUsedKeys(fileContent, filePath, used, fileMap) {
   for (const m of fileContent.matchAll(tCall)) {
     const key = m[2];
     used.add(key);
-    if (!fileMap[key]) fileMap[key] = [];
-    fileMap[key].push(filePath);
+    appendFile(key);
   }
   // 2) ns option
   for (const m of fileContent.matchAll(nsOpt)) {
@@ -179,21 +186,18 @@ function findUsedKeys(fileContent, filePath, used, fileMap) {
     const ns = m[4];
     const fullKey = `${ns}:${key}`;
     used.add(fullKey);
-    if (!fileMap[fullKey]) fileMap[fullKey] = [];
-    fileMap[fullKey].push(filePath);
+    appendFile(fullKey);
   }
   // 3) <Trans i18nKey="...">
   for (const m of fileContent.matchAll(transTag)) {
     const key = m[2];
     used.add(key);
-    if (!fileMap[key]) fileMap[key] = [];
-    fileMap[key].push(filePath);
+    appendFile(key);
   }
   // 4) template literal calls — flag as dynamic
   if (tTpl.test(fileContent)) {
     used.add('UNSAFE_DYNAMIC');
-    if (!fileMap['UNSAFE_DYNAMIC']) fileMap['UNSAFE_DYNAMIC'] = [];
-    fileMap['UNSAFE_DYNAMIC'].push(filePath);
+    appendFile('UNSAFE_DYNAMIC');
   }
 }
 

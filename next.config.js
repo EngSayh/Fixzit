@@ -61,7 +61,7 @@ const nextConfig = {
   // Enable production browser sourcemaps for Sentry error tracking
   productionBrowserSourceMaps: true,
   
-  // 🚀 SPEED OPTIMIZATIONS - Properly configured for Codespaces (2 CPUs, ~2GB free RAM)
+  // 🚀 SPEED OPTIMIZATIONS - Memory-optimized for constrained environments
   experimental: {
     // Enable optimized package imports (reduces bundle size & build time)
     optimizePackageImports: [
@@ -73,14 +73,18 @@ const nextConfig = {
       'react-day-picker',
     ],
     // Use 1 CPU for build to prevent OOM kills in memory-constrained environments
-    // Root Cause: Codespaces has 2 CPUs but only ~2.3GB free RAM
-    // Multi-threaded builds cause memory spikes > available RAM → OOM killer → SIGKILL
+    // Root Cause: Limited RAM - Multi-threaded builds cause memory spikes
     workerThreads: false, // Single-threaded prevents memory spikes
     cpus: 1, // One worker = stable memory usage
     // Optimize chunk loading
     optimisticClientCache: true,
     // ⚡ PERFORMANCE FIX: Disable devtools in production (saves 175KB + 1.3s execution)
     nextScriptWorkers: false,
+    // Memory optimizations
+    webpackMemoryOptimizations: true,
+    // Reduce parallel compilation
+    parallelServerCompiles: false,
+    parallelServerAndEdgeCompiles: false,
   },
   
   // ⚡ FIX BUILD TIMEOUT: Add reasonable timeout for static page generation

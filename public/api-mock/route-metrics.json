@@ -1,0 +1,223 @@
+{
+  "generatedAt": "2025-11-18T14:02:57.929Z",
+  "totals": {
+    "aliasFiles": 48,
+    "modules": 14,
+    "reusedTargets": 12,
+    "uniqueTargets": 32,
+    "duplicateAliases": 28,
+    "unresolvedAliases": 0
+  },
+  "modules": [
+    {
+      "module": "admin",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/admin/page.tsx"
+      ]
+    },
+    {
+      "module": "administration",
+      "aliases": 2,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/administration/page.tsx",
+        "app/administration/page.tsx"
+      ]
+    },
+    {
+      "module": "compliance",
+      "aliases": 2,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/compliance/page.tsx",
+        "app/compliance/page.tsx"
+      ]
+    },
+    {
+      "module": "crm",
+      "aliases": 2,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/crm/page.tsx",
+        "app/crm/page.tsx"
+      ]
+    },
+    {
+      "module": "finance",
+      "aliases": 9,
+      "missing": 0,
+      "uniqueTargets": 7,
+      "targets": [
+        "app/finance/budgets/new/page.tsx",
+        "app/fm/finance/page.tsx",
+        "app/finance/expenses/new/page.tsx",
+        "app/fm/finance/page.tsx",
+        "app/finance/invoices/new/page.tsx",
+        "app/fm/invoices/page.tsx",
+        "app/finance/payments/new/page.tsx",
+        "app/fm/finance/page.tsx",
+        "app/fm/reports/page.tsx"
+      ]
+    },
+    {
+      "module": "hr",
+      "aliases": 8,
+      "missing": 0,
+      "uniqueTargets": 4,
+      "targets": [
+        "app/hr/employees/page.tsx",
+        "app/hr/employees/page.tsx",
+        "app/hr/employees/page.tsx",
+        "app/hr/leave/page.tsx",
+        "app/hr/leave/page.tsx",
+        "app/hr/payroll/page.tsx",
+        "app/hr/payroll/page.tsx",
+        "app/hr/ats/jobs/page.tsx"
+      ]
+    },
+    {
+      "module": "invoices",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/finance/invoices/new/page.tsx"
+      ]
+    },
+    {
+      "module": "marketplace",
+      "aliases": 3,
+      "missing": 0,
+      "uniqueTargets": 3,
+      "targets": [
+        "app/marketplace/page.tsx",
+        "app/marketplace/orders/page.tsx",
+        "app/vendors/page.tsx"
+      ]
+    },
+    {
+      "module": "properties",
+      "aliases": 7,
+      "missing": 0,
+      "uniqueTargets": 5,
+      "targets": [
+        "app/properties/documents/page.tsx",
+        "app/properties/inspections/page.tsx",
+        "app/properties/inspections/page.tsx",
+        "app/properties/leases/page.tsx",
+        "app/fm/properties/page.tsx",
+        "app/properties/units/page.tsx",
+        "app/properties/units/page.tsx"
+      ]
+    },
+    {
+      "module": "reports",
+      "aliases": 2,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/reports/page.tsx",
+        "app/fm/reports/page.tsx"
+      ]
+    },
+    {
+      "module": "support",
+      "aliases": 2,
+      "missing": 0,
+      "uniqueTargets": 2,
+      "targets": [
+        "app/support/page.tsx",
+        "app/support/my-tickets/page.tsx"
+      ]
+    },
+    {
+      "module": "system",
+      "aliases": 3,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/system/page.tsx",
+        "app/system/page.tsx",
+        "app/system/page.tsx"
+      ]
+    },
+    {
+      "module": "tenants",
+      "aliases": 1,
+      "missing": 0,
+      "uniqueTargets": 1,
+      "targets": [
+        "app/fm/tenants/page.tsx"
+      ]
+    },
+    {
+      "module": "work-orders",
+      "aliases": 5,
+      "missing": 0,
+      "uniqueTargets": 5,
+      "targets": [
+        "app/work-orders/approvals/page.tsx",
+        "app/work-orders/board/page.tsx",
+        "app/work-orders/history/page.tsx",
+        "app/work-orders/new/page.tsx",
+        "app/work-orders/pm/page.tsx"
+      ]
+    }
+  ],
+  "reuse": [
+    {
+      "target": "app/fm/finance/page.tsx",
+      "count": 3
+    },
+    {
+      "target": "app/fm/reports/page.tsx",
+      "count": 3
+    },
+    {
+      "target": "app/hr/employees/page.tsx",
+      "count": 3
+    },
+    {
+      "target": "app/system/page.tsx",
+      "count": 3
+    },
+    {
+      "target": "app/administration/page.tsx",
+      "count": 2
+    },
+    {
+      "target": "app/compliance/page.tsx",
+      "count": 2
+    },
+    {
+      "target": "app/crm/page.tsx",
+      "count": 2
+    },
+    {
+      "target": "app/finance/invoices/new/page.tsx",
+      "count": 2
+    },
+    {
+      "target": "app/hr/leave/page.tsx",
+      "count": 2
+    },
+    {
+      "target": "app/hr/payroll/page.tsx",
+      "count": 2
+    },
+    {
+      "target": "app/properties/inspections/page.tsx",
+      "count": 2
+    },
+    {
+      "target": "app/properties/units/page.tsx",
+      "count": 2
+    }
+  ]
+}

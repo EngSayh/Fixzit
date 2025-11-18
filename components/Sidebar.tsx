@@ -9,13 +9,13 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useResponsiveLayout } from '@/contexts/ResponsiveContext';
 import { STORAGE_KEYS } from '@/config/constants';
-import { type UserRoleType, ALL_ROLES } from '@/types/user';
 import {
   MODULES,
   MODULE_SUB_VIEWS,
   USER_LINKS,
   ROLE_PERMISSIONS,
   SUBSCRIPTION_PLANS,
+  resolveNavigationRole,
   type ModuleItem,
   type UserLinkItem,
   type ModuleId,
@@ -52,6 +52,18 @@ const GOVERNANCE_CATEGORY_LABELS: Record<GovernanceGroup, { key: string; fallbac
   system: { key: 'sidebar.category.system', fallback: 'System Management' },
 };
 
+type SubscriptionPlanKey = keyof typeof SUBSCRIPTION_PLANS;
+const PLAN_ALIASES: Record<string, SubscriptionPlanKey> = {
+  STANDARD: 'STANDARD',
+  STARTER: 'STANDARD',
+  BASIC: 'BASIC',
+  PREMIUM: 'PREMIUM',
+  PROFESSIONAL: 'PREMIUM',
+  PRO_PLUS: 'PREMIUM',
+  ENTERPRISE_PLUS: 'ENTERPRISE',
+  ENTERPRISE_GROWTH: 'ENTERPRISE',
+};
+
 const modulePathMap = MODULES.reduce<Record<ModuleId, string>>((acc, module) => {
   acc[module.id] = module.path;
   return acc;
@@ -77,16 +89,13 @@ const buildSubModuleMap = (): Record<string, SubModuleItem[]> => {
 
 const SUB_MODULES_BY_PATH = buildSubModuleMap();
 
-const normalizeRole = (value?: string): UserRoleType | 'guest' => {
-  if (!value) return 'guest';
-  const normalized = value.toUpperCase().trim() as UserRoleType;
-  return (ALL_ROLES as readonly string[]).includes(normalized) ? normalized : 'guest';
-};
-
-const normalizePlan = (value?: string): string => {
+const normalizePlan = (value?: string): SubscriptionPlanKey => {
   if (!value) return 'DEFAULT';
   const normalized = value.toUpperCase().replace(/[\s-]+/g, '_');
-  return SUBSCRIPTION_PLANS[normalized] ? normalized : 'DEFAULT';
+  if ((SUBSCRIPTION_PLANS as Record<string, readonly ModuleId[]>)[normalized]) {
+    return normalized as SubscriptionPlanKey;
+  }
+  return PLAN_ALIASES[normalized] ?? 'DEFAULT';
 };
 
 const formatLabel = (value?: string) => value?.replace(/_/g, ' ') ?? '';
@@ -100,7 +109,7 @@ export default function Sidebar({ className, onNavigate, badgeCounts }: SidebarP
   const { screenInfo } = useResponsiveLayout();
 
   const isAuthenticated = status === 'authenticated' && !!sessionUser;
-  const role = normalizeRole(sessionUser?.role);
+  const role = resolveNavigationRole(sessionUser?.role);
   const subscription = normalizePlan(sessionUser?.subscriptionPlan ?? sessionUser?.plan);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -132,9 +141,9 @@ export default function Sidebar({ className, onNavigate, badgeCounts }: SidebarP
   }, []);
 
   const allowedModules = useMemo(() => {
-    const roleModules = ROLE_PERMISSIONS[role] ?? ROLE_PERMISSIONS.guest;
-    const planModules = SUBSCRIPTION_PLANS[subscription] ?? SUBSCRIPTION_PLANS.DEFAULT;
-    const allowedIds = planModules.filter((id) => roleModules.includes(id));
+    const roleModules = (ROLE_PERMISSIONS[role] ?? ROLE_PERMISSIONS.guest) as readonly ModuleId[];
+    const planModules = (SUBSCRIPTION_PLANS[subscription] ?? SUBSCRIPTION_PLANS.DEFAULT) as readonly ModuleId[];
+    const allowedIds = planModules.filter((id): id is ModuleId => roleModules.includes(id as ModuleId));
 
     if (
       process.env.NODE_ENV !== 'production' &&

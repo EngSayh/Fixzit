@@ -165,7 +165,7 @@ export default function FiltersPage() {
   const pushSearch = useCallback(
     (next: FilterState) => {
       const q = buildParams(next);
-      router.push(`/aqar/search?${q.toString()}`);
+      router.push(`/aqar/filters?${q.toString()}`);
     },
     [router, buildParams],
   );
@@ -176,7 +176,7 @@ export default function FiltersPage() {
 
   const handleReset = useCallback(() => {
     setFilters(DEFAULT_FILTERS);
-    router.push('/aqar/search');
+    router.push('/aqar/filters');
   }, [router]);
 
   // ---------- JSX ----------

@@ -86,25 +86,43 @@ export default function FMVendorsPage() {
   const totalPages = vendorsData?.pages || 1;
 
   const handleDelete = async (vendorId: string, vendorName: string) => {
-    if (!confirm(`Delete vendor "${vendorName}"? This cannot be undone.`)) return;
-    if (!orgId) return toast.error('Organization ID missing');
+    const confirmMessage = t(
+      'vendors.confirmDelete',
+      'Delete vendor "{{name}}"? This cannot be undone.'
+    ).replace('{{name}}', vendorName);
+    if (!confirm(confirmMessage)) return;
+    if (!orgId) return toast.error(t('fm.errors.orgIdMissing', 'Organization ID missing from session'));
 
-    const toastId = toast.loading('Deleting vendor...');
+    const toastId = toast.loading(t('vendors.toast.deleting', 'Deleting vendor...'));
     try {
       const res = await fetch(`/api/vendors/${vendorId}`, {
         method: 'DELETE',
         headers: { 'x-tenant-id': orgId }
       });
-      if (!res.ok) throw new Error('Failed to delete vendor');
-      toast.success('Vendor deleted successfully', { id: toastId });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        const message =
+          (error && typeof error === 'object' && 'error' in error && typeof error.error === 'string'
+            ? error.error
+            : t('vendors.errors.deleteUnknown', 'Failed to delete vendor'));
+        throw new Error(message);
+      }
+      toast.success(t('vendors.toast.deleteSuccess', 'Vendor deleted successfully'), { id: toastId });
       mutate();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete vendor', { id: toastId });
+      const message =
+        error instanceof Error ? error.message : t('vendors.errors.deleteUnknown', 'Failed to delete vendor');
+      toast.error(
+        t('vendors.toast.deleteFailed', 'Failed to delete vendor: {{message}}').replace('{{message}}', message),
+        { id: toastId }
+      );
     }
   };
 
   const exportVendorsCsv = () => {
-    if (vendors.length === 0) return toast('No vendors to export');
+    if (vendors.length === 0) {
+      return toast(t('vendors.export.empty', 'No vendors to export'));
+    }
     const rows = [['Code', 'Name', 'Type', 'Status', 'Contact', 'Email', 'Location']];
     for (const v of vendors) {
       rows.push([
@@ -125,7 +143,9 @@ export default function FMVendorsPage() {
     a.download = `vendors-export-${new Date().toISOString()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`Exported ${vendors.length} vendors`);
+    toast.success(
+      t('vendors.export.success', 'Exported {{count}} vendors').replace('{{count}}', String(vendors.length))
+    );
   };
 
   const getStatusColor = (status: string) => {
@@ -141,9 +161,21 @@ export default function FMVendorsPage() {
 
   // Loading state
   if (!session) return <CardGridSkeleton count={6} />;
-  if (!orgId) return <div className="p-6 text-center text-destructive">Error: Organization ID missing from session</div>;
+  if (!orgId) {
+    return (
+      <div className="p-6 text-center text-destructive">
+        {t('fm.errors.orgIdMissing', 'Error: Organization ID missing from session')}
+      </div>
+    );
+  }
   if (isLoading) return <CardGridSkeleton count={6} />;
-  if (error) return <div className="p-6 text-center text-destructive">Failed to load vendors: {error.message}</div>;
+  if (error) {
+    return (
+      <div className="p-6 text-center text-destructive">
+        {t('vendors.errors.loadFailed', 'Failed to load vendors: {{message}}').replace('{{message}}', error.message)}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -193,8 +225,12 @@ export default function FMVendorsPage() {
       {vendors.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
-            <p className="text-muted-foreground mb-4">No vendors found</p>
-            <Button onClick={() => router.push('/fm/vendors/new')}>Add First Vendor</Button>
+            <p className="text-muted-foreground mb-4">
+              {t('vendors.empty.description', 'No vendors found')}
+            </p>
+            <Button onClick={() => router.push('/fm/marketplace/vendors/new')}>
+              {t('vendors.empty.cta', 'Add First Vendor')}
+            </Button>
           </CardContent>
         </Card>
       ) : (
