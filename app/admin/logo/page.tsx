@@ -208,7 +208,7 @@ export default function LogoUpload() {
           <div className="flex items-center justify-center bg-muted/30 rounded-xl p-8 border border-border">
             <Image
               src={currentLogoUrl}
-              alt="Current Logo"
+              alt={t('admin.logo.currentLogoAlt', 'Current logo')}
               width={200}
               height={80}
               className="max-h-20 w-auto object-contain"
@@ -252,7 +252,7 @@ export default function LogoUpload() {
               <div className="flex items-center justify-center">
                 <Image
                   src={previewUrl}
-                  alt="Preview"
+                  alt={t('admin.logo.previewAlt', 'Logo preview')}
                   width={200}
                   height={80}
                   className="max-h-32 w-auto object-contain"

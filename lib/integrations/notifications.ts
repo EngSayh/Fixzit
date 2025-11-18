@@ -8,7 +8,6 @@ import type { messaging } from 'firebase-admin';
 // - twilio: 678 type definition files (biggest contributor to TS server OOM)
 // - @sendgrid/mail: ~20 type definition files
 type FirebaseAdmin = typeof import('firebase-admin');
-type Twilio = typeof import('twilio');
 type SendGridMail = typeof import('@sendgrid/mail');
 
 async function resolveModuleDefault<T>(importPromise: Promise<unknown>): Promise<T> {
@@ -330,7 +329,7 @@ async function initializeTwilio() {
       throw new Error('Twilio not configured');
     }
 
-    const TwilioClient = await resolveModuleDefault<Twilio>(import('twilio'));
+    const TwilioClient = await resolveModuleDefault<any>(import('twilio'));
     twilioClient = TwilioClient(
       process.env.TWILIO_ACCOUNT_SID,
       process.env.TWILIO_AUTH_TOKEN

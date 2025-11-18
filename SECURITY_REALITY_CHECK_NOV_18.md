@@ -164,6 +164,7 @@ curl -i http://localhost:3000/api/auth/otp/send \
    - Could allow CSRF in dev if not careful
 
 2. **Environment variable merging - NOW VALIDATED:**
+
    ```typescript
    // lib/security/cors-allowlist.ts (lines 17-38)
    function parseOrigins(value?: string | null): string[] {
@@ -197,6 +198,7 @@ curl -i http://localhost:3000/api/auth/otp/send \
    - ✅ **FIXED:** Localhost rejected in production CORS_ORIGINS
 
 3. **Missing Origin header behavior - NOW DOCUMENTED:**
+
    ```typescript
    // lib/security/cors-allowlist.ts (line 47)
    if (!origin) {
@@ -208,6 +210,7 @@ curl -i http://localhost:3000/api/auth/otp/send \
    - ✅ **DOCUMENTED:** Behavior is intentional and secure
 
 **Recommendations:**
+
 ```typescript
 // Add URL validation
 function parseOrigins(value?: string | null): string[] {
@@ -238,6 +241,7 @@ function parseOrigins(value?: string | null): string[] {
 **✅ What's Actually Done:**
 - **1 file** enforces MongoDB security: `lib/mongo.ts`
 - Uses `getEnv('MONGODB_URI')` (NOT `requireEnv`) with validation:
+
   ```typescript
   // lib/mongo.ts (lines 58-89)
   const rawMongoUri = getEnv('MONGODB_URI');

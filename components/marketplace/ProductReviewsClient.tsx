@@ -118,7 +118,17 @@ export function ProductReviewsClient({ productId, stats, initialReviews }: Produ
               </span>
               {review.createdAt && (
                 <span className="text-xs text-muted-foreground ms-auto">
-                  {new Date(review.createdAt).toLocaleDateString()}
+                  {(() => {
+                    try {
+                      const date = new Date(review.createdAt);
+                      if (isNaN(date.getTime())) {
+                        return 'Unknown date';
+                      }
+                      return date.toLocaleDateString();
+                    } catch {
+                      return 'Unknown date';
+                    }
+                  })()}
                 </span>
               )}
             </div>

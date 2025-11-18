@@ -102,10 +102,16 @@ const translationCatalog: Record<Locale, Record<string, string>> = {
   ar: { ...newTranslations.ar },
 };
 
+// Escape regex metacharacters to prevent ReDoS attacks
+const escapeRegExp = (str: string): string => {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 const interpolate = (template: string, params?: Record<string, string | number>) => {
   if (!params) return template;
   return Object.entries(params).reduce((acc, [key, value]) => {
-    const pattern = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+    const escapedKey = escapeRegExp(key);
+    const pattern = new RegExp(`{{\\s*${escapedKey}\\s*}}`, 'g');
     return acc.replace(pattern, String(value));
   }, template);
 };

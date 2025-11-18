@@ -41,6 +41,20 @@ export default function ServiceHistoryPage() {
     }
   ];
 
+  const propertyOptions = [
+    { value: 'all', key: 'allProperties', fallback: 'All Properties' },
+    { value: 'tower-a', key: 'towerA', fallback: 'Tower A' },
+    { value: 'tower-b', key: 'towerB', fallback: 'Tower B' },
+    { value: 'villa-complex', key: 'villaComplex', fallback: 'Villa Complex' }
+  ];
+
+  const technicianOptions = [
+    { value: 'all', key: 'allTechnicians', fallback: 'All Technicians' },
+    { value: 'ahmed', key: 'technicianAhmed', fallback: 'Ahmed Al-Rashid' },
+    { value: 'mohammed', key: 'technicianMohammed', fallback: 'Mohammed Al-Saud' },
+    { value: 'omar', key: 'technicianOmar', fallback: 'Omar Al-Fahad' }
+  ];
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-success/10 text-success-foreground border-success/20';
@@ -109,31 +123,35 @@ export default function ServiceHistoryPage() {
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-48">
             <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              <option>All Properties</option>
-              <option>Tower A</option>
-              <option>Tower B</option>
-              <option>Villa Complex</option>
+              {propertyOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(`workOrders.history.filters.${option.key}`, option.fallback)}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex-1 min-w-48">
             <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-              <option>All Technicians</option>
-              <option>Ahmed Al-Rashid</option>
-              <option>Mohammed Al-Saud</option>
-              <option>Omar Al-Fahad</option>
+              {technicianOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {t(`workOrders.history.filters.${option.key}`, option.fallback)}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex-1 min-w-48">
             <input
               type="date"
-              placeholder="From Date"
+              placeholder={t('workOrders.history.filters.fromDate', 'From Date')}
+              aria-label={t('workOrders.history.filters.fromDate', 'From Date')}
               className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </div>
           <div className="flex-1 min-w-48">
             <input
               type="date"
-              placeholder="To Date"
+              placeholder={t('workOrders.history.filters.toDate', 'To Date')}
+              aria-label={t('workOrders.history.filters.toDate', 'To Date')}
               className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
             />
           </div>
@@ -234,4 +252,3 @@ export default function ServiceHistoryPage() {
     </div>
   );
 }
-
