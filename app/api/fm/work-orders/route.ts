@@ -10,6 +10,7 @@ import { auth } from '@/auth';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { WOStatus, WOPriority, type WorkOrder } from '@/types/fm';
 import { logger } from '@/lib/logger';
+import { mapWorkOrderDocument } from './utils';
 
 export async function GET(req: NextRequest) {
   try {
@@ -84,31 +85,7 @@ export async function GET(req: NextRequest) {
     ]);
 
     // Transform MongoDB documents to WorkOrder interface
-    const data: WorkOrder[] = workOrders.map((wo: any) => ({
-      id: wo._id.toString(),
-      _id: wo._id.toString(),
-      tenantId: wo.tenantId,
-      workOrderNumber: wo.workOrderNumber || wo.code,
-      title: wo.title,
-      description: wo.description,
-      status: wo.status as WOStatus,
-      priority: wo.priority as WOPriority,
-      category: wo.category,
-      propertyId: wo.propertyId,
-      unitId: wo.unitId,
-      requesterId: wo.requesterId,
-      assigneeId: wo.assigneeId,
-      technicianId: wo.technicianId,
-      scheduledAt: wo.scheduledAt,
-      startedAt: wo.startedAt,
-      completedAt: wo.completedAt,
-      slaHours: wo.slaHours,
-      estimatedCost: wo.estimatedCost,
-      actualCost: wo.actualCost,
-      currency: wo.currency || 'SAR',
-      createdAt: wo.createdAt,
-      updatedAt: wo.updatedAt,
-    }));
+    const data: WorkOrder[] = workOrders.map(mapWorkOrderDocument);
 
     return NextResponse.json({
       success: true,

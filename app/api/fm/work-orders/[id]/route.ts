@@ -11,6 +11,7 @@ import { getDatabase } from '@/lib/mongodb-unified';
 import { ObjectId } from 'mongodb';
 import { WOStatus, type WorkOrder } from '@/types/fm';
 import { logger } from '@/lib/logger';
+import { mapWorkOrderDocument } from '../utils';
 
 /**
  * GET - Fetch single work order with full details
@@ -45,7 +46,7 @@ export async function GET(
       return NextResponse.json({ error: 'Work order not found' }, { status: 404 });
     }
 
-    const data = mapToWorkOrder(workOrder);
+    const data = mapWorkOrderDocument(workOrder);
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
@@ -122,7 +123,7 @@ export async function PATCH(
     if (!result.value) {
       return NextResponse.json({ error: 'Work order not found' }, { status: 404 });
     }
-    const updated = mapToWorkOrder(result.value);
+    const updated = mapWorkOrderDocument(result.value);
 
     return NextResponse.json({
       success: true,
@@ -184,32 +185,4 @@ export async function DELETE(
     logger.error('FM Work Order API - DELETE error', error as Error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}
-
-function mapToWorkOrder(workOrder: any): WorkOrder {
-  return {
-    id: workOrder._id.toString(),
-    _id: workOrder._id.toString(),
-    tenantId: workOrder.tenantId,
-    workOrderNumber: workOrder.workOrderNumber,
-    title: workOrder.title,
-    description: workOrder.description,
-    status: workOrder.status,
-    priority: workOrder.priority,
-    category: workOrder.category,
-    propertyId: workOrder.propertyId,
-    unitId: workOrder.unitId,
-    requesterId: workOrder.requesterId,
-    assigneeId: workOrder.assigneeId,
-    technicianId: workOrder.technicianId,
-    scheduledAt: workOrder.scheduledAt,
-    startedAt: workOrder.startedAt,
-    completedAt: workOrder.completedAt,
-    slaHours: workOrder.slaHours,
-    estimatedCost: workOrder.estimatedCost,
-    actualCost: workOrder.actualCost,
-    currency: workOrder.currency,
-    createdAt: workOrder.createdAt,
-    updatedAt: workOrder.updatedAt,
-  };
 }

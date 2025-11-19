@@ -8,10 +8,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { connectToDatabase } from '@/lib/mongodb-unified';
+import { getDatabase } from '@/lib/mongodb-unified';
 import { ObjectId } from 'mongodb';
 import { WOStatus } from '@/types/fm';
 import { logger } from '@/lib/logger';
+import { mapWorkOrderDocument } from '../../utils';
 
 // FSM Transition Rules (simplified from domain/fm/fm.behavior.ts)
 const FSM_TRANSITIONS: Record<WOStatus, WOStatus[]> = {
@@ -62,7 +63,7 @@ export async function POST(
     }
 
     // Get current work order
-    const { db } = await connectToDatabase();
+    const db = await getDatabase();
     const workOrder = await db.collection('workorders').findOne({
       _id: new ObjectId(id),
       tenantId,
@@ -107,6 +108,11 @@ export async function POST(
       { $set: update },
       { returnDocument: 'after' }
     );
+    const updated = result.value;
+
+    if (!updated) {
+      return NextResponse.json({ error: 'Work order not found' }, { status: 404 });
+    }
 
     // Add timeline entry
     await db.collection('workorder_timeline').insertOne({
@@ -127,10 +133,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      data: {
-        id: result?._id.toString(),
-        ...result,
-      },
+      data: mapWorkOrderDocument(updated),
       message: `Work order transitioned to ${toStatus}`,
     });
   } catch (error) {
