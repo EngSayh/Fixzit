@@ -71,7 +71,7 @@ JobSchema.methods.publish = async function() {
   return this;
 };
 
-export interface JobModel extends Model<JobDoc> {}
+export type JobModel = Model<JobDoc>;
 
 // Add pre-save middleware to set defaults
 JobSchema.pre('save', function() {

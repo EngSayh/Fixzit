@@ -7,6 +7,7 @@ import useSWR from 'swr';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +25,7 @@ import { ChevronLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 import { UpdateVendorSchema, type UpdateVendorInput } from '@/lib/validations/forms';
 import { z } from 'zod';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 // ✅ FIX 1: Helper to convert empty strings to undefined for optional fields
 const getOptionalString = (value: string | File | null): string | undefined => {
@@ -79,7 +81,7 @@ export default function EditVendorPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const auto = useAutoTranslator('fm.vendors.edit');
-  const orgId = session?.user?.orgId;
+  const { orgId, guard, supportBanner } = useOrgGuard();
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -99,7 +101,7 @@ export default function EditVendorPage() {
         return r.json();
       })
       .catch(error => {
-        logger.error('FM vendor edit fetch error', { error });
+        logger.error('FM vendor edit fetch error', error);
         throw error;
       });
   };
@@ -172,10 +174,10 @@ export default function EditVendorPage() {
 
       toast.success(auto('Vendor updated successfully', 'toast.success'));
       router.push(`/fm/vendors/${params.id}`);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
+    } catch (_error) {
+      if (_error instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
-        error.issues.forEach((err: z.ZodIssue) => {
+        _error.issues.forEach((err: z.ZodIssue) => {
           if (err.path.length > 0) {
             fieldErrors[err.path.join('.')] = err.message;
           }
@@ -183,7 +185,9 @@ export default function EditVendorPage() {
         setErrors(fieldErrors);
         toast.error(auto('Please fix validation errors', 'toast.validation'));
       } else {
-        toast.error(error instanceof Error ? error.message : auto('Failed to update vendor', 'toast.error'));
+        toast.error(
+          _error instanceof Error ? _error.message : auto('Failed to update vendor', 'toast.error')
+        );
       }
     } finally {
       setIsSaving(false);
@@ -191,12 +195,21 @@ export default function EditVendorPage() {
   };
 
   if (!session) return <CardGridSkeleton count={1} />;
-  if (!orgId) return <div className="text-destructive">{auto('Error: No organization ID found in session', 'errors.noOrgSession')}</div>;
+  if (!orgId) {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="vendors" />
+        {guard}
+      </div>
+    );
+  }
   if (error) return <div className="text-destructive">{auto('Failed to load vendor', 'errors.loadFailed')}</div>;
   if (isLoading || !vendor) return <CardGridSkeleton count={1} />;
 
   return (
     <div className="p-6 space-y-6">
+      <ModuleViewTabs moduleId="vendors" />
+      {supportBanner}
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link href={`/fm/vendors/${params.id}`}>

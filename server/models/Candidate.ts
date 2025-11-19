@@ -44,11 +44,9 @@ export type CandidateDoc = InferSchemaType<typeof CandidateSchema> & Document & 
   changeHistory?: unknown[];
 };
 
-/* eslint-disable no-unused-vars */
 export interface CandidateModel extends Model<CandidateDoc> {
   findByEmail(orgId: string, email: string): Promise<CandidateDoc | null>;
 }
-/* eslint-enable no-unused-vars */
 
 CandidateSchema.statics.findByEmail = function(orgId: string, email: string) {
   return this.findOne({ orgId, emailLower: email.toLowerCase() });

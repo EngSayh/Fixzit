@@ -12,6 +12,7 @@ import ClientDate from '@/components/ClientDate';
 import { logger } from '@/lib/logger';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 type EmploymentStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE' | 'TERMINATED';
 
@@ -45,6 +46,7 @@ interface Employee {
 export default function DirectoryPage() {
   const auto = useAutoTranslator('fm.hr.directory');
   const { t } = useTranslation();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'hr' });
   const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,8 +55,9 @@ export default function DirectoryPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!orgId) return;
     void fetchEmployees();
-  }, []);
+  }, [orgId]);
 
   const fetchEmployees = async () => {
     setLoading(true);
@@ -67,9 +70,11 @@ export default function DirectoryPage() {
       } else {
         throw new Error(auto('Failed to load employees.', 'errors.fetch'));
       }
-    } catch (error) {
-      logger.error('Error fetching employees:', error);
-      setError(error instanceof Error ? error.message : auto('Failed to load employees.', 'errors.fetch'));
+    } catch (_error) {
+      logger.error('Error fetching employees:', _error);
+      setError(
+        _error instanceof Error ? _error.message : auto('Failed to load employees.', 'errors.fetch')
+      );
     } finally {
       setLoading(false);
     }
@@ -121,11 +126,20 @@ export default function DirectoryPage() {
     }
   };
 
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
       
-      <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2">
             <Users className="w-6 h-6 text-primary" />
@@ -138,19 +152,19 @@ export default function DirectoryPage() {
           </p>
         </div>
         <Button onClick={() => router.push('/fm/hr/directory/new')}>
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4 me-2" />
           {auto('Add Employee', 'actions.addEmployee')}
         </Button>
       </div>
 
       <div className="flex flex-col gap-4 md:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder={auto('Search by name, code, or job title...', 'search.placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="ps-10"
           />
         </div>
         <div className="flex gap-2">
@@ -239,7 +253,7 @@ export default function DirectoryPage() {
                 </div>
 
                 <Button variant="outline" size="sm" className="w-full">
-                  <Eye className="w-4 h-4 mr-2" />
+                  <Eye className="w-4 h-4 me-2" />
                   {t('common.viewDetails', 'View Details')}
                 </Button>
               </CardContent>

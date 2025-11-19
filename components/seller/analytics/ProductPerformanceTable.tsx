@@ -98,13 +98,13 @@ export function ProductPerformanceTable({ data, isLoading }: ProductPerformanceT
             <TableHeader>
               <TableRow>
                 <TableHead>{auto('Product', 'sections.topProducts.columns.product')}</TableHead>
-                <TableHead className="text-right">
+                <TableHead className="text-end">
                   {auto('Units Sold', 'sections.topProducts.columns.unitsSold')}
                 </TableHead>
-                <TableHead className="text-right">
+                <TableHead className="text-end">
                   {auto('Revenue', 'sections.topProducts.columns.revenue')}
                 </TableHead>
-                <TableHead className="text-right">
+                <TableHead className="text-end">
                   {auto('Conversion', 'sections.topProducts.columns.conversion')}
                 </TableHead>
               </TableRow>
@@ -120,11 +120,11 @@ export function ProductPerformanceTable({ data, isLoading }: ProductPerformanceT
                       <div className="font-medium">{product.title}</div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right">{product.unitsSold}</TableCell>
-                  <TableCell className="text-right font-medium">
+                  <TableCell className="text-end">{product.unitsSold}</TableCell>
+                  <TableCell className="text-end font-medium">
                     {formatCurrency(product.revenue)}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-end">
                     {product.conversionRate.toFixed(2)}%
                   </TableCell>
                 </TableRow>
@@ -148,10 +148,10 @@ export function ProductPerformanceTable({ data, isLoading }: ProductPerformanceT
               <TableHeader>
                 <TableRow>
                   <TableHead>{auto('Product', 'sections.underperforming.columns.product')}</TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className="text-end">
                     {auto('Views', 'sections.underperforming.columns.views')}
                   </TableHead>
-                  <TableHead className="text-right">
+                  <TableHead className="text-end">
                     {auto('Conversion', 'sections.underperforming.columns.conversion')}
                   </TableHead>
                   <TableHead>{auto('Recommendation', 'sections.underperforming.columns.recommendation')}</TableHead>
@@ -161,8 +161,8 @@ export function ProductPerformanceTable({ data, isLoading }: ProductPerformanceT
                 {data.underperformingProducts.slice(0, 5).map((product) => (
                   <TableRow key={product.productId}>
                     <TableCell className="font-medium">{product.title}</TableCell>
-                    <TableCell className="text-right">{product.views}</TableCell>
-                    <TableCell className="text-right text-orange-600">
+                    <TableCell className="text-end">{product.views}</TableCell>
+                    <TableCell className="text-end text-orange-600">
                       {product.conversionRate.toFixed(2)}%
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">

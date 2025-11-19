@@ -1,6 +1,7 @@
 import { MeiliSearch } from 'meilisearch';
 import { logger } from '@/lib/logger';
 import { requireEnv } from '@/lib/env';
+import { withMeiliResilience } from '@/lib/meilisearch-resilience';
 
 // Initialize Meilisearch client
 const meiliHost = process.env.MEILI_HOST || 'http://localhost:7700';
@@ -57,10 +58,11 @@ export async function configureProductsIndex() {
   const index = searchClient.index(INDEXES.PRODUCTS);
 
   // Wait for index to be created
-  await index.updateSettings({
-    // Searchable attributes (weighted)
-    searchableAttributes: [
-      'title',       // Weight: 100
+  await withMeiliResilience('products-configure', 'index', () =>
+    index.updateSettings({
+      // Searchable attributes (weighted)
+      searchableAttributes: [
+        'title',       // Weight: 100
       'brand',       // Weight: 50
       'description', // Weight: 25
       'category',
@@ -102,15 +104,15 @@ export async function configureProductsIndex() {
       'sellerName',
     ],
     
-    // Ranking rules (order matters)
-    rankingRules: [
-      'words',        // Number of query words matched
-      'typo',         // Typo tolerance (fewer typos = higher rank)
-      'proximity',    // Proximity of query words
-      'attribute',    // Order of searchableAttributes
-      'sort',         // User-defined sorting
-      'exactness',    // Similarity of matched words
-    ],
+      // Ranking rules (order matters)
+      rankingRules: [
+        'words',        // Number of query words matched
+        'typo',         // Typo tolerance (fewer typos = higher rank)
+        'proximity',    // Proximity of query words
+        'attribute',    // Order of searchableAttributes
+        'sort',         // User-defined sorting
+        'exactness',    // Similarity of matched words
+      ],
     
     // Typo tolerance
     typoTolerance: {
@@ -126,11 +128,12 @@ export async function configureProductsIndex() {
       maxTotalHits: 1000,
     },
     
-    // Faceting
-    faceting: {
-      maxValuesPerFacet: 100,
-    },
-  });
+      // Faceting
+      faceting: {
+        maxValuesPerFacet: 100,
+      },
+    })
+  );
 
   logger.info(`Products index configured: ${INDEXES.PRODUCTS}`);
 }
@@ -139,10 +142,11 @@ export async function configureProductsIndex() {
 export async function configureSellersIndex() {
   const index = searchClient.index(INDEXES.SELLERS);
 
-  await index.updateSettings({
-    searchableAttributes: [
-      'tradeName',
-      'legalName',
+  await withMeiliResilience('sellers-configure', 'index', () =>
+    index.updateSettings({
+      searchableAttributes: [
+        'tradeName',
+        'legalName',
     ],
     
     filterableAttributes: [
@@ -169,15 +173,16 @@ export async function configureSellersIndex() {
       'badges',
     ],
     
-    rankingRules: [
-      'words',
-      'typo',
-      'proximity',
-      'attribute',
-      'sort',
-      'exactness',
-    ],
-  });
+      rankingRules: [
+        'words',
+        'typo',
+        'proximity',
+        'attribute',
+        'sort',
+        'exactness',
+      ],
+    })
+  );
 
   logger.info(`Sellers index configured: ${INDEXES.SELLERS}`);
 }
@@ -186,8 +191,12 @@ export async function configureSellersIndex() {
 export async function initializeSearchIndexes() {
   try {
     // Create indexes if they don't exist
-    await searchClient.createIndex(INDEXES.PRODUCTS, { primaryKey: 'fsin' });
-    await searchClient.createIndex(INDEXES.SELLERS, { primaryKey: 'sellerId' });
+    await withMeiliResilience('create-products-index', 'index', () =>
+      searchClient.createIndex(INDEXES.PRODUCTS, { primaryKey: 'fsin' })
+    );
+    await withMeiliResilience('create-sellers-index', 'index', () =>
+      searchClient.createIndex(INDEXES.SELLERS, { primaryKey: 'sellerId' })
+    );
     
     // Configure indexes
     await configureProductsIndex();

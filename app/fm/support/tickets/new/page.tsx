@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { useSupportOrg } from '@/contexts/SupportOrgContext';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 type ModuleOption = typeof MODULE_OPTIONS[number];
 type PriorityOption = typeof PRIORITY_OPTIONS[number];
@@ -54,9 +54,7 @@ const PRIORITY_LABELS: Record<typeof PRIORITY_OPTIONS[number], string> = {
 export default function NewSupportTicketPage() {
   const auto = useAutoTranslator('fm.support.newTicket');
   const { data: session } = useSession();
-  const { effectiveOrgId, canImpersonate, supportOrg } = useSupportOrg();
-  const orgId = effectiveOrgId ?? undefined;
-  const needsOrgSelection = !orgId && canImpersonate;
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'support' });
   const [form, setForm] = useState<TicketFormState>({
     requesterName: '',
     requesterEmail: '',
@@ -101,7 +99,7 @@ export default function NewSupportTicketPage() {
         steps: '',
         ccList: '',
       }));
-    } catch (error) {
+    } catch (_error) {
       toast.error(auto('Failed to submit ticket. Please try again.', 'toast.error'), { id: toastId });
     } finally {
       setSubmitting(false);
@@ -116,24 +114,8 @@ export default function NewSupportTicketPage() {
     );
   }
 
-  if (!orgId) {
-    return (
-      <div className="space-y-6 p-6">
-        <ModuleViewTabs moduleId="support" />
-        <div className="rounded-xl border border-border bg-card/30 p-6 space-y-3">
-          <p className="text-destructive font-semibold">
-            {needsOrgSelection
-              ? auto('Select a customer organization to file support tickets.', 'errors.selectOrg')
-              : auto('No organization ID found in session.', 'errors.noOrgSession')}
-          </p>
-          {needsOrgSelection && (
-            <p className="text-sm text-muted-foreground">
-              {auto('Use the Support Organization switcher in the top bar.', 'errors.selectOrgHint')}
-            </p>
-          )}
-        </div>
-      </div>
-    );
+  if (!hasOrgContext || !orgId) {
+    return guard;
   }
 
   return (

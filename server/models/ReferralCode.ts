@@ -98,7 +98,6 @@ export interface IReferralCode {
   tags?: string[];
 }
 
-/* eslint-disable no-unused-vars */
 type ReferralCodeDoc = HydratedDocument<IReferralCode> & {
   conversionRateComputed: number;
   isValid(): boolean;
@@ -130,9 +129,7 @@ export interface ReferralCodeStaticMethods {
     transactionId?: string;
   }): Promise<ReferralCodeDoc | null>;
 }
-/* eslint-enable no-unused-vars */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ReferralCodeModelType = MModel<IReferralCode> & ReferralCodeStaticMethods;
 
 // ---------------- Schema ----------------
@@ -235,7 +232,6 @@ ReferralCodeSchema.index({ orgId: 1, 'limits.validFrom': 1, 'limits.validUntil':
 ReferralCodeSchema.index({ orgId: 1, status: 1 });
 
 // Virtuals
-// eslint-disable-next-line no-unused-vars
 ReferralCodeSchema.virtual('conversionRateComputed').get(function (this: ReferralCodeDoc) {
   const total = this.stats?.totalReferrals ?? 0;
   const success = this.stats?.successfulReferrals ?? 0;
@@ -243,11 +239,9 @@ ReferralCodeSchema.virtual('conversionRateComputed').get(function (this: Referra
 });
 
 // Instance methods
-// eslint-disable-next-line no-unused-vars
 ReferralCodeSchema.methods.isValid = function (this: ReferralCodeDoc) {
   if (this.status !== 'ACTIVE') return false;
   const now = new Date();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const lim = this.limits || {};
   const maxU = typeof lim.maxUses === 'number' ? lim.maxUses : Infinity;
   const cur = typeof lim.currentUses === 'number' ? lim.currentUses : 0;
@@ -303,8 +297,7 @@ ReferralCodeSchema.statics.applyCode = async function ({
   const uid = new Types.ObjectId(userId as string);
   const org = new Types.ObjectId(orgId as string);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ands: Array<Record<string, any>> = [
+  const ands: Array<Record<string, unknown>> = [
     { status: 'ACTIVE' },
     { orgId: org },
     { code: code.toUpperCase() },
@@ -337,8 +330,7 @@ ReferralCodeSchema.statics.applyCode = async function ({
     ands.push({ $or: [{ 'limits.minPurchaseAmount': { $exists: false } }, { 'limits.minPurchaseAmount': { $lte: orderAmount } }] });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const update: Array<Record<string, any>> = [
+  const update: Array<Record<string, unknown>> = [
     {
       $set: {
         referrals: { $concatArrays: [{ $ifNull: ['$referrals', []] }, [{
@@ -428,4 +420,4 @@ ReferralCodeSchema.pre('save', function (next) {
 });
 
 // Final export
-export const ReferralCodeModel = getModel<IReferralCode>('ReferralCode', ReferralCodeSchema) as ReferralCodeModelType;
+export const ReferralCodeModel = getModel<IReferralCode, ReferralCodeModelType>('ReferralCode', ReferralCodeSchema);

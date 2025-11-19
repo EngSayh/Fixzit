@@ -4,12 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import { Search, SlidersHorizontal, X, MapPin, Home, Bed, Bath, DollarSign, Grid3x3 } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
-/* eslint-disable no-unused-vars */
 export interface SearchFiltersProps {
   onFilterChange?: (filters: PropertyFilters) => void;
   initialFilters?: PropertyFilters;
 }
-/* eslint-enable no-unused-vars */
 
 export interface PropertyFilters {
   search?: string;

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import type { BadgeProps } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -88,7 +89,11 @@ interface ClaimDetailsProps {
   onActionRequired?: () => void;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; variant: any; icon: any }> = {
+import type { LucideIcon } from 'lucide-react';
+
+type BadgeVariant = NonNullable<BadgeProps['variant']>;
+
+const STATUS_CONFIG: Record<string, { label: string; variant: BadgeVariant; icon: LucideIcon }> = {
   filed: { label: 'تم التقديم (Filed)', variant: 'default', icon: FileText },
   'seller-notified': { label: 'تم إشعار البائع (Seller Notified)', variant: 'secondary', icon: MessageSquare },
   'under-investigation': { label: 'قيد التحقيق (Under Investigation)', variant: 'secondary', icon: Clock },
@@ -378,7 +383,7 @@ export default function ClaimDetails({ claimId, userRole, onActionRequired }: Cl
                           )}
                         </div>
                       )}
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-2">
+                      <div className="absolute bottom-0 start-0 end-0 bg-black/60 text-white text-xs p-2">
                         <p>
                           {evidence.uploadedBy === 'buyer' && 'المشتري'}
                           {evidence.uploadedBy === 'seller' && 'البائع'}

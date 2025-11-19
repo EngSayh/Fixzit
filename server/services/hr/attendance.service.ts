@@ -41,11 +41,21 @@ export class AttendanceService {
   }
 
   static async list(orgId: string, employeeId: string, from?: Date, to?: Date) {
-    const query: Record<string, any> = { orgId, employeeId, isDeleted: false };
+    const query: {
+      orgId: string;
+      employeeId: string;
+      isDeleted: boolean;
+      date?: { $gte?: Date; $lte?: Date };
+    } = { orgId, employeeId, isDeleted: false };
+
     if (from || to) {
       query.date = {};
-      if (from) (query.date as any)['$gte'] = from;
-      if (to) (query.date as any)['$lte'] = to;
+      if (from) {
+        query.date.$gte = from;
+      }
+      if (to) {
+        query.date.$lte = to;
+      }
     }
     return AttendanceRecord.find(query).lean<AttendanceRecordDoc>().exec();
   }

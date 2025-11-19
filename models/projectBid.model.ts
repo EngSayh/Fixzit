@@ -202,7 +202,6 @@ export interface IProjectBid {
 }
 
 type ProjectBidDoc = HydratedDocument<IProjectBid>;
-/* eslint-disable no-unused-vars */
 type IProjectBidModel = MModel<IProjectBid> & {
   submit(id: Types.ObjectId, by: Types.ObjectId | string): Promise<ProjectBidDoc | null>;
   withdraw(
@@ -229,7 +228,6 @@ type IProjectBidModel = MModel<IProjectBid> & {
   ): Promise<ProjectBidDoc | null>;
   top(projectId: Types.ObjectId, limit?: number): Promise<ProjectBidDoc[]>;
 };
-/* eslint-enable no-unused-vars */
 
 // ---------- Schema ----------
 const ProjectBidSchema = new Schema<IProjectBid>(
@@ -447,18 +445,14 @@ const ProjectBidSchema = new Schema<IProjectBid>(
 );
 
 // ---------- Plugins (ensure orgId exists for tenant indices) ----------
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ProjectBidSchema.plugin(tenantIsolationPlugin);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ProjectBidSchema.plugin(auditPlugin);
 
 // ---------- Validation: require either contractorId or vendorId ----------
-// eslint-disable-next-line no-unused-vars
 ProjectBidSchema.path('contractorId').validate(function (this: ProjectBidDoc) {
   return !!(this.contractorId || this.vendorId);
 }, 'Either contractorId or vendorId is required');
 
-// eslint-disable-next-line no-unused-vars
 ProjectBidSchema.path('vendorId').validate(function (this: ProjectBidDoc) {
   return !!(this.contractorId || this.vendorId);
 }, 'Either contractorId or vendorId is required');
@@ -472,11 +466,9 @@ ProjectBidSchema.index({ orgId: 1, bidAmount: 1 });
 ProjectBidSchema.index({ 'bidder.companyName': 'text', 'bidder.name': 'text' });
 
 // ---------- Virtuals ----------
-// eslint-disable-next-line no-unused-vars
 ProjectBidSchema.virtual('ranking').get(function (this: ProjectBidDoc) {
   return this.evaluation?.score ?? null;
 });
-// eslint-disable-next-line no-unused-vars
 ProjectBidSchema.virtual('isExpired').get(function (this: ProjectBidDoc) {
   return this.expiresAt ? new Date() > this.expiresAt : false;
 });

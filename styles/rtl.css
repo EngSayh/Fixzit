@@ -1,9 +1,37 @@
-html.rtl body {
+/* RTL (Right-to-Left) Support */
+
+html[dir="rtl"] {
   direction: rtl;
 }
 
-html:not(.rtl) body {
+html[dir="ltr"] {
   direction: ltr;
+}
+
+/* Legacy support for .rtl class */
+html.rtl {
+  direction: rtl;
+}
+
+html:not(.rtl):not([dir="rtl"]) {
+  direction: ltr;
+}
+
+/* Logical properties for RTL support */
+.ms-auto {
+  margin-inline-start: auto;
+}
+
+.me-auto {
+  margin-inline-end: auto;
+}
+
+.ms-1 {
+  margin-inline-start: 0.25rem;
+}
+
+.me-1 {
+  margin-inline-end: 0.25rem;
 }
 
 .ms-2 {
@@ -14,6 +42,83 @@ html:not(.rtl) body {
   margin-inline-end: 0.5rem;
 }
 
-html.rtl .px-inline-3 {
-  padding-inline: 0.75rem;
+.ms-3 {
+  margin-inline-start: 0.75rem;
+}
+
+.me-3 {
+  margin-inline-end: 0.75rem;
+}
+
+.ms-4 {
+  margin-inline-start: 1rem;
+}
+
+.me-4 {
+  margin-inline-end: 1rem;
+}
+
+.ps-2 {
+  padding-inline-start: 0.5rem;
+}
+
+.pe-2 {
+  padding-inline-end: 0.5rem;
+}
+
+.ps-3 {
+  padding-inline-start: 0.75rem;
+}
+
+.pe-3 {
+  padding-inline-end: 0.75rem;
+}
+
+.ps-4 {
+  padding-inline-start: 1rem;
+}
+
+.pe-4 {
+  padding-inline-end: 1rem;
+}
+
+.start-0 {
+  inset-inline-start: 0;
+}
+
+.end-0 {
+  inset-inline-end: 0;
+}
+
+.text-start {
+  text-align: start;
+}
+
+.text-end {
+  text-align: end;
+}
+
+/* RTL-specific adjustments for common components */
+html[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+/* Flip icons with directional meaning in RTL */
+html[dir="rtl"] .flip-rtl {
+  transform: scaleX(-1);
+}
+
+/* Ensure tooltips and popovers appear correctly in RTL */
+html[dir="rtl"] [data-radix-popper-content-wrapper] {
+  direction: rtl;
+}
+
+/* Fix for modals and dialogs in RTL */
+html[dir="rtl"] dialog,
+html[dir="rtl"] [role="dialog"] {
+  direction: rtl;
 }

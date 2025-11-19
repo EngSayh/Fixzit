@@ -621,11 +621,11 @@ export default function NewInvoicePage() {
                   <tr>
                     <th className="px-2 py-2 text-start">{t('finance.invoice.description', 'Description')}</th>
                     <th className="px-2 py-2 text-start">{t('finance.invoice.revenueAccount', 'Revenue Account')}</th>
-                    <th className="px-2 py-2 text-right">{t('finance.invoice.qty', 'Qty')}</th>
-                    <th className="px-2 py-2 text-right">{t('finance.invoice.rate', 'Rate')}</th>
-                    <th className="px-2 py-2 text-right">{t('finance.invoice.discount', 'Discount')}</th>
+                    <th className="px-2 py-2 text-end">{t('finance.invoice.qty', 'Qty')}</th>
+                    <th className="px-2 py-2 text-end">{t('finance.invoice.rate', 'Rate')}</th>
+                    <th className="px-2 py-2 text-end">{t('finance.invoice.discount', 'Discount')}</th>
                     <th className="px-2 py-2 text-center">{t('finance.invoice.taxType', 'Tax Type')}</th>
-                    <th className="px-2 py-2 text-right">{t('finance.invoice.total', 'Total')}</th>
+                    <th className="px-2 py-2 text-end">{t('finance.invoice.total', 'Total')}</th>
                     <th className="px-2 py-2"></th>
                   </tr>
                 </thead>
@@ -665,7 +665,7 @@ export default function NewInvoicePage() {
                           onChange={(e) => updateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 1)}
                           min="1"
                           step="1"
-                          className={`w-16 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.quantity`] ? 'border-destructive' : 'border-border'}`}
+                          className={`w-16 px-2 py-1 text-sm text-end border rounded ${errors[`lineItem.${index}.quantity`] ? 'border-destructive' : 'border-border'}`}
                         />
                       </td>
                       <td className="px-2 py-2">
@@ -675,7 +675,7 @@ export default function NewInvoicePage() {
                           onChange={(e) => updateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
                           min="0"
                           step="0.01"
-                          className={`w-24 px-2 py-1 text-sm text-right border rounded ${errors[`lineItem.${index}.unitPrice`] ? 'border-destructive' : 'border-border'}`}
+                          className={`w-24 px-2 py-1 text-sm text-end border rounded ${errors[`lineItem.${index}.unitPrice`] ? 'border-destructive' : 'border-border'}`}
                         />
                       </td>
                       <td className="px-2 py-2">
@@ -685,7 +685,7 @@ export default function NewInvoicePage() {
                           onChange={(e) => updateLineItem(item.id, 'discount', parseFloat(e.target.value) || 0)}
                           min="0"
                           step="0.01"
-                          className="w-20 px-2 py-1 text-sm text-right border border-border rounded"
+                          className="w-20 px-2 py-1 text-sm text-end border border-border rounded"
                         />
                       </td>
                       <td className="px-2 py-2">
@@ -698,7 +698,7 @@ export default function NewInvoicePage() {
                           <option value="EXEMPT">{t('finance.invoice.exempt', 'Exempt')}</option>
                         </select>
                       </td>
-                      <td className="px-2 py-2 text-right font-medium">
+                      <td className="px-2 py-2 text-end font-medium">
                         {currency} {item.total.toFixed(2)}
                       </td>
                       <td className="px-2 py-2">

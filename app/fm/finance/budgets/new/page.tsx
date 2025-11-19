@@ -9,11 +9,19 @@ import { logger } from '@/lib/logger';
 import { BudgetMath, Money } from '@/lib/finance/decimal';
 import type { BudgetCategory } from '@/lib/finance/schemas';
 import type Decimal from 'decimal.js';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 export default function NewBudgetPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { registerForm, unregisterForm } = useFormState();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
+  const missingOrg = !hasOrgContext || !orgId;
+  
+  if (missingOrg) {
+    return guard;
+  }
 
   // Form state
   const [budgetName, setBudgetName] = useState('');
@@ -129,8 +137,8 @@ export default function NewBudgetPage() {
         if (data?.id) {
           router.push(`/finance/budgets/${data.id}`);
         }
-      } catch (error) {
-        logger.error('Error saving budget draft', { error });
+      } catch (_error) {
+        logger.error('Error saving budget draft', { error: _error });
         toast.error(t('common.error', 'An error occurred'));
       } finally {
         setIsSubmitting(false);
@@ -191,8 +199,8 @@ export default function NewBudgetPage() {
         if (data?.id) {
           router.push(`/finance/budgets/${data.id}`);
         }
-      } catch (error) {
-        logger.error('Error creating budget', { error });
+      } catch (_error) {
+        logger.error('Error creating budget', { error: _error });
         toast.error(t('common.error', 'An error occurred'), { id: toastId });
       } finally {
         setIsSubmitting(false);
@@ -204,8 +212,19 @@ export default function NewBudgetPage() {
     });
   };
 
+  if (missingOrg) {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="finance" />
+        {guard}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      <ModuleViewTabs moduleId="finance" />
+      {supportBanner}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -477,13 +496,13 @@ export default function NewBudgetPage() {
                     <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('finance.budget.budgetTemplate', 'Budget Template')}</h3>
             <div className="space-y-2">
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 📋 {t('finance.budget.copyPrevious', 'Copy from Previous Budget')}
               </button>
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 📊 {t('finance.budget.useTemplate', 'Use Standard Template')}
               </button>
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 🔄 {t('finance.budget.importExcel', 'Import from Excel')}
               </button>
             </div>
@@ -519,13 +538,13 @@ export default function NewBudgetPage() {
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('workOrders.quickActions', 'Quick Actions')}</h3>
             <div className="space-y-2">
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 📊 {t('finance.budget.budgetVsActual', 'Budget vs Actual Report')}
               </button>
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 💰 {t('finance.expense.tracking', 'Expense Tracking')}
               </button>
-              <button className="w-full btn-ghost text-left">
+              <button className="w-full btn-ghost text-start">
                 📋 {t('finance.budget.templates', 'Budget Templates')}
               </button>
             </div>
@@ -551,4 +570,3 @@ export default function NewBudgetPage() {
     </div>
   );
 }
-

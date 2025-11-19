@@ -55,7 +55,7 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
           });
         })
         .catch((err) => {
-          logger.error('Failed to import logger:', { error: err });
+          logger.error('Failed to import logger:', err);
         });
     }
 
@@ -107,7 +107,7 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
             });
           })
           .catch((err) => {
-            logger.error('Failed to import logger:', { error: err });
+            logger.error('Failed to import logger:', err);
           });
       }
     }

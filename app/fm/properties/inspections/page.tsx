@@ -9,8 +9,10 @@ import { ClipboardList, Home, Loader2, MapPin, Shield, Wrench, AlertCircle } fro
 import { useMemo, useState } from 'react';
 import { useProperties } from '@/hooks/fm/useProperties';
 import { toast } from 'sonner';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 export default function PropertyInspectionWorkspace() {
+  const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({ moduleId: 'properties' });
   const auto = useAutoTranslator('fm.properties.inspections');
   const [isReserving, setReserving] = useState(false);
   const { properties, isLoading, error, refresh } = useProperties('?limit=50');
@@ -24,8 +26,9 @@ export default function PropertyInspectionWorkspace() {
         throw new Error(payload?.error ?? auto('Unable to reserve slot.', 'header.reserve.error'));
       }
       toast.success(auto('Inspection slot reserved.', 'header.reserve.success'), { id: toastId });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : auto('Unable to reserve slot.', 'header.reserve.error');
+    } catch (_error) {
+      const message =
+        _error instanceof Error ? _error.message : auto('Unable to reserve slot.', 'header.reserve.error');
       toast.error(message, { id: toastId });
     } finally {
       setReserving(false);
@@ -69,9 +72,14 @@ export default function PropertyInspectionWorkspace() {
     { title: 'Vendors assigned', detail: 'Mechanical + MEP technicians confirmed' },
   ];
 
+  if (!hasOrgContext) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="properties" />
+      {supportBanner}
 
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
@@ -90,18 +98,18 @@ export default function PropertyInspectionWorkspace() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => refresh()}>
-            <ClipboardList className="mr-2 h-4 w-4" />
+            <ClipboardList className="me-2 h-4 w-4" />
             {auto('Import inspection plan', 'header.import')}
           </Button>
           <Button onClick={handleReserveSlot} disabled={isReserving}>
             {isReserving ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="me-2 h-4 w-4 animate-spin" />
                 {auto('Reserving...', 'header.reserving')}
               </>
             ) : (
               <>
-                <Home className="mr-2 h-4 w-4" />
+                <Home className="me-2 h-4 w-4" />
                 {auto('Reserve inspection slot', 'header.reserve')}
               </>
             )}

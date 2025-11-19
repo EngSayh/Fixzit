@@ -13,6 +13,7 @@ export function getValidatedMongoUri(): string {
   
   if (rawMongoUri && rawMongoUri.trim().length > 0) {
     assertNotLocalhostInProd(rawMongoUri);
+    assertAtlasUriInProd(rawMongoUri);
     return rawMongoUri;
   }
   
@@ -38,6 +39,13 @@ function assertNotLocalhostInProd(uri: string): void {
   }
 }
 
+function assertAtlasUriInProd(uri: string): void {
+  if (!isProd) return;
+  if (!uri.startsWith('mongodb+srv://')) {
+    throw new Error('FATAL: Production deployments require a MongoDB Atlas connection string (mongodb+srv://).');
+  }
+}
+
 export function validateMongoUri(uri: string | undefined): void {
   if (!uri) {
     if (isProd) {
@@ -47,4 +55,5 @@ export function validateMongoUri(uri: string | undefined): void {
   }
   
   assertNotLocalhostInProd(uri);
+  assertAtlasUriInProd(uri);
 }

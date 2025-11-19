@@ -1,14 +1,21 @@
 'use client';
 
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 export default function ReportsPage() {
   const auto = useAutoTranslator('fm.reports');
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
 
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="reports" />
+      {supportBanner}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">

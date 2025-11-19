@@ -10,10 +10,13 @@ test.describe('Landing & Branding (@smoke)', () => {
     page.on('response', r => { if (r.status() >= 400) failed.push({url:r.url(),status:r.status()}); });
 
     await page.goto('/');
-    // TopBar buttons visible
-    await expect(page.getByRole('button', { name: /Select language/i }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /Souq/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Access|Get Started/i })).toBeVisible(); // tolerate wording
+    // TopBar guest CTA visible
+    await expect(page.getByRole('link', { name: /sign in|login|تسجيل/i })).toBeVisible();
+    // Footer keeps public language toggle
+    const footerLanguageButton = page.locator('footer').getByRole('button', { name: /Select language|اختر اللغة/i }).first();
+    await expect(footerLanguageButton).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Fixzit Souq/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Access|Get Started|ابدأ/i })).toBeVisible(); // tolerate wording
 
     // Single header, single footer
     await expect(page.locator('header')).toHaveCount(1);

@@ -20,10 +20,36 @@ function crawl(dir: string, pathParts: string[] = []) {
   }
 }
 
-try { crawl(APP, []); } catch { /* app dir might not exist */ }
+try {
+  crawl(APP, []);
+} catch {
+  /* app dir might not exist */
+}
 
 const unique = Array.from(new Set(pages.length ? pages : ["/"]));
 console.log("Discovered routes:", unique);
+
+function hasErrorCode(error: unknown, code: string): boolean {
+  if (!error || typeof error !== "object") return false;
+  const err = error as { code?: string; cause?: unknown; errors?: unknown[] };
+  if (typeof err.code === "string" && err.code === code) {
+    return true;
+  }
+  if (Array.isArray(err.errors) && err.errors.some((child) => hasErrorCode(child, code))) {
+    return true;
+  }
+  if (err.cause) {
+    return hasErrorCode(err.cause, code);
+  }
+  return false;
+}
+
+function formatConnectionHint(url: string): string {
+  return [
+    `Connection refused while requesting ${url}.`,
+    "Start the Next.js dev server (pnpm dev) or run pnpm verify:routes:http to auto-build/start a local server before verifying routes.",
+  ].join(" ");
+}
 
 (async () => {
   let failures = 0;
@@ -39,7 +65,11 @@ console.log("Discovered routes:", unique);
       }
     } catch (e) {
       failures++;
-      console.error(`❌ ERR ${url}`, e);
+      if (hasErrorCode(e, "ECONNREFUSED")) {
+        console.error(`❌ ERR ${url} ${formatConnectionHint(url)}`);
+      } else {
+        console.error(`❌ ERR ${url}`, e);
+      }
     }
   }
   if (failures) {

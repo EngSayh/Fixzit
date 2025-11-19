@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +31,8 @@ const COMPLIANCE_CHECKS = [
 
 export default function MarketplaceNewListingPage() {
   const auto = useAutoTranslator('fm.marketplace.listings.new');
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'marketplace' });
   const [formState, setFormState] = useState({
     title: '',
     sku: '',
@@ -59,9 +63,18 @@ export default function MarketplaceNewListingPage() {
     setSubmitting(false);
   };
 
+  if (!hasOrgContext) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6 p-6">
       <ModuleViewTabs moduleId="marketplace" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
 
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -264,4 +277,3 @@ export default function MarketplaceNewListingPage() {
     </div>
   );
 }
-

@@ -3,33 +3,32 @@
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { ArrowLeft } from 'lucide-react';
-
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CardGridSkeleton } from '@/components/skeletons';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { CreateTenantForm } from '@/components/fm/tenants/CreateTenantForm';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 export default function NewTenantPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { data: session } = useSession();
-  const orgId = session?.user?.orgId;
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'tenants' });
 
   if (!session) {
     return <CardGridSkeleton count={4} />;
   }
 
-  if (!orgId) {
-    return (
-      <div className="p-6 text-destructive">
-        {t('fm.errors.noOrgSession', 'Error: No organization ID found in session')}
-      </div>
-    );
+  if (!hasOrgContext || !orgId) {
+    return guard;
   }
 
   return (
     <div className="space-y-6">
+      <ModuleViewTabs moduleId="tenants" />
+      {supportBanner}
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-muted-foreground">

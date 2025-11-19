@@ -36,9 +36,9 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
-          version: 8
+          version: 9
           run_install: false
       
       - name: Setup Node.js
@@ -48,20 +48,23 @@ jobs:
           cache: 'pnpm'
       
       - name: Get pnpm store directory
+        id: pnpm-store
         shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
       
       - name: Setup pnpm cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
-          path: ${{ env.STORE_PATH }}
+          path: ${{ steps.pnpm-store.outputs.path }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
       
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      
+      - name: RTL logical lint
+        run: pnpm run lint:rtl
       
       - name: Validate source files (check mode)
         run: |
@@ -75,7 +78,9 @@ jobs:
           echo "✅ Source files validated"
       
       - name: Check translation parity
-        if: ${{ github.event.inputs.skip_parity_check != 'true' }}
+        id: check-parity
+        if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.skip_parity_check == 'true') }}
+        continue-on-error: true
         run: |
           echo "📊 Checking translation parity..."
           npx tsx scripts/check-translation-parity.ts --format=text || {
@@ -83,6 +88,12 @@ jobs:
             npx tsx scripts/check-translation-parity.ts --format=json > parity-report.json
             exit 1
           }
+
+      - name: Fail when parity issues detected
+        if: ${{ steps.check-parity.outcome == 'failure' }}
+        run: |
+          echo "❌ Translation parity regression detected. See parity report artifact."
+          exit 1
       
       - name: Build translation dictionaries
         run: pnpm i18n:build
@@ -176,16 +187,54 @@ jobs:
           echo "✅ EN/AR coverage verified"
       
       - name: Upload coverage report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: i18n-coverage-report
           path: _artifacts/i18n-locale-coverage.json
           retention-days: 90
-      
+
       - name: Upload parity report artifact
-        if: failure()
-        uses: actions/upload-artifact@v3
+        if: ${{ steps.check-parity.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
         with:
           name: translation-parity-report
           path: parity-report.json
           retention-days: 30
+
+  rtl-smoke:
+    needs: validate-translations
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright (chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: RTL smoke tests (layout + dashboards + souq)
+        env:
+          ALLOW_DASHBOARD_TEST_AUTH: 'true'
+        run: |
+          npx playwright test \
+            tests/smoke/rtl-layout.smoke.spec.ts \
+            tests/smoke/rtl-dashboard-hr.smoke.spec.ts \
+            tests/smoke/rtl-dashboard-finance.smoke.spec.ts \
+            tests/smoke/rtl-dashboard-system.smoke.spec.ts \
+            tests/smoke/rtl-souq.smoke.spec.ts \
+            --project=chromium --workers=1

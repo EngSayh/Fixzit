@@ -20,6 +20,7 @@ import {
   Construction, Hammer, PaintBucket, Building 
 } from 'lucide-react';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 interface ProjectItem {
   id: string;
@@ -45,13 +46,16 @@ interface ProjectItem {
 
 export default function ProjectsPage() {
   const { data: session } = useSession();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'administration' });
   const auto = useAutoTranslator('fm.projects');
+  
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
-
-  const orgId = session?.user?.orgId;
 
   // Fetcher with dynamic tenant ID from session
   const fetcher = (url: string) => {
@@ -61,7 +65,7 @@ export default function ProjectsPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        logger.error('FM projects fetch error', { error });
+        logger.error('FM projects fetch error', error);
         throw error;
       });
   };
@@ -80,16 +84,16 @@ export default function ProjectsPage() {
 
   if (!orgId) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-destructive">
-          {auto('Error: No organization ID found. Please contact support.', 'errors.noOrg')}
-        </p>
+      <div className="space-y-6">
+        {supportBanner}
+        {guard}
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {supportBanner}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -223,9 +227,9 @@ function ProjectCard({ project, orgId, onUpdated }: { project: ProjectItem; orgI
       if (!res.ok) throw new Error(auto('Failed to delete project', 'toast.deleteFailed'));
       toast.success(auto('Project deleted successfully', 'toast.deleteSuccess'), { id: toastId });
       onUpdated();
-    } catch (error) {
+    } catch (_error) {
       toast.error(
-        error instanceof Error ? error.message : auto('Failed to delete project', 'toast.deleteFailed'),
+        _error instanceof Error ? _error.message : auto('Failed to delete project', 'toast.deleteFailed'),
         { id: toastId }
       );
     }
@@ -430,8 +434,8 @@ function CreateProjectForm({ onCreated, orgId }: { onCreated: () => void; orgId:
           { id: toastId }
         );
       }
-    } catch (error) {
-      logger.error('Error creating project:', error);
+    } catch (_error) {
+      logger.error('Error creating project:', _error);
       toast.error(auto('Error creating project. Please try again.', 'error'), { id: toastId });
     }
   };

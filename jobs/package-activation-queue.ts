@@ -92,7 +92,9 @@ export async function enqueueActivationRetry(
     });
 
     return job.id || null;
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[ActivationQueue] Failed to enqueue retry', { error, aqarPaymentId, invoiceId });
     return null;
   }
@@ -136,7 +138,9 @@ export function startActivationWorker(): Worker | null {
 
         logger.info('[ActivationQueue] Package activated successfully', { aqarPaymentId, invoiceId });
         return { success: true, aqarPaymentId, invoiceId };
-      } catch (error) {
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
         logger.error('[ActivationQueue] Activation attempt failed', {
           jobId: job.id,
           aqarPaymentId,

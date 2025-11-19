@@ -14,6 +14,7 @@ import { CardGridSkeleton } from '@/components/skeletons';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { FileText, Calendar, Download } from 'lucide-react';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 const REPORT_TYPES = [
   { value: 'workorders', label: 'Work Orders Summary' },
@@ -43,6 +44,11 @@ export default function NewReportPage() {
   const auto = useAutoTranslator('fm.reports.new');
   const { data: session } = useSession();
   const router = useRouter();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'reports' });
+  
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
   const [reportType, setReportType] = useState('');
   const [title, setTitle] = useState('');
   const [dateRange, setDateRange] = useState('month');
@@ -55,6 +61,10 @@ export default function NewReportPage() {
 
   if (!session) {
     return <CardGridSkeleton count={1} />;
+  }
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
   }
 
   const handleGenerate = async (e: React.FormEvent) => {
@@ -78,7 +88,7 @@ export default function NewReportPage() {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       toast.success(auto('Report generated successfully', 'toast.success'), { id: toastId });
       router.push('/fm/reports');
-    } catch (error) {
+    } catch (_error) {
       toast.error(auto('Failed to generate report', 'toast.error'), { id: toastId });
     } finally {
       setGenerating(false);
@@ -88,6 +98,7 @@ export default function NewReportPage() {
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="reports" />
+      {supportBanner}
       
       <div>
         <div className="flex items-center gap-2">
@@ -246,7 +257,7 @@ export default function NewReportPage() {
             }
             className="w-full"
           >
-            <Download className="w-4 h-4 mr-2" />
+            <Download className="w-4 h-4 me-2" />
             {auto('Generate Report', 'submit')}
           </Button>
         </form>

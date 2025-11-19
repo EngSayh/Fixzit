@@ -13,7 +13,6 @@ export interface ViewingSchedulerProps {
   agentName: string;
   agentPhoto?: string;
   availableSlots?: { date: string; times: string[] }[];
-  // eslint-disable-next-line no-unused-vars
   onSchedule?: (data: ViewingRequestData) => Promise<void>;
 }
 

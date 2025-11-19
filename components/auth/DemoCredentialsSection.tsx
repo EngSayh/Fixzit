@@ -79,9 +79,7 @@ const CORPORATE_CREDENTIALS: DemoCredential[] = [
 interface DemoCredentialsSectionProps {
   isRTL: boolean;
   loginMethod: 'personal' | 'corporate' | 'sso';
-  // eslint-disable-next-line no-unused-vars
   quickLogin: (cred: DemoCredential) => void;
-  // eslint-disable-next-line no-unused-vars
   t: (key: string, fallback: string) => string;
 }
 
@@ -97,7 +95,7 @@ export default function DemoCredentialsSection({
     <div className="mt-6 space-y-4">
       {/* Personal Email Credentials */}
       {loginMethod === 'personal' && (
-        <div className={`p-4 bg-muted rounded-2xl ${isRTL ? 'text-right' : 'text-left'}`}>
+        <div className="p-4 bg-muted rounded-2xl text-start">
           <h3 className="text-sm font-medium text-foreground mb-3">
             {t('login.personalEmailAccounts', 'Personal Email Accounts:')}
           </h3>
@@ -113,7 +111,7 @@ export default function DemoCredentialsSection({
                 >
                   <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Icon size={18} />
-                    <div className="flex-1 text-left">
+                    <div className="flex-1 text-start">
                       <div className="font-medium text-sm">{cred.role}</div>
                       <div className="text-xs opacity-80">{cred.description}</div>
                     </div>
@@ -131,7 +129,7 @@ export default function DemoCredentialsSection({
 
       {/* Corporate Account Credentials */}
       {loginMethod === 'corporate' && (
-        <div className={`p-4 bg-primary/5 rounded-2xl border border-primary/20 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <div className="p-4 bg-primary/5 rounded-2xl border border-primary/20 text-start">
           <h3 className="text-sm font-medium text-primary mb-3">
             {t('login.corporateAccountEmployee', 'Corporate Account (Employee Number):')}
           </h3>
@@ -147,7 +145,7 @@ export default function DemoCredentialsSection({
                 >
                   <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Icon size={18} />
-                    <div className="flex-1 text-left">
+                    <div className="flex-1 text-start">
                       <div className="font-medium text-sm">{cred.role}</div>
                       <div className="text-xs opacity-80">{cred.description}</div>
                     </div>

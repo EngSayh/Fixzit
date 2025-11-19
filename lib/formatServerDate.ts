@@ -144,7 +144,9 @@ export function formatServerDate(
 
   try {
     return formatDate(parsedDate, format, locale, timeZone);
-  } catch (error: unknown) {
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     // Use logger.error for server-side logging
     logger.error('formatServerDate formatting error', { error, date, format, locale, timeZone });
     return 'Invalid Date';

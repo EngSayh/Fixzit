@@ -66,7 +66,9 @@ function getSafeErrorMessage(error: unknown, defaultMessage: string): string {
  * try {
  *   const result = await dangerousOperation();
  *   return createSecureResponse({ success: true, data: result }, { status: 200 });
- * } catch (error) {
+ * } catch (_error) {
+   const error = _error instanceof Error ? _error : new Error(String(_error));
+   void error;
  *   return createSecureErrorResponse({
  *     error,
  *     defaultMessage: 'Failed to complete operation',
@@ -85,9 +87,7 @@ export function createSecureErrorResponse(options: SecureErrorOptions): Response
 
   // Log error in development for debugging
   if (logError && error instanceof Error) {
-    logger.error('[Secure Error Handler]', {
-      message: error.message,
-      stack: error.stack,
+    logger.error('[Secure Error Handler]', error, {
       name: error.name,
     });
   }

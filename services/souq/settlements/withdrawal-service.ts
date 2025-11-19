@@ -104,8 +104,10 @@ export class WithdrawalService {
         success: true,
         withdrawalId,
       };
-    } catch (error) {
-      logger.error('[Withdrawal] Error processing withdrawal', { error, request });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('[Withdrawal] Error processing withdrawal', error, { request });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -159,8 +161,10 @@ export class WithdrawalService {
       
       // Valid IBAN has remainder of 1
       return parseInt(remainder, 10) === 1;
-    } catch (error) {
-      logger.error('[Withdrawal] IBAN checksum validation error', { error, iban });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('[Withdrawal] IBAN checksum validation error', error, { iban });
       return false;
     }
   }
@@ -185,8 +189,10 @@ export class WithdrawalService {
       // Check available balance
       const availableBalance = statement.netAmount - (statement.withdrawnAmount || 0);
       return availableBalance >= amount;
-    } catch (error) {
-      logger.error('[Withdrawal] Balance check error', { error, sellerId, amount });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('[Withdrawal] Balance check error', error, { sellerId, amount });
       return false;
     }
   }
@@ -297,7 +303,9 @@ export class WithdrawalService {
       });
 
       return true;
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('[Withdrawal] PayTabs payout threw unexpected error', {
         withdrawalId,
         error,

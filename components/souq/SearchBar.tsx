@@ -201,7 +201,7 @@ export default function SearchBar({
     <div className="relative w-full max-w-2xl">
       {/* Search Input */}
       <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <div className="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
           <Search className="h-5 w-5 text-gray-400" />
         </div>
         
@@ -213,13 +213,13 @@ export default function SearchBar({
           onKeyDown={handleKeyDown}
           onFocus={() => setShowDropdown(true)}
           placeholder={placeholder}
-          className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="block w-full ps-10 pe-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         
         {query && (
           <button
             onClick={handleClear}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+            className="absolute inset-y-0 end-0 pe-3 flex items-center text-gray-400 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
           </button>
@@ -243,7 +243,7 @@ export default function SearchBar({
                   <button
                     onClick={() => handleSelectSuggestion(suggestion)}
                     onMouseEnter={() => setSelectedIndex(index)}
-                    className={`w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-3 ${
+                    className={`w-full px-4 py-2 text-start hover:bg-gray-50 flex items-center gap-3 ${
                       selectedIndex === index ? 'bg-gray-50' : ''
                     }`}
                   >

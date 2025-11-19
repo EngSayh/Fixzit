@@ -575,7 +575,7 @@ class AnalyticsService {
   private getPeriodDates(period: 'last_7_days' | 'last_30_days' | 'last_90_days' | 'ytd') {
     const now = new Date();
     let startDate: Date;
-    let endDate = now;
+    const endDate = now;
 
     switch (period) {
       case 'last_7_days':

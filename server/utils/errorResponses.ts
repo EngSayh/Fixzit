@@ -15,9 +15,9 @@ export interface ErrorResponse {
 export class ApiError extends Error {
   constructor(
     public message: string,
-    public statusCode: number, // eslint-disable-line no-unused-vars
-    public code?: string, // eslint-disable-line no-unused-vars
-  public details?: unknown // eslint-disable-line no-unused-vars
+    public statusCode: number,
+    public code?: string,
+  public details?: unknown
   ) {
     super(message);
     this.name = 'ApiError';

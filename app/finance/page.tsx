@@ -49,7 +49,7 @@ export default function FinancePage() {
     return fetch(url)
       .then(r => r.json())
       .catch(error => {
-        logger.error('Finance invoice fetch error', { error });
+        logger.error('Finance invoice fetch error', error);
         throw error;
       });
   };
@@ -263,8 +263,8 @@ interface InvoiceLine {
 
 function InvoiceLineItem({ line, onUpdate, t }: { 
   line: InvoiceLine; 
-  onUpdate: (id: string, key: string, val: string) => void; // eslint-disable-line no-unused-vars
-  t: (key: string, fallback: string) => string; // eslint-disable-line no-unused-vars
+  onUpdate: (id: string, key: string, val: string) => void;
+  t: (key: string, fallback: string) => string;
 }) {
   const lineTotal = useMemo(() => {
     const qty = new Decimal(line.qty || '0');

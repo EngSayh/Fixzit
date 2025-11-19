@@ -46,21 +46,26 @@ export async function GET(req: NextRequest) {
 
   // Check database connectivity
   try {
-    await connectToDatabase();
+    const mongoose = await connectToDatabase();
     healthStatus.database = 'connected';
 
-    // Test database query
-    try {
-      const mongoose = await connectToDatabase();
-      const collections = await mongoose.connection.db?.listCollections().toArray();
-      healthStatus.database = `connected (${collections?.length || 0} collections)`;
-    } catch {
-      healthStatus.database = 'connected (query failed)';
+    const db = mongoose?.connection?.db;
+    if (db?.listCollections) {
+      try {
+        const collections = await db.listCollections().toArray();
+        const count = Array.isArray(collections) ? collections.length : 0;
+        const label = count === 1 ? 'collection' : 'collections';
+        healthStatus.database = `connected (${count} ${label})`;
+      } catch {
+        healthStatus.database = 'connected (query failed)';
+      }
     }
   } catch (error) {
-    healthStatus.status = 'degraded';
+    healthStatus.status = 'critical';
     healthStatus.database = 'disconnected';
-    logger.error('Database health check failed:', error instanceof Error ? error.message : 'Unknown error');
+    logger.error('Database health check failed', {
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 
   // Check memory usage
@@ -111,4 +116,3 @@ export async function POST(req: NextRequest) {
     }, { status: 500 });
   }
 }
-

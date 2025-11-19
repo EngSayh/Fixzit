@@ -35,7 +35,9 @@ export async function loadRouteHealthData(): Promise<RouteHealthEntry[]> {
         const payload = (await response.json()) as RouteHealthEntry[];
         return payload;
       }
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       console.error('Failed to fetch route health endpoint', error);
     }
   }

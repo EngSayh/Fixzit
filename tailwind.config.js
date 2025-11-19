@@ -16,6 +16,9 @@ const config = {
     './core/**/*.{ts,tsx,js,jsx,mdx}',
     './domain/**/*.{ts,tsx,js,jsx,mdx}',
   ],
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
     extend: {
       colors: {

@@ -8,7 +8,6 @@
 import mongoose, { Schema, Document, Model } from 'mongoose'
 import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
-/* eslint-disable no-unused-vars */
 export enum PaymentType {
   PACKAGE = 'PACKAGE',               // Listing package
   BOOST = 'BOOST',                   // Listing boost
@@ -32,7 +31,6 @@ export enum PaymentMethod {
   APPLE_PAY = 'APPLE_PAY',
   STC_PAY = 'STC_PAY',               // KSA mobile wallet
 }
-/* eslint-enable no-unused-vars */
 
 export interface IPayment extends Document {
   // User
@@ -149,7 +147,6 @@ PaymentSchema.statics.getStandardFees = function () {
  * Note: Currently does shallow scrubbing (depth 1). Nested objects shown as '[OBJECT]'
  * to prevent accidental leakage. For full recursive scrubbing, implement depth-limited recursion.
  */
-// eslint-disable-next-line no-unused-vars
 PaymentSchema.methods.getSafeGatewayResponse = function (this: IPayment): Record<string, unknown> | undefined {
   if (!this.gatewayResponse) return undefined;
   

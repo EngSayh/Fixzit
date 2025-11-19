@@ -21,6 +21,14 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cd "$PROJECT_ROOT"
 
+# Load env vars from .env.local if available (mimics Next.js/PNPM behavior)
+if [ -f ".env.local" ]; then
+  # shellcheck disable=SC1091
+  set -a
+  source ".env.local"
+  set +a
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -178,14 +186,28 @@ verify_routes_http() {
   fi
 }
 
+verify_org_context() {
+  print_header "Step 4: Organization Context Validation"
+
+  print_info "Running: pnpm verify:org-context"
+
+  if pnpm verify:org-context 2>&1 | tee /tmp/org-context.log; then
+    print_success "Organization guard coverage, translations, and APIs look healthy"
+  else
+    print_error "Organization context verification failed"
+    print_info "See /tmp/org-context.log for more details"
+    return 1
+  fi
+}
+
 run_tests() {
   if [ "$SKIP_TESTS" = true ]; then
-    print_header "Step 4: Unit Tests (SKIPPED)"
+    print_header "Step 5: Unit Tests (SKIPPED)"
     print_warning "Unit tests skipped via --skip-tests flag"
     return 0
   fi
   
-  print_header "Step 4: Unit Tests"
+  print_header "Step 5: Unit Tests"
   
   print_info "Running: pnpm test"
   
@@ -203,12 +225,12 @@ run_tests() {
 
 run_notification_smoke_tests() {
   if [ "$FULL_VERIFICATION" = false ]; then
-    print_header "Step 5: Notification Smoke Tests (SKIPPED)"
+    print_header "Step 6: Notification Smoke Tests (SKIPPED)"
     print_info "Notification tests skipped. Use --full flag to include them"
     return 0
   fi
   
-  print_header "Step 5: Notification Smoke Tests"
+  print_header "Step 6: Notification Smoke Tests"
   
   # Check if notification env vars are set
   if [ -z "$NOTIFICATIONS_SMOKE_EMAIL" ]; then
@@ -237,7 +259,7 @@ run_notification_smoke_tests() {
 }
 
 verify_fm_workflows() {
-  print_header "Step 6: FM Workflow Validation"
+  print_header "Step 7: FM Workflow Validation"
   
   print_info "Manual validation required for FM workflows:"
   echo ""
@@ -293,6 +315,7 @@ main() {
   check_env_vars || true
   check_typescript || true
   verify_routes_http || true
+  verify_org_context || true
   run_tests || true
   run_notification_smoke_tests || true
   verify_fm_workflows

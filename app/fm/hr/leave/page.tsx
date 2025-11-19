@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import {
   AlertCircle,
@@ -62,7 +64,9 @@ const leaveTimelineTemplates = [
 
 export default function HrLeaveExperience() {
   const auto = useAutoTranslator('fm.hr.leave');
-  const { requests, isLoading, error, refresh } = useHrLeaveRequests();
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'hr' });
+  const { requests, isLoading, error, refresh } = useHrLeaveRequests(undefined, orgId);
 
   const metrics = useMemo(() => {
     const pending = requests.filter((req) => req.status === 'PENDING');
@@ -139,9 +143,18 @@ export default function HrLeaveExperience() {
     });
   }, []);
 
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
 
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
@@ -160,11 +173,11 @@ export default function HrLeaveExperience() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => refresh()}>
-            <RefreshCw className="mr-2 h-4 w-4" />
+            <RefreshCw className="me-2 h-4 w-4" />
             {auto('Refresh data', 'actions.refresh')}
           </Button>
           <Button>
-            <CalendarRange className="mr-2 h-4 w-4" />
+            <CalendarRange className="me-2 h-4 w-4" />
             {auto('Launch leave window', 'actions.launchWindow')}
           </Button>
         </div>

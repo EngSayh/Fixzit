@@ -1,15 +1,18 @@
 'use client';
 
 import React from 'react';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { useTranslation } from '@/contexts/TranslationContext';
 import useSWR from 'swr';
 import ClientDate from '@/components/ClientDate';
 import { logger } from '@/lib/logger';
+import { getWorkOrderStatusLabel } from '@/lib/work-orders/status';
 
 const fetcher = (url: string) => fetch(url)
   .then(r => r.json())
   .catch(error => {
-    logger.error('PM work orders fetch error', { error });
+    logger.error('PM work orders fetch error', error);
     throw error;
   });
 
@@ -31,6 +34,7 @@ interface PMPlan {
 
 export default function PreventiveMaintenancePage() {
   const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'work_orders' });
   const propertyFilterOptions = [
     { value: 'all', key: 'workOrders.pm.filters.allProperties', fallback: 'All Properties' },
     { value: 'tower-a', key: 'workOrders.pm.filters.towerA', fallback: 'Tower A' },
@@ -65,8 +69,18 @@ export default function PreventiveMaintenancePage() {
     }
   };
 
+  if (!hasOrgContext) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
+      <ModuleViewTabs moduleId="work_orders" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -144,15 +158,27 @@ export default function PreventiveMaintenancePage() {
           <table className="w-full">
             <thead className="bg-muted">
               <tr>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">ID</th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Title</th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Property</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('workOrders.pm.table.id', 'ID')}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('workOrders.pm.table.title', 'Title')}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('workOrders.pm.table.property', 'Property')}
+                </th>
                 <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.pm.frequency', 'Frequency')}</th>
                 <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.pm.lastCompleted', 'Last Done')}</th>
                 <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('workOrders.pm.nextDue', 'Next Due')}</th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Assigned</th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('workOrders.pm.table.status', 'Status')}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('workOrders.pm.table.assigned', 'Assigned')}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('workOrders.pm.table.actions', 'Actions')}
+                </th>
               </tr>
             </thead>
             <tbody className="bg-card divide-y divide-border">
@@ -172,17 +198,26 @@ export default function PreventiveMaintenancePage() {
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{schedule.propertyId}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{schedule.recurrencePattern}</td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                        {schedule.lastGeneratedDate ? <ClientDate date={schedule.lastGeneratedDate} format="date-only" /> : 'N/A'}
+                        {schedule.lastGeneratedDate ? (
+                          <ClientDate date={schedule.lastGeneratedDate} format="date-only" />
+                        ) : t('common.notAvailable', 'N/A')}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                        {schedule.nextScheduledDate ? <ClientDate date={schedule.nextScheduledDate} format="date-only" /> : 'N/A'}
+                        {schedule.nextScheduledDate ? (
+                          <ClientDate date={schedule.nextScheduledDate} format="date-only" />
+                        ) : t('common.notAvailable', 'N/A')}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(planStatus)}`}>
-                          {planStatus}
+                          {getWorkOrderStatusLabel(t, planStatus)}
                         </span>
                       </td>
-                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{schedule.stats?.totalGenerated || 0} WOs</td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                        {t('workOrders.pm.table.generated', '{{count}} WOs').replace(
+                          '{{count}}',
+                          String(schedule.stats?.totalGenerated ?? 0)
+                        )}
+                      </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
                           <button className="text-primary hover:text-primary">{t('common.edit', 'Edit')}</button>
@@ -202,31 +237,31 @@ export default function PreventiveMaintenancePage() {
 
       {/* Quick Actions */}
       <div className="card">
-        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('workOrders.quickActions', 'Quick Actions')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📅</div>
-            <div className="text-sm font-medium">Schedule PM</div>
+            <div className="text-sm font-medium">{t('workOrders.pm.quickActions.schedule', 'Schedule PM')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📋</div>
-            <div className="text-sm font-medium">Templates</div>
+            <div className="text-sm font-medium">{t('workOrders.pm.quickActions.templates', 'Templates')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📊</div>
-            <div className="text-sm font-medium">Reports</div>
+            <div className="text-sm font-medium">{t('workOrders.pm.quickActions.reports', 'Reports')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">🔧</div>
-            <div className="text-sm font-medium">Checklists</div>
+            <div className="text-sm font-medium">{t('workOrders.pm.quickActions.checklists', 'Checklists')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">⚙️</div>
-            <div className="text-sm font-medium">Settings</div>
+            <div className="text-sm font-medium">{t('workOrders.pm.quickActions.settings', 'Settings')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📤</div>
-            <div className="text-sm font-medium">Export</div>
+            <div className="text-sm font-medium">{t('workOrders.pm.quickActions.export', 'Export')}</div>
           </button>
         </div>
       </div>

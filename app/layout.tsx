@@ -4,6 +4,7 @@ import ConditionalProviders from '@/providers/ConditionalProviders';
 import { Toaster } from 'sonner';
 import { Inter, Noto_Sans_Arabic } from 'next/font/google';
 import ClientLayout from '@/components/ClientLayout';
+import { getServerI18n } from '@/lib/i18n/server';
 
 export const metadata: Metadata = {
   title: 'Fixzit Enterprise Platform',
@@ -23,11 +24,17 @@ const notoSansArabic = Noto_Sans_Arabic({
   variable: '--font-noto-sans-arabic',
 });
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const { locale, isRTL } = await getServerI18n();
+  const dir = isRTL ? 'rtl' : 'ltr';
+
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`min-h-screen bg-background text-foreground ${inter.variable} ${notoSansArabic.variable}`}>
-        <ConditionalProviders>
+    <html lang={locale} dir={dir} suppressHydrationWarning data-locale={locale}>
+      <body
+        className={`min-h-screen bg-background text-foreground ${inter.variable} ${notoSansArabic.variable}`}
+        style={{ direction: dir }}
+      >
+        <ConditionalProviders initialLocale={locale}>
           <>
             <ClientLayout>
               {children}

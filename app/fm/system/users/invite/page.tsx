@@ -12,10 +12,12 @@ import { CardGridSkeleton } from '@/components/skeletons';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Mail, UserPlus, Shield } from 'lucide-react';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 export default function InviteUserPage() {
   const auto = useAutoTranslator('fm.system.users.invite');
   const { data: session } = useSession();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'system' });
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -24,6 +26,10 @@ export default function InviteUserPage() {
 
   if (!session) {
     return <CardGridSkeleton count={1} />;
+  }
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
   }
 
   const handleInvite = async (e: React.FormEvent) => {
@@ -39,7 +45,7 @@ export default function InviteUserPage() {
       setFirstName('');
       setLastName('');
       setRole('');
-    } catch (error) {
+    } catch (_error) {
       toast.error(auto('Failed to send invitation', 'toast.error'), { id: toastId });
     } finally {
       setSending(false);
@@ -49,6 +55,7 @@ export default function InviteUserPage() {
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="system" />
+      {supportBanner}
       
       <div>
         <div className="flex items-center gap-2">
@@ -127,7 +134,7 @@ export default function InviteUserPage() {
 
               <div className="pt-4 border-t">
                 <Button type="submit" disabled={sending || !email || !firstName || !lastName || !role} className="w-full">
-                  <Mail className="w-4 h-4 mr-2" />
+                  <Mail className="w-4 h-4 me-2" />
                   {auto('Send Invitation', 'submit')}
                 </Button>
               </div>

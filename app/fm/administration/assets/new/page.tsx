@@ -1,6 +1,7 @@
 'use client';
 
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ type AssetFormValues = {
 };
 
 export default function CreateAssetRecordPage() {
+  const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({ moduleId: 'administration' });
   const auto = useAutoTranslator('fm.administration.assets.new');
   const [serverError, setServerError] = useState<string | null>(null);
   const {
@@ -86,6 +88,9 @@ export default function CreateAssetRecordPage() {
       toastId = toast.loading(auto('Saving asset...', 'toast.saving'));
       const response = await fetch('/api/assets', {
         method: 'POST',
+        headers: {
+          ...(orgId && { 'x-tenant-id': orgId }),
+        } as HeadersInit,
         body: formData,
       });
 
@@ -96,8 +101,8 @@ export default function CreateAssetRecordPage() {
 
       toast.success(auto('Asset saved successfully.', 'form.success'), { id: toastId });
       reset();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Request failed';
+    } catch (_error) {
+      const message = _error instanceof Error ? _error.message : 'Request failed';
       setServerError(message);
       if (toastId) {
         toast.error(message, { id: toastId });
@@ -107,9 +112,14 @@ export default function CreateAssetRecordPage() {
     }
   };
 
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="administration" />
+      {supportBanner}
 
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">{auto('Asset register', 'header.kicker')}</p>
@@ -195,7 +205,7 @@ export default function CreateAssetRecordPage() {
                 {...register('attachments')}
               />
               {watchedAttachments && watchedAttachments.length > 0 && (
-                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                <ul className="list-disc space-y-1 ps-5 text-sm text-muted-foreground">
                   {Array.from(watchedAttachments).map((file) => (
                     <li key={`${file.name}-${file.lastModified}`}>{file.name}</li>
                   ))}
@@ -204,11 +214,11 @@ export default function CreateAssetRecordPage() {
             </div>
             <div className="flex flex-wrap gap-3">
               <Button type="button" variant="outline" disabled={isSubmitting}>
-                <HardDriveDownload className="mr-2 h-4 w-4" />
+                <HardDriveDownload className="me-2 h-4 w-4" />
                 {auto('Upload from drive', 'form.attach.drive')}
               </Button>
               <Button type="button" disabled={isSubmitting}>
-                <Layers className="mr-2 h-4 w-4" />
+                <Layers className="me-2 h-4 w-4" />
                 {auto('Add to asset hierarchy', 'form.hierarchy')}
               </Button>
             </div>

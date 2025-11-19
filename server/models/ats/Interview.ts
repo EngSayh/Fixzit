@@ -49,7 +49,7 @@ export type InterviewDoc = InferSchemaType<typeof InterviewSchema> & Document & 
   changeHistory?: unknown[];
 };
 
-export interface InterviewModel extends Model<InterviewDoc> {}
+export type InterviewModel = Model<InterviewDoc>;
 
 // Pre-save middleware to set defaults
 InterviewSchema.pre('save', function() {

@@ -1,6 +1,6 @@
 import { UserRole, type UserRoleType } from '@/types/user';
 
-type RoleChecker = (role?: string | null) => boolean;
+type RoleChecker = (_role?: string | null) => boolean;
 
 const normalizeRole = (role?: string | null): string | null =>
   typeof role === 'string' ? role.trim().toUpperCase() : null;

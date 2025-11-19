@@ -24,7 +24,6 @@ const DEFAULT_CURRENCY: CurrencyCode = 'SAR';
 
 interface CurrencyContextType {
   currency: CurrencyCode;
-  // eslint-disable-next-line no-unused-vars
   setCurrency: (currency: CurrencyCode) => void;
   options: readonly CurrencyOption[];
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import React from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useSupportOrg } from '@/contexts/SupportOrgContext';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -25,6 +26,8 @@ type SearchResult = {
   subscriptionPlan?: string | null;
 };
 
+const SWITCHER_EVENT = 'support-org-switcher:open';
+
 export default function SupportOrgSwitcher() {
   const { t } = useTranslation();
   const { supportOrg, loading, canImpersonate, selectOrgById, clearSupportOrg } = useSupportOrg();
@@ -32,6 +35,16 @@ export default function SupportOrgSwitcher() {
   const [identifier, setIdentifier] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const handleOpen = () => setOpen(true);
+    window.addEventListener(SWITCHER_EVENT, handleOpen);
+    return () => {
+      window.removeEventListener(SWITCHER_EVENT, handleOpen);
+    };
+  }, []);
 
   if (!canImpersonate) {
     return null;
@@ -162,7 +175,7 @@ export default function SupportOrgSwitcher() {
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
                 {t('support.impersonation.results', 'Matches')}
               </p>
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+              <div className="space-y-2 max-h-60 overflow-y-auto pe-2">
                 {results.map((result) => (
                   <div
                     key={result.orgId}

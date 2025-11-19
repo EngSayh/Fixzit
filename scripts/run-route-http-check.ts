@@ -11,7 +11,8 @@ function runCommand(command: string, args: string[], options: { env?: NodeJS.Pro
       shell: process.platform === 'win32',
     });
 
-    child.on('close', (code) => {
+    child.once('error', reject);
+    child.once('close', (code) => {
       if (code === 0) resolve();
       else reject(new Error(`${command} ${args.join(' ')} exited with code ${code}`));
     });
@@ -39,9 +40,10 @@ async function main() {
     ALLOW_LOCAL_MONGODB: 'true',
     DISABLE_MONGODB_FOR_BUILD: 'true',
   };
+  const buildArgs = ['run', 'build', ...buildFlags];
 
   console.log('🏗️  Building Next.js app before route verification...');
-  await runCommand('pnpm', ['run', 'build', ...buildFlags], { env: sharedEnv });
+  await runCommand('pnpm', buildArgs, { env: sharedEnv });
 
   console.log(`🚀 Starting Next.js server on ${BASE_URL}...`);
   const server = spawn(
@@ -49,20 +51,53 @@ async function main() {
     ['run', 'start', '-p', PORT, '-H', '127.0.0.1'],
     { stdio: 'inherit', env: sharedEnv, shell: process.platform === 'win32' }
   );
+  const serverClosed = new Promise<void>((resolve) => {
+    server.once('close', () => resolve());
+  });
+
+  let detachFailureHandlers = () => {};
+  const serverFailure = new Promise<never>((_, reject) => {
+    const handleError = (error: Error) => {
+      detachFailureHandlers();
+      reject(error);
+    };
+    const handleExit = (code: number | null, signal: NodeJS.Signals | null) => {
+      detachFailureHandlers();
+      reject(new Error(`Next.js server exited before verification (code: ${code}, signal: ${signal ?? 'none'})`));
+    };
+    detachFailureHandlers = () => {
+      server.off('error', handleError);
+      server.off('exit', handleExit);
+    };
+    server.once('error', handleError);
+    server.once('exit', handleExit);
+  });
 
   try {
-    await waitForServer(`${BASE_URL}/`);
+    await Promise.race([waitForServer(`${BASE_URL}/`), serverFailure]);
+    detachFailureHandlers();
     console.log('✅ Server is up, running HTTP route verification...');
     await runCommand('pnpm', ['exec', 'tsx', 'scripts/verify-routes.ts'], {
       env: { ...sharedEnv, ROUTE_VERIFY_BASE: BASE_URL },
     });
   } finally {
     console.log('🧹 Shutting down Next.js server...');
-    server.kill();
+    if (!server.killed) {
+      server.kill();
+    }
+    await Promise.race([
+      serverClosed,
+      new Promise((resolve) => setTimeout(resolve, 2000)),
+    ]);
   }
 }
 
-main().catch((error) => {
-  console.error('❌ Route HTTP verification failed:', error);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    console.log('✅ Route verification complete');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('❌ Route HTTP verification failed:', error);
+    process.exit(1);
+  });

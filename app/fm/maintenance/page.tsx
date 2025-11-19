@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import {Eye, Edit, Trash2,
   Wrench, Calendar, Clock, AlertTriangle, CheckCircle} from 'lucide-react';
 import ClientDate from '@/components/ClientDate';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 interface MaintenanceTask {
   id: string;
@@ -20,7 +21,12 @@ interface MaintenanceTask {
 }
 
 export default function MaintenancePage() {
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'administration' });
   const { t } = useTranslation();
+  
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
 
   const tasks: MaintenanceTask[] = [
     {
@@ -85,8 +91,18 @@ export default function MaintenancePage() {
     }
   };
 
+  if (!orgId) {
+    return (
+      <div className="space-y-6">
+        {supportBanner}
+        {guard}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {supportBanner}
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground mb-2">{t('nav.maintenance', 'Maintenance')}</h1>
@@ -218,4 +234,3 @@ export default function MaintenancePage() {
     </div>
   );
 }
-

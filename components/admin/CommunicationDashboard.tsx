@@ -53,7 +53,6 @@ interface Statistics {
 }
 
 interface CommunicationDashboardProps {
-  // eslint-disable-next-line no-unused-vars
   t: (key: string, fallback: string) => string;
   isRTL: boolean;
 }
@@ -302,26 +301,26 @@ export default function CommunicationDashboard({ t, isRTL }: CommunicationDashbo
 
       {/* Filters */}
       <div className="bg-card rounded-2xl p-4 border border-border">
-        <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${isRTL ? 'text-right' : ''}`}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-start">
           {/* Search */}
           <div className="relative">
-            <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground`} />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
               placeholder={t('communications.search', 'Search by user, phone, email...')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={isRTL ? 'pr-10' : 'pl-10'}
+              className="ps-10"
             />
           </div>
 
           {/* Channel Filter */}
           <div className="relative">
-            <Filter className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground`} />
+            <Filter className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <select
               value={channelFilter}
               onChange={(e) => setChannelFilter(e.target.value)}
-              className={`w-full h-10 ${isRTL ? 'pr-10 text-right' : 'pl-10'} border border-border rounded-md bg-background`}
+              className="w-full h-10 ps-10 text-start border border-border rounded-md bg-background"
             >
               <option value="all">{t('communications.filter.allChannels', 'All Channels')}</option>
               <option value="sms">SMS</option>
@@ -336,7 +335,7 @@ export default function CommunicationDashboard({ t, isRTL }: CommunicationDashbo
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className={`w-full h-10 border border-border rounded-md bg-background ${isRTL ? 'text-right' : ''}`}
+              className="w-full h-10 border border-border rounded-md bg-background text-start"
             >
               <option value="">{t('communications.filter.allStatuses', 'All Statuses')}</option>
               <option value="pending">Pending</option>
@@ -354,25 +353,25 @@ export default function CommunicationDashboard({ t, isRTL }: CommunicationDashbo
           <table className="w-full">
             <thead className="bg-muted border-b border-border">
               <tr>
-                <th className={`px-4 py-3 text-sm font-medium text-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
                   {t('communications.table.date', 'Date')}
                 </th>
-                <th className={`px-4 py-3 text-sm font-medium text-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
                   {t('communications.table.user', 'User')}
                 </th>
-                <th className={`px-4 py-3 text-sm font-medium text-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
                   {t('communications.table.channel', 'Channel')}
                 </th>
-                <th className={`px-4 py-3 text-sm font-medium text-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
                   {t('communications.table.recipient', 'Recipient')}
                 </th>
-                <th className={`px-4 py-3 text-sm font-medium text-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
                   {t('communications.table.status', 'Status')}
                 </th>
-                <th className={`px-4 py-3 text-sm font-medium text-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
                   {t('communications.table.message', 'Message')}
                 </th>
-                <th className={`px-4 py-3 text-sm font-medium text-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                <th className="px-4 py-3 text-sm font-medium text-foreground text-start">
                   {t('communications.table.actions', 'Actions')}
                 </th>
               </tr>
@@ -393,39 +392,39 @@ export default function CommunicationDashboard({ t, isRTL }: CommunicationDashbo
               ) : (
                 communications.map((log) => (
                   <tr key={log._id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                    <td className={`px-4 py-3 text-sm text-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <td className="px-4 py-3 text-sm text-foreground">
                       {new Date(log.createdAt).toLocaleDateString()}<br />
                       <span className="text-xs text-muted-foreground">
                         {new Date(log.createdAt).toLocaleTimeString()}
                       </span>
                     </td>
-                    <td className={`px-4 py-3 text-sm text-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <td className="px-4 py-3 text-sm text-foreground">
                       <div>
                         <div className="font-medium">{log.userName || 'Unknown'}</div>
                         <div className="text-xs text-muted-foreground">{log.userEmail}</div>
                       </div>
                     </td>
-                    <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
                         {getChannelIcon(log.channel)}
                         <span className="text-sm capitalize">{log.channel}</span>
                       </div>
                     </td>
-                    <td className={`px-4 py-3 text-sm text-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <td className="px-4 py-3 text-sm text-foreground">
                       {log.recipient}
                     </td>
-                    <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <td className="px-4 py-3">
                       {getStatusBadge(log.status)}
                     </td>
-                    <td className={`px-4 py-3 text-sm text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
                       <div className="max-w-xs truncate">{log.message}</div>
                     </td>
-                    <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    <td className="px-4 py-3">
                       <Button
                         onClick={() => setSelectedLog(log)}
                         variant="ghost"
                         size="sm"
-                        className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}
+                        className="flex items-center gap-1"
                       >
                         <Eye className="h-4 w-4" />
                         {t('communications.view', 'View')}

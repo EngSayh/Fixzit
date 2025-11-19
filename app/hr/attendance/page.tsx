@@ -18,6 +18,17 @@ interface EmployeeOption {
   lastName: string;
 }
 
+interface EmployeeApiItem {
+  _id: string;
+  employeeCode?: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+interface EmployeesResponse {
+  employees?: EmployeeApiItem[];
+}
+
 type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'ON_LEAVE' | 'OFF';
 
 interface AttendanceEntry {
@@ -64,12 +75,12 @@ export default function AttendancePage() {
     try {
       const response = await fetch('/api/hr/employees?limit=200');
       if (response.ok) {
-        const data = await response.json();
-        const mapped = (data.employees || []).map((employee: any) => ({
+        const data: EmployeesResponse = await response.json();
+        const mapped = (data.employees || []).map((employee) => ({
           _id: employee._id,
-          employeeCode: employee.employeeCode,
-          firstName: employee.firstName,
-          lastName: employee.lastName,
+          employeeCode: employee.employeeCode ?? '',
+          firstName: employee.firstName ?? '',
+          lastName: employee.lastName ?? '',
         }));
         setEmployees(mapped);
         if (mapped.length > 0) {
@@ -282,13 +293,13 @@ export default function AttendancePage() {
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="px-4 py-3 text-left">{t('hr.attendance.table.date', 'Date')}</th>
-                  <th className="px-4 py-3 text-left">{t('hr.attendance.table.status', 'Status')}</th>
-                  <th className="px-4 py-3 text-left">{t('hr.attendance.table.clockIn', 'Clock-in')}</th>
-                  <th className="px-4 py-3 text-left">{t('hr.attendance.table.clockOut', 'Clock-out')}</th>
-                  <th className="px-4 py-3 text-left">{t('hr.attendance.table.overtime', 'Overtime')}</th>
-                  <th className="px-4 py-3 text-left">{t('hr.attendance.table.source', 'Source')}</th>
-                  <th className="px-4 py-3 text-left">{t('hr.attendance.table.notes', 'Notes')}</th>
+                  <th className="px-4 py-3 text-start">{t('hr.attendance.table.date', 'Date')}</th>
+                  <th className="px-4 py-3 text-start">{t('hr.attendance.table.status', 'Status')}</th>
+                  <th className="px-4 py-3 text-start">{t('hr.attendance.table.clockIn', 'Clock-in')}</th>
+                  <th className="px-4 py-3 text-start">{t('hr.attendance.table.clockOut', 'Clock-out')}</th>
+                  <th className="px-4 py-3 text-start">{t('hr.attendance.table.overtime', 'Overtime')}</th>
+                  <th className="px-4 py-3 text-start">{t('hr.attendance.table.source', 'Source')}</th>
+                  <th className="px-4 py-3 text-start">{t('hr.attendance.table.notes', 'Notes')}</th>
                 </tr>
               </thead>
               <tbody>

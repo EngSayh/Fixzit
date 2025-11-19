@@ -2,7 +2,6 @@ import React from 'react';
 
 interface SwitchProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onChange'> {
   checked?: boolean;
-  // eslint-disable-next-line no-unused-vars
   onCheckedChange?: (checked: boolean) => void;
 }
 

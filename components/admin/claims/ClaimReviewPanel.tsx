@@ -69,6 +69,9 @@ interface DecisionData {
   recommendedAction?: string;
 }
 
+const isValidOutcome = (value: string): value is DecisionData['outcome'] =>
+  value === 'approve-full' || value === 'approve-partial' || value === 'reject';
+
 export default function ClaimReviewPanel() {
   const { toast } = useToast();
   const [claims, setClaims] = useState<ClaimForReview[]>([]);
@@ -265,6 +268,13 @@ export default function ClaimReviewPanel() {
     );
   };
 
+  const handleOutcomeChange = (value: string) => {
+    if (!isValidOutcome(value)) {
+      return;
+    }
+    setDecisionData((prev) => ({ ...prev, outcome: value }));
+  };
+
   return (
     <>
       <Card className="w-full">
@@ -363,12 +373,12 @@ export default function ClaimReviewPanel() {
           {/* Filters */}
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="بحث برقم المطالبة أو الطلب..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="ps-10"
               />
             </div>
 
@@ -542,7 +552,7 @@ export default function ClaimReviewPanel() {
                   <Label>القرار (Decision) *</Label>
                   <Select
                     value={decisionData.outcome}
-                    onValueChange={(value: any) => setDecisionData({ ...decisionData, outcome: value })}
+                    onValueChange={handleOutcomeChange}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="اختر القرار" />

@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 const SEVERITIES = ['critical', 'high', 'medium', 'low'] as const;
 const CHANNELS = ['email', 'slack', 'bridge', 'pagerduty'] as const;
@@ -37,6 +38,11 @@ type EscalationForm = {
 
 export default function NewEscalationPage() {
   const auto = useAutoTranslator('fm.support.escalations');
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'support' });
+  
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
   const [form, setForm] = useState<EscalationForm>({
     incidentId: '',
     service: '',
@@ -72,16 +78,26 @@ export default function NewEscalationPage() {
     try {
       await new Promise((resolve) => setTimeout(resolve, 1400));
       toast.success(auto('Escalation sent to duty manager', 'toast.success'), { id: toastId });
-    } catch (error) {
+    } catch (_error) {
       toast.error(auto('Failed to escalate. Please try again.', 'toast.error'), { id: toastId });
     } finally {
       setSubmitting(false);
     }
   };
 
+  if (!orgId) {
+    return (
+      <div className="space-y-6 p-6">
+        <ModuleViewTabs moduleId="support" />
+        {guard}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-6">
       <ModuleViewTabs moduleId="support" />
+      {supportBanner}
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>

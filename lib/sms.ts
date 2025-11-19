@@ -6,11 +6,16 @@
  */
 
 import { logger } from '@/lib/logger';
+import { executeWithRetry, withTimeout, getCircuitBreaker } from '@/lib/resilience';
+import { SERVICE_RESILIENCE } from '@/config/service-timeouts';
 
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const SMS_DEV_MODE_ENABLED =
   process.env.SMS_DEV_MODE === 'true' ||
   (NODE_ENV !== 'production' && process.env.SMS_DEV_MODE !== 'false');
+
+const twilioBreaker = getCircuitBreaker('twilio');
+const twilioResilience = SERVICE_RESILIENCE.twilio;
 
 function hasTwilioConfiguration(): boolean {
   return Boolean(
@@ -26,13 +31,43 @@ interface SMSResult {
   error?: string;
 }
 
+export type TwilioOperationLabel =
+  | 'sms-send'
+  | 'sms-status'
+  | 'sms-config-test'
+  | 'whatsapp-send';
+
+export async function withTwilioResilience<T>(
+  label: TwilioOperationLabel,
+  operation: () => Promise<T>
+): Promise<T> {
+  const timeoutMs =
+    label === 'sms-status'
+      ? twilioResilience.timeouts.statusMs
+      : twilioResilience.timeouts.smsSendMs;
+
+  return executeWithRetry(
+    () =>
+      twilioBreaker.run(() =>
+        withTimeout(() => operation(), {
+          timeoutMs,
+        })
+      ),
+    {
+      maxAttempts: twilioResilience.retries.maxAttempts,
+      baseDelayMs: twilioResilience.retries.baseDelayMs,
+      label: `twilio-${label}`,
+    }
+  );
+}
+
 /**
  * Format phone number to E.164 format (+966XXXXXXXXX)
  * Handles common Saudi phone number formats
  */
 function formatSaudiPhoneNumber(phone: string): string {
   // Remove all spaces, dashes, and parentheses
-  let cleaned = phone.replace(/[\s\-()]/g, '');
+  const cleaned = phone.replace(/[\s\-()]/g, '');
   
   // If already in E.164 format
   if (cleaned.startsWith('+966')) {
@@ -100,11 +135,13 @@ export async function sendSMS(to: string, message: string): Promise<SMSResult> {
     const { default: twilio } = await import('twilio');
     const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
 
-    const result = await client.messages.create({
-      body: message,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: formattedPhone,
-    });
+    const result = await withTwilioResilience('sms-send', () =>
+      client.messages.create({
+        body: message,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: formattedPhone,
+      })
+    );
 
     logger.info('[SMS] Message sent successfully', {
       to: formattedPhone,
@@ -116,7 +153,9 @@ export async function sendSMS(to: string, message: string): Promise<SMSResult> {
       success: true,
       messageSid: result.sid,
     };
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error('[SMS] Send failed', {
       error: errorMessage,
@@ -191,7 +230,9 @@ export async function getSMSStatus(messageSid: string): Promise<{
     const { default: twilio } = await import('twilio');
     const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
-    const message = await client.messages(messageSid).fetch();
+    const message = await withTwilioResilience('sms-status', () =>
+      client.messages(messageSid).fetch()
+    );
 
     return {
       status: message.status,
@@ -200,7 +241,9 @@ export async function getSMSStatus(messageSid: string): Promise<{
       errorCode: message.errorCode || undefined,
       errorMessage: message.errorMessage || undefined
     };
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[SMS] Status check failed', { error, messageSid });
     return null;
   }
@@ -227,11 +270,15 @@ export async function testSMSConfiguration(): Promise<boolean> {
     const client = twilio(accountSid, authToken);
 
     // Validate credentials by fetching account info
-    await client.api.accounts(accountSid).fetch();
+    await withTwilioResilience('sms-config-test', () =>
+      client.api.accounts(accountSid).fetch()
+    );
 
     logger.info('[SMS] Configuration test passed');
     return true;
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[SMS] Configuration test failed', { error });
     return false;
   }

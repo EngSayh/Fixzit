@@ -40,7 +40,9 @@ export async function generateZATCAQR(data: ZATCAData): Promise<string> {
       width: 300
     });
     return qrDataURL;
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('QR Code generation error:', { error });
     throw new Error('Failed to generate QR code');
   }

@@ -168,8 +168,9 @@ export async function GET(req: NextRequest){
     // Small public cache window; underlying query is tenant-scoped
     response.headers.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
     return response;
-  } catch (error) {
-    logger.error('Error fetching help articles:', error instanceof Error ? error.message : 'Unknown error');
+  } catch (_error) {
+    const message = _error instanceof Error ? _error.message : 'Unknown error';
+    logger.error('Error fetching help articles:', message);
     return createSecureResponse({ error: 'Failed to fetch help articles' }, 500, req);
   }
 }

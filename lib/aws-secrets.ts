@@ -38,7 +38,9 @@ class AWSSecretsManager {
       });
 
       return secretValue;
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error(`Failed to retrieve secret ${secretName}:`, { error });
       throw error;
     }

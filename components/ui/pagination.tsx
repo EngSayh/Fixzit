@@ -7,7 +7,6 @@ import { useTranslation } from "@/contexts/TranslationContext";
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
-  // eslint-disable-next-line no-unused-vars
   onPageChange: (page: number) => void;
   totalItems?: number;
   itemsPerPage?: number;
@@ -27,7 +26,7 @@ export function Pagination({
   
   // Calculate which pages to show
   let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+  const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
   
   if (endPage - startPage < maxVisiblePages - 1) {
     startPage = Math.max(1, endPage - maxVisiblePages + 1);

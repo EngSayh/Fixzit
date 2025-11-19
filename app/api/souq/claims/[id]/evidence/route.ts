@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
 import { ClaimService } from '@/services/souq/claims/claim-service';
 import { enforceRateLimit } from '@/lib/middleware/rate-limit';
+import { resolveRequestSession } from '@/lib/auth/request-session';
 
 /**
  * POST /api/souq/claims/[id]/evidence
@@ -19,17 +19,37 @@ export async function POST(
   if (limited) return limited;
 
   try {
-    const session = await auth();
+    const session = await resolveRequestSession(request);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { type, url, description } = body;
+    const contentType = request.headers.get('content-type') || '';
+    let file: File | Blob | null = null;
+    let description = '';
+    if (contentType.includes('multipart/form-data')) {
+      const form = await request.formData();
+      const maybeFile = form.get('file');
+      if (maybeFile instanceof Blob) {
+        file = maybeFile;
+      }
+      const descValue = form.get('description');
+      if (typeof descValue === 'string') {
+        description = descValue;
+      }
+    } else {
+      const body = await request.json();
+      if (body?.file) {
+        file = body.file;
+      }
+      if (typeof body?.description === 'string') {
+        description = body.description;
+      }
+    }
 
-    if (!type || !url) {
+    if (!file) {
       return NextResponse.json(
-        { error: 'Missing required fields: type, url' },
+        { error: 'Evidence file is required' },
         { status: 400 }
       );
     }
@@ -40,26 +60,61 @@ export async function POST(
     }
 
     // Determine who is uploading
+    const buyerMatches = claim.buyerId && String(claim.buyerId) === session.user.id;
+    const sellerMatches = claim.sellerId && String(claim.sellerId) === session.user.id;
+
     let uploadedBy: 'buyer' | 'seller' | 'admin';
-    if (claim.buyerId === session.user.id) {
+    if (buyerMatches) {
       uploadedBy = 'buyer';
-    } else if (claim.sellerId === session.user.id) {
+    } else if (sellerMatches) {
       uploadedBy = 'seller';
     } else {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    if (Array.isArray(claim.evidence) && claim.evidence.length >= 10) {
+      return NextResponse.json(
+        { error: 'maximum evidence limit reached (10 files)' },
+        { status: 400 }
+      );
+    }
+
+    const maxSizeBytes = 10 * 1024 * 1024;
+    if (typeof file.size === 'number' && file.size > maxSizeBytes) {
+      return NextResponse.json(
+        { error: 'Evidence file exceeds maximum size of 10MB' },
+        { status: 400 }
+      );
+    }
+
+    const allowedTypes = new Map<string, 'image' | 'document'>([
+      ['image/jpeg', 'image'],
+      ['image/png', 'image'],
+      ['image/webp', 'image'],
+      ['application/pdf', 'document'],
+    ]);
+    const resolvedType = allowedTypes.get((file as File).type);
+    if (!resolvedType) {
+      return NextResponse.json(
+        { error: 'Unsupported evidence file type' },
+        { status: 400 }
+      );
+    }
+
+    const generatedUrl = `https://storage.local/claims/${params.id}/${Date.now()}`;
+
     await ClaimService.addEvidence({
       claimId: params.id,
       uploadedBy,
-      type,
-      url,
+      type: resolvedType,
+      url: generatedUrl,
       description,
     });
 
+    const updated = await ClaimService.getClaim(params.id);
+
     return NextResponse.json({
-      success: true,
-      message: 'Evidence uploaded successfully',
+      evidence: updated?.evidence ?? [],
     });
   } catch (error) {
     console.error('[Claims API] Upload evidence failed:', error);

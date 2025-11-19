@@ -7,10 +7,10 @@ set -e
 echo "🧹 Organizing Fixzit workspace..."
 
 # Create organization directories if they don't exist
-mkdir -p docs/reports/archive
-mkdir -p docs/sessions
+mkdir -p docs/archived/reports
+mkdir -p docs/archived/sessions
 mkdir -p docs/security
-mkdir -p docs/pull-requests
+mkdir -p docs/archived/pull-requests
 mkdir -p .archive/temp-files
 
 # Function to move files with logging
@@ -26,9 +26,9 @@ move_file() {
 
 echo ""
 echo "📋 Step 1: Organizing session reports..."
-# Move session summaries to docs/sessions/
+# Move session summaries to docs/archived/sessions/
 for file in ./SESSION_*.md ./COMPLETE_TASK_SUMMARY.md ./FIX_SUMMARY_*.md; do
-    [ -f "$file" ] && move_file "$file" "docs/sessions"
+    [ -f "$file" ] && move_file "$file" "docs/archived/sessions"
 done
 
 echo ""
@@ -40,16 +40,16 @@ done
 
 echo ""
 echo "🔀 Step 3: Organizing PR documentation..."
-# Move PR-related docs to docs/pull-requests/
+# Move PR-related docs to docs/archived/pull-requests/
 for file in ./PR_*.md ./PR*.md ./.pr*.json; do
-    [ -f "$file" ] && move_file "$file" "docs/pull-requests"
+    [ -f "$file" ] && move_file "$file" "docs/archived/pull-requests"
 done
 
 echo ""
 echo "📊 Step 4: Organizing completion reports..."
-# Move completion/comprehensive reports to docs/reports/
+# Move completion/comprehensive reports to docs/archived/reports/
 for file in ./COMPREHENSIVE_*.md ./COMPLETE_*.md ./DOCUMENTATION_*.md ./CODERABBIT_*.md ./GITHUB_ACTIONS_*.md ./PYTHON_SCRIPT_*.md; do
-    [ -f "$file" ] && move_file "$file" "docs/reports"
+    [ -f "$file" ] && move_file "$file" "docs/archived/reports"
 done
 
 echo ""
@@ -93,10 +93,10 @@ find docs -type d -empty -delete 2>/dev/null || true
 
 echo ""
 echo "📊 Summary:"
-echo "  📂 Session reports  → docs/sessions/"
+echo "  📂 Session reports  → docs/archived/sessions/"
 echo "  🔒 Security reports → docs/security/"
-echo "  🔀 PR documentation → docs/pull-requests/"
-echo "  📊 Other reports   → docs/reports/"
+echo "  🔀 PR documentation → docs/archived/pull-requests/"
+echo "  📊 Other reports   → docs/archived/reports/"
 echo "  📚 Guides          → docs/guides/"
 echo "  🧪 Test scripts    → tests/"
 

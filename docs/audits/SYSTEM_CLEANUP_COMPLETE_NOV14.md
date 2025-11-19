@@ -33,7 +33,7 @@ docs/
 
 ### Files Moved (30 total):
 
-**Progress Reports** → `docs/progress-reports/`:
+**Progress Reports** → `docs/archived/progress-reports/`:
 - ALL_FIXES_COMPLETED_SUMMARY.md
 - COMPLETE_FIX_REPORT_2025-11-13.md
 - CRITICAL_AUTH_FIXES_SUMMARY.md

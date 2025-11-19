@@ -1,9 +1,12 @@
-import { CmsPage } from "@/server/models/CmsPage";
+import { CmsPage, CmsPageDoc } from "@/server/models/CmsPage";
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import Link from "next/link";
 import { renderMarkdownSanitized } from '@/lib/markdown';
 import { cookies } from 'next/headers';
 import ClientDate from '@/components/ClientDate';
+import { logger } from '@/lib/logger';
+import { getStaticCmsPage } from '@/data/static-content';
+import { isMongoUnavailableError } from '@/lib/mongo-build-guards';
 
 export const revalidate = 60;
 
@@ -23,14 +26,59 @@ async function getTranslations() {
   };
 }
 
+type CmsPageLike = {
+  slug: string;
+  title: string;
+  content: string;
+  status: CmsPageDoc['status'];
+  updatedAt?: Date;
+  updatedBy?: string;
+};
+
+async function loadCmsPage(slug: string): Promise<CmsPageLike | null> {
+  try {
+    await connectToDatabase();
+    const doc = (await CmsPage.findOne({ slug }).lean().exec()) as (CmsPageDoc & {
+      updatedAt?: Date | string;
+    }) | null;
+    if (doc) {
+      return {
+        slug: doc.slug,
+        title: doc.title,
+        content: doc.content,
+        status: doc.status,
+        updatedAt: doc.updatedAt ? new Date(doc.updatedAt) : undefined,
+        updatedBy: (doc as { updatedBy?: string }).updatedBy,
+      };
+    }
+  } catch (error) {
+    if (!isMongoUnavailableError(error)) {
+      throw error;
+    }
+    logger.warn('[CMS] Falling back to static CMS page', { slug });
+  }
+
+  const fallback = getStaticCmsPage(slug);
+  return fallback
+    ? {
+        slug: fallback.slug,
+        title: fallback.title,
+        content: fallback.content,
+        status: (fallback as { status?: CmsPageDoc['status'] }).status ?? 'PUBLISHED',
+        updatedAt: fallback.updatedAt ? new Date(fallback.updatedAt) : undefined,
+        updatedBy: (fallback as { updatedBy?: string }).updatedBy,
+      }
+    : null;
+}
+
 export default async function CmsPageScreen(props: { params: Promise<{slug:string}>, searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const searchParams = await props.searchParams;
   const params = await props.params;
   const t = await getTranslations();
-  await connectToDatabase();
   const { slug } = params;
   const preview = searchParams?.preview === "1";
-  const page = await CmsPage.findOne({ slug });
+  const page = await loadCmsPage(slug);
+  const updatedAt = page?.updatedAt;
   if (!page) {
     return (
       <div className="mx-auto max-w-3xl p-6">
@@ -68,9 +116,9 @@ export default async function CmsPageScreen(props: { params: Promise<{slug:strin
           <div className="mt-8 pt-6 border-t border-border">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <div>
-                Last updated <ClientDate date={page.updatedAt} format="date-only" />
+                Last updated {updatedAt ? <ClientDate date={updatedAt} format="date-only" /> : null}
                 {/* TODO(type-safety): Add updatedBy to Page schema */}
-                {(page as any).updatedBy && ` by ${(page as any).updatedBy}`}
+                {page.updatedBy && ` by ${page.updatedBy}`}
               </div>
               <Link 
                 href="/" 

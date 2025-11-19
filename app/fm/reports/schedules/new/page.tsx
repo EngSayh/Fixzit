@@ -13,6 +13,7 @@ import { CardGridSkeleton } from '@/components/skeletons';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Clock, Calendar, Mail } from 'lucide-react';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 const REPORT_TYPES = [
   { value: 'workorders', label: 'Work Orders Summary' },
@@ -40,6 +41,7 @@ export default function NewSchedulePage() {
   const auto = useAutoTranslator('fm.reports.schedules.new');
   const { data: session } = useSession();
   const router = useRouter();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'reports' });
   const [reportType, setReportType] = useState('');
   const [title, setTitle] = useState('');
   const [frequency, setFrequency] = useState('monthly');
@@ -52,6 +54,10 @@ export default function NewSchedulePage() {
     return <CardGridSkeleton count={1} />;
   }
 
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
@@ -62,7 +68,7 @@ export default function NewSchedulePage() {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       toast.success(auto('Schedule created successfully', 'toast.success'), { id: toastId });
       router.push('/fm/reports');
-    } catch (error) {
+    } catch (_error) {
       toast.error(auto('Failed to create schedule', 'toast.error'), { id: toastId });
     } finally {
       setCreating(false);
@@ -72,6 +78,7 @@ export default function NewSchedulePage() {
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="reports" />
+      {supportBanner}
       
       <div>
         <div className="flex items-center gap-2">
@@ -193,7 +200,7 @@ export default function NewSchedulePage() {
           </Card>
 
           <Button type="submit" disabled={creating || !reportType || !title || !recipients} className="w-full">
-            <Clock className="w-4 h-4 mr-2" />
+            <Clock className="w-4 h-4 me-2" />
             {auto('Create Schedule', 'submit')}
           </Button>
         </form>

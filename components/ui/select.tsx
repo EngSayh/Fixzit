@@ -8,6 +8,23 @@ import type { ReactNode } from 'react';
 // Helper: detect placeholder passed via legacy <SelectValue placeholder="..."> usage
 const SELECT_VALUE_DISPLAY_NAME = 'SelectValue';
 
+type SelectValuePlaceholderProps = {
+  placeholder?: string;
+  children?: ReactNode;
+};
+
+type SelectValueElement = React.ReactElement<SelectValuePlaceholderProps> & {
+  type: { displayName?: string };
+};
+
+const isSelectValueElement = (node: ReactNode): node is SelectValueElement => {
+  if (!React.isValidElement(node)) {
+    return false;
+  }
+  const elementType = node.type as { displayName?: string };
+  return elementType?.displayName === SELECT_VALUE_DISPLAY_NAME;
+};
+
 function extractPlaceholderFromNode(node: ReactNode): string | undefined {
   if (!node) {
     return undefined;
@@ -21,16 +38,16 @@ function extractPlaceholderFromNode(node: ReactNode): string | undefined {
     }
     return undefined;
   }
-  if (typeof node === 'object' && React.isValidElement(node)) {
-    const elementType = node.type as { displayName?: string };
-    if (elementType?.displayName === SELECT_VALUE_DISPLAY_NAME) {
-      const maybe = (node.props as SelectValueProps)?.placeholder;
-      if (typeof maybe === 'string' && maybe.trim().length > 0) {
-        return maybe;
-      }
+  if (isSelectValueElement(node)) {
+    const maybe = node.props.placeholder;
+    if (typeof maybe === 'string' && maybe.trim().length > 0) {
+      return maybe;
     }
-    if (node.props?.children) {
-      return extractPlaceholderFromNode(node.props.children);
+  }
+  if (React.isValidElement(node)) {
+    const childNodes = (node.props as { children?: React.ReactNode })?.children;
+    if (childNodes) {
+      return extractPlaceholderFromNode(childNodes);
     }
   }
   return undefined;
@@ -41,10 +58,8 @@ function extractPlaceholderFromNode(node: ReactNode): string | undefined {
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   children: React.ReactNode;
   /** Provides the native `onChange` event. */
-  // eslint-disable-next-line no-unused-vars
   onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   /** (Optional) A simpler callback for just the new value. */
-  // eslint-disable-next-line no-unused-vars
   onValueChange?: (value: string) => void;
   /** (Optional) A placeholder to display. Renders a disabled first option. */
   placeholder?: string;
@@ -225,9 +240,9 @@ export const SelectContent: React.FC<SelectContentProps> = ({ children }) => {
 };
 SelectContent.displayName = 'SelectContent';
 
-interface SelectValueProps extends React.HTMLAttributes<HTMLSpanElement> {
-  placeholder?: string;
-}
+interface SelectValueProps
+  extends React.HTMLAttributes<HTMLSpanElement>,
+    SelectValuePlaceholderProps {}
 
 let hasLoggedSelectValueWarning = false;
 

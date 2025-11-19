@@ -121,7 +121,9 @@ export async function sendWhatsAppTextMessage(
     logger.info('[WhatsApp] Message sent successfully', { messageId: data.messages?.[0]?.id, to: normalizedPhone });
 
     return { success: true, messageId: data.messages?.[0]?.id };
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[WhatsApp] Error sending message', { error, to: normalizedPhone });
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
@@ -200,7 +202,9 @@ export async function sendWhatsAppTemplateMessage(
     });
 
     return { success: true, messageId: data.messages?.[0]?.id };
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[WhatsApp] Error sending template', { error, to: normalizedPhone, templateName });
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }

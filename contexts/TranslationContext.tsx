@@ -1,31 +1,24 @@
-// @ts-nocheck
 'use client';
 import { logger } from '@/lib/logger';
-
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-// ✅ FIX: Import from centralized config
+import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import {
   LANGUAGE_OPTIONS,
   findLanguageByCode,
   findLanguageByLocale,
   type LanguageCode,
-  type LanguageOption
+  type LanguageOption,
 } from '@/config/language-options';
-// ✅ FIX: Import centralized storage and cookie keys
-import { STORAGE_KEYS, COOKIE_KEYS, APP_DEFAULTS } from '@/config/constants';
-// ✅ MIGRATION: Load from JSON artifacts instead of 59k-line TS literal
-// Client-side: Import translations directly from generated files
-import enTranslations from '@/i18n/generated/en.dictionary.json';
-import arTranslations from '@/i18n/generated/ar.dictionary.json';
+import { STORAGE_KEYS, APP_DEFAULTS } from '@/config/constants';
+import { useI18n } from '@/i18n/useI18n';
+import type { Locale } from '@/i18n/config';
 
 export type Language = LanguageCode;
 
-/* eslint-disable no-unused-vars */
 type TranslationValues = Record<string, string | number>;
 
 const interpolatePlaceholders = (text: string, values?: TranslationValues) => {
   if (!values) return text;
-  return text.replace(/{{\s*(\w+)\s*}}/g, (_, token) => {
+  return text.replace(/{{\s*(\w+)\s*}}/g, (_match, token: string) => {
     const value = values[token.trim()];
     return value === undefined ? '' : String(value);
   });
@@ -39,116 +32,110 @@ interface TranslationContextType {
   t: (key: string, fallback?: string, values?: TranslationValues) => string;
   isRTL: boolean;
 }
-/* eslint-enable no-unused-vars */
 
 const TranslationContext = createContext<TranslationContextType | undefined>(undefined);
 
-// Translation data
-type TranslationMap = Record<Language, Record<string, string>>;
+// ✅ FIX: Use centralized APP_DEFAULTS instead of hardcoded 'ar'
+const DEFAULT_LANGUAGE_OPTION =
+  LANGUAGE_OPTIONS.find((opt) => opt.language === APP_DEFAULTS.language) || LANGUAGE_OPTIONS[0];
 
-// Build translations from imported JSON files
-const translations: TranslationMap = {
-  en: enTranslations as Record<string, string>,
-  ar: arTranslations as Record<string, string>,
+function createFallbackContext(option: LanguageOption): TranslationContextType {
+  return {
+    language: option.language as Language,
+    locale: option.locale,
+    setLanguage: (lang: Language) => {
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEYS.language, lang);
+          logger.warn('Language preference saved. Please refresh the page for changes to take effect.');
+        }
+      } catch (error) {
+        logger.warn('Could not save language preference', { error });
+      }
+    },
+    setLocale: (locale: string) => {
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEYS.locale, locale);
+          logger.warn('Locale preference saved. Please refresh the page for changes to take effect.');
+        }
+      } catch (error) {
+        logger.warn('Could not save locale preference', { error });
+      }
+    },
+    t: (key: string, fallback: string = key, values?: TranslationValues) =>
+      interpolatePlaceholders(fallback, values),
+    isRTL: option.dir === 'rtl',
+  };
+}
+
+type TranslationProviderProps = {
+  children: ReactNode;
+  initialLanguage?: LanguageCode;
 };
 
+export function TranslationProvider({ children, initialLanguage }: TranslationProviderProps) {
+  const fallbackOption = useMemo(() => {
+    if (initialLanguage) {
+      return findLanguageByCode(initialLanguage) ?? DEFAULT_LANGUAGE_OPTION;
+    }
+    return DEFAULT_LANGUAGE_OPTION;
+  }, [initialLanguage]);
 
-// ✅ FIX: Use centralized APP_DEFAULTS instead of hardcoded 'ar'
-const DEFAULT_LANGUAGE_OPTION = LANGUAGE_OPTIONS.find(opt => opt.language === APP_DEFAULTS.language) || LANGUAGE_OPTIONS[0];
+  // ✅ FIX: Always call useI18n at top level (React Hooks rules) - no try-catch allowed
+  const i18nHookResult = useI18n();
 
-export function TranslationProvider({ children }: { children: ReactNode }) {
-  const [currentOption, setCurrentOption] = useState<LanguageOption>(DEFAULT_LANGUAGE_OPTION);
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-
-    if (typeof window === 'undefined') {
-      return;
+  const contextValue = useMemo(() => {
+    // If i18n hook returns invalid data, use fallback
+    if (!i18nHookResult || !i18nHookResult.locale) {
+      logger.warn('i18n hook returned invalid data, using fallback');
+      return createFallbackContext(fallbackOption);
     }
 
-    try {
-      const storedLocale = window.localStorage.getItem(STORAGE_KEYS.locale);
-      const storedLanguage = window.localStorage.getItem(STORAGE_KEYS.language) as Language | null;
-      const nextOption =
-        (storedLocale && findLanguageByLocale(storedLocale)) ||
-        (storedLanguage && findLanguageByCode(storedLanguage)) ||
-        DEFAULT_LANGUAGE_OPTION;
+    const { locale: i18nLocale, dir, setLocale: i18nSetLocale, t: i18nTranslate } = i18nHookResult;
+    const activeOption =
+      findLanguageByLocale(i18nLocale) ?? findLanguageByCode(i18nLocale) ?? fallbackOption;
 
-      setCurrentOption(nextOption);
-    } catch (error) {
-      logger.warn('Could not access localStorage for language preference', { error });
-      setCurrentOption(DEFAULT_LANGUAGE_OPTION);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isClient || typeof window === 'undefined') {
-      return;
-    }
-
-    try {
-      window.localStorage.setItem(STORAGE_KEYS.locale, currentOption.locale);
-      window.localStorage.setItem(STORAGE_KEYS.language, currentOption.language);
-      const oneYear = 365 * 24 * 60 * 60; // seconds
-      document.cookie = `${COOKIE_KEYS.language}=${currentOption.language}; path=/; SameSite=Lax; max-age=${oneYear}`;
-      document.cookie = `${COOKIE_KEYS.locale}=${currentOption.locale}; path=/; SameSite=Lax; max-age=${oneYear}`;
-      document.documentElement.lang = currentOption.locale.toLowerCase();
-      document.documentElement.dir = currentOption.dir;
-      document.documentElement.setAttribute('data-locale', currentOption.locale);
-      if (document.body) {
-        document.body.style.direction = currentOption.dir;
+    const setLanguage = (lang: Language) => {
+      const nextOption = findLanguageByCode(lang);
+      if (nextOption) {
+        i18nSetLocale(nextOption.language as Locale);
       }
-      window.dispatchEvent(
-        new CustomEvent('fixzit:language-change', {
-          detail: {
-            locale: currentOption.locale,
-            language: currentOption.language,
-            dir: currentOption.dir
-          }
-        })
-      );
-    } catch (error) {
-      logger.warn('Could not update language settings', { error });
-    }
-  }, [currentOption, isClient]);
+    };
 
-  const setLanguage = (lang: Language) => {
-    const nextOption = findLanguageByCode(lang);
-    if (nextOption) {
-      setCurrentOption(nextOption);
-    }
-  };
+    const setLocale = (locale: string) => {
+      const nextOption = findLanguageByLocale(locale) ?? findLanguageByCode(locale);
+      if (nextOption) {
+        i18nSetLocale(nextOption.language as Locale);
+      } else {
+        i18nSetLocale(activeOption.language as Locale);
+      }
+    };
 
-  const setLocale = (locale: string) => {
-    const nextOption = findLanguageByLocale(locale) ?? findLanguageByCode(currentOption.language);
-    if (nextOption) {
-      setCurrentOption(nextOption);
-    }
-  };
+    const translate = (key: string, fallback: string = key, values?: TranslationValues) => {
+      try {
+        const result = i18nTranslate(key, values as Record<string, string | number> | undefined);
+        if (result === key && fallback) {
+          return interpolatePlaceholders(fallback, values);
+        }
+        return result;
+      } catch (error) {
+        logger.warn(`Translation error for key '${key}'`, { error });
+        return interpolatePlaceholders(fallback, values);
+      }
+    };
 
-  const language = currentOption.language;
-  const locale = currentOption.locale;
-  const isRTL = currentOption.dir === 'rtl';
+    return {
+      language: activeOption.language,
+      locale: activeOption.locale,
+      setLanguage,
+      setLocale,
+      t: translate,
+      isRTL: dir === 'rtl',
+    };
+  }, [i18nHookResult, fallbackOption]);
 
-  const t = (key: string, fallback: string = key, values?: TranslationValues): string => {
-    try {
-      const langData = translations[language as LanguageCode];
-      // First check current language, then fallback to English, then use fallback string
-      const enData = translations.en;
-      const result = langData?.[key] ?? enData?.[key] ?? fallback;
-      return interpolatePlaceholders(result, values);
-    } catch (error) {
-      logger.warn(`Translation error for key '${key}'`, { error });
-      return interpolatePlaceholders(fallback, values);
-    }
-  };
-
-  return (
-    <TranslationContext.Provider value={{ language: language as LanguageCode, locale, setLanguage, setLocale, t, isRTL }}>
-      {children}
-    </TranslationContext.Provider>
-  );
+  return <TranslationContext.Provider value={contextValue}>{children}</TranslationContext.Provider>;
 }
 
 export function useTranslation() {
@@ -165,7 +152,7 @@ export function useTranslation() {
           try {
             if (typeof window !== 'undefined') {
               localStorage.setItem(STORAGE_KEYS.language, lang);
-              window.location.reload();
+              logger.warn('Language preference saved. Please refresh the page for changes to take effect.');
             }
           } catch (error) {
             logger.warn('Could not save language preference', { error });

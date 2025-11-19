@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 import type { WorkOrder } from '@/lib/models';
 import { WOStatus } from '@/lib/models';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 interface User {
   name?: string;
@@ -64,8 +66,12 @@ export default function DashboardPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
-  const orgId = session?.user?.orgId;
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'dashboard' });
   const userRole = (session?.user as { role?: string })?.role;
+  
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
 
   // Role-based redirect logic
   useEffect(() => {
@@ -97,7 +103,7 @@ export default function DashboardPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        logger.error('FM dashboard fetch error', { error });
+        logger.error('FM dashboard fetch error', error);
         throw error;
       });
   };
@@ -117,9 +123,10 @@ export default function DashboardPage() {
 
   if (!orgId) {
     return (
-      <p className="text-destructive">
-        {t('dashboard.errors.noOrgSession', 'Error: No organization ID found in session')}
-      </p>
+      <div className="space-y-6 p-6">
+        <ModuleViewTabs moduleId="dashboard" />
+        {guard}
+      </div>
     );
   }
 
@@ -161,7 +168,9 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
+      <ModuleViewTabs moduleId="dashboard" />
+      {supportBanner}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

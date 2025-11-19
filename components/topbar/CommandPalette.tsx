@@ -68,10 +68,7 @@ export function CommandPalette({
               value={query}
               onChange={(event) => onQueryChange(event.target.value)}
               placeholder={placeholder}
-              className={`
-                flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground/70
-                ${isRTL ? 'text-right' : ''}
-              `}
+              className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground/70 text-start"
             />
             <div className="flex items-center gap-2 text-xs">
               <button
@@ -119,7 +116,7 @@ export function CommandPalette({
                     <button
                       key={saved.id}
                       type="button"
-                      className="w-full rounded-lg border border-border px-3 py-2 text-left text-sm hover:bg-muted"
+                      className="w-full rounded-lg border border-border px-3 py-2 text-start text-sm hover:bg-muted"
                       onClick={() => onSavedSearchSelect(saved)}
                     >
                       <div className="font-medium">{t(saved.labelKey, saved.fallbackLabel)}</div>
@@ -143,7 +140,7 @@ export function CommandPalette({
                     <button
                       key={action.id}
                       type="button"
-                      className="w-full rounded-lg border border-border px-3 py-2 text-left text-sm hover:bg-muted"
+                      className="w-full rounded-lg border border-border px-3 py-2 text-start text-sm hover:bg-muted"
                       onClick={() => onActionClick(action.href)}
                     >
                       {t(action.labelKey, action.fallbackLabel)}
@@ -175,7 +172,7 @@ export function CommandPalette({
                         <button
                           type="button"
                           onClick={() => onResultClick(result.href)}
-                          className="flex w-full flex-col gap-1 px-4 py-3 text-left hover:bg-muted"
+                          className="flex w-full flex-col gap-1 px-4 py-3 text-start hover:bg-muted"
                         >
                           <span className="text-sm font-medium text-foreground">{result.title}</span>
                           {result.subtitle && (

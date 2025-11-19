@@ -1,4 +1,10 @@
+import { randomUUID } from 'crypto'; // Use built-in crypto for collision-resistant UUIDs
+
+import { dbConnect } from '@/db/mongoose';
 import { logger } from '@/lib/logger';
+import { sendBulkSMS, withTwilioResilience } from '@/lib/sms';
+import { NotificationDeadLetterModel, NotificationLogModel } from '@/server/models/NotificationLog';
+
 /**
  * FM Notification Template Engine
  * Generates notifications with deep links for various FM events
@@ -37,7 +43,6 @@ import { logger } from '@/lib/logger';
  */
 
 import { NOTIFY } from '@/domain/fm/fm.behavior';
-import { randomUUID } from 'crypto'; // Use built-in crypto for collision-resistant UUIDs
 
 // i18n fallback with bilingual support - replace with actual i18next for production
 const i18n = {
@@ -126,6 +131,14 @@ export interface NotificationPayload {
   failureReason?: string;
 }
 
+interface ChannelDispatchResult {
+  channel: NotificationChannel;
+  status: 'sent' | 'failed';
+  attempts: number;
+  lastAttemptAt?: Date;
+  error?: string;
+}
+
 // Define Discriminated Unions for Context (Strong Typing)
 interface BaseContext {
   description?: string;
@@ -170,9 +183,82 @@ export type NotificationContext =
   | ClosedContext;
 
 // Optional DB persistence (hook into MongoDB)
-async function saveNotification(notification: NotificationPayload): Promise<void> {
-  // Implement: e.g., await db.notifications.insertOne(notification);
-  logger.debug('[Notifications] Saved to DB', { id: notification.id });
+async function saveNotification(
+  notification: NotificationPayload,
+  channelResults: ChannelDispatchResult[] = []
+): Promise<void> {
+  try {
+    await dbConnect();
+    const recipients = notification.recipients.map(recipient => ({
+      userId: recipient.userId,
+      preferredChannels: recipient.preferredChannels,
+    }));
+
+    await NotificationLogModel.findOneAndUpdate(
+      { notificationId: notification.id },
+      {
+        notificationId: notification.id,
+        event: notification.event,
+        recipients,
+        payload: {
+          title: notification.title,
+          body: notification.body,
+          data: notification.data,
+          deepLink: notification.deepLink,
+          webUrl: notification.webUrl,
+        },
+        priority: notification.priority,
+        status: notification.status,
+        failureReason: notification.failureReason,
+        channelResults: channelResults.map(result => ({
+          channel: result.channel,
+          status: result.status === 'sent' ? 'sent' : 'failed',
+          attempts: result.attempts,
+          lastAttemptAt: result.lastAttemptAt,
+          error: result.error,
+        })),
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error('[Notifications] Failed to persist notification log', error, {
+      id: notification.id
+    });
+  }
+}
+
+async function enqueueDeadLetters(
+  notification: NotificationPayload,
+  failedChannels: ChannelDispatchResult[]
+): Promise<void> {
+  if (failedChannels.length === 0) return;
+
+  try {
+    await dbConnect();
+    await NotificationDeadLetterModel.insertMany(
+      failedChannels.map(channel => ({
+        notificationId: notification.id,
+        event: notification.event,
+        channel: channel.channel,
+        attempts: channel.attempts,
+        error: channel.error || 'Unknown channel failure',
+        payload: {
+          title: notification.title,
+          body: notification.body,
+          data: notification.data,
+        },
+      })),
+      { ordered: false }
+    );
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error('[Notifications] Failed to enqueue notification DLQ entry', error, {
+      id: notification.id
+    });
+  }
 }
 
 /**
@@ -292,7 +378,7 @@ export function buildNotification(
     status: 'pending'
   };
 
-  saveNotification(payload); // Persist early
+  void saveNotification(payload); // Persist early (fire-and-forget)
   return payload;
 }
 
@@ -342,55 +428,97 @@ export async function sendNotification(
     });
   });
 
-  const sendWithRetry = async (sendFn: () => Promise<void>, channel: string) => {
+  const channelAttempts: Partial<Record<NotificationChannel, { attempts: number; lastAttemptAt?: Date }>> = {};
+
+  const sendWithRetry = async (channel: NotificationChannel, sendFn: () => Promise<void>) => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      channelAttempts[channel] = { attempts: attempt, lastAttemptAt: new Date() };
       try {
         await sendFn();
         return;
-      } catch (error) {
-        logger.error(`[Notifications] ${channel} attempt ${attempt}/${maxRetries} failed`, { error });
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.error(
+          `[Notifications] ${channel} attempt ${attempt}/${maxRetries} failed`,
+          error,
+          { notificationId: notification.id }
+        );
         if (attempt === maxRetries) throw error; // Let Promise.allSettled handle final failure
       }
     }
   };
 
   // Prepare promises for CONCURRENT execution (Performance Fix)
-  const sendPromises: Promise<void>[] = [];
+  const sendOperations: Array<{ channel: NotificationChannel; promise: Promise<void> }> = [];
 
   if (channelGroups.push.length > 0) {
-    sendPromises.push(sendWithRetry(() => sendPushNotifications(notification, channelGroups.push), 'push'));
+    sendOperations.push({
+      channel: 'push',
+      promise: sendWithRetry('push', () => sendPushNotifications(notification, channelGroups.push)),
+    });
   }
   if (channelGroups.email.length > 0) {
-    sendPromises.push(sendWithRetry(() => sendEmailNotifications(notification, channelGroups.email), 'email'));
+    sendOperations.push({
+      channel: 'email',
+      promise: sendWithRetry('email', () => sendEmailNotifications(notification, channelGroups.email)),
+    });
   }
   if (channelGroups.sms.length > 0) {
-    sendPromises.push(sendWithRetry(() => sendSMSNotifications(notification, channelGroups.sms), 'sms'));
+    sendOperations.push({
+      channel: 'sms',
+      promise: sendWithRetry('sms', () => sendSMSNotifications(notification, channelGroups.sms)),
+    });
   }
   if (channelGroups.whatsapp.length > 0) {
-    sendPromises.push(sendWithRetry(() => sendWhatsAppNotifications(notification, channelGroups.whatsapp), 'whatsapp'));
+    sendOperations.push({
+      channel: 'whatsapp',
+      promise: sendWithRetry('whatsapp', () => sendWhatsAppNotifications(notification, channelGroups.whatsapp)),
+    });
   }
 
-  // Execute all concurrently and wait for all to settle (CRITICAL FIX)
-  const results = await Promise.allSettled(sendPromises);
+  const results = await Promise.allSettled(sendOperations.map(op => op.promise));
+  const channelResults: ChannelDispatchResult[] = sendOperations.map((operation, index) => {
+    const attemptsInfo = channelAttempts[operation.channel];
+    const attempts = attemptsInfo?.attempts ?? 0;
+    const lastAttemptAt = attemptsInfo?.lastAttemptAt;
+    const result = results[index];
+    if (result?.status === 'fulfilled') {
+      return { channel: operation.channel, status: 'sent', attempts, lastAttemptAt };
+    }
+    const error =
+      result && result.status === 'rejected'
+        ? result.reason instanceof Error
+          ? result.reason.message
+          : String(result.reason)
+        : 'Unknown error';
+    return {
+      channel: operation.channel,
+      status: 'failed',
+      attempts,
+      lastAttemptAt,
+      error,
+    };
+  });
 
-  const failures = results.filter(result => result.status === 'rejected');
+  const failures = channelResults.filter(result => result.status === 'failed');
 
   if (failures.length > 0) {
     logger.error('[Notifications] Failures during notification dispatch', { 
       id: notification.id, 
       failureCount: failures.length,
-      failures: failures.map(f => (f as PromiseRejectedResult).reason)
+      failures
     });
     
     // Update status based on outcome
-    if (failures.length === sendPromises.length && sendPromises.length > 0) {
+    if (failures.length === sendOperations.length && sendOperations.length > 0) {
       notification.status = 'failed';
       notification.failureReason = `All ${failures.length} channels failed`;
     } else {
       notification.status = 'partial_failure';
-      notification.failureReason = `${failures.length} of ${sendPromises.length} channels failed`;
+      notification.failureReason = `${failures.length} of ${sendOperations.length} channels failed`;
     }
-  } else if (sendPromises.length > 0) {
+  } else if (sendOperations.length > 0) {
     notification.status = 'sent';
   } else {
     logger.warn('[Notifications] No channels attempted', { id: notification.id });
@@ -399,12 +527,13 @@ export async function sendNotification(
   }
 
   notification.sentAt = new Date();
-  await saveNotification(notification); // Persist updated status to database
+  await saveNotification(notification, channelResults); // Persist updated status to database
+  await enqueueDeadLetters(notification, failures);
   
   logger.info('[Notifications] Notification dispatch complete', {
     id: notification.id,
     status: notification.status,
-    attempted: sendPromises.length,
+    attempted: sendOperations.length,
     failed: failures.length
   });
 }
@@ -443,7 +572,7 @@ async function sendPushNotifications(
   const batchSize = 500;
   for (let i = 0; i < tokens.length; i += batchSize) {
     const batch = tokens.slice(i, i + batchSize);
-    // @ts-ignore - sendMulticast method exists in firebase-admin@11+
+    // @ts-expect-error - sendMulticast method exists in firebase-admin@11+
     const response = await admin.messaging().sendMulticast({
       tokens: batch,
       notification: {
@@ -463,7 +592,11 @@ async function sendPushNotifications(
       
       // Extract failed token indices and remove them from users' fcmTokens arrays
       const failedTokens: string[] = [];
-      response.responses.forEach((resp: any, idx: number) => {
+      const sendResponses = response.responses as Array<{
+        success: boolean;
+        error?: { message?: string };
+      }>;
+      sendResponses.forEach((resp, idx: number) => {
         if (!resp.success) {
           failedTokens.push(batch[idx]);
           logger.debug('[Notifications] Failed FCM token', { 
@@ -484,8 +617,12 @@ async function sendPushNotifications(
           logger.info('[Notifications] Removed invalid FCM tokens', { 
             count: failedTokens.length 
           });
-        } catch (error) {
-          logger.error('[Notifications] Failed to remove invalid tokens', { error });
+        } catch (_error) {
+          const error = _error instanceof Error ? _error : new Error(String(_error));
+          void error;
+          logger.error('[Notifications] Failed to remove invalid tokens', error, {
+            tokenCount: failedTokens.length
+          });
         }
       }
     }
@@ -558,13 +695,6 @@ async function sendSMSNotifications(
   recipients: NotificationRecipient[]
 ): Promise<void> {
   logger.info('[Notifications] Sending SMS', { recipientCount: recipients.length });
-  
-  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-    throw new Error('Twilio not configured');
-  }
-
-  const twilio = (await import('twilio')).default;
-  const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
   const phones = recipients.map(r => r.phone).filter((p): p is string => Boolean(p));
   if (phones.length === 0) return;
@@ -575,15 +705,7 @@ async function sendSMSNotifications(
   if (link) smsBody += `\n\nView: ${link}`;
   if (smsBody.length > 1600) smsBody = smsBody.substring(0, 1597) + '...'; // Shorten
 
-  await Promise.all(
-    phones.map(phone =>
-      client.messages.create({
-        to: phone,
-        from: process.env.TWILIO_PHONE_NUMBER || '',
-        body: smsBody,
-      })
-    )
-  );
+  await sendBulkSMS(phones, smsBody, { delayMs: 200 });
 
   notification.deliveredAt = new Date();
   logger.info('[Notifications] SMS sent via Twilio', { recipientCount: phones.length });
@@ -616,11 +738,13 @@ async function sendWhatsAppNotifications(
 
   await Promise.all(
     phones.map(phone =>
-      client.messages.create({
-        to: `whatsapp:${phone}`,
-        from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
-        body: whatsappBody,
-      })
+      withTwilioResilience('whatsapp-send', () =>
+        client.messages.create({
+          to: `whatsapp:${phone}`,
+          from: `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`,
+          body: whatsappBody,
+        })
+      )
     )
   );
 

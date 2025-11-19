@@ -101,7 +101,9 @@ export function getRedisClient(): Redis | null {
     });
 
     return redis;
-  } catch (error: unknown) {
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     isConnecting = false;
     logger.error('[Redis] Failed to create connection:', { error });
     return null;
@@ -118,7 +120,9 @@ export async function closeRedis(): Promise<void> {
       await redis.quit();
       redis = null;
       logger.info('[Redis] Connection closed gracefully');
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('[Redis] Error closing connection:', { error });
       // Force disconnect if graceful close fails
       if (redis) {
@@ -160,7 +164,6 @@ export async function isRedisHealthy(): Promise<boolean> {
  * );
  */
 export async function safeRedisOp<T>(
-  // eslint-disable-next-line no-unused-vars
   operation: (client: Redis) => Promise<T>,
   fallback: T
 ): Promise<T> {
@@ -169,7 +172,9 @@ export async function safeRedisOp<T>(
 
   try {
     return await operation(client);
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[Redis] Operation failed:', { error });
     return fallback;
   }

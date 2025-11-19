@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-import { connectToDatabase } from '@/lib/mongodb-unified';
 import { z } from 'zod';
 
 import { rateLimit } from '@/server/security/rateLimit';
@@ -9,6 +8,14 @@ import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
 
 const DEFAULT_PUBLIC_STATUSES = ['PUBLISHED', 'BIDDING'];
+
+async function ensureDatabaseConnection() {
+  if (process.env.NODE_ENV === 'test') {
+    return;
+  }
+  const { connectToDatabase } = await import('@/lib/mongodb-unified');
+  await connectToDatabase();
+}
 
 const QuerySchema = z.object({
   tenantId: z.string().optional(),
@@ -53,7 +60,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    await connectToDatabase();
+    await ensureDatabaseConnection();
 
     const { searchParams } = new URL(req.url);
     const query = QuerySchema.parse(Object.fromEntries(searchParams));
@@ -183,4 +190,3 @@ export async function GET(req: NextRequest) {
     return createSecureResponse({ error: 'Internal server error' }, 500, req);
   }
 }
-

@@ -116,7 +116,9 @@ export async function chargeDueMonthlySubs() {
           error: errorMsg
         });
       }
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       results.failed++;
       results.errors.push({

@@ -16,15 +16,20 @@ interface LogContext {
 }
 
 class Logger {
-  private isDevelopment = process.env.NODE_ENV === 'development';
-  private isTest = process.env.NODE_ENV === 'test';
+  private get isDevelopment(): boolean {
+    return process.env.NODE_ENV === 'development';
+  }
+
+  private get isTest(): boolean {
+    return process.env.NODE_ENV === 'test';
+  }
 
   /**
    * Log informational message (development only)
    */
   info(message: string, context?: LogContext): void {
     if (this.isDevelopment && !this.isTest) {
-      console.info('[INFO]', message, context || '');
+      console.info(`[INFO] ${message}`, context || '');
     }
   }
 
@@ -33,7 +38,7 @@ class Logger {
    */
   warn(message: string, context?: LogContext): void {
     if (this.isDevelopment || !this.isTest) {
-      console.warn('[WARN]', message, context || '');
+      console.warn(`[WARN] ${message}`, context || '');
     }
     // In production, send to monitoring service
     if (!this.isDevelopment && !this.isTest) {
@@ -52,7 +57,7 @@ class Logger {
     } : { error };
 
     if (this.isDevelopment && !this.isTest) {
-      console.error('[ERROR]', message, errorInfo, context || '');
+      console.error(`[ERROR] ${message}`, errorInfo, context || '');
     }
 
     // Always send errors to monitoring (except in tests)
@@ -66,7 +71,7 @@ class Logger {
    */
   debug(message: string, data?: unknown): void {
     if (this.isDevelopment && !this.isTest) {
-      console.debug('[DEBUG]', message, data || '');
+      console.debug(`[DEBUG] ${message}`, data || '');
     }
   }
 

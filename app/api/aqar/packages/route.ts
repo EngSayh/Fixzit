@@ -69,7 +69,6 @@ export async function POST(request: NextRequest) {
       }
       
       // Get pricing
-      // eslint-disable-next-line no-unused-vars
       const pricing = (AqarPackage as never as { getPricing: (type: PackageType) => { price: number; listings: number; days: number } }).getPricing(packageType as PackageType);
       
       // Use atomic transaction for multi-document operation

@@ -143,7 +143,8 @@ export async function POST(request: NextRequest) {
     const tenantOrgId = user.orgId || user.id;
     
   const body = await request.json();
-  let { targetId, targetType, notes, tags } = body;
+  const { targetId, targetType } = body;
+  let { notes, tags } = body;
     
     if (!targetId || !targetType) {
       return NextResponse.json(

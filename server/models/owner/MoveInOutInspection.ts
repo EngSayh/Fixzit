@@ -332,7 +332,7 @@ MoveInOutInspectionSchema.index({ orgId: 1, leaseId: 1 });
 
 // Virtual for completion percentage
 MoveInOutInspectionSchema.virtual('completionPercentage').get(function() {
-  let totalSections = 4; // rooms, electrical, plumbing, signatures
+  const totalSections = 4; // rooms, electrical, plumbing, signatures
   let completedSections = 0;
   
   if (this.rooms && this.rooms.length > 0) completedSections++;

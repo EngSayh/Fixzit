@@ -162,7 +162,7 @@ export default function OtherOffersTab({
                       </Badge>
                     )}
                     {isWinner && (
-                      <Badge className="text-xs bg-primary/10 text-primary-dark ml-1">
+                      <Badge className="text-xs bg-primary/10 text-primary-dark ms-1">
                         {auto('Buy Box Winner', 'badge.buyBoxWinner')}
                       </Badge>
                     )}

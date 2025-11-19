@@ -32,7 +32,9 @@ export async function getNatsConnection(): Promise<NatsConnection | null> {
       })();
 
       logger.info('[NATS] Connected successfully');
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('[NATS] Connection failed:', error);
       nc = null;
       throw error;
@@ -59,7 +61,9 @@ export async function publish(
     }
 
     connection.publish(subject, jc.encode(data));
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error(`[NATS] Failed to publish to ${subject}:`, error);
     // Don't throw - publishing failure shouldn't break application flow
   }
@@ -73,7 +77,9 @@ export async function closeNatsConnection(): Promise<void> {
     try {
       await nc.drain();
       logger.info('[NATS] Connection closed gracefully');
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('[NATS] Error closing connection:', error);
     } finally {
       nc = null;

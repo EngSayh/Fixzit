@@ -37,6 +37,12 @@
 - ✅ **Support Ticketing**: SLA-based ticket system
 - ✅ **Advanced Reporting**: Template-based report generation
 
+## 📚 Documentation Navigation
+
+- **Active hub**: See [`docs/current/README.md`](current/README.md) for the curated list of living architecture, security, testing, i18n, and operations guides.
+- **Historical records**: Legacy progress notes, completion reports, and PR summaries now live in [`docs/archived`](archived/README.md).
+- **Adding docs**: Place new working guides into the topical folders (e.g. `architecture/`, `security/`, `guides/`). Move any purely historical record straight into `archived/` to keep the live surface lean.
+
 ## 🚀 Quick Start
 
 ### Prerequisites

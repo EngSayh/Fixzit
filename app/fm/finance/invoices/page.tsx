@@ -20,7 +20,7 @@ import {
   QrCode, Send, Eye, Download, Mail, CheckCircle,
   AlertCircle, Clock} from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { useSupportOrg } from '@/contexts/SupportOrgContext';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import ClientDate from '@/components/ClientDate';
 import { parseDate } from '@/lib/date-utils';
 
@@ -73,9 +73,7 @@ interface Invoice {
 export default function InvoicesPage() {
   const { t } = useTranslation();
   const { data: session } = useSession();
-  const { effectiveOrgId, canImpersonate, supportOrg } = useSupportOrg();
-  const orgId = effectiveOrgId ?? undefined;
-  const needsOrgSelection = !orgId && canImpersonate;
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -90,7 +88,7 @@ export default function InvoicesPage() {
     return fetch(url)
       .then(r => r.json())
       .catch(error => {
-        logger.error('FM invoices fetch error', { error });
+        logger.error('FM invoices fetch error', error);
         throw error;
       });
   };
@@ -108,30 +106,8 @@ export default function InvoicesPage() {
     return <CardGridSkeleton count={6} />;
   }
 
-  if (!orgId) {
-    return (
-      <div className="space-y-6">
-        <ModuleViewTabs moduleId="finance" />
-        <div className="rounded-xl border border-border bg-card/30 p-6 space-y-3">
-          <p className="text-destructive font-semibold">
-            {needsOrgSelection
-              ? t(
-                  'fm.finance.invoices.errors.selectOrg',
-                  'Select a customer organization to review invoices.'
-                )
-              : t('fm.errors.noOrgSession', 'Error: No organization ID found in session')}
-          </p>
-          {needsOrgSelection && (
-            <p className="text-sm text-muted-foreground">
-              {t(
-                'fm.finance.invoices.errors.selectOrgHint',
-                'Use the Support Organization switcher in the top bar.'
-              )}
-            </p>
-          )}
-        </div>
-      </div>
-    );
+  if (!hasOrgContext || !orgId) {
+    return guard;
   }
 
   const invoices: Invoice[] = (data?.data || []);

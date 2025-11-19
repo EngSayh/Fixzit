@@ -103,11 +103,11 @@ export function collectAliasRecords(baseDir = 'app/fm'): AliasRecord[] {
     const match = aliasPattern.exec(contents);
     if (!match) continue;
 
-    const module = filePath.split(/[/\\]/)[2] ?? 'unknown';
+    const moduleName = filePath.split(/[/\\]/)[2] ?? 'unknown';
     const resolvedPath = resolveImportTarget(match[1]);
 
     records.push({
-      module,
+      module: moduleName,
       aliasFile: filePath,
       importTarget: match[1],
       resolvedPath,

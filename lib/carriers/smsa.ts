@@ -83,7 +83,9 @@ class SMSACarrier implements ICarrierInterface {
 
       return this.mockCreateShipment(params);
 
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('SMSA shipment creation failed', { error, orderId: params.orderId });
       throw new Error(`SMSA shipment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -110,7 +112,9 @@ class SMSACarrier implements ICarrierInterface {
 
       return this.mockGetTracking(trackingNumber);
 
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('SMSA tracking failed', { error, trackingNumber });
       throw new Error(`SMSA tracking failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -131,7 +135,9 @@ class SMSACarrier implements ICarrierInterface {
       // Actual API call would go here
       return true;
 
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('SMSA cancellation failed', { error, shipmentId });
       return false;
     }
@@ -162,7 +168,9 @@ class SMSACarrier implements ICarrierInterface {
 
       return rates;
 
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('SMSA rates failed', { error, params });
       return [];
     }

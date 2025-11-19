@@ -1,6 +1,6 @@
 import PriceBook from '@/server/models/PriceBook';
 import DiscountRule from '@/server/models/DiscountRule';
-import { z } from 'zod';
+import { z, type ZodIssue } from 'zod';
 
 export type BillingCycle = 'MONTHLY' | 'ANNUAL';
 
@@ -45,9 +45,7 @@ interface DiscountRuleDoc {
 export class PricingError extends Error {
   constructor(
     message: string,
-    // eslint-disable-next-line no-unused-vars
     public readonly code: string,
-    // eslint-disable-next-line no-unused-vars
     public readonly details?: Record<string, unknown>
   ) {
     super(message);
@@ -72,8 +70,11 @@ export async function quotePrice(opts: {
   // Validate input parameters
   const validation = quotePriceSchema.safeParse(opts);
   if (!validation.success) {
+    const issueMessages = validation.error.issues
+      .map((issue: ZodIssue) => issue.message)
+      .join(', ');
     throw new PricingError(
-      `Invalid pricing parameters: ${validation.error.issues.map((e: any) => e.message).join(', ')}`,
+      `Invalid pricing parameters: ${issueMessages}`,
       'INVALID_INPUT',
       { errors: validation.error.issues }
     );

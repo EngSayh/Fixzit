@@ -4,6 +4,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Loader2, ShoppingCart, Star } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { addProductToCart } from '@/lib/marketplace/cartClient';
 import { logger } from '@/lib/logger';
@@ -23,7 +25,6 @@ export interface MarketplaceProductCard {
 
 interface ProductCardProps {
   product: MarketplaceProductCard;
-  // eslint-disable-next-line no-unused-vars
   onAddToCart?: (productId: string) => void;
   isRTL?: boolean;
 }
@@ -40,6 +41,7 @@ function formatCurrency(value: number, currency: string) {
 }
 
 export default function ProductCard({ product, onAddToCart, isRTL }: ProductCardProps) {
+  const { t } = useTranslation();
   const { currency } = useCurrency();
   const [adding, setAdding] = useState(false);
   const image = product.media?.find(item => item.role === 'GALLERY')?.url || product.media?.[0]?.url || '/images/marketplace/placeholder-product.svg';
@@ -52,6 +54,9 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
       const quantity = Math.max(product.buy.minQty ?? 1, 1);
       await addProductToCart(product.id, quantity);
       onAddToCart?.(product.id);
+      toast.success(t('marketplace.productCard.toast.success', 'Added to cart'), {
+        description: product.title.en,
+      });
     } catch (error) {
       import('../../lib/logger')
         .then(({ logError }) => {
@@ -64,10 +69,10 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
         .catch((loggerError) => {
           logger.error('Failed to load logger:', { error: loggerError });
         });
-      if (typeof window !== 'undefined') {
-        const message = error instanceof Error ? error.message : 'Unable to add to cart';
-        window.alert?.(`Unable to add to cart: ${message}`);
-      }
+      const message = error instanceof Error ? error.message : t('marketplace.productCard.toast.error', 'Unable to add to cart');
+      toast.error(t('marketplace.productCard.toast.error', 'Unable to add to cart'), {
+        description: message,
+      });
     } finally {
       setAdding(false);
     }
@@ -111,9 +116,18 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
         <div className="mt-auto flex items-end justify-between gap-4">
           <div>
             <p className="text-lg font-semibold text-foreground">{displayPrice}</p>
-            <p className="text-xs text-muted-foreground">per {product.buy.uom} · Min {product.buy.minQty ?? 1}</p>
+            <p className="text-xs text-muted-foreground">
+              {t('marketplace.productCard.unitLabel', 'per {{uom}} · Min {{count}}')
+                .replace('{{uom}}', product.buy.uom)
+                .replace('{{count}}', String(product.buy.minQty ?? 1))}
+            </p>
             {product.buy.leadDays != null && (
-              <p className="text-xs text-success">Lead time {product.buy.leadDays} day(s)</p>
+              <p className="text-xs text-success">
+                {t('marketplace.productCard.leadTime', 'Lead time {{days}} day(s)').replace(
+                  '{{days}}',
+                  String(product.buy.leadDays)
+                )}
+              </p>
             )}
           </div>
           <button
@@ -123,11 +137,12 @@ export default function ProductCard({ product, onAddToCart, isRTL }: ProductCard
             className="flex items-center gap-2 rounded-full bg-warning px-4 py-2 text-sm font-semibold text-black transition hover:bg-warning/90 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {adding ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <ShoppingCart size={16} aria-hidden />}
-            {adding ? 'Adding…' : 'Add to Cart'}
+            {adding
+              ? t('marketplace.productCard.button.adding', 'Adding…')
+              : t('marketplace.productCard.button.add', 'Add to Cart')}
           </button>
         </div>
       </div>
     </div>
   );
 }
-

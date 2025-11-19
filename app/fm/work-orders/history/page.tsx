@@ -1,10 +1,14 @@
 'use client';
 
 import React from 'react';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { getWorkOrderStatusLabel } from '@/lib/work-orders/status';
 
 export default function ServiceHistoryPage() {
   const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'work_orders' });
   const serviceHistory = [
     {
       id: 'WO-1001',
@@ -64,8 +68,18 @@ export default function ServiceHistoryPage() {
     }
   };
 
+  if (!hasOrgContext) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
+      <ModuleViewTabs moduleId="work_orders" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -173,16 +187,36 @@ export default function ServiceHistoryPage() {
           <table className="w-full">
             <thead className="bg-muted">
               <tr>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">WO ID</th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Title</th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Property</th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Technician</th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Completion Date</th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Duration</th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Cost</th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Rating</th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('workOrders.woId', 'WO ID')}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('workOrders.history.table.title', 'Title')}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('workOrders.history.table.property', 'Property')}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('workOrders.history.table.technician', 'Technician')}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('workOrders.history.table.completionDate', 'Completion Date')}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('workOrders.history.table.duration', 'Duration')}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('workOrders.history.table.cost', 'Cost')}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('workOrders.history.table.rating', 'Rating')}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('workOrders.history.table.status', 'Status')}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t('workOrders.history.table.actions', 'Actions')}
+                </th>
               </tr>
             </thead>
             <tbody className="bg-card divide-y divide-border">
@@ -198,12 +232,17 @@ export default function ServiceHistoryPage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     <div className="flex items-center">
                       <span className="text-accent">⭐</span>
-                      <span className="ms-1">{item.rating}/5</span>
+                      <span className="ms-1">
+                        {t('workOrders.history.table.ratingOutOf', '{{rating}}/5').replace(
+                          '{{rating}}',
+                          String(item.rating)
+                        )}
+                      </span>
                     </div>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(item.status)}`}>
-                      {item.status}
+                      {getWorkOrderStatusLabel(t, item.status)}
                     </span>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
@@ -221,31 +260,31 @@ export default function ServiceHistoryPage() {
 
       {/* Quick Actions */}
       <div className="card">
-        <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('workOrders.quickActions', 'Quick Actions')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📊</div>
-            <div className="text-sm font-medium">Analytics</div>
+            <div className="text-sm font-medium">{t('workOrders.history.quickActions.analytics', 'Analytics')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📈</div>
-            <div className="text-sm font-medium">Trends</div>
+            <div className="text-sm font-medium">{t('workOrders.history.quickActions.trends', 'Trends')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">💰</div>
-            <div className="text-sm font-medium">Cost Analysis</div>
+            <div className="text-sm font-medium">{t('workOrders.history.quickActions.cost', 'Cost Analysis')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">👥</div>
-            <div className="text-sm font-medium">Tech Performance</div>
+            <div className="text-sm font-medium">{t('workOrders.history.quickActions.techPerformance', 'Tech Performance')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">📄</div>
-            <div className="text-sm font-medium">Reports</div>
+            <div className="text-sm font-medium">{t('workOrders.history.quickActions.reports', 'Reports')}</div>
           </button>
           <button className="btn-ghost text-center">
             <div className="text-2xl mb-2">⚙️</div>
-            <div className="text-sm font-medium">Settings</div>
+            <div className="text-sm font-medium">{t('workOrders.history.quickActions.settings', 'Settings')}</div>
           </button>
         </div>
       </div>

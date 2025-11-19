@@ -11,17 +11,27 @@ if (!existsSync(INPUT)) {
   process.exit(1);
 }
 
-const data = JSON.parse(readFileSync(INPUT, 'utf8'));
+type RouteAliasResult = {
+  alias: string;
+  target: string;
+  exists: boolean;
+};
 
-const modulesMap = new Map<string, { module: string; aliases: number; missing: number; targets: string[] }>();
+type RouteAliasReport = {
+  results: RouteAliasResult[];
+};
+
+const data = JSON.parse(readFileSync(INPUT, 'utf8')) as RouteAliasReport;
+
+const modulesMap = new Map<string, { moduleKey: string; aliases: number; missing: number; targets: string[] }>();
 const reuseMap = new Map<string, number>();
 
 for (const result of data.results) {
-  const module = result.alias.split('/')[2] || 'unknown';
-  if (!modulesMap.has(module)) {
-    modulesMap.set(module, { module, aliases: 0, missing: 0, targets: [] });
+  const moduleKey = result.alias.split('/')[2] || 'unknown';
+  if (!modulesMap.has(moduleKey)) {
+    modulesMap.set(moduleKey, { moduleKey, aliases: 0, missing: 0, targets: [] });
   }
-  const mod = modulesMap.get(module)!;
+  const mod = modulesMap.get(moduleKey)!;
   mod.aliases += 1;
   mod.missing += result.exists ? 0 : 1;
   mod.targets.push(result.target);
@@ -30,7 +40,7 @@ for (const result of data.results) {
 }
 
 const modules = Array.from(modulesMap.values()).map((mod) => ({
-  module: mod.module,
+  module: mod.moduleKey,
   aliases: mod.aliases,
   missing: mod.missing,
   uniqueTargets: new Set(mod.targets).size,
@@ -46,9 +56,9 @@ const totals = {
   aliasFiles: data.results.length,
   modules: modules.length,
   reusedTargets: reuse.length,
-  uniqueTargets: new Set(data.results.map((r: any) => r.target)).size,
+  uniqueTargets: new Set(data.results.map((r) => r.target)).size,
   duplicateAliases: reuse.reduce((sum, entry) => sum + entry.count, 0),
-  unresolvedAliases: data.results.filter((r: any) => !r.exists).length,
+  unresolvedAliases: data.results.filter((r) => !r.exists).length,
 };
 
 const payload = {

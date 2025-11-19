@@ -34,10 +34,31 @@ export interface SeatUsageReport {
   usageSnapshot?: UsageSnapshot;
 }
 
+type SubscriptionDocument = Awaited<ReturnType<typeof Subscription.findById>>;
+type SubscriptionInstance = NonNullable<SubscriptionDocument>;
+
+type SubscriptionMetadata = {
+  seat_allocations?: SeatAllocation[];
+  usage_snapshot?: UsageSnapshot;
+  last_usage_sync?: Date;
+  [key: string]: unknown;
+};
+
+function ensureSeatMetadata(sub: SubscriptionInstance): SubscriptionMetadata {
+  if (!sub.metadata || typeof sub.metadata !== 'object') {
+    sub.metadata = {};
+  }
+  const metadata = sub.metadata as SubscriptionMetadata;
+  if (!Array.isArray(metadata.seat_allocations)) {
+    metadata.seat_allocations = [];
+  }
+  return metadata;
+}
+
 /**
  * Get active subscription for a tenant
  */
-export async function getSubscriptionForTenant(tenantId: string): Promise<any> {
+export async function getSubscriptionForTenant(tenantId: string): Promise<SubscriptionDocument> {
   await connectToDatabase();
   
   return Subscription.findOne({
@@ -49,7 +70,7 @@ export async function getSubscriptionForTenant(tenantId: string): Promise<any> {
 /**
  * Get active subscription for an owner
  */
-export async function getSubscriptionForOwner(ownerUserId: string): Promise<any> {
+export async function getSubscriptionForOwner(ownerUserId: string): Promise<SubscriptionDocument> {
   await connectToDatabase();
   
   return Subscription.findOne({
@@ -61,7 +82,7 @@ export async function getSubscriptionForOwner(ownerUserId: string): Promise<any>
 /**
  * Check if subscription has enough available seats
  */
-export function ensureSeatsAvailable(sub: any, requiredSeats: number): void {
+export function ensureSeatsAvailable(sub: SubscriptionInstance, requiredSeats: number): void {
   if (sub.seats < requiredSeats) {
     throw new Error(`Not enough seats. Required: ${requiredSeats}, Available: ${sub.seats}`);
   }
@@ -75,7 +96,7 @@ export async function allocateSeat(
   userId: mongoose.Types.ObjectId | string,
   moduleKey: string,
   allocatedBy?: mongoose.Types.ObjectId | string
-): Promise<any> {
+): Promise<SubscriptionInstance> {
   await connectToDatabase();
   
   const subscription = await Subscription.findById(subscriptionId);
@@ -93,12 +114,8 @@ export async function allocateSeat(
   }
 
   // Initialize seat allocations if not exists
-  if (!subscription.metadata) subscription.metadata = {};
-  if (!subscription.metadata.seat_allocations) {
-    subscription.metadata.seat_allocations = [];
-  }
-
-  const allocations = subscription.metadata.seat_allocations as SeatAllocation[];
+  const metadata = ensureSeatMetadata(subscription);
+  const allocations = metadata.seat_allocations ?? [];
 
   // Check if user already has this module allocated
   const existingAllocation = allocations.find(
@@ -127,7 +144,7 @@ export async function allocateSeat(
     allocatedBy: allocatedBy ? new mongoose.Types.ObjectId(allocatedBy) : undefined,
   });
 
-  subscription.metadata.seat_allocations = allocations;
+  metadata.seat_allocations = allocations;
   await subscription.save();
 
   logger.info('[Seats] Seat allocated', { 
@@ -145,7 +162,7 @@ export async function deallocateSeat(
   subscriptionId: mongoose.Types.ObjectId | string,
   userId: mongoose.Types.ObjectId | string,
   moduleKey?: string
-): Promise<any> {
+): Promise<SubscriptionInstance> {
   await connectToDatabase();
   
   const subscription = await Subscription.findById(subscriptionId);
@@ -153,7 +170,8 @@ export async function deallocateSeat(
     throw new Error(`Subscription not found: ${subscriptionId}`);
   }
 
-  if (!subscription.metadata?.seat_allocations) {
+  const metadata = subscription.metadata as SubscriptionMetadata | undefined;
+  if (!metadata?.seat_allocations) {
     logger.warn('[Seats] No seat allocations to remove', { 
       subscriptionId: subscriptionId.toString(), 
       userId: userId.toString() 
@@ -161,10 +179,10 @@ export async function deallocateSeat(
     return subscription;
   }
 
-  const allocations = subscription.metadata.seat_allocations as SeatAllocation[];
+  const allocations = metadata.seat_allocations ?? [];
 
   // Remove specific module or all modules for user
-  subscription.metadata.seat_allocations = allocations.filter(
+  metadata.seat_allocations = allocations.filter(
     (a) => {
       const matchesUser = a.userId.toString() === userId.toString();
       if (moduleKey) {
@@ -197,7 +215,8 @@ export async function getAvailableSeats(
     throw new Error(`Subscription not found: ${subscriptionId}`);
   }
 
-  const allocations = subscription.metadata?.seat_allocations;
+  const metadata = subscription.metadata as SubscriptionMetadata | undefined;
+  const allocations = metadata?.seat_allocations;
   const allocatedCount = Array.isArray(allocations) ? allocations.length : 0;
   return subscription.seats - allocatedCount;
 }
@@ -215,7 +234,8 @@ export async function getSeatUsageReport(
     throw new Error(`Subscription not found: ${subscriptionId}`);
   }
 
-  const allocations = (subscription.metadata?.seat_allocations as SeatAllocation[]) || [];
+  const metadata = subscription.metadata as SubscriptionMetadata | undefined;
+  const allocations = metadata?.seat_allocations ?? [];
   const allocatedSeats = Array.isArray(allocations) ? allocations.length : 0;
   const availableSeats = subscription.seats - allocatedSeats;
   const utilization = subscription.seats > 0 ? (allocatedSeats / subscription.seats) * 100 : 0;
@@ -227,7 +247,7 @@ export async function getSeatUsageReport(
     availableSeats,
     utilization: Math.round(utilization * 100) / 100,
     allocations,
-    usageSnapshot: subscription.metadata?.usage_snapshot as UsageSnapshot | undefined,
+    usageSnapshot: metadata?.usage_snapshot,
   };
 }
 
@@ -262,7 +282,8 @@ export async function validateModuleAccess(
   }
 
   // Check if user has seat allocated for this module
-  const allocations = (subscription.metadata?.seat_allocations as SeatAllocation[]) || [];
+  const metadata = subscription.metadata as SubscriptionMetadata | undefined;
+  const allocations = metadata?.seat_allocations ?? [];
   return allocations.some(
     (a) => a.userId.toString() === userId.toString() && a.moduleKey === moduleKey
   );
@@ -271,7 +292,7 @@ export async function validateModuleAccess(
 /**
  * Record user activation (when user is created or reactivated)
  */
-export async function recordUserActivation(subscriptionId: string): Promise<any> {
+export async function recordUserActivation(subscriptionId: string): Promise<SubscriptionDocument> {
   await connectToDatabase();
   
   const sub = await Subscription.findById(subscriptionId);
@@ -284,7 +305,7 @@ export async function recordUserActivation(subscriptionId: string): Promise<any>
 /**
  * Record user deactivation (when user is deactivated or deleted)
  */
-export async function recordUserDeactivation(subscriptionId: string): Promise<any> {
+export async function recordUserDeactivation(subscriptionId: string): Promise<SubscriptionDocument> {
   await connectToDatabase();
   
   const sub = await Subscription.findById(subscriptionId);
@@ -305,15 +326,18 @@ export async function updateUsageSnapshot(
     units?: number;
     work_orders?: number;
   }
-): Promise<any> {
+): Promise<SubscriptionDocument> {
   await connectToDatabase();
   
   const sub = await Subscription.findById(subscriptionId);
   if (!sub) return null;
   
   // Store usage snapshot in metadata
-  if (!sub.metadata) sub.metadata = {};
-  sub.metadata.usage_snapshot = {
+  if (!sub.metadata || typeof sub.metadata !== 'object') {
+    sub.metadata = {};
+  }
+  const metadata = sub.metadata as SubscriptionMetadata;
+  metadata.usage_snapshot = {
     timestamp: new Date(),
     users: snapshot.users || 0,
     properties: snapshot.properties || 0,

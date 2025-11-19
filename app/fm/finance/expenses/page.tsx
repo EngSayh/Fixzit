@@ -4,45 +4,27 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { CardGridSkeleton } from '@/components/skeletons';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { useSupportOrg } from '@/contexts/SupportOrgContext';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import ClientDate from '@/components/ClientDate';
 
 export default function ExpensesPage() {
   const auto = useAutoTranslator('fm.finance.expenses');
   const { data: session } = useSession();
-  const { effectiveOrgId, canImpersonate, supportOrg } = useSupportOrg();
-  const orgId = effectiveOrgId ?? undefined;
-  const needsOrgSelection = !orgId && canImpersonate;
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
   const [searchQuery, setSearchQuery] = useState('');
 
   if (!session) {
     return <CardGridSkeleton count={4} />;
   }
 
-  if (!orgId) {
-    return (
-      <div className="space-y-6">
-        <ModuleViewTabs moduleId="finance" />
-        <div className="rounded-xl border border-border bg-card/30 p-6 space-y-3">
-          <p className="text-destructive font-semibold">
-            {needsOrgSelection
-              ? auto('Select a customer organization to manage expenses', 'errors.selectOrg')
-              : auto('Error: No organization ID found in session', 'errors.noOrgSession')}
-          </p>
-          {needsOrgSelection && (
-            <p className="text-sm text-muted-foreground">
-              {auto('Use the Support Organization switcher in the top bar', 'errors.selectOrgHint')}
-            </p>
-          )}
-        </div>
-      </div>
-    );
+  if (!hasOrgContext) {
+    return guard;
   }
 
   return (
@@ -58,7 +40,7 @@ export default function ExpensesPage() {
             {auto('Track and approve operational expenses', 'header.subtitle')}
           </p>
         </div>
-        <CreateExpenseDialog orgId={orgId} />
+        <CreateExpenseDialog />
       </div>
 
       {supportOrg && (
@@ -171,7 +153,7 @@ function ExpenseCard({
   );
 }
 
-function CreateExpenseDialog({ orgId }: { orgId: string }) {
+function CreateExpenseDialog() {
   const auto = useAutoTranslator('fm.finance.expenses.create');
   const [open, setOpen] = useState(false);
   const [vendor, setVendor] = useState('');
@@ -189,7 +171,7 @@ function CreateExpenseDialog({ orgId }: { orgId: string }) {
       setCategory('');
       setAmount('');
       setDescription('');
-    } catch (error) {
+    } catch (_error) {
       toast.error(auto('Failed to submit expense', 'toast.error'), { id: toastId });
     }
   };

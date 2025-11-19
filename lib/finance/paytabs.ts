@@ -1,37 +1,16 @@
 import PaymentMethod from '@/server/models/PaymentMethod';
 import Subscription from '@/server/models/Subscription';
+
+import {
+  normalizePaytabsCallbackPayload,
+  type PaytabsCallbackPayload,
+} from '@/lib/payments/paytabs-callback.contract';
 import { provisionSubscriber } from './provision';
 
-export interface NormalizedPayTabsPayload {
-  tran_ref?: string;
-  respStatus?: string;
-  token?: string;
-  customer_email?: string;
-  cart_id?: string;
-  amount?: number;
-  currency?: string;
-  maskedCard?: string;
-}
+export type NormalizedPayTabsPayload = PaytabsCallbackPayload;
 
 export function normalizePayTabsPayload(data: unknown): NormalizedPayTabsPayload {
-  if (typeof data !== 'object' || data === null) return {};
-  const d = data as Record<string, unknown>;
-  const paymentInfo = (d?.payment_info || {}) as Record<string, unknown>;
-  const paymentResult = d?.payment_result as Record<string, unknown> | undefined;
-  const customerDetails = d?.customer_details as Record<string, unknown> | undefined;
-  
-  return {
-    tran_ref: String(d?.tran_ref || d?.tranRef || ''),
-    respStatus: String(paymentResult?.response_status || d?.respStatus || ''),
-    token: d?.token ? String(d.token) : undefined,
-    customer_email: String(
-      customerDetails?.email || d?.customerEmail || paymentInfo?.customer_email || ''
-    ),
-    cart_id: d?.cart_id ? String(d.cart_id) : (d?.cartId ? String(d.cartId) : undefined),
-    amount: Number(d?.cart_amount || d?.tran_total || d?.amount || 0),
-    currency: String(d?.cart_currency || d?.tran_currency || d?.currency || ''),
-    maskedCard: paymentInfo?.payment_description ? String(paymentInfo.payment_description) : undefined,
-  };
+  return normalizePaytabsCallbackPayload(data);
 }
 
 /**
@@ -61,11 +40,11 @@ function calculateNextBillingDate(billingCycle: 'MONTHLY' | 'ANNUAL'): Date {
 }
 
 export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPayload) {
-  if (!payload.cart_id) {
+  if (!payload.cartId) {
     throw new Error('Missing cart identifier');
   }
 
-  const subscription = await Subscription.findOne({ 'paytabs.cart_id': payload.cart_id });
+  const subscription = await Subscription.findOne({ 'paytabs.cart_id': payload.cartId });
   if (!subscription) {
     throw new Error('Subscription not found for cart');
   }
@@ -81,7 +60,7 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
       { pt_token: payload.token },
       {
         pt_token: payload.token,
-        pt_customer_email: payload.customer_email,
+        pt_customer_email: payload.customerEmail,
         pt_masked_card: payload.maskedCard,
         org_id: subscription.subscriber_type === 'CORPORATE' ? subscription.tenant_id : undefined,
         owner_user_id: subscription.subscriber_type === 'OWNER' ? subscription.owner_user_id : undefined,
@@ -102,8 +81,8 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
   subscription.paytabs = {
     ...(subscription.paytabs || {}),
     token: payload.token ?? subscription.paytabs?.token,
-    last_tran_ref: payload.tran_ref,
-    customer_email: payload.customer_email ?? subscription.paytabs?.customer_email,
+    last_tran_ref: payload.tranRef,
+    customer_email: payload.customerEmail ?? subscription.paytabs?.customer_email,
     cart_id: subscription.paytabs?.cart_id,
     profile_id: subscription.paytabs?.profile_id,
   } as unknown;
@@ -113,7 +92,7 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
     date: new Date(),
     amount: subscription.amount,
     currency: subscription.currency,
-    tran_ref: payload.tran_ref,
+    tran_ref: payload.tranRef,
     status: 'SUCCESS'
   });
   
@@ -146,7 +125,7 @@ export async function finalizePayTabsTransaction(payload: NormalizedPayTabsPaylo
     }
   }
 
-  await provisionSubscriber(payload.cart_id);
+  await provisionSubscriber(payload.cartId);
 
   return { ok: true, subscription };
 }

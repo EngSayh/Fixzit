@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +18,7 @@ import {
 import Link from 'next/link';
 import ClientDate from '@/components/ClientDate';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 interface Vendor {
   id: string;
@@ -65,8 +67,12 @@ export default function VendorDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
-  const orgId = session?.user?.orgId;
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'vendors' });
   const { t } = useTranslation();
+  
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
 
   const handleDelete = async () => {
     const confirmMessage = t(
@@ -91,8 +97,8 @@ export default function VendorDetailsPage() {
       if (!res.ok) throw new Error('Failed to delete vendor');
       toast.success(t('fm.vendors.detail.toasts.success', 'Vendor deleted successfully'), { id: toastId });
       router.push('/fm/vendors');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to delete vendor';
+    } catch (_error) {
+      const message = _error instanceof Error ? _error.message : 'Failed to delete vendor';
       const failureMessage = t(
         'fm.vendors.detail.toasts.failure',
         'Failed to delete vendor: {{message}}'
@@ -110,7 +116,7 @@ export default function VendorDetailsPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        logger.error('FM vendor detail fetch error', { error });
+        logger.error('FM vendor detail fetch error', error);
         throw error;
       });
   };
@@ -121,12 +127,21 @@ export default function VendorDetailsPage() {
   );
 
   if (!session) return <CardGridSkeleton count={3} />;
-  if (!orgId) return <div>{t('fm.vendors.detail.errors.noOrgId', 'Error: No organization ID found in session')}</div>;
+  if (!orgId) {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="vendors" />
+        {guard}
+      </div>
+    );
+  }
   if (error) return <div>{t('fm.vendors.detail.errors.loadFailed', 'Failed to load vendor')}</div>;
   if (isLoading || !vendor) return <CardGridSkeleton count={3} />;
 
   return (
     <div className="space-y-6">
+      <ModuleViewTabs moduleId="vendors" />
+      {supportBanner}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">

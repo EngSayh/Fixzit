@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { useSupportOrg } from '@/contexts/SupportOrgContext';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { useDebounce } from '@/hooks/useDebounce';
 import ClientDate from '@/components/ClientDate';
 
@@ -93,8 +93,7 @@ const RISK_BADGES: Record<AuditRisk, string> = {
 export default function ComplianceAuditsPage() {
   const auto = useAutoTranslator('fm.compliance.audits.list');
   const { data: session } = useSession();
-  const { effectiveOrgId, supportOrg, canImpersonate } = useSupportOrg();
-  const orgId = effectiveOrgId;
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'compliance' });
 
   const [statusFilter, setStatusFilter] = useState<AuditStatus | 'ALL'>('ALL');
   const [riskFilter, setRiskFilter] = useState<AuditRisk | 'ALL'>('ALL');
@@ -131,26 +130,8 @@ export default function ComplianceAuditsPage() {
     );
   }
 
-  if (!orgId) {
-    return (
-      <div className="space-y-6">
-        <ModuleViewTabs moduleId="compliance" />
-        <Card>
-          <CardContent className="space-y-2 py-6">
-            <p className="font-semibold text-destructive">
-              {canImpersonate
-                ? auto('Select an organization to inspect audit programs.', 'states.selectOrg')
-                : auto('Organization context missing in session.', 'states.missingOrg')}
-            </p>
-            {canImpersonate && (
-              <p className="text-sm text-muted-foreground">
-                {auto('Use the support organization switcher to pick a tenant.', 'states.selectOrgHint')}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    );
+  if (!hasOrgContext || !orgId) {
+    return guard;
   }
 
   const audits = data?.audits ?? [];
@@ -174,12 +155,12 @@ export default function ComplianceAuditsPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => mutate()} disabled={isLoading}>
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            {isLoading ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <RefreshCw className="me-2 h-4 w-4" />}
             {auto('Refresh', 'actions.refresh')}
           </Button>
           <Button asChild>
             <Link href="/fm/compliance/audits/new">
-              <ClipboardCheck className="mr-2 h-4 w-4" />
+              <ClipboardCheck className="me-2 h-4 w-4" />
               {auto('Plan new audit', 'actions.newAudit')}
             </Link>
           </Button>
@@ -277,7 +258,7 @@ export default function ComplianceAuditsPage() {
         <CardContent className="space-y-4">
           {isLoading && (
             <div className="flex items-center justify-center py-10 text-muted-foreground">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <Loader2 className="me-2 h-5 w-5 animate-spin" />
               {auto('Loading audits…', 'states.loading')}
             </div>
           )}

@@ -2,12 +2,18 @@
 
 import Link from 'next/link';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 export default function SupportPage() {
+  const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({ moduleId: 'support' });
   const auto = useAutoTranslator('fm.support');
+  if (!hasOrgContext) {
+    return guard;
+  }
   return (
     <div className="p-6 space-y-6">
+      {supportBanner}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">

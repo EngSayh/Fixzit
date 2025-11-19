@@ -262,7 +262,7 @@ export default async function AboutPage() {
         <section className="py-12" aria-label={t('about.contentSection', 'About Our Company')}>
           <div className="mx-auto max-w-4xl px-4 lg:px-6">
             <div className="bg-card rounded-2xl shadow-md border border-border p-8 md:p-12">
-              <article className={`prose prose-lg max-w-none ${isRTL ? 'text-right' : 'text-left'} prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground`}>
+              <article className="prose prose-lg max-w-none text-start prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground">
                 <div dangerouslySetInnerHTML={{ __html: contentWithoutH1 }} />
               </article>
             </div>

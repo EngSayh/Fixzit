@@ -41,7 +41,6 @@ interface IAccountActivityViewerProps {
   accountId: string;
   initialStartDate?: string;
   initialEndDate?: string;
-  // eslint-disable-next-line no-unused-vars
   onTransactionClick?: (transaction: IAccountTransaction) => void;
 }
 

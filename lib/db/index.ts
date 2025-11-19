@@ -114,7 +114,9 @@ export async function ensureCoreIndexes(): Promise<void> {
             unique: indexSpec.unique || false,
             background: true
           });
-        } catch (error: unknown) {
+        } catch (_error: unknown) {
+          const error = _error instanceof Error ? _error : new Error(String(_error));
+          void error;
           const mongoError = error as { code?: number; message?: string };
           // Skip if index already exists (codes 85, 86)
           if (mongoError.code === 85 || mongoError.code === 86 || mongoError.message?.includes('already exists')) {

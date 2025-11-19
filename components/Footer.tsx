@@ -41,7 +41,7 @@ export default function Footer() {
   return (
     <footer className="border-t bg-card/70 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 lg:px-6 py-6 space-y-6 text-sm">
-        <div className={`flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${translationIsRTL ? 'text-right md:flex-row-reverse' : ''}`}>
+        <div className={`flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${translationIsRTL ? 'md:flex-row-reverse' : ''}`}>
           <div className="font-semibold mb-2">{t('footer.brand', 'Fixzit')}</div>
           <Link href="/" className="inline-flex items-center gap-2 text-primary hover:text-primary dark:text-primary/80 dark:hover:text-primary/60">
             <Home className="h-4 w-4" />
@@ -74,7 +74,7 @@ export default function Footer() {
               <li>
                 <button
                   type="button"
-                  className={`hover:underline ${translationIsRTL ? 'text-right' : 'text-left'}`}
+                  className="hover:underline text-start"
                   onClick={() => setOpen(true)}
                 >
                   {t('footer.ticket', 'Open a ticket')}

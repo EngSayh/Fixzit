@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
+import '@/server/models/souq/Order';
 
 /**
  * API Integration Tests
@@ -8,16 +9,27 @@ import mongoose from 'mongoose';
  */
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
+const MONGO_MEMORY_LAUNCH_TIMEOUT_MS = Number(
+  process.env.MONGO_MEMORY_LAUNCH_TIMEOUT ?? '60000',
+);
 
 let mongoServer: MongoMemoryServer;
 let authToken: string;
 let testUserId: string;
 let testOrgId: string;
+let testOrderId: string;
+let testProductId: string;
+let testClaimId: string;
+let testOrderAmount: number;
 
 describe('API Integration Tests', () => {
   beforeAll(async () => {
     // Start in-memory MongoDB for testing
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await MongoMemoryServer.create({
+      instance: {
+        launchTimeout: MONGO_MEMORY_LAUNCH_TIMEOUT_MS,
+      },
+    });
     const mongoUri = mongoServer.getUri();
     
     // Connect to test database
@@ -430,6 +442,74 @@ describe('API Integration Tests', () => {
     });
   });
 
+  describe('Claims API', () => {
+    it('creates a new claim successfully', async () => {
+      const response = await request(API_BASE_URL)
+        .post('/api/souq/claims')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderId: testOrderId,
+          sellerId: testUserId,
+          productId: testProductId,
+          type: 'item_not_received',
+          reason: 'Item never arrived',
+          description: 'Package never delivered',
+          evidence: [],
+          orderAmount: testOrderAmount,
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty('claim');
+      expect(response.body.claim).toHaveProperty('claimId');
+      expect(response.body.claim.type).toBe('item_not_received');
+
+      testClaimId = response.body.claim.claimId;
+    });
+
+    it('rejects malformed claim type', async () => {
+      const response = await request(API_BASE_URL)
+        .post('/api/souq/claims')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          orderId: testOrderId,
+          sellerId: testUserId,
+          productId: testProductId,
+          type: 'item-not-received',
+          reason: 'Invalid type',
+          description: 'Bad type',
+          evidence: [],
+          orderAmount: testOrderAmount,
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('error');
+    });
+
+    it('allows seller response to claim', async () => {
+      const response = await request(API_BASE_URL)
+        .post(`/api/souq/claims/${testClaimId}/response`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          responseText: 'We will issue a refund',
+          proposedSolution: 'refund_full',
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+    });
+
+    it('allows admin view to fetch claims', async () => {
+      const response = await request(API_BASE_URL)
+        .get('/api/souq/claims')
+        .set('Authorization', `Bearer ${authToken}`)
+        .query({ view: 'admin', limit: 5 });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('claims');
+      expect(Array.isArray(response.body.claims)).toBe(true);
+    });
+  });
+
   describe('Rate Limiting', () => {
     it('should rate limit excessive requests', async () => {
       const requests = [];
@@ -504,4 +584,53 @@ async function seedTestData() {
     role: 'SUPER_ADMIN'
   });
   testUserId = user._id.toString();
+
+  const SouqOrder = mongoose.model('SouqOrder');
+  const order = await SouqOrder.create({
+    orderId: 'CLAIM-ORDER-001',
+    customerId: user._id,
+    customerEmail: user.email,
+    customerPhone: '+966501000000',
+    items: [
+      {
+        listingId: new mongoose.Types.ObjectId(),
+        productId: new mongoose.Types.ObjectId(),
+        fsin: 'FSIN-1234',
+        sellerId: user._id,
+        title: 'Test Product',
+        quantity: 1,
+        pricePerUnit: 120,
+        subtotal: 120,
+        fulfillmentMethod: 'fbm',
+        status: 'delivered',
+      },
+    ],
+    shippingAddress: {
+      name: 'Test Customer',
+      phone: '+966501000000',
+      addressLine1: '123 Test Street',
+      city: 'Riyadh',
+      country: 'SA',
+      postalCode: '12345',
+    },
+    pricing: {
+      subtotal: 120,
+      shippingFee: 10,
+      tax: 5,
+      discount: 0,
+      total: 135,
+      currency: 'SAR',
+    },
+    payment: {
+      method: 'card',
+      status: 'captured',
+      transactionId: 'txn-123',
+    },
+    status: 'delivered',
+    confirmedAt: new Date(),
+    completedAt: new Date(),
+  });
+  testOrderId = order.orderId;
+  testProductId = order.items[0].productId.toString();
+  testOrderAmount = order.pricing.total;
 }

@@ -109,8 +109,10 @@ class InventoryService {
       logger.info('Inventory initialized', { inventoryId, listingId: params.listingId, quantity: params.quantity });
       
       return inventory;
-    } catch (error) {
-      logger.error('Failed to initialize inventory', { error, params });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to initialize inventory', error, { params });
       throw error;
     }
   }
@@ -135,8 +137,10 @@ class InventoryService {
       logger.info('Stock received', { listingId, quantity, availableQuantity: inventory.availableQuantity });
       
       return inventory;
-    } catch (error) {
-      logger.error('Failed to receive stock', { error, listingId, quantity });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to receive stock', error, { listingId, quantity });
       throw error;
     }
   }
@@ -189,8 +193,10 @@ class InventoryService {
       });
       
       return true;
-    } catch (error) {
-      logger.error('Failed to reserve inventory', { error, params });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to reserve inventory', error, { params });
       throw error;
     }
   }
@@ -225,8 +231,10 @@ class InventoryService {
       });
       
       return true;
-    } catch (error) {
-      logger.error('Failed to release reservation', { error, params });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to release reservation', error, { params });
       throw error;
     }
   }
@@ -267,8 +275,10 @@ class InventoryService {
       });
       
       return true;
-    } catch (error) {
-      logger.error('Failed to convert reservation', { error, params });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to convert reservation', error, { params });
       throw error;
     }
   }
@@ -298,8 +308,10 @@ class InventoryService {
       });
       
       return inventory;
-    } catch (error) {
-      logger.error('Failed to process return', { error, params });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to process return', error, { params });
       throw error;
     }
   }
@@ -325,8 +337,10 @@ class InventoryService {
       });
       
       return inventory;
-    } catch (error) {
-      logger.error('Failed to adjust inventory', { error, params });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to adjust inventory', error, { params });
       throw error;
     }
   }
@@ -422,8 +436,10 @@ class InventoryService {
       logger.info('Expired reservations cleaned', { cleaned, released });
       
       return { cleaned, released };
-    } catch (error) {
-      logger.error('Failed to clean expired reservations', { error });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to clean expired reservations', error);
       throw error;
     }
   }
@@ -449,8 +465,10 @@ class InventoryService {
       }
       
       logger.info('Health metrics updated', { count: inventories.length });
-    } catch (error) {
-      logger.error('Failed to update health metrics', { error });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to update health metrics', error);
       throw error;
     }
   }
@@ -481,8 +499,10 @@ class InventoryService {
       
       logger.info('Low stock alerts queued', { alertCount });
       return alertCount;
-    } catch (error) {
-      logger.error('Failed to queue low stock alerts', { error });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to queue low stock alerts', error);
       throw error;
     }
   }
@@ -501,8 +521,10 @@ class InventoryService {
       
       listing.stockQuantity = availableQuantity;
       await listing.save();
-    } catch (error) {
-      logger.error('Failed to update listing stock status', { error, listingId });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to update listing stock status', error, { listingId });
       // Don't throw - this is a secondary operation
     }
   }

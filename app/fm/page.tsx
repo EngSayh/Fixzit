@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger';
 import { useTranslation } from '@/contexts/TranslationContext';
 // 🟩 MIGRATED: Now using consolidated useFormTracking hook
 import { useFormTracking } from '@/hooks/useFormTracking';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { Card, CardContent} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -147,6 +148,7 @@ const PURCHASE_ORDERS: PurchaseOrder[] = [
 
 export default function FMPage() {
   const { t } = useTranslation();
+  const { orgId, guard, supportBanner } = useOrgGuard();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   
@@ -227,8 +229,13 @@ export default function FMPage() {
     }
   };
 
+  if (!orgId) {
+    return <div className="p-6">{guard}</div>;
+  }
+
   return (
     <div className="space-y-6">
+      {supportBanner}
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground mb-2">{t('nav.fm', 'Facility Management')}</h1>
@@ -536,4 +543,3 @@ export default function FMPage() {
     </div>
   );
 }
-

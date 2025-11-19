@@ -2,6 +2,7 @@ import React from 'react';
 import { logger } from '@/lib/logger';
 import ProductCard from '@/components/marketplace/ProductCard';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';
+import { MARKETPLACE_OFFLINE_DATA } from '@/data/marketplace-offline';
 import { getServerI18n } from '@/lib/i18n/server';
 
 interface Category {
@@ -26,7 +27,13 @@ interface Product {
   };
 }
 
+const offlineMarketplaceEnabled = process.env.ALLOW_OFFLINE_MONGODB === 'true';
+
 async function loadHomepageData() {
+  if (offlineMarketplaceEnabled) {
+    logger.info('[Marketplace] Offline dataset enabled (ALLOW_OFFLINE_MONGODB)');
+    return MARKETPLACE_OFFLINE_DATA;
+  }
   try {
     const [categoriesResponse, featuredResponse] = await Promise.all([
       serverFetchJsonWithTenant<{ data: Category[] }>('/api/marketplace/categories'),
@@ -49,6 +56,10 @@ async function loadHomepageData() {
     return { categories, featured, carousels };
   } catch (error) {
     logger.error('Failed to load marketplace homepage data', { error });
+    if (offlineMarketplaceEnabled) {
+      logger.warn('[Marketplace] Falling back to offline dataset after fetch failure');
+      return MARKETPLACE_OFFLINE_DATA;
+    }
     // Return empty data to allow graceful degradation
     return { categories: [], featured: [], carousels: [] };
   }

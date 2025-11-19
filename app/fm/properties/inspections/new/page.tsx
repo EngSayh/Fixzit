@@ -11,8 +11,10 @@ import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import { ClipboardCheck, MapPinned, Users } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 export default function CreateInspectionPage() {
+  const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({ moduleId: 'properties' });
   const auto = useAutoTranslator('fm.properties.inspections.new');
   const [form, setForm] = useState({
     property: '',
@@ -31,9 +33,16 @@ export default function CreateInspectionPage() {
     }
     setSubmitting(true);
     try {
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (orgId) {
+        headers['x-tenant-id'] = orgId;
+      }
+
       const response = await fetch('/api/properties', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           name: form.property,
           type: 'COMMERCIAL',
@@ -54,16 +63,21 @@ export default function CreateInspectionPage() {
       }
       toast.success(auto('Inspection request captured.', 'next.success'));
       setForm({ property: '', type: '', window: '', duration: '', scope: '' });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Request failed');
+    } catch (_error) {
+      toast.error(_error instanceof Error ? _error.message : 'Request failed');
     } finally {
       setSubmitting(false);
     }
   };
 
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="properties" />
+      {supportBanner}
 
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">{auto('Scheduler', 'header.kicker')}</p>
@@ -143,11 +157,11 @@ export default function CreateInspectionPage() {
           </div>
           <div className="flex flex-wrap gap-3">
             <Button variant="outline">
-              <MapPinned className="mr-2 h-4 w-4" />
+              <MapPinned className="me-2 h-4 w-4" />
               {auto('Add location pin', 'form.addLocation')}
             </Button>
             <Button variant="outline">
-              <Users className="mr-2 h-4 w-4" />
+              <Users className="me-2 h-4 w-4" />
               {auto('Assign internal reviewer', 'form.assignReviewer')}
             </Button>
           </div>
@@ -166,7 +180,7 @@ export default function CreateInspectionPage() {
               {auto('Reset form', 'next.reset')}
             </Button>
             <Button type="submit" disabled={submitting}>
-              <ClipboardCheck className="mr-2 h-4 w-4" />
+              <ClipboardCheck className="me-2 h-4 w-4" />
               {submitting ? auto('Submitting...', 'next.submitting') : auto('Create inspection', 'next.create')}
             </Button>
           </CardContent>

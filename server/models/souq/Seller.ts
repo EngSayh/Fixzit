@@ -25,6 +25,31 @@ export interface IAutoRepricerRule {
   protectMargin: boolean;
 }
 
+export interface IKYCDocumentEntry {
+  type: 'cr' | 'vat_certificate' | 'bank_letter' | 'id' | 'authorization' | 'other';
+  url: string;
+  uploadedAt: Date;
+  expiresAt?: Date;
+  verified: boolean;
+  verifiedAt?: Date;
+  verifiedBy?: string;
+  rejectionReason?: string;
+}
+
+export interface IKYCWorkflow {
+  status: 'pending' | 'in_review' | 'under_review' | 'approved' | 'rejected' | 'suspended';
+  step: 'company_info' | 'documents' | 'bank_details' | 'verification';
+  companyInfoComplete: boolean;
+  documentsComplete: boolean;
+  bankDetailsComplete: boolean;
+  submittedAt?: Date;
+  approvedAt?: Date;
+  approvedBy?: string;
+  rejectedAt?: Date;
+  rejectedBy?: string;
+  rejectionReason?: string;
+}
+
 export interface ISeller extends Document {
   _id: mongoose.Types.ObjectId;
   sellerId: string; // SEL-{UUID}
@@ -38,6 +63,18 @@ export interface ISeller extends Document {
   country: string;
   city: string;
   address: string;
+  businessName?: string;
+  businessNameArabic?: string;
+  industry?: string;
+  description?: string;
+  website?: string;
+  businessAddress?: {
+    street: string;
+    city: string;
+    region?: string;
+    postalCode?: string;
+    country?: string;
+  };
   
   // Contact
   contactEmail: string;
@@ -45,19 +82,13 @@ export interface ISeller extends Document {
   contactPerson?: string;
   
   // KYC Status
-  kycStatus: 'pending' | 'in_review' | 'approved' | 'rejected' | 'suspended';
+  kycStatus: IKYCWorkflow;
   kycSubmittedAt?: Date;
   kycApprovedAt?: Date;
   kycRejectionReason?: string;
   
   // KYC Documents
-  documents: {
-    type: 'cr' | 'vat_certificate' | 'bank_letter' | 'id' | 'authorization' | 'other';
-    url: string;
-    uploadedAt: Date;
-    expiresAt?: Date;
-    verified: boolean;
-  }[];
+  documents: IKYCDocumentEntry[];
   
   // Bank Details
   bankAccount?: {
@@ -201,6 +232,24 @@ const SellerSchema = new Schema<ISeller>(
       type: String,
       required: true,
     },
+    businessName: {
+      type: String,
+      trim: true,
+    },
+    businessNameArabic: {
+      type: String,
+      trim: true,
+    },
+    industry: String,
+    description: String,
+    website: String,
+    businessAddress: {
+      street: String,
+      city: String,
+      region: String,
+      postalCode: String,
+      country: String,
+    },
     contactEmail: {
       type: String,
       required: true,
@@ -214,10 +263,26 @@ const SellerSchema = new Schema<ISeller>(
     },
     contactPerson: String,
     kycStatus: {
-      type: String,
-      enum: ['pending', 'in_review', 'approved', 'rejected', 'suspended'],
-      default: 'pending',
-      index: true,
+      status: {
+        type: String,
+        enum: ['pending', 'in_review', 'under_review', 'approved', 'rejected', 'suspended'],
+        default: 'pending',
+        index: true,
+      },
+      step: {
+        type: String,
+        enum: ['company_info', 'documents', 'bank_details', 'verification'],
+        default: 'company_info',
+      },
+      companyInfoComplete: { type: Boolean, default: false },
+      documentsComplete: { type: Boolean, default: false },
+      bankDetailsComplete: { type: Boolean, default: false },
+      submittedAt: Date,
+      approvedAt: Date,
+      approvedBy: String,
+      rejectedAt: Date,
+      rejectedBy: String,
+      rejectionReason: String,
     },
     kycSubmittedAt: Date,
     kycApprovedAt: Date,
@@ -229,19 +294,13 @@ const SellerSchema = new Schema<ISeller>(
           enum: ['cr', 'vat_certificate', 'bank_letter', 'id', 'authorization', 'other'],
           required: true,
         },
-        url: {
-          type: String,
-          required: true,
-        },
-        uploadedAt: {
-          type: Date,
-          default: Date.now,
-        },
+        url: { type: String, required: true },
+        uploadedAt: { type: Date, default: Date.now },
         expiresAt: Date,
-        verified: {
-          type: Boolean,
-          default: false,
-        },
+        verified: { type: Boolean, default: false },
+        verifiedAt: Date,
+        verifiedBy: String,
+        rejectionReason: String,
       },
     ],
     bankAccount: {
@@ -486,7 +545,7 @@ const SellerSchema = new Schema<ISeller>(
 );
 
 // Indexes
-SellerSchema.index({ kycStatus: 1, isActive: 1 });
+SellerSchema.index({ 'kycStatus.status': 1, isActive: 1 });
 SellerSchema.index({ 'accountHealth.status': 1 });
 SellerSchema.index({ tier: 1, isActive: 1 });
 SellerSchema.index({ legalName: 'text', tradeName: 'text' });
@@ -533,7 +592,7 @@ SellerSchema.methods.canCreateListings = function (): boolean {
   return (
     this.isActive &&
     !this.isSuspended &&
-    this.kycStatus === 'approved' &&
+    this.kycStatus?.status === 'approved' &&
     this.accountHealth.status !== 'critical'
   );
 };
@@ -550,9 +609,9 @@ SellerSchema.methods.canCompeteInBuyBox = function (): boolean {
 // Static: Get pending KYC approvals
 SellerSchema.statics.getPendingKYC = async function () {
   return this.find({
-    kycStatus: 'in_review',
+    'kycStatus.status': 'in_review',
     isActive: true,
-  }).sort({ kycSubmittedAt: 1 });
+  }).sort({ 'kycStatus.submittedAt': 1 });
 };
 
 // Static: Get sellers with critical health

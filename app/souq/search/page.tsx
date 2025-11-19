@@ -321,7 +321,7 @@ function ProductCard({ product, viewMode }: { product: Product; viewMode: 'grid'
             <div className="flex items-center gap-2 mb-2">
               <div className="flex items-center">
                 <span className="text-warning">★</span>
-                <span className="text-sm font-medium ml-1">{product.rating.toFixed(1)}</span>
+                <span className="text-sm font-medium ms-1">{product.rating.toFixed(1)}</span>
               </div>
               <span className="text-sm text-gray-500">({product.totalReviews})</span>
             </div>
@@ -369,7 +369,7 @@ function ProductCard({ product, viewMode }: { product: Product; viewMode: 'grid'
       <div className="flex items-center gap-2 mb-2">
         <div className="flex items-center">
           <span className="text-warning">★</span>
-          <span className="text-sm font-medium ml-1">{product.rating.toFixed(1)}</span>
+          <span className="text-sm font-medium ms-1">{product.rating.toFixed(1)}</span>
         </div>
         <span className="text-sm text-gray-500">({product.totalReviews})</span>
       </div>

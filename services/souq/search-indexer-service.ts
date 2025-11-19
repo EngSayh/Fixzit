@@ -1,5 +1,6 @@
 import { searchClient, INDEXES, ProductDocument, SellerDocument } from '@/lib/meilisearch';
 import { logger } from '@/lib/logger';
+import { withMeiliResilience } from '@/lib/meilisearch-resilience';
 
 /**
  * Search Indexer Service
@@ -77,7 +78,9 @@ export class SearchIndexerService {
       const index = searchClient.index(INDEXES.PRODUCTS);
 
       // Clear existing index
-      await index.deleteAllDocuments();
+      await withMeiliResilience('products-clear-index', 'index', () =>
+        index.deleteAllDocuments()
+      );
       logger.info('[SearchIndexer] Cleared existing product index');
 
       // Fetch all active listings in batches
@@ -90,10 +93,14 @@ export class SearchIndexerService {
 
         // Upload batch to Meilisearch
         try {
-          await index.addDocuments(documents);
+          await withMeiliResilience('products-batch-index', 'index', () =>
+            index.addDocuments(documents)
+          );
           indexed += documents.length;
           logger.info(`[SearchIndexer] Indexed batch: ${indexed} products`);
-        } catch (error) {
+        } catch (_error) {
+          const error = _error instanceof Error ? _error : new Error(String(_error));
+          void error;
           logger.error('[SearchIndexer] Failed to index batch', error, {
             component: 'SearchIndexerService',
             action: 'fullReindexProducts',
@@ -112,7 +119,9 @@ export class SearchIndexerService {
       logger.info(`[SearchIndexer] Full reindex complete: ${indexed} products indexed, ${errors} errors`);
       
       return { indexed, errors };
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('[SearchIndexer] Full reindex failed', error, {
         component: 'SearchIndexerService',
         action: 'fullReindexProducts',
@@ -146,10 +155,14 @@ export class SearchIndexerService {
       const documents = await this.transformListingsToDocuments([listing]);
       
       const index = searchClient.index(INDEXES.PRODUCTS);
-      await index.addDocuments(documents);
+      await withMeiliResilience('product-update', 'index', () =>
+        index.addDocuments(documents)
+      );
       
       logger.info(`[SearchIndexer] Updated listing in search: ${listingId}`);
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error(`[SearchIndexer] Failed to update listing ${listingId}`, error, {
         component: 'SearchIndexerService',
         action: 'updateListing',
@@ -166,10 +179,14 @@ export class SearchIndexerService {
   static async deleteFromIndex(fsin: string): Promise<void> {
     try {
       const index = searchClient.index(INDEXES.PRODUCTS);
-      await index.deleteDocument(fsin);
+      await withMeiliResilience('product-delete', 'index', () =>
+        index.deleteDocument(fsin)
+      );
       
       logger.info(`[SearchIndexer] Deleted product from search: ${fsin}`);
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error(`[SearchIndexer] Failed to delete product ${fsin}`, error, {
         component: 'SearchIndexerService',
         action: 'deleteFromIndex',
@@ -206,10 +223,14 @@ export class SearchIndexerService {
 
         // Upload batch to Meilisearch
         try {
-          await index.addDocuments(documents);
+          await withMeiliResilience('sellers-batch-index', 'index', () =>
+            index.addDocuments(documents)
+          );
           indexed += documents.length;
           logger.info(`[SearchIndexer] Indexed batch: ${indexed} sellers`);
-        } catch (error) {
+        } catch (_error) {
+          const error = _error instanceof Error ? _error : new Error(String(_error));
+          void error;
           logger.error('[SearchIndexer] Failed to index seller batch', error, {
             component: 'SearchIndexerService',
             action: 'fullReindexSellers',
@@ -227,7 +248,9 @@ export class SearchIndexerService {
       logger.info(`[SearchIndexer] Full seller reindex complete: ${indexed} sellers indexed, ${errors} errors`);
       
       return { indexed, errors };
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('[SearchIndexer] Full seller reindex failed', error, {
         component: 'SearchIndexerService',
         action: 'fullReindexSellers',
@@ -254,10 +277,14 @@ export class SearchIndexerService {
       const documents = this.transformSellersToDocuments([seller]);
       
       const index = searchClient.index(INDEXES.SELLERS);
-      await index.addDocuments(documents);
+      await withMeiliResilience('seller-update', 'index', () =>
+        index.addDocuments(documents)
+      );
       
       logger.info(`[SearchIndexer] Updated seller in search: ${sellerId}`);
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error(`[SearchIndexer] Failed to update seller ${sellerId}`, error, {
         component: 'SearchIndexerService',
         action: 'updateSeller',

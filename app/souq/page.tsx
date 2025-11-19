@@ -91,7 +91,7 @@ export default function SouqPage() {
                   href={feature.link}
                   className="bg-card p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow border border-border group"
                 >
-                  <div className={`flex items-start gap-4 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                  <div className="flex items-start gap-4">
                     <div className="p-3 bg-success/10 rounded-2xl group-hover:bg-success/20 transition-colors">
                       <Icon className="h-6 w-6 text-success" />
                     </div>

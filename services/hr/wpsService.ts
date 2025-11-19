@@ -53,7 +53,9 @@ async function calculateWorkDays(
     );
     
     return uniqueDates.size;
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     const [year, month] = periodMonth.split('-').map(Number);
     const daysInMonth = new Date(year, month, 0).getDate();
     logger.error('[WPS] Failed to calculate work days from attendance', {
@@ -123,8 +125,10 @@ function extractBankCode(iban: string): string {
  * Generate WPS CSV file from payslips
  * Returns both the file and any errors encountered (for robust error handling)
  */
+type PayrollLineInput = PayrollLineDoc & { workDays?: number };
+
 export async function generateWPSFile(
-  lines: PayrollLineDoc[],
+  lines: PayrollLineInput[],
   organizationId: string,
   periodMonth: string // Format: YYYY-MM
 ): Promise<{ file: WPSFile; errors: string[] }> {
@@ -152,8 +156,8 @@ export async function generateWPSFile(
     
     // ✅ Calculate actual work days from attendance records
     let workDays = 30; // Default fallback
-    if ((line as any).workDays && typeof (line as any).workDays === 'number') {
-      workDays = (line as any).workDays;
+    if (typeof line.workDays === 'number') {
+      workDays = line.workDays;
     } else {
       const attendanceEmployeeId = line.employeeId?.toString?.() ?? line.employeeCode;
       workDays = await calculateWorkDays(attendanceEmployeeId, organizationId, periodMonth);
@@ -353,9 +357,11 @@ export async function calculateWorkDaysFromAttendance(
     const workDays = workDaySet.size;
     const daysInMonth = monthEnd.getDate();
     return Math.min(workDays, daysInMonth);
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     // If calculation fails, return default (caller should handle this)
-    logger.error('[WPS] Failed to calculate work days from attendance', { error });
+    logger.error('[WPS] Failed to calculate work days from attendance', error);
     return 30; // Default fallback
   }
 }

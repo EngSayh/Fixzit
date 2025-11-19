@@ -10,7 +10,7 @@ type BadgeVariant =
   | 'warning'
   | 'info';
 
-interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: BadgeVariant;
 }
 
@@ -54,4 +54,3 @@ export const Badge = ({
     />
   );
 };
-

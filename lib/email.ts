@@ -70,7 +70,9 @@ export async function sendEmail(
       success: true,
       messageId,
     };
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error('[Email] Send failed', {
       error: errorMessage,

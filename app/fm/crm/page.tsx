@@ -9,7 +9,7 @@ import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useSupportOrg } from '@/contexts/SupportOrgContext';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import ClientDate from '@/components/ClientDate';
 
 type StageStat = { stage: string; total: number };
@@ -51,11 +51,16 @@ const currency = new Intl.NumberFormat('en', {
 export default function CrmOverviewPage() {
   const auto = useAutoTranslator('fm.crm.dashboard');
   const { data: session } = useSession();
-  const { effectiveOrgId, supportOrg, canImpersonate } = useSupportOrg();
-  const orgId = effectiveOrgId;
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'crm' });
   const { data, error, isLoading, mutate } = useSWR<OverviewResponse>(
     orgId ? '/api/crm/overview' : null,
     fetcher
+  );
+
+  const totals = data?.totals;
+  const stageTotal = useMemo(
+    () => data?.stages.reduce((sum, stage) => sum + stage.total, 0) ?? 0,
+    [data?.stages]
   );
 
   if (!session) {
@@ -71,30 +76,9 @@ export default function CrmOverviewPage() {
     );
   }
 
-  if (!orgId) {
-    return (
-      <div className="space-y-6">
-        <ModuleViewTabs moduleId="crm" />
-        <Card>
-          <CardContent className="space-y-2 py-6">
-            <p className="font-semibold text-destructive">
-              {canImpersonate
-                ? auto('Select an organization to load CRM metrics.', 'states.selectOrg')
-                : auto('Organization context missing in session.', 'states.missingOrg')}
-            </p>
-            {canImpersonate && (
-              <p className="text-sm text-muted-foreground">
-                {auto('Use the support organization switcher to pick a tenant.', 'states.selectOrgHint')}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    );
+  if (!hasOrgContext || !orgId) {
+    return guard;
   }
-
-  const totals = data?.totals;
-  const stageTotal = useMemo(() => data?.stages.reduce((sum, stage) => sum + stage.total, 0) ?? 0, [data?.stages]);
 
   return (
     <div className="space-y-6">
@@ -113,7 +97,7 @@ export default function CrmOverviewPage() {
           </p>
         </div>
         <Button variant="outline" onClick={() => mutate()} disabled={isLoading}>
-          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+          {isLoading ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <RefreshCw className="me-2 h-4 w-4" />}
           {auto('Refresh', 'actions.refresh')}
         </Button>
       </div>
@@ -237,7 +221,7 @@ export default function CrmOverviewPage() {
                         })}
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-end">
                       <p className="text-lg font-semibold">{currency.format(account.revenue ?? 0)}</p>
                       <p className="text-xs text-muted-foreground">{auto('Ann. revenue', 'topAccounts.revenue')}</p>
                     </div>

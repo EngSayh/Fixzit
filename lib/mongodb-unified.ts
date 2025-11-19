@@ -1,146 +1,112 @@
 import { logger } from '@/lib/logger';
 import mongoose from 'mongoose';
-
-// Safe TLS detection function
-function isTlsEnabled(uri: string): boolean {
-  if (!uri) return false;
-  // MongoDB Atlas (srv) always uses TLS
-  if (uri.includes('mongodb+srv://')) return true;
-  // Check for explicit TLS/SSL parameters
-  if (uri.includes('tls=true') || uri.includes('ssl=true')) return true;
-  return false;
-}
+import { connectMongo as ensureDatabaseHandle } from '@/lib/mongo';
 
 declare global {
-   
   var _mongooseConnection: typeof mongoose | undefined;
 }
 
-// Production enforcement: no fallback chains or defaults
-const MONGODB_URI = process.env.MONGODB_URI || process.env.DATABASE_URL;
-const MONGODB_DB = process.env.MONGODB_DB || 'fixzit';
+const isNextBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
+const disableMongoForBuild =
+  process.env.DISABLE_MONGODB_FOR_BUILD === 'true' ||
+  (isNextBuildPhase && process.env.ALLOW_MONGODB_DURING_BUILD !== 'true');
+let connectPromise: Promise<typeof mongoose> | null = null;
 
-/**
- * Validates MongoDB URI is configured
- * Called at runtime (not at module load) to avoid build-time failures
- */
-function validateMongoUri(): string {
-  // Skip validation during CI builds (only needed at runtime)
-  if (process.env.CI === 'true') {
-    return MONGODB_URI || 'mongodb://localhost:27017/fixzit';
-  }
-  
-  // Enforce production requirements at runtime
-  if (process.env.NODE_ENV === 'production') {
-    if (!MONGODB_URI || MONGODB_URI.trim().length === 0) {
-      throw new Error('FATAL: MONGODB_URI or DATABASE_URL is required in production');
-    }
-    if (!MONGODB_URI.startsWith('mongodb+srv://') && !MONGODB_URI.startsWith('mongodb://')) {
-      throw new Error('FATAL: Invalid MongoDB URI format in production. Must start with mongodb:// or mongodb+srv://');
-    }
-  }
-  
-  if (!MONGODB_URI) {
-    throw new Error(
-      'Please define the MONGODB_URI or DATABASE_URL environment variable inside .env.local'
-    );
-  }
-  return MONGODB_URI;
+function createBuildDisabledError(): Error & { code: string } {
+  const error = new Error(
+    'MongoDB connections are disabled during build (DISABLE_MONGODB_FOR_BUILD/phase-production-build). Set ALLOW_MONGODB_DURING_BUILD=true to override.'
+  ) as Error & { code: string };
+  error.code = 'MONGO_DISABLED_FOR_BUILD';
+  return error;
 }
 
-/**
- * Unified MongoDB Connection Utility
- * 
- * This replaces the inconsistent connection patterns found in:
- * - src/lib/mongo.ts (complex abstraction with MockDB)
- * - src/db/mongoose.ts (mongoose-specific)  
- * - lib/database.ts (native client + legacy DB references)
- * 
- * Features:
- * ✅ Single connection pattern across the system
- * ✅ Development caching with global connection
- * ✅ Production-ready with proper error handling
- * ✅ TypeScript interfaces for consistency
- * ✅ Graceful connection management
- */
-
 export async function connectToDatabase(): Promise<typeof mongoose> {
+  if (disableMongoForBuild) {
+    throw createBuildDisabledError();
+  }
+
   if (globalThis._mongooseConnection && mongoose.connection.readyState === 1) {
     return globalThis._mongooseConnection;
   }
 
-  // Validate URI at runtime (not at module load)
-  const mongoUri = validateMongoUri();
-
-  try {
-    const connection = await mongoose.connect(mongoUri, {
-      dbName: MONGODB_DB,
-      bufferCommands: false,
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-      // Production-critical options for MongoDB Atlas
-      retryWrites: true,        // Automatic retry for write operations (network failures)
-      tls: isTlsEnabled(mongoUri),  // Safe TLS detection
-      w: 'majority',            // Write concern for data durability (prevents data loss)
-    });
-
-    if (process.env.NODE_ENV === 'development') {
-      globalThis._mongooseConnection = connection;
-    }
-
-    logger.info('✅ MongoDB connected successfully');
-    return connection;
-  } catch (error: unknown) {
-    logger.error('[MongoDB] Connection failed:', { error });
-    throw error;
+  if (!connectPromise) {
+    connectPromise = ensureDatabaseHandle()
+      .then(() => {
+        if (process.env.NODE_ENV === 'development') {
+          globalThis._mongooseConnection = mongoose;
+        }
+        logger.info('✅ MongoDB connected successfully');
+        return mongoose;
+      })
+      .catch((error: unknown) => {
+        connectPromise = null;
+        logger.error('[MongoDB] Connection failed', error instanceof Error ? error : undefined);
+        throw error;
+      });
   }
+
+  return connectPromise;
 }
 
 export async function disconnectFromDatabase(): Promise<void> {
+  if (disableMongoForBuild) {
+    connectPromise = null;
+    return;
+  }
+
   if (mongoose.connection.readyState !== 0) {
     await mongoose.disconnect();
+    connectPromise = null;
     globalThis._mongooseConnection = undefined;
   }
 }
 
-// Connection health check
 export async function checkDatabaseHealth(): Promise<boolean> {
+  if (disableMongoForBuild) {
+    logger.warn('[MongoDB] Health check skipped because database access is disabled for build.');
+    return true;
+  }
+
   try {
     if (mongoose.connection.readyState !== 1) {
       await connectToDatabase();
     }
-    
+
     if (!mongoose.connection.db) {
       throw new Error('Database connection not established');
     }
-    
+
     await mongoose.connection.db.admin().ping();
     return true;
-  } catch (error: unknown) {
-    logger.error('Database health check failed:', { error });
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error('Database health check failed', error instanceof Error ? error : undefined);
     return false;
   }
 }
 
-// Get native MongoDB database instance (for direct operations)
-export async function getDatabase() {
+type ConnectionDb = NonNullable<typeof mongoose.connection.db>;
+
+export async function getDatabase(): Promise<ConnectionDb> {
+  if (disableMongoForBuild) {
+    throw createBuildDisabledError();
+  }
+
   await connectToDatabase();
   const db = mongoose.connection.db;
   if (!db) {
     throw new Error('Database not available');
   }
-  return db;
+  return db as ConnectionDb;
 }
 
-// Get Mongoose connection (for ODM operations)
 export async function getMongooseConnection() {
   return await connectToDatabase();
 }
 
-// Legacy compatibility functions
 export const connectDb = connectToDatabase;
 export const dbConnect = connectToDatabase;
-export const connectMongo = connectToDatabase; // Fix for connectMongo import error
+export const connectMongo = connectToDatabase;
 
 export default connectToDatabase;

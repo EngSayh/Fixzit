@@ -69,7 +69,7 @@ export default function CompetitorAnalysis({ fsin }: CompetitorAnalysisProps) {
             SAR {analysis.lowestPrice.toFixed(2)}
           </div>
           <div className="flex items-center text-xs text-success mt-1">
-            <TrendingDown className="w-3 h-3 mr-1" />
+            <TrendingDown className="w-3 h-3 me-1" />
             {auto('Best Deal', 'metrics.bestDeal')}
           </div>
         </div>
@@ -100,7 +100,7 @@ export default function CompetitorAnalysis({ fsin }: CompetitorAnalysisProps) {
             SAR {analysis.highestPrice.toFixed(2)}
           </div>
           <div className="flex items-center text-xs text-destructive mt-1">
-            <TrendingUp className="w-3 h-3 mr-1" />
+            <TrendingUp className="w-3 h-3 me-1" />
             {auto('Most Expensive', 'metrics.mostExpensive')}
           </div>
         </div>

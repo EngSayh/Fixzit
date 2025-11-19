@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
@@ -45,6 +45,46 @@ const TEST_USERS_FALLBACK_PHONE =
 
 const DEMO_AUTH_ENABLED =
   process.env.ALLOW_DEMO_LOGIN === 'true' || process.env.NODE_ENV !== 'production';
+const OFFLINE_MODE = process.env.ALLOW_OFFLINE_MONGODB === 'true';
+
+const TEST_USER_CONFIG = [
+  {
+    identifier: process.env.TEST_SUPERADMIN_IDENTIFIER,
+    password: process.env.TEST_SUPERADMIN_PASSWORD,
+    phone: process.env.TEST_SUPERADMIN_PHONE,
+    role: 'SUPER_ADMIN',
+  },
+  {
+    identifier: process.env.TEST_ADMIN_IDENTIFIER,
+    password: process.env.TEST_ADMIN_PASSWORD,
+    phone: process.env.TEST_ADMIN_PHONE,
+    role: 'ADMIN',
+  },
+  {
+    identifier: process.env.TEST_MANAGER_IDENTIFIER,
+    password: process.env.TEST_MANAGER_PASSWORD,
+    phone: process.env.TEST_MANAGER_PHONE,
+    role: 'MANAGER',
+  },
+  {
+    identifier: process.env.TEST_TECHNICIAN_IDENTIFIER,
+    password: process.env.TEST_TECHNICIAN_PASSWORD,
+    phone: process.env.TEST_TECHNICIAN_PHONE,
+    role: 'TECHNICIAN',
+  },
+  {
+    identifier: process.env.TEST_TENANT_IDENTIFIER,
+    password: process.env.TEST_TENANT_PASSWORD,
+    phone: process.env.TEST_TENANT_PHONE,
+    role: 'TENANT',
+  },
+  {
+    identifier: process.env.TEST_VENDOR_IDENTIFIER,
+    password: process.env.TEST_VENDOR_PASSWORD,
+    phone: process.env.TEST_VENDOR_PHONE,
+    role: 'VENDOR',
+  },
+] as const;
 
 const DEFAULT_DEMO_PASSWORDS = ['password123', 'Admin@123'];
 const CUSTOM_DEMO_PASSWORDS = (process.env.NEXTAUTH_DEMO_PASSWORDS ||
@@ -90,6 +130,52 @@ const buildDemoUser = (identifier: string, loginType: 'personal' | 'corporate') 
     professional: { role: 'SUPER_ADMIN' },
     __isDemoUser: true,
   };
+};
+
+const buildTestUser = (
+  identifier: string,
+  loginType: 'personal' | 'corporate',
+  role: string,
+  phone?: string
+) => {
+  const normalizedEmail =
+    loginType === 'personal'
+      ? identifier.toLowerCase()
+      : `${identifier.toLowerCase()}@test.fixzit`;
+
+  return {
+    _id: randomBytes(12).toString('hex'),
+    email: normalizedEmail,
+    username: loginType === 'corporate' ? identifier : normalizedEmail.split('@')[0],
+    employeeId: loginType === 'corporate' ? identifier : undefined,
+    role,
+    status: 'ACTIVE',
+    isActive: true,
+    contact: { phone: phone ?? TEST_USERS_FALLBACK_PHONE },
+    personal: { phone: phone ?? TEST_USERS_FALLBACK_PHONE },
+    professional: { role },
+    __isDemoUser: true,
+    __isTestUser: true,
+  };
+};
+
+const resolveTestUser = (
+  identifier: string,
+  password: string,
+  loginType: 'personal' | 'corporate'
+) => {
+  const normalized = loginType === 'personal' ? identifier.toLowerCase() : identifier.toUpperCase();
+  for (const config of TEST_USER_CONFIG) {
+    if (!config.identifier || !config.password) continue;
+    const configIdentifier =
+      loginType === 'personal'
+        ? config.identifier.toLowerCase()
+        : config.identifier.toUpperCase();
+    if (normalized === configIdentifier && password === config.password) {
+      return buildTestUser(normalized, loginType, config.role, config.phone);
+    }
+  }
+  return null;
 };
 
 // Validation schema
@@ -204,68 +290,76 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Connect to database and verify credentials
-    await connectToDatabase();
-    const { User } = await import('@/server/models/User');
-    const bcrypt = await import('bcryptjs');
+    // 5. Resolve user (test users → skip DB, otherwise perform lookup)
+    let user: any | null = null;
+    const testUser = smsDevMode ? resolveTestUser(loginIdentifier, password, loginType) : null;
 
-    let user;
-    if (loginType === 'personal') {
-      user = (await User.findOne({ email: loginIdentifier })) as any;
+    if (testUser) {
+      user = testUser;
     } else {
-      user = (await User.findOne({ username: loginIdentifier })) as any;
-    }
+      await connectToDatabase();
+      const { User } = await import('@/server/models/User');
+      const bcrypt = await import('bcryptjs');
 
-    if (!user && DEMO_AUTH_ENABLED && isDemoIdentifier(loginIdentifier)) {
-      user = buildDemoUser(loginIdentifier, loginType);
-      logger.warn('[OTP] Falling back to demo user profile', {
-        identifier: loginIdentifier,
-      });
-    }
+      if (loginType === 'personal') {
+        user = (await User.findOne({ email: loginIdentifier })) as any;
+      } else {
+        user = (await User.findOne({ username: loginIdentifier })) as any;
+      }
 
-    if (!user) {
-      logger.warn('[OTP] User not found', { identifier: loginIdentifier, loginType });
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid credentials',
-        },
-        { status: 401 }
-      );
-    }
+      if (!user && DEMO_AUTH_ENABLED && isDemoIdentifier(loginIdentifier)) {
+        user = buildDemoUser(loginIdentifier, loginType);
+        logger.warn('[OTP] Falling back to demo user profile', {
+          identifier: loginIdentifier,
+        });
+      }
 
-    // 6. Verify password
-    let isValid = false;
-    if (user.password) {
-      try {
-        isValid = await bcrypt.compare(password, user.password);
-      } catch (compareError) {
-        logger.error('[OTP] Password comparison failed', compareError as Error);
+      if (!user) {
+        logger.warn('[OTP] User not found', { identifier: loginIdentifier, loginType });
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Invalid credentials',
+          },
+          { status: 401 }
+        );
+      }
+
+      // 6. Verify password via bcrypt (demo users may bypass)
+      let isValid = false;
+      if (user.password) {
+        try {
+          isValid = await bcrypt.compare(password, user.password);
+        } catch (compareError) {
+          logger.error('[OTP] Password comparison failed', compareError as Error);
+        }
+      }
+
+      const isDemoUserCandidate =
+        isDemoIdentifier(loginIdentifier) ||
+        isDemoIdentifier(user.email) ||
+        isDemoIdentifier(user.username) ||
+        isDemoIdentifier(user.employeeId) ||
+        Boolean((user as any)?.__isDemoUser);
+
+      if (!isValid && isDemoUserCandidate && matchesDemoPassword(password)) {
+        isValid = true;
+        logger.warn('[OTP] Accepted demo credentials', { identifier: loginIdentifier });
+      }
+
+      if (!isValid) {
+        logger.warn('[OTP] Invalid password', { identifier: loginIdentifier });
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Invalid credentials',
+          },
+          { status: 401 }
+        );
       }
     }
 
-    const isDemoUser =
-      isDemoIdentifier(loginIdentifier) ||
-      isDemoIdentifier(user.email) ||
-      isDemoIdentifier(user.username) ||
-      isDemoIdentifier(user.employeeId) ||
-      Boolean((user as any)?.__isDemoUser);
-
-    if (!isValid && isDemoUser && matchesDemoPassword(password)) {
-      isValid = true;
-      logger.warn('[OTP] Accepted demo credentials', { identifier: loginIdentifier });
-    }
-
-    if (!isValid) {
-      logger.warn('[OTP] Invalid password', { identifier: loginIdentifier });
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid credentials',
-        },
-        { status: 401 }
-      );
-    }
+    const isDemoUser = Boolean((user as any)?.__isDemoUser);
 
     // 7. Check if user is active
     const isUserActive = user.isActive !== undefined ? user.isActive : user.status === 'ACTIVE';
@@ -357,26 +451,28 @@ export async function POST(request: NextRequest) {
     // 12. Send OTP via SMS
     const smsResult = await sendOTP(userPhone, otp);
 
-    const logResult = await logCommunication({
-      userId: user._id.toString(),
-      channel: 'otp',
-      type: 'otp',
-      recipient: userPhone,
-      subject: 'Login verification OTP',
-      message: `SMS OTP login requested for ${loginIdentifier}`,
-      status: smsResult.success ? 'sent' : 'failed',
-      errorMessage: smsResult.success ? undefined : smsResult.error,
-      metadata: {
-        phone: userPhone,
-        otpExpiresAt: new Date(expiresAt),
-        otpAttempts: MAX_ATTEMPTS,
-        rateLimitRemaining: rateLimitResult.remaining,
-        identifier: loginIdentifier,
-      },
-    });
+    if (!OFFLINE_MODE) {
+      const logResult = await logCommunication({
+        userId: user._id.toString(),
+        channel: 'otp',
+        type: 'otp',
+        recipient: userPhone,
+        subject: 'Login verification OTP',
+        message: `SMS OTP login requested for ${loginIdentifier}`,
+        status: smsResult.success ? 'sent' : 'failed',
+        errorMessage: smsResult.success ? undefined : smsResult.error,
+        metadata: {
+          phone: userPhone,
+          otpExpiresAt: new Date(expiresAt),
+          otpAttempts: MAX_ATTEMPTS,
+          rateLimitRemaining: rateLimitResult.remaining,
+          identifier: loginIdentifier,
+        },
+      });
 
-    if (!logResult.success) {
-      logger.warn('[OTP] Failed to log communication', { error: logResult.error });
+      if (!logResult.success) {
+        logger.warn('[OTP] Failed to log communication', { error: logResult.error });
+      }
     }
 
     if (!smsResult.success) {

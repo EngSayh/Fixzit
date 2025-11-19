@@ -5,11 +5,13 @@ import Link from 'next/link';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { TableSkeleton } from '@/components/skeletons';
 import ClientDate from '@/components/ClientDate';
 
 import { logger } from '@/lib/logger';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 interface TicketItem {
   id: string;
   code?: string;
@@ -23,7 +25,11 @@ interface TicketItem {
 export default function SupportTicketsPage() {
   const auto = useAutoTranslator('fm.supportTickets');
   const { data: session } = useSession();
-  const orgId = session?.user?.orgId;
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'support' });
+  
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState('');
 
@@ -36,7 +42,7 @@ export default function SupportTicketsPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        logger.error('FM tickets fetch error', { error });
+        logger.error('FM tickets fetch error', error);
         throw error;
       });
   };
@@ -77,8 +83,8 @@ export default function SupportTicketsPage() {
           { id: toastId }
         );
       }
-    } catch (error) {
-      logger.error('Error updating ticket:', error);
+    } catch (_error) {
+      logger.error('Error updating ticket:', _error);
       toast.error(auto('Error updating ticket. Please try again.', 'toast.genericError'), { id: toastId });
     }
   };
@@ -89,16 +95,17 @@ export default function SupportTicketsPage() {
 
   if (!orgId) {
     return (
-      <div className="p-6">
-        <p className="text-destructive">
-          {auto('Error: No organization ID found in session', 'errors.noOrgInSession')}
-        </p>
+      <div className="p-6 space-y-6">
+        <ModuleViewTabs moduleId="support" />
+        {guard}
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6 space-y-6">
+      <ModuleViewTabs moduleId="support" />
+      {supportBanner}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">

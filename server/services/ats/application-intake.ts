@@ -38,7 +38,16 @@ const ALLOWED_RESUME_MIME_TYPES = [
 const MAX_RESUME_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 interface ApplicationSubmissionParams {
-  job: any;
+  job: {
+    _id: Types.ObjectId | string;
+    orgId?: Types.ObjectId | string | null;
+    status?: string;
+    visibility?: string;
+    skills?: string[];
+    requirements?: string[];
+    screeningRules?: { minYears?: number };
+    [key: string]: unknown;
+  };
   fields: ApplicationFields;
   resumeFile?: ResumeFileInput;
   source: string;
@@ -118,7 +127,7 @@ export async function submitApplicationFromForm(
   let candidate = await Candidate.findByEmail(orgId, email);
 
   if (!candidate) {
-    candidate = await (Candidate as any).create({
+    candidate = await Candidate.create({
       orgId,
       firstName,
       lastName,
@@ -194,7 +203,7 @@ export async function submitApplicationFromForm(
     stage = 'screening';
   }
 
-  const application = await (Application as any).create({
+  const application = await Application.create({
     orgId,
     jobId: job._id,
     candidateId: candidate._id,
@@ -284,9 +293,19 @@ function normalizeOrgId(value: unknown): string | null {
   if (!value) return null;
   if (typeof value === 'string') return value;
   if (value instanceof Types.ObjectId) return value.toHexString();
-  if (typeof value === 'object' && '_id' in (value as Types.ObjectId)) {
+  if (typeof value === 'object' && value && '_id' in value) {
     try {
-      return new Types.ObjectId((value as any)._id).toHexString();
+      const nestedId = (value as { _id?: unknown })._id;
+      if (!nestedId) {
+        return null;
+      }
+      if (nestedId instanceof Types.ObjectId) {
+        return nestedId.toHexString();
+      }
+      if (typeof nestedId === 'string' && Types.ObjectId.isValid(nestedId)) {
+        return new Types.ObjectId(nestedId).toHexString();
+      }
+      return null;
     } catch {
       return null;
     }

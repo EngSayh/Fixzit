@@ -76,7 +76,7 @@ export type ApplicationDoc = InferSchemaType<typeof ApplicationSchema> & Documen
   changeHistory?: unknown[];
 };
 
-export interface ApplicationModel extends Model<ApplicationDoc> {}
+export type ApplicationModel = Model<ApplicationDoc>;
 
 // Pre-save middleware to set defaults
 ApplicationSchema.pre('save', function() {

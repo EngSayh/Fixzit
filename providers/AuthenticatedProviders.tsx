@@ -6,6 +6,7 @@
 import React from 'react';
 import { TranslationProvider } from '@/contexts/TranslationContext';
 import PublicProviders from './PublicProviders';
+import type { Locale } from '@/i18n/config';
 
 /**
  * Complete provider tree for authenticated pages
@@ -24,10 +25,16 @@ import PublicProviders from './PublicProviders';
  * @param {React.ReactNode} children - Application content to render inside provider tree
  * @returns {JSX.Element} The complete provider tree with error protection
  */
-export default function AuthenticatedProviders({ children }: { children: React.ReactNode }) {
+export default function AuthenticatedProviders({
+  children,
+  initialLocale,
+}: {
+  children: React.ReactNode;
+  initialLocale?: Locale;
+}) {
   return (
-    <PublicProviders>
-      <TranslationProvider>
+    <PublicProviders initialLocale={initialLocale}>
+      <TranslationProvider initialLanguage={initialLocale}>
         {children}
       </TranslationProvider>
     </PublicProviders>

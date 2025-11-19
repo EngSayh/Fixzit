@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import { Trash2 } from 'lucide-react';
 
@@ -20,6 +22,8 @@ interface OrderItem {
 
 export default function MarketplaceNewOrderPage() {
   const auto = useAutoTranslator('fm.marketplace.orders.new');
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'marketplace' });
   const [requester, setRequester] = useState('');
   const [department, setDepartment] = useState('');
   const [justification, setJustification] = useState('');
@@ -58,9 +62,18 @@ export default function MarketplaceNewOrderPage() {
     setSubmitting(false);
   };
 
+  if (!hasOrgContext) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6 p-6">
       <ModuleViewTabs moduleId="marketplace" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
 
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
@@ -152,7 +165,7 @@ export default function MarketplaceNewOrderPage() {
                     className="text-destructive"
                     onClick={() => removeItem(item.id)}
                   >
-                    <Trash2 className="mr-1 h-4 w-4" />
+                    <Trash2 className="me-1 h-4 w-4" />
                     {auto('Remove', 'sections.items.remove')}
                   </Button>
                 )}

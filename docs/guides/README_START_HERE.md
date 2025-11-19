@@ -276,8 +276,8 @@ The system will run for exactly 3 hours with zero interaction needed.
 - **`START_3_HOUR_TESTING.md`** - Detailed instructions
 - **`READY_TO_START.md`** - This file (quick reference)
 - **`tests/README.md`** - Technical documentation
-- **`docs/reports/ERRORS_FIXED_PAST_15_DAYS.md`** - Fix history
-- **`docs/reports/PRODUCTION_READY_FIXES_2025-10-26.md`** - ServiceProvider changes
+- **`docs/archived/reports/ERRORS_FIXED_PAST_15_DAYS.md`** - Fix history
+- **`docs/archived/reports/PRODUCTION_READY_FIXES_2025-10-26.md`** - ServiceProvider changes
 
 ---
 

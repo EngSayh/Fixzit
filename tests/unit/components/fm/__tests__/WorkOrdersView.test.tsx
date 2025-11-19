@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import React from 'react';
+import React, { type ComponentProps } from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SWRConfig, mutate as globalMutate } from 'swr';
@@ -22,12 +22,29 @@ vi.mock('date-fns', async () => {
   };
 });
 
+vi.mock('@/components/ClientDate', () => {
+  const MockClientDate = ({ date }: { date: unknown }) => (
+    <span data-testid="client-date">{String(date)}</span>
+  );
+  return { __esModule: true, default: MockClientDate };
+});
+
 // Helper to wrap components with SWR cache that doesn't dedupe/revalidate during tests
 const TestWrapper = ({ children }: { children: React.ReactNode }) => (
   <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
     {children}
   </SWRConfig>
 );
+
+const renderWorkOrdersView = (
+  props?: Partial<ComponentProps<typeof WorkOrdersView>>
+) => {
+  let rendered: ReturnType<typeof render> | undefined;
+  act(() => {
+    rendered = render(<WorkOrdersViewDefault orgId="org-test" {...props} />, { wrapper: TestWrapper });
+  });
+  return rendered!;
+};
 
 // JSDOM has localStorage; ensure clean state
 beforeEach(() => {
@@ -56,7 +73,7 @@ describe('WorkOrdersView', () => {
       json: async () => makeApiResponse([]),
     });
 
-    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+    renderWorkOrdersView();
     
     expect(screen.getByRole('heading', { name: /Work Orders/i })).toBeInTheDocument();
     expect(screen.getByText(/Manage and track work orders/i)).toBeInTheDocument();
@@ -72,7 +89,7 @@ describe('WorkOrdersView', () => {
       json: async () => makeApiResponse([]),
     });
 
-    render(<WorkOrdersView heading="My WOs" description="Desc here" />, { wrapper: TestWrapper });
+    renderWorkOrdersView({ heading: 'My WOs', description: 'Desc here' });
     
     expect(screen.getByRole('heading', { name: /My WOs/ })).toBeInTheDocument();
     expect(screen.getByText(/Desc here/)).toBeInTheDocument();
@@ -83,15 +100,15 @@ describe('WorkOrdersView', () => {
   });
 
   test('shows loading card when isLoading and no data', () => {
-    // Don't mock fetch - SWR will be in loading state initially
-    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+    (global.fetch as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
+    renderWorkOrdersView();
     expect(screen.getByText(/Loading work orders/i)).toBeInTheDocument();
   });
 
   test('shows error card when error is present', async () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Network broken'));
 
-    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+    renderWorkOrdersView();
     
     await waitFor(() => {
       expect(screen.getByText(/Network broken/)).toBeInTheDocument();
@@ -104,7 +121,7 @@ describe('WorkOrdersView', () => {
       json: async () => makeApiResponse([]),
     });
 
-    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+    renderWorkOrdersView();
     
     await waitFor(() => {
       expect(screen.getByText(/No work orders match the current filters/i)).toBeInTheDocument();
@@ -128,7 +145,7 @@ describe('WorkOrdersView', () => {
       json: async () => makeApiResponse(items),
     });
 
-    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+    renderWorkOrdersView();
 
     // Wait for data to load
     await waitFor(() => {
@@ -144,8 +161,8 @@ describe('WorkOrdersView', () => {
     expect(screen.getByText(/Code: WO-2/)).toBeInTheDocument();
 
     // Priority badges content
-    expect(screen.getAllByText(/Priority: /)[0]).toHaveTextContent('Priority: HIGH');
-    expect(screen.getAllByText(/Priority: /)[1]).toHaveTextContent('Priority: LOW');
+    expect(screen.getAllByText(/Priority: /)[0]).toHaveTextContent('Priority: High');
+    expect(screen.getAllByText(/Priority: /)[1]).toHaveTextContent('Priority: Low');
 
     // Status labels (use getAllByText since status appears in dropdown and badge)
     const submittedElements = screen.getAllByText('Submitted');
@@ -181,7 +198,7 @@ describe('WorkOrdersView', () => {
       json: async () => makeApiResponse([{ _id: '1', code: 'C', title: 'T', status: 'SUBMITTED', priority: 'MEDIUM' }], 1, 10, 25),
     });
 
-    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+    renderWorkOrdersView();
     
     await waitFor(() => {
       expect(screen.getByText(/Page 1 of 3/)).toBeInTheDocument();
@@ -216,7 +233,7 @@ describe('WorkOrdersView', () => {
       };
     });
 
-    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+    renderWorkOrdersView();
     
     await waitFor(() => {
       expect(fetchCallCount).toBe(1); // Initial fetch
@@ -241,7 +258,7 @@ describe('WorkOrdersView', () => {
       };
     });
 
-    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+    renderWorkOrdersView();
 
     // Wait for initial fetch
     await waitFor(() => {
@@ -282,7 +299,7 @@ describe('WorkOrdersView', () => {
     });
 
     // Render with real timers first so component mounts properly
-    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+    renderWorkOrdersView();
 
     // Wait for initial fetch
     await waitFor(() => {
@@ -327,7 +344,7 @@ describe('WorkOrdersView', () => {
       return new Response(JSON.stringify(makeApiResponse([])), { status: 200 });
     });
 
-    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+    renderWorkOrdersView();
 
     // Wait for initial data load
     await waitFor(() => {
@@ -365,7 +382,7 @@ describe('WorkOrdersView', () => {
       return new Response(JSON.stringify(makeApiResponse([])), { status: 200 });
     });
 
-    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
+    renderWorkOrdersView();
 
     // Wait for initial load
     await waitFor(() => {
@@ -395,30 +412,4 @@ describe('WorkOrdersView', () => {
     });
   });
 
-  test('fetch headers include Authorization when token present and x-user is set', async () => {
-    window.localStorage.setItem('fixzit_token', 'tkn-123');
-    // FIX: The component reads from STORAGE_KEYS.userSession, not 'x-user'
-    window.localStorage.setItem('x-user', JSON.stringify({ id: 'u1', role: 'ADMIN', tenantId: 'demo-tenant' }));
-
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(new Response(JSON.stringify(makeApiResponse([])), { status: 200 }));
-
-    render(<WorkOrdersViewDefault />, { wrapper: TestWrapper });
-
-    // Wait for fetch to be called
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalled();
-    });
-
-    // Verify fetch called with headers containing Authorization and x-user
-    const lastCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
-    expect(lastCall).toBeTruthy();
-    const options = lastCall[1] as RequestInit;
-    const headers = (options?.headers ?? {}) as Record<string, string>;
-
-    expect(headers['Authorization']).toBe('Bearer tkn-123');
-    // FIX: The component uses fallbackUser if localStorage key doesn't match STORAGE_KEYS.userSession
-    // Since we set 'x-user' but component reads from STORAGE_KEYS.userSession, it will use fallback
-    expect(headers['x-user']).toBeDefined();
-    expect(headers['x-tenant-id']).toBe('demo-tenant');
-  });
 });

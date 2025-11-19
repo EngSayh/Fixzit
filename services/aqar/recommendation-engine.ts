@@ -478,7 +478,9 @@ export class AqarRecommendationEngine {
       }
 
       await listingModel.findByIdAndUpdate(item.listingId, { $set: update }).lean();
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.warn('AQAR_AI_SNAPSHOT_FAILED', {
         correlationId,
         listingId: item.listingId,

@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { otpSessionStore } from '@/lib/otp-store';
 import type { UserRoleType } from '@/types/user';
+import type { SubscriptionPlan } from '@/config/navigation';
+import type { UserDoc } from '@/server/models/User';
 // NOTE: Mongoose imports MUST be dynamic inside authorize() to avoid Edge Runtime issues
 // import { User } from '@/server/models/User'; // ❌ Breaks Edge Runtime
 // import { verifyPassword } from '@/lib/auth'; // ❌ Imports User model
@@ -21,6 +23,7 @@ type ExtendedUser = {
   permissions?: string[];
   roles?: string[];
 };
+type SessionPlan = SubscriptionPlan | 'STARTER' | 'PROFESSIONAL';
 
 // Validate required environment variables at startup
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -202,12 +205,18 @@ export const authConfig = {
           await connectToDatabase();
 
           // 4. Find user based on login type
-          let user;
+          type LeanUser = UserDoc & {
+            _id: string;
+            subscriptionPlan?: string;
+            orgId?: string | { toString(): string };
+            roles?: Array<string | { toString(): string }>;
+          };
+          let user: LeanUser | null;
           if (loginType === 'personal') {
-            user = (await User.findOne({ email: loginIdentifier })) as any;
+            user = await User.findOne({ email: loginIdentifier }).lean<LeanUser>();
           } else {
             // Corporate login uses employee number (stored in username field)
-            user = (await User.findOne({ username: loginIdentifier })) as any;
+            user = await User.findOne({ username: loginIdentifier }).lean<LeanUser>();
           }
 
           if (!user) {
@@ -227,7 +236,7 @@ export const authConfig = {
           }
 
           // 6. Check if user is active
-          const isUserActive = user.isActive !== undefined ? user.isActive : (user.status === 'ACTIVE');
+          const isUserActive = user.status === 'ACTIVE';
           if (!isUserActive) {
             // ✅ FIXED: Pass Error as 2nd arg, metadata as 3rd
             const inactiveError = new Error(`Inactive user attempted login: ${loginIdentifier}`);
@@ -235,7 +244,6 @@ export const authConfig = {
               loginIdentifier, 
               loginType,
               status: user.status,
-              isActive: user.isActive 
             });
             return null;
           }
@@ -283,12 +291,25 @@ export const authConfig = {
           }
 
           // 9. Return user object for NextAuth session
+          const derivedRole =
+            user.professional?.role ||
+            (Array.isArray(user.roles)
+              ? (typeof user.roles[0] === 'string'
+                  ? user.roles[0]
+                  : user.roles[0]?.toString())
+              : undefined);
+          const sessionRole: UserRoleType | 'GUEST' =
+            (derivedRole as UserRoleType | undefined) ?? 'GUEST';
+
+          const sessionPlan: SessionPlan =
+            (user.subscriptionPlan as SubscriptionPlan | undefined) ?? 'STARTER';
+
           const authUser = {
             id: user._id.toString(),
             email: user.email,
             name: `${user.personal?.firstName || ''} ${user.personal?.lastName || ''}`.trim() || user.email,
-            role: user.professional?.role || user.role || 'GUEST',
-            subscriptionPlan: user.subscriptionPlan || 'FREE',
+            role: sessionRole,
+            subscriptionPlan: sessionPlan,
             orgId: typeof user.orgId === 'string' ? user.orgId : (user.orgId?.toString() || null),
             sessionId: null, // NextAuth will generate session ID
             rememberMe, // Pass rememberMe to session callbacks

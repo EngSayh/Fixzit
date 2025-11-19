@@ -5,11 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { Building2, Filter, LayoutList, Pencil, Plus, AlertCircle } from 'lucide-react';
+import { Filter, Plus, AlertCircle } from 'lucide-react';
 import { useMemo } from 'react';
 import { useProperties } from '@/hooks/fm/useProperties';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 export default function PropertiesUnitsWorkspace() {
+  const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({ moduleId: 'properties' });
   const auto = useAutoTranslator('fm.properties.units');
   const { properties, isLoading, error, refresh } = useProperties('?limit=100');
 
@@ -32,8 +34,13 @@ export default function PropertiesUnitsWorkspace() {
     ];
   }, [auto, properties]);
 
+  if (!hasOrgContext) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
+      {supportBanner}
       <ModuleViewTabs moduleId="properties" />
 
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -51,11 +58,11 @@ export default function PropertiesUnitsWorkspace() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => refresh()}>
-            <Filter className="mr-2 h-4 w-4" />
+            <Filter className="me-2 h-4 w-4" />
             {auto('Advanced filters', 'header.filters')}
           </Button>
           <Button>
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="me-2 h-4 w-4" />
             {auto('Create new unit', 'header.create')}
           </Button>
         </div>

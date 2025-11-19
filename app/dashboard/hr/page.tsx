@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { logger } from '@/lib/logger';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Users, UserCheck, UserX } from 'lucide-react';
@@ -71,7 +71,7 @@ export default function HRDashboard() {
           >
             {tab.label}
             {tab.count !== undefined && tab.count > 0 && (
-              <span className="ml-2 px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+              <span className="ms-2 px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
                 {tab.count}
               </span>
             )}

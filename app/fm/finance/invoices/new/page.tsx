@@ -9,11 +9,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { useSupportOrg } from '@/contexts/SupportOrgContext';
 import { CalendarRange, FileSpreadsheet, Inbox, Send, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 const checklist = [
   { title: 'Validate customer master data', detail: 'VAT info + billing contacts' },
@@ -31,9 +31,11 @@ export default function FinanceInvoiceCreatePage() {
   const auto = useAutoTranslator('fm.finance.invoices.new');
   const { t } = useTranslation();
   const { data: session } = useSession();
-  const { effectiveOrgId, canImpersonate, supportOrg } = useSupportOrg();
-  const orgId = effectiveOrgId ?? undefined;
-  const needsOrgSelection = !orgId && canImpersonate;
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
+  
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     customer: '',
@@ -77,8 +79,8 @@ export default function FinanceInvoiceCreatePage() {
       }
       toast.success(auto('Invoice submitted for approval.', 'actions.success'));
       setFormData({ customer: '', amount: '', dueDate: '', description: '' });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Request failed');
+    } catch (_error) {
+      toast.error(_error instanceof Error ? _error.message : 'Request failed');
     } finally {
       setSubmitting(false);
     }
@@ -97,21 +99,7 @@ export default function FinanceInvoiceCreatePage() {
     return (
       <div className="space-y-6">
         <ModuleViewTabs moduleId="finance" />
-        <div className="rounded-xl border border-border bg-card/30 p-6 space-y-3">
-          <p className="text-destructive font-semibold">
-            {needsOrgSelection
-              ? auto('Select a customer organization to create invoices.', 'errors.selectOrg')
-              : t('fm.errors.noOrgSession', 'Error: No organization ID found in session')}
-          </p>
-          {needsOrgSelection && (
-            <p className="text-sm text-muted-foreground">
-              {auto(
-                'Use the Support Organization switcher in the top bar to attach a tenant context.',
-                'errors.selectOrgHint'
-              )}
-            </p>
-          )}
-        </div>
+        {guard}
       </div>
     );
   }
@@ -119,6 +107,7 @@ export default function FinanceInvoiceCreatePage() {
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="finance" />
+      {supportBanner}
 
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
@@ -136,12 +125,6 @@ export default function FinanceInvoiceCreatePage() {
           </p>
         </div>
       </header>
-      {supportOrg && (
-        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
-          {auto('Support context: {{name}}', 'support.activeOrg', { name: supportOrg.name })}
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -196,7 +179,7 @@ export default function FinanceInvoiceCreatePage() {
               />
             </div>
             <Button type="button" variant="outline">
-              <Inbox className="mr-2 h-4 w-4" />
+              <Inbox className="me-2 h-4 w-4" />
               {auto('Attach supporting docs', 'form.attach')}
             </Button>
           </CardContent>
@@ -220,7 +203,7 @@ export default function FinanceInvoiceCreatePage() {
         </Card>
         <div className="lg:col-span-3 flex justify-end gap-3">
           <Button type="button" variant="outline">
-            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            <FileSpreadsheet className="me-2 h-4 w-4" />
             {auto('Import from spreadsheet', 'actions.import')}
           </Button>
           <Button type="submit" disabled={submitting}>
@@ -231,7 +214,7 @@ export default function FinanceInvoiceCreatePage() {
               </span>
             ) : (
               <>
-                <Send className="mr-2 h-4 w-4" />
+                <Send className="me-2 h-4 w-4" />
                 {auto('Submit for approval', 'actions.submit')}
               </>
             )}
@@ -252,7 +235,7 @@ export default function FinanceInvoiceCreatePage() {
               <p className="text-xs uppercase text-muted-foreground">{item.status}</p>
               <p className="text-lg font-semibold">{auto(item.title, `timeline.${item.title}`)}</p>
               <p className="text-sm text-muted-foreground">
-                <CalendarRange className="mr-2 inline h-4 w-4" />
+                <CalendarRange className="me-2 inline h-4 w-4" />
                 {item.due}
               </p>
             </div>

@@ -10,7 +10,7 @@ import { CardGridSkeleton } from '@/components/skeletons';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Plug, Check, X, Settings } from 'lucide-react';
-import { useSupportOrg } from '@/contexts/SupportOrgContext';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 const INTEGRATIONS = [
   {
@@ -60,33 +60,15 @@ const INTEGRATIONS = [
 export default function IntegrationsPage() {
   const auto = useAutoTranslator('fm.system.integrations');
   const { data: session } = useSession();
-  const { effectiveOrgId, canImpersonate, supportOrg } = useSupportOrg();
-  const orgId = effectiveOrgId ?? undefined;
-  const needsOrgSelection = !orgId && canImpersonate;
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'system' });
   const [integrations, setIntegrations] = useState(INTEGRATIONS);
 
   if (!session) {
     return <CardGridSkeleton count={6} />;
   }
 
-  if (!orgId) {
-    return (
-      <div className="space-y-6">
-        <ModuleViewTabs moduleId="system" />
-        <div className="rounded-xl border border-border bg-card/30 p-6 space-y-3">
-          <p className="text-destructive font-semibold">
-            {needsOrgSelection
-              ? auto('Select a customer organization to manage integrations', 'errors.selectOrg')
-              : auto('Error: No organization ID found in session', 'errors.noOrgSession')}
-          </p>
-          {needsOrgSelection && (
-            <p className="text-sm text-muted-foreground">
-              {auto('Use the Support Organization switcher in the top bar', 'errors.selectOrgHint')}
-            </p>
-          )}
-        </div>
-      </div>
-    );
+  if (!hasOrgContext) {
+    return guard;
   }
 
   const handleToggle = async (integrationId: string, currentStatus: string) => {
@@ -114,7 +96,7 @@ export default function IntegrationsPage() {
         ),
         { id: toastId }
       );
-    } catch (error) {
+    } catch (_error) {
       toast.error(auto('Operation failed', 'toast.error'), { id: toastId });
     }
   };
@@ -162,9 +144,9 @@ export default function IntegrationsPage() {
                       className="mt-1"
                     >
                       {integration.status === 'connected' ? (
-                        <Check className="w-3 h-3 mr-1" />
+                        <Check className="w-3 h-3 me-1" />
                       ) : (
-                        <X className="w-3 h-3 mr-1" />
+                        <X className="w-3 h-3 me-1" />
                       )}
                       {auto(integration.status, `status.${integration.status}`)}
                     </Badge>

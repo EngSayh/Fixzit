@@ -375,13 +375,16 @@ npm run typecheck
 
 ```bash
 # CPU cores
-nproc
+nproc                   # Linux
+sysctl -n hw.ncpu       # macOS
 
 # Total RAM
-free -h
+free -h                 # Linux
+vm_stat | head -5       # macOS
 
 # Memory consumers
-ps aux --sort=-%mem | head -20
+ps aux --sort=-%mem | head -20                 # Linux
+ps aux | sort -nrk 4 | head -20                # macOS
 ```
 
 ### Build Performance Test

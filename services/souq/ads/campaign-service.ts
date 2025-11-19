@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Ad Campaign Service
  * 
@@ -589,22 +588,31 @@ export class CampaignService {
     }
 
     const bidIds = bids.map(b => b.bidId);
-    const stats = await db
+    const rawStats = await db
       .collection('souq_ad_stats')
       .find({ bidId: { $in: bidIds } })
       .toArray();
+
+    const stats = rawStats.map((stat: Record<string, unknown>) => ({
+      bidId: String(stat.bidId ?? ''),
+      impressions: typeof stat.impressions === 'number' ? stat.impressions : 0,
+      clicks: typeof stat.clicks === 'number' ? stat.clicks : 0,
+      spend: typeof stat.spend === 'number' ? stat.spend : 0,
+      conversions: typeof stat.conversions === 'number' ? stat.conversions : 0,
+      revenue: typeof stat.revenue === 'number' ? stat.revenue : 0,
+    }));
 
     const statsMap = new Map(stats.map(stat => [stat.bidId, stat]));
 
     const keywordData = bids
       .filter(bid => bid.targetType === 'keyword')
       .map(bid => {
-        const stat = statsMap.get(bid.bidId) || {};
-        const impressions = stat.impressions || 0;
-        const clicks = stat.clicks || 0;
-        const spend = stat.spend || 0;
-        const conversions = stat.conversions || 0;
-        const revenue = stat.revenue || 0;
+        const stat = statsMap.get(bid.bidId);
+        const impressions = stat?.impressions ?? 0;
+        const clicks = stat?.clicks ?? 0;
+        const spend = stat?.spend ?? 0;
+        const conversions = stat?.conversions ?? 0;
+        const revenue = stat?.revenue ?? 0;
         return {
           keyword: bid.targetValue,
           campaignName: campaignNameMap.get(bid.campaignId) || bid.campaignId,
@@ -639,12 +647,12 @@ export class CampaignService {
 
     const productData = productBids
       .map(bid => {
-        const stat = statsMap.get(bid.bidId) || {};
-        const impressions = stat.impressions || 0;
-        const clicks = stat.clicks || 0;
-        const conversions = stat.conversions || 0;
-        const revenue = stat.revenue || 0;
-        const spend = stat.spend || 0;
+        const stat = statsMap.get(bid.bidId);
+        const impressions = stat?.impressions ?? 0;
+        const clicks = stat?.clicks ?? 0;
+        const conversions = stat?.conversions ?? 0;
+        const revenue = stat?.revenue ?? 0;
+        const spend = stat?.spend ?? 0;
         return {
           productId: bid.productId,
           productName: productNameMap.get(bid.productId) || bid.productId,
@@ -667,7 +675,7 @@ export class CampaignService {
       },
     };
 
-    const timeseries = await db
+    const timeseries = (await db
       .collection('souq_ad_events')
       .aggregate([
         { $match: match },
@@ -732,7 +740,7 @@ export class CampaignService {
           },
         },
       ])
-      .toArray();
+      .toArray()) as Array<{ date: string; impressions: number; clicks: number; conversions: number; spend: number }>;
 
     return {
       timeseries,

@@ -160,10 +160,10 @@ export async function GET(
         });
         
         // Filter by sourceType if provided (in-memory since it's not directly in LedgerEntry)
-        let filteredTransactions = transactionsWithBalance;
+        const filteredTransactions = transactionsWithBalance;
         if (sourceType && sourceType !== 'ALL') {
           // For now, skip filtering - would need Journal join
-          // filteredTransactions = transactionsWithBalance.filter(t => t.sourceType === sourceType);
+          // return transactionsWithBalance.filter(t => t.sourceType === sourceType);
         }
         
         // Calculate totals for the filtered period

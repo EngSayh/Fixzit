@@ -45,7 +45,9 @@ function loadSynonyms(): SynonymMap {
     const content = fs.readFileSync(filePath, 'utf-8');
     cachedSynonyms = JSON.parse(content);
     return cachedSynonyms!;
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.warn('Marketplace search synonyms unavailable, using defaults', { error });
     cachedSynonyms = { brand: {}, product: {} };
     return cachedSynonyms!;
@@ -151,21 +153,21 @@ export async function searchProducts(filters: MarketplaceSearchFilters) {
   const skip = Math.max(filters.skip ?? 0, 0);
 
   const [items, total, distinctBrands, distinctStandards] = await Promise.all([
-    Product.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }).lean(),
+    Product.find(query).skip(skip).limit(limit).sort({ createdAt: -1 }).lean<MarketplaceProduct[]>(),
     Product.countDocuments(query),
     Product.distinct('brand', query),
     Product.distinct('standards', query)
   ]);
 
-  const categoriesAggregation = await Product.aggregate([
+  const categoriesAggregation = await Product.aggregate<{ _id: Types.ObjectId }>([
     { $match: query },
     { $group: { _id: '$categoryId', count: { $sum: 1 } } }
   ]);
 
-  const categoryIds = categoriesAggregation.map((item: any) => item._id as Types.ObjectId);
+  const categoryIds = categoriesAggregation.map((item) => item._id);
 
   return {
-    items: items.map((item: any) => serializeProduct(item as MarketplaceProduct)),
+    items: items.map((item) => serializeProduct(item)),
     pagination: {
       total,
       limit,
@@ -185,5 +187,4 @@ export async function findProductBySlug(orgId: Types.ObjectId, slug: string) {
   if (!product) return null;
   return serializeProduct(product as MarketplaceProduct);
 }
-
 

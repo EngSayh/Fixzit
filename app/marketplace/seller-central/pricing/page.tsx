@@ -180,7 +180,7 @@ export default function PricingDashboardPage() {
               disabled={repricing || !settings?.enabled}
               variant="outline"
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${repricing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 me-2 ${repricing ? 'animate-spin' : ''}`} />
               {repricing
                 ? auto('Repricing...', 'autoRepricer.repricing')
                 : auto('Run Now', 'autoRepricer.runNow')}
@@ -290,7 +290,7 @@ export default function PricingDashboardPage() {
                     <td className="py-3 px-4">
                       {listing.buyBoxWinner ? (
                         <Badge className="bg-warning/10 text-warning-foreground">
-                          <Award className="w-3 h-3 mr-1" />
+                          <Award className="w-3 h-3 me-1" />
                           {auto('Winner', 'listings.badges.winner')}
                         </Badge>
                       ) : (

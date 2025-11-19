@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
       try {
         let collection: ReturnType<NonNullable<typeof mongoose.connection.db>['collection']> | undefined;
         let searchQuery: Record<string, unknown> = { $text: { $search: q } };
-        let projection: Record<string, unknown> = { score: { $meta: 'textScore' } };
+        const projection: Record<string, unknown> = { score: { $meta: 'textScore' } };
 
         const mdb = mongoose.connection?.db;
         if (!mdb) continue;

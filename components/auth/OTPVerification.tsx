@@ -11,11 +11,9 @@ interface OTPVerificationProps {
   maskedPhone: string;
   expiresIn: number;
   devCode?: string;
-  // eslint-disable-next-line no-unused-vars
   onVerified: (otpToken: string) => void;
   onResend: () => Promise<{ success: boolean; expiresIn?: number; error?: string }>;
   onBack: () => void;
-  // eslint-disable-next-line no-unused-vars
   t: (key: string, fallback: string) => string;
   isRTL: boolean;
 }
@@ -207,7 +205,7 @@ export default function OTPVerification({
             }}
             className={`h-14 text-center text-2xl tracking-widest font-mono ${
               error ? 'border-destructive focus:ring-destructive' : ''
-            } ${isRTL ? 'text-right' : ''}`}
+            }`}
             disabled={loading || timeRemaining === 0}
             autoFocus
             required

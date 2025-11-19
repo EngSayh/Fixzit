@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,6 +47,7 @@ const statusOrder: Record<string, number> = {
 
 export default function AtsJobsPage() {
   const { t } = useTranslation();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'hr' });
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,8 +62,9 @@ export default function AtsJobsPage() {
   }, [search]);
 
   useEffect(() => {
+    if (!orgId) return;
     void fetchJobs();
-  }, [statusFilter, jobTypeFilter, debouncedSearch]);
+  }, [orgId, statusFilter, jobTypeFilter, debouncedSearch]);
 
   const fetchJobs = async () => {
     try {
@@ -197,8 +201,18 @@ export default function AtsJobsPage() {
     return locationString || t('hr.ats.jobs.location.unspecified', 'TBD');
   };
 
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
+      <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">
@@ -227,9 +241,9 @@ export default function AtsJobsPage() {
               {t('hr.ats.jobs.filters.search', 'Search')}
             </label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                className="pl-9"
+                className="ps-9"
                 placeholder={t('hr.ats.jobs.filters.searchPlaceholder', 'Title, dept, keyword...')}
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -318,13 +332,13 @@ export default function AtsJobsPage() {
             <table className="w-full text-sm">
               <thead className="bg-muted/40">
                 <tr>
-                  <th className="px-4 py-3 text-left">{t('hr.ats.jobs.table.role', 'Role')}</th>
-                  <th className="px-4 py-3 text-left">{t('hr.ats.jobs.table.department', 'Department')}</th>
-                  <th className="px-4 py-3 text-left">{t('hr.ats.jobs.table.location', 'Location')}</th>
-                  <th className="px-4 py-3 text-left">{t('hr.ats.jobs.table.jobType', 'Job type')}</th>
-                  <th className="px-4 py-3 text-left">{t('hr.ats.jobs.table.applications', 'Applications')}</th>
-                  <th className="px-4 py-3 text-left">{t('hr.ats.jobs.table.published', 'Published')}</th>
-                  <th className="px-4 py-3 text-left">{t('hr.ats.jobs.table.visibility', 'Visibility')}</th>
+                  <th className="px-4 py-3 text-start">{t('hr.ats.jobs.table.role', 'Role')}</th>
+                  <th className="px-4 py-3 text-start">{t('hr.ats.jobs.table.department', 'Department')}</th>
+                  <th className="px-4 py-3 text-start">{t('hr.ats.jobs.table.location', 'Location')}</th>
+                  <th className="px-4 py-3 text-start">{t('hr.ats.jobs.table.jobType', 'Job type')}</th>
+                  <th className="px-4 py-3 text-start">{t('hr.ats.jobs.table.applications', 'Applications')}</th>
+                  <th className="px-4 py-3 text-start">{t('hr.ats.jobs.table.published', 'Published')}</th>
+                  <th className="px-4 py-3 text-start">{t('hr.ats.jobs.table.visibility', 'Visibility')}</th>
                 </tr>
               </thead>
               <tbody>

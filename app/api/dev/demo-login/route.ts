@@ -36,14 +36,13 @@ export async function POST(req: NextRequest) {
   // Gate early — dev only
   // Dynamically import dev-only module (won't be bundled in production)
   let ENABLED = false;
-  // eslint-disable-next-line no-unused-vars
   let findLoginPayloadByRole: (role: string) => DevCredentialPayload | null = () => null;
 
   try {
     // We use a dynamic import to ensure this file is never bundled in production
-    const module = await import(/* webpackIgnore: true */ '@/dev/credentials.server');
-    ENABLED = module.ENABLED ?? false;
-    findLoginPayloadByRole = module.findLoginPayloadByRole;
+    const credentialsModule = await import(/* webpackIgnore: true */ '@/dev/credentials.server');
+    ENABLED = credentialsModule.ENABLED ?? false;
+    findLoginPayloadByRole = credentialsModule.findLoginPayloadByRole;
   } catch (e) {
     // Module not available (e.g., production build) - fail gracefully
     logger.error('[Dev Demo Login] Failed to load credentials module:', { e });

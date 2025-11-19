@@ -43,7 +43,9 @@ async function postToWebhook(event: NotificationTelemetryEvent, severity: Teleme
       },
       body: JSON.stringify(payload)
     });
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.warn('[Telemetry] Failed to emit notification event', {
       error,
       notificationId: event.notificationId

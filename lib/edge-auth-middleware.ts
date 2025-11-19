@@ -68,8 +68,10 @@ export async function authenticateRequest(
     };
 
     return user;
-  } catch (error) {
-    logger.error('Authentication error:', { error });
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error('Authentication error:', error as Error);
     return {
       error: "Invalid or expired token",
       statusCode: 401
@@ -124,4 +126,3 @@ export function isManager(user: EdgeAuthenticatedUser): boolean {
 export function isTenant(user: EdgeAuthenticatedUser): boolean {
   return hasRole(user, 'tenant');
 }
-

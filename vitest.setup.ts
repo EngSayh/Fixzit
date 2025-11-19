@@ -7,10 +7,33 @@ import { vi, beforeAll, afterAll, afterEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
+import { NextRequest, NextResponse } from 'next/server';
+import * as ClaimsRoute from '@/app/api/souq/claims/route';
+import * as ClaimByIdRoute from '@/app/api/souq/claims/[id]/route';
+import * as ClaimEvidenceRoute from '@/app/api/souq/claims/[id]/evidence/route';
+import * as ClaimResponseRoute from '@/app/api/souq/claims/[id]/response/route';
+import * as ClaimDecisionRoute from '@/app/api/souq/claims/[id]/decision/route';
+import * as ClaimAppealRoute from '@/app/api/souq/claims/[id]/appeal/route';
+
+declare global {
+  var jest: typeof vi | undefined;
+}
+
+const MONGO_MEMORY_LAUNCH_TIMEOUT_MS = Number(
+  process.env.MONGO_MEMORY_LAUNCH_TIMEOUT ?? '60000',
+);
+
+if (!process.env.SKIP_ENV_VALIDATION) {
+  process.env.SKIP_ENV_VALIDATION = 'true';
+}
+
+if (!process.env.NEXTAUTH_SECRET) {
+  process.env.NEXTAUTH_SECRET = 'test-nextauth-secret';
+}
 
 // Provide Jest compatibility layer for tests using jest.* APIs
-if (typeof global !== 'undefined') {
-  (global as any).jest = vi;
+if (typeof globalThis !== 'undefined') {
+  globalThis.jest = vi;
 }
 
 // --- Mock Modules ---
@@ -83,38 +106,27 @@ vi.mock('next/navigation', () => {
   };
 });
 
+vi.mock('@/lib/queues/setup', () => ({
+  QUEUE_NAMES: {
+    BUY_BOX_RECOMPUTE: 'souq:buybox-recompute',
+    AUTO_REPRICER: 'souq:auto-repricer',
+    SETTLEMENT: 'souq:settlement',
+    INVENTORY_HEALTH: 'souq:inventory-health',
+    ADS_AUCTION: 'souq:ads-auction',
+    POLICY_SWEEP: 'souq:policy-sweep',
+    SEARCH_INDEX: 'souq:search-index',
+    ACCOUNT_HEALTH: 'souq:account-health',
+    NOTIFICATIONS: 'souq:notifications',
+  },
+  addJob: vi.fn(async () => undefined),
+  getQueue: vi.fn(),
+  createWorker: vi.fn(),
+}));
+
+export {};
+
 // The global test functions are already available through @types/jest
 // No need to redeclare them to avoid type conflicts
-
-// Mock MongoDB unified module globally
-vi.mock('@/lib/mongodb-unified', () => {
-  const createMockCollection = () => ({
-    insertOne: vi.fn().mockResolvedValue({ acknowledged: true, insertedId: 'mock-id' }),
-    find: vi.fn().mockReturnValue({
-      sort: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      toArray: vi.fn().mockResolvedValue([]),
-    }),
-    findOne: vi.fn().mockResolvedValue(null),
-    updateOne: vi.fn().mockResolvedValue({ acknowledged: true, modifiedCount: 1 }),
-    deleteOne: vi.fn().mockResolvedValue({ acknowledged: true, deletedCount: 1 }),
-    countDocuments: vi.fn().mockResolvedValue(0),
-  });
-  
-  const mockDb = {
-    collection: vi.fn(() => createMockCollection()),
-  };
-  
-  return {
-    getDatabase: vi.fn(() => mockDb),
-    connectToDatabase: vi.fn().mockResolvedValue({ db: () => mockDb }),
-    getMongooseConnection: vi.fn().mockResolvedValue({
-      readyState: 1,
-      close: vi.fn(),
-    }),
-    dbConnect: vi.fn().mockResolvedValue(undefined),
-  };
-});
 
 // Some test imports may end up with ESM/CJS interop where the default export
 // is the Mongoose model (module.default) but tests expect methods on the
@@ -165,7 +177,133 @@ vi.mock('@/lib/mongodb-unified', () => {
   }
 })();
 
+type NextAppRouteHandler<TParams extends Record<string, string> = Record<string, string>> = (
+  req: NextRequest,
+  ctx: { params: TParams }
+) => Promise<Response | NextResponse>;
+
+type RouteHandler = (
+  req: NextRequest,
+  ctx: { params: Record<string, string> }
+) => Promise<Response | NextResponse>;
+
+const adaptRoute = <T extends Record<string, string>>(handler: NextAppRouteHandler<T>): RouteHandler => {
+  return (req, ctx) => handler(req, ctx as { params: T });
+};
+
+interface RouteConfig {
+  pattern: RegExp;
+  paramNames: string[];
+  handlers: Partial<Record<string, RouteHandler | undefined>>;
+}
+
+const apiRoutes: RouteConfig[] = [
+  {
+    pattern: /^\/api\/souq\/claims$/,
+    paramNames: [],
+    handlers: {
+      GET: ClaimsRoute.GET,
+      POST: ClaimsRoute.POST,
+    },
+  },
+  {
+    pattern: /^\/api\/souq\/claims\/([^/]+)$/,
+    paramNames: ['id'],
+    handlers: {
+      GET: adaptRoute(ClaimByIdRoute.GET),
+      PUT: adaptRoute(ClaimByIdRoute.PUT),
+    },
+  },
+  {
+    pattern: /^\/api\/souq\/claims\/([^/]+)\/evidence$/,
+    paramNames: ['id'],
+    handlers: {
+      POST: adaptRoute(ClaimEvidenceRoute.POST),
+    },
+  },
+  {
+    pattern: /^\/api\/souq\/claims\/([^/]+)\/response$/,
+    paramNames: ['id'],
+    handlers: {
+      POST: adaptRoute(ClaimResponseRoute.POST),
+    },
+  },
+  {
+    pattern: /^\/api\/souq\/claims\/([^/]+)\/decision$/,
+    paramNames: ['id'],
+    handlers: {
+      POST: adaptRoute(ClaimDecisionRoute.POST),
+    },
+  },
+  {
+    pattern: /^\/api\/souq\/claims\/([^/]+)\/appeal$/,
+    paramNames: ['id'],
+    handlers: {
+      POST: adaptRoute(ClaimAppealRoute.POST),
+    },
+  },
+];
+
+function matchRoute(pathname: string) {
+  for (const route of apiRoutes) {
+    const match = pathname.match(route.pattern);
+    if (match) {
+      const params: Record<string, string> = {};
+      route.paramNames.forEach((name, idx) => {
+        params[name] = match[idx + 1];
+      });
+      return { route, params };
+    }
+  }
+  return null;
+}
+
+const originalFetch = globalThis.fetch.bind(globalThis);
+
+const mockFetch: typeof globalThis.fetch = async (input, init) => {
+  const requestInit = init ?? {};
+
+  const resolvedUrl = input instanceof Request
+    ? new URL(input.url)
+    : typeof input === 'string' || input instanceof URL
+      ? new URL(input.toString())
+      : new URL(String((input as { url?: string }).url ?? input));
+
+  if (resolvedUrl.origin !== 'http://localhost:3000') {
+    return originalFetch(input as RequestInfo, init);
+  }
+
+  const match = matchRoute(resolvedUrl.pathname);
+  if (!match) {
+    return new Response('Not Found', { status: 404 });
+  }
+
+  const method = (requestInit.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
+  const handler = match.route.handlers[method];
+  if (!handler) {
+    return new Response('Method Not Allowed', { status: 405 });
+  }
+
+  const request =
+    input instanceof Request
+      ? new Request(input, requestInit)
+      : new Request(resolvedUrl.toString(), requestInit);
+
+  const requestWithNext = request as NextRequest & { nextUrl?: NextRequest['nextUrl'] };
+  requestWithNext.nextUrl = (resolvedUrl as unknown) as NextRequest['nextUrl'];
+
+  try {
+    return await handler(requestWithNext, { params: match.params });
+  } catch (error) {
+    console.error('Mock fetch handler failed:', error);
+    return new Response('Internal Mock Error', { status: 500 });
+  }
+};
+
+globalThis.fetch = mockFetch;
+
 // --- MongoDB Memory Server Setup ---
+const shouldUseInMemoryMongo = process.env.SKIP_GLOBAL_MONGO !== 'true';
 let mongoServer: MongoMemoryServer | undefined;
 
 /**
@@ -173,17 +311,25 @@ let mongoServer: MongoMemoryServer | undefined;
  * Provides in-memory database for model validation tests
  */
 beforeAll(async () => {
+  if (!shouldUseInMemoryMongo) {
+    return;
+  }
   try {
     // Start MongoDB Memory Server
     mongoServer = await MongoMemoryServer.create({
       instance: {
         dbName: 'fixzit-test',
+        launchTimeout: MONGO_MEMORY_LAUNCH_TIMEOUT_MS,
       },
     });
     
     const mongoUri = mongoServer.getUri();
-    
-    // Connect mongoose to the in-memory database
+    process.env.MONGODB_URI = mongoUri;
+    process.env.MONGODB_DB = 'fixzit-test';
+    // Ensure previous connections are closed before connecting
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
     await mongoose.connect(mongoUri, {
       autoCreate: true,
       autoIndex: true,
@@ -200,12 +346,13 @@ beforeAll(async () => {
  * Clean up after each test to prevent data leakage between tests
  */
 afterEach(async () => {
-  if (mongoose.connection.readyState === 1) {
-    // Clear all collections after each test
-    const collections = mongoose.connection.collections;
-    for (const key in collections) {
-      await collections[key].deleteMany({});
-    }
+  if (!shouldUseInMemoryMongo || mongoose.connection.readyState !== 1) {
+    return;
+  }
+  // Clear all collections after each test
+  const collections = mongoose.connection.collections;
+  for (const key in collections) {
+    await collections[key].deleteMany({});
   }
 });
 
@@ -213,6 +360,9 @@ afterEach(async () => {
  * Stop MongoDB Memory Server after all tests
  */
 afterAll(async () => {
+  if (!shouldUseInMemoryMongo) {
+    return;
+  }
   try {
     // Clear all models before closing connection using proper Mongoose API
     if (mongoose.connection && mongoose.connection.models) {

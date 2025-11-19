@@ -8,7 +8,6 @@
 import mongoose, { Schema, Document, Model } from 'mongoose'
 import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
-/* eslint-disable no-unused-vars */
 export enum BookingStatus {
   PENDING = 'PENDING',           // Awaiting host confirmation
   CONFIRMED = 'CONFIRMED',       // Host accepted
@@ -17,7 +16,6 @@ export enum BookingStatus {
   CANCELLED = 'CANCELLED',       // Cancelled by either party
   REJECTED = 'REJECTED',         // Host rejected
 }
-/* eslint-enable no-unused-vars */
 
 export interface IBooking extends Document {
   // Property
@@ -162,7 +160,6 @@ BookingSchema.pre('save', function (next) {
 });
 
 // Methods
-// eslint-disable-next-line no-unused-vars
 BookingSchema.methods.confirm = async function (this: IBooking) {
   if (this.status !== BookingStatus.PENDING) {
     throw new Error('Only pending bookings can be confirmed');
@@ -171,7 +168,6 @@ BookingSchema.methods.confirm = async function (this: IBooking) {
   await this.save();
 };
 
-// eslint-disable-next-line no-unused-vars
 BookingSchema.methods.checkIn = async function (this: IBooking) {
   if (this.status !== BookingStatus.CONFIRMED) {
     throw new Error('Only confirmed bookings can be checked in');
@@ -181,7 +177,6 @@ BookingSchema.methods.checkIn = async function (this: IBooking) {
   await this.save();
 };
 
-// eslint-disable-next-line no-unused-vars
 BookingSchema.methods.checkOut = async function (this: IBooking) {
   if (this.status !== BookingStatus.CHECKED_IN) {
     throw new Error('Only checked-in bookings can be checked out');

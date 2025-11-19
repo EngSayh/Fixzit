@@ -35,7 +35,6 @@ AtsSettingsSchema.plugin(auditPlugin);
 // Tenant-scoped indexes
 AtsSettingsSchema.index({ orgId: 1 }, { unique: true });
 
-/* eslint-disable no-unused-vars */
 export type AtsSettingsDoc = (InferSchemaType<typeof AtsSettingsSchema> & Document) & {
   shouldAutoReject(input: AutoRejectOptions): AutoRejectDecision;
 };
@@ -43,7 +42,6 @@ export type AtsSettingsDoc = (InferSchemaType<typeof AtsSettingsSchema> & Docume
 export interface AtsSettingsModel extends Model<AtsSettingsDoc> {
   findOrCreateForOrg(orgId: string): Promise<AtsSettingsDoc>;
 }
-/* eslint-enable no-unused-vars */
 
 AtsSettingsSchema.methods.shouldAutoReject = function(this: AtsSettingsDoc, input: AutoRejectOptions): AutoRejectDecision {
   const rules = (this.knockoutRules || {}) as {

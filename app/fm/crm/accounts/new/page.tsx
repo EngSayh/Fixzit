@@ -1,6 +1,7 @@
 'use client';
 
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,7 @@ type AccountFormValues = {
 };
 
 export default function CreateCrmAccountPage() {
+  const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({ moduleId: 'crm' });
   const auto = useAutoTranslator('fm.crm.accounts.new');
   const {
     register,
@@ -42,11 +44,18 @@ export default function CreateCrmAccountPage() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const onSubmit = async (values: AccountFormValues) => {
+    if (!orgId) {
+      toast.error(auto('Select an organization first.', 'form.orgRequired'));
+      return;
+    }
     setActionError(null);
     try {
       const response = await fetch('/api/crm/contacts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant-id': orgId,
+        },
         body: JSON.stringify({
           type: 'ACCOUNT',
           company: values.company.trim(),
@@ -86,9 +95,17 @@ export default function CreateCrmAccountPage() {
         employees: values.employees ? Number(values.employees) : undefined,
         notes: values.notes.trim(),
       };
+      if (!orgId) {
+        toast.error(auto('Select an organization first.', 'form.orgRequired'));
+        setShareLoading(false);
+        return;
+      }
       const response = await fetch('/api/crm/accounts/share', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant-id': orgId,
+        },
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
@@ -105,9 +122,14 @@ export default function CreateCrmAccountPage() {
     }
   };
 
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="crm" />
+      {supportBanner}
 
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">{auto('Accounts', 'header.kicker')}</p>
@@ -190,11 +212,11 @@ export default function CreateCrmAccountPage() {
 
         <div className="flex gap-3">
           <Button type="button" variant="outline" onClick={shareWithSuccessTeam} disabled={isSubmitting || shareLoading}>
-            <Share className="mr-2 h-4 w-4" />
+            <Share className="me-2 h-4 w-4" />
             {shareLoading ? auto('Sharing...', 'actions.share.loading') : auto('Share with success team', 'actions.share')}
           </Button>
           <Button type="submit" disabled={isSubmitting || shareLoading}>
-            <Building className="mr-2 h-4 w-4" />
+            <Building className="me-2 h-4 w-4" />
             {isSubmitting ? auto('Submitting...', 'actions.submitting') : auto('Create account', 'actions.create')}
           </Button>
         </div>

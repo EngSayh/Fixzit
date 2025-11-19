@@ -159,7 +159,7 @@ export function BalanceOverview({ balance, onWithdraw }: BalanceOverviewProps) {
               )}
             </div>
           </div>
-          <div className="text-right text-sm text-gray-500">
+          <div className="text-end text-sm text-gray-500">
             <p>الدفعات تتم كل جمعة (Payouts every Friday)</p>
             <p>الحد الأدنى للسحب: 500 ر.س (Minimum: 500 SAR)</p>
           </div>

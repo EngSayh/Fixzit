@@ -41,7 +41,7 @@ export default function MyTicketsPage() {
     return fetch(url)
       .then(r => r.json())
       .catch(error => {
-        logger.error('Support tickets fetch error', { error });
+        logger.error('Support tickets fetch error', error);
         throw error;
       });
   };

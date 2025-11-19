@@ -1,6 +1,7 @@
 'use client';
 
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,7 @@ type InvoiceFormValues = {
 };
 
 export default function InvoiceCreationForOpsPage() {
+  const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({ moduleId: 'finance' });
   const auto = useAutoTranslator('fm.invoices.new');
   const {
     register,
@@ -51,6 +53,12 @@ export default function InvoiceCreationForOpsPage() {
     const currentAction = action ?? 'review';
     setActiveAction(currentAction);
     setSubmitError(null);
+    if (!orgId) {
+      const message = auto('Organization context required before submitting.', 'form.orgRequired');
+      setSubmitError(message);
+      toast.error(message);
+      return;
+    }
     try {
       const amount = Number(values.amount);
       const payload = {
@@ -65,7 +73,10 @@ export default function InvoiceCreationForOpsPage() {
       const endpoint = currentAction === 'send' ? '/api/invoices/send' : '/api/invoices/review';
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tenant-id': orgId,
+        },
         body: JSON.stringify(payload),
       });
 
@@ -89,9 +100,14 @@ export default function InvoiceCreationForOpsPage() {
     }
   };
 
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="finance" />
+      {supportBanner}
 
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -195,13 +211,13 @@ export default function InvoiceCreationForOpsPage() {
               data-action="review"
               disabled={isSubmitting}
             >
-              <ClipboardCheck className="mr-2 h-4 w-4" />
+              <ClipboardCheck className="me-2 h-4 w-4" />
               {isSubmitting && activeAction === 'review'
                 ? auto('Requesting...', 'form.requestReview.loading')
                 : auto('Request finance review', 'form.requestReview')}
             </Button>
             <Button type="submit" data-action="send" disabled={isSubmitting}>
-              <Mail className="mr-2 h-4 w-4" />
+              <Mail className="me-2 h-4 w-4" />
               {isSubmitting && activeAction === 'send'
                 ? auto('Sending...', 'form.send.loading')
                 : auto('Send to customer', 'form.send')}

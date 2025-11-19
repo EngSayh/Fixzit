@@ -6,11 +6,12 @@ import useSWR from 'swr';
 import SLATimer from '@/components/SLATimer';
 import Link from 'next/link';
 import { logger } from '@/lib/logger';
+import { getWorkOrderStatusLabel } from '@/lib/work-orders/status';
 
 const fetcher = (url: string) => fetch(url)
   .then(r => r.json())
   .catch(error => {
-    logger.error('SLA watchlist fetch error', { error });
+    logger.error('SLA watchlist fetch error', error);
     throw error;
   });
 
@@ -132,7 +133,7 @@ export default function SLAWatchlistPage() {
                   <div className="font-mono font-bold text-destructive">{wo.woNumber}</div>
                   <div className="text-foreground">{wo.title}</div>
                   <span className="px-2 py-1 text-xs font-semibold rounded bg-muted border">
-                    {wo.status}
+                    {getWorkOrderStatusLabel(t, wo.status)}
                   </span>
                 </div>
                 <SLATimer 
@@ -165,7 +166,7 @@ export default function SLAWatchlistPage() {
                   <div className="font-mono font-semibold text-destructive">{wo.woNumber}</div>
                   <div className="text-foreground">{wo.title}</div>
                   <span className="px-2 py-1 text-xs font-semibold rounded bg-muted border">
-                    {wo.status}
+                    {getWorkOrderStatusLabel(t, wo.status)}
                   </span>
                 </div>
                 <SLATimer 
@@ -197,7 +198,7 @@ export default function SLAWatchlistPage() {
                   <div className="font-mono font-semibold text-warning">{wo.woNumber}</div>
                   <div className="text-foreground">{wo.title}</div>
                   <span className="px-2 py-1 text-xs font-semibold rounded bg-muted border">
-                    {wo.status}
+                    {getWorkOrderStatusLabel(t, wo.status)}
                   </span>
                 </div>
                 <SLATimer 
@@ -229,7 +230,7 @@ export default function SLAWatchlistPage() {
                   <div className="font-mono font-semibold text-success">{wo.woNumber}</div>
                   <div className="text-foreground">{wo.title}</div>
                   <span className="px-2 py-1 text-xs font-semibold rounded bg-muted border">
-                    {wo.status}
+                    {getWorkOrderStatusLabel(t, wo.status)}
                   </span>
                 </div>
                 <SLATimer 
@@ -241,7 +242,10 @@ export default function SLAWatchlistPage() {
             ))}
             {safe.length > 10 && (
               <div className="text-center text-sm text-muted-foreground pt-2">
-                ... and {safe.length - 10} more
+                {t('workOrders.sla.safeMore', '... and {{count}} more').replace(
+                  '{{count}}',
+                  String(safe.length - 10)
+                )}
               </div>
             )}
           </div>

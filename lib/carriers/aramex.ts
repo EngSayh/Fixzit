@@ -126,7 +126,9 @@ class AramexCarrier implements ICarrierInterface {
       // For now, return mock data
       return this.mockCreateShipment(params);
 
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('Aramex shipment creation failed', { error, orderId: params.orderId });
       throw new Error(`Aramex shipment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -166,7 +168,9 @@ class AramexCarrier implements ICarrierInterface {
 
       return this.mockGetTracking(trackingNumber);
 
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('Aramex tracking failed', { error, trackingNumber });
       throw new Error(`Aramex tracking failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -187,7 +191,9 @@ class AramexCarrier implements ICarrierInterface {
       // Actual API call would go here
       return true;
 
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('Aramex cancellation failed', { error, shipmentId });
       return false;
     }
@@ -228,7 +234,9 @@ class AramexCarrier implements ICarrierInterface {
 
       return rates;
 
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('Aramex rates failed', { error, params });
       return [];
     }

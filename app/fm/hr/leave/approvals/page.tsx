@@ -4,6 +4,8 @@ import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import { AlertCircle, AlertTriangle, Check, Clock, ListChecks, UserCheck, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -40,7 +42,9 @@ const playbooks = [
 
 export default function LeaveApprovalsHub() {
   const auto = useAutoTranslator('fm.hr.leaveApprovals');
-  const { requests, isLoading, error, refresh } = useHrLeaveRequests('PENDING');
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'hr' });
+  const { requests, isLoading, error, refresh } = useHrLeaveRequests('PENDING', orgId);
 
   const queue: ApprovalRequest[] = useMemo(() => {
     return requests.map((req) => {
@@ -81,9 +85,18 @@ export default function LeaveApprovalsHub() {
     [auto]
   );
 
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
 
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
@@ -102,11 +115,11 @@ export default function LeaveApprovalsHub() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => refresh()}>
-            <ListChecks className="mr-2 h-4 w-4" />
+            <ListChecks className="me-2 h-4 w-4" />
             {auto('Playbook settings', 'actions.playbook')}
           </Button>
           <Button>
-            <UserCheck className="mr-2 h-4 w-4" />
+            <UserCheck className="me-2 h-4 w-4" />
             {auto('Assign reviewer', 'actions.assign')}
           </Button>
         </div>
@@ -137,7 +150,7 @@ export default function LeaveApprovalsHub() {
                   type="button"
                   key={request.id}
                   onClick={() => setSelectedRequest(request)}
-                  className={`w-full rounded-xl border p-4 text-left transition hover:border-primary ${
+                  className={`w-full rounded-xl border p-4 text-start transition hover:border-primary ${
                     selectedRequest?.id === request.id ? 'border-primary bg-primary/5' : 'border-border'
                   }`}
                 >
@@ -200,11 +213,11 @@ export default function LeaveApprovalsHub() {
 
                 <div className="flex gap-2">
                   <Button className="flex-1" variant="outline">
-                    <X className="mr-2 h-4 w-4" />
+                    <X className="me-2 h-4 w-4" />
                     {auto('Decline', 'detail.decline')}
                   </Button>
                   <Button className="flex-1">
-                    <Check className="mr-2 h-4 w-4" />
+                    <Check className="me-2 h-4 w-4" />
                     {auto('Approve & sync', 'detail.approve')}
                   </Button>
                 </div>

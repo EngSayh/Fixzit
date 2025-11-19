@@ -1,6 +1,7 @@
 'use client';
 
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,11 +11,17 @@ import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import { BookCheck, Share2, Shield } from 'lucide-react';
 
 export default function CreatePolicyPage() {
+  const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({ moduleId: 'administration' });
   const auto = useAutoTranslator('fm.administration.policies.new');
+
+  if (!hasOrgContext) {
+    return guard;
+  }
 
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="administration" />
+      {supportBanner}
 
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">{auto('Policy hub', 'header.kicker')}</p>
@@ -69,7 +76,7 @@ export default function CreatePolicyPage() {
       <div className="flex gap-3">
         <Button variant="outline">{auto('Save draft', 'actions.save')}</Button>
         <Button>
-          <BookCheck className="mr-2 h-4 w-4" />
+          <BookCheck className="me-2 h-4 w-4" />
           {auto('Send for approval', 'actions.submit')}
         </Button>
       </div>

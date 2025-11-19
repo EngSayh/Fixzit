@@ -1,6 +1,7 @@
 'use client';
 
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,7 @@ type LeadFormState = {
 type LeadAction = 'logCall' | 'pipeline';
 
 export default function CreateLeadPage() {
+  const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({ moduleId: 'crm' });
   const auto = useAutoTranslator('fm.crm.leads.new');
   const [form, setForm] = useState<LeadFormState>({
     contact: '',
@@ -92,7 +94,10 @@ export default function CreateLeadPage() {
 
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(orgId && { 'x-tenant-id': orgId }),
+        } as HeadersInit,
         body: JSON.stringify(body),
       });
 
@@ -117,9 +122,14 @@ export default function CreateLeadPage() {
     }
   };
 
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="crm" />
+      {supportBanner}
 
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">{auto('Sales pipeline', 'header.kicker')}</p>
@@ -225,7 +235,7 @@ export default function CreateLeadPage() {
             aria-label={auto('Log call for this lead', 'actions.call.aria')}
             disabled={submitting}
           >
-            <PhoneOutgoing className="mr-2 h-4 w-4" />
+            <PhoneOutgoing className="me-2 h-4 w-4" />
             {submitting ? auto('Working...', 'actions.call.loading') : auto('Log a call', 'actions.call')}
           </Button>
           <Button
@@ -234,7 +244,7 @@ export default function CreateLeadPage() {
             aria-label={auto('Add lead to pipeline', 'actions.add.aria')}
             disabled={submitting}
           >
-            <Send className="mr-2 h-4 w-4" />
+            <Send className="me-2 h-4 w-4" />
             {submitting ? auto('Submitting...', 'actions.submitting') : auto('Add to pipeline', 'actions.add')}
           </Button>
         </div>

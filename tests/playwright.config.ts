@@ -4,13 +4,14 @@ import * as dotenv from 'dotenv';
 // Load test environment variables
 dotenv.config({ path: '.env.test' });
 
-const baseURL = process.env.BASE_URL ?? 'http://localhost:3000';
 const isCI = !!process.env.CI;
 const defaultWebServerCommand = isCI ? 'pnpm start' : 'pnpm dev';
 
+const initialBaseURL = process.env.BASE_URL ?? 'http://localhost:3000';
+
 let parsedBaseURL: URL | undefined;
 try {
-  parsedBaseURL = new URL(baseURL);
+  parsedBaseURL = new URL(initialBaseURL);
 } catch {
   parsedBaseURL = undefined;
 }
@@ -28,6 +29,21 @@ const resolvedWebServerCommand =
 const shouldStartWebServer = !skipWebServer && resolvedWebServerCommand !== undefined;
 const webServerPort = Number(process.env.PW_WEB_PORT ?? inferredPort ?? 3000);
 const webServerUrl = process.env.PW_WEB_URL ?? undefined;
+
+const resolvedBaseURL = (() => {
+  if (process.env.BASE_URL) {
+    return process.env.BASE_URL;
+  }
+  if (webServerUrl) {
+    return webServerUrl.replace(/\/$/, '');
+  }
+  if (shouldStartWebServer) {
+    return `http://localhost:${webServerPort}`;
+  }
+  return 'http://localhost:3000';
+})();
+
+const baseURL = resolvedBaseURL;
 
 /**
  * Playwright Configuration for Fixzit E2E Testing
@@ -173,6 +189,11 @@ export default defineConfig({
         ...(webServerUrl ? { url: webServerUrl } : { port: webServerPort }),
         reuseExistingServer: !isCI,
         timeout: 120_000,
+        env: {
+          ...process.env,
+          PORT: String(webServerPort),
+          BASE_URL: resolvedBaseURL,
+        },
       }
     : undefined,
 });

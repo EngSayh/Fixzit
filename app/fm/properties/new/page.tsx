@@ -10,28 +10,26 @@ import { Button } from '@/components/ui/button';
 import { CardGridSkeleton } from '@/components/skeletons';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { CreatePropertyForm } from '../page';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 export default function NewPropertyPage() {
   const router = useRouter();
   const { t } = useTranslation();
   const { data: session } = useSession();
-  const orgId = session?.user?.orgId;
+  const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({ moduleId: 'properties' });
 
   if (!session) {
     return <CardGridSkeleton count={4} />;
   }
 
-  if (!orgId) {
-    return (
-      <div className="p-6 text-destructive">
-        {t('fm.errors.noOrgSession', 'Error: No organization ID found in session')}
-      </div>
-    );
+  if (!hasOrgContext || !orgId) {
+    return guard;
   }
 
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="properties" />
+      {supportBanner}
 
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>

@@ -8,14 +8,12 @@
 import mongoose, { Schema, Document, Model } from 'mongoose'
 import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
-/* eslint-disable no-unused-vars */
 export enum ProjectStatus {
   DRAFT = 'DRAFT',
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
   COMPLETED = 'COMPLETED',
 }
-/* eslint-enable no-unused-vars */
 
 export interface IUnitType {
   name: string;           // e.g., "2 Bedroom Apartment"
@@ -148,7 +146,6 @@ ProjectSchema.index({ city: 1, status: 1, handoverDate: 1 });
 ProjectSchema.index({ createdAt: -1 });
 
 // Methods
-// eslint-disable-next-line no-unused-vars
 ProjectSchema.methods.incrementViews = async function (this: IProject) {
   await (this.constructor as typeof import('mongoose').Model).updateOne(
     { _id: this._id },
@@ -156,7 +153,6 @@ ProjectSchema.methods.incrementViews = async function (this: IProject) {
   );
 };
 
-// eslint-disable-next-line no-unused-vars
 ProjectSchema.methods.incrementInquiries = async function (this: IProject) {
   await (this.constructor as typeof import('mongoose').Model).updateOne(
     { _id: this._id },

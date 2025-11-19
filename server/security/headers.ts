@@ -34,9 +34,11 @@ export function withSecurityHeaders(response: NextResponse, request?: NextReques
   );
   
   // HSTS (only in prod AND on https)
-  const proto =
-    request?.headers.get('x-forwarded-proto') ||
-    request?.nextUrl.protocol.replace(':', '');
+  const headerProto = request?.headers?.get('x-forwarded-proto');
+  const nextUrlProto = request?.nextUrl?.protocol
+    ? request.nextUrl.protocol.replace(':', '')
+    : undefined;
+  const proto = headerProto || nextUrlProto;
   if (isProd && proto === 'https') {
     response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   }
@@ -61,8 +63,10 @@ export function withSecurityHeaders(response: NextResponse, request?: NextReques
  * - Adds Vary: Origin
  * - Echoes preflight headers/method if provided
  */
-export function withCORS(request: NextRequest, response: NextResponse): NextResponse {
-  const origin = request.headers.get('origin');
+type RequestWithHeaders = Pick<NextRequest, 'headers'> | null | undefined;
+
+export function withCORS(request: RequestWithHeaders, response: NextResponse): NextResponse {
+  const origin = request?.headers?.get('origin') ?? null;
   const allowedOrigin = resolveAllowedOrigin(origin);
 
   // For dynamic Origin we must set Vary
@@ -78,8 +82,8 @@ export function withCORS(request: NextRequest, response: NextResponse): NextResp
   }
 
   // Echo requested method/headers if present (preflight)
-  const reqMethod = request.headers.get('access-control-request-method');
-  const reqHeaders = request.headers.get('access-control-request-headers');
+  const reqMethod = request?.headers?.get('access-control-request-method') ?? null;
+  const reqHeaders = request?.headers?.get('access-control-request-headers') ?? null;
   response.headers.set(
     'Access-Control-Allow-Methods',
     reqMethod || 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
@@ -135,14 +139,18 @@ export function createSecureResponse(
   customHeaders?: Record<string, string>
 ): NextResponse {
   const res = NextResponse.json(data, { status });
+  const canMutateHeaders = Boolean((res as NextResponse).headers?.set);
   
   // Apply custom headers if provided
-  if (customHeaders) {
+  if (customHeaders && canMutateHeaders) {
     Object.entries(customHeaders).forEach(([key, value]) => {
       res.headers.set(key, value);
     });
   }
   
-  if (request) withCORS(request, res);
-  return withSecurityHeaders(res, request);
+  if (request && canMutateHeaders) {
+    withCORS(request, res);
+  }
+
+  return canMutateHeaders ? withSecurityHeaders(res, request) : res;
 }

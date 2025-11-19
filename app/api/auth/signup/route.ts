@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
 
     // Resolve default organization - must be explicitly configured
     // SECURITY: Never fallback to arbitrary user's orgId (breaks tenant isolation)
-    let resolvedOrgId = process.env.PUBLIC_ORG_ID || process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID;
+    const resolvedOrgId = process.env.PUBLIC_ORG_ID || process.env.TEST_ORG_ID || process.env.DEFAULT_ORG_ID;
     
     if (!resolvedOrgId) {
       throw new Error(

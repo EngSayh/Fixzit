@@ -68,7 +68,7 @@ export async function audit(event: AuditEvent): Promise<void> {
     });
   } catch (dbError: unknown) {
     // Silent fail - don't break main operation if database write fails
-    logger.error('[AUDIT] Database write failed:', { dbError });
+    logger.error('[AUDIT] Database write failed:', dbError as Error);
   }
 
   // Send to external monitoring service (Sentry)
@@ -88,8 +88,10 @@ export async function audit(event: AuditEvent): Promise<void> {
         });
       }
     }
-  } catch (error) {
-    logger.error('[AUDIT] Failed to send to Sentry:', { error });
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error('[AUDIT] Failed to send to Sentry:', error as Error);
   }
 
   // Trigger alerts for critical actions (Super Admin, Impersonation)
@@ -113,7 +115,7 @@ export async function audit(event: AuditEvent): Promise<void> {
       //   });
       // }
     } catch (alertError: unknown) {
-      logger.error('[AUDIT] Failed to send critical action alert:', { alertError });
+      logger.error('[AUDIT] Failed to send critical action alert:', alertError as Error);
     }
   }
 }

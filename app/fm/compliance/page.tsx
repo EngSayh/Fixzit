@@ -2,16 +2,22 @@
 
 import Link from 'next/link';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import { ShieldCheck, ClipboardCheck, FileText } from 'lucide-react';
 
 export default function CompliancePage() {
+  const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({ moduleId: 'compliance' });
   const auto = useAutoTranslator('fm.compliance');
+  if (!hasOrgContext) {
+    return guard;
+  }
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="compliance" />
+      {supportBanner}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">

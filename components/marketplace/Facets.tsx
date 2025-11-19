@@ -21,7 +21,6 @@ interface FacetsProps {
     minPrice?: number;
     maxPrice?: number;
   };
-  // eslint-disable-next-line no-unused-vars
   onChange: (next: Partial<FacetsProps['selected']>) => void;
 }
 

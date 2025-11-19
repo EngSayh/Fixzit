@@ -1,0 +1,70 @@
+Debugger listening on ws://127.0.0.1:50729/f7524674-c25c-4b2b-b18e-8aa007dc8c0b
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+Debugger listening on ws://127.0.0.1:50733/8cfb1fbe-07b0-49d3-972b-8df60c497ed2
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+
+> fixzit-frontend@2.0.26 build /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+> cross-env NODE_OPTIONS=--max-old-space-size=8192 next build "--no-lint"
+
+Debugger listening on ws://127.0.0.1:50750/a1c0d533-6b11-4a62-bfa2-74ef4760fb47
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+ ⚠ Linting is disabled.
+   ▲ Next.js 15.5.6
+   - Environments: .env.local
+   - Experiments (use with caution):
+     · cpus: 1
+     · optimizePackageImports
+     ✓ webpackMemoryOptimizations
+
+   Creating an optimized production build ...
+ ⚠ Next.js can't recognize the exported `runtime` field in "/api/aqar/chat/route", it may be re-exported from another file. The default config will be used instead.
+   Using tsconfig file: ./tsconfig.json
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (185kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (139kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ⚠ Compiled with warnings in 4.4min
+
+./node_modules/.pnpm/@opentelemetry+instrumentation@0.204.0_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/.pnpm/@opentelemetry+instrumentation@0.204.0_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+./node_modules/.pnpm/@opentelemetry+instrumentation@0.204.0_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+./node_modules/.pnpm/@opentelemetry+instrumentation@0.204.0_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+./node_modules/.pnpm/@opentelemetry+instrumentation@0.204.0_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+./node_modules/.pnpm/@sentry+node@10.25.0/node_modules/@sentry/node/build/cjs/integrations/tracing/postgresjs.js
+./node_modules/.pnpm/@sentry+node@10.25.0/node_modules/@sentry/node/build/cjs/index.js
+./node_modules/.pnpm/@sentry+nextjs@10.25.0_@opentelemetry+context-async-hooks@2.2.0_@opentelemetry+api@1.9.0__@op_4e6oheeujofjozubkbfqautlla/node_modules/@sentry/nextjs/build/cjs/index.server.js
+./lib/logger.ts
+./components/ClientLayout.tsx
+
+./node_modules/.pnpm/@opentelemetry+instrumentation@0.204.0_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/.pnpm/@opentelemetry+instrumentation@0.204.0_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+./node_modules/.pnpm/@opentelemetry+instrumentation@0.204.0_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+./node_modules/.pnpm/@opentelemetry+instrumentation@0.204.0_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+./node_modules/.pnpm/@opentelemetry+instrumentation@0.204.0_@opentelemetry+api@1.9.0/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+./node_modules/.pnpm/@sentry+node@10.25.0/node_modules/@sentry/node/build/cjs/integrations/tracing/postgresjs.js
+./node_modules/.pnpm/@sentry+node@10.25.0/node_modules/@sentry/node/build/cjs/index.js
+./node_modules/.pnpm/@sentry+nextjs@10.25.0_@opentelemetry+context-async-hooks@2.2.0_@opentelemetry+api@1.9.0__@op_4e6oheeujofjozubkbfqautlla/node_modules/@sentry/nextjs/build/cjs/index.server.js
+./lib/logger.ts
+./app/api/admin/audit-logs/route.ts
+
+   Checking validity of types ...
+   Collecting page data ...
+
+> Build error occurred
+[Error: ENOENT: no such file or directory, open '/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/.next/build-manifest.json'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit/.next/build-manifest.json'
+}
+Waiting for the debugger to disconnect...
+ ELIFECYCLE  Command failed with exit code 1.
+Waiting for the debugger to disconnect...
+Waiting for the debugger to disconnect...

@@ -49,7 +49,7 @@
 7. ✅ `tests/README.md` - Comprehensive documentation
 8. ✅ `.env.test` - Test credentials template (gitignored)
 9. ✅ `START_3_HOUR_TESTING.md` - Quick-start guide
-10. ✅ `docs/reports/ERRORS_FIXED_PAST_15_DAYS.md` - Fix log (48 commits)
+10. ✅ `docs/archived/reports/ERRORS_FIXED_PAST_15_DAYS.md` - Fix log (48 commits)
 
 #### Files Modified (4 files):
 1. ✅ `.vscode/settings.json` - No-prompt configuration
@@ -72,7 +72,7 @@
 ---
 
 ### 4. **Error Tracking Report** ✅
-**File**: `docs/reports/ERRORS_FIXED_PAST_15_DAYS.md`
+**File**: `docs/archived/reports/ERRORS_FIXED_PAST_15_DAYS.md`
 
 Documented **48 commits** with fixes from October 11-26:
 - 🔴 **12 Critical**: ServiceProvider model, Marketplace API, RTL overflow, auth duplicates, SSR errors, hardcoded colors

@@ -16,6 +16,7 @@
  * - TAP_WEBHOOK_SECRET: Webhook signing secret
  */
 
+import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 
 // ============================================================================
@@ -239,7 +240,7 @@ class TapPaymentsClient {
 
       if (!response.ok) {
         const error = data as TapError;
-        logger.error('Tap API error creating charge', { error });
+        logger.error('Tap API error creating charge', new Error(JSON.stringify(error)));
         throw new Error(
           error.errors?.map((e) => e.description).join(', ') || 'Failed to create charge'
         );
@@ -252,8 +253,10 @@ class TapPaymentsClient {
       });
 
       return data as TapChargeResponse;
-    } catch (error) {
-      logger.error('Error creating Tap charge', { error });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Error creating Tap charge', error as Error);
       throw error;
     }
   }
@@ -276,15 +279,17 @@ class TapPaymentsClient {
 
       if (!response.ok) {
         const error = data as TapError;
-        logger.error('Tap API error retrieving charge', { error, chargeId });
+        logger.error('Tap API error retrieving charge', new Error(JSON.stringify(error)), { chargeId });
         throw new Error(
           error.errors?.map((e) => e.description).join(', ') || 'Failed to retrieve charge'
         );
       }
 
       return data as TapChargeResponse;
-    } catch (error) {
-      logger.error('Error retrieving Tap charge', { error, chargeId });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Error retrieving Tap charge', error as Error, { chargeId });
       throw error;
     }
   }
@@ -315,7 +320,7 @@ class TapPaymentsClient {
 
       if (!response.ok) {
         const error = data as TapError;
-        logger.error('Tap API error creating refund', { error });
+        logger.error('Tap API error creating refund', new Error(JSON.stringify(error)));
         throw new Error(
           error.errors?.map((e) => e.description).join(', ') || 'Failed to create refund'
         );
@@ -327,8 +332,10 @@ class TapPaymentsClient {
       });
 
       return data as TapRefundResponse;
-    } catch (error) {
-      logger.error('Error creating Tap refund', { error });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Error creating Tap refund', error as Error);
       throw error;
     }
   }
@@ -346,22 +353,23 @@ class TapPaymentsClient {
     }
 
     try {
-      const crypto = require('crypto');
       const hmac = crypto.createHmac('sha256', this.webhookSecret);
       const calculatedSignature = hmac.update(payload).digest('hex');
 
       const isValid = calculatedSignature === signature;
 
       if (!isValid) {
-        logger.error('Invalid webhook signature', {
+        logger.error('Invalid webhook signature', new Error('Signature mismatch'), {
           provided: signature,
           calculated: calculatedSignature,
         });
       }
 
       return isValid;
-    } catch (error) {
-      logger.error('Error verifying webhook signature', { error });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Error verifying webhook signature', error as Error);
       return false;
     }
   }
@@ -386,7 +394,9 @@ class TapPaymentsClient {
         liveMode: event.live_mode,
       });
       return event;
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('Error parsing webhook payload', { error });
       throw new Error('Invalid webhook payload');
     }

@@ -19,7 +19,7 @@ import { logger } from '@/lib/logger';
 
 import { Types, ClientSession } from 'mongoose';
 import mongoose from 'mongoose';
-import { WorkOrder } from '@/server/models/WorkOrder';
+import { WorkOrder, type WorkOrderDoc } from '@/server/models/WorkOrder';
 import { MoveInOutInspectionModel } from '@/server/models/owner/MoveInOutInspection';
 import { UtilityBillModel } from '@/server/models/owner/UtilityBill';
 
@@ -42,6 +42,12 @@ export interface PostFinanceOnCloseResult {
   alreadyPosted?: boolean;
   error?: string;
 }
+
+type WorkOrderFinanceMeta = {
+  financePosted?: boolean;
+  journalEntryId?: Types.ObjectId | string;
+  journalNumber?: string;
+};
 
 /**
  * Check if work order has AFTER photos (for move-out inspections)
@@ -131,7 +137,14 @@ export async function postFinanceOnClose(
 
     // Check if finance already posted for this work order
     // TODO(schema-migration): Add financePosted, journalEntryId, journalNumber to WorkOrder schema
-    if ((workOrder as any).financePosted) {
+    const workOrderFinance = workOrder as WorkOrderDoc & WorkOrderFinanceMeta;
+    if (workOrderFinance.financePosted) {
+      const existingJournalId =
+        workOrderFinance.journalEntryId instanceof Types.ObjectId
+          ? workOrderFinance.journalEntryId
+          : workOrderFinance.journalEntryId
+            ? new Types.ObjectId(workOrderFinance.journalEntryId)
+            : undefined;
       logger.info('Finance already posted for work order', {
         workOrderNumber: input.workOrderNumber,
         workOrderId: input.workOrderId.toString()
@@ -139,8 +152,8 @@ export async function postFinanceOnClose(
       return {
         success: true,
         alreadyPosted: true,
-        journalId: (workOrder as any).journalEntryId,
-        journalNumber: (workOrder as any).journalNumber
+        journalId: existingJournalId,
+        journalNumber: workOrderFinance.journalNumber
       };
     }
 

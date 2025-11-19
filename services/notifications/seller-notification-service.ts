@@ -154,8 +154,10 @@ async function getSeller(sellerId: string): Promise<SellerDetails | null> {
       preferredLocale: seller.preferredLocale || 'ar', // Default to Arabic for Saudi market
       businessName: seller.businessName || 'Seller'
     };
-  } catch (error) {
-    logger.error('[SellerNotification] Error fetching seller', { error, sellerId });
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error('[SellerNotification] Error fetching seller', error, { sellerId });
     return null;
   }
 }
@@ -208,8 +210,10 @@ async function sendEmail(to: string, subject: string, body: string, locale: Loca
     });
     
     logger.info('[SellerNotification] Email sent', { to, subject });
-  } catch (error) {
-    logger.error('[SellerNotification] Email send failed', { error, to, subject });
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error('[SellerNotification] Email send failed', error, { to, subject });
   }
 }
 
@@ -259,8 +263,10 @@ export async function sendSellerNotification<T extends TemplateKey>(
     await logNotification(sellerId, template, data, locale);
     
     logger.info('[SellerNotification] Notification sent', { sellerId, template, locale });
-  } catch (error) {
-    logger.error('[SellerNotification] Error sending notification', { error, sellerId, template });
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error('[SellerNotification] Error sending notification', error, { sellerId, template });
   }
 }
 
@@ -283,7 +289,9 @@ async function logNotification(
       sentAt: new Date(),
       status: 'sent'
     });
-  } catch (error) {
-    logger.error('[SellerNotification] Error logging notification', { error });
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error('[SellerNotification] Error logging notification', error, { sellerId, template });
   }
 }

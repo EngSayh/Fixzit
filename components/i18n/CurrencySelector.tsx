@@ -101,7 +101,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
   };
 
   return (
-    <div className={`relative ${isRTL ? 'text-right' : ''}`} ref={containerRef}>
+    <div className="relative" ref={containerRef}>
       <button
         type="button"
         aria-expanded={open}
@@ -183,7 +183,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
                   id={`${listboxId}-option-${option.code}`}
                   className={`flex w-full items-center gap-3 rounded-2xl px-2 py-2 hover:bg-muted cursor-pointer transition-colors ${
                     option.code === current.code ? 'bg-primary/10' : ''
-                  } ${idx === activeIndex ? 'ring-1 ring-primary/30' : ''} ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}
+                  } ${idx === activeIndex ? 'ring-1 ring-primary/30' : ''}`}
                   role="option"
                   aria-selected={option.code === current.code}
                   tabIndex={-1}

@@ -501,8 +501,8 @@ echo $?
 ## 📚 Related Documentation
 
 - **[Agent Upgrades Guide](./AGENT_UPGRADES.md)** - Phase 2 scanner implementation details
-- **[Phase 2 Completion Report](../DAILY_PROGRESS_REPORTS/2025-11-09_phase2_complete.md)** - Investigation findings
-- **[Agent Upgrades Complete](../DAILY_PROGRESS_REPORTS/2025-11-09_agent_upgrades_complete.md)** - Implementation summary
+- **[Phase 2 Completion Report](../archived/DAILY_PROGRESS_REPORTS/2025-11-09_phase2_complete.md)** - Investigation findings
+- **[Agent Upgrades Complete](../archived/DAILY_PROGRESS_REPORTS/2025-11-09_agent_upgrades_complete.md)** - Implementation summary
 
 ---
 

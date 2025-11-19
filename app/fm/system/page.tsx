@@ -2,12 +2,19 @@
 'use client';
 
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 export default function SystemPage() {
+  const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({ moduleId: 'system' });
   const auto = useAutoTranslator('fm.system');
+  if (!hasOrgContext) {
+    return guard;
+  }
+
   return (
     <div className="p-6 space-y-6">
+      {supportBanner}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">

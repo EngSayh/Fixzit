@@ -1,10 +1,10 @@
 {
   "stats": {
-    "files": 671,
-    "usedKeys": 2628,
+    "files": 680,
+    "usedKeys": 2634,
     "hasDynamic": false,
-    "enCount": 30550,
-    "arCount": 30550,
+    "enCount": 30720,
+    "arCount": 30720,
     "parityGap": 0
   },
   "missing": {
@@ -305,9 +305,6 @@
     ],
     "admin.logo.guideline.clickable": [
       "Fixzit/app/admin/logo/page.tsx"
-    ],
-    "admin.redirecting": [
-      "Fixzit/app/admin/page.tsx"
     ],
     "admin.users.table.unknownUser": [
       "Fixzit/app/administration/page.tsx"
@@ -1468,6 +1465,9 @@
     "common.create": [
       "Fixzit/app/finance/page.tsx"
     ],
+    "admin.redirecting": [
+      "Fixzit/app/fm/admin/page.tsx"
+    ],
     "admin.users.description": [
       "Fixzit/app/fm/administration/page.tsx"
     ],
@@ -2087,6 +2087,168 @@
     "common.selected": [
       "Fixzit/app/fm/finance/expenses/new/page.tsx"
     ],
+    "fm.errors.noOrgSession": [
+      "Fixzit/app/fm/finance/invoices/new/page.tsx",
+      "Fixzit/app/fm/finance/invoices/page.tsx",
+      "Fixzit/app/fm/properties/new/page.tsx",
+      "Fixzit/app/fm/properties/page.tsx",
+      "Fixzit/app/fm/tenants/new/page.tsx",
+      "Fixzit/app/fm/tenants/page.tsx",
+      "Fixzit/components/fm/tenants/CreateTenantForm.tsx"
+    ],
+    "fm.finance.invoices.errors.selectOrg": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.finance.invoices.errors.selectOrgHint": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.title": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.subtitle": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.newInvoice": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.createInvoice": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.finance.support.activeOrg": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.totalOutstanding": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.overdue": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.pending": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.paidThisMonth": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.searchInvoices": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.properties.status": [
+      "Fixzit/app/fm/finance/invoices/page.tsx",
+      "Fixzit/app/fm/properties/page.tsx"
+    ],
+    "common.all": [
+      "Fixzit/app/fm/finance/invoices/page.tsx",
+      "Fixzit/app/fm/hr/directory/page.tsx",
+      "Fixzit/app/fm/orders/page.tsx",
+      "Fixzit/app/fm/page.tsx",
+      "Fixzit/app/fm/vendors/page.tsx"
+    ],
+    "fm.invoices.draft": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.sent": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.viewed": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.vendors.approved": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.paid": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.cancelled": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.properties.type": [
+      "Fixzit/app/fm/finance/invoices/page.tsx",
+      "Fixzit/app/fm/properties/page.tsx",
+      "Fixzit/components/fm/tenants/CreateTenantForm.tsx"
+    ],
+    "fm.properties.allTypes": [
+      "Fixzit/app/fm/finance/invoices/page.tsx",
+      "Fixzit/app/fm/properties/page.tsx",
+      "Fixzit/app/fm/tenants/page.tsx"
+    ],
+    "fm.invoices.sales": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.purchase": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.rental": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.service": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.maintenance": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.noInvoices": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.noInvoicesText": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.issueDate": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.dueDate": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.overdueDays": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.items": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.toast.createSuccess": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.errors.unknown": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.toast.createFailed": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.toast.createUnknown": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.invoiceType": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.currency": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.customerInfo": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.customerName": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.taxId": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.lineItems": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.description": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.quantity": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.unitPrice": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.vat": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
+    "fm.invoices.addLineItem": [
+      "Fixzit/app/fm/finance/invoices/page.tsx"
+    ],
     "Bank Transfer Details": [
       "Fixzit/app/fm/finance/payments/new/page.tsx"
     ],
@@ -2296,13 +2458,6 @@
       "Fixzit/app/hr/settings/page.tsx",
       "Fixzit/app/marketplace/orders/page.tsx"
     ],
-    "common.all": [
-      "Fixzit/app/fm/hr/directory/page.tsx",
-      "Fixzit/app/fm/invoices/page.tsx",
-      "Fixzit/app/fm/orders/page.tsx",
-      "Fixzit/app/fm/page.tsx",
-      "Fixzit/app/fm/vendors/page.tsx"
-    ],
     "hr.employees.jobTitle": [
       "Fixzit/app/fm/hr/directory/page.tsx"
     ],
@@ -2488,151 +2643,6 @@
     ],
     "hr.ats.jobs.notPublished": [
       "Fixzit/app/fm/hr/recruitment/page.tsx"
-    ],
-    "fm.errors.noOrgSession": [
-      "Fixzit/app/fm/invoices/page.tsx",
-      "Fixzit/app/fm/properties/new/page.tsx",
-      "Fixzit/app/fm/properties/page.tsx",
-      "Fixzit/app/fm/tenants/new/page.tsx",
-      "Fixzit/app/fm/tenants/page.tsx",
-      "Fixzit/components/fm/tenants/CreateTenantForm.tsx"
-    ],
-    "fm.invoices.title": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.subtitle": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.newInvoice": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.createInvoice": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.totalOutstanding": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.overdue": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.pending": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.paidThisMonth": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.searchInvoices": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.properties.status": [
-      "Fixzit/app/fm/invoices/page.tsx",
-      "Fixzit/app/fm/properties/page.tsx"
-    ],
-    "fm.invoices.draft": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.sent": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.viewed": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.vendors.approved": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.paid": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.cancelled": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.properties.type": [
-      "Fixzit/app/fm/invoices/page.tsx",
-      "Fixzit/app/fm/properties/page.tsx",
-      "Fixzit/components/fm/tenants/CreateTenantForm.tsx"
-    ],
-    "fm.properties.allTypes": [
-      "Fixzit/app/fm/invoices/page.tsx",
-      "Fixzit/app/fm/properties/page.tsx",
-      "Fixzit/app/fm/tenants/page.tsx"
-    ],
-    "fm.invoices.sales": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.purchase": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.rental": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.service": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.maintenance": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.noInvoices": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.noInvoicesText": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.issueDate": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.dueDate": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.overdueDays": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.items": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.toast.createSuccess": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.errors.unknown": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.toast.createFailed": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.toast.createUnknown": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.invoiceType": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.currency": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.customerInfo": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.customerName": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.taxId": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.lineItems": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.description": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.quantity": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.unitPrice": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.vat": [
-      "Fixzit/app/fm/invoices/page.tsx"
-    ],
-    "fm.invoices.addLineItem": [
-      "Fixzit/app/fm/invoices/page.tsx"
     ],
     "nav.maintenance": [
       "Fixzit/app/fm/maintenance/page.tsx"
@@ -3004,6 +3014,15 @@
     ],
     "fm.properties.new.sectionDescription": [
       "Fixzit/app/fm/properties/new/page.tsx"
+    ],
+    "fm.properties.errors.selectOrg": [
+      "Fixzit/app/fm/properties/page.tsx"
+    ],
+    "fm.properties.errors.selectOrgHint": [
+      "Fixzit/app/fm/properties/page.tsx"
+    ],
+    "fm.properties.support.activeOrg": [
+      "Fixzit/app/fm/properties/page.tsx"
     ],
     "fm.properties.title": [
       "Fixzit/app/fm/properties/page.tsx"
@@ -8103,5 +8122,5 @@
       "Fixzit/components/ui/pagination.tsx"
     ]
   },
-  "timestamp": "2025-11-18T13:59:48.561Z"
+  "timestamp": "2025-11-18T16:21:18.304Z"
 }

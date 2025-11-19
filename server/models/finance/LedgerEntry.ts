@@ -81,7 +81,6 @@ export interface AccountActivityEntry extends Omit<ILedgerEntry, 'journalId' | '
   updatedAt?: Date;
 }
 
-/* eslint-disable no-unused-vars */
 export type ILedgerEntryModel = MModel<ILedgerEntry> &
   CommonModelStatics<ILedgerEntry> & {
     getAccountBalance(
@@ -101,7 +100,6 @@ export type ILedgerEntryModel = MModel<ILedgerEntry> &
       endDate: Date
     ): Promise<AccountActivityEntry[]>;
   };
-/* eslint-enable no-unused-vars */
 
 const LedgerEntrySchema = new Schema<ILedgerEntry>(
   {
@@ -155,9 +153,7 @@ LedgerEntrySchema.pre('validate', function(next) {
 });
 
 // Apply plugins BEFORE indexes
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 LedgerEntrySchema.plugin(tenantIsolationPlugin);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 LedgerEntrySchema.plugin(auditPlugin);
 
 // All indexes MUST be tenant-scoped

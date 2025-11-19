@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { findLanguageByCode } from '@/data/language-options';
 import { NextRequest } from 'next/server';
 import { readFileSync } from 'node:fs';
@@ -7,7 +7,7 @@ import type { SupportedTranslationLocale, TranslationDictionary } from '@/i18n/d
 
 type TranslationValues = Record<string, string | number>;
 
-type TFn = (key: string, fallback?: string, values?: TranslationValues) => string;
+type TFn = (_key: string, _fallback?: string, _values?: TranslationValues) => string;
 
 const interpolate = (text: string, values?: TranslationValues) => {
   if (!values) return text;
@@ -17,47 +17,85 @@ const interpolate = (text: string, values?: TranslationValues) => {
   });
 };
 
+const RTL_LANGUAGES: SupportedTranslationLocale[] = ['ar'];
+
+const SUPPORTED_LOCALES: SupportedTranslationLocale[] = ['en', 'ar'];
+
+const NORMALIZE_MAP: Record<string, SupportedTranslationLocale> = {
+  ar: 'ar',
+  'ar-sa': 'ar',
+  'ar-sa-': 'ar',
+  en: 'en',
+  'en-gb': 'en',
+  'en-us': 'en',
+};
+
+export type ServerI18nResult = {
+  t: TFn;
+  isRTL: boolean;
+  locale: SupportedTranslationLocale;
+};
+
 /**
  * Minimal server-side i18n helper.
  * - Reads language cookie written by client code (fxz.lang / fxz.locale)
- * - Exposes `t` which returns the provided fallback (avoids pulling the full translations into server)
- * - Exposes `isRTL` for layout direction decisions
- *
- * This keeps the AboutPage server-renderable without a full i18n refactor.
+ * - Exposes `t` backed by generated dictionaries (avoids bundling the giant context)
+ * - Provides RTL + locale metadata so layouts can set <html lang/dir> on first paint
  */
-export async function getServerI18n() {
+export async function getServerI18n(): Promise<ServerI18nResult> {
   try {
-    const ck = await cookies();
-    const lang = ck.get('fxz.lang')?.value || ck.get('fxz.locale')?.value || undefined;
+    const cookieStore = await cookies();
+    const headerStore = await headers();
 
-    // lang may be like 'ar' or locale like 'ar-SA'
-    let langCode = undefined as string | undefined;
-    if (lang) {
-      // try to extract language code (xx from xx-YY)
-      langCode = lang.split('-')[0];
-    }
+    const cookieLocale =
+      cookieStore.get('fxz.lang')?.value ||
+      cookieStore.get('fxz.locale')?.value ||
+      cookieStore.get('locale')?.value;
 
-    const langOption = langCode ? findLanguageByCode(langCode) : undefined;
-    const isRTL = !!langOption && langOption.dir === 'rtl';
+    const headerLocale = headerStore.get('accept-language')?.split(',')[0];
 
-    const t: TFn = (key: string, fallback: string = key, values?: TranslationValues) => {
-      // Minimal server-side behavior: return the fallback so existing calls with
-      // explicit fallback strings continue to render correctly server-side.
-      return interpolate(fallback, values);
+    const locale = resolveLocale(cookieLocale || headerLocale);
+    const langOption = findLanguageByCode(locale) || findLanguageByCode(locale.split('-')[0]);
+    const messages = loadDictionary(locale);
+    const translator = createTranslator(messages);
+
+    return {
+      t: translator,
+      isRTL: langOption ? langOption.dir === 'rtl' : RTL_LANGUAGES.includes(locale),
+      locale,
     };
-
-    return { t, isRTL } as { t: TFn; isRTL: boolean };
-   
   } catch (_err) {
     return {
       t: (k: string, f: string = k, values?: TranslationValues) => interpolate(f, values),
       isRTL: false,
-    } as { t: TFn; isRTL: boolean };
+      locale: 'en',
+    };
   }
 }
 
 const GENERATED_DICTIONARY_DIR = path.join(process.cwd(), 'i18n', 'generated');
 const DICTIONARY_CACHE: Partial<Record<SupportedTranslationLocale, TranslationDictionary>> = {};
+
+function normalizeLocaleToken(input?: string | null): SupportedTranslationLocale | undefined {
+  if (!input) {
+    return undefined;
+  }
+
+  const token = input.trim().toLowerCase();
+  if (NORMALIZE_MAP[token]) {
+    return NORMALIZE_MAP[token];
+  }
+
+  const [language] = token.split(/[-_]/);
+  if (language && (SUPPORTED_LOCALES as string[]).includes(language)) {
+    return language as SupportedTranslationLocale;
+  }
+  return undefined;
+}
+
+function resolveLocale(preferred?: string | null): SupportedTranslationLocale {
+  return normalizeLocaleToken(preferred) ?? 'en';
+}
 
 function loadDictionary(locale: SupportedTranslationLocale): TranslationDictionary {
   if (DICTIONARY_CACHE[locale]) {
@@ -80,30 +118,38 @@ function loadDictionary(locale: SupportedTranslationLocale): TranslationDictiona
   }
 }
 
+function getMessageValue(dictionary: TranslationDictionary, key: string): string | undefined {
+  if (key in dictionary && typeof dictionary[key] === 'string') {
+    return dictionary[key] as string;
+  }
+
+  const segments = key.split('.');
+  let current: unknown = dictionary;
+
+  for (const segment of segments) {
+    if (current && typeof current === 'object' && segment in (current as Record<string, unknown>)) {
+      current = (current as Record<string, unknown>)[segment];
+    } else {
+      return undefined;
+    }
+  }
+
+  return typeof current === 'string' ? current : undefined;
+}
+
+function createTranslator(dictionary: TranslationDictionary): TFn {
+  return (key: string, fallback: string = key, values?: TranslationValues) => {
+    const template = getMessageValue(dictionary, key) ?? fallback ?? key;
+    return interpolate(template, values);
+  };
+}
+
 export async function getServerTranslation(request: NextRequest) {
   // Get locale from cookie or Accept-Language header
   const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value;
-  const headerLocale = request.headers.get('accept-language')?.split(',')[0]?.split('-')[0];
-  const locale = cookieLocale || headerLocale || 'en';
-  
-  const chosenLocale: SupportedTranslationLocale = locale === 'ar' ? 'ar' : 'en';
-  const messages = loadDictionary(chosenLocale);
-  
-  return function t(key: string, fallback?: string, values?: TranslationValues): string {
-    const keys = key.split('.');
-    let value: unknown = messages;
-    
-    for (const k of keys) {
-      if (value && typeof value === 'object' && k in value) {
-        value = (value as Record<string, unknown>)[k];
-      } else {
-        return interpolate(fallback ?? key, values);
-      }
-    }
-    
-    if (typeof value === 'string') {
-      return interpolate(value, values);
-    }
-    return interpolate(fallback ?? key, values);
-  };
+  const headerLocale = request.headers.get('accept-language')?.split(',')[0];
+  const locale = resolveLocale(cookieLocale || headerLocale);
+
+  const messages = loadDictionary(locale);
+  return createTranslator(messages);
 }

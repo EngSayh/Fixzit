@@ -68,12 +68,25 @@ required_vars=(
     "STRIPE_PUBLISHABLE_KEY"
     "NEXTAUTH_URL"
     "NODE_ENV"
+    "MEILI_MASTER_KEY"
+    "SENDGRID_API_KEY"
+    "SENDGRID_FROM_EMAIL"
+    "SENDGRID_FROM_NAME"
+    "SMS_DEV_MODE"
+    "ZATCA_API_KEY"
+    "ZATCA_API_SECRET"
+    "ZATCA_ENVIRONMENT"
 )
 for var in "${required_vars[@]}"; do
     if ! grep -q "^${var}=" .env; then
         error "Required environment variable $var is not set in .env file"
     fi
 done
+
+# Ensure either MEILI_HOST or MEILI_URL is present
+if ! grep -q "^MEILI_HOST=" .env && ! grep -q "^MEILI_URL=" .env; then
+    error "Either MEILI_HOST or MEILI_URL must be set in .env"
+fi
 
 # Create backup of current deployment if it exists
 if docker-compose ps | grep -q "Up"; then

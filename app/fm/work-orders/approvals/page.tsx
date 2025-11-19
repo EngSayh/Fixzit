@@ -1,10 +1,14 @@
 'use client';
 
 import React from 'react';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { getWorkOrderStatusLabel } from '@/lib/work-orders/status';
 
 export default function WorkOrderApprovalsPage() {
   const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'work_orders' });
   const pendingApprovals = [
     {
       id: 'WO-1004',
@@ -84,8 +88,18 @@ export default function WorkOrderApprovalsPage() {
     }
   };
 
+  if (!hasOrgContext) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
+      <ModuleViewTabs moduleId="work_orders" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -158,7 +172,7 @@ export default function WorkOrderApprovalsPage() {
                       {item.priority}
                     </span>
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(item.status)}`}>
-                      {item.status}
+                      {getWorkOrderStatusLabel(t, item.status)}
                     </span>
                   </div>
                   <h4 className="font-medium text-foreground mb-1">{item.title}</h4>
@@ -166,9 +180,9 @@ export default function WorkOrderApprovalsPage() {
                   <p className="text-sm text-muted-foreground mb-3">{item.reason}</p>
 
                   <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                    <span><strong>Requested by:</strong> {item.requestedBy}</span>
-                    <span><strong>Date:</strong> {item.requestDate}</span>
-                    <span><strong>Estimated Cost:</strong> {item.estimatedCost}</span>
+                    <span><strong>{t('workOrders.approvals.details.requestedBy', 'Requested by')}:</strong> {item.requestedBy}</span>
+                    <span><strong>{t('workOrders.approvals.details.date', 'Date')}:</strong> {item.requestDate}</span>
+                    <span><strong>{t('workOrders.approvals.details.estimatedCost', 'Estimated Cost')}:</strong> {item.estimatedCost}</span>
                   </div>
                 </div>
 
@@ -222,7 +236,7 @@ export default function WorkOrderApprovalsPage() {
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">{item.actualCost}</td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(item.status)}`}>
-                      {item.status}
+                      {getWorkOrderStatusLabel(t, item.status)}
                     </span>
                   </td>
                 </tr>
@@ -265,4 +279,3 @@ export default function WorkOrderApprovalsPage() {
     </div>
   );
 }
-

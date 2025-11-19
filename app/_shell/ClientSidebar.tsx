@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
+import type { DefaultSession } from "next-auth";
 import { useTranslation } from "@/contexts/TranslationContext";
 
 type Role =
@@ -18,6 +19,10 @@ type Role =
   | "Tenant / End-User";
 
 type Counters = Record<string, number>;
+type SessionUserExtras = DefaultSession["user"] & {
+  role?: Role;
+  orgId?: string;
+};
 
 type Item = {
   label: string;
@@ -319,6 +324,19 @@ type LocalizedSection = {
   items: Item[];
 };
 
+type CounterMessage = {
+  key: string;
+  value: number;
+};
+
+const isCounterMessage = (input: unknown): input is CounterMessage => {
+  if (typeof input !== "object" || input === null) {
+    return false;
+  }
+  const maybe = input as Record<string, unknown>;
+  return typeof maybe.key === "string" && typeof maybe.value === "number";
+};
+
 async function fetchCounters(orgId: string): Promise<Counters> {
   const res = await fetch(`/api/counters?org=${encodeURIComponent(orgId)}`, {
     cache: "no-store",
@@ -356,8 +374,9 @@ export default function ClientSidebar() {
   const { data: session } = useSession();
   const { t } = useTranslation();
 
-  const role: Role = (session?.user as any)?.role || "Super Admin";
-  const orgId = (session?.user as any)?.orgId || "platform";
+  const sessionUser = session?.user as SessionUserExtras | undefined;
+  const role: Role = sessionUser?.role ?? "Super Admin";
+  const orgId = sessionUser?.orgId ?? "platform";
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
     if (typeof window === "undefined") return {};
@@ -387,13 +406,17 @@ export default function ClientSidebar() {
     if (!wsUrl) return;
 
     const ws = new WebSocket(wsUrl);
-    ws.onmessage = (e) => {
+    ws.onmessage = (event) => {
+      let parsed: unknown;
       try {
-        const { key, value } = JSON.parse(e.data);
-        setCounters((prev) => ({ ...prev, [key]: value }));
+        parsed = JSON.parse(event.data);
       } catch {
-        // ignore
+        return;
       }
+      if (!isCounterMessage(parsed)) {
+        return;
+      }
+      setCounters((prev) => ({ ...prev, [parsed.key]: parsed.value }));
     };
     return () => ws.close();
   }, [orgId]);
@@ -476,7 +499,7 @@ export default function ClientSidebar() {
                       >
                         <span>{item.label}</span>
                         {item.badge && item.badge > 0 && (
-                          <span className="ml-2 rounded-full bg-destructive/90 text-white text-xs px-2">
+                          <span className="ms-2 rounded-full bg-destructive/90 text-white text-xs px-2">
                             {item.badge}
                           </span>
                         )}

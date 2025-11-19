@@ -14,8 +14,8 @@ NC='\033[0m'
 echo -e "${GREEN}🔧 Fixing Markdown Linting Violations${NC}"
 echo "================================================"
 
-# Find all markdown files in DAILY_PROGRESS_REPORTS
-files=$(find DAILY_PROGRESS_REPORTS -name "2025-11-11*.md" 2>/dev/null || true)
+# Find all markdown files in docs/archived/DAILY_PROGRESS_REPORTS
+files=$(find docs/archived/DAILY_PROGRESS_REPORTS -name "2025-11-11*.md" 2>/dev/null || true)
 
 if [ -z "$files" ]; then
   echo -e "${YELLOW}⚠️  No markdown files found${NC}"

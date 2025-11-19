@@ -76,7 +76,7 @@
 - **Stability Check**: No crashes during normal operation
 
 ### H. Reporting Requirements
-- **Daily Report**: Create timestamped report in `DAILY_PROGRESS_REPORTS/`
+- **Daily Report**: Create timestamped report in `docs/archived/DAILY_PROGRESS_REPORTS/`
   - What changed (with line numbers and file paths)
   - Why changes were made (root cause, user request)
   - Where changes were made (file paths, commit SHAs)

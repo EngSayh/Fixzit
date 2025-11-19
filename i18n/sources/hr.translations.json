@@ -286,7 +286,14 @@
     "hr.tabs.employees": "Employees",
     "hr.tabs.leave": "Leave",
     "hr.tabs.payroll": "Payroll",
-    "hr.title": "Human Resources"
+    "hr.title": "Human Resources",
+    "fm.hr.payroll.status.reconciled": "Reconciled",
+    "fm.hr.payroll.status.ready": "Ready",
+    "fm.hr.payroll.status.inProgress": "In Progress",
+    "fm.hr.payroll.status.draft": "Draft",
+    "fm.hr.payroll.status.approval": "Awaiting approval",
+    "fm.hr.payroll.alerts.attention": "Attention",
+    "fm.hr.payroll.alerts.info": "Info"
   },
   "ar": {
     "hr.actions.addEmployee": "إضافة موظف",
@@ -575,6 +582,13 @@
     "hr.tabs.employees": "الموظفين",
     "hr.tabs.leave": "الإجازات",
     "hr.tabs.payroll": "الرواتب",
-    "hr.title": "الموارد البشرية"
+    "hr.title": "الموارد البشرية",
+    "fm.hr.payroll.status.reconciled": "تمت التسوية",
+    "fm.hr.payroll.status.ready": "جاهز",
+    "fm.hr.payroll.status.inProgress": "قيد التنفيذ",
+    "fm.hr.payroll.status.draft": "مسودة",
+    "fm.hr.payroll.status.approval": "بانتظار الموافقة",
+    "fm.hr.payroll.alerts.attention": "انتباه",
+    "fm.hr.payroll.alerts.info": "معلومة"
   }
 }

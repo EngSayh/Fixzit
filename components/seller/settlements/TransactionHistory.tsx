@@ -126,9 +126,9 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
     return TRANSACTION_TYPES.find((t) => t.value === type)?.label || type;
   };
 
-  const exportToCSV = () => {
+  const exportToCSV = async () => {
     try {
-      const { exportToCSV: doExport } = require('@/lib/export-utils');
+      const { exportToCSV: doExport } = await import('@/lib/export-utils');
       
       // Filter transactions based on current filters
       let filtered = transactions;
@@ -181,7 +181,7 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
           سجل المعاملات (Transaction History)
         </h2>
         <Button onClick={exportToCSV} variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
+          <Download className="h-4 w-4 me-2" />
           تصدير (Export CSV)
         </Button>
       </div>
@@ -235,7 +235,7 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
             variant="outline"
             className="w-full"
           >
-            <Filter className="h-4 w-4 mr-2" />
+            <Filter className="h-4 w-4 me-2" />
             إعادة تعيين (Reset)
           </Button>
         </div>
@@ -272,7 +272,7 @@ export function TransactionHistory({ sellerId }: TransactionHistoryProps) {
                 </div>
               </div>
 
-              <div className="text-right">
+              <div className="text-end">
                 <p
                   className={`text-lg font-bold ${
                     txn.amount >= 0 ? 'text-green-600' : 'text-red-600'

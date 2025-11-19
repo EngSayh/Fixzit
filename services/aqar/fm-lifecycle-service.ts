@@ -177,7 +177,9 @@ export class AqarFmLifecycleService {
         },
         event.actorId
       );
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('AQAR_FM_WORK_ORDER_FAILED', {
         listingId: listing._id.toHexString(),
         error: (error as Error)?.message ?? String(error),
@@ -204,7 +206,9 @@ export class AqarFmLifecycleService {
       };
       const qr = await generateZATCAQR(payload);
       return { qr, vat: payload.vatAmount };
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.warn('AQAR_ZATCA_QR_FAILED', {
         error: (error as Error)?.message ?? String(error),
       });

@@ -14,6 +14,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import type { TooltipProps } from 'recharts';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 interface DailyPageView {
@@ -49,6 +50,11 @@ interface TrafficAnalyticsProps {
   data: TrafficAnalyticsData | null;
   isLoading?: boolean;
 }
+
+type PageViewDatum = {
+  date: string;
+  views: number;
+};
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
@@ -115,6 +121,33 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
     views: item.views,
   }));
 
+  const renderPageViewsTooltip = (props: TooltipProps<number, string>) => {
+    const { active, payload } = props as { active?: boolean; payload?: Array<{ payload: PageViewDatum }> };
+    if (!active || !payload?.length) {
+      return null;
+    }
+
+    const datum = payload[0]?.payload as PageViewDatum | undefined;
+    if (!datum) {
+      return null;
+    }
+
+    return (
+      <div className="rounded-lg border bg-background p-2 shadow-sm">
+        <div className="grid gap-2">
+          <div className="flex flex-col">
+            <span className="text-[0.70rem] uppercase text-muted-foreground">
+              {datum.date}
+            </span>
+            <span className="font-bold">
+              {datum.views.toLocaleString()} {auto('views', 'tooltip.views')}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
       {/* Key Metrics */}
@@ -178,27 +211,7 @@ export function TrafficAnalytics({ data, isLoading }: TrafficAnalyticsProps) {
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="date" className="text-xs" tick={{ fontSize: 12 }} />
               <YAxis className="text-xs" tick={{ fontSize: 12 }} />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    return (
-                      <div className="rounded-lg border bg-background p-2 shadow-sm">
-                        <div className="grid gap-2">
-                          <div className="flex flex-col">
-                            <span className="text-[0.70rem] uppercase text-muted-foreground">
-                              {payload[0].payload.date}
-                            </span>
-                          <span className="font-bold">
-                            {payload[0].value?.toLocaleString()} {auto('views', 'tooltip.views')}
-                          </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
+              <Tooltip content={renderPageViewsTooltip} />
               <Bar dataKey="views" fill="#8884d8" name={auto('Page Views', 'charts.pageViews')} />
             </BarChart>
           </ResponsiveContainer>

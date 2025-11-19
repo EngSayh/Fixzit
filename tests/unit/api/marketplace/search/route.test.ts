@@ -1,324 +1,196 @@
-/**
- * Testing library/framework:
- * - Vitest with TypeScript
- *
- * Coverage goals:
- * - Happy paths: basic term search, synonyms expansion, default params.
- * - Edge cases: missing/whitespace query, invalid URL, invalid regex input.
- * - Failure conditions: synonym lookup errors are swallowed; top-level errors return [].
- * - Verify query building: text search terms, regex case-insensitivity, sorting, limiting, and tenant scoping.
- * 
- * 🔒 TYPE SAFETY: Uses type-safe mocks from types/test-mocks
- */
-
-import { vi } from 'vitest';
-import type { GenericMock, MockNextRequest, MockNextResponse } from '@/types/test-mocks';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { NextRequest } from 'next/server';
 
-const jsonMock = vi.fn()
-const findOneMock = vi.fn()
-const productFindMock = vi.fn()
-const productSortMock = vi.fn()
-const productLimitMock = vi.fn()
-const productLeanMock = vi.fn()
+const jsonMock = vi.fn();
+const searchProductsMock = vi.fn();
+const resolveMarketplaceContextMock = vi.fn();
+const connectToDatabaseMock = vi.fn();
+const categoryFindOneLeanMock = vi.fn();
+const categoryFindLeanMock = vi.fn();
+const createSecureResponseMock = vi.fn();
+const zodValidationErrorMock = vi.fn();
 
-// Mock minimal next/server surface
-// 🔒 TYPE SAFETY: Type-safe Next.js request/response mocks
 vi.mock('next/server', () => {
+  class MockNextRequest {
+    url: string;
+    nextUrl: URL;
+    headers: Headers;
+
+    constructor(url: string | URL) {
+      const normalized = new URL(
+        typeof url === 'string' ? url : url.toString(),
+      );
+      this.url = normalized.toString();
+      this.nextUrl = normalized;
+      this.headers = new Headers();
+    }
+  }
+
   return {
-    NextRequest: class MockNextRequestClass {
-      url: string;
-      nextUrl: {
-        href: string;
-        pathname: string;
-        search: string;
-        searchParams: URLSearchParams;
-      };
-      headers: {
-        get: (_name: string) => string;
-        set: (_name: string, _value: string) => void;
-        has: (_name: string) => boolean;
-        delete: (_name: string) => void;
-        forEach: (_callback: (_value: string, _key: string) => void) => void;
-      };
-      method: string;
-      
-      constructor(url: string | URL) {
-        const urlObj = typeof url === 'string' ? new URL(url, 'http://localhost:3000') : url;
-        this.url = urlObj.toString();
-        this.nextUrl = {
-          href: urlObj.toString(),
-          pathname: urlObj.pathname,
-          search: urlObj.search,
-          searchParams: urlObj.searchParams,
-        };
-        // Use a Map with get/set methods instead of Headers
-        this.headers = {
-          get: (_name: string) => '',
-          set: (_name: string, _value: string) => {},
-          has: (_name: string) => false,
-          delete: (_name: string) => {},
-          forEach: (_callback: (_value: string, _key: string) => void) => {},
-        };
-        this.method = 'GET';
-      }
-    },
+    NextRequest: MockNextRequest,
     NextResponse: {
-      json: (body: unknown, init?: unknown) => {
-        jsonMock(body, init)
-        return { body, init }
+      json: (body: unknown, init?: ResponseInit) => {
+        jsonMock(body, init);
+        return { body, init };
       },
     },
-  }
-})
+  };
+});
 
-// Mock SearchSynonym model
-// 🔒 TYPE SAFETY: Using unknown[] for variadic arguments
-vi.mock('@/server/models/SearchSynonym', () => {
-  return {
-    SearchSynonym: {
-      findOne: (...args: unknown[]) => findOneMock(...args),
-    },
-  }
-})
-
-// Mock MarketplaceProduct model and its query chain
-// 🔒 TYPE SAFETY: Using unknown[] for variadic arguments
-vi.mock('@/server/models/MarketplaceProduct', () => {
-  return {
-    MarketplaceProduct: {
-      find: (...args: unknown[]) => productFindMock(...args),
-    },
-  }
-})
-
-// Mock resolveMarketplaceContext to avoid header parsing complexity
 vi.mock('@/lib/marketplace/context', () => ({
-  resolveMarketplaceContext: vi.fn(async () => ({
-    tenantKey: 'demo-tenant',
-    orgId: 'demo-tenant',
-    userId: undefined,
-    role: 'BUYER',
-    correlationId: 'test-correlation-id',
-  })),
-}))
+  resolveMarketplaceContext: resolveMarketplaceContextMock,
+}));
 
-// Mock createSecureResponse to avoid CORS header manipulation
-// 🔒 TYPE SAFETY: Using unknown for response data
-vi.mock('@/server/security/headers', () => ({
-  createSecureResponse: vi.fn((data: unknown) => {
-    return {
-      json: () => data,
-      status: 500,
-      headers: new Map(),
-    };
-  }),
-}))
-
-// Mock searchProducts
 vi.mock('@/lib/marketplace/search', () => ({
-  searchProducts: vi.fn(async () => ({
-    items: [],
-    pagination: { total: 0 },
-    facets: { brands: [], standards: [], categories: [] },
-  })),
-  findProductBySlug: vi.fn(),
-}))
+  searchProducts: searchProductsMock,
+}));
 
-// Mock Category model
-vi.mock('@/server/models/marketplace/Category', () => ({
-  default: {
-    findOne: vi.fn(async () => null),
-    find: vi.fn(() => ({
-      lean: vi.fn(async () => []),
-    })),
-  },
-}))
-
-// Mock serializeCategory
-// 🔒 TYPE SAFETY: Using unknown for document serialization
-vi.mock('@/lib/marketplace/serializers', () => ({
-  serializeCategory: vi.fn((doc: unknown) => doc),
-}))
-
-// Mock database connection
 vi.mock('@/lib/mongodb-unified', () => ({
-  connectToDatabase: vi.fn(async () => {}),
-}))
+  connectToDatabase: connectToDatabaseMock,
+}));
 
-// Mock error responses
-// 🔒 TYPE SAFETY: Using unknown for error/request params
+vi.mock('@/server/models/marketplace/Category', () => ({
+  __esModule: true,
+  default: {
+    findOne: (...args: unknown[]) => ({
+      lean: () => categoryFindOneLeanMock(...args),
+    }),
+    find: (...args: unknown[]) => ({
+      lean: () => categoryFindLeanMock(...args),
+    }),
+  },
+}));
+
+vi.mock('@/server/security/headers', () => ({
+  createSecureResponse: createSecureResponseMock,
+}));
+
 vi.mock('@/server/utils/errorResponses', () => ({
-  zodValidationError: vi.fn((_error: unknown, _req: unknown) => ({ status: 400, body: { error: 'Validation failed' } })),
-  notFoundError: vi.fn((_entity: string) => ({ status: 404, body: { error: 'Not found' } })),
-}))
-
-// 🔒 TYPE SAFETY: GET handler type will be inferred from import
-let GET: typeof import('@/app/api/marketplace/search/route').GET
-
-beforeAll(async () => {
-  // Import after mocks so that mocks are applied to the route's imports
-  ({ GET } = await import('@/app/api/marketplace/search/route'))
-})
-
-// 🔒 TYPE SAFETY: Using unknown return type for test mock
-function makeReq(url: string): unknown {
-  const { NextRequest } = require('next/server');
-  return new NextRequest(url);
-}
-
-beforeEach(() => {
-  vi.clearAllMocks()
-
-  // Reset chain for each test
-  productFindMock.mockImplementation(() => ({
-    sort: productSortMock,
-  }))
-  productSortMock.mockImplementation(() => ({
-    limit: productLimitMock,
-  }))
-  productLimitMock.mockImplementation(() => ({
-    lean: productLeanMock,
-  }))
-})
+  zodValidationError: zodValidationErrorMock,
+}));
 
 describe('GET /api/marketplace/search', () => {
-  test('returns empty items when q is missing', async () => {
-    const req = makeReq('https://example.com/api/marketplace/search')
-    await GET(req as unknown as NextRequest)
+  beforeEach(() => {
+    vi.resetAllMocks();
+    resolveMarketplaceContextMock.mockResolvedValue({
+      orgId: 'org-1',
+      tenantKey: 'tenant-1',
+    });
+    connectToDatabaseMock.mockResolvedValue(undefined);
+    searchProductsMock.mockResolvedValue({
+      items: [{ id: 'product-1' }],
+      pagination: { total: 1 },
+      facets: { brands: [], standards: [], categories: ['cat-1'] },
+    });
+    categoryFindOneLeanMock.mockResolvedValue(null);
+    categoryFindLeanMock.mockResolvedValue([
+      { _id: 'cat-1', slug: 'electronics', name: { en: 'Electronics' } },
+    ]);
+    createSecureResponseMock.mockReturnValue({ status: 500 });
+  });
 
-    expect(jsonMock).toHaveBeenCalledTimes(1)
-    const callArgs = jsonMock.mock.calls[0][0];
-    expect(callArgs).toMatchObject({
-      ok: true,
-      data: {
-        items: [],
-        pagination: expect.objectContaining({ total: 0 }),
-        facets: expect.objectContaining({ brands: [], standards: [], categories: [] })
-      }
-    })
-  })
+  async function makeRequest(url: string): Promise<NextRequest> {
+    const mod = await import('next/server');
+    const RequestCtor = mod.NextRequest as new (url: string) => NextRequest;
+    return new RequestCtor(url) as NextRequest;
+  }
 
-  test('returns empty items when q is whitespace', async () => {
-    const req = makeReq('https://example.com/api/marketplace/search?q=%20%20%20')
-    await GET(req as unknown as NextRequest)
+  it('returns search results with pagination and facets', async () => {
+    const { GET } = await import('@/app/api/marketplace/search/route');
+    const req = await makeRequest(
+      'https://example.com/api/marketplace/search?q=phone&page=2&limit=12',
+    );
 
-    const callArgs = jsonMock.mock.calls[0][0];
-    expect(callArgs).toMatchObject({
-      ok: true,
-      data: {
-        items: [],
-      }
-    })
-  })
+    await GET(req);
 
-  test('searches with basic term when no synonyms found', async () => {
-    findOneMock.mockResolvedValue(null)
-    productLeanMock.mockResolvedValue([{ id: 'p1' }])
+    expect(connectToDatabaseMock).toHaveBeenCalled();
+    expect(searchProductsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orgId: 'org-1',
+        q: 'phone',
+        limit: 12,
+        skip: 12,
+      }),
+    );
+    expect(categoryFindLeanMock).toHaveBeenCalledWith({
+      _id: { $in: ['cat-1'] },
+      orgId: 'org-1',
+    });
 
-    const req = makeReq('https://example.com/api/marketplace/search?q=Phone&locale=EN&tenantId=t1')
-    await GET(req as unknown as NextRequest)
+    expect(jsonMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ok: true,
+        data: {
+          items: [{ id: 'product-1' }],
+          pagination: { limit: 12, page: 2, total: 1, pages: expect.any(Number) },
+          facets: {
+            brands: [],
+            standards: [],
+            categories: [
+              {
+                slug: 'electronics',
+                name: 'Electronics',
+              },
+            ],
+          },
+        },
+      }),
+      undefined,
+    );
+  });
 
-    expect(findOneMock).toHaveBeenCalledWith({ locale: 'en', term: 'phone' })
+  it('resolves category slug and passes ObjectId to searchProducts', async () => {
+    const { GET } = await import('@/app/api/marketplace/search/route');
+    categoryFindOneLeanMock.mockResolvedValue({ _id: 'mongo-id' });
 
-    expect(productFindMock).toHaveBeenCalledTimes(1)
-    const callArg = productFindMock.mock.calls[0][0]
+    const req = await makeRequest(
+      'https://example.com/api/marketplace/search?q=watch&cat=smart-watches',
+    );
 
-    // tenant and OR conditions
-    expect(callArg.tenantId).toBe('t1')
-    expect(Array.isArray(callArg.$or)).toBe(true)
-    expect(callArg.$or).toHaveLength(3)
+    await GET(req);
 
-    // Text search should reflect only original q when no synonyms
-    expect(callArg.$or[0].$text.$search).toBe('Phone')
+    expect(categoryFindOneLeanMock).toHaveBeenCalledWith({
+      orgId: 'org-1',
+      slug: 'smart-watches',
+    });
+    expect(searchProductsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        categoryId: 'mongo-id',
+      }),
+    );
+  });
 
-    // Regex conditions should be case-insensitive
-    expect(callArg.$or[1].title).toBeInstanceOf(RegExp)
-    expect(callArg.$or[1].title.ignoreCase).toBe(true)
-    expect(callArg.$or[2].brand).toBeInstanceOf(RegExp)
-    expect(callArg.$or[2].brand.ignoreCase).toBe(true)
+  it('returns zod validation error when params invalid', async () => {
+    const { GET } = await import('@/app/api/marketplace/search/route');
+    zodValidationErrorMock.mockReturnValue('validation-error');
 
-    // Sort, limit, lean chain
-    expect(productSortMock).toHaveBeenCalledWith({ updatedAt: -1 })
-    expect(productLimitMock).toHaveBeenCalledWith(24)
-    expect(productLeanMock).toHaveBeenCalled()
+    const req = await makeRequest(
+      'https://example.com/api/marketplace/search?limit=0',
+    );
 
-    expect(jsonMock).toHaveBeenCalledWith({ items: [{ id: 'p1' }] }, undefined)
-  })
+    const res = await GET(req);
 
-  test('expands with synonyms when available (includes original and provided synonyms)', async () => {
-    // Intentionally include a case-variant duplicate in synonyms to validate current behavior
-    findOneMock.mockResolvedValue({ synonyms: ['Case', 'phone', 'Cover'] })
-    productLeanMock.mockResolvedValue([{ id: 'p2' }])
+    expect(zodValidationErrorMock).toHaveBeenCalled();
+    expect(res).toBe('validation-error');
+    expect(jsonMock).not.toHaveBeenCalled();
+  });
 
-    const req = makeReq('https://example.com/api/marketplace/search?q=Phone&locale=EN')
-    await GET(req as unknown as NextRequest)
+  it('handles unexpected failures with secure response', async () => {
+    const { GET } = await import('@/app/api/marketplace/search/route');
+    searchProductsMock.mockRejectedValue(new Error('boom'));
+    createSecureResponseMock.mockReturnValue({ status: 500 });
 
-    expect(findOneMock).toHaveBeenCalledWith({ locale: 'en', term: 'phone' })
-    expect(productFindMock).toHaveBeenCalledTimes(1)
-    const callArg = productFindMock.mock.calls[0][0]
-    const searchTerms: string = callArg.$or[0].$text.$search
-    const parts = new Set(searchTerms.split(' '))
-    // Should include original q and each synonym
-    expect(parts.has('Phone')).toBe(true)
-    expect(parts.has('Case')).toBe(true)
-    expect(parts.has('phone')).toBe(true)
-    expect(parts.has('Cover')).toBe(true)
+    const req = await makeRequest(
+      'https://example.com/api/marketplace/search?q=boom',
+    );
 
-    expect(jsonMock).toHaveBeenCalledWith({ items: [{ id: 'p2' }] }, undefined)
-  })
+    const res = await GET(req);
 
-  test('uses default locale=en and tenantId=demo-tenant when omitted', async () => {
-    findOneMock.mockResolvedValue(null)
-    productLeanMock.mockResolvedValue([])
-
-    const req = makeReq('https://example.com/api/marketplace/search?q=watch')
-    await GET(req as unknown as NextRequest)
-
-    expect(findOneMock).toHaveBeenCalledWith({ locale: 'en', term: 'watch' })
-    const callArg = productFindMock.mock.calls[0][0]
-    expect(callArg.tenantId).toBe('demo-tenant')
-    expect(jsonMock).toHaveBeenCalledWith({ items: [] }, undefined)
-  })
-
-  test('best-effort synonyms: errors in synonym lookup are swallowed', async () => {
-    findOneMock.mockRejectedValue(new Error('db down'))
-    productLeanMock.mockResolvedValue([{ id: 'p3' }])
-
-    const req = makeReq('https://example.com/api/marketplace/search?q=tablet')
-    await GET(req as unknown as NextRequest)
-
-    const callArg = productFindMock.mock.calls[0][0]
-    expect(callArg.$or[0].$text.$search).toBe('tablet')
-    expect(jsonMock).toHaveBeenCalledWith({ items: [{ id: 'p3' }] }, undefined)
-  })
-
-  test('when synonyms array is empty, uses only original term', async () => {
-    findOneMock.mockResolvedValue({ synonyms: [] })
-    productLeanMock.mockResolvedValue([{ id: 'p4' }])
-
-    const req = makeReq('https://example.com/api/marketplace/search?q=bag')
-    await GET(req as unknown as NextRequest)
-
-    const callArg = productFindMock.mock.calls[0][0]
-    expect(callArg.$or[0].$text.$search).toBe('bag')
-    expect(jsonMock).toHaveBeenCalledWith({ items: [{ id: 'p4' }] }, undefined)
-  })
-
-  test('invalid regex input triggers top-level catch and returns empty items', async () => {
-    // q of '[' makes new RegExp(q, 'i') throw due to unterminated character class
-    const req = makeReq('https://example.com/api/marketplace/search?q=%5B')
-    await GET(req as unknown as NextRequest)
-
-    expect(productFindMock).not.toHaveBeenCalled()
-    expect(jsonMock).toHaveBeenCalledWith({ items: [] }, undefined)
-  })
-
-  test('invalid URL triggers top-level catch and returns empty items', async () => {
-    const badReq = { url: 'not a valid url' } as unknown as NextRequest
-    await GET(badReq)
-
-    expect(jsonMock).toHaveBeenCalledWith({ items: [] }, undefined)
-  })
-})
-
+    expect(createSecureResponseMock).toHaveBeenCalledWith(
+      { error: 'Search failed' },
+      500,
+      req,
+    );
+    expect(res).toEqual({ status: 500 });
+  });
+});

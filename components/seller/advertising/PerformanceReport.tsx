@@ -191,7 +191,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
   const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
     <th
       onClick={() => handleSort(field)}
-      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+      className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
     >
       <div className="flex items-center gap-1">
         {children}
@@ -250,7 +250,7 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
 
           <button
             onClick={exportToCSV}
-            className="ml-auto inline-flex items-center gap-2 px-4 py-2 bg-success text-white rounded-lg hover:bg-success-dark transition-colors"
+            className="ms-auto inline-flex items-center gap-2 px-4 py-2 bg-success text-white rounded-lg hover:bg-success-dark transition-colors"
           >
             <Download className="w-4 h-4" />
             {auto('Export CSV', 'actions.exportCsv')}

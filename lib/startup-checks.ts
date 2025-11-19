@@ -17,7 +17,9 @@ export function validateStartup(): void {
     if (jwtSecret.length < 32) {
       errors.push(`JWT_SECRET must be at least 32 characters long. Current length: ${jwtSecret.length}`);
     }
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     errors.push(error instanceof Error ? error.message : String(error));
   }
 

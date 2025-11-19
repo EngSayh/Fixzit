@@ -1,10 +1,15 @@
 'use client';
 
+import React from 'react';
 import ModuleViewTabs, { useModuleView } from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 export default function MarketplacePage() {
   const auto = useAutoTranslator('fm.marketplace');
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'marketplace' });
   const { currentView } = useModuleView('marketplace');
   const sections: Record<string, { label: string; description: string }> = {
     catalog: {
@@ -27,6 +32,10 @@ export default function MarketplacePage() {
   const activeKey = currentView?.value ?? 'catalog';
   const activeSection = sections[activeKey] ?? sections.catalog;
 
+  if (!hasOrgContext) {
+    return guard;
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -41,6 +50,11 @@ export default function MarketplacePage() {
       </div>
 
       <ModuleViewTabs moduleId="marketplace" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
 
       <div className="bg-card rounded-2xl border border-border p-6">
         <div className="text-center py-12">

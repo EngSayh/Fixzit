@@ -164,7 +164,7 @@ export function SponsoredProduct({
       className="relative bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200 overflow-hidden group"
     >
       {/* Sponsored Badge */}
-      <div className="absolute top-2 right-2 z-10">
+      <div className="absolute top-2 end-2 z-10">
         <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded">
           Sponsored
         </span>

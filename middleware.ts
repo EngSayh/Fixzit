@@ -5,6 +5,13 @@ import { handlePreflight } from '@/server/security/headers';
 import { isOriginAllowed } from '@/lib/security/cors-allowlist';
 import { logSecurityEvent } from '@/lib/monitoring/security-events';
 import { getClientIP } from '@/server/security/headers';
+import {
+  AUTH_ROUTES,
+  MARKETING_ROUTES,
+  PROTECTED_MARKETPLACE_ACTIONS,
+  PROTECTED_ROUTE_PREFIXES,
+  PUBLIC_MARKETPLACE_PREFIXES,
+} from '@/config/routes/public';
 
 // ⚡ PERFORMANCE OPTIMIZATION: Lazy-load auth only for protected routes
 // Previously: auth imported eagerly (adds ~30-40 KB to middleware bundle)
@@ -45,57 +52,13 @@ function matchesAnyRoute(pathname: string, routes: string[]): boolean {
 }
 
 // ---------- Public/Protected route sets ----------
-const publicRoutes = [
-  '/',
-  '/login',
-  '/forgot-password',
-  '/help',
-  '/cms/privacy',
-  '/cms/terms',
-  '/cms/about',
-  '/careers',
-  '/test',
-  '/test-simple',
-  // Public marketplaces (guest browse)
-  '/aqar',
-  '/souq',
-  '/marketplace',
-];
+const publicRoutes = [...MARKETING_ROUTES, ...AUTH_ROUTES];
 
-const publicMarketplaceRoutes = [
-  '/souq',
-  '/souq/catalog',
-  '/souq/vendors',
-  '/aqar',
-  '/aqar/map',
-  '/aqar/filters',
-  '/aqar/properties',
-];
+const publicMarketplaceRoutes = PUBLIC_MARKETPLACE_PREFIXES;
 
-const protectedMarketplaceActions = [
-  '/souq/cart',
-  '/souq/checkout',
-  '/souq/purchase',
-  '/souq/my-orders',
-  '/souq/my-rfqs',
-];
+const protectedMarketplaceActions = PROTECTED_MARKETPLACE_ACTIONS;
 
-const fmRoutes = [
-  '/fm/dashboard',
-  '/fm/work-orders',
-  '/fm/properties',
-  '/fm/finance',
-  '/fm/hr',
-  '/fm/crm',
-  '/fm/marketplace',
-  '/fm/support',
-  '/fm/compliance',
-  '/fm/reports',
-  '/fm/system',
-  '/fm/assets',
-  '/fm/tenants',
-  '/fm/vendors',
-];
+const fmRoutes = PROTECTED_ROUTE_PREFIXES.filter((route) => route.startsWith('/fm'));
 
 const publicApiPrefixes = [
   '/api/auth',
@@ -107,6 +70,7 @@ const publicApiPrefixes = [
   '/api/marketplace/products',
   '/api/marketplace/search',
   '/api/webhooks',
+  '/api/admin/notifications/send',
   // SECURITY: /api/admin/* endpoints require auth - do NOT add to public list
 ];
 
@@ -223,7 +187,7 @@ export async function middleware(request: NextRequest) {
           origin,
           method,
         },
-      }).catch(err => console.error('[CORS] Failed to log security event:', err));
+      }).catch(err => logger.error('[CORS] Failed to log security event', { error: err }));
       
       return NextResponse.json(
         { error: 'Origin not allowed' },

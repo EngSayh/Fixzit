@@ -567,7 +567,7 @@ git checkout -b feat/system-wide-patterns
 - `app/finance/payments/new/page.tsx` (Decimal.js)
 - `.gitignore` (tmp/)
 - `docs/translations/translation-audit.json`
-- `DAILY_PROGRESS_REPORTS/2025-11-11-comprehensive-fixes-pr273-272.md`
+- `docs/archived/DAILY_PROGRESS_REPORTS/2025-11-11-comprehensive-fixes-pr273-272.md`
 
 ### Lines Changed
 - **Added**: ~150 lines (Redis events, PII patterns, Decimal calculations, docs)

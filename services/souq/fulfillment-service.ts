@@ -6,7 +6,10 @@ import { smsaCarrier } from '@/lib/carriers/smsa';
 import { splCarrier } from '@/lib/carriers/spl';
 import { addJob } from '@/lib/queues/setup';
 import { logger } from '@/lib/logger';
-/* eslint-disable no-unused-vars */
+import type { IOrder } from '@/server/models/souq/Order';
+
+type OrderItem = IOrder['items'][number];
+type FbfShipmentItem = OrderItem & { warehouseId?: string };
 
 /**
  * Fulfillment Service
@@ -60,6 +63,7 @@ export interface IShipmentResponse {
   estimatedDelivery: Date;
   cost: number;
 }
+
 
 export interface ITrackingResponse {
   trackingNumber: string;
@@ -119,6 +123,7 @@ export interface ISLAMetrics {
   urgency: 'normal' | 'warning' | 'critical';
 }
 
+
 class FulfillmentService {
   private carriers: Map<string, ICarrierInterface>;
 
@@ -141,8 +146,8 @@ class FulfillmentService {
       }
 
       // Group items by fulfillment type
-      const fbfItems = [];
-      const fbmItems = [];
+      const fbfItems: FbfShipmentItem[] = [];
+      const fbmItems: OrderItem[] = [];
 
       for (const item of request.orderItems) {
         const inventory = await SouqInventory.findOne({ listingId: item.listingId });
@@ -151,10 +156,22 @@ class FulfillmentService {
           throw new Error(`Inventory not found for listing: ${item.listingId}`);
         }
 
+        const orderItem = order.items.find((orderItemDoc) => {
+          const listingId = orderItemDoc.listingId.toString();
+          return listingId === item.listingId;
+        });
+
+        if (!orderItem) {
+          throw new Error(`Order item ${item.orderItemId} not found on order ${order.orderId}`);
+        }
+
         if (inventory.fulfillmentType === 'FBF') {
-          fbfItems.push({ ...item, warehouseId: inventory.warehouseId });
+          fbfItems.push({
+            ...orderItem,
+            warehouseId: inventory.warehouseId?.toString(),
+          });
         } else {
-          fbmItems.push({ ...item, sellerId: inventory.sellerId });
+          fbmItems.push(orderItem);
         }
       }
 
@@ -169,8 +186,10 @@ class FulfillmentService {
       }
 
       logger.info('Order fulfillment initiated', { orderId: request.orderId, fbfItems: fbfItems.length, fbmItems: fbmItems.length });
-    } catch (error) {
-      logger.error('Failed to fulfill order', { error, orderId: request.orderId });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to fulfill order', error, { orderId: request.orderId });
       throw error;
     }
   }
@@ -178,7 +197,7 @@ class FulfillmentService {
   /**
    * Process FBF (Fulfillment by Fixzit) shipment
    */
-  private async processFBFShipment(order: any, items: any[], shippingAddress: IAddress): Promise<void> {
+  private async processFBFShipment(order: IOrder, items: FbfShipmentItem[], shippingAddress: IAddress): Promise<void> {
     try {
       // Get warehouse address (mock for now)
       const warehouseAddress: IAddress = {
@@ -223,7 +242,7 @@ class FulfillmentService {
       order.trackingNumber = shipment.trackingNumber;
       order.shippingLabelUrl = shipment.labelUrl;
       order.estimatedDeliveryDate = shipment.estimatedDelivery;
-      order.fulfillmentStatus = 'processing';
+      order.fulfillmentStatus = 'in_transit';
       await order.save();
 
       // Queue notification
@@ -235,8 +254,10 @@ class FulfillmentService {
       });
 
       logger.info('FBF shipment created', { orderId: order.orderId, trackingNumber: shipment.trackingNumber });
-    } catch (error) {
-      logger.error('Failed to process FBF shipment', { error, orderId: order.orderId });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to process FBF shipment', error, { orderId: order.orderId });
       throw error;
     }
   }
@@ -244,16 +265,17 @@ class FulfillmentService {
   /**
    * Process FBM (Fulfilled by Merchant) shipment
    */
-  private async processFBMShipment(order: any, items: any[], shippingAddress: IAddress): Promise<void> {
+  private async processFBMShipment(order: IOrder, items: OrderItem[], shippingAddress: IAddress): Promise<void> {
     try {
       // Group items by seller
-      const itemsBySeller = items.reduce((acc, item) => {
-        if (!acc[item.sellerId]) {
-          acc[item.sellerId] = [];
+      const itemsBySeller = items.reduce<Record<string, OrderItem[]>>((acc, item) => {
+        const sellerKey = item.sellerId.toString();
+        if (!acc[sellerKey]) {
+          acc[sellerKey] = [];
         }
-        acc[item.sellerId].push(item);
+        acc[sellerKey].push(item);
         return acc;
-      }, {} as Record<string, any[]>);
+      }, {});
 
       // Notify each seller to fulfill their items
       for (const [sellerId, sellerItems] of Object.entries(itemsBySeller)) {
@@ -270,8 +292,10 @@ class FulfillmentService {
       await order.save();
 
       logger.info('FBM fulfillment notifications sent', { orderId: order.orderId, sellerCount: Object.keys(itemsBySeller).length });
-    } catch (error) {
-      logger.error('Failed to process FBM shipment', { error, orderId: order.orderId });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to process FBM shipment', error, { orderId: order.orderId });
       throw error;
     }
   }
@@ -345,8 +369,10 @@ class FulfillmentService {
       logger.info('FBM label generated', { orderId, sellerId, trackingNumber: shipment.trackingNumber });
 
       return shipment;
-    } catch (error) {
-      logger.error('Failed to generate FBM label', { error, orderId, sellerId });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to generate FBM label', error, { orderId, sellerId });
       throw error;
     }
   }
@@ -409,8 +435,10 @@ class FulfillmentService {
       }
 
       logger.info('Tracking updated', { orderId: order.orderId, trackingNumber, status: tracking.status });
-    } catch (error) {
-      logger.error('Failed to update tracking', { error, trackingNumber });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to update tracking', error, { trackingNumber });
       throw error;
     }
   }
@@ -515,8 +543,10 @@ class FulfillmentService {
       }
 
       return qualifies;
-    } catch (error) {
-      logger.error('Failed to assign fast badge', { error, listingId });
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
+      logger.error('Failed to assign fast badge', error, { listingId });
       return false;
     }
   }
@@ -531,7 +561,9 @@ class FulfillmentService {
       try {
         const carrierRates = await carrier.getRates(params);
         rates.push(...carrierRates);
-      } catch (error) {
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
         logger.warn('Failed to get rates from carrier', { carrier: name, error });
       }
     }

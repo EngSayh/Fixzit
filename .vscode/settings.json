@@ -14,7 +14,7 @@
   // Root Cause Fix: Exit Code 5 = OOM caused by TS server + extension host + Turbopack cache
   // 2025-11-18: CRITICAL MEMORY OPTIMIZATION - Reduced from 40GB usage
   "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.tsserver.maxTsServerMemory": 2048, // REDUCED to 2GB to prevent OOM
+  "typescript.tsserver.maxTsServerMemory": 8192, // Reduced from 40GB to a strictly capped 8GB
   "typescript.tsserver.experimental.enableProjectDiagnostics": false, // Disable project-wide diagnostics
   "typescript.preferences.includePackageJsonAutoImports": "off",
   "typescript.disableAutomaticTypeAcquisition": true,
@@ -66,13 +66,13 @@
   "typescript.locale": "en",
 
   "terminal.integrated.env.windows": {
-    "NODE_OPTIONS": "--max-old-space-size=2048"
+    "NODE_OPTIONS": "--max-old-space-size=8192"
   },
   "terminal.integrated.env.linux": {
-    "NODE_OPTIONS": "--max-old-space-size=2048"
+    "NODE_OPTIONS": "--max-old-space-size=8192"
   },
   "terminal.integrated.env.osx": {
-    "NODE_OPTIONS": "--max-old-space-size=2048"
+    "NODE_OPTIONS": "--max-old-space-size=8192"
   },
 
   // Git Branch Protection

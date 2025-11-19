@@ -386,7 +386,7 @@ done
 ### Files to Create/Update
 
 1. **WORKFLOW_FAILURES_ANALYSIS_20251014.md** (this file) ✅
-2. **DAILY_PROGRESS_REPORTS/** (directory)
+2. **docs/archived/DAILY_PROGRESS_REPORTS/** (directory)
    - `2025-10-14-progress.md`
    - `2025-10-15-progress.md`
    - `2025-10-16-progress.md`

@@ -13,6 +13,7 @@ import { CardGridSkeleton } from '@/components/skeletons';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Shield, Plus } from 'lucide-react';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 const PERMISSIONS = [
   { id: 'users.read', label: 'View Users', category: 'users' },
@@ -32,6 +33,7 @@ const PERMISSIONS = [
 export default function NewRolePage() {
   const auto = useAutoTranslator('fm.system.roles.new');
   const { data: session } = useSession();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'system' });
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [permissions, setPermissions] = useState<string[]>([]);
@@ -39,6 +41,10 @@ export default function NewRolePage() {
 
   if (!session) {
     return <CardGridSkeleton count={1} />;
+  }
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
   }
 
   const handlePermissionToggle = (permissionId: string) => {
@@ -61,7 +67,7 @@ export default function NewRolePage() {
       setName('');
       setDescription('');
       setPermissions([]);
-    } catch (error) {
+    } catch (_error) {
       toast.error(auto('Failed to create role', 'toast.error'), { id: toastId });
     } finally {
       setCreating(false);
@@ -77,6 +83,7 @@ export default function NewRolePage() {
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="system" />
+      {supportBanner}
       
       <div>
         <div className="flex items-center gap-2">
@@ -132,7 +139,7 @@ export default function NewRolePage() {
                     <h3 className="font-semibold mb-3 capitalize">
                       {auto(category, `categories.${category}`)}
                     </h3>
-                    <div className="space-y-2 ml-4">
+                    <div className="space-y-2 ms-4">
                       {perms.map((perm) => (
                         <div key={perm.id} className="flex items-center space-x-2">
                           <Checkbox
@@ -153,7 +160,7 @@ export default function NewRolePage() {
           </Card>
 
           <Button type="submit" disabled={creating || !name || permissions.length === 0} className="w-full">
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 me-2" />
             {auto('Create Role', 'submit')}
           </Button>
         </form>

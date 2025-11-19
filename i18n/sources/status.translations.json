@@ -2,6 +2,7 @@
   "en": {
     "status.active": "Active",
     "status.approved": "Approved",
+    "status.approval": "Awaiting approval",
     "status.cancelled": "Cancelled",
     "status.closed": "Closed",
     "status.completed": "Completed",
@@ -21,6 +22,7 @@
   "ar": {
     "status.active": "نشط",
     "status.approved": "تمت الموافقة",
+    "status.approval": "بانتظار الموافقة",
     "status.cancelled": "تم الإلغاء",
     "status.closed": "مغلق",
     "status.completed": "مكتمل",

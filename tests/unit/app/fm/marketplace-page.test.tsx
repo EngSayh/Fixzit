@@ -14,25 +14,38 @@ import { vi } from 'vitest';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 
+type DynamicLoaderResult =
+  | { default?: React.ComponentType<Record<string, unknown>> }
+  | React.ComponentType<Record<string, unknown>>;
+type DynamicLoader = () => Promise<DynamicLoaderResult> | DynamicLoaderResult;
+type DynamicOptions = { ssr?: boolean };
+
 // We'll capture the options passed to next/dynamic to assert ssr: false
-const dynamicCalls: Array<{ loader: Function; options?: any }> = [];
+const dynamicCalls: Array<{ loader: DynamicLoader; options?: DynamicOptions }> = [];
 
 // Mock next/dynamic to record calls and return a simple wrapper component
 vi.mock('next/dynamic', () => {
-  return (loader: Function, options?: any) => {
+  return (loader: DynamicLoader, options?: DynamicOptions) => {
     dynamicCalls.push({ loader, options });
     // Simulate a "loaded" component by immediately using the mocked module
     // The loader returns a promise resolving to a module with default export.
     // For our tests, we will separately mock the imported module so that when invoked,
     // the returned component is our mock.
     // Here we return a component that defers to the resolved default from the loader.
-    const DynamicWrapper = (props: any) => {
-      const [Comp, setComp] = React.useState<React.ComponentType<any> | null>(null);
+    const DynamicWrapper = (props: Record<string, unknown>) => {
+      const [Comp, setComp] =
+        React.useState<React.ComponentType<Record<string, unknown>> | null>(null);
       React.useEffect(() => {
         Promise.resolve()
           .then(() => loader())
-          .then((mod: any) => {
-            setComp(() => ((mod && (mod.default || mod)) as React.ComponentType<any>));
+          .then((mod) => {
+            if (typeof mod === 'function') {
+              setComp(() => mod as React.ComponentType<Record<string, unknown>>);
+              return;
+            }
+            if (mod?.default) {
+              setComp(() => mod.default as React.ComponentType<Record<string, unknown>>);
+            }
           })
           .catch((error) => {
             console.error('Dynamic import error:', error);
@@ -47,7 +60,7 @@ vi.mock('next/dynamic', () => {
 
 // Mock the dynamically imported CatalogView with a test double that surfaces props
 vi.mock('@/components/marketplace/CatalogView', () => {
-  const MockCatalogView = (props: any) => {
+  const MockCatalogView = (props: Record<string, unknown>) => {
     const { title, subtitle, context } = props || {};
     return (
       <div data-testid="catalog-view">

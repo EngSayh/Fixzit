@@ -45,7 +45,10 @@ function addBillingPeriod(from: Date, cycle: 'MONTHLY' | 'ANNUAL'): { periodStar
   return { periodStart, periodEnd, nextBillingDate: new Date(periodEnd) };
 }
 
-export async function createSubscriptionFromCheckout(input: CreateSubscriptionInput): Promise<any> {
+type SubscriptionDocument = Awaited<ReturnType<typeof Subscription.findById>>;
+type CreatedSubscription = Awaited<ReturnType<typeof Subscription.create>>;
+
+export async function createSubscriptionFromCheckout(input: CreateSubscriptionInput): Promise<CreatedSubscription> {
   await connectToDatabase();
   
   const priceBook = await PriceBook.findById(input.priceBookId);
@@ -68,7 +71,7 @@ export async function createSubscriptionFromCheckout(input: CreateSubscriptionIn
   return sub;
 }
 
-export async function markSubscriptionPaid(subscriptionId: string, charge: PayTabsChargeResult): Promise<any> {
+export async function markSubscriptionPaid(subscriptionId: string, charge: PayTabsChargeResult): Promise<SubscriptionDocument> {
   await connectToDatabase();
   
   const sub = await Subscription.findById(subscriptionId);
@@ -141,7 +144,7 @@ export async function runRecurringBillingJob(payTabsClient: PayTabsClient, now =
         cartId: sub.paytabs.cart_id,
       });
       
-      await markSubscriptionPaid((sub._id as Types.ObjectId).toString(), result);
+      await markSubscriptionPaid(sub._id.toString(), result);
       if (result.status === 'SUCCESS') succeeded++;
       else failed++;
     } catch (error) {
@@ -154,7 +157,7 @@ export async function runRecurringBillingJob(payTabsClient: PayTabsClient, now =
   return { processed, succeeded, failed };
 }
 
-export async function cancelSubscription(subscriptionId: string, cancelAtPeriodEnd = true): Promise<any> {
+export async function cancelSubscription(subscriptionId: string, cancelAtPeriodEnd = true): Promise<SubscriptionDocument> {
   await connectToDatabase();
   
   const sub = await Subscription.findById(subscriptionId);

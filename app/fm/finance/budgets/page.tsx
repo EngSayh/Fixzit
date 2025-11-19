@@ -9,39 +9,21 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { CardGridSkeleton } from '@/components/skeletons';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { useSupportOrg } from '@/contexts/SupportOrgContext';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 
 export default function BudgetsPage() {
   const auto = useAutoTranslator('fm.finance.budgets');
   const { data: session } = useSession();
-  const { effectiveOrgId, canImpersonate, supportOrg } = useSupportOrg();
-  const orgId = effectiveOrgId ?? undefined;
-  const needsOrgSelection = !orgId && canImpersonate;
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
   const [searchQuery, setSearchQuery] = useState('');
 
   if (!session) {
     return <CardGridSkeleton count={4} />;
   }
 
-  if (!orgId) {
-    return (
-      <div className="space-y-6">
-        <ModuleViewTabs moduleId="finance" />
-        <div className="rounded-xl border border-border bg-card/30 p-6 space-y-3">
-          <p className="text-destructive font-semibold">
-            {needsOrgSelection
-              ? auto('Select a customer organization to manage budgets', 'errors.selectOrg')
-              : auto('Error: No organization ID found in session', 'errors.noOrgSession')}
-          </p>
-          {needsOrgSelection && (
-            <p className="text-sm text-muted-foreground">
-              {auto('Use the Support Organization switcher in the top bar', 'errors.selectOrgHint')}
-            </p>
-          )}
-        </div>
-      </div>
-    );
+  if (!hasOrgContext) {
+    return guard;
   }
 
   return (
@@ -57,7 +39,7 @@ export default function BudgetsPage() {
             {auto('Create and track departmental budgets and spending limits', 'header.subtitle')}
           </p>
         </div>
-        <CreateBudgetDialog orgId={orgId} />
+        <CreateBudgetDialog />
       </div>
 
       {supportOrg && (
@@ -178,7 +160,7 @@ function BudgetCard({
   );
 }
 
-function CreateBudgetDialog({ orgId }: { orgId: string }) {
+function CreateBudgetDialog() {
   const auto = useAutoTranslator('fm.finance.budgets.create');
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
@@ -195,7 +177,7 @@ function CreateBudgetDialog({ orgId }: { orgId: string }) {
       setName('');
       setDepartment('');
       setAmount('');
-    } catch (error) {
+    } catch (_error) {
       toast.error(auto('Failed to create budget', 'toast.error'), { id: toastId });
     }
   };

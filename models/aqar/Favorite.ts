@@ -7,12 +7,10 @@
 import mongoose, { Schema, Document, Model } from 'mongoose'
 import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
-/* eslint-disable no-unused-vars */
 export enum FavoriteType {
   LISTING = 'LISTING',
   PROJECT = 'PROJECT',
 }
-/* eslint-enable no-unused-vars */
 
 export interface IFavorite extends Document {
   // User

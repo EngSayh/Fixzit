@@ -377,12 +377,12 @@ export default function PayrollPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-muted/40">
                     <tr>
-                      <th className="px-4 py-3 text-left">{t('hr.payroll.detail.table.employee', 'Employee')}</th>
-                      <th className="px-4 py-3 text-left">{t('hr.payroll.detail.table.iban', 'IBAN')}</th>
-                      <th className="px-4 py-3 text-left">{t('hr.payroll.detail.table.earnings', 'Earnings')}</th>
-                      <th className="px-4 py-3 text-left">{t('hr.payroll.detail.table.deductions', 'Deductions')}</th>
-                      <th className="px-4 py-3 text-left">{t('hr.payroll.detail.table.net', 'Net pay')}</th>
-                      <th className="px-4 py-3 text-left">{t('hr.payroll.detail.table.notes', 'Notes')}</th>
+                      <th className="px-4 py-3 text-start">{t('hr.payroll.detail.table.employee', 'Employee')}</th>
+                      <th className="px-4 py-3 text-start">{t('hr.payroll.detail.table.iban', 'IBAN')}</th>
+                      <th className="px-4 py-3 text-start">{t('hr.payroll.detail.table.earnings', 'Earnings')}</th>
+                      <th className="px-4 py-3 text-start">{t('hr.payroll.detail.table.deductions', 'Deductions')}</th>
+                      <th className="px-4 py-3 text-start">{t('hr.payroll.detail.table.net', 'Net pay')}</th>
+                      <th className="px-4 py-3 text-start">{t('hr.payroll.detail.table.notes', 'Notes')}</th>
                     </tr>
                   </thead>
                   <tbody>

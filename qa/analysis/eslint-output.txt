@@ -1,0 +1,16 @@
+Debugger listening on ws://127.0.0.1:50579/711c4cd6-f975-4251-84a7-d4631f5d0363
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+Debugger listening on ws://127.0.0.1:50581/8380efa1-9997-4df7-bad5-f18884df5d76
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+
+> fixzit-frontend@2.0.26 lint /Users/eng.sultanalhassni/Downloads/Fixzit/Fixzit
+> eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 50 --ignore-pattern '.next/**' --ignore-pattern 'public/**' --ignore-pattern '_artifacts/**' --ignore-pattern 'deployment/**' --ignore-pattern 'playwright-report/**' --ignore-pattern 'e2e-test-results/**' --ignore-pattern 'qa/**' --ignore-pattern 'scripts/**' --ignore-pattern 'tools/**'
+
+Debugger listening on ws://127.0.0.1:50584/bea4d0b5-3b7e-488d-a8ea-fe625eca8e6d
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+Waiting for the debugger to disconnect...
+Waiting for the debugger to disconnect...
+Waiting for the debugger to disconnect...

@@ -63,10 +63,8 @@ export interface CrudFactoryOptions<T = unknown> {
   /** Optional: Rate limit config (requests per window) */
   rateLimit?: { requests: number; windowMs: number };
   /** Optional: Custom filter builder */
-  // eslint-disable-next-line no-unused-vars
   buildFilter?: (searchParams: URLSearchParams, orgId: string) => Record<string, unknown>;
   /** Optional: Hook to transform data before creation (e.g., add SLA, init state) */
-  // eslint-disable-next-line no-unused-vars
   onCreate?: (data: Record<string, unknown>, user: { id: string; orgId: string; role: string }) => Promise<Record<string, unknown>> | Record<string, unknown>;
 }
 
@@ -164,14 +162,13 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
       }
 
       // Execute query with pagination
-      const [items, total] = await Promise.all([
-        (Model.find(match)
-          .sort(defaultSort)
-          .skip((page - 1) * limit)
-          .limit(limit) as any)
-          .lean(), // Already using .lean() for 5-10x faster queries
-        Model.countDocuments(match),
-      ]);
+      const itemsQuery = Model.find(match)
+        .sort(defaultSort)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean<T>();
+
+      const [items, total] = await Promise.all([itemsQuery, Model.countDocuments(match)]);
 
       return createSecureResponse(
         {
@@ -189,7 +186,9 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
           'CDN-Cache-Control': 'max-age=60',
         }
       );
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       const correlationId = crypto.randomUUID();
       logger.error(`[DELETE /api/${entityName}/:id] Error:`, {
         correlationId,
@@ -251,7 +250,7 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
 
       // Parse and validate request body
       const body = await req.json();
-      let data = createSchema ? createSchema.parse(body) : body;
+      const data = createSchema ? createSchema.parse(body) : body;
 
       // Security: Strip tenant-scoping and audit fields from client payload to prevent mass assignment
       delete data.org_id;
@@ -292,7 +291,9 @@ export function createCrudHandlers<T = unknown>(options: CrudFactoryOptions<T>) 
       const entity = await Model.create(entityData);
 
       return createSecureResponse(entity, 201, req);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       const correlationId = crypto.randomUUID();
       logger.error(`[POST /api/${entityName}] Error:`, {
         correlationId,
@@ -375,7 +376,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
         query.org_id = user.orgId;
       }
 
-      const entity = await (Model.findOne(query) as any).lean();
+      const entity = await Model.findOne(query).lean<T | null>();
 
       if (!entity) {
         const correlationId = crypto.randomUUID();
@@ -387,7 +388,9 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
       }
 
       return createSecureResponse(entity, 200, req);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       const correlationId = crypto.randomUUID();
       logger.error(`[GET /api/${entityName}/:id] Error:`, {
         correlationId,
@@ -448,7 +451,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
       await connectToDatabase();
 
       const body = await req.json();
-      let data = updateSchema ? updateSchema.parse(body) : body;
+      const data = updateSchema ? updateSchema.parse(body) : body;
 
       // Security: Strip tenant-scoping and audit fields from client payload to prevent mass assignment
       delete data.org_id;
@@ -463,7 +466,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
         query.org_id = user.orgId;
       }
 
-      const entity = await (Model.findOneAndUpdate(
+      const entity = await Model.findOneAndUpdate(
         query,
         {
           $set: {
@@ -473,7 +476,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
           },
         },
         { new: true, runValidators: true }
-      ) as any).lean();
+      ).lean<T | null>();
 
       if (!entity) {
         const correlationId = crypto.randomUUID();
@@ -485,7 +488,9 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
       }
 
       return createSecureResponse(entity, 200, req);
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       const correlationId = crypto.randomUUID();
       logger.error(`[PUT /api/${entityName}/:id] Error:`, {
         correlationId,
@@ -554,7 +559,7 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
         query.org_id = user.orgId;
       }
 
-      const entity = await (Model.findOneAndDelete(query) as any).lean();
+      const entity = await Model.findOneAndDelete(query).lean<T | null>();
 
       if (!entity) {
         const correlationId = crypto.randomUUID();
@@ -570,7 +575,9 @@ export function createSingleEntityHandlers<T = unknown>(options: CrudFactoryOpti
         200,
         req
       );
-    } catch (error: unknown) {
+    } catch (_error: unknown) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       const correlationId = crypto.randomUUID();
       logger.error(`[DELETE /api/${entityName}/:id] Error:`, {
         correlationId,

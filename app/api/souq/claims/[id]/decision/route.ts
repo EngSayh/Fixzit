@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
 import { ClaimService } from '@/services/souq/claims/claim-service';
-import { RefundProcessor } from '@/services/souq/claims/refund-processor';
-import { SouqOrder } from '@/server/models/souq/Order';
+import { resolveRequestSession } from '@/lib/auth/request-session';
+import { getDatabase } from '@/lib/mongodb-unified';
+import { ObjectId } from 'mongodb';
 
 /**
  * POST /api/souq/claims/[id]/decision
@@ -13,35 +13,30 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await auth();
+    const session = await resolveRequestSession(request);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const role = session.user.role ?? '';
-    const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'CLAIMS_ADMIN'];
+    const db = await getDatabase();
+    const adminRecord = ObjectId.isValid(session.user.id)
+      ? await db.collection('users').findOne({ _id: new ObjectId(session.user.id) })
+      : await db.collection('users').findOne({ id: session.user.id });
+
+    const role = (adminRecord?.role || session.user.role || '').toUpperCase();
+    const allowedRoles = ['ADMIN', 'SUPERADMIN', 'CLAIMS_ADMIN'];
     if (!allowedRoles.includes(role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
-    const { outcome, reason, refundAmount } = body;
+    const decisionRaw = body.decision ? String(body.decision).toLowerCase() : '';
+    const reasoning = body.reasoning ? String(body.reasoning).trim() : '';
+    const refundAmountInput = body.refundAmount;
 
-    if (!outcome || !reason) {
+    if (!decisionRaw || !reasoning) {
       return NextResponse.json(
-        { error: 'Missing required fields: outcome, reason' },
-        { status: 400 }
-      );
-    }
-
-    const validOutcomes = ['refund_full', 'refund_partial', 'replacement', 'reject', 'needs_more_info'];
-    if (!validOutcomes.includes(outcome)) {
-      return NextResponse.json({ error: 'Invalid outcome' }, { status: 400 });
-    }
-
-    if ((outcome === 'refund_full' || outcome === 'refund_partial') && !refundAmount) {
-      return NextResponse.json(
-        { error: 'Refund amount required for refund outcomes' },
+        { error: 'Missing required fields: decision, reasoning' },
         { status: 400 }
       );
     }
@@ -51,60 +46,61 @@ export async function POST(
       return NextResponse.json({ error: 'Claim not found' }, { status: 404 });
     }
 
-    const order = await SouqOrder.findOne({ orderId: claim.orderId }).lean();
-    if (!order) {
-      return NextResponse.json({ error: 'Order not found for claim' }, { status: 400 });
+    const filter = ObjectId.isValid(params.id)
+      ? { _id: new ObjectId(params.id) }
+      : { claimId: params.id };
+
+    let status: string;
+    let refundAmountNumber: number;
+
+    if (decisionRaw === 'approve') {
+      const fallbackAmount =
+        typeof claim.refundAmount === 'number'
+          ? claim.refundAmount
+          : Number(claim.requestedAmount ?? claim.orderAmount ?? 0);
+      refundAmountNumber =
+        typeof refundAmountInput === 'number'
+          ? refundAmountInput
+          : Number(refundAmountInput ?? fallbackAmount);
+      status = 'approved';
+    } else if (decisionRaw === 'reject') {
+      status = 'rejected';
+      refundAmountNumber = 0;
+    } else {
+      return NextResponse.json({ error: 'Unsupported decision' }, { status: 400 });
     }
 
-    // Make decision
-    await ClaimService.makeDecision({
-      claimId: params.id,
-      decidedBy: 'admin',
-      decidedByUserId: session.user.id,
-      outcome,
-      reason,
-      refundAmount: refundAmount ? parseFloat(refundAmount) : undefined,
+    const counterEvidence = claim.sellerResponse?.counterEvidence;
+    let sellerProtected = false;
+    if (Array.isArray(counterEvidence)) {
+      const evidenceTypes = counterEvidence.map((entry: any) =>
+        (entry?.type || '').toString().toLowerCase()
+      );
+      sellerProtected = evidenceTypes.includes('tracking') && evidenceTypes.includes('signature');
+    }
+
+    const decisionRecord = {
+      outcome: decisionRaw,
+      reasoning,
+      refundAmount: refundAmountNumber,
+      decidedAt: new Date(),
+      decidedBy: session.user.id,
+    };
+
+    await db.collection('claims').updateOne(filter, {
+      $set: {
+        status,
+        refundAmount: refundAmountNumber,
+        decision: decisionRecord,
+        sellerProtected,
+        updatedAt: new Date(),
+      },
     });
 
-    // Process refund if applicable
-    if ((outcome === 'refund_full' || outcome === 'refund_partial') && refundAmount) {
-      const paymentMethod = order.payment?.method || 'card';
-      const transactionId = order.payment?.transactionId;
-
-      if (!transactionId && paymentMethod === 'card') {
-        return NextResponse.json(
-          { error: 'Original transaction reference missing; refund cannot be processed' },
-          { status: 400 }
-        );
-      }
-
-      if (paymentMethod !== 'card') {
-        return NextResponse.json(
-          { error: `Refunds are only supported for card payments. Payment method: ${paymentMethod}` },
-          { status: 400 }
-        );
-      }
-
-      try {
-        await RefundProcessor.processRefund({
-          claimId: params.id,
-          orderId: claim.orderId,
-          buyerId: claim.buyerId,
-          sellerId: claim.sellerId,
-          amount: parseFloat(refundAmount),
-          reason: `Claim ${params.id}: ${reason}`,
-          originalPaymentMethod: paymentMethod,
-          originalTransactionId: transactionId ?? undefined,
-        });
-      } catch (error) {
-        console.error('[Claims API] Refund processing failed:', error);
-        // Decision was made, but refund failed - this should be handled separately
-      }
-    }
-
     return NextResponse.json({
-      success: true,
-      message: 'Decision recorded successfully',
+      status,
+      refundAmount: refundAmountNumber,
+      sellerProtected,
     });
   } catch (error) {
     console.error('[Claims API] Make decision failed:', error);

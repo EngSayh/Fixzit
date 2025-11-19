@@ -11,11 +11,11 @@ type FirebaseAdmin = typeof import('firebase-admin');
 type SendGridMail = typeof import('@sendgrid/mail');
 
 async function resolveModuleDefault<T>(importPromise: Promise<unknown>): Promise<T> {
-  const module = (await importPromise) as { default?: T };
-  if (module && typeof module === 'object' && 'default' in module && module.default) {
-    return module.default;
+  const loadedModule = (await importPromise) as { default?: T };
+  if (loadedModule && typeof loadedModule === 'object' && 'default' in loadedModule && loadedModule.default) {
+    return loadedModule.default;
   }
-  return module as unknown as T;
+  return loadedModule as unknown as T;
 }
 
 /**
@@ -28,7 +28,22 @@ export interface BulkNotificationIssue {
   channel: NotificationChannel;
   type: 'failed' | 'skipped';
   reason: string;
+  attempt?: number;
+  attemptedAt?: Date;
+  metadata?: Record<string, unknown>;
 }
+
+export interface ChannelMetric {
+  channel: NotificationChannel;
+  attempted: number;
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  lastAttemptAt?: Date;
+  errors: string[];
+}
+
+export type ChannelMetricsMap = Record<NotificationChannel, ChannelMetric>;
 
 export interface BulkNotificationResult {
   attempted: number;
@@ -36,6 +51,22 @@ export interface BulkNotificationResult {
   failed: number;
   skipped: number;
   issues: BulkNotificationIssue[];
+  channelMetrics: ChannelMetricsMap;
+}
+
+export function createChannelMetricsMap(): ChannelMetricsMap {
+  const channels: NotificationChannel[] = ['push', 'email', 'sms', 'whatsapp'];
+  return channels.reduce<ChannelMetricsMap>((acc, channel) => {
+    acc[channel] = {
+      channel,
+      attempted: 0,
+      succeeded: 0,
+      failed: 0,
+      skipped: 0,
+      errors: [],
+    };
+    return acc;
+  }, {} as ChannelMetricsMap);
 }
 
 // =============================================================================
@@ -68,7 +99,9 @@ async function initializeFCM() {
     fcmInitialized = true;
     logger.info('[FCM] Initialized successfully');
     return admin;
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[FCM] Initialization failed', { error });
     throw error;
   }
@@ -150,7 +183,9 @@ export async function sendFCMNotification(
 
       await removeInvalidFCMTokens(userId, failedTokens);
     }
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[FCM] Failed to send push notification', { error, userId });
     throw error;
   }
@@ -163,7 +198,9 @@ async function getUserFCMTokens(userId: string): Promise<string[]> {
     const { User } = await import('@/server/models/User');
     const user = await User.findOne({ userId }).select('fcmTokens').lean() as { fcmTokens?: string[] } | null;
     return user?.fcmTokens || [];
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[FCM] Failed to get user tokens', { error, userId });
     return [];
   }
@@ -177,7 +214,9 @@ async function removeInvalidFCMTokens(userId: string, tokens: string[]): Promise
       { $pull: { fcmTokens: { $in: tokens } } }
     );
     logger.info('[FCM] Removed invalid tokens', { userId, count: tokens.length });
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[FCM] Failed to remove invalid tokens', { error, userId });
   }
 }
@@ -204,7 +243,9 @@ async function initializeSendGrid() {
     sendGridInitialized = true;
     logger.info('[SendGrid] Initialized successfully');
     return sgMail;
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[SendGrid] Initialization failed', { error });
     throw error;
   }
@@ -268,7 +309,9 @@ export async function sendEmailNotification(
       to: recipient.email,
       subject: notification.title
     });
-  } catch (error: unknown) {
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     const errorDetails =
       typeof error === 'object' && error !== null
         ? (error as { message?: string; code?: unknown; response?: { body?: unknown } })
@@ -318,7 +361,8 @@ function buildEmailHTML(notification: NotificationPayload, recipient: Notificati
 // Twilio - SMS Notifications
 // =============================================================================
 
-let twilioClient: any | null = null;
+// Twilio client type (using Twilio's actual types would be ideal, but any is acceptable here for dynamic import)
+let twilioClient: ReturnType<typeof import('twilio')> | null = null;
 
 async function initializeTwilio() {
   if (twilioClient) return twilioClient;
@@ -329,7 +373,7 @@ async function initializeTwilio() {
       throw new Error('Twilio not configured');
     }
 
-    const TwilioClient = await resolveModuleDefault<any>(import('twilio'));
+    const TwilioClient = await resolveModuleDefault<typeof import('twilio')>(import('twilio'));
     twilioClient = TwilioClient(
       process.env.TWILIO_ACCOUNT_SID,
       process.env.TWILIO_AUTH_TOKEN
@@ -337,7 +381,9 @@ async function initializeTwilio() {
 
     logger.info('[Twilio] Initialized successfully');
     return twilioClient;
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[Twilio] Initialization failed', { error });
     throw error;
   }
@@ -379,7 +425,9 @@ export async function sendSMSNotification(
       sid: response.sid,
       status: response.status
     });
-  } catch (error: unknown) {
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     const details =
       typeof error === 'object' && error !== null
         ? (error as { message?: string; code?: unknown; status?: unknown })
@@ -458,7 +506,9 @@ export async function sendWhatsAppNotification(
       messageId: response.data.messages?.[0]?.id,
       template: templateName
     });
-  } catch (error: unknown) {
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     const details =
       typeof error === 'object' && error !== null
         ? (error as { message?: string; response?: { data?: unknown } })
@@ -501,36 +551,53 @@ function formatPhoneForWhatsApp(phone: string): string {
   return cleaned;
 }
 
-function extractWhatsAppParameters(notification: NotificationPayload): any[] {
+type WhatsAppParameter = { type: 'text'; text: string };
+
+function coerceString(value: unknown, fallback = 'N/A'): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  return fallback;
+}
+
+function extractWhatsAppParameters(notification: NotificationPayload): WhatsAppParameter[] {
   // Extract dynamic parameters from notification data
   // WhatsApp templates have placeholders like {{1}}, {{2}}, etc.
-  const params = [];
+  const params: WhatsAppParameter[] = [];
 
   switch (notification.event) {
     case 'onTicketCreated':
       params.push(
-        { type: 'text', text: notification.data?.workOrderId || 'N/A' },
-        { type: 'text', text: notification.data?.tenantName || 'N/A' }
+        { type: 'text', text: coerceString(notification.data?.workOrderId) },
+        { type: 'text', text: coerceString(notification.data?.tenantName) }
       );
       break;
 
     case 'onAssign':
       params.push(
-        { type: 'text', text: notification.data?.workOrderId || 'N/A' },
-        { type: 'text', text: notification.data?.technicianName || 'N/A' }
+        { type: 'text', text: coerceString(notification.data?.workOrderId) },
+        { type: 'text', text: coerceString(notification.data?.technicianName) }
       );
       break;
 
     case 'onApprovalRequested':
       params.push(
-        { type: 'text', text: notification.data?.quotationId || 'N/A' },
-        { type: 'text', text: `SAR ${notification.data?.amount?.toLocaleString() || '0'}` }
+        { type: 'text', text: coerceString(notification.data?.quotationId) },
+        {
+          type: 'text',
+          text: `SAR ${
+            typeof notification.data?.amount === 'number'
+              ? notification.data.amount.toLocaleString()
+              : '0'
+          }`
+        }
       );
       break;
 
     case 'onClosed':
       params.push(
-        { type: 'text', text: notification.data?.workOrderId || 'N/A' }
+        { type: 'text', text: coerceString(notification.data?.workOrderId) }
       );
       break;
   }
@@ -563,12 +630,15 @@ export async function sendBulkNotifications(
     event: notification.event
   });
 
+  const channelMetrics = createChannelMetricsMap();
+
   const result: BulkNotificationResult = {
     attempted: 0,
     succeeded: 0,
     failed: 0,
     skipped: 0,
-    issues: []
+    issues: [],
+    channelMetrics
   };
 
   if (recipients.length === 0) {
@@ -594,11 +664,14 @@ export async function sendBulkNotifications(
           const validationError = validateRecipientChannel(recipient, channel);
           if (validationError) {
             result.skipped += 1;
+            channelMetrics[channel].skipped += 1;
             result.issues.push({
               userId: recipient.userId,
               channel,
               type: 'skipped',
-              reason: validationError
+              reason: validationError,
+              attemptedAt: new Date(),
+              metadata: { validationError: true }
             });
             logger.warn('[Notifications] Skipping channel for recipient', {
               userId: recipient.userId,
@@ -609,6 +682,10 @@ export async function sendBulkNotifications(
           }
 
           result.attempted += 1;
+          channelMetrics[channel].attempted += 1;
+          const attemptNumber = channelMetrics[channel].attempted;
+          const attemptTimestamp = new Date();
+          channelMetrics[channel].lastAttemptAt = attemptTimestamp;
 
           try {
             switch (channel) {
@@ -626,14 +703,23 @@ export async function sendBulkNotifications(
                 break;
             }
             result.succeeded += 1;
-          } catch (error) {
+            channelMetrics[channel].succeeded += 1;
+          } catch (_error) {
+            const error = _error instanceof Error ? _error : new Error(String(_error));
+            void error;
             result.failed += 1;
+            channelMetrics[channel].failed += 1;
             const reason = error instanceof Error ? error.message : 'Unknown error';
+            if (channelMetrics[channel].errors.length < 10) {
+              channelMetrics[channel].errors.push(reason);
+            }
             result.issues.push({
               userId: recipient.userId,
               channel,
               type: 'failed',
-              reason
+              reason,
+              attempt: attemptNumber,
+              attemptedAt: attemptTimestamp
             });
             logger.error('[Notifications] Failed to send to recipient', {
               error,

@@ -66,16 +66,14 @@ export async function retrieveKnowledge(session: CopilotSession, query: string, 
 
   const embedding = await callEmbedding(query);
 
-  const { CopilotKnowledge } = await import('@/server/models/CopilotKnowledge') as any;
   const docs = await CopilotKnowledge.find({
     $and: [
       { $or: [{ orgId: session.tenantId }, { orgId: null }] },
       { locale: { $in: [session.locale, "en"] } }
     ]
-  });
+  }).lean<KnowledgeDoc[]>();
 
-  type KnowledgeDoc = { slug: string; title: string; content: string; embedding?: number[]; roles?: string[] };
-  const filtered = (docs as unknown as KnowledgeDoc[]).filter(doc => {
+  const filtered = docs.filter(doc => {
     if (doc.roles?.length) {
       return doc.roles.includes(session.role);
     }
@@ -116,4 +114,3 @@ export async function upsertKnowledgeDocument(doc: Partial<KnowledgeDoc> & { slu
     { upsert: true, new: true }
   );
 }
-

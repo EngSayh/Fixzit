@@ -8,7 +8,6 @@
 import mongoose, { Schema, Document, Model } from 'mongoose'
 import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
-/* eslint-disable no-unused-vars */
 export enum MarketingRequestStatus {
   PENDING = 'PENDING',           // Awaiting broker response
   ACCEPTED = 'ACCEPTED',         // Broker accepted
@@ -16,7 +15,6 @@ export enum MarketingRequestStatus {
   REJECTED = 'REJECTED',         // Broker rejected
   EXPIRED = 'EXPIRED',           // Request expired (30 days)
 }
-/* eslint-enable no-unused-vars */
 
 export interface IMarketingRequest extends Document {
   // Owner

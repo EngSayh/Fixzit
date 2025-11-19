@@ -66,7 +66,7 @@ export interface IRMA extends Document {
   
   // Status workflow
   status: 'initiated' | 'approved' | 'rejected' | 'label_generated' | 'in_transit' | 
-          'received' | 'inspecting' | 'completed' | 'cancelled';
+          'received' | 'inspecting' | 'inspected' | 'completed' | 'cancelled';
   
   // Auto-approval
   autoApproved: boolean;

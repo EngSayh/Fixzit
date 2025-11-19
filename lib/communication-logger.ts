@@ -77,7 +77,9 @@ export async function logCommunication(log: Omit<CommunicationLog, '_id' | 'crea
       success: true,
       logId: result.insertedId.toString(),
     };
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[Communication] Log error', error as Error, {
       userId: typeof log.userId === 'string' ? log.userId : log.userId.toString(),
       channel: log.channel,
@@ -154,7 +156,9 @@ export async function updateCommunicationStatus(
     });
 
     return { success: true };
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[Communication] Update status error', error as Error, {
       logId,
       status,
@@ -206,7 +210,9 @@ export async function getUserCommunications(
       .toArray();
 
     return logs as unknown as CommunicationLog[];
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[Communication] Get user communications error', error as Error, {
       userId,
     });
@@ -305,7 +311,9 @@ export async function getCommunicationStats(filters?: {
       deliveryRate,
       failureRate,
     };
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[Communication] Get stats error', error as Error);
     return {
       total: 0,

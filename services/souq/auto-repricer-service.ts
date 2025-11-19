@@ -236,7 +236,9 @@ export class AutoRepricerService {
           repriced++;
         }
 
-      } catch (error) {
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
         logger.error('[AutoRepricer] Failed to reprice listing', error, {
           sellerId,
           listingId: listing._id.toString()
@@ -407,7 +409,9 @@ export class AutoRepricerService {
         totalRepriced += result.repriced;
         totalErrors += result.errors;
         processed++;
-      } catch (error) {
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
         logger.error('[AutoRepricer] Failed to reprice seller', error, {
           sellerId: seller._id.toString()
         });

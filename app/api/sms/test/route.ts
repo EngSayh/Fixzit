@@ -62,12 +62,13 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
-  } catch (error) {
-    logger.error('[API] SMS test failed', { error });
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    logger.error('[API] SMS test failed', { error: error.message });
     return NextResponse.json(
       { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: error.message 
       },
       { status: 500 }
     );

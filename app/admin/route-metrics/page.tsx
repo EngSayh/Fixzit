@@ -527,14 +527,14 @@ export default function RouteMetricsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={handleDownload} disabled={!metrics}>
-            <Download className="w-4 h-4 mr-2" />
+            <Download className="w-4 h-4 me-2" />
             {auto('Download JSON', 'actions.download')}
           </Button>
           <Button onClick={() => void fetchMetrics(true)} variant="outline" disabled={refreshing}>
             {refreshing ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-4 h-4 me-2 animate-spin" />
             ) : (
-              <RefreshCw className="w-4 h-4 mr-2" />
+              <RefreshCw className="w-4 h-4 me-2" />
             )}
             {refreshing ? auto('Refreshing…', 'actions.refreshing') : auto('Refresh', 'actions.refresh')}
           </Button>
@@ -834,7 +834,7 @@ export default function RouteMetricsPage() {
                     })}
                   </p>
                 </div>
-                <div className="text-right">
+                <div className="text-end">
                   <p className="text-sm font-semibold">
                     {auto('Error rate', 'analytics.errorRate')}: {(entry.errorRate * 100).toFixed(2)}%
                   </p>
@@ -982,7 +982,7 @@ export default function RouteMetricsPage() {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <tr className="text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-2 py-1">{auto('Module', 'aliases.headers.module')}</th>
                   <th className="px-2 py-1">{auto('Alias File', 'aliases.headers.alias')}</th>
                   <th className="px-2 py-1">{auto('Resolved Target', 'aliases.headers.target')}</th>

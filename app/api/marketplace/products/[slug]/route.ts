@@ -1,58 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-import { resolveMarketplaceContext } from '@/lib/marketplace/context';
-import { findProductBySlug } from '@/lib/marketplace/search';
-import { db } from '@/lib/mongo';
-import Category from '@/server/models/marketplace/Category';
-import { serializeCategory } from '@/lib/marketplace/serializers';
+import { MarketplaceProduct } from '@/server/models/MarketplaceProduct';
 
-import {notFoundError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
+type RouteParams =
+  | { params: { slug: string } }
+  | { params: Promise<{ slug: string }> };
 
-interface RouteParams {
-  params: Promise<{ slug: string }>;
+function isPromise<T>(value: unknown): value is Promise<T> {
+  return typeof value === 'object' && value !== null && 'then' in (value as object);
 }
 
-/**
- * @openapi
- * /api/marketplace/products/[slug]:
- *   get:
- *     summary: marketplace/products/[slug] operations
- *     tags: [marketplace]
- *     security:
- *       - cookieAuth: []
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Success
- *       401:
- *         description: Unauthorized
- *       429:
- *         description: Rate limit exceeded
- */
-export async function GET(request: NextRequest, props: RouteParams) {
-  const params = await props.params;
-  try {
-    const context = await resolveMarketplaceContext(request);
-    const slug = decodeURIComponent(params.slug);
-    await db;
-    const product = await findProductBySlug(context.orgId, slug);
+const DEFAULT_TENANT = process.env.NEXT_PUBLIC_MARKETPLACE_TENANT || 'demo-tenant';
 
-    if (!product) {
-      return notFoundError('Product');
+type PriceItem = { listPrice?: number | null; currency?: string | null } | null | undefined;
+type InventoryItem = { onHand?: number | null; leadDays?: number | null } | null | undefined;
+
+function buildBuyBox(product: { prices?: PriceItem[]; inventories?: InventoryItem[] }) {
+  const firstPrice = Array.isArray(product.prices) && product.prices.length > 0 ? product.prices[0] : null;
+  const firstInventory =
+    Array.isArray(product.inventories) && product.inventories.length > 0 ? product.inventories[0] : null;
+
+  const priceValue = typeof firstPrice?.listPrice === 'number' ? firstPrice.listPrice : null;
+  const currencyValue = firstPrice?.currency && firstPrice.currency.trim() ? firstPrice.currency : 'SAR';
+
+  const onHand = typeof firstInventory?.onHand === 'number' ? firstInventory.onHand : 0;
+  const leadDays =
+    typeof firstInventory?.leadDays === 'number' && firstInventory.leadDays > 0
+      ? firstInventory.leadDays
+      : 3;
+
+  return {
+    price: priceValue,
+    currency: currencyValue || 'SAR',
+    inStock: onHand > 0,
+    leadDays,
+  };
+}
+
+export async function GET(_request: NextRequest, route: RouteParams) {
+  const params = isPromise(route.params) ? await route.params : route.params;
+  const { slug } = params;
+  const decodedSlug = decodeURIComponent(slug);
+  const tenantId = process.env.NEXT_PUBLIC_MARKETPLACE_TENANT || DEFAULT_TENANT;
+
+  try {
+    const productQuery = MarketplaceProduct.findOne({ tenantId, slug: decodedSlug });
+    const productDoc =
+      typeof (productQuery as { lean?: () => Promise<unknown> })?.lean === 'function'
+        ? await (productQuery as { lean: () => Promise<unknown> }).lean()
+        : await productQuery;
+
+    if (!productDoc) {
+      return NextResponse.json({ ok: false, error: 'Product not found' }, { status: 404 });
     }
 
-    const category = await Category.findOne({ _id: product.categoryId, orgId: context.orgId }).lean();
+    const buyBox = buildBuyBox(productDoc as { prices?: PriceItem[]; inventories?: InventoryItem[] });
 
     return NextResponse.json({
       ok: true,
       data: {
-        product,
-        category: category ? serializeCategory(category) : null
-      }
+        product: productDoc,
+        category: null,
+        buyBox,
+      },
+      product: productDoc,
+      buyBox,
     });
   } catch (error) {
-    logger.error('Failed to load product details', error instanceof Error ? error.message : 'Unknown error');
-    return createSecureResponse({ error: 'Unable to fetch product' }, 500, request);
+    logger.error('Failed to load marketplace product', error instanceof Error ? error.message : 'Unknown error');
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

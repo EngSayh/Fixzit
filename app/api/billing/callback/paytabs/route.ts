@@ -1,15 +1,28 @@
-import { NextRequest} from 'next/server';
+import { NextRequest } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import SubscriptionInvoice from '@/server/models/SubscriptionInvoice';
 import Subscription from '@/server/models/Subscription';
 import PaymentMethod from '@/server/models/PaymentMethod';
-import { rateLimit } from '@/server/security/rateLimit';
-import {rateLimitError} from '@/server/utils/errorResponses';
-import { createSecureResponse } from '@/server/security/headers';
-import { getClientIP } from '@/server/security/headers';
+import {
+  buildPaytabsIdempotencyKey,
+  enforcePaytabsPayloadSize,
+  extractPaytabsSignature,
+  normalizePaytabsCallbackPayload,
+  parsePaytabsJsonPayload,
+  PaytabsCallbackValidationError,
+  PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS,
+  PAYTABS_CALLBACK_RATE_LIMIT,
+} from '@/lib/payments/paytabs-callback.contract';
 import { verifyPayment, validateCallback } from '@/lib/paytabs';
-
 import { logger } from '@/lib/logger';
+import { withIdempotency } from '@/server/security/idempotency';
+import { rateLimit } from '@/server/security/rateLimit';
+import { rateLimitError } from '@/server/utils/errorResponses';
+import { createSecureResponse, getClientIP } from '@/server/security/headers';
+
+const PAYTABS_SERVER_KEY =
+  process.env.PAYTABS_SERVER_KEY || process.env.PAYTABS_API_SERVER_KEY || '';
+const PAYTABS_CONFIGURED = Boolean(PAYTABS_SERVER_KEY && process.env.PAYTABS_PROFILE_ID);
 /**
  * @openapi
  * /api/billing/callback/paytabs:
@@ -30,46 +43,82 @@ import { logger } from '@/lib/logger';
 export async function POST(req: NextRequest) {
   // Rate limiting
   const clientIp = getClientIP(req);
-  const rl = rateLimit(`${new URL(req.url).pathname}:${clientIp}`, 60, 60_000);
+  const rl = rateLimit(
+    `${new URL(req.url).pathname}:${clientIp}`,
+    PAYTABS_CALLBACK_RATE_LIMIT.requests,
+    PAYTABS_CALLBACK_RATE_LIMIT.windowMs
+  );
   if (!rl.allowed) {
     return rateLimitError();
   }
 
-  await connectToDatabase();
-  
   // Read raw body for signature validation
   const rawBody = await req.text();
-  const signature = req.headers.get('signature') || '';
-  
-  let payload: Record<string, unknown> | null = null;
   try {
-    payload = JSON.parse(rawBody);
-  } catch {
-    return createSecureResponse({ error: 'Invalid JSON payload' }, 400, req);
+    enforcePaytabsPayloadSize(rawBody);
+  } catch (_error) {
+    if (_error instanceof PaytabsCallbackValidationError) {
+      return createSecureResponse({ error: _error.message }, 413, req);
+    }
+    throw _error;
+  }
+
+  let payload: Record<string, unknown>;
+  try {
+    payload = parsePaytabsJsonPayload(rawBody);
+  } catch (_error) {
+    if (_error instanceof PaytabsCallbackValidationError) {
+      return createSecureResponse({ error: _error.message }, 400, req);
+    }
+    throw _error;
   }
   
-  if (!payload) {
-    return createSecureResponse({ error: 'Empty payload' }, 400, req);
+  const signature = extractPaytabsSignature(req, payload);
+  if (!signature && PAYTABS_CONFIGURED) {
+    logger.error('[Billing Callback] Missing signature from PayTabs');
+    return createSecureResponse({ error: 'Invalid signature' }, 401, req);
   }
-  
+
+  if (!signature) {
+    logger.warn('[Billing Callback] Signature missing; dev mode fallback', {
+      paytabsConfigured: PAYTABS_CONFIGURED,
+    });
+  }
+
   // 1) Validate signature
-  if (!validateCallback(payload, signature)) {
+  if (!validateCallback(payload, signature || '')) {
     logger.error('[Billing Callback] Invalid signature from PayTabs');
     return createSecureResponse({ error: 'Invalid signature' }, 401, req);
   }
   
-  const data = payload;
-  const tranRef = (data.tran_ref || data.tranRef) as string;
-  const cartId  = (data.cart_id || data.cartId) as string;
-  const token   = data.token as string | undefined;
+  await connectToDatabase();
+  
+  let normalized;
+  try {
+    normalized = normalizePaytabsCallbackPayload(payload);
+  } catch (_error) {
+    if (_error instanceof PaytabsCallbackValidationError) {
+      return createSecureResponse({ error: _error.message }, 400, req);
+    }
+    throw _error;
+  }
+  
+  const tranRef = normalized.tranRef;
+  const cartId = normalized.cartId;
+  const token = normalized.token;
 
   // 2) Verify payment with PayTabs server-to-server
   let verification: unknown = null;
-  try {
-    verification = await verifyPayment(tranRef);
-  } catch (error) {
-    logger.error('[Billing Callback] Failed to verify payment with PayTabs:', error instanceof Error ? error.message : String(error));
-    return createSecureResponse({ error: 'Payment verification failed' }, 500, req);
+  if (PAYTABS_CONFIGURED) {
+    try {
+      verification = await verifyPayment(tranRef);
+    } catch (_error) {
+      const message = _error instanceof Error ? _error.message : String(_error);
+      logger.error('[Billing Callback] Failed to verify payment with PayTabs:', message);
+      return createSecureResponse({ error: 'Payment verification failed' }, 500, req);
+    }
+  } else {
+    logger.warn('[Billing Callback] Skipping PayTabs verification (dev mode)');
   }
   
   // Type-safe validation of verification result
@@ -86,14 +135,31 @@ export async function POST(req: NextRequest) {
       typeof (obj.payment_result as Record<string, unknown>).response_status === 'string'
     );
   }
-  
-  if (!isValidPayTabsVerification(verification)) {
-    logger.error('[Billing Callback] Invalid verification response structure from PayTabs');
-    return createSecureResponse({ error: 'Invalid payment verification response' }, 500, req);
+
+  let verificationData:
+    | {
+        payment_result: { response_status: string; response_message?: string };
+        cart_amount?: string;
+        payment_info?: { card_scheme?: string; payment_description?: string; expiryMonth?: string; expYear?: string };
+      }
+    | null = null;
+
+  if (PAYTABS_CONFIGURED) {
+    if (!isValidPayTabsVerification(verification)) {
+      logger.error('[Billing Callback] Invalid verification response structure from PayTabs');
+      return createSecureResponse({ error: 'Invalid payment verification response' }, 500, req);
+    }
+    verificationData = verification;
+  } else {
+    verificationData = {
+      payment_result: {
+        response_status: normalized.respStatus,
+        response_message: normalized.respMessage,
+      },
+      cart_amount: normalized.amount?.toString(),
+    };
   }
-  
-  const verificationData = verification;
-  
+
   const verifiedOk = verificationData?.payment_result?.response_status === 'A';
   
   const subId = cartId?.replace('SUB-','');
@@ -105,36 +171,46 @@ export async function POST(req: NextRequest) {
   const inv = (await SubscriptionInvoice.findOne({ subscriptionId: sub._id, status: 'pending' }));
   if (!inv) return createSecureResponse({ error: 'INV_NOT_FOUND' }, 400, req);
 
-  if (!verifiedOk) {
-    inv.status = 'failed'; 
-    inv.errorMessage = verificationData?.payment_result?.response_message || data.respMessage as string || 'Payment declined';
-    await inv.save(); 
-    return createSecureResponse({ ok: false }, 200, req);
-  }
+  await withIdempotency(
+    buildPaytabsIdempotencyKey(normalized, {
+      route: 'billing',
+      subscriptionId: String(sub._id),
+      invoiceId: String(inv._id),
+    }),
+    async () => {
+      if (!verifiedOk) {
+        inv.status = 'failed';
+        inv.errorMessage =
+          verificationData?.payment_result?.response_message ||
+          normalized.respMessage ||
+          'Payment declined';
+      } else {
+        inv.status = 'paid';
+        inv.paytabsTranRef = tranRef;
+      }
 
-  inv.status = 'paid'; inv.paytabsTranRef = tranRef; await inv.save();
+      await inv.save();
 
-  if (token && sub.billingCycle === 'monthly') {
-    // Only use verified payment info - never fall back to untrusted callback data
-    const paymentInfo = verificationData.payment_info;
-    if (!paymentInfo) {
-      logger.warn('[Billing Callback] No payment_info in verification response, skipping token storage');
-    } else {
-      const pm = (await PaymentMethod.create({
-        customerId: sub.customerId, 
-        token, 
-        scheme: paymentInfo.card_scheme, 
-        last4: (paymentInfo.payment_description || '').slice(-4),
-        expMonth: paymentInfo.expiryMonth, 
-        expYear: paymentInfo.expYear
-      }));
-      sub.paytabsTokenId = pm._id;
-      await sub.save();
-    }
-  }
+      if (verifiedOk && token && sub.billingCycle === 'monthly') {
+        const paymentInfo = verificationData.payment_info;
+        if (!paymentInfo) {
+          logger.warn('[Billing Callback] No payment_info in verification response, skipping token storage');
+        } else {
+          const pm = await PaymentMethod.create({
+            customerId: sub.customerId,
+            token,
+            scheme: paymentInfo.card_scheme,
+            last4: (paymentInfo.payment_description || '').slice(-4),
+            expMonth: paymentInfo.expiryMonth,
+            expYear: paymentInfo.expYear,
+          });
+          sub.paytabsTokenId = pm._id;
+          await sub.save();
+        }
+      }
+    },
+    PAYTABS_CALLBACK_IDEMPOTENCY_TTL_MS
+  );
 
-  return createSecureResponse({ ok: true }, 200, req);
+  return createSecureResponse({ ok: verifiedOk }, 200, req);
 }
-
-
-

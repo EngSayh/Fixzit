@@ -77,7 +77,9 @@ export async function activatePackageAfterPayment(paymentId: string | mongoose.T
     }
     
     return true;
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('activatePackageAfterPayment: Error activating package', { 
       paymentId, 
       error: String((error as Error)?.message || error) 

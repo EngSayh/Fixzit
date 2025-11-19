@@ -1,10 +1,10 @@
 'use client';
 import { logger } from '@/lib/logger';
+import { toast } from 'sonner';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { formatDistanceToNowStrict } from 'date-fns';
-import { STORAGE_KEYS } from '@/config/constants';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,24 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Plus, RefreshCcw, Search } from 'lucide-react';
 import { WorkOrderPriority } from '@/lib/sla';
 import ClientDate from '@/components/ClientDate';
-
-const fallbackUser = JSON.stringify({ id: 'demo-admin', role: 'SUPER_ADMIN', tenantId: 'demo-tenant' });
-
-function buildHeaders(extra: Record<string, string> = {}) {
-  const headers: Record<string, string> = {
-    'x-tenant-id': 'demo-tenant',
-    ...extra,
-  };
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('fixzit_token');
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    const sessionUser = localStorage.getItem(STORAGE_KEYS.userSession);
-    headers['x-user'] = sessionUser || fallbackUser;
-  } else {
-    headers['x-user'] = fallbackUser;
-  }
-  return headers;
-}
+import { getWorkOrderStatusLabel } from '@/lib/work-orders/status';
 
 const statusStyles: Record<string, string> = {
   SUBMITTED: 'bg-warning/10 text-warning border border-warning/20',
@@ -53,20 +36,17 @@ const priorityStyles: Record<string, string> = {
   CRITICAL: 'bg-destructive/10 text-destructive border border-destructive/20',
 };
 
-// Status labels will use translation keys
-function getStatusLabel(t: (_key: string, _fallback?: string) => string, status: string): string {
-  const statusMap: Record<string, string> = {
-    SUBMITTED: t('status.submitted', 'Submitted'),
-    DISPATCHED: t('status.dispatched', 'Dispatched'),
-    IN_PROGRESS: t('status.inProgress', 'In Progress'),
-    ON_HOLD: t('status.onHold', 'On Hold'),
-    COMPLETED: t('status.completed', 'Completed'),
-    VERIFIED: t('status.verified', 'Verified'),
-    CLOSED: t('status.closed', 'Closed'),
-    CANCELLED: t('status.cancelled', 'Cancelled'),
-  };
-  return statusMap[status] ?? status;
-}
+const PRIORITY_LABELS: Record<WorkOrderPriority, { key: string; fallback: string }> = {
+  LOW: { key: 'workOrders.priority.low', fallback: 'Low' },
+  MEDIUM: { key: 'workOrders.priority.medium', fallback: 'Medium' },
+  HIGH: { key: 'workOrders.priority.high', fallback: 'High' },
+  CRITICAL: { key: 'workOrders.priority.critical', fallback: 'Critical' },
+};
+
+const getPriorityLabelText = (t: (key: string, fallback?: string) => string, priority: WorkOrderPriority) => {
+  const config = PRIORITY_LABELS[priority];
+  return config ? t(config.key, config.fallback) : priority;
+};
 
 const PRIORITY_OPTIONS: WorkOrderPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 const STATUS_OPTIONS = ['SUBMITTED', 'DISPATCHED', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'VERIFIED', 'CLOSED', 'CANCELLED'];
@@ -99,6 +79,8 @@ type WorkOrderRecord = {
       vendorId?: string;
     };
   };
+  assigneeUserId?: string;
+  assigneeVendorId?: string;
   category?: string;
 };
 
@@ -110,17 +92,18 @@ type ApiResponse = {
 };
 
 const fetcher = async (url: string) => {
-  const response = await fetch(url, { headers: buildHeaders() });
+  const response = await fetch(url, { credentials: 'include' });
   if (!response.ok) {
     throw new Error(`Failed to load work orders (${response.status})`);
   }
   return response.json() as Promise<ApiResponse>;
 };
 
-function getDueMeta(dueAt?: string) {
-  if (!dueAt) return { label: 'Not scheduled', overdue: false };
+function getDueMeta(t: (key: string, fallback?: string) => string, dueAt?: string) {
+  const notScheduled = t('workOrders.list.values.notScheduled', 'Not scheduled');
+  if (!dueAt) return { label: notScheduled, overdue: false };
   const dueDate = new Date(dueAt);
-  if (Number.isNaN(dueDate.getTime())) return { label: 'Not scheduled', overdue: false };
+  if (Number.isNaN(dueDate.getTime())) return { label: notScheduled, overdue: false };
   return {
     label: formatDistanceToNowStrict(dueDate, { addSuffix: true }),
     overdue: dueDate.getTime() < Date.now(),
@@ -128,30 +111,38 @@ function getDueMeta(dueAt?: string) {
 }
 
 export type WorkOrdersViewProps = {
+  orgId: string;
   heading?: string;
   description?: string;
 };
 
-export function WorkOrdersView({ heading, description }: WorkOrdersViewProps) {
+export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewProps) {
   const { t } = useTranslation();
   const resolvedHeading = heading ?? t('workOrders.list.heading', 'Work Orders');
   const resolvedDescription = description ?? t('workOrders.list.description', 'Manage and track work orders across all properties');
-  const [clientReady, setClientReady] = useState(false);
+  const [clientReady, setClientReady] = useState(() => typeof window !== 'undefined');
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
 
-  useEffect(() => setClientReady(true), []);
+  useEffect(() => {
+    if (!clientReady) {
+      setClientReady(true);
+    }
+  }, [clientReady]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
-      setSearch(searchInput.trim());
-      setPage(1);
+      const trimmed = searchInput.trim();
+      if (trimmed !== search) {
+        setSearch(trimmed);
+        setPage(1);
+      }
     }, 350);
     return () => window.clearTimeout(handle);
-  }, [searchInput]);
+  }, [search, searchInput]);
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
@@ -160,8 +151,9 @@ export function WorkOrdersView({ heading, description }: WorkOrdersViewProps) {
     if (statusFilter) params.set('status', statusFilter);
     if (priorityFilter) params.set('priority', priorityFilter);
     if (search) params.set('q', search);
+    params.set('org', orgId);
     return params.toString();
-  }, [page, priorityFilter, statusFilter, search]);
+  }, [orgId, page, priorityFilter, statusFilter, search]);
 
   const { data, error, isLoading, mutate, isValidating } = useSWR(
     clientReady ? `/api/work-orders?${query}` : null,
@@ -229,7 +221,7 @@ export function WorkOrdersView({ heading, description }: WorkOrdersViewProps) {
                 <SelectItem value="">{statusAllLabel}</SelectItem>
                 {STATUS_OPTIONS.map((status) => (
                   <SelectItem key={status} value={status}>
-                    {getStatusLabel(t, status)}
+                    {getWorkOrderStatusLabel(t, status)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -247,7 +239,7 @@ export function WorkOrdersView({ heading, description }: WorkOrdersViewProps) {
                 <SelectItem value="">{priorityAllLabel}</SelectItem>
                 {PRIORITY_OPTIONS.map((priority) => (
                   <SelectItem key={priority} value={priority}>
-                    {priority.charAt(0) + priority.slice(1).toLowerCase()}
+                    {getPriorityLabelText(t, priority)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -283,31 +275,41 @@ export function WorkOrdersView({ heading, description }: WorkOrdersViewProps) {
           </Card>
         ) : null}
 
-        {workOrders.map((workOrder) => {
+        {workOrders.map((workOrder, index) => {
           const dueAt = workOrder.sla?.resolutionDeadline || workOrder.dueAt;
-          const dueMeta = getDueMeta(dueAt);
+          const dueMeta = getDueMeta(t, dueAt);
           const slaWindowMinutes = workOrder.sla?.resolutionTimeMinutes ?? workOrder.slaMinutes;
           const code = workOrder.workOrderNumber || workOrder.code || workOrder.id;
-          const assignedUser = workOrder.assignment?.assignedTo?.userId || (workOrder as any).assigneeUserId;
-          const assignedVendor = workOrder.assignment?.assignedTo?.vendorId || (workOrder as any).assigneeVendorId;
+          const assignedUser = workOrder.assignment?.assignedTo?.userId || workOrder.assigneeUserId;
+          const assignedVendor = workOrder.assignment?.assignedTo?.vendorId || workOrder.assigneeVendorId;
           const propertyId = workOrder.location?.propertyId || workOrder.propertyId;
+          const workOrderKey = workOrder.id || workOrder.workOrderNumber || workOrder.code || `work-order-${index}`;
+          const priorityName = getPriorityLabelText(t, workOrder.priority);
           return (
-            <Card key={workOrder.id} className="border border-border shadow-sm">
+            <Card key={workOrderKey} className="border border-border shadow-sm">
               <CardHeader className="flex flex-col gap-2 pb-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <CardTitle className="text-lg font-semibold text-foreground">{workOrder.title}</CardTitle>
                     <Badge className={priorityStyles[workOrder.priority] || priorityStyles.MEDIUM}>
-                      {priorityLabel} {workOrder.priority}
+                      {priorityLabel} {priorityName}
                     </Badge>
                     <Badge className={statusStyles[workOrder.status] || 'bg-muted text-foreground border border-border'}>
-                      {getStatusLabel(t, workOrder.status)}
+                      {getWorkOrderStatusLabel(t, workOrder.status)}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">{codeLabel} {code}</p>
                 </div>
                 <div className="text-end text-sm text-muted-foreground">
-                  <p>{slaWindowLabel} {slaWindowMinutes ? `${Math.round(slaWindowMinutes / 60)}h` : 'N/A'}</p>
+                  <p>
+                    {slaWindowLabel}{' '}
+                    {slaWindowMinutes
+                      ? t('workOrders.list.values.slaHours', '{{hours}}h').replace(
+                        '{{hours}}',
+                        String(Math.round(slaWindowMinutes / 60))
+                      )
+                      : t('common.notAvailable', 'N/A')}
+                  </p>
                   <p className={dueMeta.overdue ? 'text-destructive font-semibold' : ''}>{dueLabel} {dueMeta.label}</p>
                 </div>
               </CardHeader>
@@ -364,7 +366,9 @@ export function WorkOrdersView({ heading, description }: WorkOrdersViewProps) {
             {t('workOrders.list.pagination.previous', 'Previous')}
           </Button>
           <span className="text-sm text-foreground">
-            Page {page} of {totalPages}
+            {t('workOrders.list.pagination.pageXofY', 'Page {{page}} of {{total}}')
+              .replace('{{page}}', String(page))
+              .replace('{{total}}', String(totalPages))}
           </span>
           <Button
             variant="outline"
@@ -418,7 +422,8 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
 
       const response = await fetch('/api/work-orders', {
         method: 'POST',
-        headers: buildHeaders({ 'Content-Type': 'application/json' }),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(payload),
       });
 
@@ -428,14 +433,15 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
       }
 
       onCreated();
+      toast.success(t('workOrders.create.toast.success', 'Work order created'));
       reset();
       setOpen(false);
     } catch (error: unknown) {
       logger.error('Failed to create work order', { error });
       const message = error instanceof Error ? error.message : 'Unknown error';
-      if (typeof window !== 'undefined') {
-        window.alert(`Unable to create work order: ${message}`);
-      }
+      toast.error(t('workOrders.create.toast.error', 'Unable to create work order'), {
+        description: message,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -486,14 +492,14 @@ function WorkOrderCreateDialog({ onCreated }: { onCreated: () => void }) {
                     setForm(prev => ({ ...prev, priority: value }));
                   }
                 }}
-                placeholder="Select priority"
+                placeholder={t('workOrders.create.form.priorityPlaceholder', 'Select priority')}
               >
                 <SelectTrigger>
                 </SelectTrigger>
                 <SelectContent>
                   {PRIORITY_OPTIONS.map((priority) => (
                     <SelectItem key={priority} value={priority}>
-                      {priority.charAt(0) + priority.slice(1).toLowerCase()}
+                      {getPriorityLabelText(t, priority)}
                     </SelectItem>
                   ))}
                 </SelectContent>

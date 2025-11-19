@@ -9,6 +9,7 @@
 
 import { NextRequest } from 'next/server';
 import { isIP } from 'net';
+import { validateTrustedProxyCount } from '@/server/security/ip-utils';
 
 /**
  * Extract client IP with trusted proxy counting strategy
@@ -41,8 +42,6 @@ export function getClientIp(request: NextRequest): string {
     if (trimmed) {
       const ips = trimmed.split(',').map(ip => ip.trim()).filter(ip => ip.length > 0);
       if (ips.length > 0) {
-        // Import and use the same trusted proxy count validation from lib/ip.ts
-        const { validateTrustedProxyCount, isPrivateIP } = require('@/server/security/ip-utils');
         const trustedProxyCount = validateTrustedProxyCount();
         
         // Skip trusted proxy hops from the right

@@ -26,7 +26,6 @@ export interface FormState {
   isDirty: boolean;
 }
 
-/* eslint-disable no-unused-vars */
 export interface FormStateContextValue {
   forms: Map<string, FormState>;
   hasUnsavedChanges: boolean;
@@ -65,7 +64,6 @@ export interface FormStateContextValue {
    */
   onSaveRequest: (formId: string, callback: () => Promise<void> | void) => () => void;
 }
-/* eslint-enable no-unused-vars */
 
 export const FormStateContext = createContext<FormStateContextValue | undefined>(undefined);
 

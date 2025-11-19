@@ -159,7 +159,7 @@ export default function AnalyticsPage() {
     fetchAnalytics();
   }, [period]);
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     const analytics = data;
     if (!analytics) {
       logger.warn('Tried to export analytics before data loaded', { period });
@@ -168,7 +168,7 @@ export default function AnalyticsPage() {
     }
 
     try {
-      const { exportToCSV } = require('@/lib/export-utils');
+      const { exportToCSV } = await import('@/lib/export-utils');
       const { sales, customers } = analytics;
       
       // Prepare export data from current analytics

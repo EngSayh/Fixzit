@@ -4,7 +4,6 @@ import { tenantIsolationPlugin } from '../plugins/tenantIsolation';
 import { auditPlugin } from '../plugins/auditPlugin';
 
 export interface ICustomer extends Document {
-  _id: string;
   // NOTE: orgId, createdBy, updatedBy added by plugins
   name: string;
   email?: string;

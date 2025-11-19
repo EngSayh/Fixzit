@@ -31,12 +31,12 @@ interface EvidenceFile {
 }
 
 const CLAIM_TYPES = [
-  { value: 'item_not_received', apiValue: 'item_not_received', label: 'لم أستلم السلعة (Item Not Received)', reason: 'Item never arrived' },
-  { value: 'defective_item', apiValue: 'defective_item', label: 'السلعة معيبة (Defective Item)', reason: 'Item is damaged or defective' },
-  { value: 'not_as_described', apiValue: 'not_as_described', label: 'لا تطابق الوصف (Not as Described)', reason: 'Item does not match listing description' },
-  { value: 'wrong_item', apiValue: 'wrong_item', label: 'سلعة خاطئة (Wrong Item Sent)', reason: 'Received incorrect product' },
-  { value: 'missing_parts', apiValue: 'missing_parts', label: 'أجزاء ناقصة (Missing Parts)', reason: 'Item is incomplete or missing components' },
-  { value: 'counterfeit', apiValue: 'counterfeit', label: 'سلعة مزيفة (Counterfeit Item)', reason: 'Suspected counterfeit or fake product' },
+  { value: 'item_not_received', label: 'لم أستلم السلعة (Item Not Received)', reason: 'Item never arrived' },
+  { value: 'defective_item', label: 'السلعة معيبة (Defective Item)', reason: 'Item is damaged or defective' },
+  { value: 'not_as_described', label: 'لا تطابق الوصف (Not as Described)', reason: 'Item does not match listing description' },
+  { value: 'wrong_item', label: 'سلعة خاطئة (Wrong Item Sent)', reason: 'Received incorrect product' },
+  { value: 'missing_parts', label: 'أجزاء ناقصة (Missing Parts)', reason: 'Item is incomplete or missing components' },
+  { value: 'counterfeit', label: 'سلعة مزيفة (Counterfeit Item)', reason: 'Suspected counterfeit or fake product' },
 ];
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -162,7 +162,7 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
           orderId,
           sellerId: orderDetails.sellerId,
           productId: orderDetails.productId,
-          type: selectedClaimType.apiValue,  // Use API enum format
+          type: selectedClaimType.value,
           reason: selectedClaimType.reason,   // Auto-fill reason based on type
           description,
           evidence: evidenceUrls,
@@ -329,7 +329,7 @@ export default function ClaimForm({ orderId, orderDetails, onSuccess, onCancel }
                       type="button"
                       variant="destructive"
                       size="icon"
-                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute -top-2 -end-2 w-6 h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => removeFile(index)}
                     >
                       <X className="w-4 h-4" />

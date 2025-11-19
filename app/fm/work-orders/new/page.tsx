@@ -1,16 +1,29 @@
 'use client';
 
 import React from 'react';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function NewWorkOrderPage() {
   const { t } = useTranslation();
-  
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'work_orders' });
+
+  if (!hasOrgContext) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <ModuleViewTabs moduleId="work_orders" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
           <h1 className="text-2xl font-bold text-foreground">{t('workOrders.new.title', 'New Work Order')}</h1>
           <p className="text-muted-foreground">{t('workOrders.new.subtitle', 'Create a new work order for maintenance or services')}</p>
         </div>
@@ -18,13 +31,12 @@ export default function NewWorkOrderPage() {
           <button className="btn-secondary">{t('common.save', 'Save Draft')}</button>
           <button className="btn-primary">{t('workOrders.board.createWO', 'Create Work Order')}</button>
         </div>
-      </div>
-
-      {/* Form */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Form */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="card">
+          </div>
+          {/* Form */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Form */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('workOrders.new.basicInfo', 'Basic Information')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -168,4 +180,3 @@ export default function NewWorkOrderPage() {
     </div>
   );
 }
-

@@ -358,7 +358,7 @@ export default function AdvertisingPage() {
                         </div>
 
                         <div className="flex items-center gap-6">
-                          <div className="text-right">
+                          <div className="text-end">
                             <p className="text-sm text-gray-600">
                               {auto('Budget Used', 'activeCampaigns.budget')}
                             </p>
@@ -381,7 +381,7 @@ export default function AdvertisingPage() {
                           </div>
 
                           {stats && (
-                            <div className="text-right">
+                            <div className="text-end">
                               <p className="text-sm text-gray-600">
                                 {auto('Performance', 'activeCampaigns.performance')}
                               </p>
@@ -424,13 +424,13 @@ export default function AdvertisingPage() {
             <div className="flex flex-wrap gap-4">
               <div className="flex-1 min-w-[200px]">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
                     placeholder={auto('Search campaigns...', 'filters.searchPlaceholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full ps-10 pe-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
               </div>

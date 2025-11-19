@@ -54,7 +54,7 @@ export function TopMegaMenu() {
       <button
         type="button"
         onClick={() => setMegaMenuCollapsed(true)}
-        className="ml-2 inline-flex items-center rounded-full border border-white/30 px-2 py-1 text-white/70 hover:bg-white/10 transition-colors"
+        className="ms-2 inline-flex items-center rounded-full border border-white/30 px-2 py-1 text-white/70 hover:bg-white/10 transition-colors"
         aria-label={t('topbar.collapseMenu', 'Hide module menu')}
       >
         <ChevronDown className="h-3 w-3" />

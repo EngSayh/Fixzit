@@ -93,7 +93,7 @@ export default function RTLTestPage() {
             {testTranslations.map((key) => (
               <div key={key} className="flex justify-between border-b pb-2">
                 <span className="font-mono text-sm text-muted-foreground">{key}:</span>
-                <span className={`${isRTL ? 'text-right' : 'text-left'}`}>{t(key, `FALLBACK: ${key}`)}</span>
+                <span className="text-start">{t(key, `FALLBACK: ${key}`)}</span>
               </div>
             ))}
           </div>
@@ -103,7 +103,7 @@ export default function RTLTestPage() {
           <h3 className="text-lg font-semibold mb-4">
             {auto('Layout Test:', 'layout.title')}
           </h3>
-          <div className={`border-2 border-dashed p-4 rounded ${isRTL ? 'text-right' : 'text-left'}`}>
+          <div className="border-2 border-dashed p-4 rounded text-start">
             <p>
               {auto('This text should align {{direction}} in {{lang}}', 'layout.alignText')
                 .replace('{{direction}}', isRTL ? auto('right', 'layout.right') : auto('left', 'layout.left'))

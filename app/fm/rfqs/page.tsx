@@ -21,6 +21,7 @@ import {
   Shield, Package, Wrench, Building2
 } from 'lucide-react';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 interface RFQItem {
   id: string;
@@ -55,7 +56,11 @@ interface RFQItem {
 export default function RFQsPage() {
   const auto = useAutoTranslator('fm.rfqs');
   const { data: session } = useSession();
-  const orgId = session?.user?.orgId;
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'administration' });
+  
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -70,7 +75,7 @@ export default function RFQsPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        logger.error('FM RFQs fetch error', { error });
+        logger.error('FM RFQs fetch error', error);
         throw error;
       });
   };
@@ -85,13 +90,19 @@ export default function RFQsPage() {
   }
 
   if (!orgId) {
-    return <p className="text-destructive">{auto('Error: No organization ID found in session', 'errors.noOrgSession')}</p>;
+    return (
+      <div className="space-y-6">
+        {supportBanner}
+        {guard}
+      </div>
+    );
   }
 
   const rfqs = data?.items || [];
 
   return (
     <div className="space-y-6">
+      {supportBanner}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -225,9 +236,9 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
       if (!res.ok) throw new Error(auto('Failed to publish RFQ', 'toast.publishFailed'));
       toast.success(auto('RFQ published successfully', 'toast.publishSuccess'), { id: toastId });
       onUpdated();
-    } catch (error) {
+    } catch (_error) {
       toast.error(
-        error instanceof Error ? error.message : auto('Failed to publish RFQ', 'toast.publishFailed'),
+        _error instanceof Error ? _error.message : auto('Failed to publish RFQ', 'toast.publishFailed'),
         { id: toastId }
       );
     }
@@ -298,10 +309,10 @@ function RFQCard({ rfq, orgId, onUpdated }: { rfq: RFQItem; orgId?: string; onUp
         <p className="text-sm text-muted-foreground line-clamp-2">{rfq.description}</p>
 
         <div className="flex items-center text-sm text-muted-foreground">
-          <MapPin className="w-4 h-4 me-1 rtl:ml-1 rtl:mr-0" />
+          <MapPin className="w-4 h-4 me-1" />
           <span>{rfq.location?.city}</span>
           {rfq.location?.radius && (
-            <span className="ms-2 rtl:mr-2 rtl:ml-0">
+            <span className="ms-2">
               • {auto('{{radius}}km radius', 'location.radius').replace(
                 '{{radius}}',
                 String(rfq.location.radius)
@@ -500,8 +511,8 @@ function CreateRFQForm({ onCreated, orgId }: { onCreated: () => void; orgId: str
           { id: toastId }
         );
       }
-    } catch (error) {
-      logger.error('Error creating RFQ:', error);
+    } catch (_error) {
+      logger.error('Error creating RFQ:', _error);
       toast.error(auto('Error creating RFQ. Please try again.', 'form.toast.error'), { id: toastId });
     }
   };

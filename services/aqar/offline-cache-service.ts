@@ -252,7 +252,9 @@ export class AqarOfflineCacheService {
           },
         }
       );
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.warn('AQAR_OFFLINE_MARK_FAILED', {
         cacheKey: bundle.cacheKey,
         error: (error as Error)?.message ?? String(error),

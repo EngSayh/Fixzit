@@ -183,7 +183,7 @@ const ClaimSchema = new Schema<IClaim>({
   closedAt: Date
 }, {
   timestamps: true,
-  collection: 'souq_claims'
+  collection: 'claims'
 });
 
 // Indexes

@@ -87,7 +87,9 @@ export function initializeSendGrid(): void {
     const config = getSendGridConfig();
     sgMail.setApiKey(config.apiKey);
     logger.info('✅ SendGrid initialized successfully');
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.warn('SendGrid not configured', {
       error: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -187,7 +189,9 @@ export function verifyWebhookSignature(
     }
     
     return crypto.timingSafeEqual(signatureBuffer, expectedBuffer);
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('❌ Webhook verification failed:', { error });
     return false;
   }

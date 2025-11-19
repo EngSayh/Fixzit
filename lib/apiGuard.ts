@@ -102,7 +102,9 @@ export function requirePermission(required: string, handler: NextApiHandler): Ne
 
       // Call original handler
       return handler(req, res);
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('[apiGuard] Error:', { error });
       
       await audit({
@@ -166,7 +168,9 @@ export function requireAnyPermission(requiredAny: string[], handler: NextApiHand
       }
 
       return handler(req, res);
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('[apiGuard] Error:', { error });
       return res.status(500).json({ error: 'Internal Server Error' });
     }
@@ -216,7 +220,9 @@ export function requireAllPermissions(requiredAll: string[], handler: NextApiHan
       }
 
       return handler(req, res);
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('[apiGuard] Error:', { error });
       return res.status(500).json({ error: 'Internal Server Error' });
     }
@@ -274,7 +280,9 @@ export function requireSuperAdmin(handler: NextApiHandler): NextApiHandler {
       });
 
       return handler(req, res);
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('[apiGuard] Error:', { error });
       return res.status(500).json({ error: 'Internal Server Error' });
     }

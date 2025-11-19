@@ -257,7 +257,9 @@ export class PayoutProcessorService {
         // Failed: Retry or mark as failed
         return await this.handlePayoutFailure(payout, transferResult.errorMessage || 'Unknown error');
       }
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       // Exception: Retry or mark as failed
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return await this.handlePayoutFailure(payout, errorMessage);
@@ -428,7 +430,9 @@ export class PayoutProcessorService {
         } else {
           batch.failedPayouts++;
         }
-      } catch (error) {
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
         logger.error('Error processing payout', { payoutId: payout.payoutId, error });
         batch.failedPayouts++;
       }
@@ -642,7 +646,9 @@ export class PayoutProcessorService {
           message,
         });
       }
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error(`Error sending payout notification for ${payout.payoutId}`, error);
     }
   }

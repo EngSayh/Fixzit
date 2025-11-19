@@ -76,7 +76,9 @@ export async function getFMAuthContext(_req: NextRequest): Promise<FMAuthContext
         propertyIds: (user as { propertyIds?: string[] }).propertyIds
       }
     };
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[FM Auth] Context extraction failed:', { error });
     return null;
   }
@@ -168,7 +170,9 @@ export async function requireFMAuth(
       } else {
       logger.warn('[FM Auth] Organization not found', { orgId: ctx.orgId });
     }
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[FM Auth] Subscription lookup failed:', { error });
     // Fall back to STARTER plan and no org membership on error
   }
@@ -292,7 +296,9 @@ export async function getPropertyOwnership(_propertyId: string): Promise<{
     
     logger.warn('[FM Auth] Property ownership not found', { propertyId: _propertyId });
     return null;
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[FM Auth] Property ownership query failed:', { error, propertyId: _propertyId });
     return null;
   }

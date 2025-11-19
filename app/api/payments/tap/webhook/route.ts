@@ -12,6 +12,10 @@ import { connectToDatabase } from '@/lib/mongodb-unified';
 import { TapTransaction, type TapTransactionDoc } from '@/server/models/finance/TapTransaction';
 import { Payment } from '@/server/models/finance/Payment';
 import { Invoice } from '@/server/models/Invoice';
+import { rateLimit } from '@/server/security/rateLimit';
+import { rateLimitError } from '@/server/utils/errorResponses';
+import { getClientIP } from '@/server/security/headers';
+import { withIdempotency } from '@/server/security/idempotency';
 
 /**
  * POST /api/payments/tap/webhook
@@ -33,12 +37,46 @@ import { Invoice } from '@/server/models/Invoice';
  * - Logs all events for audit trail
  * - Idempotent processing based on event ID
  */
+const TAP_WEBHOOK_MAX_BYTES = Number(process.env.TAP_WEBHOOK_MAX_BYTES ?? 64_000);
+const TAP_WEBHOOK_RATE_LIMIT = {
+  requests: Number(process.env.TAP_WEBHOOK_RATE_LIMIT ?? 60),
+  windowMs: Number(process.env.TAP_WEBHOOK_RATE_WINDOW_MS ?? 60_000),
+};
+const TAP_WEBHOOK_IDEMPOTENCY_TTL_MS = Number(
+  process.env.TAP_WEBHOOK_IDEMPOTENCY_TTL_MS ?? 5 * 60_000
+);
+
 export async function POST(req: NextRequest) {
   const correlationId = randomUUID();
 
   try {
+    const clientIp = getClientIP(req);
+    const rl = rateLimit(
+      `tap-webhook:${clientIp}`,
+      TAP_WEBHOOK_RATE_LIMIT.requests,
+      TAP_WEBHOOK_RATE_LIMIT.windowMs
+    );
+    if (!rl.allowed) {
+      return rateLimitError();
+    }
+
     // Get raw body for signature verification
     const rawBody = await req.text();
+    const bodyBytes = Buffer.byteLength(rawBody, 'utf8');
+    if (
+      Number.isFinite(TAP_WEBHOOK_MAX_BYTES) &&
+      TAP_WEBHOOK_MAX_BYTES > 0 &&
+      bodyBytes > TAP_WEBHOOK_MAX_BYTES
+    ) {
+      logger.warn('[POST /api/payments/tap/webhook] Payload exceeds size limit', {
+        correlationId,
+        bodyBytes,
+        limit: TAP_WEBHOOK_MAX_BYTES,
+        clientIp,
+      });
+      return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+    }
+
     const signature = req.headers.get('x-tap-signature') || '';
 
     logger.info('[POST /api/payments/tap/webhook] Received webhook', {
@@ -69,44 +107,50 @@ export async function POST(req: NextRequest) {
       liveMode: event.live_mode,
     });
 
-    await connectToDatabase();
+    await withIdempotency(
+      `tap:webhook:${event.id}`,
+      async () => {
+        await connectToDatabase();
 
-    // Process event based on type
-    switch (event.type) {
-      case 'charge.created':
-        await handleChargeCreated(event, correlationId);
-        break;
+        // Process event based on type
+        switch (event.type) {
+          case 'charge.created':
+            await handleChargeCreated(event, correlationId);
+            break;
 
-      case 'charge.captured':
-        await handleChargeCaptured(event, correlationId);
-        break;
+          case 'charge.captured':
+            await handleChargeCaptured(event, correlationId);
+            break;
 
-      case 'charge.authorized':
-        await handleChargeAuthorized(event, correlationId);
-        break;
+          case 'charge.authorized':
+            await handleChargeAuthorized(event, correlationId);
+            break;
 
-      case 'charge.declined':
-      case 'charge.failed':
-        await handleChargeFailed(event, correlationId);
-        break;
+          case 'charge.declined':
+          case 'charge.failed':
+            await handleChargeFailed(event, correlationId);
+            break;
 
-      case 'refund.created':
-        await handleRefundCreated(event, correlationId);
-        break;
-      case 'refund.succeeded':
-        await handleRefundSucceeded(event, correlationId);
-        break;
+          case 'refund.created':
+            await handleRefundCreated(event, correlationId);
+            break;
+          case 'refund.succeeded':
+            await handleRefundSucceeded(event, correlationId);
+            break;
 
-      case 'refund.failed':
-        await handleRefundFailed(event, correlationId);
-        break;
+          case 'refund.failed':
+            await handleRefundFailed(event, correlationId);
+            break;
 
-      default:
-        logger.warn('[POST /api/payments/tap/webhook] Unhandled event type', {
-          correlationId,
-          eventType: event.type,
-        });
-    }
+          default:
+            logger.warn('[POST /api/payments/tap/webhook] Unhandled event type', {
+              correlationId,
+              eventType: event.type,
+            });
+        }
+      },
+      TAP_WEBHOOK_IDEMPOTENCY_TTL_MS
+    );
 
     // Return 200 OK to acknowledge receipt
     return NextResponse.json({ received: true, eventId: event.id });

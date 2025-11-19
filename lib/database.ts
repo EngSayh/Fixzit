@@ -16,7 +16,9 @@ export async function checkDatabaseHealth(): Promise<{
   // Check MongoDB
   try {
     mongodb = await mongoHealthCheck();
-  } catch (error: unknown) {
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     errors.push(`MongoDB: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 

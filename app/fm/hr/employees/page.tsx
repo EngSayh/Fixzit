@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -41,14 +43,16 @@ interface Employee {
 
 export default function EmployeesPage() {
   const { t } = useTranslation();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'hr' });
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | EmploymentStatus>('all');
 
   useEffect(() => {
+    if (!orgId) return;
     void fetchEmployees();
-  }, []);
+  }, [orgId]);
 
   const fetchEmployees = async () => {
     try {
@@ -57,8 +61,8 @@ export default function EmployeesPage() {
         const data = await response.json();
         setEmployees(data.employees || []);
       }
-    } catch (error) {
-      logger.error('Error fetching employees:', error);
+    } catch (_error) {
+      logger.error('Error fetching employees:', _error);
     } finally {
       setLoading(false);
     }
@@ -113,12 +117,24 @@ export default function EmployeesPage() {
     return label ? t(label.key, label.fallback) : status;
   };
 
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">{t('common.loading', 'Loading...')}</p>
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="hr" />
+        {supportOrg && (
+          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+            {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+          </div>
+        )}
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+            <p className="mt-4 text-muted-foreground">{t('common.loading', 'Loading...')}</p>
+          </div>
         </div>
       </div>
     );
@@ -126,6 +142,13 @@ export default function EmployeesPage() {
 
   return (
     <div className="space-y-6">
+      <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-foreground">

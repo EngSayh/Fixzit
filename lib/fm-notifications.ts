@@ -1,8 +1,16 @@
 import { randomUUID } from 'crypto';
 import { logger } from '@/lib/logger';
 import { NOTIFY } from '@/domain/fm/fm.behavior';
-import { sendBulkNotifications, type BulkNotificationResult } from '@/lib/integrations/notifications';
+import {
+  sendBulkNotifications,
+  createChannelMetricsMap,
+  type BulkNotificationResult,
+  type ChannelMetric
+} from '@/lib/integrations/notifications';
 import { emitNotificationTelemetry } from '@/lib/telemetry';
+import { connectToDatabase } from '@/lib/mongodb-unified';
+import { NotificationDeadLetterModel, NotificationLogModel } from '@/server/models/NotificationLog';
+import { recordNotificationMetrics, setDeadLetterBacklog } from '@/lib/monitoring/notification-metrics';
 /**
  * FM Notification Template Engine
  * Generates notifications with deep links for various FM events
@@ -32,6 +40,203 @@ export interface NotificationPayload {
   deliveredAt?: Date;
   status: 'pending' | 'sent' | 'delivered' | 'failed' | 'partial_failure';
   failureReason?: string;
+}
+
+type LoggedRecipient = {
+  userId: string;
+  preferredChannels: NotificationChannel[];
+};
+
+function mapRecipientsForLog(recipients: NotificationRecipient[]): LoggedRecipient[] {
+  return recipients.map(recipient => ({
+    userId: recipient.userId,
+    preferredChannels: recipient.preferredChannels
+  }));
+}
+
+function mapPayloadForLog(notification: NotificationPayload) {
+  return {
+    title: notification.title,
+    body: notification.body,
+    data: notification.data,
+    deepLink: notification.deepLink
+  };
+}
+
+function resolveChannelStatus(metric: ChannelMetric): 'pending' | 'sent' | 'partial' | 'failed' {
+  if (metric.failed === 0 && metric.succeeded === 0 && metric.attempted === 0) {
+    return 'pending';
+  }
+  if (metric.failed === 0 && metric.succeeded > 0) {
+    return 'sent';
+  }
+  if (metric.failed > 0 && metric.succeeded > 0) {
+    return 'partial';
+  }
+  return 'failed';
+}
+
+function createEmptyResult(): BulkNotificationResult {
+  return {
+    attempted: 0,
+    succeeded: 0,
+    failed: 0,
+    skipped: 0,
+    issues: [],
+    channelMetrics: createChannelMetricsMap()
+  };
+}
+
+async function persistNotificationDraft(notification: NotificationPayload): Promise<void> {
+  try {
+    await connectToDatabase();
+    await NotificationLogModel.findOneAndUpdate(
+      { notificationId: notification.id },
+      {
+        notificationId: notification.id,
+        event: notification.event,
+        recipients: mapRecipientsForLog(notification.recipients),
+        payload: mapPayloadForLog(notification),
+        priority: notification.priority,
+        status: notification.status,
+        failureReason: notification.failureReason,
+        sentAt: notification.sentAt,
+        deliveredAt: notification.deliveredAt,
+        metrics: {
+          attempted: 0,
+          succeeded: 0,
+          failed: 0,
+          skipped: 0
+        },
+        channelResults: [],
+        issues: []
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.warn('[Notifications] Unable to write initial notification log entry', {
+      id: notification.id,
+      error
+    });
+  }
+}
+
+async function persistNotificationOutcome(
+  notification: NotificationPayload,
+  result: BulkNotificationResult
+): Promise<void> {
+  try {
+    await connectToDatabase();
+    const metrics = result.channelMetrics ?? createChannelMetricsMap();
+    const channelResults = Object.values(metrics).map(metric => ({
+      channel: metric.channel,
+      status: resolveChannelStatus(metric),
+      attempts: metric.attempted,
+      succeeded: metric.succeeded,
+      failedCount: metric.failed,
+      skipped: metric.skipped,
+      lastAttemptAt: metric.lastAttemptAt,
+      errors: metric.errors
+    }));
+
+    await NotificationLogModel.findOneAndUpdate(
+      { notificationId: notification.id },
+      {
+        notificationId: notification.id,
+        event: notification.event,
+        recipients: mapRecipientsForLog(notification.recipients),
+        payload: mapPayloadForLog(notification),
+        priority: notification.priority,
+        sentAt: notification.sentAt,
+        deliveredAt: notification.deliveredAt,
+        status: notification.status,
+        failureReason: notification.failureReason,
+        metrics: {
+          attempted: result.attempted,
+          succeeded: result.succeeded,
+          failed: result.failed,
+          skipped: result.skipped
+        },
+        channelResults,
+        issues: result.issues.map(issue => ({
+          userId: issue.userId,
+          channel: issue.channel,
+          type: issue.type,
+          reason: issue.reason,
+          attempt: issue.attempt,
+          attemptedAt: issue.attemptedAt,
+          metadata: issue.metadata
+        }))
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error('[Notifications] Failed to persist notification audit log', {
+      id: notification.id,
+      error
+    });
+  }
+}
+
+async function persistNotificationDeadLetters(
+  notification: NotificationPayload,
+  result: BulkNotificationResult
+): Promise<void> {
+  const failedIssues = result.issues.filter(issue => issue.type === 'failed');
+  if (failedIssues.length === 0) return;
+
+  try {
+    await connectToDatabase();
+    const recipientMap = new Map(notification.recipients.map(recipient => [recipient.userId, recipient]));
+    const metrics = result.channelMetrics ?? createChannelMetricsMap();
+
+    await NotificationDeadLetterModel.insertMany(
+      failedIssues.map(issue => {
+        const recipient = recipientMap.get(issue.userId);
+        return {
+          notificationId: notification.id,
+          event: notification.event,
+          channel: issue.channel,
+          attempts: issue.attempt ?? metrics[issue.channel]?.attempted ?? 1,
+          lastAttemptAt: issue.attemptedAt ?? metrics[issue.channel]?.lastAttemptAt,
+          error: issue.reason,
+          payload: mapPayloadForLog(notification),
+          priority: notification.priority,
+          recipient: recipient
+            ? {
+                userId: recipient.userId,
+                email: recipient.email,
+                phone: recipient.phone,
+                preferredChannels: recipient.preferredChannels
+              }
+            : undefined
+        };
+      }),
+      { ordered: false }
+    );
+
+    const backlog = await NotificationDeadLetterModel.aggregate<{ _id: NotificationChannel; count: number }>([
+      { $match: { status: 'pending' } },
+      { $group: { _id: '$channel', count: { $sum: 1 } } }
+    ]);
+
+    const backlogMap = backlog.reduce<Partial<Record<NotificationChannel, number>>>((acc, entry) => {
+      acc[entry._id] = entry.count;
+      return acc;
+    }, {});
+    setDeadLetterBacklog(backlogMap);
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error('[Notifications] Failed to enqueue notification DLQ entries', {
+      id: notification.id,
+      error
+    });
+  }
 }
 
 /**
@@ -172,6 +377,9 @@ export async function sendNotification(
     deepLink: notification.deepLink
   });
 
+  const dispatchStartedAt = Date.now();
+  await persistNotificationDraft(notification);
+
   if (notification.recipients.length === 0) {
     notification.status = 'failed';
     notification.failureReason = 'No recipients provided';
@@ -179,12 +387,20 @@ export async function sendNotification(
       id: notification.id,
       event: notification.event
     });
+    const emptyResult = createEmptyResult();
+    await persistNotificationOutcome(notification, emptyResult);
+    recordNotificationMetrics({
+      notification,
+      result: emptyResult,
+      durationMs: Date.now() - dispatchStartedAt
+    });
     return {
       attempted: 0,
       succeeded: 0,
       failed: 0,
       skipped: 0,
-      issues: []
+      issues: [],
+      channelMetrics: emptyResult.channelMetrics
     };
   }
 
@@ -192,13 +408,23 @@ export async function sendNotification(
 
   try {
     result = await sendBulkNotifications(notification, notification.recipients);
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     notification.status = 'failed';
-    notification.failureReason = 'Bulk notification dispatch failed';
+    notification.failureReason =
+      error instanceof Error ? error.message : 'Bulk notification dispatch failed';
     notification.sentAt = new Date();
     logger.error('[Notifications] Failed to send notification', {
       id: notification.id,
       error
+    });
+    const failureResult = createEmptyResult();
+    await persistNotificationOutcome(notification, failureResult);
+    recordNotificationMetrics({
+      notification,
+      result: failureResult,
+      durationMs: Date.now() - dispatchStartedAt
     });
     throw error;
   }
@@ -217,6 +443,14 @@ export async function sendNotification(
     notification.status = 'partial_failure';
     notification.failureReason = `${result.failed} of ${result.attempted} channel attempts failed`;
   }
+
+  await persistNotificationOutcome(notification, result);
+  await persistNotificationDeadLetters(notification, result);
+  recordNotificationMetrics({
+    notification,
+    result,
+    durationMs: Date.now() - dispatchStartedAt
+  });
 
   if (result.issues.length > 0) {
     logger.warn('[Notifications] Issues encountered while dispatching', {

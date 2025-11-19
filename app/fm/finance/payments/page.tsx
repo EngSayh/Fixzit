@@ -9,16 +9,14 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { CardGridSkeleton } from '@/components/skeletons';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
-import { useSupportOrg } from '@/contexts/SupportOrgContext';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import ClientDate from '@/components/ClientDate';
 
 export default function PaymentsPage() {
   const auto = useAutoTranslator('fm.finance.payments');
   const { data: session } = useSession();
-  const { effectiveOrgId, canImpersonate, supportOrg } = useSupportOrg();
-  const orgId = effectiveOrgId ?? undefined;
-  const needsOrgSelection = !orgId && canImpersonate;
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
@@ -80,24 +78,8 @@ export default function PaymentsPage() {
     return <CardGridSkeleton count={4} />;
   }
 
-  if (!orgId) {
-    return (
-      <div className="space-y-6">
-        <ModuleViewTabs moduleId="finance" />
-        <div className="rounded-xl border border-border bg-card/30 p-6 space-y-3">
-          <p className="text-destructive font-semibold">
-            {needsOrgSelection
-              ? auto('Select a customer organization to manage payments', 'errors.selectOrg')
-              : auto('Error: No organization ID found in session', 'errors.noOrgSession')}
-          </p>
-          {needsOrgSelection && (
-            <p className="text-sm text-muted-foreground">
-              {auto('Use the Support Organization switcher in the top bar', 'errors.selectOrgHint')}
-            </p>
-          )}
-        </div>
-      </div>
-    );
+  if (!hasOrgContext || !orgId) {
+    return guard;
   }
 
   return (
@@ -262,8 +244,9 @@ function RecordPaymentDialog({ orgId }: { orgId: string }) {
       setVendor('');
       setAmount('');
       setReference('');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : auto('Failed to record payment', 'toast.error');
+    } catch (_error) {
+      const message =
+        _error instanceof Error ? _error.message : auto('Failed to record payment', 'toast.error');
       setSubmitError(message);
       toast.error(message, { id: toastId });
     } finally {

@@ -179,6 +179,8 @@ ZATCA_API_SECRET=...
 ZATCA_ENVIRONMENT=sandbox
 ```
 
+> ℹ️ **Local build tip:** When running `pnpm build` on your laptop, make sure `MONGODB_URI` points to a valid MongoDB Atlas cluster. If you only need to validate the UI bundle and don't have Atlas credentials, export `DISABLE_MONGODB_FOR_BUILD=true` before running the build so the Mongo client wrapper short-circuits immediately instead of timing out.
+
 #### Trigger Workflow
 
 ```bash

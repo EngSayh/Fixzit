@@ -1,4 +1,4 @@
-// @ts-nocheck
+import type { UpdateFilter } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { createRefund } from '@/lib/paytabs';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
@@ -15,6 +15,21 @@ export interface RefundRequest {
   originalPaymentMethod: string;
   originalTransactionId?: string;
 }
+
+
+
+type SellerBalanceDocument = {
+  sellerId: string;
+  availableBalance: number;
+  transactions: Array<{
+    transactionId: string;
+    type: string;
+    amount: number;
+    reason: string;
+    createdAt: Date;
+  }>;
+  updatedAt?: Date;
+};
 
 export interface RefundResult {
   refundId: string;
@@ -51,12 +66,16 @@ export class RefundProcessor {
   private static COLLECTION = 'souq_refunds';
   private static MAX_RETRIES = 3;
   private static RETRY_DELAY_MS = 5000; // 5 seconds
+  private static async collection() {
+    const db = await getDatabase();
+    return db.collection<Refund>(this.COLLECTION);
+  }
 
   /**
    * Process refund for approved claim
    */
   static async processRefund(request: RefundRequest): Promise<RefundResult> {
-    const db = await getDatabase();
+    const collection = await this.collection();
 
     // Create refund record
     const refundId = `REF-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
@@ -77,7 +96,7 @@ export class RefundProcessor {
       updatedAt: new Date(),
     };
 
-    await db.collection(this.COLLECTION).insertOne(refund);
+    await collection.insertOne(refund);
 
     // Attempt to process refund
     try {
@@ -99,7 +118,9 @@ export class RefundProcessor {
       await this.notifyRefundStatus(request.buyerId, request.sellerId, result);
 
       return result;
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       await this.updateRefundStatus(refundId, 'failed', {
         failureReason: error instanceof Error ? error.message : 'Unknown error',
       });
@@ -126,7 +147,9 @@ export class RefundProcessor {
         transactionId: gatewayResult.transactionId,
         completedAt: new Date(),
       };
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       // Retry logic
       if (refund.retryCount < this.MAX_RETRIES) {
         await this.scheduleRetry(refund);
@@ -200,9 +223,9 @@ export class RefundProcessor {
    * Schedule retry for failed refund
    */
   private static async scheduleRetry(refund: Refund): Promise<void> {
-    const db = await getDatabase();
+    const collection = await this.collection();
 
-    await db.collection(this.COLLECTION).updateOne(
+    await collection.updateOne(
       { refundId: refund.refundId },
       {
         $inc: { retryCount: 1 },
@@ -215,9 +238,8 @@ export class RefundProcessor {
 
     // Schedule retry after delay
     setTimeout(async () => {
-      const updatedRefund = await db
-        .collection(this.COLLECTION)
-        .findOne({ refundId: refund.refundId }) as Refund | null;
+      const latestCollection = await this.collection();
+      const updatedRefund = await latestCollection.findOne({ refundId: refund.refundId });
 
       if (updatedRefund && updatedRefund.status === 'processing') {
         await this.executeRefund(updatedRefund);
@@ -237,8 +259,6 @@ export class RefundProcessor {
       failureReason?: string;
     }
   ): Promise<void> {
-    const db = await getDatabase();
-
     const update: Record<string, unknown> = {
       status,
       updatedAt: new Date(),
@@ -249,7 +269,8 @@ export class RefundProcessor {
     if (data?.failureReason) update.failureReason = data.failureReason;
     if (status === 'processing') update.processedAt = new Date();
 
-    await db.collection(this.COLLECTION).updateOne({ refundId }, { $set: update });
+    const collection = await this.collection();
+    await collection.updateOne({ refundId }, { $set: update });
   }
 
   /**
@@ -260,7 +281,6 @@ export class RefundProcessor {
     status: string
   ): Promise<void> {
     const db = await getDatabase();
-
     await db.collection('souq_orders').updateOne(
       { orderId },
       {
@@ -298,9 +318,8 @@ export class RefundProcessor {
    * Get refund by ID
    */
   static async getRefund(refundId: string): Promise<Refund | null> {
-    const db = await getDatabase();
-    const refund = await db.collection(this.COLLECTION).findOne({ refundId });
-    return refund as Refund | null;
+    const collection = await this.collection();
+    return collection.findOne({ refundId });
   }
 
   /**
@@ -314,7 +333,7 @@ export class RefundProcessor {
     limit?: number;
     offset?: number;
   }): Promise<{ refunds: Refund[]; total: number }> {
-    const db = await getDatabase();
+    const collection = await this.collection();
 
     const query: Record<string, unknown> = {};
     if (filters.buyerId) query.buyerId = filters.buyerId;
@@ -326,18 +345,17 @@ export class RefundProcessor {
     const offset = filters.offset || 0;
 
     const [refunds, total] = await Promise.all([
-      db
-        .collection(this.COLLECTION)
+      collection
         .find(query)
         .sort({ createdAt: -1 })
         .skip(offset)
         .limit(limit)
         .toArray(),
-      db.collection(this.COLLECTION).countDocuments(query),
+      collection.countDocuments(query),
     ]);
 
     return {
-      refunds: refunds as Refund[],
+      refunds,
       total,
     };
   }
@@ -346,15 +364,13 @@ export class RefundProcessor {
    * Retry failed refunds
    */
   static async retryFailedRefunds(): Promise<number> {
-    const db = await getDatabase();
-
-    const failedRefunds = await db
-      .collection(this.COLLECTION)
+    const collection = await this.collection();
+    const failedRefunds = await collection
       .find({
         status: 'failed',
         retryCount: { $lt: this.MAX_RETRIES },
       })
-      .toArray() as Refund[];
+      .toArray();
 
     let retriedCount = 0;
 
@@ -362,8 +378,10 @@ export class RefundProcessor {
       try {
         await this.executeRefund(refund);
         retriedCount++;
-      } catch (error) {
-        logger.error('Failed to retry refund', { refundId: refund.refundId, error });
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
+        logger.error('Failed to retry refund', error, { refundId: refund.refundId });
       }
     }
 
@@ -384,9 +402,12 @@ export class RefundProcessor {
     avgProcessingTime: number;
     successRate: number;
   }> {
-    const db = await getDatabase();
+    const collection = await this.collection();
 
-    const query: Record<string, unknown> = {};
+    const query: {
+      sellerId?: string;
+      createdAt?: { $gte?: Date; $lte?: Date };
+    } = {};
     if (filters.sellerId) query.sellerId = filters.sellerId;
     if (filters.startDate || filters.endDate) {
       query.createdAt = {};
@@ -394,7 +415,7 @@ export class RefundProcessor {
       if (filters.endDate) query.createdAt.$lte = filters.endDate;
     }
 
-    const refunds = await db.collection(this.COLLECTION).find(query).toArray() as Refund[];
+    const refunds = await collection.find(query).toArray();
 
     const byStatus: Record<string, number> = {};
     let totalAmount = 0;
@@ -466,24 +487,28 @@ export class RefundProcessor {
     amount: number,
     reason: string
   ): Promise<void> {
-    const db = await getDatabase();
+    const balances = (await getDatabase()).collection<SellerBalanceDocument>('souq_seller_balances');
+    const newTransaction: SellerBalanceDocument['transactions'][number] = {
+      transactionId: `TXN-${Date.now()}`,
+      type: 'deduction',
+      amount: -amount,
+      reason,
+      createdAt: new Date(),
+    };
 
-    // Deduct from seller's available balance
-    await db.collection('souq_seller_balances').updateOne(
-      { sellerId },
-      {
-        $inc: { availableBalance: -amount },
-        $push: {
-          transactions: {
-            transactionId: `TXN-${Date.now()}`,
-            type: 'deduction',
-            amount: -amount,
-            reason,
-            createdAt: new Date(),
-          },
-        },
+    const update: UpdateFilter<SellerBalanceDocument> = {
+      $inc: { availableBalance: -amount },
+      $push: {
+        transactions: newTransaction,
       },
-      { upsert: true }
-    );
+      $set: { updatedAt: new Date() },
+      $setOnInsert: {
+        sellerId,
+        availableBalance: 0,
+        transactions: [],
+      },
+    };
+
+    await balances.updateOne({ sellerId }, update, { upsert: true });
   }
 }

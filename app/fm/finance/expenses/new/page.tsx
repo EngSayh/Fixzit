@@ -6,7 +6,9 @@ import { useFormState } from '@/contexts/FormStateContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { logger } from '@/lib/logger';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 // ============================================================================
 // INTERFACES
 // ============================================================================
@@ -68,6 +70,12 @@ export default function NewExpensePage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { registerForm, unregisterForm } = useFormState();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
+  const missingOrg = !hasOrgContext || !orgId;
+  
+  if (missingOrg) {
+    return guard;
+  }
 
   // Core form state
   const [expenseType, setExpenseType] = useState<string>('OPERATIONAL');
@@ -149,8 +157,8 @@ export default function NewExpensePage() {
           const data = await response.json();
           setVendors(data.vendors || []);
         }
-      } catch (error) {
-        logger.error('Error loading vendors:', error);
+      } catch (_error) {
+        logger.error('Error loading vendors:', _error);
       } finally {
         setLoadingVendors(false);
       }
@@ -168,8 +176,8 @@ export default function NewExpensePage() {
           const data = await response.json();
           setChartAccounts(data.accounts || []);
         }
-      } catch (error) {
-        logger.error('Error loading accounts:', error);
+      } catch (_error) {
+        logger.error('Error loading accounts:', _error);
       } finally {
         setLoadingAccounts(false);
       }
@@ -210,8 +218,8 @@ export default function NewExpensePage() {
         }
 
         setBudgetInfo(budgets);
-      } catch (error) {
-        logger.error('Error loading budget info:', error);
+      } catch (_error) {
+        logger.error('Error loading budget info:', _error);
       }
     };
 
@@ -401,8 +409,8 @@ export default function NewExpensePage() {
       if (data?.expense?.id) {
         router.push(`/finance/expenses/${data.expense.id}`);
       }
-    } catch (error) {
-      logger.error('Error saving draft:', error);
+    } catch (_error) {
+      logger.error('Error saving draft:', _error);
       toast.error(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);
@@ -467,8 +475,8 @@ export default function NewExpensePage() {
       if (data?.expense?.id) {
         router.push(`/finance/expenses/${data.expense.id}`);
       }
-    } catch (error) {
-      logger.error('Error submitting expense:', error);
+    } catch (_error) {
+      logger.error('Error submitting expense:', _error);
       toast.error(t('common.error', 'An error occurred'));
     } finally {
       setIsSubmitting(false);
@@ -487,8 +495,8 @@ export default function NewExpensePage() {
           body: formData
         });
       }
-    } catch (error) {
-      logger.error('Error uploading receipts:', error);
+    } catch (_error) {
+      logger.error('Error uploading receipts:', _error);
       // Don't throw - expense is already created
     }
   };
@@ -497,8 +505,19 @@ export default function NewExpensePage() {
   // RENDER
   // ============================================================================
 
+  if (missingOrg) {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="finance" />
+        {guard}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      <ModuleViewTabs moduleId="finance" />
+      {supportBanner}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

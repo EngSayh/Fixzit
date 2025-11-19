@@ -23,6 +23,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 type EmployeeDraft = {
@@ -73,6 +75,8 @@ const defaultDraft: EmployeeDraft = {
 
 export default function HRDirectoryCreatePage() {
   const auto = useAutoTranslator('fm.hr.directory.new');
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'hr' });
   const router = useRouter();
   const [draft, setDraft] = useState<EmployeeDraft>(defaultDraft);
   const [submitting, setSubmitting] = useState(false);
@@ -101,17 +105,26 @@ export default function HRDirectoryCreatePage() {
       toast.success(auto('Employee added to directory', 'toast.success'));
       resetForm();
       router.push('/fm/hr/directory');
-    } catch (error) {
-      const description = error instanceof Error ? error.message : undefined;
+    } catch (_error) {
+      const description = _error instanceof Error ? _error.message : undefined;
       toast.error(auto('Unable to create employee', 'toast.error'), { description });
     } finally {
       setSubmitting(false);
     }
   };
 
+  if (!hasOrgContext) {
+    return guard;
+  }
+
   return (
     <div className="space-y-8">
       <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
 
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground uppercase tracking-wide">

@@ -6,6 +6,9 @@ import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { getClientIP } from '@/server/security/headers';
+import { fetchWithRetry } from '@/lib/http/fetchWithRetry';
+import { SERVICE_RESILIENCE } from '@/config/service-timeouts';
+import { getCircuitBreaker } from '@/lib/resilience';
 
 const PaymentSchema = z.object({
   orderId: z.string(),
@@ -79,17 +82,28 @@ export async function POST(req: NextRequest) {
       return: `${process.env.NEXTAUTH_URL}/marketplace/order-success`
     };
     
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-    const response = await fetch('https://secure.paytabs.sa/payment/request', {
+    const paytabsResilience = SERVICE_RESILIENCE.paytabs;
+    const paytabsBreaker = getCircuitBreaker('paytabs');
+
+    const response = await fetchWithRetry('https://secure.paytabs.sa/payment/request', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': serverKey
       },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    }).finally(() => clearTimeout(timeout));
+      body: JSON.stringify(payload)
+    }, {
+      timeoutMs: paytabsResilience.timeouts.paymentMs,
+      maxAttempts: paytabsResilience.retries.maxAttempts,
+      retryDelayMs: paytabsResilience.retries.baseDelayMs,
+      label: 'paytabs-payment-request',
+      circuitBreaker: paytabsBreaker,
+      shouldRetry: ({ response, error }) => {
+        if (error) return true;
+        if (!response) return false;
+        return response.status >= 500 || response.status === 429;
+      }
+    });
 
     if (!response.ok) {
       const text = await response.text().catch(() => '');

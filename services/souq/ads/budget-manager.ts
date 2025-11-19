@@ -36,7 +36,7 @@ function createRedisClient(): Redis | null {
       });
 
   client.on('error', (error) => {
-    logger.error('[BudgetManager] Redis connection error', { error });
+    logger.error('[BudgetManager] Redis connection error', error);
   });
 
   return client;

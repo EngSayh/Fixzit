@@ -1,105 +1,79 @@
-// Tests for GET handler in API route (marketplace products by slug)
-// Framework: Vitest
-
-import { vi, describe, it, expect, beforeEach, beforeAll } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { NextRequest } from 'next/server';
 
-// Mock next/server to control NextResponse.json behavior
 vi.mock('next/server', () => {
   return {
-    // Minimal stub for NextRequest type usage; not used by implementation
-    NextRequest: class {},
     NextResponse: {
-      json: (body: any, init?: ResponseInit) => {
-        return {
-          type: 'NextResponseMock',
-          status: init?.status ?? 200,
-          body
-        };
-      }
-    }
+      json: (body: unknown, init?: ResponseInit) => ({
+        type: 'NextResponseMock',
+        status: init?.status ?? 200,
+        body
+      })
+    },
+    NextRequest: class {},
   };
 });
 
-// Mock dependencies used by the current route implementation
-vi.mock('@/lib/marketplace/context', () => {
-  return {
-    resolveMarketplaceContext: vi.fn()
-  };
-});
-
-vi.mock('@/lib/marketplace/search', () => {
-  return {
-    findProductBySlug: vi.fn()
-  };
-});
-
-vi.mock('@/db/mongoose', () => {
-  return {
-    dbConnect: vi.fn()
-  };
-});
-
-vi.mock('@/server/models/marketplace/Category', () => ({
-  __esModule: true,
-  default: { findOne: vi.fn() }
+const mockFindOne = vi.fn();
+vi.mock('@/server/models/MarketplaceProduct', () => ({
+  MarketplaceProduct: {
+    findOne: (...args: unknown[]) => mockFindOne(...args),
+  },
 }));
 
-vi.mock('@/lib/marketplace/serializers', () => {
-  return {
-    serializeCategory: (doc: any) => doc
-  };
-});
+import { GET } from '@/app/api/marketplace/products/[slug]/route';
 
-// Import after mocks
-let GET: any;
-let resolveMarketplaceContext: any;
-let findProductBySlug: any;
-let Category: any;
+type Context = {
+  params: { slug: string };
+};
 
-beforeAll(async () => {
-  ({ GET } = await import('../../../../app/api/marketplace/products/[slug]/route'));
-  ({ resolveMarketplaceContext } = await import('@/lib/marketplace/context'));
-  ({ findProductBySlug } = await import('@/lib/marketplace/search'));
-  const CategoryMod = await import('@/server/models/marketplace/Category');
-  Category = CategoryMod.default;
-});
+const callGET = async (slug: string) => {
+  const req = { headers: new Headers(), nextUrl: { protocol: 'https:' } } as unknown as NextRequest;
+  return await GET(req, { params: { slug } } as Context);
+};
 
-describe('API GET /marketplace/products/[slug] (current implementation)', () => {
-  const callGET = async (slug: string) => {
-    const req = {} as unknown as NextRequest;
-    return await GET(req, { params: { slug } });
-  };
-
+describe('API GET /marketplace/products/[slug]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    resolveMarketplaceContext.mockResolvedValue({ orgId: 'org1', tenantKey: 'demo-tenant' });
-    Category.findOne.mockResolvedValue(null);
+    delete process.env.NEXT_PUBLIC_MARKETPLACE_TENANT;
   });
 
-  it('returns 404 when product is not found', async () => {
-    findProductBySlug.mockResolvedValueOnce(null);
-
-    const res: any = await callGET('unknown-slug');
-
-    expect(res).toEqual({
-      type: 'NextResponseMock',
-      status: 404,
-      body: { ok: false, error: 'Product not found' }
+  it('returns 404 payload when product missing', async () => {
+    mockFindOne.mockReturnValueOnce({
+      lean: vi.fn().mockResolvedValue(null),
     });
+
+    const res: any = await callGET('missing');
+    expect(mockFindOne).toHaveBeenCalledWith({
+      tenantId: 'demo-tenant',
+      slug: 'missing',
+    });
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ ok: false, error: 'Product not found' });
   });
 
-  it('returns ok=true with product and null category (happy path)', async () => {
-    const product = { _id: 'p1', slug: 'toy', categoryId: 'c1' };
-    findProductBySlug.mockResolvedValueOnce(product);
-    Category.findOne.mockResolvedValueOnce(null);
+  it('returns ok payload with computed buy box when product exists', async () => {
+    const doc = {
+      _id: 'abc',
+      slug: 'toy',
+      prices: [{ listPrice: 100, currency: 'USD' }],
+      inventories: [{ onHand: 5, leadDays: 4 }],
+    };
+    mockFindOne.mockReturnValueOnce({
+      lean: vi.fn().mockResolvedValue(doc),
+    });
 
     const res: any = await callGET('toy');
 
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
-    expect(res.body.data.product).toEqual(product);
-    expect(res.body.data.category).toBeNull();
+    expect(res.body.data.product).toEqual(doc);
+    expect(res.body.product).toEqual(doc);
+    expect(res.body.buyBox).toEqual({
+      price: 100,
+      currency: 'USD',
+      inStock: true,
+      leadDays: 4,
+    });
   });
 });
-

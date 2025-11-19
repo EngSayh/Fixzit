@@ -3,12 +3,10 @@ import { Role, ROLE_MODULE_ACCESS, ModuleKey } from '@/domain/fm/fm.behavior';
 
 export type AuthContext = { orgId: string | null; role: string | null };
 
-/* eslint-disable no-unused-vars */
 type RequestLike = {
   cookies?: { get?: (name: string) => { value?: string } | undefined };
   headers?: { get?: (name: string) => string | undefined };
 };
-/* eslint-enable no-unused-vars */
 
 type TokenPayload = { orgId?: string; role?: string } | null | undefined;
 

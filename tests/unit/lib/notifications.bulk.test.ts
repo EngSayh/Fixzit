@@ -57,7 +57,8 @@ describe('sendBulkNotifications', () => {
       succeeded: 4,
       failed: 0,
       skipped: 0,
-      issues: expect.any(Array)
+      issues: expect.any(Array),
+      channelMetrics: expect.any(Object)
     });
   });
 

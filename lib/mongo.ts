@@ -31,7 +31,6 @@ function isTlsEnabled(uri: string): boolean {
  */
 
 // Define interfaces for MongoDB database abstraction
-/* eslint-disable no-unused-vars */
 interface Collection {
   find: (query: Record<string, unknown>) => unknown;
   findOne: (query: Record<string, unknown>) => Promise<unknown>;
@@ -50,7 +49,6 @@ interface DatabaseHandle {
   collection: (name: string) => Collection;
   listCollections?: () => { toArray: () => Promise<unknown[]> };
 }
-/* eslint-enable no-unused-vars */
 
 // MongoDB-only implementation - no mock database
 
@@ -60,6 +58,7 @@ const dbName = process.env.MONGODB_DB || 'fixzit';
 const isProd = process.env.NODE_ENV === 'production';
 const allowLocalMongo = process.env.ALLOW_LOCAL_MONGODB === 'true';
 const disableMongoForBuild = process.env.DISABLE_MONGODB_FOR_BUILD === 'true';
+const allowOfflineMongo = process.env.ALLOW_OFFLINE_MONGODB === 'true';
 
 function resolveMongoUri(): string {
   if (disableMongoForBuild) {
@@ -115,6 +114,18 @@ declare global {
 const globalObj = (typeof global !== 'undefined' ? global : globalThis) as typeof global;
 let conn = globalObj._mongoose as Promise<DatabaseHandle>;
 
+function createOfflineHandle(): DatabaseHandle {
+  const offlineOperation = () => {
+    throw new Error('MongoDB offline fallback: no database connection available');
+  };
+  const offlineCollection = new Proxy({}, {
+    get: () => offlineOperation,
+  }) as Collection;
+  return {
+    collection: () => offlineCollection,
+  };
+}
+
 if (!conn) {
   if (disableMongoForBuild) {
     logger.warn('[Mongo] DISABLE_MONGODB_FOR_BUILD enabled – returning stub database handle');
@@ -144,7 +155,12 @@ if (!conn) {
         return m.connection.db as unknown as DatabaseHandle;
       })
       .catch((err) => {
-        logger.error('ERROR: mongoose.connect() failed', { error: err?.message || err });
+        const errorObj = err instanceof Error ? err : new Error(String(err));
+        logger.error('ERROR: mongoose.connect() failed', errorObj);
+        if (allowOfflineMongo && !isProd) {
+          logger.warn('[Mongo] Offline fallback enabled – continuing without database connection');
+          return createOfflineHandle();
+        }
         throw new Error(`MongoDB connection failed: ${err?.message || err}. Please ensure MongoDB is running.`);
       });
   }
@@ -163,7 +179,9 @@ export async function getDatabase(): Promise<DatabaseHandle> {
     }
     
     throw new Error('No database handle available');
-  } catch (error: unknown) {
+  } catch (_error: unknown) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     const correlationId = new mongoose.Types.ObjectId().toString();
     const devMessage = `Failed to get database handle: ${error}`;
     const err = new Error(devMessage) as Error & {
@@ -175,9 +193,7 @@ export async function getDatabase(): Promise<DatabaseHandle> {
     err.code = 'DB_CONNECTION_FAILED';
     err.userMessage = 'Database connection is currently unavailable. Please try again later.';
     err.correlationId = correlationId;
-    logger.error('Database connection error:', {
-      name: err.name,
-      code: err.code,
+    logger.error('Database connection error:', err, {
       devMessage,
       correlationId,
     });

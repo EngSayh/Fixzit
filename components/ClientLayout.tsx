@@ -10,9 +10,67 @@ import ResponsiveLayout from './ResponsiveLayout';
 import HtmlAttrs from './HtmlAttrs';
 import PreferenceBroadcast from './PreferenceBroadcast';
 import { useTranslation } from '@/contexts/TranslationContext';
+import {
+  AUTH_ROUTES,
+  MARKETING_ROUTE_PREFIXES,
+  MARKETING_ROUTES,
+  PROTECTED_ROUTE_PREFIXES,
+} from '@/config/routes/public';
 import { UserRole, type UserRoleType } from '@/types/user';
 import useSWR from 'swr';
 import type { BadgeCounts } from '@/config/navigation';
+
+type WorkOrderCounters = {
+  total?: number;
+  open?: number;
+  inProgress?: number;
+  overdue?: number;
+};
+
+type FinanceCounters = {
+  unpaid?: number;
+  overdue?: number;
+};
+
+type HrCounters = {
+  probation?: number;
+  onLeave?: number;
+};
+
+type PropertiesCounters = {
+  total?: number;
+  leased?: number;
+  maintenance?: number;
+};
+
+type CrmCounters = {
+  contracts?: number;
+  leads?: number;
+};
+
+type SupportCounters = {
+  open?: number;
+  pending?: number;
+};
+
+type MarketplaceCounters = {
+  orders?: number;
+  listings?: number;
+  reviews?: number;
+};
+
+interface CounterPayload {
+  workOrders?: WorkOrderCounters;
+  finance?: FinanceCounters;
+  invoices?: FinanceCounters;
+  hr?: HrCounters;
+  employees?: HrCounters;
+  properties?: PropertiesCounters;
+  crm?: CrmCounters;
+  customers?: CrmCounters;
+  support?: SupportCounters;
+  marketplace?: MarketplaceCounters;
+}
 
 const countersFetcher = async (url: string, init?: RequestInit) => {
   const response = await fetch(url, { 
@@ -25,7 +83,7 @@ const countersFetcher = async (url: string, init?: RequestInit) => {
   return response.json();
 };
 
-const mapCountersToBadgeCounts = (counters?: Record<string, any>): BadgeCounts | undefined => {
+const mapCountersToBadgeCounts = (counters?: CounterPayload): BadgeCounts | undefined => {
   if (!counters) return undefined;
   const value: BadgeCounts = {};
 
@@ -92,15 +150,21 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const [authUser, setAuthUser] = useState<{ id?: string; role?: string } | null>(null);
 
-  const publicRoutes = new Set<string>(['/','/about','/privacy','/terms']);
-  const authRoutes = new Set<string>(['/login','/forgot-password','/signup','/reset-password']);
+  const marketingRoutes = new Set<string>(MARKETING_ROUTES);
+  const marketingRoutePrefixes = MARKETING_ROUTE_PREFIXES;
+  const authRoutes = new Set<string>(AUTH_ROUTES);
 
-  const isLandingPage = publicRoutes.has(pathname);
-  const isAuthPage = authRoutes.has(pathname) || pathname.startsWith('/login') || pathname.startsWith('/signup');
+  const isMarketingPage =
+    marketingRoutes.has(pathname) ||
+    marketingRoutePrefixes.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  const isAuthPage =
+    authRoutes.has(pathname) ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/signup');
 
   // Use a single source of truth for what's protected on the client
-  const protectedPrefixes = ['/fm', '/admin', '/crm']; // mirror your middleware protected sets
-  const isProtectedRoute = protectedPrefixes.some(p => pathname.startsWith(p));
+  const protectedPrefixes = PROTECTED_ROUTE_PREFIXES;
+  const isProtectedRoute = protectedPrefixes.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`));
   
   // Safe translation access
   let language = 'ar';
@@ -174,7 +238,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
 
   // ⚡ FIXED: Unified authentication check (GOLD STANDARD from TopBar.tsx)
   const isAuthenticated = (status === 'authenticated' && session != null) || !!authUser;
-  const shouldFetchCounters = isAuthenticated && !isLandingPage && !isAuthPage;
+  const shouldFetchCounters = isAuthenticated && !isMarketingPage && !isAuthPage;
   const { data: counterData } = useSWR(shouldFetchCounters ? '/api/counters' : null, countersFetcher, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
@@ -190,8 +254,8 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       return;
     }
 
-    // 2) Public landing pages -> guest but don't clear cookies
-    if (isLandingPage) {
+    // 2) Public marketing pages -> guest but don't clear cookies
+    if (isMarketingPage) {
       setRole('guest');
       setLoading(false);
       return;
@@ -220,7 +284,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       setLoading(false);
     }
     // If still loading, keep loading state (don't set guest prematurely)
-  }, [isAuthPage, isLandingPage, isProtectedRoute, pathname, isAuthenticated, session, authUser, status]);
+  }, [isAuthPage, isMarketingPage, isProtectedRoute, pathname, isAuthenticated, session, authUser, status]);
 
   // Client-side protection: redirect guests only from protected routes
   useEffect(() => {
@@ -267,7 +331,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
   );
 
   // Public/landing pages => full layout with TopBar and Footer but no sidebar
-  if (isLandingPage) {
+  if (isMarketingPage) {
     return (
       <>
         <HtmlAttrs />

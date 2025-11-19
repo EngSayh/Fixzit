@@ -60,13 +60,13 @@ export function TopBarProvider({ children }: { children: React.ReactNode }) {
   );
 
   const app = detectAppFromPath(pathname || '/');
-  const module = detectModuleFromPath(pathname || '/');
+  const moduleScope = detectModuleFromPath(pathname || '/');
   const appConfig = APPS[app];
-  const moduleConfig = getModuleSearchConfig(module);
-  const searchEntities = getSearchEntitiesForScope(module, app);
-  const quickActions = getModuleQuickActions(module, app);
-  const savedSearches = getModuleSavedSearches(module);
-  const navKey = getNavKeyForScope(module);
+  const moduleConfig = getModuleSearchConfig(moduleScope);
+  const searchEntities = getSearchEntitiesForScope(moduleScope, app);
+  const quickActions = getModuleQuickActions(moduleScope, app);
+  const savedSearches = getModuleSavedSearches(moduleScope);
+  const navKey = getNavKeyForScope(moduleScope);
 
   const [megaMenuCollapsed, setMegaMenuCollapsedState] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -100,7 +100,7 @@ export function TopBarProvider({ children }: { children: React.ReactNode }) {
     appLabelKey: appConfig.labelKey,
     appFallbackLabel: APP_FALLBACK_LABELS[app],
     appSearchEntities: appConfig.searchEntities,
-    module,
+    module: moduleScope,
     moduleLabelKey: moduleConfig.labelKey,
     moduleFallbackLabel: moduleConfig.fallbackLabel,
     searchPlaceholderKey: moduleConfig.searchPlaceholderKey,
@@ -112,7 +112,7 @@ export function TopBarProvider({ children }: { children: React.ReactNode }) {
     megaMenuCollapsed,
     setMegaMenuCollapsed,
     setApp,
-  }), [app, appConfig, module, moduleConfig, searchEntities, quickActions, savedSearches, navKey, megaMenuCollapsed, setMegaMenuCollapsed]);
+  }), [app, appConfig, moduleScope, moduleConfig, searchEntities, quickActions, savedSearches, navKey, megaMenuCollapsed, setMegaMenuCollapsed]);
 
   return (
     <TopBarContext.Provider value={value}>

@@ -125,7 +125,9 @@ export async function getSecret(
     }
 
     return null;
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     if (required) {
       logger.error('[Secrets] Failed to retrieve required secret', { secretName, error });
       throw error;

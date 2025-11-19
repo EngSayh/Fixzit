@@ -42,9 +42,7 @@ const OTPVerification = dynamic(() => import('@/components/auth/OTPVerification'
 const DemoCredentialsSection = dynamic<{
   isRTL: boolean;
   loginMethod: 'personal' | 'corporate' | 'sso';
-  // eslint-disable-next-line no-unused-vars
   quickLogin: (cred: DemoCredential) => void;
-  // eslint-disable-next-line no-unused-vars
   t: (key: string, fallback: string) => string;
 }>(() => import('@/components/auth/DemoCredentialsSection').catch(() => ({
   default: () => null // Fallback if component doesn't exist yet
@@ -556,7 +554,7 @@ export default function LoginPage() {
                       clearError('identifier');
                       clearError('general');
                     }}
-                    className={`${isRTL ? 'pe-10 text-right' : 'ps-10'} h-12 ${errors.identifier ? 'border-destructive focus:ring-destructive' : ''}`}
+                    className={`${isRTL ? 'pe-10' : 'ps-10'} h-12 ${errors.identifier ? 'border-destructive focus:ring-destructive' : ''}`}
                     aria-invalid={!!errors.identifier}
                     disabled={loading}
                     autoFocus
@@ -603,7 +601,7 @@ export default function LoginPage() {
                       clearError('general');
                     }}
                     className={`${isRTL ? 'pe-10 ps-10' : 'ps-10 pe-10'} h-12 ${errors.password ? 'border-destructive focus:ring-destructive' : ''}`}
-                    style={{ direction: 'ltr', textAlign: isRTL ? 'right' : 'left' }}
+                    style={{ direction: 'ltr' }}
                     aria-invalid={!!errors.password}
                     disabled={loading}
                     required

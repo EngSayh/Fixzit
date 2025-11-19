@@ -1,9 +1,42 @@
 'use client';
 
+import React from 'react';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { APP_DEFAULTS } from '@/config/constants';
 
 export default function LandingPage() {
   const auto = useAutoTranslator('landing');
+  const { locale } = useTranslation();
+  const resolvedLocale = locale || 'en-US';
+
+  const formatNumber = (value: number, options?: Intl.NumberFormatOptions) => {
+    try {
+      return new Intl.NumberFormat(resolvedLocale, options).format(value);
+    } catch {
+      return value.toString();
+    }
+  };
+
+  const formatCurrency = (value: number) =>
+    formatNumber(value, {
+      style: 'currency',
+      currency: APP_DEFAULTS.currency,
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    });
+
+  const formatPercent = (value: number) =>
+    formatNumber(value, {
+      style: 'percent',
+      maximumFractionDigits: 0,
+    });
+
+  const workOrderCount = 124;
+  const overdueCount = 18;
+  const propertyCount = 32;
+  const occupancyRatio = 0.91;
+  const invoiceValue = 1_400_000;
 
   const heroHighlights = [
     { id: 'rapid-rfq', text: auto('Rapid RFQ', 'hero.highlights.rapidRfq') },
@@ -15,22 +48,31 @@ export default function LandingPage() {
     {
       id: 'work-orders',
       label: auto('Work Orders', 'hero.metrics.workOrders.label'),
-      value: '124',
-      subLabel: auto('18 overdue', 'hero.metrics.workOrders.sub'),
+      value: formatNumber(workOrderCount),
+      subLabel: auto('{{count}} overdue', 'hero.metrics.workOrders.sub', {
+        count: formatNumber(overdueCount),
+      }),
     },
     {
       id: 'properties',
       label: auto('Properties', 'hero.metrics.properties.label'),
-      value: '32',
-      subLabel: auto('91% occupied', 'hero.metrics.properties.sub'),
+      value: formatNumber(propertyCount),
+      subLabel: auto('{{percentage}} occupied', 'hero.metrics.properties.sub', {
+        percentage: formatPercent(occupancyRatio),
+      }),
     },
     {
       id: 'invoices',
       label: auto('Invoices', 'hero.metrics.invoices.label'),
-      value: new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR', notation: 'compact', maximumFractionDigits: 1 }).format(1400000),
+      value: formatCurrency(invoiceValue),
       subLabel: auto('this month', 'hero.metrics.invoices.sub'),
     },
   ];
+
+  const heroSubtitle = auto('{{active}} active work orders · {{overdue}} overdue', 'hero.metrics.subtitle', {
+    active: formatNumber(workOrderCount),
+    overdue: formatNumber(overdueCount),
+  });
 
   const modules = [
     {
@@ -126,7 +168,7 @@ export default function LandingPage() {
                     {auto('Today · Portfolio overview', 'hero.metrics.title')}
                   </p>
                   <p className="font-semibold text-sm">
-                    {auto('124 active work orders · 18 overdue', 'hero.metrics.subtitle')}
+                    {heroSubtitle}
                   </p>
                 </div>
                 <span className="px-2 py-1 rounded-full text-[11px] bg-secondary text-secondary-foreground">

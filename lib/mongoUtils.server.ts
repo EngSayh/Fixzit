@@ -44,11 +44,19 @@ export async function getNextAtomicUserCode(session?: mongoose.ClientSession): P
     }
   );
 
-  const result = rawResult as ModifyResult<CounterDoc> | null;
-  // SECURITY: Fail fast if atomic operation didn't return valid sequence
-  // Don't fallback to separate query (breaks atomicity and ignores session)
-  const counter = result?.value ?? null;
-  const seqValue = counter?.seq;
+  const result = rawResult as ModifyResult<CounterDoc> | CounterDoc | null;
+  const seqFromResult =
+    (result && typeof (result as ModifyResult<CounterDoc>).value === 'object'
+      ? (result as ModifyResult<CounterDoc>).value?.seq
+      : (result as CounterDoc | null)?.seq) ?? undefined;
+
+  let seqValue = seqFromResult;
+  if (typeof seqValue !== 'number' || Number.isNaN(seqValue)) {
+    // Fallback to direct read (rare but safe when result is missing)
+    const fallbackDoc = await collection.findOne({ _id: 'userCode' });
+    seqValue = fallbackDoc?.seq;
+  }
+
   if (typeof seqValue !== 'number' || Number.isNaN(seqValue)) {
     throw new Error(
       `Failed to generate atomic user code: findOneAndUpdate returned invalid seq. ` +

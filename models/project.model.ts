@@ -214,12 +214,10 @@ export interface IProject {
 }
 
 type ProjectDoc = HydratedDocument<IProject>;
-/* eslint-disable no-unused-vars */
 type ProjectModel = MModel<IProject> & {
   setStatus(projectId: Types.ObjectId, next: TProjectStatus, who: Types.ObjectId | string): Promise<ProjectDoc | null>;
   recomputeBudget(projectId: Types.ObjectId): Promise<ProjectDoc | null>;
 };
-/* eslint-enable no-unused-vars */
 
 // ---------- Schema ----------
 const ProjectSchema = new Schema<IProject>(
@@ -505,7 +503,6 @@ ProjectSchema.pre('save', function (next) {
 });
 
 // ---------- Methods ----------
-// eslint-disable-next-line no-unused-vars
 ProjectSchema.methods.isOverdue = function (this: ProjectDoc): boolean {
   const ms = this.timeline?.milestones || [];
   return ms.some(m => m.dueDate && !m.completionDate && new Date(m.dueDate).getTime() < Date.now());

@@ -1,5 +1,4 @@
 // Lightweight typed wrappers for Mongoose-like query chains used by the search API
-/* eslint-disable no-unused-vars */
 
 type MongooseSort = Record<string, 1 | -1 | 'asc' | 'desc' | 'ascending' | 'descending'> | string | [string, 1 | -1][] | undefined | null;
 

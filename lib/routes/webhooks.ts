@@ -28,12 +28,14 @@ export async function postRouteMetricsWebhook(payload: MetricsWebhookPayload) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error('Failed to post route metrics webhook', {
+      const err = new Error(`Route metrics webhook responded with ${response.status}: ${errorText}`);
+      logger.error('Failed to post route metrics webhook', err, {
         status: response.status,
-        error: errorText,
       });
     }
-  } catch (error) {
-    logger.error('Error posting route metrics webhook', { error });
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
+    logger.error('Error posting route metrics webhook', error as Error);
   }
 }

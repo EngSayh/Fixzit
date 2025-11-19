@@ -20,6 +20,7 @@ async function globalSetup(config: FullConfig) {
   console.log('\n🔐 Setting up authentication states for all roles (OTP flow)...\n');
 
   const baseURL = config.projects[0].use.baseURL || 'http://localhost:3000';
+  const offlineMode = process.env.ALLOW_OFFLINE_MONGODB === 'true';
 
   const roles: RoleConfig[] = [
     {
@@ -82,6 +83,18 @@ async function globalSetup(config: FullConfig) {
 
   await mkdir('tests/state', { recursive: true });
   const browser = await chromium.launch();
+
+  if (offlineMode) {
+    console.warn('\n⚠️  Offline mode detected - skipping OTP bootstrap and writing guest states.\n');
+    for (const role of roles) {
+      const context = await browser.newContext();
+      await context.storageState({ path: role.statePath });
+      await context.close();
+    }
+    await browser.close();
+    console.log('\n✅ Offline auth states ready\n');
+    return;
+  }
 
   for (const role of roles) {
     const context = await browser.newContext();

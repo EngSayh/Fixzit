@@ -26,10 +26,14 @@ echo ""
 echo "🔥 Top 10 Memory-Consuming Processes:"
 if [ "$OS" = "Darwin" ]; then
   # macOS
+  set +o pipefail
   ps aux | sort -k4 -r | head -11 | awk 'BEGIN {printf "%-8s %-7s %-7s %s\n", "PID", "MEM%", "RSS(MB)", "COMMAND"} NR>1 {printf "%-8s %-7s %-7.1f %s\n", $2, $4, $6/1024, $11}'
+  set -o pipefail
 else
   # Linux
+  set +o pipefail
   ps aux --sort=-%mem | head -11 | awk 'BEGIN {printf "%-8s %-7s %-7s %s\n", "PID", "MEM%", "RSS(MB)", "COMMAND"} NR>1 {printf "%-8s %-7s %-7.1f %s\n", $2, $4, $6/1024, $11}'
+  set -o pipefail
 fi
 echo ""
 
@@ -40,13 +44,21 @@ echo ""
 
 # Check if memory is critically low
 if [ "$OS" = "Darwin" ]; then
-  # macOS - use vm_stat
-  FREE_PAGES=$(vm_stat | grep "Pages free" | awk '{print $3}' | tr -d '.')
-  INACTIVE_PAGES=$(vm_stat | grep "Pages inactive" | awk '{print $3}' | tr -d '.')
-  SPECULATIVE_PAGES=$(vm_stat | grep "Pages speculative" | awk '{print $3}' | tr -d '.')
-  AVAILABLE_MB=$(( ($FREE_PAGES + $INACTIVE_PAGES + $SPECULATIVE_PAGES) * 4096 / 1048576 ))
-  TOTAL_MEM_MB=$(sysctl -n hw.memsize | awk '{print $1/1048576}')
-  PERCENT_AVAILABLE=$(awk "BEGIN {printf \"%.0f\", ($AVAILABLE_MB/$TOTAL_MEM_MB)*100}")
+  # macOS - use vm_stat with actual page size
+  VM_STAT_OUTPUT="$(vm_stat)"
+  PAGE_SIZE_BYTES=$(echo "$VM_STAT_OUTPUT" | head -1 | awk '{for (i=1;i<=NF;i++) if ($i ~ /^[0-9]+$/) {print $i; exit}}')
+  PAGE_SIZE_BYTES=${PAGE_SIZE_BYTES:-4096}
+  FREE_PAGES=$(echo "$VM_STAT_OUTPUT" | awk '/Pages free/ {gsub("\\.", "", $3); print $3}')
+  INACTIVE_PAGES=$(echo "$VM_STAT_OUTPUT" | awk '/Pages inactive/ {gsub("\\.", "", $3); print $3}')
+  SPECULATIVE_PAGES=$(echo "$VM_STAT_OUTPUT" | awk '/Pages speculative/ {gsub("\\.", "", $3); print $3}')
+  FREE_PAGES=${FREE_PAGES:-0}
+  INACTIVE_PAGES=${INACTIVE_PAGES:-0}
+  SPECULATIVE_PAGES=${SPECULATIVE_PAGES:-0}
+  TOTAL_AVAILABLE_PAGES=$((FREE_PAGES + INACTIVE_PAGES + SPECULATIVE_PAGES))
+  AVAILABLE_BYTES=$((TOTAL_AVAILABLE_PAGES * PAGE_SIZE_BYTES))
+  AVAILABLE_MB=$(awk -v bytes="$AVAILABLE_BYTES" 'BEGIN {printf "%.0f", bytes/1048576}')
+  TOTAL_MEM_MB=$(sysctl -n hw.memsize | awk '{printf "%.0f", $1/1048576}')
+  PERCENT_AVAILABLE=$(awk -v avail="$AVAILABLE_MB" -v total="$TOTAL_MEM_MB" 'BEGIN {if (total == 0) {print 0} else {printf "%.0f", (avail/total)*100}}')
 else
   # Linux
   AVAILABLE_MEM=$(free | grep Mem | awk '{print $7}')

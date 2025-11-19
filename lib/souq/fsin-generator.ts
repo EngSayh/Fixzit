@@ -241,7 +241,9 @@ export async function fsinExists(_fsin: string): Promise<boolean> {
     
     const product = await SouqProduct.findOne({ fsin: _fsin }).select('_id').lean();
     return !!product;
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     // ✅ SECURITY FIX: Throw on DB errors to prevent duplicate FSINs during outages
     // If we can't query the DB, we can't guarantee uniqueness - fail hard
     logger.error('[FSIN] Database lookup failed - cannot verify uniqueness', error as Error, { fsin: _fsin });

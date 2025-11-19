@@ -9,7 +9,6 @@ import mongoose, { Schema, Document } from 'mongoose';
 import { getModel } from '@/src/types/mongoose-compat';
 
 // Enums
-/* eslint-disable no-unused-vars */
 export enum ListingIntent {
   BUY = 'BUY',
   RENT = 'RENT',
@@ -78,7 +77,6 @@ export enum ProptechFeature {
   EV_CHARGER = 'EV_CHARGER',
   SECURITY_AI = 'SECURITY_AI',
 }
-/* eslint-enable no-unused-vars */
 
 // Interfaces
 export interface IListingMedia {

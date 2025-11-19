@@ -1,6 +1,7 @@
 'use client';
 
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,7 @@ type ContractFormState = {
 };
 
 export default function ComplianceContractPage() {
+  const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({ moduleId: 'compliance' });
   const auto = useAutoTranslator('fm.compliance.contracts.new');
   const [form, setForm] = useState<ContractFormState>({
     vendor: '',
@@ -93,6 +95,9 @@ export default function ComplianceContractPage() {
       toastId = toast.loading(auto('Submitting contract...', 'actions.progress'));
       const response = await fetch('/api/contracts', {
         method: 'POST',
+        headers: {
+          ...(orgId && { 'x-tenant-id': orgId }),
+        } as HeadersInit,
         body: formData,
       });
       if (!response.ok) {
@@ -103,8 +108,8 @@ export default function ComplianceContractPage() {
       setForm({ vendor: '', effective: '', expiry: '', sla: '', obligations: '' });
       setAttachments([]);
       setErrors({});
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Request failed';
+    } catch (_error) {
+      const message = _error instanceof Error ? _error.message : 'Request failed';
       setGeneralError(message);
       if (toastId) {
         toast.error(message, { id: toastId });
@@ -137,9 +142,14 @@ export default function ComplianceContractPage() {
     setAttachments(files);
   };
 
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="compliance" />
+      {supportBanner}
 
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">{auto('Vendor compliance', 'header.kicker')}</p>
@@ -230,11 +240,11 @@ export default function ComplianceContractPage() {
                 onChange={handleAttachmentChange}
               />
               <Button type="button" variant="outline" onClick={handleAttachmentClick} disabled={submitting}>
-                <FileText className="mr-2 h-4 w-4" />
+                <FileText className="me-2 h-4 w-4" />
                 {auto('Attach certificates', 'actions.attach')}
               </Button>
               {attachments.length > 0 && (
-                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                <ul className="list-disc space-y-1 ps-5 text-sm text-muted-foreground">
                   {attachments.map((file) => (
                     <li key={`${file.name}-${file.lastModified}`}>{file.name}</li>
                   ))}
@@ -252,7 +262,7 @@ export default function ComplianceContractPage() {
 
         <div className="flex gap-3">
           <Button type="submit" disabled={submitting}>
-            <Stamp className="mr-2 h-4 w-4" />
+            <Stamp className="me-2 h-4 w-4" />
             {submitting ? auto('Submitting...', 'actions.submitting') : auto('Submit for legal review', 'actions.submit')}
           </Button>
         </div>

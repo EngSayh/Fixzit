@@ -99,15 +99,12 @@ export interface IReferralCode {
 }
 
 // --------- Document & Model typing ----------
-/* eslint-disable no-unused-vars */
 export type ReferralCodeDoc = HydratedDocument<IReferralCode> & {
   conversionRateComputed: number;
   isValid(): boolean;
   canBeUsedBy(userId: Types.ObjectId): boolean;
 };
-/* eslint-enable no-unused-vars */
 
-/* eslint-disable no-unused-vars */
 export interface ReferralCodeStaticMethods {
   generateCode(orgId: Types.ObjectId, length?: number): Promise<string>;
   applyCode(args: {
@@ -133,7 +130,6 @@ export interface ReferralCodeStaticMethods {
     transactionId?: string;
   }): Promise<ReferralCodeDoc | null>;
 }
-/* eslint-enable no-unused-vars */
 
 type ReferralCodeModelType = MModel<IReferralCode> & ReferralCodeStaticMethods;
 
@@ -224,7 +220,6 @@ ReferralCodeSchema.index({ orgId: 1, 'referrals.referredUserId': 1 }, { name: 'o
 ReferralCodeSchema.index({ orgId: 1, 'campaign.name': 1 }, { name: 'org_campaign_name' });
 
 // ---------------- Virtuals ----------------
-// eslint-disable-next-line no-unused-vars
 ReferralCodeSchema.virtual('conversionRateComputed').get(function (this: ReferralCodeDoc) {
   const total = this.stats?.totalReferrals ?? 0;
   const success = this.stats?.successfulReferrals ?? 0;
@@ -232,7 +227,6 @@ ReferralCodeSchema.virtual('conversionRateComputed').get(function (this: Referra
 });
 
 // ---------------- Instance Methods ----------------
-// eslint-disable-next-line no-unused-vars
 ReferralCodeSchema.methods.isValid = function (this: ReferralCodeDoc) {
   if (this.status !== 'ACTIVE') return false;
   const now = new Date();
@@ -292,8 +286,7 @@ ReferralCodeSchema.statics.applyCode = async function ({
   const uid = new Types.ObjectId(userId as string);
   const org = new Types.ObjectId(orgId as string);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const andConds: any[] = [
+  const andConds: Record<string, unknown>[] = [
     { $or: [{ 'limits.validFrom': { $exists: false } }, { 'limits.validFrom': { $lte: now } }] },
     { $or: [{ 'limits.validUntil': { $exists: false } }, { 'limits.validUntil': { $gte: now } }] },
     {
@@ -337,8 +330,7 @@ ReferralCodeSchema.statics.applyCode = async function ({
     andConds.push({ $or: [{ 'targeting.properties': { $exists: false } }, { 'targeting.properties': pid }] });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const query: any = {
+  const query: Record<string, unknown> = {
     orgId: org,
     code: code.toUpperCase(),
     status: 'ACTIVE',
@@ -346,8 +338,7 @@ ReferralCodeSchema.statics.applyCode = async function ({
   };
 
   // Pipeline update with $ifNull guards to avoid null math
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const update: any[] = [
+  const update: Record<string, unknown>[] = [
     {
       $set: {
         referrals: {

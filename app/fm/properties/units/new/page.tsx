@@ -10,11 +10,11 @@ import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import { ClipboardCheck, Compass, Upload } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { useSupportOrg } from '@/contexts/SupportOrgContext';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 export default function CreatePropertyUnitPage() {
   const auto = useAutoTranslator('fm.properties.units.new');
-  const { effectiveOrgId, supportOrg } = useSupportOrg();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'properties' });
   const [form, setForm] = useState({
     name: '',
     type: '',
@@ -39,7 +39,7 @@ export default function CreatePropertyUnitPage() {
         name: form.name.trim(),
         type: form.type.toUpperCase(),
         description: form.notes.trim() || undefined,
-        organizationId: effectiveOrgId ?? undefined,
+        organizationId: orgId ?? undefined,
         address: form.name ? { street: form.name.trim() } : undefined,
         details: numericSize ? { totalArea: numericSize } : undefined,
         financials: numericRent ? { annualRent: numericRent } : undefined,
@@ -70,12 +70,16 @@ export default function CreatePropertyUnitPage() {
       }
       toast.success(auto('Unit published successfully.', 'next.success'));
       setForm({ name: '', type: '', size: '', rent: '', notes: '' });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Request failed');
+    } catch (_error) {
+      toast.error(_error instanceof Error ? _error.message : 'Request failed');
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
 
   return (
     <div className="space-y-6">
@@ -147,11 +151,11 @@ export default function CreatePropertyUnitPage() {
           </div>
           <div className="flex flex-wrap gap-3">
             <Button type="button" variant="outline">
-              <Upload className="mr-2 h-4 w-4" />
+              <Upload className="me-2 h-4 w-4" />
               {auto('Attach floor plan', 'form.attachFloorPlan')}
             </Button>
             <Button type="button" variant="outline">
-              <Compass className="mr-2 h-4 w-4" />
+              <Compass className="me-2 h-4 w-4" />
               {auto('Pin location', 'form.pinLocation')}
             </Button>
           </div>
@@ -167,7 +171,7 @@ export default function CreatePropertyUnitPage() {
               {auto('Clear form', 'next.clear')}
             </Button>
             <Button type="submit" disabled={submitting}>
-              <ClipboardCheck className="mr-2 h-4 w-4" />
+              <ClipboardCheck className="me-2 h-4 w-4" />
               {submitting ? auto('Publishing...', 'next.submitting') : auto('Publish unit', 'next.publish')}
             </Button>
           </CardContent>

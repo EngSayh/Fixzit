@@ -177,7 +177,7 @@ def main():
         files = [Path(arg) for arg in sys.argv[1:]]
     else:
         # Default: Fix the 5 files mentioned by CodeRabbit
-        reports_dir = Path(__file__).parent.parent / 'DAILY_PROGRESS_REPORTS'
+        reports_dir = Path(__file__).parent.parent / 'docs' / 'archived' / 'DAILY_PROGRESS_REPORTS'
         files = [
             reports_dir / '2025-11-11-comprehensive-fixes-pr273-272.md',
             reports_dir / '2025-11-11_COMPREHENSIVE_5_DAY_COMPLETION.md',

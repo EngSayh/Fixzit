@@ -79,10 +79,10 @@ export function RatingSummary({ stats, showVerified = true }: RatingSummaryProps
                     style={{ width: `${percentage}%` }}
                   />
                 </div>
-                <span className="text-sm text-muted-foreground w-12 text-right">
+                <span className="text-sm text-muted-foreground w-12 text-end">
                   {percentage}%
                 </span>
-                <span className="text-sm text-muted-foreground w-12 text-right">
+                <span className="text-sm text-muted-foreground w-12 text-end">
                   ({data?.count || 0})
                 </span>
               </div>

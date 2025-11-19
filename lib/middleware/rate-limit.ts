@@ -35,8 +35,10 @@ export function enforceRateLimit(
   const identifier = options.identifier ?? getClientIP(request);
   const prefix = options.keyPrefix ?? new URL(request.url).pathname;
   const key = `${prefix}:${identifier}`;
+  const limit = options.requests ?? 30;
+  const windowMs = options.windowMs ?? 60_000;
 
-  const result = rateLimit(key, options.requests ?? 30, options.windowMs ?? 60_000);
+  const result = rateLimit(key, limit, windowMs);
   if (!result.allowed) {
     // Log security event for monitoring
     logSecurityEvent({
@@ -45,13 +47,20 @@ export function enforceRateLimit(
       path: new URL(request.url).pathname,
       timestamp: new Date().toISOString(),
       metadata: {
-        limit: options.requests ?? 30,
-        windowMs: options.windowMs ?? 60_000,
+        limit,
+        windowMs,
         keyPrefix: prefix,
+        remaining: result.remaining,
       },
     }).catch(err => console.error('[RateLimit] Failed to log security event:', err));
-    
-    return rateLimitError();
+
+    const response = rateLimitError();
+    response.headers.set('Retry-After', String(Math.ceil(windowMs / 1000)));
+    response.headers.set('X-RateLimit-Limit', String(limit));
+    response.headers.set('X-RateLimit-Remaining', '0');
+    response.headers.set('X-RateLimit-Reset', String(Date.now() + windowMs));
+
+    return response;
   }
 
   return null;

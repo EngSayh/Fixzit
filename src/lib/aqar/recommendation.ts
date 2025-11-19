@@ -88,7 +88,7 @@ export async function getRecommendedListings({
         $lte: basePrice * 1.2,
       };
     }
-    baseQuery._id = { $ne: seedListing._id } as any;
+    baseQuery._id = { $ne: seedListing._id };
   } else {
     if (city) {
       baseQuery.city = city;

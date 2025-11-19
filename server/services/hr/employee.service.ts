@@ -1,4 +1,4 @@
-import type { FilterQuery, UpdateQuery } from 'mongoose';
+import { type FilterQuery, type UpdateQuery, Types } from 'mongoose';
 import {
   Employee,
   type EmployeeDoc,
@@ -51,10 +51,12 @@ export class EmployeeService {
   private static buildQuery(filters: EmployeeSearchFilters): FilterQuery<EmployeeDoc> {
     const query: FilterQuery<EmployeeDoc> = { orgId: filters.orgId, isDeleted: false };
 
-    if (filters.departmentId) query.departmentId = filters.departmentId as any;
+    if (filters.departmentId) {
+      query.departmentId = new Types.ObjectId(filters.departmentId);
+    }
     if (filters.employmentStatus) query.employmentStatus = filters.employmentStatus;
     if (filters.skills?.length) {
-      query['technicianProfile.skills'] = { $all: filters.skills } as any;
+      query['technicianProfile.skills'] = { $all: filters.skills };
     }
     if (filters.text) {
       query.$or = [
@@ -92,12 +94,17 @@ export class EmployeeService {
       email: payload.email,
       phone: payload.phone,
       jobTitle: payload.jobTitle,
-      departmentId: payload.departmentId as any,
-      managerId: payload.managerId as any,
       employmentType: payload.employmentType,
       employmentStatus: payload.employmentStatus ?? 'ACTIVE',
       hireDate: payload.hireDate,
     };
+
+    if (payload.departmentId) {
+      update.departmentId = new Types.ObjectId(payload.departmentId);
+    }
+    if (payload.managerId) {
+      update.managerId = new Types.ObjectId(payload.managerId);
+    }
 
     if (payload.technicianProfile) {
       update.technicianProfile = payload.technicianProfile;

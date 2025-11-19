@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { can } from "../rbac/workOrdersPolicy";
+import type { Role as WorkOrderRole } from "../rbac/workOrdersPolicy";
 import { auth } from "@/auth";
 import { logger } from '@/lib/logger';
 import { verifyToken } from '@/lib/auth';
@@ -22,6 +23,26 @@ export type SessionUser = {
   roles?: string[];
   realOrgId?: string;
   impersonatedOrgId?: string | null;
+};
+
+const WORK_ORDER_ROLES: WorkOrderRole[] = [
+  "SUPER_ADMIN",
+  "CORPORATE_ADMIN",
+  "FM_MANAGER",
+  "DISPATCHER",
+  "TECHNICIAN",
+  "VENDOR",
+  "TENANT",
+  "OWNER",
+  "FINANCE",
+  "SUPPORT",
+  "AUDITOR",
+];
+
+const normalizeWorkOrderRole = (role?: UserRoleType): WorkOrderRole | null => {
+  if (!role) return null;
+  const upper = role.toUpperCase() as WorkOrderRole;
+  return WORK_ORDER_ROLES.includes(upper) ? upper : null;
 };
 
 /**
@@ -273,8 +294,8 @@ export function requireAbility(ability: Parameters<typeof can>[1]) {
   return async (req: NextRequest) => {
     try {
       const user = await getSessionUser(req);
-      // TODO(type-safety): Ensure UserRoleType matches Role enum
-      if (!can(user.role as any, ability)) {
+      const normalizedRole = normalizeWorkOrderRole(user.role);
+      if (!normalizedRole || !can(normalizedRole, ability)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
       return user;

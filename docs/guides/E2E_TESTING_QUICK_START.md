@@ -257,7 +257,7 @@ pnpm lint
 - **Testing Plan:** `/docs/E2E_TESTING_PLAN.md`
 - **Test Results:** `/docs/E2E_TEST_RESULTS.md`
 - **Blockers Fixed:** `/docs/E2E_TESTING_BLOCKERS_RESOLVED.md`
-- **Session Report:** `/docs/progress/PHASE5_AUTH_DEBUG_SESSION.md`
+- **Session Report:** `/docs/archived/progress/PHASE5_AUTH_DEBUG_SESSION.md`
 - **Session Summary:** `/PHASE5_SESSION_SUMMARY.md`
 - **This Guide:** `/E2E_TESTING_QUICK_START.md`
 

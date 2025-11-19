@@ -156,7 +156,9 @@ export const cache = {
       try {
         const value = await client.get(key);
         return value ? JSON.parse(value) as T : null;
-      } catch (error) {
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
         logger.error('Cache get error', { key, error });
       }
     }
@@ -175,7 +177,9 @@ export const cache = {
           await client.set(key, serialized);
         }
         return;
-      } catch (error) {
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
         logger.error('Cache set error', { key, error });
       }
     }
@@ -188,7 +192,9 @@ export const cache = {
       try {
         await client.del(key);
         return;
-      } catch (error) {
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
         logger.error('Cache delete error', { key, error });
       }
     }
@@ -204,7 +210,9 @@ export const cache = {
           await client.del(...keys);
         }
         return;
-      } catch (error) {
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
         logger.error('Cache delete pattern error', { pattern, error });
       }
     }
@@ -216,7 +224,9 @@ export const cache = {
     if (client) {
       try {
         return (await client.exists(key)) === 1;
-      } catch (error) {
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
         logger.error('Cache exists error', { key, error });
       }
     }
@@ -228,7 +238,9 @@ export const cache = {
     if (client) {
       try {
         return await client.incr(key);
-      } catch (error) {
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
         logger.error('Cache increment error', { key, error });
       }
     }
@@ -241,7 +253,9 @@ export const cache = {
       try {
         await client.expire(key, ttlSeconds);
         return;
-      } catch (error) {
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
         logger.error('Cache expire error', { key, error });
       }
     }
@@ -267,7 +281,9 @@ export const rateLimit = {
         const resetAt = new Date(Date.now() + ttl * 1000);
         const remaining = Math.max(0, limit - current);
         return { allowed: current <= limit, remaining, resetAt };
-      } catch (error) {
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
         logger.error('Rate limit check error', { key, error });
       }
     }

@@ -20,9 +20,32 @@
 
 set -euo pipefail
 
-# Configuration
-readonly MEMORY_THRESHOLD_MB=2048  # 2GB limit for tsserver
-readonly EXTENSION_HOST_LIMIT_MB=2048  # 2GB limit for extension host
+# Configuration — keep values in sync with .vscode/settings.json
+read_vscode_tsserver_limit() {
+    if ! command -v node >/dev/null 2>&1; then
+        return 0
+    fi
+    if [ ! -f ".vscode/settings.json" ]; then
+        return 0
+    fi
+    node <<'NODE'
+const fs = require('fs');
+try {
+  const config = JSON.parse(fs.readFileSync('.vscode/settings.json', 'utf8'));
+  const limit = config['typescript.tsserver.maxTsServerMemory'];
+  if (Number.isFinite(limit)) {
+    process.stdout.write(String(limit));
+  }
+} catch {
+  // Ignore parse errors; caller will fall back to default
+}
+NODE
+}
+
+readonly CONFIGURED_TSSERVER_LIMIT="$(read_vscode_tsserver_limit)"
+readonly DEFAULT_TSSERVER_LIMIT="${CONFIGURED_TSSERVER_LIMIT:-8192}"
+readonly MEMORY_THRESHOLD_MB="${TSERVER_LIMIT_MB:-$DEFAULT_TSSERVER_LIMIT}"  # VS Code tsserver cap (defaults to 8GB)
+readonly EXTENSION_HOST_LIMIT_MB="${EXT_HOST_LIMIT_MB:-$MEMORY_THRESHOLD_MB}"  # Mirror tsserver limit unless overridden
 readonly CHECK_INTERVAL_SECONDS=60  # Monitor every minute
 readonly LOG_FILE="${LOG_FILE:-/tmp/vscode-memory-guard.log}"
 
@@ -177,12 +200,14 @@ show_memory_status() {
     printf "%-10s %-8s %-8s %s\\n" "PID" "MEM%" "MEM(MB)" "COMMAND"
     echo "----------------------------------------"
     
-    ps aux --sort=-%mem | head -11 | tail -10 | while read -r _user pid _pcpu pmem vsz rss _tty _stat _start _time cmd; do
+    set +o pipefail
+    ps aux | awk 'NR>1' | sort -nrk 4 | head -10 | while read -r _user pid _pcpu pmem vsz rss _tty _stat _start _time cmd; do
         local mem_mb=$((rss / 1024))
         local short_cmd
         short_cmd=$(echo "$cmd" | cut -c 1-50)
         printf "%-10s %-8s %-8s %s\\n" "$pid" "$pmem%" "${mem_mb}" "$short_cmd"
     done
+    set -o pipefail
     
     echo ""
     
@@ -264,7 +289,7 @@ apply_memory_limits() {
         log_info "Creating new settings file..."
         cat > "$settings_file" <<EOF
 {
-  "typescript.tsserver.maxTsServerMemory": 4096,
+  "typescript.tsserver.maxTsServerMemory": ${MEMORY_THRESHOLD_MB},
   "typescript.tsserver.experimental.enableProjectDiagnostics": false,
   "typescript.disableAutomaticTypeAcquisition": true,
   "typescript.tsserver.watchOptions": {
@@ -290,7 +315,7 @@ EOF
     else
         log_info "Settings file already exists - please update manually if needed"
         log_info "Recommended settings:"
-        log_info '  "typescript.tsserver.maxTsServerMemory": 4096'
+        log_info "  \"typescript.tsserver.maxTsServerMemory\": ${MEMORY_THRESHOLD_MB}"
         log_info '  "typescript.tsserver.experimental.enableProjectDiagnostics": false'
     fi
 }
@@ -339,7 +364,7 @@ main() {
             echo "  - Run with --kill-duplicates before starting work"
             echo "  - Use --monitor during long coding sessions"
             echo "  - Apply --apply-limits to VS Code settings"
-            echo "  - Restart VS Code if extension host exceeds 2GB"
+            echo "  - Restart VS Code if extension host exceeds ${EXTENSION_HOST_LIMIT_MB}MB"
             ;;
         *)
             log_error "Unknown option: $action"

@@ -32,11 +32,9 @@ interface IChartAccount {
 }
 
 interface IJournalEntryFormProps {
-/* eslint-disable no-unused-vars */
   onSubmit?: (data: IJournalEntryData) => Promise<void>;
   onCancel?: () => void;
   initialData?: Partial<IJournalEntryData>;
-/* eslint-enable no-unused-vars */
   mode?: 'create' | 'edit';
 }
 

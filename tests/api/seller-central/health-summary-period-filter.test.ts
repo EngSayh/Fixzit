@@ -24,7 +24,7 @@ import mongoose from 'mongoose';
 
 describe('GET /api/souq/seller-central/health/summary - Period Filter', () => {
   let testSellerId: string;
-  let orderIds: string[] = [];
+  const orderIds: string[] = [];
 
   beforeAll(async () => {
     // Connect to test database
@@ -44,7 +44,13 @@ describe('GET /api/souq/seller-central/health/summary - Period Filter', () => {
       address: 'King Fahd Road, Riyadh',
       contactEmail: `seller_${Date.now()}@example.com`,
       contactPhone: '+966500000000',
-      kycStatus: 'approved',
+      kycStatus: {
+        status: 'approved',
+        step: 'verification',
+        companyInfoComplete: true,
+        documentsComplete: true,
+        bankDetailsComplete: true,
+      },
       accountHealth: {
         orderDefectRate: 0,
         lateShipmentRate: 0,

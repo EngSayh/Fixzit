@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Returns Service
  * Handles return merchandise authorization (RMA) workflow
@@ -380,8 +379,9 @@ class ReturnsService {
     await rma.completeInspection(
       inspectorId,
       condition,
+      true,
       restockable,
-      inspectionNotes,
+      inspectionNotes || '',
       inspectionPhotos
     );
 

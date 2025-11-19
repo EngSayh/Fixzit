@@ -5,14 +5,19 @@ import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
+import nextPlugin from '@next/eslint-plugin-next';
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 export default [
   // Global ignores (replaces .eslintignore)
   {
+    linterOptions: {
+      reportUnusedDisableDirectives: false,
+    },
     ignores: [
       // Build outputs
       '.next/**',
+      '**/.next/**',
       'node_modules/**',
       '_artifacts/**',
       'coverage/**',
@@ -49,12 +54,19 @@ export default [
     ],
   },
 
-  // Base JavaScript/TypeScript configuration
+  {
+    files: ['next-env.d.ts'],
+    rules: {
+      '@typescript-eslint/triple-slash-reference': 'off',
+    },
+  },
+  // Base JavaScript/TypeScript configuration  
   {
     files: ['**/*.{js,mjs,cjs,ts,tsx,jsx}'],
     languageOptions: {
       ecmaVersion: 2021,
       sourceType: 'module',
+      parser: tseslint.parser,
       globals: {
         ...globals.browser,
         ...globals.node,
@@ -69,7 +81,6 @@ export default [
         React: 'readonly',
         JSX: 'readonly',
       },
-      parser: tseslint.parser,
       parserOptions: {
         ecmaFeatures: {
           jsx: true,
@@ -77,7 +88,6 @@ export default [
       },
     },
     plugins: {
-      '@typescript-eslint': tseslint.plugin,
       'react-hooks': reactHooks,
     },
     rules: {
@@ -85,16 +95,8 @@ export default [
       
       /* TypeScript - Balanced approach between strict and permissive */
       '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unused-vars': ['warn', { 
-        argsIgnorePattern: '^_', 
-        varsIgnorePattern: '^_', 
-        caughtErrorsIgnorePattern: '^_' 
-      }],
-      'no-unused-vars': ['error', { 
-        argsIgnorePattern: '^_', 
-        varsIgnorePattern: '^_', 
-        caughtErrorsIgnorePattern: '^_' 
-      }],
+      '@typescript-eslint/no-unused-vars': 'off',
+      'no-unused-vars': 'off',
       '@typescript-eslint/no-var-requires': 'off',
       '@typescript-eslint/ban-ts-comment': 'off',
 
@@ -113,6 +115,46 @@ export default [
     },
   },
 
+  // TypeScript files - use typescript-eslint configs
+  ...tseslint.configs.recommended.map(config => ({
+    ...config,
+    files: ['**/*.{ts,tsx}'],
+  })),
+
+  // TypeScript files - enforce the TS-aware unused vars rule
+  {
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['error', { 
+        argsIgnorePattern: '^_', 
+        varsIgnorePattern: '^_', 
+        caughtErrorsIgnorePattern: '^_' 
+      }],
+      'no-unused-vars': 'off',
+    },
+  },
+
+  // JavaScript / JSX modules - keep the base unused vars rule
+  {
+    files: ['**/*.{js,jsx,mjs}'],
+    rules: {
+      'no-unused-vars': ['error', { 
+        argsIgnorePattern: '^_', 
+        varsIgnorePattern: '^_', 
+        caughtErrorsIgnorePattern: '^_' 
+      }],
+    },
+  },
+
+  // Test files - allow CommonJS patterns and mutable variables for fixtures
+  {
+    files: ['tests/**/*.{ts,tsx,js,jsx}'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      'prefer-const': 'off',
+    },
+  },
+
   // Schema-heavy files (Mongoose models, plugins, declaration files)
   {
     files: [
@@ -124,13 +166,19 @@ export default [
     rules: {
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/triple-slash-reference': 'off',
     },
   },
 
   // Next.js specific overrides
   {
     files: ['**/*.{ts,tsx,js,jsx}'],
+    plugins: {
+      '@next/next': nextPlugin,
+    },
     rules: {
+      ...nextPlugin.configs.recommended.rules,
       '@next/next/no-img-element': 'off', // Allow img tags for data URLs and dynamic images
     },
   },
@@ -140,11 +188,15 @@ export default [
     files: ['**/*.cjs'],
     languageOptions: {
       sourceType: 'commonjs',
-      parser: null, // Use default parser
     },
     rules: {
       '@typescript-eslint/no-var-requires': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
+      'no-unused-vars': ['error', { 
+        argsIgnorePattern: '^_', 
+        varsIgnorePattern: '^_', 
+        caughtErrorsIgnorePattern: '^_' 
+      }],
     },
   },
 
@@ -216,6 +268,14 @@ export default [
       '@typescript-eslint/no-unused-vars': 'off',
       'no-unused-vars': 'off', // Also disable base rule for test files
       'no-undef': 'off', // Disable for test files since we define globals
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
+
+  {
+    files: ['services/souq/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/ban-ts-comment': 'off',
     },
   },
 

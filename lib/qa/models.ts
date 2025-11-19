@@ -1,7 +1,17 @@
 import { Schema } from 'mongoose'
 import { getModel } from '@/src/types/mongoose-compat';
 
-const QaEventSchema = new Schema({
+interface QaEventDoc {
+  type: string;
+  route?: string;
+  role?: string;
+  orgId?: string;
+  ts?: number;
+  meta?: Record<string, unknown>;
+  screenshot?: string;
+}
+
+const QaEventSchema = new Schema<QaEventDoc>({
   type: { type: String, required: true },
   route: String,
   role: String,
@@ -11,4 +21,4 @@ const QaEventSchema = new Schema({
   screenshot: String,
 }, { timestamps: true });
 
-export const QaEvent = getModel<any>('QaEvent', QaEventSchema);
+export const QaEvent = getModel<QaEventDoc>('QaEvent', QaEventSchema);

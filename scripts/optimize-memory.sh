@@ -16,6 +16,8 @@
 
 set -euo pipefail
 
+OS="$(uname -s)"
+
 # Colors for output
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -39,11 +41,24 @@ fi
 # 1. MEMORY USAGE REPORT
 # ============================================================================
 echo -e "${GREEN}📊 Current Memory Usage:${NC}"
-free -h || echo "free command not available (not Linux)"
+if [ "$OS" = "Darwin" ]; then
+  vm_stat | perl -ne '/page size of (\d+)/ and $size=$1; /Pages\s+([^:]+)[^\d]+(\d+)/ and printf("%-20s % 16.2f MB\n", "$1:", $2 * $size / 1048576);'
+else
+  free -h || echo "free command not available on this OS"
+fi
 echo ""
 
 echo -e "${GREEN}📈 Top 10 Memory-Consuming Processes:${NC}"
-ps aux --sort=-%mem | head -11 | awk 'NR==1 || NR<=11 {printf "%-15s %6s %5s %10s %s\n", $1, $2, $4, $6, substr($0, index($0,$11))}'
+printf "%-15s %6s %5s %10s %s\n" "USER" "PID" "MEM%" "RSS(KB)" "COMMAND"
+if [ "$OS" = "Darwin" ]; then
+  set +o pipefail
+  ps aux | awk 'NR>1' | sort -nrk4 | head -10 | awk '{printf "%-15s %6s %5s %10s %s\n", $1, $2, $4, $6, substr($0, index($0,$11))}'
+  set -o pipefail
+else
+  set +o pipefail
+  ps aux --sort=-%mem | tail -n +2 | head -10 | awk '{printf "%-15s %6s %5s %10s %s\n", $1, $2, $4, $6, substr($0, index($0,$11))}'
+  set -o pipefail
+fi
 echo ""
 
 # ============================================================================

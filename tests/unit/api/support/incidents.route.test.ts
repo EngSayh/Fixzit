@@ -4,7 +4,7 @@
  *
  * We mock:
  * - next/server: NextResponse.json to return simple object with status + payload.
- * - @/lib/mongo: db (awaited promise) and getNativeDb().collection('error_events').insertOne
+ * - @/lib/mongodb-unified: getDatabase().collection('error_events').insertOne
  * - @/server/models/SupportTicket: .create
  *
  * Tests cover:
@@ -31,26 +31,63 @@ vi.mock('next/server', () => {
   };
 });
 
-vi.mock('@/lib/mongo', () => {
-  const insertOne = vi.fn().mockResolvedValue({ acknowledged: true, insertedId: 'mocked-id' });
-  const collection = vi.fn().mockReturnValue({ insertOne });
-  const getNativeDb = vi.fn().mockResolvedValue({ collection });
-  const db = Promise.resolve(true);
-  return { db, getNativeDb };
+const insertOneMock = vi.fn().mockResolvedValue({ acknowledged: true, insertedId: 'mocked-id' });
+const findOneMock = vi.fn().mockResolvedValue(null);
+const updateOneMock = vi.fn().mockResolvedValue({ acknowledged: true, modifiedCount: 1 });
+const collectionMock = vi.fn().mockReturnValue({
+  insertOne: insertOneMock,
+  findOne: findOneMock,
+  updateOne: updateOneMock,
 });
+const getDatabaseMock = vi.fn().mockResolvedValue({ collection: collectionMock });
 
-vi.mock('@/server/models/SupportTicket', () => {
-  return {
-    SupportTicket: {
-      create: vi.fn(async (doc: any) => ({ ...doc, code: doc.code || 'SUP-2024-99999' })),
-    },
-  };
-});
+vi.mock('@/lib/mongodb-unified', () => ({
+  getDatabase: getDatabaseMock,
+}));
+
+const supportTicketCreateMock = vi.fn(async (doc: any) => ({
+  ...doc,
+  code: doc.code || 'SUP-2024-99999',
+}));
+
+vi.mock('@/server/models/SupportTicket', () => ({
+  SupportTicket: {
+    create: supportTicketCreateMock,
+  },
+}));
+
+const getSessionUserMock = vi.fn(async () => ({
+  id: 'user-1',
+  role: 'ADMIN',
+  orgId: 'org-1',
+}));
+
+vi.mock('@/server/middleware/withAuthRbac', () => ({
+  getSessionUser: getSessionUserMock,
+}));
+
+const redisIncrMock = vi.fn();
+const redisExpireMock = vi.fn();
+
+vi.mock('@/lib/redis', () => ({
+  getRedisClient: () => ({
+    incr: redisIncrMock,
+    expire: redisExpireMock,
+  }),
+}));
+
+vi.mock('@/server/security/rateLimit', () => ({
+  rateLimit: vi.fn(() => ({ allowed: true })),
+}));
+
+vi.mock('@/server/security/rateLimitKey', () => ({
+  buildRateLimitKey: vi.fn(() => 'rate-key'),
+}));
 
 // Import after mocks
 let POST: any;
 let NextResponse: any;
-let getNativeDb: any;
+let getDatabase: any;
 let SupportTicket: any;
 
 beforeAll(async () => {
@@ -59,7 +96,7 @@ beforeAll(async () => {
   
   // Get references to mocked modules
   ({ NextResponse } = await import('next/server'));
-  ({ getNativeDb } = await import('@/lib/mongo'));
+  ({ getDatabase } = await import('@/lib/mongodb-unified'));
   ({ SupportTicket } = await import('@/server/models/SupportTicket'));
 });
 
@@ -72,8 +109,27 @@ describe('POST /api/support/incidents', () => {
     vi.setSystemTime(FIXED_DATE);
     randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.123456789);
     NextResponse.json.mockClear();
-    getNativeDb.mockClear();
+    getDatabase.mockClear();
     SupportTicket.create.mockClear();
+    insertOneMock.mockReset();
+    insertOneMock.mockResolvedValue({ acknowledged: true, insertedId: 'mocked-id' });
+    findOneMock.mockReset();
+    findOneMock.mockResolvedValue(null);
+    updateOneMock.mockReset();
+    updateOneMock.mockResolvedValue({ acknowledged: true, modifiedCount: 1 });
+    collectionMock.mockClear();
+    supportTicketCreateMock.mockClear();
+    getSessionUserMock.mockReset();
+    getSessionUserMock.mockResolvedValue({
+      id: 'user-1',
+      role: 'ADMIN',
+      orgId: 'org-1',
+    });
+    redisIncrMock.mockReset();
+    redisIncrMock.mockResolvedValue(1);
+    redisExpireMock.mockReset();
+    redisExpireMock.mockResolvedValue(undefined);
+    delete process.env.ENABLE_ANONYMOUS_INCIDENTS;
   });
 
   afterEach(() => {
@@ -102,16 +158,15 @@ describe('POST /api/support/incidents', () => {
     };
 
     const res = await POST(mkReq(body));
-    expect(NextResponse.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ok: true,
-        incidentId: 'INC-2024-ABCD12',
-        ticketId: expect.stringMatching(/^SUP-\d{4}-\d+$/),
-      }),
-      { status: 202 }
-    );
+    const [payload, init] = NextResponse.json.mock.calls[0];
+    expect(payload).toMatchObject({
+      ok: true,
+      incidentId: 'INC-2024-ABCD12',
+    });
+    expect(payload.ticketId).toMatch(/^SUP-2024-[A-Z0-9]{6}$/);
+    expect(init).toEqual({ status: 202 });
 
-    const native = await getNativeDb.mock.results[0].value;
+    const native = await getDatabase.mock.results[0].value;
     const insertOne = native.collection('error_events').insertOne;
     expect(insertOne).toHaveBeenCalledTimes(1);
     expect(insertOne).toHaveBeenCalledWith(
@@ -122,8 +177,9 @@ describe('POST /api/support/incidents', () => {
         severity: 'P1',
         message: 'Unexpected error occurred',
         details: 'Stack trace...',
-        userContext: body.userContext,
+        sessionUser: { id: 'user-1', role: 'ADMIN', orgId: 'org-1' },
         clientContext: body.clientContext,
+        tenantScope: 'org-1',
         createdAt: FIXED_DATE,
       })
     );
@@ -131,8 +187,8 @@ describe('POST /api/support/incidents', () => {
     expect(SupportTicket.create).toHaveBeenCalledTimes(1);
     expect(SupportTicket.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        tenantId: 't_1',
-        code: expect.stringMatching(/^SUP-2024-\d{1,5}$/),
+        orgId: 'org-1',
+        code: expect.stringMatching(/^SUP-2024-[A-Z0-9]{6}$/),
         subject: '[UI-CORE-500] Unexpected error occurred',
         module: 'Other',
         type: 'Bug',
@@ -140,11 +196,11 @@ describe('POST /api/support/incidents', () => {
         category: 'Technical',
         subCategory: 'Bug Report',
         status: 'New',
-        createdBy: 'u_1',
+        createdBy: 'user-1',
         requester: undefined,
         messages: [
           expect.objectContaining({
-            byUserId: 'u_1',
+            byUserId: 'user-1',
             byRole: 'USER',
             text: 'Unexpected error occurred\n\nStack trace...',
             at: FIXED_DATE,
@@ -156,7 +212,7 @@ describe('POST /api/support/incidents', () => {
     expect(res.status).toBe(202);
     expect(res.json.ok).toBe(true);
     expect(res.json.incidentId).toBe('INC-2024-ABCD12');
-    expect(res.json.ticketId).toMatch(/^SUP-2024-\d{1,5}$/);
+    expect(res.json.ticketId).toMatch(/^SUP-2024-[A-Z0-9]{6}$/);
   });
 
   it('uses defaults when fields are missing and generates incidentId', async () => {
@@ -169,10 +225,10 @@ describe('POST /api/support/incidents', () => {
     const statusInit = (NextResponse.json as ReturnType<typeof vi.fn>).mock.calls[0][1];
     expect(statusInit).toEqual({ status: 202 });
     expect(payload.ok).toBe(true);
-    expect(payload.incidentId).toMatch(/^INC-2024-[A-Z0-9]{6}$/);
+    expect(payload.incidentId).toMatch(/^INC-2024-[A-Z0-9]{8}$/);
     expect(payload.incidentId.startsWith(expectedIncPrefix)).toBe(true);
 
-    const native = await getNativeDb.mock.results[0].value;
+    const native = await getDatabase.mock.results[0].value;
     const insertOne = native.collection('error_events').insertOne;
     expect(insertOne).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -181,8 +237,9 @@ describe('POST /api/support/incidents', () => {
         severity: 'P2',
         message: 'Application error',
         details: undefined,
-        userContext: null,
+        sessionUser: { id: 'user-1', role: 'ADMIN', orgId: 'org-1' },
         clientContext: null,
+        tenantScope: 'org-1',
         createdAt: FIXED_DATE,
       })
     );
@@ -197,23 +254,25 @@ describe('POST /api/support/incidents', () => {
 
   it('maps severity to priority correctly (P0, CRITICAL => Urgent; P1 => High; others => Medium)', async () => {
     const severities = [
-      { in: 'P0', out: 'Urgent' },
-      { in: 'CRITICAL', out: 'Urgent' },
-      { in: 'P1', out: 'High' },
-      { in: 'P2', out: 'Medium' },
-      { in: 'LOW', out: 'Medium' },
+      { input: 'P0', expected: 'Urgent' },
+      { input: 'CRITICAL', expected: 'Urgent' },
+      { input: 'P1', expected: 'High' },
+      { input: 'P2', expected: 'Medium' },
+      { input: 'P3', expected: 'Medium' },
     ];
 
-    for (const { in: sev, out } of severities) {
+    for (const { input, expected } of severities) {
       SupportTicket.create.mockClear();
-      await POST(mkReq({ severity: sev }));
-      expect(SupportTicket.create).toHaveBeenCalledWith(
-        expect.objectContaining({ priority: out })
-      );
+      await POST(mkReq({ severity: input }));
+      expect(SupportTicket.create).toHaveBeenCalled();
+      const call = SupportTicket.create.mock.calls[0][0];
+      expect(call.priority).toBe(expected);
     }
   });
 
-  it('derives requester when userId is absent but email present', async () => {
+  it('derives requester when userId is absent but email present (anonymous mode)', async () => {
+    process.env.ENABLE_ANONYMOUS_INCIDENTS = 'true';
+    getSessionUserMock.mockRejectedValueOnce(new Error('no session'));
     const body = {
       message: 'A thing happened',
       userContext: { email: 'guest.user@example.com', phone: '123-456' },

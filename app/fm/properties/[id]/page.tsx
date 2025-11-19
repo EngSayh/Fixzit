@@ -18,6 +18,7 @@ import {
 import Link from 'next/link';
 import ClientDate from '@/components/ClientDate';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 interface MaintenanceIssue {
   resolved?: boolean;
@@ -41,8 +42,12 @@ export default function PropertyDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
-  const orgId = session?.user?.orgId;
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'properties' });
   const { t } = useTranslation();
+  
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
 
   const handleDelete = async () => {
     const confirmMessage = t(
@@ -67,8 +72,8 @@ export default function PropertyDetailsPage() {
       if (!res.ok) throw new Error('Failed to delete property');
       toast.success(t('fm.properties.detail.toasts.success', 'Property deleted successfully'), { id: toastId });
       router.push('/fm/properties');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to delete property';
+    } catch (_error) {
+      const message = _error instanceof Error ? _error.message : 'Failed to delete property';
       const failureMessage = t(
         'fm.properties.detail.toasts.failure',
         'Failed to delete property: {{message}}'
@@ -86,7 +91,7 @@ export default function PropertyDetailsPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        logger.error('FM property detail fetch error', { error });
+        logger.error('FM property detail fetch error', error);
         throw error;
       });
   };
@@ -97,12 +102,20 @@ export default function PropertyDetailsPage() {
   );
 
   if (!session) return <CardGridSkeleton count={3} />;
-  if (!orgId) return <div>{t('fm.properties.detail.errors.noOrgId', 'Error: No organization ID found in session')}</div>;
+  if (!orgId) {
+    return (
+      <div className="space-y-6">
+        {supportBanner}
+        {guard}
+      </div>
+    );
+  }
   if (error) return <div>{t('fm.properties.detail.errors.loadFailed', 'Failed to load property')}</div>;
   if (isLoading || !property) return <CardGridSkeleton count={3} />;
 
   return (
     <div className="space-y-6">
+      {supportBanner}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">

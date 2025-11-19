@@ -135,9 +135,9 @@ async function ensureAtsModuleAccess(
   }
 
   const { Organization } = await import('@/server/models/Organization');
-  const organization = (await (Organization as any)
-    .findOne({ orgId }, { modules: 1 })
-    .lean()) as Pick<IOrganization, 'modules'> | null;
+  const organization = await Organization.findOne({ orgId }, { modules: 1 }).lean<
+    Pick<IOrganization, 'modules'> | null
+  >();
   const config = organization?.modules?.ats;
 
   if (!config?.enabled) {
@@ -156,7 +156,7 @@ async function ensureAtsModuleAccess(
     };
   }
 
-  const module: AtsModuleAccess = {
+  const atsModule: AtsModuleAccess = {
     enabled: true,
     jobPostLimit:
       typeof config.jobPostLimit === 'number' && config.jobPostLimit > 0
@@ -169,13 +169,13 @@ async function ensureAtsModuleAccess(
     seatUsage: 0,
   };
 
-  if (module.seats !== Number.MAX_SAFE_INTEGER && ATS_SEAT_REQUIRED_ROLES.includes(role)) {
+  if (atsModule.seats !== Number.MAX_SAFE_INTEGER && ATS_SEAT_REQUIRED_ROLES.includes(role)) {
     const usage = await countAtsSeatUsage(orgId);
-    module.seatUsage = usage;
-    if (usage > module.seats) {
+    atsModule.seatUsage = usage;
+    if (usage > atsModule.seats) {
       const t = await getServerTranslation(req);
       return {
-        module,
+        module: atsModule,
         errorResponse: NextResponse.json(
           {
             success: false,
@@ -183,7 +183,7 @@ async function ensureAtsModuleAccess(
             feature: 'ats',
             upgradeUrl: ATS_UPGRADE_PATH,
             seats: {
-              limit: module.seats,
+              limit: atsModule.seats,
               usage,
             },
           },
@@ -193,7 +193,7 @@ async function ensureAtsModuleAccess(
     }
   }
 
-  return { module };
+  return { module: atsModule };
 }
 
 async function countAtsSeatUsage(orgId: string): Promise<number> {

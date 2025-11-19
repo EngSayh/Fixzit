@@ -7,10 +7,13 @@
 
 import { logger } from '@/lib/logger';
 
+type ExportValue = string | number | boolean | Date | Record<string, unknown> | null | undefined;
+type ExportRow = Record<string, ExportValue>;
+
 /**
  * Convert array of objects to CSV string
  */
-export function arrayToCSV<T extends Record<string, any>>(
+export function arrayToCSV<T extends ExportRow>(
   data: T[],
   columns?: { key: keyof T; label: string }[]
 ): string {
@@ -53,7 +56,7 @@ function escapeCsvValue(value: string): string {
 /**
  * Format value for CSV (dates, booleans, etc.)
  */
-function formatValue(value: any): string {
+function formatValue(value: ExportValue): string {
   if (value == null) return '';
   if (value instanceof Date) return value.toISOString();
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
@@ -84,7 +87,7 @@ export function downloadCSV(csvContent: string, filename: string): void {
 /**
  * Export array to CSV and download
  */
-export function exportToCSV<T extends Record<string, any>>(
+export function exportToCSV<T extends ExportRow>(
   data: T[],
   filename: string,
   columns?: { key: keyof T; label: string }[]
@@ -92,7 +95,9 @@ export function exportToCSV<T extends Record<string, any>>(
   try {
     const csv = arrayToCSV(data, columns);
     downloadCSV(csv, filename);
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[Export] Failed to export CSV', { error, filename });
     throw error;
   }
@@ -113,7 +118,7 @@ export interface PDFExportConfig {
  * Generate PDF from table data (client-side using browser print)
  * Creates a printable HTML document and triggers print dialog
  */
-export async function generatePDF<T extends Record<string, any>>(
+export async function generatePDF<T extends ExportRow>(
   data: T[],
   columns: { key: keyof T; label: string }[],
   config: PDFExportConfig
@@ -186,7 +191,9 @@ export async function generatePDF<T extends Record<string, any>>(
     }
 
     logger.info('[Export] PDF print dialog opened', { config });
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[Export] Failed to generate PDF', { error, config });
     throw error;
   }
@@ -195,7 +202,7 @@ export async function generatePDF<T extends Record<string, any>>(
 /**
  * Export to PDF using browser print (no server-side generation needed)
  */
-export async function exportToPDF<T extends Record<string, any>>(
+export async function exportToPDF<T extends ExportRow>(
   data: T[],
   columns: { key: keyof T; label: string }[],
   filename: string,
@@ -208,7 +215,9 @@ export async function exportToPDF<T extends Record<string, any>>(
     };
     
     await generatePDF(data, columns, fullConfig);
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[Export] Failed to export PDF', { error, filename });
     throw error;
   }

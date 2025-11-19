@@ -6,6 +6,7 @@
 import { usePathname } from 'next/navigation';
 import PublicProviders from '@/providers/PublicProviders';
 import AuthenticatedProviders from '@/providers/AuthenticatedProviders';
+import type { Locale } from '@/i18n/config';
 
 // Define public routes that only need minimal providers
 const publicRoutes = new Set<string>([
@@ -40,7 +41,13 @@ const publicRoutePrefixes = [
  * - Homepage LCP improvement: -0.3-0.4s
  * - Auth page load: Faster (no unnecessary providers)
  */
-export default function ConditionalProviders({ children }: { children: React.ReactNode }) {
+export default function ConditionalProviders({
+  children,
+  initialLocale,
+}: {
+  children: React.ReactNode;
+  initialLocale?: Locale;
+}) {
   const pathname = usePathname();
   
   // Check if current route is public
@@ -62,5 +69,5 @@ export default function ConditionalProviders({ children }: { children: React.Rea
     ? PublicProviders 
     : AuthenticatedProviders;
   
-  return <ProviderComponent>{children}</ProviderComponent>;
+  return <ProviderComponent initialLocale={initialLocale}>{children}</ProviderComponent>;
 }

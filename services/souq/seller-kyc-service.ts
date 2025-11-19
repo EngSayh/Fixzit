@@ -1,4 +1,14 @@
-// @ts-nocheck
+export interface IKYCDocumentFile {
+  fileUrl: string;
+  fileType: 'pdf' | 'jpg' | 'png';
+  uploadedAt: Date;
+  verified: boolean;
+  verifiedAt?: Date;
+  verifiedBy?: string;
+  rejectionReason?: string;
+  expiresAt?: Date;
+}
+
 /**
  * Seller KYC Service
  * Handles seller onboarding and verification
@@ -9,7 +19,7 @@
  * - Admin review queue
  */
 
-import { SouqSeller } from '@/server/models/souq/Seller';
+import { SouqSeller, type IKYCDocumentEntry } from '@/server/models/souq/Seller';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
 
 export interface IKYCCompanyInfo {
@@ -41,6 +51,7 @@ export interface IKYCDocuments {
     verifiedAt?: Date;
     verifiedBy?: string;
     rejectionReason?: string;
+    expiresAt?: Date;
   };
   vatCertificate?: {
     fileUrl: string;
@@ -50,6 +61,7 @@ export interface IKYCDocuments {
     verifiedAt?: Date;
     verifiedBy?: string;
     rejectionReason?: string;
+    expiresAt?: Date;
   };
   nationalId: {
     fileUrl: string;
@@ -59,6 +71,7 @@ export interface IKYCDocuments {
     verifiedAt?: Date;
     verifiedBy?: string;
     rejectionReason?: string;
+    expiresAt?: Date;
   };
   bankLetter?: {
     fileUrl: string;
@@ -68,6 +81,7 @@ export interface IKYCDocuments {
     verifiedAt?: Date;
     verifiedBy?: string;
     rejectionReason?: string;
+    expiresAt?: Date;
   };
 }
 
@@ -95,6 +109,49 @@ export interface IVerifyDocumentParams {
   verifiedBy: string;
   rejectionReason?: string;
 }
+
+const DOCUMENT_TYPE_MAP = {
+  commercialRegistration: 'cr',
+  vatCertificate: 'vat_certificate',
+  nationalId: 'id',
+  bankLetter: 'bank_letter',
+} as const;
+
+type DocumentKey = keyof typeof DOCUMENT_TYPE_MAP;
+type StoredDocumentType = (typeof DOCUMENT_TYPE_MAP)[DocumentKey];
+
+const mapBusinessTypeToRegistration = (type: IKYCCompanyInfo['businessType']): 'individual' | 'company' | 'partnership' => {
+  if (type === 'individual') return 'individual';
+  if (type === 'company') return 'company';
+  // Treat establishment as company for now
+  return 'company';
+};
+
+const convertDocumentEntry = <K extends DocumentKey>(
+  doc: NonNullable<IKYCDocuments[K]>,
+  type: StoredDocumentType
+): IKYCDocumentEntry => ({
+  type,
+  url: doc.fileUrl,
+  uploadedAt: doc.uploadedAt ?? new Date(),
+  verified: doc.verified ?? false,
+  expiresAt: 'expiresAt' in doc ? doc.expiresAt : undefined,
+  verifiedAt: 'verifiedAt' in doc ? doc.verifiedAt : undefined,
+  verifiedBy: 'verifiedBy' in doc ? doc.verifiedBy : undefined,
+  rejectionReason: 'rejectionReason' in doc ? doc.rejectionReason : undefined,
+});
+
+const findDocument = (
+  documents: IKYCDocumentEntry[] | undefined,
+  key: DocumentKey
+) => documents?.find((entry) => entry.type === DOCUMENT_TYPE_MAP[key]);
+
+const buildVerificationSnapshot = (documents: IKYCDocumentEntry[] | undefined) => ({
+  commercialRegistration: Boolean(findDocument(documents, 'commercialRegistration')?.verified),
+  vatCertificate: Boolean(findDocument(documents, 'vatCertificate')?.verified),
+  nationalId: Boolean(findDocument(documents, 'nationalId')?.verified),
+  bankLetter: Boolean(findDocument(documents, 'bankLetter')?.verified),
+});
 
 class SellerKYCService {
   /**
@@ -135,15 +192,21 @@ class SellerKYCService {
     // Update seller with company info
     seller.businessName = data.businessName;
     seller.businessNameArabic = data.businessNameArabic;
-    seller.crNumber = data.crNumber;
+    seller.registrationNumber = data.crNumber;
     seller.vatNumber = data.vatNumber;
-    seller.businessType = data.businessType;
+    seller.registrationType = mapBusinessTypeToRegistration(data.businessType);
     seller.industry = data.industry;
     seller.description = data.description;
     seller.website = data.website;
     seller.contactEmail = data.contactEmail;
     seller.contactPhone = data.contactPhone;
-    seller.businessAddress = data.businessAddress;
+    seller.businessAddress = {
+      street: data.businessAddress.street,
+      city: data.businessAddress.city,
+      region: data.businessAddress.state,
+      postalCode: data.businessAddress.postalCode,
+      country: data.businessAddress.country,
+    };
 
     // Update KYC status
     if (!seller.kycStatus) {
@@ -190,24 +253,19 @@ class SellerKYCService {
     }
 
     // Store documents
-    seller.documents = {
-      commercialRegistration: {
-        ...data.commercialRegistration,
-        verified: false
-      },
-      vatCertificate: data.vatCertificate ? {
-        ...data.vatCertificate,
-        verified: false
-      } : undefined,
-      nationalId: {
-        ...data.nationalId,
-        verified: false
-      },
-      bankLetter: data.bankLetter ? {
-        ...data.bankLetter,
-        verified: false
-      } : undefined
-    };
+    const documents: IKYCDocumentEntry[] = [
+      convertDocumentEntry(data.commercialRegistration, DOCUMENT_TYPE_MAP.commercialRegistration),
+      convertDocumentEntry(data.nationalId, DOCUMENT_TYPE_MAP.nationalId),
+    ];
+
+    if (data.vatCertificate) {
+      documents.push(convertDocumentEntry(data.vatCertificate, DOCUMENT_TYPE_MAP.vatCertificate));
+    }
+    if (data.bankLetter) {
+      documents.push(convertDocumentEntry(data.bankLetter, DOCUMENT_TYPE_MAP.bankLetter));
+    }
+
+    seller.documents = documents;
 
     // Update KYC status
     seller.kycStatus.step = 'bank_details';
@@ -249,15 +307,18 @@ class SellerKYCService {
     }
 
     // Store bank details
-    seller.bankDetails = {
-      ...data,
-      verified: false
+    seller.bankAccount = {
+      bankName: data.bankName,
+      accountName: data.accountHolderName,
+      accountNumber: data.iban, // Use IBAN as account number for Saudi banks
+      iban: data.iban,
+      swiftCode: data.swiftCode,
     };
 
     // Update KYC status
     seller.kycStatus.step = 'verification';
     seller.kycStatus.bankDetailsComplete = true;
-    seller.kycStatus.status = 'under_review';
+    seller.kycStatus.status = 'in_review';
 
     await seller.save();
 
@@ -290,21 +351,21 @@ class SellerKYCService {
       throw new Error('Seller not found');
     }
 
-    if (!seller.documents) {
-      throw new Error('No documents submitted');
-    }
-
-    const document = seller.documents[documentType];
+    const document = findDocument(seller.documents, documentType);
     if (!document) {
       throw new Error(`Document ${documentType} not found`);
     }
 
     // Update document verification status
     document.verified = approved;
-    document.verifiedAt = new Date();
+    document.verifiedAt = approved ? new Date() : undefined;
     document.verifiedBy = verifiedBy;
     if (!approved) {
       document.rejectionReason = rejectionReason;
+      if (seller.kycStatus) {
+        seller.kycStatus.rejectionReason = rejectionReason;
+        seller.kycStatus.rejectedBy = verifiedBy;
+      }
     }
 
     await seller.save();
@@ -333,15 +394,15 @@ class SellerKYCService {
     const seller = await SouqSeller.findById(sellerId);
     if (!seller || !seller.documents) return;
 
-    const requiredDocs = ['commercialRegistration', 'nationalId'];
-    const allVerified = requiredDocs.every(docType => {
-      const doc = seller.documents?.[docType as keyof typeof seller.documents];
-      return doc && doc.verified;
+    const requiredDocs: DocumentKey[] = ['commercialRegistration', 'nationalId'];
+    const allVerified = requiredDocs.every((docType) => {
+      const doc = findDocument(seller.documents, docType);
+      return doc?.verified;
     });
 
-    // Check optional VAT certificate if provided
-    if (seller.documents.vatCertificate && !seller.documents.vatCertificate.verified) {
-      return; // Wait for VAT verification
+    const vatDoc = findDocument(seller.documents, 'vatCertificate');
+    if (vatDoc && !vatDoc.verified) {
+      return;
     }
 
     if (allVerified && seller.kycStatus) {
@@ -368,8 +429,9 @@ class SellerKYCService {
     seller.kycStatus.approvedAt = new Date();
     seller.kycStatus.approvedBy = approvedBy;
 
-    // Activate seller account
-    seller.status = 'active';
+    seller.isActive = true;
+    seller.isSuspended = false;
+    seller.suspensionReason = undefined;
 
     await seller.save();
 
@@ -410,8 +472,9 @@ class SellerKYCService {
     seller.kycStatus.rejectedBy = rejectedBy;
     seller.kycStatus.rejectionReason = reason;
 
-    // Keep seller as pending
-    seller.status = 'pending';
+    seller.isActive = false;
+    seller.isSuspended = true;
+    seller.suspensionReason = reason;
 
     await seller.save();
 
@@ -455,12 +518,9 @@ class SellerKYCService {
       };
     }
 
-    const documentsVerification = seller.documents ? {
-      commercialRegistration: seller.documents.commercialRegistration?.verified || false,
-      vatCertificate: seller.documents.vatCertificate?.verified || false,
-      nationalId: seller.documents.nationalId?.verified || false,
-      bankLetter: seller.documents.bankLetter?.verified || false
-    } : undefined;
+    const documentsVerification = seller.documents && seller.documents.length > 0
+      ? buildVerificationSnapshot(seller.documents)
+      : undefined;
 
     return {
       status: seller.kycStatus.status,
@@ -484,7 +544,7 @@ class SellerKYCService {
     waitingDays: number;
   }>> {
     const sellers = await SouqSeller.find({
-      'kycStatus.status': 'under_review'
+      'kycStatus.status': 'in_review'
     }).sort({ 'kycStatus.submittedAt': 1 });
 
     return sellers.map(seller => {
@@ -569,7 +629,7 @@ class SellerKYCService {
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
     const pendingSellers = await SouqSeller.find({
-      'kycStatus.status': 'under_review',
+      'kycStatus.status': 'in_review',
       'kycStatus.submittedAt': { $lt: threeDaysAgo }
     });
 

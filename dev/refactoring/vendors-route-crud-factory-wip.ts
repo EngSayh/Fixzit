@@ -6,7 +6,6 @@
  * Reduction: 78% less code
  */
 
-/* eslint-disable @typescript-eslint/no-unused-vars, no-unused-vars */
 
 import { createCrudHandlers } from '@/lib/api/crud-factory';
 import { Vendor } from '@/server/models/Vendor';
@@ -67,18 +66,43 @@ const vendorQuerySchema = z.object({
   search: z.string().max(200).optional(), // Limit length to prevent DoS
 });
 
+const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\\\$&');
+
 // Custom filter builder for vendor-specific search
 // 🔒 TYPE SAFETY: Using Record<string, unknown> for MongoDB filter
 // Generic query params to MongoDB filter builder
-function buildVendorFilter(_searchParams: URLSearchParams, _orgId: string): Record<string, unknown> {
+function buildVendorFilter(searchParams: URLSearchParams, orgId: string): Record<string, unknown> {
   const filter: Record<string, unknown> = {};
-
-  // Example: ?status=active&tenantId=abc
-  if (_searchParams.get('status')) {
-    filter.status = _searchParams.get('status') as string;
+  if (orgId) {
+    filter.orgId = orgId;
   }
-  if (_searchParams.get('tenantId')) {
-    filter.tenantId = _searchParams.get('tenantId') as string;
+
+  const queryObject = {
+    type: searchParams.get('type') ?? undefined,
+    status: searchParams.get('status') ?? undefined,
+    search: searchParams.get('search') ?? undefined,
+  };
+
+  const parsed = vendorQuerySchema.safeParse(queryObject);
+  if (!parsed.success) {
+    return filter;
+  }
+
+  const { type, status, search } = parsed.data;
+  if (type) {
+    filter.type = type;
+  }
+  if (status) {
+    filter.status = status;
+  }
+  if (search && search.trim().length > 0) {
+    const safeTerm = escapeRegex(search.trim());
+    const regex = new RegExp(safeTerm, 'i');
+    filter.$or = [
+      { name: regex },
+      { 'contact.primary.name': regex },
+      { 'contact.primary.email': regex },
+    ];
   }
 
   return filter;

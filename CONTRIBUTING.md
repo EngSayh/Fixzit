@@ -288,7 +288,7 @@ Before requesting review:
 - **Agent Instructions**: `.github/copilot-instructions.md`
 - **Translation Audit**: `scripts/audit-translations.mjs`
 - **Issues Register**: `ISSUES_REGISTER.md` (if exists)
-- **Daily Progress Reports**: `DAILY_PROGRESS_REPORTS/`
+- **Daily Progress Reports**: `docs/archived/DAILY_PROGRESS_REPORTS/`
 
 ### 13. Getting Help
 

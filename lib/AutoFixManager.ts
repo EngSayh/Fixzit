@@ -274,7 +274,9 @@ export class AutoFixManager {
             duration
           });
         }
-      } catch (error) {
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
         const duration = Date.now() - startTime;
         results.push({
           checkId: check.id,

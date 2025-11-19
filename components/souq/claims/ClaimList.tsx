@@ -56,14 +56,19 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secon
   closed: { label: 'مغلق', variant: 'outline', icon: CheckCircle2 },
 };
 
-const CLAIM_TYPE_LABELS: Record<string, string> = {
-  'item-not-received': 'لم أستلم السلعة',
-  'defective': 'السلعة معيبة',
-  'not-as-described': 'لا تطابق الوصف',
-  'wrong-item': 'سلعة خاطئة',
-  'missing-parts': 'أجزاء ناقصة',
-  'counterfeit': 'سلعة مزيفة',
-};
+const CLAIM_TYPE_OPTIONS = [
+  { value: 'item_not_received', label: 'لم أستلم السلعة (Item Not Received)' },
+  { value: 'defective_item', label: 'السلعة معيبة (Defective Item)' },
+  { value: 'not_as_described', label: 'لا تطابق الوصف (Not as Described)' },
+  { value: 'wrong_item', label: 'سلعة خاطئة (Wrong Item Sent)' },
+  { value: 'missing_parts', label: 'أجزاء ناقصة (Missing Parts)' },
+  { value: 'counterfeit', label: 'سلعة مزيفة (Counterfeit Item)' },
+];
+
+const CLAIM_TYPE_LABELS = CLAIM_TYPE_OPTIONS.reduce<Record<string, string>>((acc, option) => {
+  acc[option.value] = option.label;
+  return acc;
+}, {});
 
 export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
   const [claims, setClaims] = useState<Claim[]>([]);
@@ -170,23 +175,23 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="بحث برقم المطالبة أو الطلب... (Search by claim or order number...)"
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              className="pl-10"
+              className="ps-10"
             />
           </div>
 
           {/* Status Filter */}
           <div className="relative w-full md:w-[200px]">
-            <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Filter className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <Select
               value={statusFilter}
               onValueChange={handleStatusFilter}
               placeholder="الحالة (Status)"
-              className="pl-9"
+              className="ps-9"
               wrapperClassName="w-full"
             >
               <SelectItem value="all">جميع الحالات (All)</SelectItem>
@@ -203,12 +208,12 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
 
           {/* Type Filter */}
           <div className="relative w-full md:w-[200px]">
-            <Filter className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Filter className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <Select
               value={typeFilter}
               onValueChange={handleTypeFilter}
               placeholder="النوع (Type)"
-              className="pl-9"
+              className="ps-9"
               wrapperClassName="w-full"
             >
               <SelectItem value="all">جميع الأنواع (All)</SelectItem>
@@ -259,7 +264,7 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
                         <TableHead>البائع</TableHead>
                       </>
                     )}
-                    <TableHead className="text-right">المبلغ</TableHead>
+                    <TableHead>المبلغ</TableHead>
                     <TableHead>التاريخ</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
@@ -285,7 +290,7 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
                           <TableCell>{claim.sellerName}</TableCell>
                         </>
                       )}
-                      <TableCell className="text-right font-medium">
+                      <TableCell className="font-medium">
                         {claim.claimAmount} SAR
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">

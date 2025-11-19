@@ -4,8 +4,8 @@
 // Comprehensive navigation system with RBAC, subscription filtering,
 // and multi-level menu support for Fixzit platform
 
+import type { LucideIcon } from 'lucide-react';
 import {
-  LucideIcon,
   LayoutDashboard,
   Wrench,
   Building2,
@@ -181,9 +181,16 @@ const coerceRoleValue = (role: NavigationRole): NavigationRole => {
   return role;
 };
 
-const roleIsAllowed = (allowedRoles: NavigationRole[] | undefined, role: UserRoleInput): boolean => {
+const roleIsAllowed = (
+  allowedRoles: NavigationRole[] | undefined,
+  role: UserRoleInput | null | undefined
+): boolean => {
   if (!allowedRoles?.length) {
     return true;
+  }
+
+  if (!role) {
+    return false;
   }
 
   const targetSet = new Set(expandRoleValue(role));
@@ -220,14 +227,14 @@ const normalizePermission = (permission?: string): string | null => {
 
 const hasRequiredPermissions = (
   requiredPermissions: string[] | undefined,
-  userPermissions: readonly string[] = []
+  userPermissions: readonly string[] | null | undefined = []
 ): boolean => {
   if (!requiredPermissions?.length) {
     return true;
   }
 
   const normalizedUserPermissions = new Set(
-    userPermissions
+    (userPermissions ?? [])
       .map((permission) => normalizePermission(permission))
       .filter((permission): permission is string => Boolean(permission))
   );
@@ -266,11 +273,13 @@ export type ModuleId =
   | 'dashboard'
   | 'work_orders'
   | 'properties'
+  | 'tenants'
   | 'finance'
   | 'hr'
   | 'administration'
   | 'crm'
   | 'marketplace'
+  | 'vendors'
   | 'support'
   | 'compliance'
   | 'reports'
@@ -280,11 +289,13 @@ export const MODULE_PATHS = {
   dashboard: '/fm/dashboard',
   work_orders: '/fm/work-orders',
   properties: '/fm/properties',
+  tenants: '/fm/tenants',
   finance: '/fm/finance',
   hr: '/fm/hr',
   administration: '/fm/administration',
   crm: '/fm/crm',
   marketplace: '/fm/marketplace',
+  vendors: '/fm/vendors',
   support: '/fm/support',
   compliance: '/fm/compliance',
   reports: '/fm/reports',
@@ -2083,10 +2094,11 @@ export const navigationConfig = normalizeNavigationConfig(rawNavigationConfig);
  */
 export function filterNavigation(
   config: NavigationConfig,
-  userRole: UserRoleInput,
-  subscriptionPlan: SubscriptionPlan,
-  userPermissions: string[] = []
+  userRole: UserRoleInput | null | undefined,
+  subscriptionPlan: SubscriptionPlan | null | undefined,
+  userPermissions: readonly string[] = []
 ): NavigationConfig {
+  const effectivePlan = subscriptionPlan ?? 'DEFAULT';
   const filteredSections = config.sections
     .map(section => {
       // Check section-level permissions
@@ -2096,7 +2108,7 @@ export function filterNavigation(
       if (!hasRequiredPermissions(section.permissions, userPermissions)) {
         return null;
       }
-      if (section.subscriptionPlans && !section.subscriptionPlans.includes(subscriptionPlan)) {
+      if (section.subscriptionPlans && !section.subscriptionPlans.includes(effectivePlan)) {
         return null;
       }
 
@@ -2104,7 +2116,7 @@ export function filterNavigation(
       const filteredItems = filterNavigationItems(
         section.items,
         userRole,
-        subscriptionPlan,
+        effectivePlan,
         userPermissions
       );
       
@@ -2130,9 +2142,9 @@ export function filterNavigation(
  */
 function filterNavigationItems(
   items: NavigationItem[],
-  userRole: UserRoleInput,
+  userRole: UserRoleInput | null | undefined,
   subscriptionPlan: SubscriptionPlan,
-  userPermissions: string[]
+  userPermissions: readonly string[]
 ): NavigationItem[] {
   return items
     .map(item => {

@@ -18,6 +18,7 @@ import ClientDate from '@/components/ClientDate';
 
 import { logger } from '@/lib/logger';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 interface MaintenanceRecord {
   date?: string;
 }
@@ -40,13 +41,16 @@ interface AssetItem {
 
 export default function AssetsPage() {
   const { data: session } = useSession();
+  const { hasOrgContext, guard: guardView, orgId, supportOrg: supportBannerView } = useFmOrgGuard({ moduleId: 'administration' });
   const auto = useAutoTranslator('fm.assets');
+  
+  if (!hasOrgContext || !orgId) {
+    return guardView;
+  }
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
-
-  const orgId = session?.user?.orgId;
 
   // Fetcher with dynamic tenant ID from session
   const fetcher = (url: string) => {
@@ -56,7 +60,7 @@ export default function AssetsPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        logger.error('FM assets fetch error', { error });
+        logger.error('FM assets fetch error', error);
         throw error;
       });
   };
@@ -75,16 +79,16 @@ export default function AssetsPage() {
 
   if (!orgId) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-destructive">
-          {auto('Error: No organization ID found. Please contact support.', 'errors.noOrg')}
-        </p>
+      <div className="space-y-6">
+        {supportBannerView}
+        {guardView}
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {supportBannerView}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -106,7 +110,7 @@ export default function AssetsPage() {
             <DialogHeader>
               <DialogTitle>{auto('Add New Asset', 'dialog.title')}</DialogTitle>
             </DialogHeader>
-            <CreateAssetForm onCreated={() => { mutate(); setCreateOpen(false); }} />
+            <CreateAssetForm orgId={orgId} onCreated={() => { mutate(); setCreateOpen(false); }} />
           </DialogContent>
         </Dialog>
       </div>
@@ -167,7 +171,7 @@ export default function AssetsPage() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {(assets as AssetItem[]).map((asset) => (
-              <AssetCard key={asset.id} asset={asset} onUpdated={mutate} />
+              <AssetCard key={asset.id} asset={asset} orgId={orgId} onUpdated={mutate} />
             ))}
           </div>
 
@@ -195,8 +199,7 @@ export default function AssetsPage() {
   );
 }
 
-function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => void }) {
-  const { data: session } = useSession();
+function AssetCard({ asset, onUpdated, orgId }: { asset: AssetItem; onUpdated: () => void; orgId: string }) {
   const auto = useAutoTranslator('fm.assets.card');
   
   const handleView = () => {
@@ -211,12 +214,6 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
   };
 
   const handleDelete = async () => {
-    const orgId = session?.user?.orgId;
-    if (!orgId) {
-      toast.error('No organization ID found');
-      return;
-    }
-
     const toastId = toast.loading(
       auto('Deleting {{name}}...', 'toast.deleting').replace('{{name}}', asset.name ?? '')
     );
@@ -240,7 +237,8 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
           { id: toastId }
         );
       }
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
       logger.error('Delete error:', error);
       toast.error(auto('Error deleting asset. Please try again.', 'toast.deleteError'), { id: toastId });
     }
@@ -363,8 +361,7 @@ function AssetCard({ asset, onUpdated }: { asset: AssetItem; onUpdated: () => vo
   );
 }
 
-function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
-  const { data: session } = useSession();
+function CreateAssetForm({ onCreated, orgId }: { onCreated: () => void; orgId: string }) {
   const auto = useAutoTranslator('fm.assets.form');
   const [formData, setFormData] = useState({
     name: '',
@@ -408,12 +405,6 @@ function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const orgId = session?.user?.orgId;
-    if (!orgId) {
-      toast.error(auto('No organization ID found', 'errors.noOrg'));
-      return;
-    }
-
     const toastId = toast.loading(auto('Creating asset...', 'loading'));
 
     try {
@@ -439,7 +430,8 @@ function CreateAssetForm({ onCreated }: { onCreated: () => void }) {
           { id: toastId }
         );
       }
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
       logger.error('Error creating asset:', error);
       toast.error(auto('Error creating asset. Please try again.', 'error'), { id: toastId });
     }

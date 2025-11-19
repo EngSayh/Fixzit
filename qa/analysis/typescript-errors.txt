@@ -1,0 +1,25 @@
+Debugger listening on ws://127.0.0.1:50524/ad82b46d-f8ee-4364-9892-6e246e9991bf
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+Debugger listening on ws://127.0.0.1:50533/bb2bcd32-9e80-4507-9f15-12755f70c078
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+Debugger listening on ws://127.0.0.1:50536/bcbbd73e-1c46-41f6-80a6-20eee1612b8d
+For help, see: https://nodejs.org/en/docs/inspector
+Debugger attached.
+services/souq/seller-kyc-service.ts(120,8): error TS18048: 'doc' is possibly 'undefined'.
+services/souq/seller-kyc-service.ts(121,15): error TS18048: 'doc' is possibly 'undefined'.
+services/souq/seller-kyc-service.ts(122,14): error TS18048: 'doc' is possibly 'undefined'.
+services/souq/seller-kyc-service.ts(122,18): error TS2339: Property 'expiresAt' does not exist on type '{ fileUrl: string; fileType: "pdf" | "jpg" | "png"; uploadedAt: Date; verified: boolean; verifiedAt?: Date | undefined; verifiedBy?: string | undefined; rejectionReason?: string | undefined; } | { ...; } | { ...; } | { ...; }'.
+  Property 'expiresAt' does not exist on type '{ fileUrl: string; fileType: "pdf" | "jpg" | "png"; uploadedAt: Date; verified: boolean; verifiedAt?: Date | undefined; verifiedBy?: string | undefined; rejectionReason?: string | undefined; }'.
+services/souq/seller-kyc-service.ts(288,27): error TS2339: Property 'accountNumber' does not exist on type 'IKYCBankDetails'.
+services/souq/seller-kyc-service.ts(336,14): error TS2551: Property 'verifiedAt' does not exist on type 'IKYCDocumentEntry'. Did you mean 'verified'?
+services/souq/seller-kyc-service.ts(337,14): error TS2551: Property 'verifiedBy' does not exist on type 'IKYCDocumentEntry'. Did you mean 'verified'?
+services/souq/seller-kyc-service.ts(339,16): error TS2339: Property 'rejectionReason' does not exist on type 'IKYCDocumentEntry'.
+services/souq/seller-kyc-service.ts(489,48): error TS2339: Property 'commercialRegistration' does not exist on type 'IKYCDocumentEntry[]'.
+services/souq/seller-kyc-service.ts(490,40): error TS2339: Property 'vatCertificate' does not exist on type 'IKYCDocumentEntry[]'.
+services/souq/seller-kyc-service.ts(491,36): error TS2339: Property 'nationalId' does not exist on type 'IKYCDocumentEntry[]'.
+services/souq/seller-kyc-service.ts(492,36): error TS2339: Property 'bankLetter' does not exist on type 'IKYCDocumentEntry[]'.
+Waiting for the debugger to disconnect...
+Waiting for the debugger to disconnect...
+Waiting for the debugger to disconnect...

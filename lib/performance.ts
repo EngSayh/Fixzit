@@ -65,7 +65,6 @@ function logMetrics(metrics: PerformanceMetrics) {
  * Performance monitoring middleware
  */
 export function withPerformanceMonitoring(
-  // eslint-disable-next-line no-unused-vars
   handler: (req: NextRequest) => Promise<NextResponse> | NextResponse
 ) {
   return async (req: NextRequest): Promise<NextResponse> => {
@@ -98,7 +97,9 @@ export function withPerformanceMonitoring(
       }
       
       return response;
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       const duration = Date.now() - startTime;
       const metrics: PerformanceMetrics = {
         url: req.url,
@@ -187,7 +188,6 @@ interface WebVitalsMetric {
 }
 
 // Extend Window interface for gtag
-/* eslint-disable no-unused-vars */
 declare global {
   interface Window {
     gtag?: (
@@ -197,7 +197,6 @@ declare global {
     ) => void;
   }
 }
-/* eslint-enable no-unused-vars */
 
 /**
  * Client-side performance monitoring

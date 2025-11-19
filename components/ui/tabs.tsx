@@ -4,7 +4,6 @@ import React, { createContext, useContext, useState, useId } from 'react';
 
 interface TabsContextProps {
   value: string;
-  // eslint-disable-next-line no-unused-vars
   onValueChange: (value: string) => void;
   /** A unique ID for this tabs instance to link triggers and content */
   baseId: string;
@@ -16,11 +15,10 @@ interface TabsProps extends React.HTMLAttributes<HTMLDivElement> {
   /** The controlled value of the active tab. */
   value?: string;
   /** Event handler for when the active tab changes. */
-  // eslint-disable-next-line no-unused-vars
   onValueChange?: (value: string) => void;
 }
 
-interface TabsListProps extends React.HTMLAttributes<HTMLDivElement> {}
+type TabsListProps = React.HTMLAttributes<HTMLDivElement>;
 
 interface TabsTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /** A unique value for this tab trigger. */

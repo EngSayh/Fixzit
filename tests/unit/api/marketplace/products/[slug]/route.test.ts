@@ -56,7 +56,7 @@ describe('GET /api/marketplace/products/[slug]', () => {
 
     expect(MarketplaceProduct.findOne as any).toHaveBeenCalledWith({ tenantId, slug: 'non-existent' })
     expect(res.status).toBe(404)
-    await expect(readJson(res as any)).resolves.toEqual({ error: 'Not found' })
+    await expect(readJson(res as any)).resolves.toEqual({ ok: false, error: 'Product not found' })
   })
 
   test('returns product with computed buyBox (happy path with all fields)', async () => {

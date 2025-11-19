@@ -16,7 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { CardGridSkeleton } from '@/components/skeletons';
 import { Building2, Plus, Search, MapPin, Eye, Edit, Trash2, Home, Building, Factory, Map } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { useSupportOrg } from '@/contexts/SupportOrgContext';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 import { logger } from '@/lib/logger';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
@@ -47,9 +47,7 @@ interface PropertyItem {
 export default function PropertiesPage() {
   const { t } = useTranslation();
   const { data: session } = useSession();
-  const { effectiveOrgId, canImpersonate, supportOrg } = useSupportOrg();
-  const orgId = effectiveOrgId ?? undefined;
-  const needsOrgSelection = !orgId && canImpersonate;
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'properties' });
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
@@ -61,7 +59,7 @@ export default function PropertiesPage() {
     return fetch(url)
       .then(r => r.json())
       .catch(error => {
-        logger.error('FM properties fetch error', { error });
+        logger.error('FM properties fetch error', error);
         throw error;
       });
   };
@@ -75,24 +73,8 @@ export default function PropertiesPage() {
     return <CardGridSkeleton count={6} />;
   }
 
-  if (!orgId) {
-    return (
-      <div className="space-y-6">
-        <ModuleViewTabs moduleId="properties" />
-        <div className="rounded-xl border border-border bg-card/30 p-6 space-y-3">
-          <p className="text-destructive font-semibold">
-            {needsOrgSelection
-              ? t('fm.properties.errors.selectOrg', 'Select a customer organization to manage properties.')
-              : t('fm.errors.noOrgSession', 'Error: No organization ID found in session')}
-          </p>
-          {needsOrgSelection && (
-            <p className="text-sm text-muted-foreground">
-              {t('fm.properties.errors.selectOrgHint', 'Use the Support Organization switcher in the top bar.')}
-            </p>
-          )}
-        </div>
-      </div>
-    );
+  if (!hasOrgContext || !orgId) {
+    return guard;
   }
 
   const properties = data?.items || [];
@@ -219,9 +201,9 @@ function PropertyCard({ property, orgId, onUpdated }: { property: PropertyItem; 
       }
       toast.success(t('fm.properties.toast.deleteSuccess', 'Property deleted successfully'), { id: toastId });
       onUpdated();
-    } catch (error) {
+    } catch (_error) {
       const message =
-        error instanceof Error ? error.message : t('fm.properties.errors.deleteUnknown', 'Failed to delete property');
+        _error instanceof Error ? _error.message : t('fm.properties.errors.deleteUnknown', 'Failed to delete property');
       toast.error(
         t('fm.properties.toast.deleteFailed', 'Failed to delete property: {{message}}').replace('{{message}}', message),
         { id: toastId }
@@ -461,8 +443,8 @@ export function CreatePropertyForm({ onCreated, orgId }: { onCreated: () => void
           { id: toastId }
         );
       }
-    } catch (error) {
-      logger.error('Error creating property:', error);
+    } catch (_error) {
+      logger.error('Error creating property:', _error);
       toast.error(t('fm.properties.toast.createUnknown', 'Error creating property. Please try again.'), { id: toastId });
     }
   };

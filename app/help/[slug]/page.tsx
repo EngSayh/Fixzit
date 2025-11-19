@@ -6,6 +6,9 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import ClientDate from '@/components/ClientDate';
 import { getServerI18n } from '@/lib/i18n/server';
+import { logger } from '@/lib/logger';
+import { getStaticHelpArticle } from '@/data/static-content';
+import { isMongoUnavailableError } from '@/lib/mongo-build-guards';
 
 export const revalidate = 60;
 
@@ -17,12 +20,57 @@ export const revalidate = 60;
  * @param params - Route params object containing the article `slug`.
  * @returns JSX for the help article page or triggers notFound() for unavailable articles.
  */
+type HelpArticleLike = {
+  slug: string;
+  title: string;
+  content: string;
+  category?: string;
+  status: HelpArticleDoc['status'];
+  updatedAt?: Date;
+};
+
+async function loadHelpArticle(slug: string): Promise<HelpArticleLike | null> {
+  try {
+    await connectToDatabase();
+    const fromDb = (await HelpArticle.findOne({ slug, status: 'PUBLISHED' })
+      .lean()
+      .exec()) as (HelpArticleDoc & { updatedAt?: Date | string }) | null;
+    if (fromDb) {
+      return {
+        slug: fromDb.slug,
+        title: fromDb.title,
+        content: fromDb.content,
+        category: fromDb.category ?? undefined,
+        status: fromDb.status,
+        updatedAt: fromDb.updatedAt ? new Date(fromDb.updatedAt) : undefined,
+      };
+    }
+  } catch (error) {
+    if (!isMongoUnavailableError(error)) {
+      throw error;
+    }
+    logger.warn('[Help] Falling back to static help article', { slug });
+  }
+
+  const fallback = getStaticHelpArticle(slug);
+  return fallback
+    ? {
+        slug: fallback.slug,
+        title: fallback.title,
+        content: fallback.content,
+        category: fallback.category,
+        status: (fallback as { status?: HelpArticleDoc['status'] }).status ?? 'PUBLISHED',
+        updatedAt: fallback.updatedAt ? new Date(fallback.updatedAt) : undefined,
+      }
+    : null;
+}
+
 export default async function HelpArticlePage({ params }: { params: { slug: string } }) {
-  await connectToDatabase();
-  const a = await HelpArticle.findOne({ slug: params.slug, status: 'PUBLISHED' }).lean() as HelpArticleDoc | null;
-  if (!a) {
+  const article = await loadHelpArticle(params.slug);
+  if (!article) {
     notFound();
   }
+  const updatedAt = article.updatedAt;
   const { t } = await getServerI18n();
   // Derive dir from Accept-Language (simple heuristic); ClientLayout will enforce on client
   const accept = (await headers()).get('accept-language') || '';
@@ -37,9 +85,9 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
               {t('help.article.breadcrumb.home', 'Help Center')}
             </Link>
             <span>/</span>
-            <span>{a.category || t('help.article.categoryFallback', 'General')}</span>
+            <span>{article.category || t('help.article.categoryFallback', 'General')}</span>
           </div>
-          <h1 className="text-3xl font-bold">{a.title}</h1>
+          <h1 className="text-3xl font-bold">{article.title}</h1>
         </div>
       </section>
       
@@ -49,14 +97,14 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
           <div className="bg-card rounded-2xl shadow-md border border-border p-8">
             <article
               className="prose prose-lg max-w-none prose-headings:text-foreground prose-a:text-primary prose-strong:text-foreground"
-              dangerouslySetInnerHTML={{ __html: await renderMarkdownSanitized(a.content) }}
+              dangerouslySetInnerHTML={{ __html: await renderMarkdownSanitized(article.content) }}
             />
             
             <div className="mt-8 pt-6 border-t border-border">
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <div>
                   {t('help.article.updated', 'Last updated')}{' '}
-                  {a.updatedAt ? <ClientDate date={a.updatedAt} format="date-only" /> : ''}
+                  {updatedAt ? <ClientDate date={updatedAt} format="date-only" /> : ''}
                 </div>
                 <Link 
                   href="/help" 

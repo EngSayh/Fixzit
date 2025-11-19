@@ -114,7 +114,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
             });
           })
           .catch((logErr) => {
-            logger.error('Failed to import logger:', { error: logErr });
+            logger.error('Failed to import logger:', logErr);
           });
         setError(t('search.error.generic', 'Search failed. Please try again.'));
         setResults([]);
@@ -267,7 +267,7 @@ export default function GlobalSearch({ onResultClick }: GlobalSearchProps = {}) 
                     index === activeIndex ? 'bg-accent' : ''
                   }`}
                 >
-                  <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}>
+                  <div className={`flex items-start gap-3 text-start ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <div className="flex-1">
                       <div className="font-medium text-foreground">{result.title}</div>
                       {result.subtitle && (

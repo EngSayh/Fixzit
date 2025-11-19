@@ -3,7 +3,6 @@
  * Exhaustive categories from "Collected service list.docx"
  * Used for marketplace filters, pricing rules, and RBAC scoping
  */
-/* eslint-disable no-unused-vars */
 
 export enum ServiceCategory {
   CORE_PROPERTY_MANAGEMENT_SERVICES = 'CORE_PROPERTY_MANAGEMENT_SERVICES',

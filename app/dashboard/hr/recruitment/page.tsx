@@ -25,13 +25,15 @@ import { useAutoTranslator } from '@/i18n/useAutoTranslator';
  * Phase 2-4: Feature implementation
  */
 
+type FetchError = Error & { status?: number; data?: unknown };
+
 // SWR fetcher with proper error handling for 402 Payment Required
-const fetcher = async (url: string) => {
+async function fetcher<T,>(url: string): Promise<T> {
   const res = await fetch(url);
   
   // Handle ATS not enabled (402 Payment Required)
   if (res.status === 402) {
-    const err: any = new Error('ATS not enabled');
+    const err: FetchError = new Error('ATS not enabled');
     err.status = 402;
     err.data = await res.json().catch(() => ({}));
     throw err;
@@ -39,13 +41,73 @@ const fetcher = async (url: string) => {
   
   // Handle other errors
   if (!res.ok) {
-    const err: any = new Error(`Request failed: ${res.status}`);
+    const err: FetchError = new Error(`Request failed: ${res.status}`);
     err.status = res.status;
     throw err;
   }
   
-  return res.json();
+  return res.json() as Promise<T>;
+}
+
+type AtsListResponse<T> = { data?: T };
+type JobEntry = {
+  _id?: string;
+  title?: string;
+  status?: string;
+  department?: string;
+  location?: { city?: string } | string;
+  jobType?: string;
+  openings?: number;
+  createdAt?: string | Date;
+  description?: string;
+  applicationCount?: number;
 };
+type CandidateInfo = {
+  _id?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  experience?: string;
+  skills?: string[];
+  culture?: Record<string, unknown>;
+  education?: Record<string, unknown>;
+};
+type ApplicationEntry = {
+  _id?: string;
+  stage?: string;
+  candidateId?: CandidateInfo;
+  jobId?: { title?: string };
+  score?: number;
+  createdAt?: string | Date;
+};
+type CandidateRow = {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  experience?: string;
+  stage?: string;
+  jobTitle?: string;
+};
+
+type AtsSettings = {
+  scoringWeights?: {
+    skills?: number;
+    experience?: number;
+    culture?: number;
+    education?: number;
+  };
+  knockoutRules?: {
+    minYears?: number;
+    autoRejectMissingExperience?: boolean;
+    autoRejectMissingSkills?: boolean;
+    requiredSkills?: string[];
+  };
+};
+
+const errorHasStatus = (error: unknown, status: number) =>
+  typeof error === 'object' && error !== null && 'status' in error && (error as FetchError).status === status;
 
 export default function RecruitmentPage() {
   const { data: session } = useSession();
@@ -91,57 +153,69 @@ export default function RecruitmentPage() {
   const canViewSettings = hasPermission(userRole, 'settings:read');
   
   // Fetch jobs data
-  const { data: jobsData, error: jobsError, isLoading: jobsLoading } = useSWR(
-    '/api/ats/jobs?status=all',
-    fetcher
-  );
+  const { data: jobsData, error: jobsError, isLoading: jobsLoading } = useSWR<
+    AtsListResponse<JobEntry[]>
+  >('/api/ats/jobs?status=all', fetcher);
   
   // Fetch applications data (only if user has permission)
-  const { data: applicationsData, error: applicationsError, isLoading: applicationsLoading } = useSWR(
+  const {
+    data: applicationsData,
+    error: applicationsError,
+    isLoading: applicationsLoading,
+  } = useSWR<AtsListResponse<ApplicationEntry[]>>(
     canViewApplications ? '/api/ats/applications' : null,
     fetcher
   );
   
   // Fetch interviews data (only if user has permission)
-  const { data: interviewsData, error: interviewsError, isLoading: interviewsLoading } = useSWR(
+  const {
+    data: interviewsData,
+    error: interviewsError,
+    isLoading: interviewsLoading,
+  } = useSWR<AtsListResponse<Record<string, unknown>[]>>(
     canScheduleInterviews ? '/api/ats/interviews' : null,
     fetcher
   );
   
   // Fetch analytics data (only if user has permission)
-  const { data: analyticsData, error: analyticsError, isLoading: analyticsLoading } = useSWR(
+  const {
+    data: analyticsData,
+    error: analyticsError,
+    isLoading: analyticsLoading,
+  } = useSWR<AtsListResponse<Record<string, unknown>>>(
     canViewApplications ? '/api/ats/analytics?period=30' : null,
     fetcher
   );
   
   // Fetch settings data (only if user has permission)
-  const { data: settingsData, error: settingsError, isLoading: settingsLoading, mutate: _mutateSettings } = useSWR(
-    canViewSettings ? '/api/ats/settings' : null,
-    fetcher
-  );
+  const { data: settingsData, error: settingsError, isLoading: settingsLoading, mutate: _mutateSettings } =
+    useSWR<AtsListResponse<Record<string, unknown>>>(
+      canViewSettings ? '/api/ats/settings' : null,
+      fetcher
+    );
   
   const requiresUpgrade = useMemo(() => {
     return (
-      (jobsError && (jobsError as any)?.status === 402) ||
-      (applicationsError && (applicationsError as any)?.status === 402) ||
-      (interviewsError && (interviewsError as any)?.status === 402) ||
-      (analyticsError && (analyticsError as any)?.status === 402) ||
-      (settingsError && (settingsError as any)?.status === 402)
+      errorHasStatus(jobsError, 402) ||
+      errorHasStatus(applicationsError, 402) ||
+      errorHasStatus(interviewsError, 402) ||
+      errorHasStatus(analyticsError, 402) ||
+      errorHasStatus(settingsError, 402)
     );
   }, [jobsError, applicationsError, interviewsError, analyticsError, settingsError]);
 
-  const jobs = jobsData?.data || [];
+  const jobs: JobEntry[] = jobsData?.data || [];
   const jobsCount = jobs.length;
-  const applications = applicationsData?.data || [];
+  const applications: ApplicationEntry[] = applicationsData?.data || [];
   const applicationsCount = applications.length;
   const interviews = interviewsData?.data || [];
   const interviewsCount = interviews.length;
   const analytics = analyticsData?.data || null;
-  const settings = settingsData?.data || null;
+  const settings: AtsSettings | null = (settingsData?.data as AtsSettings | undefined) ?? null;
 
-  const candidateRows = useMemo(() => {
-    const map = new Map<string, any>();
-    applications.forEach((app: any) => {
+  const candidateRows = useMemo<CandidateRow[]>(() => {
+    const map = new Map<string, CandidateRow>();
+    applications.forEach((app) => {
       const candidate = app.candidateId;
       if (!candidate?._id || map.has(candidate._id)) return;
       map.set(candidate._id, {
@@ -158,7 +232,7 @@ export default function RecruitmentPage() {
   }, [applications]);
 
   const offerRows = useMemo(
-    () => applications.filter((app: any) => ['offer', 'hired'].includes(app.stage)),
+    () => applications.filter((app) => ['offer', 'hired'].includes(app.stage ?? '')),
     [applications]
   );
 
@@ -310,7 +384,7 @@ export default function RecruitmentPage() {
               </div>
               
               <div className="grid gap-4">
-                {jobs.map((job: any) => (
+                {jobs.map((job) => (
                   <div key={job._id} className="bg-card border rounded-lg p-6 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -325,7 +399,12 @@ export default function RecruitmentPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                          <span>📍 {job.location?.city || auto('Remote', 'jobs.locationRemote')}</span>
+                          <span>
+                            📍{' '}
+                            {typeof job.location === 'string'
+                              ? job.location
+                              : job.location?.city || auto('Remote', 'jobs.locationRemote')}
+                          </span>
                           <span>💼 {job.jobType || auto('Full-time', 'jobs.fullTime')}</span>
                           <span>🏢 {job.department || auto('N/A', 'jobs.departmentFallback')}</span>
                         </div>
@@ -340,16 +419,20 @@ export default function RecruitmentPage() {
                           </span>
                           <span className="text-muted-foreground">
                             {auto('📅 Posted', 'jobs.postedLabel')}{' '}
-                            <ClientDate
-                              date={job.createdAt}
-                              format="date-only"
-                              className="font-medium"
-                              placeholder="--"
-                            />
+                            {job.createdAt ? (
+                              <ClientDate
+                                date={job.createdAt}
+                                format="date-only"
+                                className="font-medium"
+                                placeholder="--"
+                              />
+                            ) : (
+                              <span className="font-medium">--</span>
+                            )}
                           </span>
                         </div>
                       </div>
-                      <div className="flex gap-2 ml-4">
+                      <div className="flex gap-2 ms-4">
                         <button className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
                           {auto('View', 'jobs.actions.view')}
                         </button>
@@ -449,7 +532,7 @@ export default function RecruitmentPage() {
                   <ApplicationsKanban />
                 ) : (
                   <div className="grid gap-4">
-                    {applications.map((app: any) => (
+                    {applications.map((app) => (
                       <div key={app._id} className="bg-card border rounded-lg p-6 hover:shadow-md transition-shadow">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -493,14 +576,18 @@ export default function RecruitmentPage() {
                             </div>
                           )}
                           <div className="flex items-center gap-4 text-sm">
-                            <span className="text-muted-foreground">
+                          <span className="text-muted-foreground">
                               📅 Applied{' '}
-                              <ClientDate
-                                date={app.createdAt}
-                                format="date-only"
-                                className="font-medium"
-                                placeholder="--"
-                              />
+                              {app.createdAt ? (
+                                <ClientDate
+                                  date={app.createdAt}
+                                  format="date-only"
+                                  className="font-medium"
+                                  placeholder="--"
+                                />
+                              ) : (
+                                <span className="font-medium">--</span>
+                              )}
                             </span>
                             {app.candidateId?.experience && (
                               <span className="text-muted-foreground">
@@ -509,7 +596,7 @@ export default function RecruitmentPage() {
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-2 ml-4">
+                        <div className="flex gap-2 ms-4">
                           <button className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
                             View
                           </button>
@@ -708,7 +795,7 @@ export default function RecruitmentPage() {
                               </div>
                             )}
                           </div>
-                          <div className="flex gap-2 ml-4">
+                          <div className="flex gap-2 ms-4">
                             <button className="px-3 py-1 text-sm border rounded-md hover:bg-accent transition-colors">
                               View
                             </button>
@@ -762,11 +849,11 @@ export default function RecruitmentPage() {
                 <table className="min-w-full divide-y divide-border">
                   <thead className="bg-muted/60">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Candidate</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Role</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Stage</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Experience</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Actions</th>
+                      <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">Candidate</th>
+                      <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">Role</th>
+                      <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">Stage</th>
+                      <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">Experience</th>
+                      <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border bg-background">
@@ -853,14 +940,14 @@ export default function RecruitmentPage() {
                 <table className="min-w-full divide-y divide-border">
                   <thead className="bg-muted/60">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Candidate</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Role</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Stage</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">PDF</th>
+                      <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">Candidate</th>
+                      <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">Role</th>
+                      <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">Stage</th>
+                      <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-muted-foreground">PDF</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border bg-background">
-                    {offerRows.map((app: any) => (
+                    {offerRows.map((app) => (
                       <tr key={app._id}>
                         <td className="px-4 py-3">
                           <div className="font-medium">{`${app.candidateId?.firstName || ''} ${app.candidateId?.lastName || ''}`.trim()}</div>
@@ -1009,11 +1096,18 @@ export default function RecruitmentPage() {
                     </div>
                     <div className="bg-muted p-4 rounded-lg">
                       <p className="text-sm text-muted-foreground">
-                        <span className="font-medium">Total:</span> {
-                          settings?.scoringWeights 
-                            ? Math.round((settings.scoringWeights.skills + settings.scoringWeights.experience + settings.scoringWeights.culture + settings.scoringWeights.education) * 100)
-                            : 100
-                        }%
+                        <span className="font-medium">Total:</span>{' '}
+                        {(() => {
+                          if (!settings?.scoringWeights) return 100;
+                          const weights = settings.scoringWeights;
+                          const total =
+                            (weights.skills ?? 0) +
+                            (weights.experience ?? 0) +
+                            (weights.culture ?? 0) +
+                            (weights.education ?? 0);
+                          return Math.round(total * 100);
+                        })()}
+                        %
                       </p>
                     </div>
                   </div>

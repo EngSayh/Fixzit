@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { Card, CardContent} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -52,9 +53,9 @@ const fetcher = async (url: string, orgId?: string) => {
     if (!res.ok) throw new Error('Failed to fetch orders');
     const json = await res.json();
     return json.data || json.orders || json.items || [];
-  } catch (error) {
-    logger.error('FM orders fetch error', { error });
-    throw error;
+  } catch (_error) {
+    logger.error('FM orders fetch error', _error as Error);
+    throw _error;
   }
 };
 
@@ -62,10 +63,9 @@ export default function OrdersPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { data: session } = useSession();
+  const { orgId, guard, supportBanner } = useOrgGuard();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-
-  const orgId = session?.user?.orgId;
 
   // Fetch orders
   const ordersUrl = orgId
@@ -116,9 +116,9 @@ export default function OrdersPage() {
       }
       toast.success(t('orders.toast.deleteSuccess', 'Order deleted successfully'), { id: toastId });
       mutate();
-    } catch (error) {
+    } catch (_error) {
       const message =
-        error instanceof Error ? error.message : t('orders.errors.deleteUnknown', 'Failed to delete order');
+        _error instanceof Error ? _error.message : t('orders.errors.deleteUnknown', 'Failed to delete order');
       toast.error(
         t('orders.toast.deleteFailed', 'Failed to delete order: {{message}}').replace('{{message}}', message),
         { id: toastId }
@@ -175,8 +175,9 @@ export default function OrdersPage() {
   if (!session) return <CardGridSkeleton count={4} />;
   if (!orgId) {
     return (
-      <div className="p-6 text-center text-destructive">
-        {t('fm.errors.orgIdMissing', 'Error: Organization ID missing from session')}
+      <div className="space-y-6">
+        {supportBanner}
+        {guard}
       </div>
     );
   }
@@ -191,6 +192,7 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-6">
+      {supportBanner}
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground mb-2">{t('nav.orders', 'Orders & Purchase Orders')}</h1>

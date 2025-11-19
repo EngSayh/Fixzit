@@ -86,7 +86,7 @@ export default function PropertyDetailPage() {
               <div className="p-3 bg-primary/10 rounded-2xl">
                 <Home className="h-6 w-6 text-primary" />
               </div>
-              <div className={isRTL ? 'text-right' : ''}>
+              <div className="text-start">
                 <p className="text-sm text-muted-foreground">
                   {auto('Type', 'stats.type')}
                 </p>
@@ -98,7 +98,7 @@ export default function PropertyDetailPage() {
               <div className="p-3 bg-success/10 rounded-2xl">
                 <Home className="h-6 w-6 text-success" />
               </div>
-              <div className={isRTL ? 'text-right' : ''}>
+              <div className="text-start">
                 <p className="text-sm text-muted-foreground">
                   {auto('Units', 'stats.units')}
                 </p>
@@ -110,7 +110,7 @@ export default function PropertyDetailPage() {
               <div className="p-3 bg-accent/10 rounded-2xl">
                 <Users className="h-6 w-6 text-accent" />
               </div>
-              <div className={isRTL ? 'text-right' : ''}>
+              <div className="text-start">
                 <p className="text-sm text-muted-foreground">
                   {auto('Occupancy', 'stats.occupancy')}
                 </p>
@@ -122,7 +122,7 @@ export default function PropertyDetailPage() {
               <div className="p-3 bg-destructive/10 rounded-2xl">
                 <Wrench className="h-6 w-6 text-destructive" />
               </div>
-              <div className={isRTL ? 'text-right' : ''}>
+              <div className="text-start">
                 <p className="text-sm text-muted-foreground">
                   {auto('Open Work Orders', 'stats.workOrders')}
                 </p>

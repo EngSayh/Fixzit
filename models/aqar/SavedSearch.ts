@@ -120,20 +120,17 @@ SavedSearchSchema.index({ 'criteria.city': 1 });
 SavedSearchSchema.index({ 'criteria.geoCenter': '2dsphere' });
 
 // Methods
-// eslint-disable-next-line no-unused-vars
 SavedSearchSchema.methods.recordMatch = async function (this: ISavedSearch) {
   this.matchCount += 1;
   await this.save();
 };
 
-// eslint-disable-next-line no-unused-vars
 SavedSearchSchema.methods.recordNotification = async function (this: ISavedSearch) {
   this.notificationsSent += 1;
   this.lastNotifiedAt = new Date();
   await this.save();
 };
 
-// eslint-disable-next-line no-unused-vars
 SavedSearchSchema.methods.toggleActive = async function (this: ISavedSearch) {
   this.active = !this.active;
   await this.save();

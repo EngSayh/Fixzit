@@ -1,4 +1,4 @@
-// @ts-nocheck
+import { ObjectId } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
 
@@ -13,8 +13,9 @@ export type ClaimType =
 
 // Claim Status Lifecycle
 export type ClaimStatus =
-  | 'filed' // Initial state
+  | 'pending_review' // Initial state
   | 'pending_seller_response' // Waiting for seller to respond
+  | 'under_review' // Manual investigation in progress
   | 'under_investigation' // Admin reviewing evidence
   | 'pending_evidence' // Waiting for more evidence
   | 'escalated' // Requires manual admin review
@@ -23,7 +24,10 @@ export type ClaimStatus =
   | 'resolved_replacement' // Replacement sent
   | 'rejected' // Claim denied
   | 'withdrawn' // Buyer withdrew claim
-  | 'appealed'; // Seller appealed decision
+  | 'approved' // Seller accepted buyer resolution
+  | 'closed' // Claim fully closed
+  | 'appealed' // Seller appealed decision
+  | 'under_appeal'; // Appeal awaiting review
 
 // Decision Outcomes
 export type DecisionOutcome =
@@ -34,6 +38,7 @@ export type DecisionOutcome =
   | 'needs_more_info';
 
 export interface Claim {
+  _id?: ObjectId;
   claimId: string;
   orderId: string;
   buyerId: string;
@@ -63,6 +68,8 @@ export interface Claim {
   
   // Amounts
   orderAmount: number;
+  requestedAmount?: number;
+  requestType?: string;
   refundAmount?: number;
   
   // Flags
@@ -77,17 +84,20 @@ export interface Claim {
 export interface Evidence {
   evidenceId: string;
   uploadedBy: 'buyer' | 'seller' | 'admin';
-  type: 'photo' | 'video' | 'document' | 'tracking_info' | 'message_screenshot';
+  type: 'image' | 'photo' | 'video' | 'document' | 'tracking_info' | 'message_screenshot';
   url: string;
   description?: string;
   uploadedAt: Date;
 }
 
 export interface SellerResponse {
-  responseText: string;
-  proposedSolution: 'refund_full' | 'refund_partial' | 'replacement' | 'dispute';
+  action?: 'accept' | 'dispute';
+  message?: string;
+  responseText?: string;
+  proposedSolution?: 'refund_full' | 'refund_partial' | 'replacement' | 'dispute';
   partialRefundAmount?: number;
-  evidence: Evidence[];
+  evidence?: Evidence[];
+  counterEvidence?: Evidence[];
   respondedAt: Date;
 }
 
@@ -130,6 +140,8 @@ export interface CreateClaimInput {
   description: string;
   evidence?: { type: string; url: string; description?: string }[];
   orderAmount: number;
+  requestedAmount?: number;
+  requestType?: string;
 }
 
 export interface AddEvidenceInput {
@@ -159,18 +171,31 @@ export interface MakeDecisionInput {
 }
 
 export class ClaimService {
-  private static COLLECTION = 'souq_claims';
+  private static COLLECTION = 'claims';
   private static SELLER_RESPONSE_DEADLINE_HOURS = 48;
   private static INVESTIGATION_DEADLINE_HOURS = 72;
   private static AUTO_RESOLVE_THRESHOLD = 50; // SAR
+
+  private static async collection() {
+    return (await getDatabase()).collection<Claim>(this.COLLECTION);
+  }
+
+  private static buildIdMatch(value: string) {
+    const conditions: (string | ObjectId)[] = [value];
+    if (ObjectId.isValid(value)) {
+      conditions.push(new ObjectId(value));
+    }
+    return { $in: conditions };
+  }
 
   /**
    * File a new A-to-Z claim
    */
   static async createClaim(input: CreateClaimInput): Promise<Claim> {
-    const db = await getDatabase();
+    const collection = await this.collection();
     
     const claimId = `CLM-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const _id = new ObjectId();
     
     // Calculate deadlines
     const filedAt = new Date();
@@ -195,19 +220,22 @@ export class ClaimService {
     }));
     
     const claim: Claim = {
+      _id,
       claimId,
       orderId: input.orderId,
       buyerId: input.buyerId,
       sellerId: input.sellerId,
       productId: input.productId,
       type: input.type,
-      status: 'filed',
+      status: 'pending_review',
       reason: input.reason,
       description: input.description,
       evidence,
       filedAt,
       responseDeadline,
       orderAmount: input.orderAmount,
+      requestedAmount: input.requestedAmount ?? input.orderAmount,
+      requestType: input.requestType ?? 'refund',
       isAutoResolvable,
       isFraudulent: false,
       priority,
@@ -215,7 +243,7 @@ export class ClaimService {
       updatedAt: new Date(),
     };
     
-    await db.collection(this.COLLECTION).insertOne(claim);
+    await collection.insertOne(claim);
     
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'souq-claim-filed', {
       claimId,
@@ -232,11 +260,14 @@ export class ClaimService {
    * Get claim by ID
    */
   static async getClaim(claimId: string): Promise<Claim | null> {
-    const db = await getDatabase();
-    
-    const claim = await db.collection(this.COLLECTION).findOne({ claimId });
-    
-    return claim as Claim | null;
+    const collection = await this.collection();
+    if (ObjectId.isValid(claimId)) {
+      const byObjectId = await collection.findOne({ _id: new ObjectId(claimId) });
+      if (byObjectId) {
+        return byObjectId;
+      }
+    }
+    return collection.findOne({ claimId });
   }
 
   /**
@@ -251,11 +282,11 @@ export class ClaimService {
     limit?: number;
     offset?: number;
   }): Promise<{ claims: Claim[]; total: number }> {
-    const db = await getDatabase();
+    const collection = await this.collection();
     
     const query: Record<string, unknown> = {};
-    if (filters.buyerId) query.buyerId = filters.buyerId;
-    if (filters.sellerId) query.sellerId = filters.sellerId;
+    if (filters.buyerId) query.buyerId = this.buildIdMatch(filters.buyerId);
+    if (filters.sellerId) query.sellerId = this.buildIdMatch(filters.sellerId);
     if (filters.status) query.status = filters.status;
     if (filters.type) query.type = filters.type;
     if (filters.priority) query.priority = filters.priority;
@@ -264,17 +295,17 @@ export class ClaimService {
     const offset = filters.offset || 0;
     
     const [claims, total] = await Promise.all([
-      db.collection(this.COLLECTION)
+      collection
         .find(query)
         .sort({ createdAt: -1 })
         .skip(offset)
         .limit(limit)
         .toArray(),
-      db.collection(this.COLLECTION).countDocuments(query),
+      collection.countDocuments(query),
     ]);
     
     return {
-      claims: claims as Claim[],
+      claims,
       total,
     };
   }
@@ -283,7 +314,7 @@ export class ClaimService {
    * Add evidence to claim
    */
   static async addEvidence(input: AddEvidenceInput): Promise<void> {
-    const db = await getDatabase();
+    const collection = await this.collection();
     
     const claim = await this.getClaim(input.claimId);
     if (!claim) throw new Error('Claim not found');
@@ -297,8 +328,8 @@ export class ClaimService {
       uploadedAt: new Date(),
     };
     
-    await db.collection(this.COLLECTION).updateOne(
-      { claimId: input.claimId },
+    await collection.updateOne(
+      ObjectId.isValid(input.claimId) ? { _id: new ObjectId(input.claimId) } : { claimId: input.claimId },
       {
         $push: { evidence },
         $set: { updatedAt: new Date() },
@@ -310,12 +341,12 @@ export class ClaimService {
    * Seller responds to claim
    */
   static async addSellerResponse(input: SellerResponseInput): Promise<void> {
-    const db = await getDatabase();
+    const collection = await this.collection();
     
     const claim = await this.getClaim(input.claimId);
     if (!claim) throw new Error('Claim not found');
     if (claim.sellerId !== input.sellerId) throw new Error('Unauthorized');
-    if (claim.status !== 'filed' && claim.status !== 'pending_seller_response') {
+    if (claim.status !== 'pending_review' && claim.status !== 'pending_seller_response') {
       throw new Error('Claim is not in a state that accepts seller response');
     }
     
@@ -337,14 +368,14 @@ export class ClaimService {
     };
     
     // Determine next status and whether we should attempt auto-resolution
-    let newStatus: ClaimStatus = 'under_investigation';
+    const newStatus: ClaimStatus = 'under_investigation';
     const shouldAttemptAutoResolve =
       input.proposedSolution === 'refund_full' && claim.isAutoResolvable;
 
     const investigationDeadline = new Date(Date.now() + this.INVESTIGATION_DEADLINE_HOURS * 60 * 60 * 1000);
 
-    await db.collection(this.COLLECTION).updateOne(
-      { claimId: input.claimId },
+    await collection.updateOne(
+      ObjectId.isValid(input.claimId) ? { _id: new ObjectId(input.claimId) } : { claimId: input.claimId },
       {
         $set: {
           sellerResponse,
@@ -365,7 +396,7 @@ export class ClaimService {
    * Make decision on claim
    */
   static async makeDecision(input: MakeDecisionInput): Promise<void> {
-    const db = await getDatabase();
+    const collection = await this.collection();
     
     const claim = await this.getClaim(input.claimId);
     if (!claim) throw new Error('Claim not found');
@@ -389,7 +420,7 @@ export class ClaimService {
       needs_more_info: 'pending_evidence',
     };
     
-    await db.collection(this.COLLECTION).updateOne(
+    await collection.updateOne(
       { claimId: input.claimId },
       {
         $set: {
@@ -420,7 +451,7 @@ export class ClaimService {
     reason: string,
     evidence: { type: string; url: string; description?: string }[]
   ): Promise<void> {
-    const db = await getDatabase();
+    const collection = await this.collection();
     
     const claim = await this.getClaim(claimId);
     if (!claim) throw new Error('Claim not found');
@@ -444,8 +475,8 @@ export class ClaimService {
       appealedAt: new Date(),
     };
     
-    await db.collection(this.COLLECTION).updateOne(
-      { claimId },
+    await collection.updateOne(
+      ObjectId.isValid(claimId) ? { _id: new ObjectId(claimId) } : { claimId },
       {
         $set: {
           appeal,
@@ -475,7 +506,7 @@ export class ClaimService {
    * Add admin note
    */
   static async addAdminNote(claimId: string, adminId: string, note: string): Promise<void> {
-    const db = await getDatabase();
+    const collection = await this.collection();
     
     const adminNote: AdminNote = {
       noteId: `NOTE-${claimId}-${Date.now()}`,
@@ -484,8 +515,8 @@ export class ClaimService {
       createdAt: new Date(),
     };
     
-    await db.collection(this.COLLECTION).updateOne(
-      { claimId },
+    await collection.updateOne(
+      ObjectId.isValid(claimId) ? { _id: new ObjectId(claimId) } : { claimId },
       {
         $push: { adminNotes: adminNote },
         $set: { updatedAt: new Date() },
@@ -497,10 +528,10 @@ export class ClaimService {
    * Update claim status
    */
   static async updateStatus(claimId: string, status: ClaimStatus): Promise<void> {
-    const db = await getDatabase();
+    const collection = await this.collection();
     
-    await db.collection(this.COLLECTION).updateOne(
-      { claimId },
+    await collection.updateOne(
+      ObjectId.isValid(claimId) ? { _id: new ObjectId(claimId) } : { claimId },
       {
         $set: {
           status,
@@ -514,18 +545,18 @@ export class ClaimService {
    * Check for overdue responses
    */
   static async getOverdueClaims(): Promise<Claim[]> {
-    const db = await getDatabase();
+    const collection = await this.collection();
     
     const now = new Date();
     
-    const overdueClaims = await db.collection(this.COLLECTION)
+    const overdueClaims = await collection
       .find({
-        status: { $in: ['filed', 'pending_seller_response'] },
+        status: { $in: ['pending_review', 'pending_seller_response'] },
         responseDeadline: { $lt: now },
       })
       .toArray();
     
-    return overdueClaims as Claim[];
+    return overdueClaims;
   }
 
   /**
@@ -533,11 +564,10 @@ export class ClaimService {
    */
   static async escalateOverdueClaims(): Promise<number> {
     const overdueClaims = await this.getOverdueClaims();
-    
-    const db = await getDatabase();
+    const collection = await this.collection();
     
     for (const claim of overdueClaims) {
-      await db.collection(this.COLLECTION).updateOne(
+      await collection.updateOne(
         { claimId: claim.claimId },
         {
           $set: {
@@ -562,13 +592,13 @@ export class ClaimService {
     avgResolutionTime: number;
     refundTotal: number;
   }> {
-    const db = await getDatabase();
+    const collection = await this.collection();
     
     const query: Record<string, unknown> = {};
     if (filters.sellerId) query.sellerId = filters.sellerId;
     if (filters.buyerId) query.buyerId = filters.buyerId;
     
-    const claims = await db.collection(this.COLLECTION).find(query).toArray() as Claim[];
+    const claims = await collection.find(query).toArray();
     
     const byStatus: Record<string, number> = {};
     const byType: Record<string, number> = {};

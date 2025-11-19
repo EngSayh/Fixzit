@@ -19,6 +19,8 @@ jobs:
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: RTL logical lint
+        run: pnpm run lint:rtl
       - name: Verify route aliases
         run: pnpm run check:route-aliases
       - name: Generate alias metrics artifact
@@ -27,7 +29,38 @@ jobs:
         run: pnpm run archive:route-metrics
       - name: Verify routes (alias + HTTP)
         run: pnpm run verify:routes
+      - name: Static FM org guard sweep
+        run: pnpm run guard:static
+      - name: Verify organization context guards
+        run: pnpm run verify:org-context
       - name: Run translation audit
         run: pnpm run scan:i18n:audit
       - name: Check translation coverage
         run: pnpm run i18n:coverage
+
+  rtl-smoke:
+    needs: route-quality
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Playwright (chromium)
+        run: npx playwright install --with-deps chromium
+      - name: RTL smoke tests (layout + dashboard + souq)
+        env:
+          ALLOW_DASHBOARD_TEST_AUTH: 'true'
+        run: |
+          npx playwright test \
+            tests/smoke/rtl-layout.smoke.spec.ts \
+            tests/smoke/rtl-dashboard-hr.smoke.spec.ts \
+            tests/smoke/rtl-souq.smoke.spec.ts \
+            --project=chromium --workers=1

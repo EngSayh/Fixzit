@@ -216,14 +216,14 @@ Created organized structure:
 ├── prs/              # PR documentation
 └── issues/           # Issue tracking
 
-DAILY_PROGRESS_REPORTS/  # Daily reports
+docs/archived/DAILY_PROGRESS_REPORTS/  # Daily reports
 ```
 
 Moved files:
-- 150+ status reports → `/docs/reports/`
+- 150+ status reports → `/docs/archived/reports/`
 - 5 summary docs → `/docs/summaries/`
-- 200+ PR docs → `/docs/prs/`
-- 165+ issue docs → `/docs/issues/`
+- 200+ PR docs → `/docs/archived/prs/`
+- 165+ issue docs → `/docs/archived/issues/`
 
 **Verification**:
 - ✅ Root directory clean (0 loose docs)

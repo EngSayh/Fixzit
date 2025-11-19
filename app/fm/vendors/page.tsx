@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslation } from '@/contexts/TranslationContext';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Card, CardContent} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import {
   Search, Download, Eye, Edit, Trash2,
   Star, Phone, Mail, MapPin
 } from 'lucide-react';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 interface Vendor {
   id: string;
@@ -55,9 +57,9 @@ const fetcher = async (url: string, orgId?: string) => {
     });
     if (!res.ok) throw new Error('Failed to fetch vendors');
     return res.json();
-  } catch (error) {
-    logger.error('FM vendors fetch error', { error });
-    throw error;
+  } catch (_error) {
+    logger.error('FM vendors fetch error', _error as Error);
+    throw _error;
   }
 };
 
@@ -65,12 +67,15 @@ export default function FMVendorsPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { data: session } = useSession();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'vendors' });
+  
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
   const limit = 20;
-
-  const orgId = session?.user?.orgId;
 
   // Fetch vendors with pagination
   const vendorsUrl = orgId
@@ -109,9 +114,9 @@ export default function FMVendorsPage() {
       }
       toast.success(t('vendors.toast.deleteSuccess', 'Vendor deleted successfully'), { id: toastId });
       mutate();
-    } catch (error) {
+    } catch (_error) {
       const message =
-        error instanceof Error ? error.message : t('vendors.errors.deleteUnknown', 'Failed to delete vendor');
+        _error instanceof Error ? _error.message : t('vendors.errors.deleteUnknown', 'Failed to delete vendor');
       toast.error(
         t('vendors.toast.deleteFailed', 'Failed to delete vendor: {{message}}').replace('{{message}}', message),
         { id: toastId }
@@ -163,8 +168,9 @@ export default function FMVendorsPage() {
   if (!session) return <CardGridSkeleton count={6} />;
   if (!orgId) {
     return (
-      <div className="p-6 text-center text-destructive">
-        {t('fm.errors.orgIdMissing', 'Error: Organization ID missing from session')}
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="vendors" />
+        {guard}
       </div>
     );
   }
@@ -179,6 +185,8 @@ export default function FMVendorsPage() {
 
   return (
     <div className="space-y-6">
+      <ModuleViewTabs moduleId="vendors" />
+      {supportBanner}
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground mb-2">{t('nav.vendors', 'Vendors')}</h1>

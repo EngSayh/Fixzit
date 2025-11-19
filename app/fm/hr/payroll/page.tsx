@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import { useHrPayrollRuns } from '@/hooks/fm/useHrData';
 import {
@@ -19,17 +21,41 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 
+const PAYROLL_STATUS_LABELS: Record<string, { fallback: string; id: string }> = {
+  RECONCILED: { fallback: 'Reconciled', id: 'status.reconciled' },
+  READY: { fallback: 'Ready', id: 'status.ready' },
+  IN_PROGRESS: { fallback: 'In Progress', id: 'status.inProgress' },
+  DRAFT: { fallback: 'Draft', id: 'status.draft' },
+  APPROVAL: { fallback: 'Awaiting approval', id: 'status.approval' },
+};
+
 export default function HrPayrollControlCenter() {
   const auto = useAutoTranslator('fm.hr.payroll');
-  const { runs, isLoading, error, refresh } = useHrPayrollRuns();
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'hr' });
+  const { runs, isLoading, error, refresh } = useHrPayrollRuns(undefined, orgId);
+  const translateStatus = (status?: string) => {
+    if (!status) return '';
+    const lookup = PAYROLL_STATUS_LABELS[status.toUpperCase()];
+    return lookup ? auto(lookup.fallback, lookup.id) : status.toLowerCase();
+  };
 
   const varianceAlerts: Array<{ title: string; detail: string; severity: 'warning' | 'info' }> = [
     { title: auto('Variance data coming soon', 'variance.placeholder'), detail: auto('Wire treasury sync to surface deltas.', 'variance.detail'), severity: 'info' },
   ];
 
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
 
       <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
@@ -48,11 +74,11 @@ export default function HrPayrollControlCenter() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => refresh()}>
-            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            <FileSpreadsheet className="me-2 h-4 w-4" />
             {auto('Upload adjustments', 'actions.adjustments')}
           </Button>
           <Button>
-            <Calculator className="mr-2 h-4 w-4" />
+            <Calculator className="me-2 h-4 w-4" />
             {auto('Start payroll run', 'actions.startRun')}
           </Button>
         </div>
@@ -113,7 +139,7 @@ export default function HrPayrollControlCenter() {
                     </p>
                   </div>
                   <Badge variant={cycle.status === 'RECONCILED' ? 'default' : 'secondary'}>
-                    {cycle.status.toLowerCase()}
+                    {translateStatus(cycle.status)}
                   </Badge>
                   <span className="text-sm text-muted-foreground">
                     {cycle.variance ? `${cycle.variance}%` : auto('Awaiting variance', 'cycles.variancePending')}
@@ -143,7 +169,14 @@ export default function HrPayrollControlCenter() {
             {varianceAlerts.map((alert) => (
               <div key={alert.title} className="rounded-lg border border-border/70 p-3">
                 <div className="flex items-center gap-2">
-                  <AlertBadge severity={alert.severity} />
+                  <AlertBadge
+                    severity={alert.severity}
+                    label={
+                      alert.severity === 'warning'
+                        ? auto('Attention', 'alerts.attention')
+                        : auto('Info', 'alerts.info')
+                    }
+                  />
                   <p className="font-medium">{alert.title}</p>
                 </div>
                 <p className="text-sm text-muted-foreground">{alert.detail}</p>
@@ -188,11 +221,11 @@ function UsersIcon(props: { className?: string }) {
   return <Users className={props.className} />;
 }
 
-function AlertBadge({ severity }: { severity: 'warning' | 'info' }) {
+function AlertBadge({ severity, label }: { severity: 'warning' | 'info'; label: string }) {
   const isWarning = severity === 'warning';
   return (
     <Badge className={isWarning ? 'bg-warning/15 text-warning' : 'bg-muted text-muted-foreground'}>
-      {severity === 'warning' ? 'Attention' : 'Info'}
+      {label}
     </Badge>
   );
 }

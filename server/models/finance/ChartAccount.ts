@@ -143,7 +143,6 @@ ChartAccountSchema.index({ orgId: 1, parentId: 1 });
 ChartAccountSchema.index({ orgId: 1, accountName: 'text' }); // For search
 
 // Virtual: Is parent account
-// eslint-disable-next-line no-unused-vars
 ChartAccountSchema.virtual('isParent').get(function(this: IChartAccount) {
   return !this.parentId;
 });

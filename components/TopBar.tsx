@@ -383,7 +383,7 @@ export default function TopBar() {
                 {orgSettings?.name?.substring(0, 2).toUpperCase() || 'FX'}
               </div>
             )}
-            <div className={`flex flex-col ${isRTL ? 'text-right' : 'text-left'}`}>
+            <div className="flex flex-col text-start">
               <span className={`font-semibold leading-tight ${isMobile ? 'hidden' : 'text-base'}`}>
                 {orgSettings?.name || t('common.brand')}
               </span>
@@ -543,7 +543,6 @@ export default function TopBar() {
  * ✅ EXTRACTED: NotificationPopup Component
  * Handles notification bell, dropdown, and list display
  */
-/* eslint-disable no-unused-vars */
 interface NotificationPopupProps {
   isRTL: boolean;
   notifOpen: boolean;
@@ -563,7 +562,6 @@ interface NotificationPopupProps {
   router: ReturnType<typeof useRouter>;
   t: (key: string, fallback?: string) => string;
 }
-/* eslint-enable no-unused-vars */
 
 function NotificationPopup({
   isRTL,
@@ -671,7 +669,7 @@ function NotificationPopup({
                   <button
                     key={notification.id}
                     type="button"
-                    className="w-full p-3 hover:bg-muted border-b border-border last:border-b-0 cursor-pointer transition-colors text-left"
+                    className="w-full p-3 hover:bg-muted border-b border-border last:border-b-0 cursor-pointer transition-colors text-start"
                     onClick={() => {
                       setNotifOpen(false);
                       const targetPath = notification.targetUrl || '/notifications';
@@ -734,7 +732,6 @@ function NotificationPopup({
  * ✅ EXTRACTED: UserMenuPopup Component
  * Handles user avatar, dropdown menu, and logout
  */
-/* eslint-disable no-unused-vars */
 interface UserMenuPopupProps {
   isRTL: boolean;
   userOpen: boolean;
@@ -747,7 +744,6 @@ interface UserMenuPopupProps {
   handleLogout: () => void;
   t: (key: string, fallback?: string) => string;
 }
-/* eslint-enable no-unused-vars */
 
 function UserMenuPopup({
   isRTL,
@@ -825,7 +821,7 @@ function UserMenuPopup({
           
           <Button
             variant="ghost"
-            className="w-full text-left px-4 py-2 hover:bg-destructive/10 text-destructive rounded justify-start"
+            className="w-full text-start px-4 py-2 hover:bg-destructive/10 text-destructive rounded justify-start"
             onClick={handleLogout}
           >
             {t('common.logout')}

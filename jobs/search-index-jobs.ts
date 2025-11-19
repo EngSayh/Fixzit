@@ -225,7 +225,9 @@ async function processSearchIndexJob(job: Job<SearchIndexJobData>) {
     }
 
     logger.info(`[SearchIndex] Job completed: ${job.id}`);
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('[SearchIndex] Job failed', { jobId: job.id, error });
     throw error; // Let BullMQ handle retries
   }

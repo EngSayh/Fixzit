@@ -1,6 +1,7 @@
 'use client';
 
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,7 @@ type AuditFormState = {
 };
 
 export default function ComplianceAuditPlanPage() {
+  const { hasOrgContext, guard, supportBanner, orgId } = useFmOrgGuard({ moduleId: 'compliance' });
   const auto = useAutoTranslator('fm.compliance.audits.new');
   const router = useRouter();
   const [formState, setFormState] = useState<AuditFormState>({
@@ -88,7 +90,10 @@ export default function ComplianceAuditPlanPage() {
 
       const response = await fetch('/api/compliance/audits', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(orgId && { 'x-tenant-id': orgId }),
+        } as HeadersInit,
         body: JSON.stringify(payload),
       });
 
@@ -110,9 +115,14 @@ export default function ComplianceAuditPlanPage() {
     }
   };
 
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="compliance" />
+      {supportBanner}
 
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">{auto('Audit program', 'header.kicker')}</p>
@@ -210,7 +220,7 @@ export default function ComplianceAuditPlanPage() {
             onClick={() => router.push('/fm/compliance/audits')}
             disabled={isSubmitting}
           >
-            <CalendarCheck2 className="mr-2 h-4 w-4" />
+            <CalendarCheck2 className="me-2 h-4 w-4" />
             {auto('Cancel and go back', 'actions.cancel')}
           </Button>
           <Button type="submit" disabled={isSubmitting}>
@@ -218,7 +228,7 @@ export default function ComplianceAuditPlanPage() {
               auto('Publishing...', 'actions.publishing')
             ) : (
               <>
-                <ClipboardSignature className="mr-2 h-4 w-4" />
+                <ClipboardSignature className="me-2 h-4 w-4" />
                 {auto('Publish plan', 'actions.publish')}
               </>
             )}

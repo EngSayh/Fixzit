@@ -105,7 +105,7 @@ export function SettlementStatementView({ statement }: SettlementStatementViewPr
           </p>
         </div>
         <Button onClick={downloadPDF} variant="outline">
-          <Download className="h-4 w-4 mr-2" />
+          <Download className="h-4 w-4 me-2" />
           تحميل PDF (Download)
         </Button>
       </div>
@@ -190,7 +190,7 @@ export function SettlementStatementView({ statement }: SettlementStatementViewPr
           <p className="font-semibold capitalize">{statement.status}</p>
         </div>
         {statement.paidAt && (
-          <div className="text-right">
+          <div className="text-end">
             <p className="text-sm text-gray-600">تاريخ الدفع (Paid Date)</p>
             <p className="font-semibold">{formatDate(statement.paidAt)}</p>
           </div>

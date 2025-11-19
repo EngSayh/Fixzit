@@ -14,6 +14,7 @@ import { FormStateProvider } from '@/contexts/FormStateContext';
 import { TopBarProvider } from '@/contexts/TopBarContext';
 import { SupportOrgProvider } from '@/contexts/SupportOrgContext';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import type { Locale } from '@/i18n/config';
 
 /**
  * Essential provider tree for public pages (homepage, about, privacy, terms)
@@ -34,17 +35,23 @@ import ErrorBoundary from '@/components/ErrorBoundary';
  * @param {React.ReactNode} children - Application content to render inside provider tree
  * @returns {JSX.Element} The complete provider tree with error protection
  */
-export default function PublicProviders({ children }: { children: React.ReactNode }) {
+export default function PublicProviders({
+  children,
+  initialLocale,
+}: {
+  children: React.ReactNode;
+  initialLocale?: Locale;
+}) {
   return (
     <ErrorBoundary>
       <SessionProvider>
-        <I18nProvider>
+        <I18nProvider initialLocale={initialLocale}>
           <ThemeProvider>
             <ResponsiveProvider>
               <CurrencyProvider>
                 <FormStateProvider>
                   {/* Provide translations for public pages (TopBar and other global UI) */}
-                  <TranslationProvider>
+                  <TranslationProvider initialLanguage={initialLocale}>
                     <SupportOrgProvider>
                       <TopBarProvider>
                         {children}

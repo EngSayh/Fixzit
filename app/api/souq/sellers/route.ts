@@ -74,7 +74,14 @@ export async function POST(request: NextRequest) {
       org_id: orgId,
       country: validatedData.country || 'SA',
       tier: validatedData.tier || 'individual',
-      kycStatus: 'pending',
+      kycStatus: {
+        status: 'pending',
+        step: 'company_info',
+        companyInfoComplete: false,
+        documentsComplete: false,
+        bankDetailsComplete: false,
+        submittedAt: new Date(),
+      },
       isActive: true,
       isSuspended: false,
       accountHealth: {
@@ -154,7 +161,7 @@ export async function GET(request: NextRequest) {
     const query: Record<string, unknown> = { org_id: orgId };
     
     if (status) {
-      query.kycStatus = status;
+      query['kycStatus.status'] = status;
     }
     
     if (tier) {

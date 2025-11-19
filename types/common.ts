@@ -204,7 +204,6 @@ export type JsonValue = string | number | boolean | null | JsonValue[] | { [key:
 export type ErrorLike = Error | { message: string; name?: string; stack?: string };
 
 /** Use for callback functions when signature is truly unknown */
-// eslint-disable-next-line no-unused-vars
 export type UnknownFunction = (...args: Array<unknown>) => unknown;
 
 /** Use for React component props when specific props aren't known */

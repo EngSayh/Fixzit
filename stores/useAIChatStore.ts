@@ -39,11 +39,9 @@ interface AIChatState {
   currentCorrelationId: string | null;
   
   // Actions
-  // eslint-disable-next-line no-unused-vars
   sendMessage: (content: string) => Promise<void>;
   clearMessages: () => void;
   toggleChat: () => void;
-  // eslint-disable-next-line no-unused-vars
   setOpen: (open: boolean) => void;
 }
 
@@ -58,7 +56,6 @@ const generateCorrelationId = (): string => {
  * Helper to add a new message to the state (internal function)
  */
 const addMessage = (
-  // eslint-disable-next-line no-unused-vars
   set: (fn: (state: AIChatState) => Partial<AIChatState>) => void,
   message: Omit<ChatMessage, 'id' | 'timestamp'>
 ) => {

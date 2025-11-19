@@ -4,12 +4,14 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import {
   Users, Shield, FileText, Settings, BarChart3, Database,
   Bell, Mail, FileCode, Lock, Activity, Zap
 } from 'lucide-react';
 
 export default function AdministrationPage() {
+  const { hasOrgContext, guard, orgId, supportOrg, supportBanner } = useFmOrgGuard({ moduleId: 'administration' });
   const { data: session, status } = useSession();
   const router = useRouter();
   const { t } = useTranslation();
@@ -36,6 +38,15 @@ export default function AdministrationPage() {
 
   if (session?.user?.role !== 'SUPER_ADMIN') {
     return null;
+  }
+
+  if (!orgId) {
+    return (
+      <div className="p-6 space-y-6">
+        {supportBanner}
+        {guard}
+      </div>
+    );
   }
 
   const adminModules = [
@@ -150,7 +161,8 @@ export default function AdministrationPage() {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="container mx-auto px-4 py-8 max-w-7xl space-y-4">
+      {supportBanner}
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-2">

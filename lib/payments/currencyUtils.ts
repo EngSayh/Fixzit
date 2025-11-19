@@ -252,7 +252,9 @@ export function validateCurrencyAmount(
     }
     
     return { isValid: true, value: parsed };
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     return { 
       isValid: false, 
       error: error instanceof Error ? error.message : 'Invalid amount format' 

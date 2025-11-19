@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { searchClient, INDEXES } from '@/lib/meilisearch';
+import { withMeiliResilience } from '@/lib/meilisearch-resilience';
 import { z } from 'zod';
 
 const searchQuerySchema = z.object({
@@ -140,16 +141,18 @@ export async function GET(req: NextRequest) {
     // Perform search
     const index = searchClient.index(INDEXES.PRODUCTS);
     
-    const results = await index.search(validated.q, {
-      filter: filters.length > 0 ? filters : undefined,
-      sort: sortArray.length > 0 ? sortArray : undefined,
-      limit: validated.limit,
-      offset,
-      attributesToHighlight: ['title', 'brand', 'description'],
-      highlightPreTag: '<mark>',
-      highlightPostTag: '</mark>',
-      facets: ['category', 'subcategory', 'rating', 'badges'],
-    });
+    const results = await withMeiliResilience('products-search', 'search', () =>
+      index.search(validated.q, {
+        filter: filters.length > 0 ? filters : undefined,
+        sort: sortArray.length > 0 ? sortArray : undefined,
+        limit: validated.limit,
+        offset,
+        attributesToHighlight: ['title', 'brand', 'description'],
+        highlightPreTag: '<mark>',
+        highlightPostTag: '</mark>',
+        facets: ['category', 'subcategory', 'rating', 'badges'],
+      })
+    );
 
     // Calculate price range facets
     const priceRanges = calculatePriceRanges(

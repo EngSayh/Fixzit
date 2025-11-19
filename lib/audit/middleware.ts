@@ -267,14 +267,16 @@ export async function logAudit(auditData: Parameters<typeof AuditLogModel.log>[0
     
     // Asynchronously log without awaiting to not block response
     // Use catch to handle any DB errors
-    AuditLogModel.log(auditData).catch((dbError: any) => {
+    AuditLogModel.log(auditData).catch((dbError: unknown) => {
       logger.error('Failed to write audit log to database', {
         error: dbError,
         action: auditData.action,
         endpoint: auditData.context?.endpoint,
       });
     });
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     // Silent fail for local errors - don't break the main request
     logger.error('Failed to prepare audit log for saving', {
       error,
@@ -289,7 +291,9 @@ export async function logAudit(auditData: Parameters<typeof AuditLogModel.log>[0
 export async function createAuditLog(data: Parameters<typeof AuditLogModel.log>[0]) {
   try {
     await AuditLogModel.log(data);
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('Failed to create audit log', { error });
   }
 }

@@ -1,7 +1,8 @@
 import { logger } from '@/lib/logger';
 import { connectToDatabase } from "@/lib/mongodb-unified";
 import { withIdempotency, createIdempotencyKey } from "@/server/security/idempotency";
-import { WorkOrder } from "@/server/models/WorkOrder";
+import { WorkOrder, type WorkOrderDoc } from "@/server/models/WorkOrder";
+import type { Types } from 'mongoose';
 import { WoCreate, WoUpdate } from "./wo.schema";
 
 const DEFAULT_CATEGORY = "GENERAL";
@@ -21,6 +22,9 @@ const _VALID_TRANSITIONS: Record<string, string[]> = {
   CANCELLED: [],
   REJECTED: ["DRAFT","SUBMITTED"]
 };
+
+const describeWorkOrder = (wo?: Partial<WorkOrderDoc> | null) =>
+  wo?.workOrderNumber ?? 'unknown';
 
 // DUPLICATE SCHEMA REMOVED: Now using the main WorkOrder model from server/models/WorkOrder.ts
 // This fixes the mongoose duplicate schema registration issue where two different schemas
@@ -112,7 +116,7 @@ export async function create(data: WorkOrderInput, actorId: string, ip?: string)
     });
   });
   
-  logger.info(`Work order created: ${(wo as any).workOrderNumber || (wo as any).code} by ${actorId} from ${ip || 'unknown'}`);
+  logger.info(`Work order created: ${describeWorkOrder(wo)} by ${actorId} from ${ip || 'unknown'}`);
   return wo;
 }
 
@@ -135,7 +139,8 @@ export async function update(id: string, patch: Partial<WorkOrderInput>, orgId: 
     throw new Error(`Work order not found: ${id}`);
   }
   
-  if ((existing as any).orgId?.toString?.() !== orgId) {
+  const existingOrgId = (existing as { orgId?: Types.ObjectId | string }).orgId;
+  if (existingOrgId && existingOrgId.toString() !== orgId) {
     throw new Error(`Work order not found: ${id}`); // Don't leak existence
   }
   
@@ -214,7 +219,7 @@ export async function update(id: string, patch: Partial<WorkOrderInput>, orgId: 
 
   const updated = await WorkOrder.findByIdAndUpdate(id, updatePayload, { new: true });
   
-  logger.info(`Work order updated: ${(updated as any)?.workOrderNumber || (updated as any)?.code} by ${actorId} from ${ip || 'unknown'}`);
+  logger.info(`Work order updated: ${describeWorkOrder(updated)} by ${actorId} from ${ip || 'unknown'}`);
   return updated;
 }
 

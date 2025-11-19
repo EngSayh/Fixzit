@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import { Banknote, CheckCircle2, Loader2, Shield, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -13,6 +15,8 @@ import { toast } from 'sonner';
 
 export default function PayrollRunWizardPage() {
   const auto = useAutoTranslator('fm.hr.payrollRun');
+  const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'hr' });
   const steps = useMemo(
     () => [
       {
@@ -74,9 +78,18 @@ export default function PayrollRunWizardPage() {
       .finally(() => setSubmitting(false));
   };
 
+  if (!hasOrgContext) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
       <ModuleViewTabs moduleId="hr" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
 
       <header className="space-y-2">
         <p className="text-xs uppercase tracking-wide text-muted-foreground">
@@ -168,11 +181,11 @@ export default function PayrollRunWizardPage() {
             </div>
             <div className="flex flex-wrap gap-3">
               <Button type="button" variant="outline">
-                <Upload className="mr-2 h-4 w-4" />
+                <Upload className="me-2 h-4 w-4" />
                 {auto('Upload allowance sheet', 'adjustments.upload')}
               </Button>
               <Button type="button" variant="outline">
-                <Shield className="mr-2 h-4 w-4" />
+                <Shield className="me-2 h-4 w-4" />
                 {auto('Attach compliance sign-off', 'adjustments.compliance')}
               </Button>
             </div>
@@ -218,12 +231,12 @@ export default function PayrollRunWizardPage() {
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="me-2 h-4 w-4 animate-spin" />
                 {auto('Submitting...', 'actions.submitting')}
               </>
             ) : (
               <>
-                <Banknote className="mr-2 h-4 w-4" />
+                <Banknote className="me-2 h-4 w-4" />
                 {auto('Submit to treasury', 'actions.submit')}
               </>
             )}

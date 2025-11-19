@@ -154,7 +154,7 @@ export function ReviewForm({
             </button>
           ))}
           {rating > 0 && (
-            <span className="ml-2 text-sm text-muted-foreground self-center">
+            <span className="ms-2 text-sm text-muted-foreground self-center">
               {auto('{{rating}} out of 5 stars', 'rating.caption').replace(
                 '{{rating}}',
                 String(rating)

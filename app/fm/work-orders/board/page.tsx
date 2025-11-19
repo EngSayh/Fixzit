@@ -1,10 +1,13 @@
 'use client';
 
 import React from 'react';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 export default function WorkOrdersBoardPage() {
   const { t } = useTranslation();
+  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'work_orders' });
   const workOrders = [
     {
       id: 'WO-1001',
@@ -49,8 +52,18 @@ export default function WorkOrdersBoardPage() {
     }
   };
 
+  if (!hasOrgContext) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
+      <ModuleViewTabs moduleId="work_orders" />
+      {supportOrg && (
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+          {t('fm.org.supportContext', 'Support context: {{name}}', { name: supportOrg.name })}
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -189,4 +202,3 @@ export default function WorkOrdersBoardPage() {
     </div>
   );
 }
-

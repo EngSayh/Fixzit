@@ -49,7 +49,7 @@ export default function BuyBoxWinner({ winner, onAddToCart, currency = 'SAR' }: 
     if (winner.fulfillmentMethod === 'fbf') {
       return (
         <Badge className="bg-primary/10 text-primary-dark">
-          <Truck className="w-3 h-3 mr-1" />
+          <Truck className="w-3 h-3 me-1" />
           {auto('FBF - Fast Delivery', 'delivery.badge')}
         </Badge>
       );
@@ -70,7 +70,7 @@ export default function BuyBoxWinner({ winner, onAddToCart, currency = 'SAR' }: 
             }`}
           />
         ))}
-        <span className="text-sm text-gray-600 ml-1">
+        <span className="text-sm text-gray-600 ms-1">
           {auto('({{count}} ratings)', 'rating.total').replace('{{count}}', winner.metrics.orderCount.toLocaleString())}
         </span>
       </div>

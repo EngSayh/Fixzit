@@ -41,15 +41,17 @@ export async function incrementAnalyticsWithRetry<T extends Document>({
     try {
       await model.findByIdAndUpdate(id, updateOp).exec();
       break; // Success - exit retry loop
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       retries--;
       
       if (retries === 0) {
         // Final failure - log error
-        logger.error(`Failed to increment ${entityType} analytics after ${maxRetries} retries`, {
+        const errObj = error instanceof Error ? error : new Error(String(error));
+        logger.error(`Failed to increment ${entityType} analytics after ${maxRetries} retries`, errObj, {
           id: id.toString(),
-          message: error instanceof Error ? error.message : 'Unknown error',
-          type: error instanceof Error ? error.constructor.name : typeof error,
+          type: errObj.constructor.name,
         });
       } else {
         // Wait before retry with exponential backoff

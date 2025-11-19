@@ -15,7 +15,6 @@ type ContextValue = {
   locale: Locale;
   dir: 'ltr' | 'rtl';
   dict: Record<string, unknown>;
-  // eslint-disable-next-line no-unused-vars
   setLocale: (locale: Locale, opts?: { persist?: boolean }) => void;
 };
 

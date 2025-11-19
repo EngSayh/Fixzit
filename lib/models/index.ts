@@ -23,7 +23,6 @@ export interface User {
   updatedAt: Date;
 }
 
-/* eslint-disable no-unused-vars */
 export enum Role {
   SUPER_ADMIN = 'SUPER_ADMIN',
   CORPORATE_ADMIN = 'CORPORATE_ADMIN',
@@ -40,7 +39,6 @@ export enum Role {
   PROCUREMENT = 'PROCUREMENT',
   AUDITOR = 'AUDITOR'
 }
-/* eslint-enable no-unused-vars */
 
 export interface Property {
   _id?: string;
@@ -73,7 +71,6 @@ export interface WorkOrder {
   updatedAt: Date;
 }
 
-/* eslint-disable no-unused-vars */
 export enum WOStatus {
   NEW = 'NEW',
   ASSIGNED = 'ASSIGNED',
@@ -89,7 +86,6 @@ export enum WOPriority {
   HIGH = 'HIGH',
   CRITICAL = 'CRITICAL'
 }
-/* eslint-enable no-unused-vars */
 
 // Marketplace Models
 export interface Category {
@@ -192,7 +188,6 @@ export interface Address {
   country: string;
 }
 
-/* eslint-disable no-unused-vars */
 export enum OrderStatus {
   PENDING = 'PENDING',
   CONFIRMED = 'CONFIRMED',
@@ -202,7 +197,6 @@ export enum OrderStatus {
   CANCELLED = 'CANCELLED',
   REFUNDED = 'REFUNDED'
 }
-/* eslint-enable no-unused-vars */
 
 export interface Invoice {
   _id?: string;
@@ -232,7 +226,6 @@ export interface InvoiceLine {
   total: number;
 }
 
-/* eslint-disable no-unused-vars */
 export enum InvoiceStatus {
   DRAFT = 'DRAFT',
   ISSUED = 'ISSUED',
@@ -240,7 +233,6 @@ export enum InvoiceStatus {
   OVERDUE = 'OVERDUE',
   CANCELLED = 'CANCELLED'
 }
-/* eslint-enable no-unused-vars */
 
 // Marketplace - RFQ
 
@@ -271,14 +263,12 @@ export interface Bid {
   submittedAt: Date;
 }
 
-/* eslint-disable no-unused-vars */
 export enum RFQStatus {
   OPEN = 'OPEN',
   CLOSED = 'CLOSED',
   AWARDED = 'AWARDED',
   CANCELLED = 'CANCELLED'
 }
-/* eslint-enable no-unused-vars */
 
 export interface Review {
   _id?: string;

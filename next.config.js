@@ -2,6 +2,8 @@
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 // Bundle analyzer configuration
+const path = require('path');
+const resolveFromRoot = (...segments) => path.resolve(__dirname, ...segments);
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 });
@@ -82,9 +84,8 @@ const nextConfig = {
     nextScriptWorkers: false,
     // Memory optimizations
     webpackMemoryOptimizations: true,
-    // Reduce parallel compilation
+    // Reduce parallel compilation (Next.js 15 handles Edge builds automatically)
     parallelServerCompiles: false,
-    parallelServerAndEdgeCompiles: false,
   },
   
   // ⚡ FIX BUILD TIMEOUT: Add reasonable timeout for static page generation
@@ -139,9 +140,15 @@ const nextConfig = {
   // This webpack config is ONLY used during production builds (`npm run build`)
   // When running `npm run dev`, Turbopack is used instead (configured above)
   //
-  // eslint-disable-next-line no-unused-vars
-  webpack: (config, { isServer, dev, nextRuntime }) => {
+  webpack: (config, { dev, nextRuntime }) => {
     // Production-only webpack optimizations below
+    const otelShim = resolveFromRoot('lib/vendor/opentelemetry/global-utils.js');
+    config.resolve = config.resolve || {};
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@opentelemetry/api/build/esm/internal/global-utils': otelShim,
+      '@opentelemetry/api/build/esm/internal/global-utils.js': otelShim,
+    };
     
     // ⚡ FIX: Exclude mongoose and server models from Edge Runtime
     // Edge Runtime (middleware) cannot use dynamic code evaluation (mongoose, bcrypt, etc.)

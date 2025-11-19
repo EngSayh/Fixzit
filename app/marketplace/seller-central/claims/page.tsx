@@ -18,12 +18,20 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 type ViewMode = 'list' | 'details' | 'respond';
 
+interface ClaimResponseContext {
+  claimId: string;
+  claimNumber: string;
+  claimType: string;
+  claimAmount: number;
+  description: string;
+}
+
 export default function SellerClaimsPage() {
   const { t } = useI18n();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
   const [showResponseDialog, setShowResponseDialog] = useState(false);
-  const [claimForResponse, setClaimForResponse] = useState<any>(null);
+  const [claimForResponse, setClaimForResponse] = useState<ClaimResponseContext | null>(null);
 
   const handleSelectClaim = (claimId: string) => {
     setSelectedClaimId(claimId);
@@ -36,16 +44,19 @@ export default function SellerClaimsPage() {
   };
 
   const handleRespondToClaim = () => {
+    if (!selectedClaimId) {
+      return;
+    }
     // Fetch claim details and show response form
     setShowResponseDialog(true);
     // In a real app, fetch claim details here
-    setClaimForResponse({
-      claimId: selectedClaimId,
-      claimNumber: 'CLM-12345',
-      claimType: 'item-not-received',
-      claimAmount: 250,
-      description: 'Customer claims item was not received',
-    });
+      setClaimForResponse({
+        claimId: selectedClaimId,
+        claimNumber: 'CLM-12345',
+        claimType: 'item-not-received',
+        claimAmount: 250,
+        description: 'Customer claims item was not received',
+      });
   };
 
   const handleResponseSuccess = () => {
@@ -53,6 +64,9 @@ export default function SellerClaimsPage() {
     setViewMode('list');
     // Refresh the claims list
   };
+
+  const hasSelectedClaim = typeof selectedClaimId === 'string';
+  const claimIdForDetails = hasSelectedClaim ? selectedClaimId : undefined;
 
   return (
     <div className="container mx-auto py-8 space-y-6">
@@ -95,9 +109,9 @@ export default function SellerClaimsPage() {
         />
       )}
 
-      {viewMode === 'details' && selectedClaimId && (
+      {viewMode === 'details' && claimIdForDetails && (
         <ClaimDetails
-          claimId={selectedClaimId}
+          claimId={claimIdForDetails}
           userRole="seller"
           onActionRequired={handleRespondToClaim}
         />
@@ -112,7 +126,7 @@ export default function SellerClaimsPage() {
               {t('marketplace.claims.seller.respondToClaimSubtitle')}
             </DialogDescription>
           </DialogHeader>
-          {claimForResponse && (
+          {claimForResponse?.claimId && (
             <ResponseForm
               claimId={claimForResponse.claimId}
               claimDetails={claimForResponse}

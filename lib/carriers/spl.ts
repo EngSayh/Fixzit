@@ -97,7 +97,9 @@ class SPLCarrier implements ICarrierInterface {
 
       return this.mockCreateShipment(params);
 
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('SPL shipment creation failed', { error, orderId: params.orderId });
       throw new Error(`SPL shipment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -124,7 +126,9 @@ class SPLCarrier implements ICarrierInterface {
 
       return this.mockGetTracking(trackingNumber);
 
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('SPL tracking failed', { error, trackingNumber });
       throw new Error(`SPL tracking failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
@@ -145,7 +149,9 @@ class SPLCarrier implements ICarrierInterface {
       // Actual API call would go here
       return true;
 
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('SPL cancellation failed', { error, shipmentId });
       return false;
     }
@@ -176,7 +182,9 @@ class SPLCarrier implements ICarrierInterface {
 
       return rates;
 
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error('SPL rates failed', { error, params });
       return [];
     }

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { getDatabase } from '@/lib/mongodb-unified';
 import { ClaimService, Claim, DecisionOutcome } from './claim-service';
 import { logger } from '@/lib/logger';
@@ -28,6 +27,10 @@ export class InvestigationService {
   private static HIGH_VALUE_THRESHOLD = 500; // SAR
   private static MULTIPLE_CLAIMS_PERIOD = 30; // days
   private static LATE_REPORTING_DAYS = 14; // days after delivery
+  private static async claimsCollection() {
+    const db = await getDatabase();
+    return db.collection<Claim>('claims');
+  }
 
   /**
    * Investigate claim and recommend decision
@@ -68,11 +71,9 @@ export class InvestigationService {
    * Detect fraud indicators
    */
   private static async detectFraudIndicators(claim: Claim): Promise<FraudIndicators> {
-    const db = await getDatabase();
-
     // Check for multiple claims from same buyer in short period
-    const recentClaims = await db
-      .collection('souq_claims')
+    const claimsCollection = await this.claimsCollection();
+    const recentClaims = await claimsCollection
       .countDocuments({
         buyerId: claim.buyerId,
         filedAt: {
@@ -81,6 +82,7 @@ export class InvestigationService {
       });
 
     // Check order delivery status
+    const db = await getDatabase();
     const order = await db.collection('souq_orders').findOne({ orderId: claim.orderId });
     const trackingShowsDelivered =
       order?.deliveryStatus === 'delivered' && order?.deliveredAt !== undefined;
@@ -195,7 +197,7 @@ export class InvestigationService {
 
     const [totalOrders, totalClaims, seller] = await Promise.all([
       db.collection('souq_orders').countDocuments({ sellerId }),
-      db.collection('souq_claims').countDocuments({ sellerId }),
+      db.collection('claims').countDocuments({ sellerId }),
       db.collection('souq_sellers').findOne({ sellerId }),
     ]);
 
@@ -217,7 +219,7 @@ export class InvestigationService {
 
     const [totalOrders, claimCount] = await Promise.all([
       db.collection('souq_orders').countDocuments({ buyerId }),
-      db.collection('souq_claims').countDocuments({ buyerId }),
+      db.collection('claims').countDocuments({ buyerId }),
     ]);
 
     return {
@@ -380,16 +382,14 @@ export class InvestigationService {
    * Auto-resolve eligible claims
    */
   static async autoResolveClaims(): Promise<number> {
-    const db = await getDatabase();
-
     // Get claims eligible for auto-resolution
-    const eligibleClaims = await db
-      .collection('souq_claims')
+    const claimsCollection = await this.claimsCollection();
+    const eligibleClaims = await claimsCollection
       .find({
         status: 'under_investigation',
         isAutoResolvable: true,
       })
-      .toArray() as Claim[];
+      .toArray();
 
     let resolvedCount = 0;
 
@@ -419,7 +419,9 @@ export class InvestigationService {
 
           resolvedCount++;
         }
-      } catch (error) {
+      } catch (_error) {
+        const error = _error instanceof Error ? _error : new Error(String(_error));
+        void error;
         logger.error(`Failed to auto-resolve claim ${claim.claimId}:`, error);
       }
     }
@@ -433,15 +435,13 @@ export class InvestigationService {
   static async getClaimsRequiringReview(): Promise<
     Array<Claim & { investigation: InvestigationResult }>
   > {
-    const db = await getDatabase();
-
-    const claims = await db
-      .collection('souq_claims')
+    const claimsCollection = await this.claimsCollection();
+    const claims = await claimsCollection
       .find({
         status: { $in: ['under_investigation', 'escalated'] },
       })
       .sort({ priority: -1, filedAt: 1 })
-      .toArray() as Claim[];
+      .toArray();
 
     const claimsWithInvestigation = await Promise.all(
       claims.map(async (claim) => {

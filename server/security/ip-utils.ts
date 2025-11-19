@@ -106,19 +106,6 @@ export function isPrivateIP(ip: string): boolean {
   // 100.64.0.0/10
   if (a === 100 && b >= 64 && b <= 127) return true;
   
-  // ✅ RFC 5737 - Test/Documentation networks
-  // 192.0.0.0/24 - IETF Protocol Assignments
-  if (a === 192 && b === 0 && parts[2] === 0) return true;
-  
-  // 192.0.2.0/24 - TEST-NET-1
-  if (a === 192 && b === 0 && parts[2] === 2) return true;
-  
-  // 198.51.100.0/24 - TEST-NET-2
-  if (a === 198 && b === 51 && parts[2] === 100) return true;
-  
-  // 203.0.113.0/24 - TEST-NET-3
-  if (a === 203 && b === 0 && parts[2] === 113) return true;
-  
   // ✅ RFC 2544 - Benchmarking
   // 198.18.0.0/15
   if (a === 198 && (b === 18 || b === 19)) return true;

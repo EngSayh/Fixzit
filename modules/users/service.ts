@@ -68,21 +68,25 @@ export class UserService {
       timestamp: new Date()
     });
     
+    const { password, ...userData } = data;
+    if (!password) {
+      throw new Error('Password is required');
+    }
+
     try {
-      const existing = await User.findOne({ orgId, email: data.email }).exec();
+      const existing = await User.findOne({ orgId, email: userData.email }).exec();
       if (existing) throw new Error('User with this email already exists in this organization');
       
-      const passwordHash = await bcrypt.hash(data.password, 12);
+      const passwordHash = await bcrypt.hash(password, 12);
       const user = new User({
-        ...data,
+        ...userData,
         orgId, // Explicitly set orgId (plugin will use context as fallback)
         passwordHash
         // createdBy will be set automatically by auditPlugin from context
       });
-      // ✅ Remove password field before saving (security best practice)
-      delete (user as any).password;
       await user.save();
-      return user.toObject();
+      const { passwordHash: _removed, ...safeUser } = user.toObject();
+      return safeUser;
     } finally {
       clearTenantContext();
       clearAuditContext();
@@ -113,9 +117,8 @@ export class UserService {
       // updatedBy will be set automatically by auditPlugin from context
       await user.save();
       
-      const result = user.toObject() as any;
-      delete result.passwordHash;  // ✅ Remove sensitive field for security
-      return result;
+      const { passwordHash: _removed, ...safeUser } = user.toObject();
+      return safeUser;
     } finally {
       clearTenantContext();
       clearAuditContext();
@@ -141,9 +144,8 @@ export class UserService {
       // updatedBy will be set automatically by auditPlugin from context
       await user.save();
       
-      const result = user.toObject() as any;
-      delete result.passwordHash;  // ✅ Remove sensitive field for security
-      return result;
+      const { passwordHash: _removed, ...safeUser } = user.toObject();
+      return safeUser;
     } finally {
       clearTenantContext();
       clearAuditContext();
@@ -167,9 +169,8 @@ export class UserService {
       user.lastLoginAt = new Date();
       await user.save();
       
-      const result = user.toObject() as any;
-      delete result.passwordHash;  // ✅ Remove sensitive field for security
-      return result as Record<string, unknown>;
+      const { passwordHash: _removed, ...safeUser } = user.toObject();
+      return safeUser as Record<string, unknown>;
     } finally {
       clearAuditContext();
     }

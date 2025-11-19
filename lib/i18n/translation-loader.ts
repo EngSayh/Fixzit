@@ -8,7 +8,8 @@
  * CRITICAL: Run `pnpm i18n:build` before starting the app
  */
 
-import type { TranslationBundle } from '@/i18n/dictionaries/types';
+import fs from 'fs';
+import path from 'path';
 import type { LanguageCode } from '@/config/language-options';
 
 // Supported locales (only those with real translations)
@@ -28,8 +29,6 @@ export function loadTranslations(): Record<LanguageCode, Record<string, string>>
   // Server-side: Load from generated JSON files
   if (typeof window === 'undefined') {
     try {
-      const fs = require('fs');
-      const path = require('path');
       const root = process.cwd();
       const genDir = path.join(root, 'i18n', 'generated');
       
@@ -88,26 +87,6 @@ export function loadTranslations(): Record<LanguageCode, Record<string, string>>
     'Translation loader called on client-side. ' +
     'Translations must be embedded during SSR/SSG.'
   );
-}
-
-/**
- * @deprecated No longer needed - dictionaries are pre-flattened at build time
- * Flatten nested dictionary to dot-notation keys
- */
-function flattenDictionary(obj: any, prefix = ''): Record<string, string> {
-  const result: Record<string, string> = {};
-  
-  for (const [key, value] of Object.entries(obj)) {
-    const newKey = prefix ? `${prefix}.${key}` : key;
-    
-    if (typeof value === 'string') {
-      result[newKey] = value;
-    } else if (typeof value === 'object' && value !== null) {
-      Object.assign(result, flattenDictionary(value, newKey));
-    }
-  }
-  
-  return result;
 }
 
 /**

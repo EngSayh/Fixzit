@@ -136,7 +136,8 @@ const translations = {
   }
 };
 
-type ToolFormState = Record<string, any>;
+type ToolFormValue = string | number | boolean | File | undefined;
+type ToolFormState = Record<string, ToolFormValue>;
 
 const initialForms: Record<string, ToolFormState> = {
   createWorkOrder: { title: '', description: '', priority: 'MEDIUM' },
@@ -418,12 +419,21 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
     }
   }, [appendAssistantMessage, input, loading, locale, messages, t.toolError, t.rateLimited, t.offline, isOnline]);
 
-  const updateForm = (tool: string, field: string, value: unknown) => {
-    setForms(prev => ({ ...prev, [tool]: { ...prev[tool], [field]: value } }));
+  const cloneInitialState = (tool: string): ToolFormState => ({ ...(initialForms[tool] ?? {}) });
+
+  const updateForm = (tool: string, field: string, value: ToolFormValue) => {
+    setForms((prev) => {
+      const previousState = prev[tool] ?? cloneInitialState(tool);
+      const nextState: ToolFormState = { ...previousState, [field]: value };
+      return { ...prev, [tool]: nextState };
+    });
   };
 
+  const stringValue = (value: ToolFormValue, fallback = ''): string =>
+    typeof value === 'string' ? value : fallback;
+
   const resetForm = (tool: string) => {
-    setForms(prev => ({ ...prev, [tool]: initialForms[tool] }));
+    setForms((prev) => ({ ...prev, [tool]: cloneInitialState(tool) }));
     // Clear any file inputs
     if (tool === 'uploadWorkOrderPhoto') {
       const fileInput = document.querySelector(`input[type="file"]`) as HTMLInputElement;
@@ -515,7 +525,7 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
   };
 
   const submitTool = (tool: string) => {
-    const values = forms[tool];
+    const values: ToolFormState = forms[tool] ?? cloneInitialState(tool);
     if (tool === 'uploadWorkOrderPhoto') {
       if (!values.workOrderId || !values.file) {
         setError(t.requiredField);
@@ -537,14 +547,14 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
   };
 
   const renderForm = (tool: string) => {
-    const values = forms[tool];
+    const values: ToolFormState = forms[tool] ?? cloneInitialState(tool);
     switch (tool) {
       case 'createWorkOrder':
         return (
           <div className="space-y-3">
-            <input value={values.title} onChange={(e) => updateForm(tool, 'title', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'عنوان المشكلة' : 'Issue title'} />
-            <textarea value={values.description} onChange={(e) => updateForm(tool, 'description', e.target.value)} rows={3} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'تفاصيل إضافية' : 'Additional details'} />
-            <select value={values.priority} onChange={(e) => updateForm(tool, 'priority', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+            <input value={stringValue(values.title)} onChange={(e) => updateForm(tool, 'title', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'عنوان المشكلة' : 'Issue title'} />
+            <textarea value={stringValue(values.description)} onChange={(e) => updateForm(tool, 'description', e.target.value)} rows={3} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'تفاصيل إضافية' : 'Additional details'} />
+            <select value={stringValue(values.priority, 'LOW')} onChange={(e) => updateForm(tool, 'priority', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
               <option value="LOW">{locale === 'ar' ? 'منخفض' : 'Low'}</option>
               <option value="MEDIUM">{locale === 'ar' ? 'متوسط' : 'Medium'}</option>
               <option value="HIGH">{locale === 'ar' ? 'مرتفع' : 'High'}</option>
@@ -555,25 +565,25 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       case 'dispatchWorkOrder':
         return (
           <div className="space-y-3">
-            <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
-            <input value={values.assigneeUserId} onChange={(e) => updateForm(tool, 'assigneeUserId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف الفني (اختياري)' : 'Technician ID (optional)'} />
-            <input value={values.assigneeVendorId} onChange={(e) => updateForm(tool, 'assigneeVendorId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف المورد (اختياري)' : 'Vendor ID (optional)'} />
+            <input value={stringValue(values.workOrderId)} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
+            <input value={stringValue(values.assigneeUserId)} onChange={(e) => updateForm(tool, 'assigneeUserId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف الفني (اختياري)' : 'Technician ID (optional)'} />
+            <input value={stringValue(values.assigneeVendorId)} onChange={(e) => updateForm(tool, 'assigneeVendorId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف المورد (اختياري)' : 'Vendor ID (optional)'} />
           </div>
         );
       case 'scheduleVisit':
         return (
           <div className="space-y-3">
-            <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
-            <input type="datetime-local" value={values.scheduledFor} onChange={(e) => updateForm(tool, 'scheduledFor', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            <input value={stringValue(values.workOrderId)} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
+            <input type="datetime-local" value={stringValue(values.scheduledFor)} onChange={(e) => updateForm(tool, 'scheduledFor', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
         );
       case 'uploadWorkOrderPhoto':
         return (
           <div className="space-y-3">
-            <input value={values.workOrderId} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
+            <input value={stringValue(values.workOrderId)} onChange={(e) => updateForm(tool, 'workOrderId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف أمر العمل' : 'Work order ID'} />
             <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground hover:border-primary">
               <Upload className="mb-2 h-5 w-5 text-primary" />
-              <span>{values.file?.name || t.chooseFile}</span>
+              <span>{values.file instanceof File ? values.file.name : t.chooseFile}</span>
               <input type="file" className="hidden" accept="image/*" onChange={(e) => updateForm(tool, 'file', e.target.files?.[0])} />
             </label>
           </div>
@@ -581,15 +591,15 @@ export default function CopilotWidget({ autoOpen = false, embedded = false }: Co
       case 'ownerStatements':
         return (
           <div className="space-y-3">
-            <input value={values.ownerId} onChange={(e) => updateForm(tool, 'ownerId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف المالك (اختياري)' : 'Owner ID (optional)'} />
-            <select value={values.period} onChange={(e) => updateForm(tool, 'period', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+            <input value={stringValue(values.ownerId)} onChange={(e) => updateForm(tool, 'ownerId', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'معرف المالك (اختياري)' : 'Owner ID (optional)'} />
+            <select value={stringValue(values.period, 'Q1')} onChange={(e) => updateForm(tool, 'period', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
               <option value="YTD">{locale === 'ar' ? 'منذ بداية العام' : 'Year to date'}</option>
               <option value="Q1">Q1</option>
               <option value="Q2">Q2</option>
               <option value="Q3">Q3</option>
               <option value="Q4">Q4</option>
             </select>
-            <input value={values.year} onChange={(e) => updateForm(tool, 'year', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'السنة' : 'Year'} />
+            <input value={stringValue(values.year)} onChange={(e) => updateForm(tool, 'year', e.target.value)} className="w-full rounded-2xl border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" placeholder={locale === 'ar' ? 'السنة' : 'Year'} />
           </div>
         );
       default:

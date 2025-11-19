@@ -1,3 +1,5 @@
+import { logSecurityEvent } from '@/lib/monitoring/security-events';
+
 const STATIC_ALLOWED_ORIGINS = [
   'https://fixzit.sa',
   'https://www.fixzit.sa',
@@ -58,7 +60,17 @@ export function isOriginAllowed(origin: string | null): boolean {
   if (allowedOrigins.has(origin)) {
     return true;
   }
-  return process.env.NODE_ENV !== 'production' && DEV_ALLOWED_ORIGINS.includes(origin as (typeof DEV_ALLOWED_ORIGINS)[number]);
+  const allowDev = process.env.NODE_ENV !== 'production' && DEV_ALLOWED_ORIGINS.includes(origin as (typeof DEV_ALLOWED_ORIGINS)[number]);
+  if (!allowDev) {
+    logSecurityEvent({
+      type: 'cors_block',
+      ip: 'unknown',
+      path: origin,
+      timestamp: new Date().toISOString(),
+      metadata: { origin },
+    }).catch(() => undefined);
+  }
+  return allowDev;
 }
 
 export function resolveAllowedOrigin(origin: string | null): string | undefined {

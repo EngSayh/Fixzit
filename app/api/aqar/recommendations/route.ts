@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { dbConnect } from '@/lib/db/mongoose';
 import { getRecommendedListings } from '@/src/lib/aqar/recommendation';
 import { ListingIntent, PropertyType } from '@/models/aqar/Listing';

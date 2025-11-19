@@ -315,25 +315,25 @@ export default function AuditLogViewer() {
             <table className="min-w-full divide-y divide-border">
               <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {auto('Timestamp', 'table.columns.timestamp')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {auto('Action', 'table.columns.action')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {auto('Entity', 'table.columns.entity')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {auto('User', 'table.columns.user')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {auto('IP Address', 'table.columns.ip')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {auto('Status', 'table.columns.status')}
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-6 py-3 text-end text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {auto('Actions', 'table.columns.actions')}
                   </th>
                 </tr>
@@ -369,7 +369,7 @@ export default function AuditLogViewer() {
                         <span className="text-destructive">✗ {auto('Failed', 'table.status.failed')}</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                    <td className="px-6 py-4 whitespace-nowrap text-end text-sm">
                       <button
                         onClick={() => setSelectedLog(log)}
                         className="text-primary hover:text-primary-foreground dark:text-primary dark:hover:text-primary/80"

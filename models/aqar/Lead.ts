@@ -8,7 +8,6 @@
 import mongoose, { Schema, Document, Model } from 'mongoose'
 import { getModel, MModel } from '@/src/types/mongoose-compat';;
 
-/* eslint-disable no-unused-vars */
 export enum LeadStatus {
   NEW = 'NEW',                   // Fresh inquiry
   CONTACTED = 'CONTACTED',       // Agent reached out
@@ -42,7 +41,6 @@ export enum LeadChannel {
   BOOKING_REQUEST = 'BOOKING_REQUEST',
   AUCTION_BID = 'AUCTION_BID',
 }
-/* eslint-enable no-unused-vars */
 
 export interface ILead extends Document {
   // Organization
@@ -94,16 +92,11 @@ export interface ILead extends Document {
   crmDealId?: mongoose.Types.ObjectId;      // Link to CRM Deal
   
   // Instance methods
-  // eslint-disable-next-line no-unused-vars
   addNote(authorId: mongoose.Types.ObjectId, content: string): Promise<void>;
-  // eslint-disable-next-line no-unused-vars
   assign(agentId: mongoose.Types.ObjectId): Promise<void>;
-  // eslint-disable-next-line no-unused-vars
   scheduleViewing(dateTime: Date): Promise<void>;
   completeViewing(): Promise<void>;
-  // eslint-disable-next-line no-unused-vars
   markAsWon(userId: mongoose.Types.ObjectId): Promise<void>;
-  // eslint-disable-next-line no-unused-vars
   markAsLost(userId: mongoose.Types.ObjectId, reason?: string): Promise<void>;
   markAsSpam(): Promise<void>;
   
@@ -224,7 +217,6 @@ LeadSchema.methods.scheduleViewing = async function (this: ILead, dateTime: Date
   await this.save();
 };
 
-// eslint-disable-next-line no-unused-vars
 LeadSchema.methods.completeViewing = async function (this: ILead) {
   if (!this.viewingScheduledAt) {
     throw new Error('No viewing scheduled');
@@ -256,7 +248,6 @@ LeadSchema.methods.markAsLost = async function (
   await this.save();
 };
 
-// eslint-disable-next-line no-unused-vars
 LeadSchema.methods.markAsSpam = async function (this: ILead) {
   this.status = LeadStatus.SPAM;
   await this.save();

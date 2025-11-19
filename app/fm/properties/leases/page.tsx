@@ -1,9 +1,12 @@
 'use client';
 
 import React from 'react';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 export default function PropertiesLeasesPage() {
+  const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({ moduleId: 'properties' });
   const { t } = useTranslation();
   const leases = [
     {
@@ -90,8 +93,14 @@ export default function PropertiesLeasesPage() {
     return translations[status] || status;
   };
 
+  if (!hasOrgContext) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
+      <ModuleViewTabs moduleId="properties" />
+      {supportBanner}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -189,16 +198,16 @@ export default function PropertiesLeasesPage() {
           <table className="w-full">
             <thead className="bg-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.leaseId', 'Lease ID')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.unit', 'Unit')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.tenant', 'Tenant')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.type', 'Type')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.startDate', 'Start Date')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.endDate', 'End Date')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.monthlyRent', 'Monthly Rent')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.leaseStatus', 'Lease Status')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.paymentStatus', 'Payment Status')}</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.actions', 'Actions')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.leaseId', 'Lease ID')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.unit', 'Unit')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.tenant', 'Tenant')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.type', 'Type')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.startDate', 'Start Date')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.endDate', 'End Date')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.monthlyRent', 'Monthly Rent')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.leaseStatus', 'Lease Status')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.paymentStatus', 'Payment Status')}</th>
+                <th className="px-4 py-3 text-start text-xs font-medium text-muted-foreground uppercase tracking-wider">{t('properties.leases.actions', 'Actions')}</th>
               </tr>
             </thead>
             <tbody className="bg-card divide-y divide-border">
@@ -291,4 +300,3 @@ export default function PropertiesLeasesPage() {
     </div>
   );
 }
-

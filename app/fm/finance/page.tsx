@@ -1,12 +1,19 @@
 'use client';
 
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 export default function FinancePage() {
+  const { hasOrgContext, guard, supportBanner } = useFmOrgGuard({ moduleId: 'finance' });
   const auto = useAutoTranslator('fm.finance');
+  if (!hasOrgContext) {
+    return guard;
+  }
+
   return (
     <div className="space-y-6">
+      {supportBanner}
       <ModuleViewTabs moduleId="finance" />
       <div className="flex items-center justify-between">
         <div>

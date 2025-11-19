@@ -62,7 +62,9 @@ export async function getRedisClient(): Promise<RedisClientType | null> {
 
     await client.connect();
     return client;
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('Redis connection error:', error);
     client = null;
     return null;
@@ -94,7 +96,9 @@ export async function getCached<T>(
         return JSON.parse(cached) as T;
       }
       logger.info(`🔍 Cache MISS: ${key}`);
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error(`Cache read error for key ${key}:`, error);
     }
   }
@@ -105,7 +109,9 @@ export async function getCached<T>(
     try {
       await redis.setEx(key, ttl, JSON.stringify(data));
       logger.info(`💾 Cached: ${key} (TTL: ${ttl}s)`);
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error(`Cache write error for key ${key}:`, error);
     }
   }
@@ -137,7 +143,9 @@ export async function invalidateCache(pattern: string): Promise<void> {
     logger.info(deleted > 0
       ? `🗑️  Invalidated ${deleted} keys matching: ${pattern}`
       : `ℹ️  No keys found matching: ${pattern}`);
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error(`Error invalidating cache pattern ${pattern}:`, error);
   }
 }
@@ -156,7 +164,9 @@ export async function invalidateCacheKey(key: string): Promise<void> {
     if (deleted > 0) {
       logger.info(`🗑️  Invalidated cache key: ${key}`);
     }
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error(`Error invalidating cache key ${key}:`, error);
   }
 }
@@ -175,7 +185,9 @@ export async function setCache<T>(key: string, value: T, ttl: number): Promise<v
   try {
     await redis.setEx(key, ttl, JSON.stringify(value));
     logger.info(`💾 Set cache: ${key} (TTL: ${ttl}s)`);
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error(`Error setting cache key ${key}:`, error);
   }
 }
@@ -198,7 +210,9 @@ export async function getCache<T>(key: string): Promise<T | null> {
     }
     logger.info(`🔍 Cache MISS: ${key}`);
     return null;
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error(`Error getting cache key ${key}:`, error);
     return null;
   }
@@ -215,7 +229,9 @@ export async function isRedisHealthy(): Promise<boolean> {
     }
     await redis.ping();
     return true;
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('Redis health check failed:', error);
     return false;
   }
@@ -231,7 +247,9 @@ export async function closeRedis(): Promise<void> {
       client = null;
       logger.info('👋 Redis connection closed');
     }
-  } catch (error) {
+  } catch (_error) {
+    const error = _error instanceof Error ? _error : new Error(String(_error));
+    void error;
     logger.error('Error closing Redis connection:', error);
   }
 }

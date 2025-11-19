@@ -17,7 +17,6 @@ interface PDPBuyBoxProps {
     stock?: { onHand: number; reserved: number; location?: string };
     standards?: string[];
   };
-  // eslint-disable-next-line no-unused-vars
   onAddToCart?: (quantity: number) => Promise<void> | void;
   onRequestRFQ?: () => void;
 }

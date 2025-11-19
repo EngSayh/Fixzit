@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import type { TooltipProps } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
@@ -18,6 +19,11 @@ interface DailyRevenue {
   date: string;
   revenue: number;
 }
+
+type RevenueTooltipDatum = {
+  date: string;
+  revenue: number;
+};
 
 interface SalesData {
   revenue: {
@@ -75,6 +81,40 @@ export function SalesChart({ data, isLoading, period: _period }: SalesChartProps
   const formatTrend = (trend: number) => {
     const sign = trend >= 0 ? '+' : '';
     return `${sign}${trend.toFixed(1)}%`;
+  };
+  const renderTooltipContent = (props: TooltipProps<number, string>) => {
+    const { active, payload } = props as { active?: boolean; payload?: Array<{ payload: RevenueTooltipDatum }> };
+    if (!active || !payload?.length) {
+      return null;
+    }
+
+    const datum = payload[0]?.payload as RevenueTooltipDatum | undefined;
+    if (!datum) {
+      return null;
+    }
+
+    return (
+      <div className="rounded-lg border bg-background p-2 shadow-sm">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col">
+            <span className="text-[0.70rem] uppercase text-muted-foreground">
+              {auto('Date', 'tooltip.date')}
+            </span>
+            <span className="font-bold text-muted-foreground">
+              {datum.date}
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[0.70rem] uppercase text-muted-foreground">
+              {auto('Revenue', 'tooltip.revenue')}
+            </span>
+            <span className="font-bold">
+              {formatCurrency(datum.revenue)}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -174,35 +214,7 @@ export function SalesChart({ data, isLoading, period: _period }: SalesChartProps
               tick={{ fontSize: 12 }}
               tickFormatter={formatCurrency}
             />
-            <Tooltip
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  return (
-                    <div className="rounded-lg border bg-background p-2 shadow-sm">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="flex flex-col">
-                          <span className="text-[0.70rem] uppercase text-muted-foreground">
-                            {auto('Date', 'tooltip.date')}
-                          </span>
-                          <span className="font-bold text-muted-foreground">
-                            {payload[0].payload.date}
-                          </span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-[0.70rem] uppercase text-muted-foreground">
-                            {auto('Revenue', 'tooltip.revenue')}
-                          </span>
-                          <span className="font-bold">
-                            {formatCurrency(payload[0].value as number)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              }}
-            />
+            <Tooltip content={renderTooltipContent} />
             <Legend formatter={(value) => (value === 'revenue' ? auto('Revenue', 'chart.legend.revenue') : value)} />
             <Area
               type="monotone"

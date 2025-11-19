@@ -179,7 +179,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
               clearError('identifier');
               clearError('general');
             }}
-            className={`${isRTL ? 'pe-10 text-right' : 'ps-10'} h-12 ${
+            className={`${isRTL ? 'pe-10' : 'ps-10'} h-12 ${
               errors.identifier ? 'border-destructive focus:ring-destructive' : ''
             }`}
             aria-invalid={!!errors.identifier}
@@ -228,7 +228,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
               clearError('password');
               clearError('general');
             }}
-            className={`${isRTL ? 'pe-10 ps-10 text-right' : 'ps-10 pe-10'} h-12 ${
+            className={`${isRTL ? 'pe-10 ps-10' : 'ps-10 pe-10'} h-12 ${
               errors.password ? 'border-destructive focus:ring-destructive' : ''
             }`}
             aria-invalid={!!errors.password}

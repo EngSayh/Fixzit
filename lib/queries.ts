@@ -411,7 +411,9 @@ export async function createPerformanceIndexes() {
     try {
       await db.collection(collection).createIndex(index);
       logger.info(`✅ Created index on ${collection}`, { collection, index });
-    } catch (error) {
+    } catch (_error) {
+      const error = _error instanceof Error ? _error : new Error(String(_error));
+      void error;
       logger.error(`❌ Failed to create index on ${collection}`, error as Error, { collection, index });
     }
   }

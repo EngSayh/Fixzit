@@ -25,23 +25,28 @@ test.describe('Marketplace Page (/marketplace)', () => {
     await page.goto('/marketplace');
     await page.waitForLoadState('domcontentloaded');
 
-    // Title is present
-    await expect(page.getByRole('heading', { level: 1, name: /fixzit marketplace/i })).toBeVisible();
+    // Hero title is present (support EN + AR copy)
+    await expect(
+      page.getByRole('heading', {
+        level: 1,
+        name: /Facilities, MRO & Construction Marketplace|سوق المرافق/i,
+      })
+    ).toBeVisible();
 
-    // Grid container present with expected classes
-    const grid = page.locator('.grid.grid-cols-2.md\\:grid-cols-3.lg\\:grid-cols-4.gap-4');
-    await expect(grid).toHaveCount(1);
+    // Featured grid present
+    const grid = page.locator('div.grid.gap-6').first();
+    await expect(grid).toBeVisible();
 
     // Either product cards exist OR the empty-state is visible
-    const cards = page.locator('a[href^="/marketplace/product/"].border.rounded');
+    const cards = page.locator('[data-testid="product-card"]');
     const cardCount = await cards.count();
     if (cardCount > 0) {
       // Check a couple of sane expectations on first card
-      const first = cards.first();
-      await expect(first).toHaveAttribute('href', /\/marketplace\/product\/.+/);
-      // Placeholder box exists in each card
-      const placeholders = page.locator('.aspect-square.bg-gray-50.rounded');
-      await expect(placeholders.count()).resolves.toBeGreaterThan(0);
+      const firstLink = cards.first().getByRole('link').first();
+      await expect(firstLink).toHaveAttribute('href', /\/marketplace\/product\/.+/);
+      // Each card has an image container
+      const placeholders = cards.first().locator('.aspect-square');
+      await expect(placeholders).toBeVisible();
     } else {
       await expect(page.getByText(/No products yet\. Seed the marketplace and refresh\./i)).toBeVisible();
     }
@@ -79,7 +84,7 @@ test.describe('Marketplace Page (/marketplace)', () => {
 
     await expect(page.getByRole('heading', { level: 1, name: /fixzit marketplace/i })).toBeVisible();
 
-    const cards = page.locator('a[href^="/marketplace/product/"].border.rounded');
+    const cards = page.locator('[data-testid="product-card"]');
     await expect(cards).toHaveCount(2);
 
     const first = cards.nth(0);
@@ -116,7 +121,7 @@ test.describe('Marketplace Page (/marketplace)', () => {
     await page.goto('/marketplace');
     if (!usedStub) test.skip();
 
-    const cards = page.locator('a[href^="/marketplace/product/"].border.rounded');
+    const cards = page.locator('[data-testid="product-card"]');
     await expect(cards).toHaveCount(3);
 
     const c0 = cards.nth(0);
@@ -149,7 +154,7 @@ test.describe('Marketplace Page (/marketplace)', () => {
     if (!usedStub) test.skip();
 
     await expect(page.getByText(/No products yet\. Seed the marketplace and refresh\./i)).toBeVisible();
-    await expect(page.locator('a[href^="/marketplace/product/"].border.rounded')).toHaveCount(0);
+    await expect(page.locator('[data-testid="product-card"]')).toHaveCount(0);
   });
 
   test('handles non-OK API response by showing empty state (stubbed)', async ({ page }) => {

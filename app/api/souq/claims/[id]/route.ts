@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
 import { ClaimService } from '@/services/souq/claims/claim-service';
+import { resolveRequestSession } from '@/lib/auth/request-session';
+import { getDatabase } from '@/lib/mongodb-unified';
+import { ObjectId } from 'mongodb';
 
 /**
  * GET /api/souq/claims/[id]
@@ -11,7 +13,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await auth();
+    const session = await resolveRequestSession(request);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -22,11 +24,36 @@ export async function GET(
     }
 
     // Check ownership
-    if (claim.buyerId !== session.user.id && claim.sellerId !== session.user.id) {
+    const buyerMatches = claim.buyerId && String(claim.buyerId) === session.user.id;
+    const sellerMatches = claim.sellerId && String(claim.sellerId) === session.user.id;
+    if (!buyerMatches && !sellerMatches) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    return NextResponse.json({ claim });
+    const db = await getDatabase();
+    const orderIdValue = String(claim.orderId);
+    let order = null;
+    if (ObjectId.isValid(orderIdValue)) {
+      order = await db.collection('orders').findOne({ _id: new ObjectId(orderIdValue) }).catch(() => null);
+    }
+    if (!order) {
+      order = await db.collection('orders').findOne({ orderId: orderIdValue }).catch(() => null);
+    }
+
+    const buyerDoc = ObjectId.isValid(String(claim.buyerId))
+      ? await db.collection('users').findOne({ _id: new ObjectId(String(claim.buyerId)) }).catch(() => null)
+      : null;
+    const sellerDoc = ObjectId.isValid(String(claim.sellerId))
+      ? await db.collection('users').findOne({ _id: new ObjectId(String(claim.sellerId)) }).catch(() => null)
+      : null;
+
+    return NextResponse.json({
+      ...claim,
+      _id: claim._id?.toString?.() ?? claim._id,
+      order,
+      buyer: buyerDoc,
+      seller: sellerDoc,
+    });
   } catch (error) {
     console.error('[Claims API] Get claim failed:', error);
     return NextResponse.json(
@@ -48,7 +75,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await auth();
+    const session = await resolveRequestSession(request);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

@@ -143,8 +143,8 @@ echo "TARGET: $GRAND_TOTAL / $GRAND_TOTAL = 100% completion"
 echo ""
 
 # Write to report file
-REPORT_FILE="DAILY_PROGRESS_REPORTS/ISSUE_SCAN_$(date +%Y%m%d_%H%M%S).md"
-mkdir -p DAILY_PROGRESS_REPORTS
+REPORT_FILE="docs/archived/DAILY_PROGRESS_REPORTS/ISSUE_SCAN_$(date +%Y%m%d_%H%M%S).md"
+mkdir -p docs/archived/DAILY_PROGRESS_REPORTS
 
 cat > "$REPORT_FILE" <<EOF
 # Comprehensive Issue Scan Report

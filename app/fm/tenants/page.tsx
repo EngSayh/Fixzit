@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useSession } from 'next-auth/react';
-import { toast } from 'sonner';
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Users, Plus, Search, Mail, Phone, MapPin, Eye, Edit, Trash2, User, Building, Shield } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { CreateTenantForm } from '@/components/fm/tenants/CreateTenantForm';
-
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { logger } from '@/lib/logger';
 interface TenantProperty {
   occupancy?: {
@@ -58,7 +58,11 @@ const sarCurrencyFormatter = new Intl.NumberFormat('en-SA', {
 export default function TenantsPage() {
   const { t } = useTranslation();
   const { data: session } = useSession();
-  const orgId = session?.user?.orgId;
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'tenants' });
+  
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
@@ -72,7 +76,7 @@ export default function TenantsPage() {
     })
       .then(r => r.json())
       .catch(error => {
-        logger.error('FM tenants fetch error', { error });
+        logger.error('FM tenants fetch error', error);
         throw error;
       });
   };
@@ -88,9 +92,10 @@ export default function TenantsPage() {
 
   if (!orgId) {
     return (
-      <p className="text-destructive">
-        {t('fm.errors.noOrgSession', 'Error: No organization ID found in session')}
-      </p>
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="tenants" />
+        {guard}
+      </div>
     );
   }
 
@@ -99,6 +104,8 @@ export default function TenantsPage() {
 
   return (
     <div className="space-y-6">
+      <ModuleViewTabs moduleId="tenants" />
+      {supportBanner}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

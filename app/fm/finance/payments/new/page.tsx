@@ -7,7 +7,9 @@ import { useRouter } from 'next/navigation';
 import { Money, decimal } from '@/lib/finance/decimal';
 import ClientDate from '@/components/ClientDate';
 
+import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { logger } from '@/lib/logger';
+import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 // ============================================================================
 // INTERFACES
 // ============================================================================
@@ -47,6 +49,12 @@ export default function NewPaymentPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { registerForm, unregisterForm } = useFormState();
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
+  const missingOrg = !hasOrgContext || !orgId;
+  
+  if (missingOrg) {
+    return guard;
+  }
 
   // Core payment fields
   const [paymentType, setPaymentType] = useState<string>('RECEIVED');
@@ -153,8 +161,8 @@ export default function NewPaymentPage() {
             setCashAccountId(cashAccounts[0].id);
           }
         }
-      } catch (error) {
-        logger.error('Error loading accounts:', { error });
+      } catch (_error) {
+        logger.error('Error loading accounts:', { error: _error });
       } finally {
         setLoadingAccounts(false);
       }
@@ -197,8 +205,8 @@ export default function NewPaymentPage() {
           }));
           setAllocations(newAllocations);
         }
-      } catch (error) {
-        logger.error('Error loading invoices:', { error });
+      } catch (_error) {
+        logger.error('Error loading invoices:', { error: _error });
         setErrors({ ...errors, invoices: 'Failed to load invoices' });
       } finally {
         setLoadingInvoices(false);
@@ -410,8 +418,8 @@ export default function NewPaymentPage() {
           const errorData = await response.json();
           setErrors({ submit: errorData.error || 'Failed to create payment' });
         }
-      } catch (error) {
-        logger.error('Error creating payment:', { error });
+      } catch (_error) {
+        logger.error('Error creating payment:', { error: _error });
         setErrors({ submit: 'An unexpected error occurred' });
       } finally {
         setIsSubmitting(false);
@@ -637,8 +645,20 @@ export default function NewPaymentPage() {
   // MAIN RENDER
   // ============================================================================
 
+  if (missingOrg) {
+    return (
+      <div className="space-y-6">
+        <ModuleViewTabs moduleId="finance" />
+        {guard}
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto p-6">
+    <div className="space-y-6">
+      <ModuleViewTabs moduleId="finance" />
+      {supportBanner}
+      <div className="container mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">{t('New Payment')}</h1>
         <button
@@ -892,22 +912,22 @@ export default function NewPaymentPage() {
                       <table className="min-w-full divide-y divide-border">
                         <thead className="bg-muted">
                           <tr>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
                               {t('Select')}
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
                               {t('Invoice #')}
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
                               {t('Customer')}
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-start text-xs font-medium text-muted-foreground uppercase">
                               {t('Due Date')}
                             </th>
-                            <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-end text-xs font-medium text-muted-foreground uppercase">
                               {t('Amount Due')}
                             </th>
-                            <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
+                            <th className="px-3 py-2 text-end text-xs font-medium text-muted-foreground uppercase">
                               {t('Allocate')}
                             </th>
                           </tr>
@@ -932,7 +952,7 @@ export default function NewPaymentPage() {
                               <td className="px-3 py-2 text-sm text-foreground">
                                 <ClientDate date={allocation.dueDate} format="date-only" />
                               </td>
-                              <td className="px-3 py-2 text-sm text-right text-foreground">
+                              <td className="px-3 py-2 text-sm text-end text-foreground">
                                 {allocation.amountDue.toFixed(2)} {currency}
                               </td>
                               <td className="px-3 py-2">
@@ -943,7 +963,7 @@ export default function NewPaymentPage() {
                                   max={allocation.amountDue}
                                   value={allocation.amountAllocated}
                                   onChange={(e) => updateAllocationAmount(allocation.id, e.target.value)}
-                                  className="w-full px-2 py-1 text-sm text-right border border-border rounded"
+                                  className="w-full px-2 py-1 text-sm text-end border border-border rounded"
                                   disabled={!allocation.selected}
                                 />
                               </td>
@@ -1012,6 +1032,7 @@ export default function NewPaymentPage() {
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 }
