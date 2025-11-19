@@ -1,56 +1,11 @@
-# VS Code Ignore - Reduce Extension Host Memory Pressure
-# This file tells VS Code which files/folders to ignore for watching
-# Reduces 103K files → ~5K files (98% reduction)
-# Prevents Error Code 5 (Out of Memory) crashes
-
-# Dependencies (biggest contributor - 80K+ files)
-node_modules/
-.pnpm-store/
-.yarn/
-.npm/
-
-# Build outputs
-.next/
-.turbo/
-dist/
-build/
-out/
-*.tsbuildinfo
-
-# Cache directories
-tmp/
-_artifacts/
-coverage/
-.cache/
-.temp/
-
-# Test outputs
-test-results/
-e2e-test-results/
-playwright-report/
-jscpd-report/
+node_modules/**
+.git/**
+dist/**
+build/**
+.next/**
 *.log
-
-# Git internals
-.git/
-
-# AWS CLI (600+ files)
-aws/dist/
-
-# IDE files
-.vscode/.history/
-.idea/
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-logs/
-
-# Temporary files
-*.tmp
-*.swp
-*.swo
-*~
+*.lock
+pnpm-lock.yaml
+coverage/**
+.nyc_output/**
+**/*.map
