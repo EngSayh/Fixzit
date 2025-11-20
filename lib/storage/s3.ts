@@ -32,4 +32,3 @@ export function buildResumeKey(tenantId: string | undefined | null, fileName: st
   const safeTenant = (tenantId || 'global').replace(/[^a-zA-Z0-9_-]/g, '-');
   return `${safeTenant}/resumes/${fileName}`;
 }
-

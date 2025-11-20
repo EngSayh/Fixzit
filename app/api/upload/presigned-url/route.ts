@@ -48,6 +48,10 @@ export async function POST(req: NextRequest) {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
 
+    if (!process.env.AWS_S3_BUCKET || !process.env.AWS_REGION) {
+      return createSecureResponse({ error: 'Storage not configured' }, 500, req);
+    }
+
     const { tenantId, id: userId } = user;
 
     // Rate limit to avoid abuse
