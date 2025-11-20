@@ -1,0 +1,94 @@
+name: Duplicate File Detection
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run weekly on Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  detect-duplicates:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Run duplicate detection
+        id: detect
+        run: |
+          chmod +x scripts/detect-duplicates.sh
+          ./scripts/detect-duplicates.sh --fail-on-duplicates || echo "duplicates_found=true" >> $GITHUB_OUTPUT
+        env:
+          THRESHOLD_MB: 5  # Fail if duplicates exceed 5MB
+        continue-on-error: true
+      
+      - name: Upload duplicate report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: duplicate-detection-report
+          path: duplicate-detection-report.json
+          retention-days: 30
+      
+      - name: Comment on PR (if duplicates found)
+        if: steps.detect.outputs.duplicates_found == 'true' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let report;
+            try {
+              report = JSON.parse(fs.readFileSync('duplicate-detection-report.json', 'utf8'));
+            } catch (e) {
+              console.log('Could not read report file');
+              return;
+            }
+            
+            const wastedMB = report.total_wasted_mb || 0;
+            const groups = report.duplicate_groups || 0;
+            
+            if (groups === 0) return;
+            
+            let comment = `## ⚠️ Duplicate Files Detected\n\n`;
+            comment += `**Summary:**\n`;
+            comment += `- Duplicate groups: ${groups}\n`;
+            comment += `- Wasted space: ${wastedMB} MB\n\n`;
+            comment += `**Action Required:**\n`;
+            comment += `Please review and remove duplicate files before merging.\n\n`;
+            comment += `Run \`./scripts/cleanup-backups.sh\` to clean up backup duplicates.\n\n`;
+            comment += `<details><summary>View Details</summary>\n\n`;
+            
+            report.duplicates.slice(0, 5).forEach(dup => {
+              comment += `\n**Group** (${(dup.size / 1024).toFixed(1)} KB each, ${dup.count} copies):\n`;
+              dup.files.forEach(file => {
+                comment += `- \`${file}\`\n`;
+              });
+            });
+            
+            comment += `\n</details>`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+      
+      - name: Fail if duplicates exceed threshold
+        if: steps.detect.outputs.duplicates_found == 'true'
+        run: |
+          echo "❌ Duplicate files exceed threshold"
+          echo "Please clean up duplicate files before merging"
+          exit 1
