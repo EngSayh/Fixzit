@@ -51,6 +51,10 @@ export async function POST(req: NextRequest) {
     if (!process.env.AWS_S3_BUCKET || !process.env.AWS_REGION) {
       return createSecureResponse({ error: 'Storage not configured' }, 500, req);
     }
+    const scanEnforced = process.env.S3_SCAN_REQUIRED === 'true';
+    if (scanEnforced && !process.env.AV_SCAN_ENDPOINT) {
+      return createSecureResponse({ error: 'AV scanning not configured' }, 503, req);
+    }
 
     const { tenantId, id: userId } = user;
 
@@ -84,15 +88,16 @@ export async function POST(req: NextRequest) {
       : (fileType.startsWith('image/') ? 'document' : 'document');
 
     const key = buildKey(tenantId, userId, cat, fileName);
-    const uploadUrl = await getPresignedPutUrl(key, fileType, 900); // 15 minutes
+    const { url: uploadUrl, headers: uploadHeaders } = await getPresignedPutUrl(key, fileType, 900); // 15 minutes
     const expiresAt = new Date(Date.now() + 900_000).toISOString();
 
     // Surface metadata for downstream AV scan
     return NextResponse.json({
       uploadUrl,
+      uploadHeaders,
       key,
       expiresAt,
-      scanRequired: true,
+      scanRequired: scanEnforced,
       maxSizeBytes: maxSize,
       allowedTypes: Array.from(ALLOWED_TYPES),
     });
