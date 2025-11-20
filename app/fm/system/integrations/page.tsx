@@ -126,7 +126,10 @@ export default function IntegrationsPage() {
         ),
         { id: toastId }
       );
-    } catch (_error) {
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[Integrations] Toggle failed:', error);
+      }
       toast.error(auto('Operation failed', 'toast.error'), { id: toastId });
     }
   };

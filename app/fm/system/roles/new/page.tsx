@@ -65,6 +65,7 @@ export default function NewRolePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          orgId,
           name,
           description,
           permissions,
