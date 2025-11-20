@@ -195,7 +195,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     }
     let unmounted = false;
     const flagKey = '__fixzit_sw_ready';
-    const windowRecord = window as unknown as Record<string, unknown>;
+    const windowRecord: Record<string, unknown> = window;
     if (windowRecord[flagKey]) {
       return;
     }

@@ -103,7 +103,10 @@ export async function authenticateUser(emailOrEmployeeNumber: string, password: 
 
   // Check if user is active (handle both status and isActive fields)
   type UserDoc = { isActive?: boolean; status?: string; _id: unknown; email: string; professional?: { role?: string }; role?: string; orgId?: unknown; personal?: { firstName?: string; lastName?: string } };
-  const userDoc = user as unknown as UserDoc;
+  const userDoc: UserDoc =
+    typeof user.toObject === 'function'
+      ? (user.toObject() as UserDoc)
+      : (user as unknown as UserDoc);
   const isUserActive = userDoc.isActive !== undefined ? userDoc.isActive : (userDoc.status === 'ACTIVE');
   if (!isUserActive) {
     throw new Error('Account is not active');
@@ -142,7 +145,10 @@ export async function getUserFromToken(token: string) {
   }
 
   type UserDoc = { status?: string; _id: unknown; email: string; professional?: { role?: string }; role?: string; orgId?: unknown; personal?: { firstName?: string; lastName?: string } };
-  const userDoc = user as unknown as UserDoc;
+  const userDoc: UserDoc =
+    typeof user.toObject === 'function'
+      ? (user.toObject() as UserDoc)
+      : (user as unknown as UserDoc);
 
   if (userDoc.status !== 'ACTIVE') {
     return null;
@@ -156,4 +162,3 @@ export async function getUserFromToken(token: string) {
     orgId: typeof userDoc.orgId === 'string' ? userDoc.orgId : (userDoc.orgId?.toString() || '')
   };
 }
-

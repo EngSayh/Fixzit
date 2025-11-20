@@ -209,7 +209,10 @@ export async function getUserCommunications(
       .limit(options?.limit || 50)
       .toArray();
 
-    return logs as unknown as CommunicationLog[];
+    return logs.map((log) => ({
+      ...log,
+      _id: log._id?.toString(),
+    })) as CommunicationLog[];
   } catch (_error) {
     const error = _error instanceof Error ? _error : new Error(String(_error));
     void error;
