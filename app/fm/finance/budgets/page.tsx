@@ -11,12 +11,33 @@ import { CardGridSkeleton } from '@/components/skeletons';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
+import { useEffect } from 'react';
 
 export default function BudgetsPage() {
   const auto = useAutoTranslator('fm.finance.budgets');
   const { data: session } = useSession();
   const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
   const [searchQuery, setSearchQuery] = useState('');
+  const [budgets, setBudgets] = useState<BudgetCardProps[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchBudgets = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/fm/finance/budgets');
+        if (!res.ok) throw new Error('Failed to load budgets');
+        const json = await res.json();
+        const data = (json?.data || []) as BudgetCardProps[];
+        setBudgets(data);
+      } catch {
+        // surface toast on real error if desired
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBudgets();
+  }, []);
 
   if (!session) {
     return <CardGridSkeleton count={4} />;
@@ -55,56 +76,53 @@ export default function BudgetsPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="max-w-md"
         />
-        <Button variant="secondary">{auto('Search', 'search.button')}</Button>
+        <Button variant="secondary" onClick={() => {/* no-op search button */}}>
+          {auto('Search', 'search.button')}
+        </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Placeholder cards - replace with real data from API */}
-        <BudgetCard
-          name={auto('Operations Budget 2024', 'placeholder.operations.name')}
-          department={auto('Operations', 'placeholder.operations.dept')}
-          allocated={500000}
-          spent={325000}
-          currency="SAR"
-        />
-        <BudgetCard
-          name={auto('Maintenance Budget 2024', 'placeholder.maintenance.name')}
-          department={auto('Facilities Management', 'placeholder.maintenance.dept')}
-          allocated={750000}
-          spent={480000}
-          currency="SAR"
-        />
-        <BudgetCard
-          name={auto('Marketing Budget 2024', 'placeholder.marketing.name')}
-          department={auto('Marketing', 'placeholder.marketing.dept')}
-          allocated={200000}
-          spent={95000}
-          currency="SAR"
-        />
-      </div>
+      {loading ? (
+        <CardGridSkeleton count={3} />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {budgets
+            .filter((b) =>
+              searchQuery
+                ? `${b.name} ${b.department}`.toLowerCase().includes(searchQuery.toLowerCase())
+                : true
+            )
+            .map((budget) => (
+              <BudgetCard key={budget.id} {...budget} spent={0} />
+            ))}
+          {budgets.length === 0 && (
+            <Card className="md:col-span-2 lg:col-span-3">
+              <CardContent className="py-10 text-center text-muted-foreground">
+                {auto('No budgets found', 'empty')}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       <div className="mt-8 p-6 border border-dashed border-border rounded-lg text-center">
         <p className="text-sm text-muted-foreground">
-          {auto('Budget data will be fetched from /api/finance/budgets', 'info.apiEndpoint')}
+          {auto('Budget data is fetched from /api/fm/finance/budgets', 'info.apiEndpoint')}
         </p>
       </div>
     </div>
   );
 }
 
-function BudgetCard({
-  name,
-  department,
-  allocated,
-  spent,
-  currency,
-}: {
+type BudgetCardProps = {
+  id?: string;
   name: string;
   department: string;
   allocated: number;
-  spent: number;
+  spent?: number;
   currency: string;
-}) {
+};
+
+function BudgetCard({ name, department, allocated, spent = 0, currency }: BudgetCardProps) {
   const auto = useAutoTranslator('fm.finance.budgets.card');
   const percentUsed = (spent / allocated) * 100;
   const remaining = allocated - spent;
