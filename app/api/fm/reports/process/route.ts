@@ -7,6 +7,7 @@ import { resolveTenantId } from '@/app/api/fm/utils/tenant';
 import { FMErrors } from '@/app/api/fm/errors';
 import { getPresignedGetUrl, putObjectBuffer } from '@/lib/storage/s3';
 import { scanS3Object } from '@/lib/security/av-scan';
+import { generateReport } from '@/lib/reports/generator';
 
 type ReportJob = {
   _id: { toString(): string };
@@ -45,18 +46,19 @@ export async function POST(req: NextRequest) {
     for (const job of queued) {
       const id = job._id.toString();
       const key = `${tenantId}/reports/${id}.csv`;
-      const content = [
-        `Report ID,${id}`,
-        `Name,${job.name}`,
-        `Type,${job.type}`,
-        `Format,${job.format}`,
-        `DateRange,${job.startDate || ''},${job.endDate || ''}`,
-        `GeneratedAt,${new Date().toISOString()}`,
-      ].join('\n');
 
       try {
         await collection.updateOne({ _id: job._id }, { $set: { status: 'processing' } });
-        await putObjectBuffer(key, Buffer.from(content, 'utf-8'), 'text/csv');
+        const report = await generateReport({
+          id,
+          name: job.name,
+          type: job.type,
+          format: 'csv',
+          dateRange: `${job.startDate || ''}-${job.endDate || ''}`,
+          notes: job.notes,
+        });
+
+        await putObjectBuffer(key, report.buffer, report.mime);
         const clean = await scanS3Object(key).catch(() => false);
         await collection.updateOne(
           { _id: job._id },
@@ -64,7 +66,8 @@ export async function POST(req: NextRequest) {
             $set: {
               status: clean ? 'ready' : 'failed',
               fileKey: key,
-              fileMime: 'text/csv',
+              fileMime: report.mime,
+              fileSize: report.size,
               updatedAt: new Date(),
               notes: clean ? job.notes : 'AV scan failed',
             },
