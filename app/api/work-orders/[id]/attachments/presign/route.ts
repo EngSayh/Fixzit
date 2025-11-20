@@ -52,8 +52,13 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
   const safeName = encodeURIComponent(String(name).replace(/[^a-zA-Z0-9._-]/g, '_'));
   const key = `wo/${params.id}/${Date.now()}-${safeName}`;
-  const putUrl = await getPresignedPutUrl(key, String(type), 900);
+  const { url: putUrl, headers } = await getPresignedPutUrl(key, String(type), 900, {
+    category: 'work-order-attachment',
+    user: user.id,
+    tenant: user.tenantId || 'global',
+    workOrderId: params.id,
+  });
   const expiresAt = new Date(Date.now() + 900_000).toISOString();
 
-  return NextResponse.json({ putUrl, key, expiresAt });
+  return NextResponse.json({ putUrl, key, expiresAt, headers });
 }

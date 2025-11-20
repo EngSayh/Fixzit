@@ -60,7 +60,9 @@ export default function BudgetsPage() {
             {auto('Create and track departmental budgets and spending limits', 'header.subtitle')}
           </p>
         </div>
-        <CreateBudgetDialog />
+        <CreateBudgetDialog
+          onCreated={(budget) => setBudgets((prev) => [budget, ...prev])}
+        />
       </div>
 
       {supportOrg && (
@@ -178,25 +180,55 @@ function BudgetCard({ name, department, allocated, spent = 0, currency }: Budget
   );
 }
 
-function CreateBudgetDialog() {
+function CreateBudgetDialog({ onCreated }: { onCreated: (budget: BudgetCardProps) => void }) {
   const auto = useAutoTranslator('fm.finance.budgets.create');
+  const [submitting, setSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [department, setDepartment] = useState('');
   const [amount, setAmount] = useState('');
+  const [currency] = useState('SAR');
+
+  const resetForm = () => {
+    setName('');
+    setDepartment('');
+    setAmount('');
+  };
 
   const handleSubmit = async () => {
     const toastId = toast.loading(auto('Creating budget...', 'toast.loading'));
+    setSubmitting(true);
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const parsedAmount = Number(amount);
+      if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+        throw new Error(auto('Allocated amount must be greater than 0', 'toast.amountInvalid'));
+      }
+
+      const res = await fetch('/api/fm/finance/budgets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          department,
+          allocated: parsedAmount,
+          currency,
+        }),
+      });
+
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok || !payload?.success || !payload?.data) {
+        throw new Error(payload?.error || 'Failed to create budget');
+      }
+
+      onCreated(payload.data as BudgetCardProps);
       toast.success(auto('Budget created successfully', 'toast.success'), { id: toastId });
+      resetForm();
       setOpen(false);
-      setName('');
-      setDepartment('');
-      setAmount('');
-    } catch (_error) {
-      toast.error(auto('Failed to create budget', 'toast.error'), { id: toastId });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : auto('Failed to create budget', 'toast.error');
+      toast.error(message, { id: toastId });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -235,7 +267,18 @@ function CreateBudgetDialog() {
               onChange={(e) => setAmount(e.target.value)}
             />
           </div>
-          <Button onClick={handleSubmit} disabled={!name || !department || !amount} className="w-full">
+          <Button
+            onClick={handleSubmit}
+            disabled={
+              submitting ||
+              !name ||
+              !department ||
+              !amount ||
+              !Number.isFinite(Number(amount)) ||
+              Number(amount) <= 0
+            }
+            className="w-full"
+          >
             {auto('Create Budget', 'submit')}
           </Button>
         </div>

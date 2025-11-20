@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,8 +60,55 @@ export default function MarketplaceNewListingPage() {
 
   const handleSubmit = async () => {
     setSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    setSubmitting(false);
+    const toastId = toast.loading(auto('Publishing listing...', 'actions.submitting'));
+    try {
+      const payload = {
+        title: formState.title,
+        sku: formState.sku,
+        fsin: formState.fsin || undefined,
+        category: formState.category,
+        price: Number(formState.price),
+        stock: Number(formState.stock || 0),
+        description: formState.description,
+        compliance: Object.entries(compliance)
+          .filter(([, checked]) => checked)
+          .map(([id]) => id),
+      };
+
+      if (!Number.isFinite(payload.price) || payload.price <= 0) {
+        throw new Error(auto('Price must be greater than 0', 'actions.priceInvalid'));
+      }
+      if (!Number.isFinite(payload.stock) || payload.stock < 0) {
+        throw new Error(auto('Stock must be zero or greater', 'actions.stockInvalid'));
+      }
+
+      const res = await fetch('/api/fm/marketplace/listings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.success) {
+        throw new Error(body?.error || 'Failed to publish listing');
+      }
+
+      toast.success(auto('Listing submitted for review', 'actions.success'), { id: toastId });
+      setFormState({
+        title: '',
+        sku: '',
+        fsin: '',
+        category: '',
+        description: '',
+        price: '',
+        stock: '',
+      });
+      setCompliance({});
+    } catch (error) {
+      const message = error instanceof Error ? error.message : auto('Failed to publish listing', 'actions.error');
+      toast.error(message, { id: toastId });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!hasOrgContext) {

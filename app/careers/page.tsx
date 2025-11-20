@@ -305,6 +305,37 @@ export default function CareersPage() {
     }
 
     try {
+      const resume = formData.get('resume');
+      if (resume instanceof File) {
+        const presignRes = await fetch('/api/files/resumes/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: resume.name, contentType: resume.type || 'application/pdf' }),
+        });
+        if (!presignRes.ok) {
+          throw new Error(auto('Failed to prepare resume upload', 'form.resume.presignError'));
+        }
+        const presign = await presignRes.json();
+        const putHeaders: Record<string, string> = {
+          ...(presign.headers || {}),
+          'Content-Type': resume.type || 'application/pdf',
+        };
+        const putRes = await fetch(presign.url, {
+          method: 'PUT',
+          headers: putHeaders,
+          body: resume,
+        });
+        if (!putRes.ok) {
+          throw new Error(auto('Failed to upload resume', 'form.resume.uploadError'));
+        }
+        const publicUrl = String(presign.url).split('?')[0];
+        formData.set('resumeKey', presign.key);
+        formData.set('resumeUrl', publicUrl);
+        formData.set('resumeMimeType', resume.type || 'application/pdf');
+        formData.set('resumeSize', String(resume.size));
+        formData.delete('resume');
+      }
+
       const response = await fetch('/api/careers/apply', {
         method: 'POST',
         body: formData,
@@ -733,6 +764,9 @@ export default function CareersPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {auto('PDF, DOC, DOCX up to 10MB', 'form.resume.hint')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {auto('Uploaded resumes are virus-scanned (status: pending after upload).', 'form.resume.scanNote')}
                     </p>
                   </div>
                 </div>

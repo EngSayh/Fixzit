@@ -37,6 +37,7 @@ const ALLOWED_RESUME_MIME_TYPES = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ];
 const MAX_RESUME_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const FALLBACK_RESUME_MIME = 'application/pdf';
 
 interface ApplicationSubmissionParams {
   job: {
@@ -51,6 +52,10 @@ interface ApplicationSubmissionParams {
   };
   fields: ApplicationFields;
   resumeFile?: ResumeFileInput;
+  resumeKey?: string;
+  resumeUrl?: string;
+  resumeMimeType?: string;
+  resumeSize?: number;
   source: string;
 }
 
@@ -65,7 +70,7 @@ export class ApplicationSubmissionError extends Error {
 export async function submitApplicationFromForm(
   params: ApplicationSubmissionParams
 ): Promise<{ applicationId: string; stage: string; score: number }> {
-  const { job, resumeFile, source } = params;
+  const { job, resumeFile, source, resumeKey, resumeMimeType, resumeUrl } = params;
   const orgId = normalizeOrgId(job?.orgId);
 
   if (!job?._id || !orgId) {
@@ -82,7 +87,10 @@ export async function submitApplicationFromForm(
   }
 
   const { fields } = params;
-  const resumeDetails = await extractResumeDetails(resumeFile);
+  const normalizedResume =
+    resumeFile ?? (resumeKey ? await fetchResumeFromS3(resumeKey, resumeMimeType, resumeUrl) : undefined);
+
+  const resumeDetails = await extractResumeDetails(normalizedResume);
   const email = (fields.email || resumeDetails.contactEmail || '').trim();
   if (!email) {
     throw new ApplicationSubmissionError('Email address is required', 400);
@@ -238,8 +246,33 @@ export async function submitApplicationFromForm(
   return {
     applicationId: application._id.toString(),
     stage: application.stage,
-    score: application.score,
+  score: application.score,
   };
+}
+
+async function fetchResumeFromS3(
+  key: string,
+  mimeType?: string,
+  fallbackUrl?: string
+): Promise<ResumeFileInput | undefined> {
+  try {
+    const getUrl = await import('@/lib/storage/s3').then((m) => m.getPresignedGetUrl(key, 300));
+    const res = await fetch(getUrl);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch resume from S3: ${res.status}`);
+    }
+    const arrayBuffer = await res.arrayBuffer();
+    const contentType = res.headers.get('content-type') || mimeType || FALLBACK_RESUME_MIME;
+    return {
+      buffer: Buffer.from(arrayBuffer),
+      filename: key.split('/').pop() || 'resume.pdf',
+      mimeType: contentType,
+      size: arrayBuffer.byteLength,
+    };
+  } catch (error) {
+    logger.error('Failed to fetch resume from S3', error as Error, { key, fallbackUrl });
+    return undefined;
+  }
 }
 
 async function extractResumeDetails(resumeFile?: ResumeFileInput): Promise<{

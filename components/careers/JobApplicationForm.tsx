@@ -134,6 +134,38 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
         return;
       }
 
+      const resume = formData.get('resume');
+      if (resume instanceof File) {
+        // Presign + upload to S3 with required headers
+        const presignRes = await fetch('/api/files/resumes/presign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: resume.name, contentType: resume.type || 'application/pdf' }),
+        });
+        if (!presignRes.ok) {
+          throw new Error(t('careers.presignFailed', 'Failed to prepare resume upload'));
+        }
+        const presign = await presignRes.json();
+        const putHeaders: Record<string, string> = {
+          ...(presign.headers || {}),
+          'Content-Type': resume.type || 'application/pdf',
+        };
+        const putRes = await fetch(presign.url, {
+          method: 'PUT',
+          headers: putHeaders,
+          body: resume,
+        });
+        if (!putRes.ok) {
+          throw new Error(t('careers.uploadFailed', 'Failed to upload resume'));
+        }
+        const publicUrl = String(presign.url).split('?')[0];
+        formData.set('resumeKey', presign.key);
+        formData.set('resumeUrl', publicUrl);
+        formData.set('resumeMimeType', resume.type || 'application/pdf');
+        formData.set('resumeSize', String(resume.size));
+        formData.delete('resume'); // do not post the raw file
+      }
+
       const res = await fetch(`/api/careers/apply`, {
         method: 'POST',
         body: formData,
@@ -369,6 +401,9 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
         />
         <p className="text-xs text-muted-foreground mt-1">
           {t('careers.resumeHint', 'PDF only · Max 5MB')}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {t('careers.resumeUploadNote', 'Uploaded resumes are virus-scanned (status: pending after upload).')}
         </p>
         {errors.resume && (
           <p className="mt-1 text-xs text-destructive">{errors.resume}</p>

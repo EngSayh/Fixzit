@@ -66,12 +66,22 @@ export async function POST(req: NextRequest) {
         }
       : undefined;
 
+    const resumeKey = (formData.get('resumeKey') as string | null) || undefined;
+    const resumeUrl = (formData.get('resumeUrl') as string | null) || undefined;
+    const resumeMimeType = (formData.get('resumeMimeType') as string | null) || undefined;
+    const resumeSizeRaw = (formData.get('resumeSize') as string | null) || undefined;
+    const resumeSize = resumeSizeRaw ? Number(resumeSizeRaw) : undefined;
+
     const phoneE164 = String(formData.get('phoneE164') || '').trim();
 
     try {
       const result = await submitApplicationFromForm({
         job,
         resumeFile: resumePayload,
+        resumeKey,
+        resumeUrl,
+        resumeMimeType,
+        resumeSize,
         source: 'careers',
         fields: {
           firstName: (formData.get('firstName') as string | null) || undefined,

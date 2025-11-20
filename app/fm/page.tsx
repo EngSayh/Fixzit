@@ -168,9 +168,14 @@ export default function FMPage() {
     formId: 'fm-page-filters',
     isDirty,
     onSave: async () => {
-      // Simulate save operation (persisting filter preferences)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      logger.info(`Filter preferences saved: ${{ searchTerm, statusFilter }}`);
+      try {
+        const key = 'fxz_fm_filters';
+        const payload = JSON.stringify({ searchTerm, statusFilter, savedAt: Date.now() });
+        localStorage.setItem(key, payload);
+        logger.info(`Filter preferences saved: ${payload}`);
+      } catch (error) {
+        logger.error('Failed to persist filters', error as Error);
+      }
     }
   });
 

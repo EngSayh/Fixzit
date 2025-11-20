@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -13,11 +13,41 @@ import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import ClientDate from '@/components/ClientDate';
 
+type ExpenseCardProps = {
+  id?: string;
+  vendor: string;
+  category: string;
+  amount: number;
+  currency: string;
+  description?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt?: string;
+};
+
 export default function ExpensesPage() {
   const auto = useAutoTranslator('fm.finance.expenses');
   const { data: session } = useSession();
   const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
   const [searchQuery, setSearchQuery] = useState('');
+  const [expenses, setExpenses] = useState<ExpenseCardProps[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchExpenses = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/fm/finance/expenses');
+        if (!res.ok) throw new Error('Failed to load expenses');
+        const payload = await res.json();
+        setExpenses((payload?.data || []) as ExpenseCardProps[]);
+      } catch {
+        toast.error(auto('Failed to load expenses', 'toast.loadError'));
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchExpenses();
+  }, [auto]);
 
   if (!session) {
     return <CardGridSkeleton count={4} />;
@@ -26,6 +56,14 @@ export default function ExpensesPage() {
   if (!hasOrgContext) {
     return guard;
   }
+
+  const filteredExpenses = expenses.filter((expense) =>
+    searchQuery
+      ? `${expense.vendor} ${expense.category} ${expense.description || ''}`
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
+      : true
+  );
 
   return (
     <div className="space-y-6">
@@ -40,7 +78,9 @@ export default function ExpensesPage() {
             {auto('Track and approve operational expenses', 'header.subtitle')}
           </p>
         </div>
-        <CreateExpenseDialog />
+        <CreateExpenseDialog
+          onCreated={(expense) => setExpenses((prev) => [expense, ...prev])}
+        />
       </div>
 
       {supportOrg && (
@@ -56,39 +96,31 @@ export default function ExpensesPage() {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="max-w-md"
         />
-        <Button variant="secondary">{auto('Search', 'search.button')}</Button>
+        <Button variant="secondary">
+          {auto('Search', 'search.button')}
+        </Button>
       </div>
 
       <div className="grid gap-4">
-        <ExpenseCard
-          vendor={auto('ABC Supplies Co.', 'placeholder.vendor1')}
-          category={auto('Office Supplies', 'placeholder.category1')}
-          amount={2500}
-          currency="SAR"
-          date="2024-01-15"
-          status="pending"
-        />
-        <ExpenseCard
-          vendor={auto('Tech Services LLC', 'placeholder.vendor2')}
-          category={auto('IT Equipment', 'placeholder.category2')}
-          amount={15000}
-          currency="SAR"
-          date="2024-01-14"
-          status="approved"
-        />
-        <ExpenseCard
-          vendor={auto('Maintenance Pro', 'placeholder.vendor3')}
-          category={auto('Building Maintenance', 'placeholder.category3')}
-          amount={8500}
-          currency="SAR"
-          date="2024-01-13"
-          status="rejected"
-        />
+        {expenses.length === 0 && !loading && (
+          <Card>
+            <CardContent className="p-6 text-center text-muted-foreground">
+              {auto('No expenses yet. Submit one to get started.', 'empty')}
+            </CardContent>
+          </Card>
+        )}
+        {loading ? (
+          <CardGridSkeleton count={3} />
+        ) : (
+          filteredExpenses.map((expense) => (
+            <ExpenseCard key={expense.id} {...expense} />
+          ))
+        )}
       </div>
 
       <div className="mt-8 p-6 border border-dashed border-border rounded-lg text-center">
         <p className="text-sm text-muted-foreground">
-          {auto('Expense data will be fetched from /api/finance/expenses', 'info.apiEndpoint')}
+          {auto('Expense data is fetched from /api/fm/finance/expenses', 'info.apiEndpoint')}
         </p>
       </div>
     </div>
@@ -100,16 +132,10 @@ function ExpenseCard({
   category,
   amount,
   currency,
-  date,
   status,
-}: {
-  vendor: string;
-  category: string;
-  amount: number;
-  currency: string;
-  date: string;
-  status: 'pending' | 'approved' | 'rejected';
-}) {
+  description,
+  createdAt,
+}: ExpenseCardProps) {
   const auto = useAutoTranslator('fm.finance.expenses.card');
   
   const statusColors = {
@@ -126,8 +152,9 @@ function ExpenseCard({
             <div className="font-semibold text-lg">{vendor}</div>
             <div className="text-sm text-muted-foreground">{category}</div>
             <div className="text-xs text-muted-foreground">
-              <ClientDate date={date} format="date-only" />
+              <ClientDate date={createdAt || new Date().toISOString()} format="date-only" />
             </div>
+            {description && <div className="text-sm text-muted-foreground">{description}</div>}
           </div>
           <div className="text-end space-y-2">
             <div className="text-xl font-bold">
@@ -153,26 +180,54 @@ function ExpenseCard({
   );
 }
 
-function CreateExpenseDialog() {
+function CreateExpenseDialog({ onCreated }: { onCreated: (expense: ExpenseCardProps) => void }) {
   const auto = useAutoTranslator('fm.finance.expenses.create');
   const [open, setOpen] = useState(false);
   const [vendor, setVendor] = useState('');
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     const toastId = toast.loading(auto('Submitting expense...', 'toast.loading'));
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setSubmitting(true);
+      const payload = {
+        vendor,
+        category,
+        amount: Number(amount),
+        currency: 'SAR',
+        description,
+      };
+
+      if (!Number.isFinite(payload.amount) || payload.amount <= 0) {
+        throw new Error(auto('Amount must be greater than 0', 'toast.amountInvalid'));
+      }
+
+      const res = await fetch('/api/fm/finance/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.success || !body?.data) {
+        throw new Error(body?.error || 'Failed to submit expense');
+      }
+
+      onCreated(body.data as ExpenseCardProps);
       toast.success(auto('Expense submitted for approval', 'toast.success'), { id: toastId });
-      setOpen(false);
       setVendor('');
       setCategory('');
       setAmount('');
       setDescription('');
+      setOpen(false);
     } catch (_error) {
-      toast.error(auto('Failed to submit expense', 'toast.error'), { id: toastId });
+      const message =
+        _error instanceof Error ? _error.message : auto('Failed to submit expense', 'toast.error');
+      toast.error(message, { id: toastId });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -219,7 +274,18 @@ function CreateExpenseDialog() {
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
-          <Button onClick={handleSubmit} disabled={!vendor || !category || !amount} className="w-full">
+          <Button
+            onClick={handleSubmit}
+            disabled={
+              submitting ||
+              !vendor ||
+              !category ||
+              !amount ||
+              !Number.isFinite(Number(amount)) ||
+              Number(amount) <= 0
+            }
+            className="w-full"
+          >
             {auto('Submit Expense', 'submit')}
           </Button>
         </div>

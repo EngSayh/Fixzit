@@ -76,8 +76,28 @@ export default function NewEscalationPage() {
     setSubmitting(true);
     const toastId = toast.loading(auto('Submitting escalation…', 'toast.submitting'));
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1400));
+      const res = await fetch('/api/fm/support/escalations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.success) {
+        throw new Error(body?.error || 'Failed to escalate');
+      }
       toast.success(auto('Escalation sent to duty manager', 'toast.success'), { id: toastId });
+      setForm((prev) => ({
+        ...prev,
+        incidentId: '',
+        service: '',
+        areas: '',
+        summary: '',
+        symptoms: '',
+        mitigation: '',
+        blockers: '',
+        executiveBrief: '',
+        stakeholders: '',
+      }));
     } catch (_error) {
       toast.error(auto('Failed to escalate. Please try again.', 'toast.error'), { id: toastId });
     } finally {

@@ -88,7 +88,16 @@ export async function POST(req: NextRequest) {
       : (fileType.startsWith('image/') ? 'document' : 'document');
 
     const key = buildKey(tenantId, userId, cat, fileName);
-    const { url: uploadUrl, headers: uploadHeaders } = await getPresignedPutUrl(key, fileType, 900); // 15 minutes
+    const { url: uploadUrl, headers: uploadHeaders } = await getPresignedPutUrl(
+      key,
+      fileType,
+      900,
+      {
+        category: cat,
+        user: userId,
+        tenant: tenantId || 'global',
+      }
+    ); // 15 minutes
     const expiresAt = new Date(Date.now() + 900_000).toISOString();
 
     // Surface metadata for downstream AV scan

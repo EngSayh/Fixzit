@@ -6,6 +6,26 @@ declare global { interface Window { __incidentReporter?: boolean; __incidentLast
 
 export default function AutoIncidentReporter(){
   useEffect(() => {
+    const QUEUE_KEY = 'fxz_failed_incidents';
+
+    const loadQueued = (): Record<string, unknown>[] => {
+      try {
+        const raw = localStorage.getItem(QUEUE_KEY);
+        return raw ? (JSON.parse(raw) as Record<string, unknown>[]) : [];
+      } catch {
+        return [];
+      }
+    };
+
+    const saveQueued = (items: Record<string, unknown>[]) => {
+      try {
+        const trimmed = items.slice(-20); // cap to avoid unbounded growth
+        localStorage.setItem(QUEUE_KEY, JSON.stringify(trimmed));
+      } catch {
+        // ignore storage errors
+      }
+    };
+
     if (typeof window !== 'undefined') {
       const enabled = String(process.env.NEXT_PUBLIC_ENABLE_INCIDENTS || 'true') !== 'false';
       if (!enabled || window.__incidentReporter) return;
@@ -35,6 +55,27 @@ export default function AutoIncidentReporter(){
       time: new Date().toISOString(),
       network: typeof navigator !== 'undefined' ? (navigator.onLine ? 'online' : 'offline') : undefined
     });
+    const flushQueue = async () => {
+      const queued = loadQueued();
+      if (!queued.length) return;
+      const remaining: Record<string, unknown>[] = [];
+      for (const item of queued) {
+        try {
+          await fetch('/api/support/incidents', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(item),
+            keepalive: true,
+          });
+        } catch {
+          remaining.push(item);
+        }
+      }
+      if (remaining.length !== queued.length) {
+        saveQueued(remaining);
+      }
+    };
+
     const send = (payload: Record<string, unknown>) => {
       const now = Date.now();
       if (window.__incidentLastAt && now - window.__incidentLastAt < 30000) return; // throttle 30s
@@ -55,6 +96,7 @@ export default function AutoIncidentReporter(){
         if (process.env.NODE_ENV === 'development') {
           console.warn('[Telemetry] Incident report fetch failed:', err);
         }
+        saveQueued([...loadQueued(), payload]);
       });
     };
 
@@ -73,6 +115,8 @@ export default function AutoIncidentReporter(){
       const ctx = buildCtx();
       send({ code: 'UI-UI-REJECTION-001', message: msg, details: stack, userContext: user, clientContext: ctx });
     };
+
+    flushQueue();
     window.addEventListener('error', onErr);
     window.addEventListener('unhandledrejection', onRej);
     return () => {
@@ -82,4 +126,3 @@ export default function AutoIncidentReporter(){
   }, []);
   return null;
 }
-

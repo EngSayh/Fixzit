@@ -68,6 +68,7 @@ export default function NewSchedulePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          orgId,
           title,
           reportType,
           frequency,

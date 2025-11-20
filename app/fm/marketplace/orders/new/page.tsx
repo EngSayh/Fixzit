@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,8 +59,41 @@ export default function MarketplaceNewOrderPage() {
 
   const submitOrder = async () => {
     setSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    setSubmitting(false);
+    const toastId = toast.loading(auto('Submitting order...', 'actions.submitting'));
+    try {
+      const res = await fetch('/api/fm/marketplace/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requester,
+          department,
+          justification,
+          items,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.success) {
+        throw new Error(body?.error || 'Failed to submit order');
+      }
+      toast.success(auto('Order submitted for approval', 'actions.success'), { id: toastId });
+      setRequester('');
+      setDepartment('');
+      setJustification('');
+      setItems([
+        {
+          id: crypto.randomUUID(),
+          description: '',
+          quantity: 1,
+          unitCost: 0,
+          deliveryNeed: '',
+        },
+      ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : auto('Failed to submit order', 'actions.error');
+      toast.error(message, { id: toastId });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!hasOrgContext) {

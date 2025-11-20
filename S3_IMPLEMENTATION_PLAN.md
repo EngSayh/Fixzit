@@ -243,22 +243,33 @@ const handleUpload = async (file: File) => {
     
     const { uploadUrl, fileKey } = await response.json();
     
-    // Step 2: Upload to S3 with progress tracking
-    const uploadResponse = await fetch(uploadUrl, {
-      method: 'PUT',
-      body: file,
-      headers: {
-        'Content-Type': file.type,
-      },
-      onUploadProgress: (event) => {
-        const progress = Math.round((event.loaded / event.total) * 100);
-        setProgress(progress);
-      },
+    // Step 2: Upload to S3 with progress tracking (using XMLHttpRequest)
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          setProgress(progress);
+        }
+      });
+      
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(xhr.response);
+        } else {
+          reject(new Error('S3 upload failed'));
+        }
+      });
+      
+      xhr.addEventListener('error', () => {
+        reject(new Error('Network error during upload'));
+      });
+      
+      xhr.open('PUT', uploadUrl);
+      xhr.setRequestHeader('Content-Type', file.type);
+      xhr.send(file);
     });
-    
-    if (!uploadResponse.ok) {
-      throw new Error('S3 upload failed');
-    }
     
     // Step 3: Notify backend of successful upload
     await fetch('/api/kyc/documents', {

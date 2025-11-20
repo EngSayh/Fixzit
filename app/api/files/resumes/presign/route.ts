@@ -39,8 +39,12 @@ export async function POST(req: NextRequest) {
     const { fileName, contentType } = body || {};
     if (!fileName || !contentType) return createSecureResponse({ error: 'Missing fileName or contentType' }, 400, req);
     const key = buildResumeKey(user.tenantId, String(fileName));
-    const url = await getPresignedPutUrl(key, String(contentType), 300);
-    return NextResponse.json({ url, key });
+    const { url, headers } = await getPresignedPutUrl(key, String(contentType), 300, {
+      category: 'resume',
+      user: user.id,
+      tenant: user.tenantId || 'global',
+    });
+    return NextResponse.json({ url, key, headers });
   } catch {
     return createSecureResponse({ error: 'Failed to presign' }, 500, req);
   }

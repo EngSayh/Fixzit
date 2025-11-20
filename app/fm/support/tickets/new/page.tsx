@@ -90,7 +90,18 @@ export default function NewSupportTicketPage() {
     setSubmitting(true);
     const toastId = toast.loading(auto('Submitting ticket…', 'toast.submitting'));
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      const res = await fetch('/api/fm/support/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          ccList: form.ccList,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.success) {
+        throw new Error(body?.error || 'Failed to submit ticket');
+      }
       toast.success(auto('Ticket submitted successfully', 'toast.success'), { id: toastId });
       setForm((prev) => ({
         ...prev,

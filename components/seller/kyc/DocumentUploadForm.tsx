@@ -14,19 +14,40 @@ interface DocumentFile {
 }
 
 interface Props {
-  onSubmit: (_data: Record<string, string>) => Promise<void>;
+  onSubmit: (data: KYCDocumentsPayload) => Promise<void>;
   onBack: () => void;
 }
 
-const REQUIRED_DOCUMENTS = [
-  { key: 'crCertificate', label: 'Commercial Registration Certificate', required: true },
+type KYCDocumentKey = 'commercialRegistration' | 'vatCertificate' | 'nationalId' | 'bankLetter';
+
+type KYCDocumentPayload = {
+  fileUrl: string;
+  fileType: 'pdf' | 'jpg' | 'png';
+  uploadedAt?: string;
+  verified: boolean;
+  fileKey?: string;
+};
+
+type KYCDocumentsPayload = {
+  commercialRegistration: KYCDocumentPayload;
+  nationalId: KYCDocumentPayload;
+  bankLetter: KYCDocumentPayload;
+  vatCertificate?: KYCDocumentPayload;
+};
+
+const REQUIRED_DOCUMENTS: Array<{
+  key: KYCDocumentKey;
+  label: string;
+  required: boolean;
+}> = [
+  { key: 'commercialRegistration', label: 'Commercial Registration Certificate', required: true },
   { key: 'vatCertificate', label: 'VAT Registration Certificate', required: false },
   { key: 'nationalId', label: 'National ID / Iqama', required: true },
   { key: 'bankLetter', label: 'Bank Account Letter', required: true },
-] as const;
+];
 
 export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
-  const [documents, setDocuments] = useState<Record<string, DocumentFile | null>>({});
+  const [documents, setDocuments] = useState<Partial<Record<KYCDocumentKey, DocumentFile | null>>>({});
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const auto = useAutoTranslator('seller.kyc.documents');
@@ -37,7 +58,13 @@ export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
   const docLabel = (key: (typeof REQUIRED_DOCUMENTS)[number]['key'], fallback: string) =>
     auto(fallback, `documents.${key}.label`);
 
-  const handleFileChange = (key: string, file: File | null) => {
+  const normalizeFileType = (mime: string): KYCDocumentPayload['fileType'] => {
+    if (mime === 'application/pdf') return 'pdf';
+    if (mime === 'image/png') return 'png';
+    return 'jpg';
+  };
+
+  const handleFileChange = (key: KYCDocumentKey, file: File | null) => {
     if (!file) {
       setDocuments((prev) => ({ ...prev, [key]: null }));
       return;
@@ -64,7 +91,7 @@ export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
     setError(null);
   };
 
-  const handleRemove = (key: string) => {
+  const handleRemove = (key: KYCDocumentKey) => {
     setDocuments((prev) => {
       const newDocs = { ...prev };
       if (newDocs[key]?.preview) {
@@ -90,8 +117,9 @@ export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
         }
       }
 
-      const documentUrls: Record<string, string> = {};
+      const documentPayload: Partial<KYCDocumentsPayload> = {};
       for (const [key, docFile] of Object.entries(documents)) {
+        const docKey = key as KYCDocumentKey;
         if (!docFile) continue;
 
         // Step 1: Request presigned URL
@@ -111,11 +139,14 @@ export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
         const presign = await presignRes.json();
 
         // Step 2: Upload file to S3 using PUT presigned URL
+        const putHeaders: Record<string, string> = {
+          ...(presign.uploadHeaders ?? {}),
+          'Content-Type': docFile.file.type || 'application/octet-stream',
+        };
+
         const putRes = await fetch(presign.uploadUrl, {
           method: 'PUT',
-          headers: {
-            'Content-Type': docFile.file.type || 'application/octet-stream',
-          },
+          headers: putHeaders,
           body: docFile.file,
         });
         if (!putRes.ok) {
@@ -124,10 +155,31 @@ export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
 
         // Store public URL (strip query params)
         const publicUrl = presign.uploadUrl.split('?')[0];
-        documentUrls[key] = publicUrl;
+        const fileType = normalizeFileType(docFile.file.type);
+        const payload: KYCDocumentPayload = {
+          fileUrl: publicUrl,
+          fileType,
+          uploadedAt: new Date().toISOString(),
+          verified: false,
+          fileKey: presign.key,
+        };
+
+        if (docKey === 'vatCertificate') {
+          documentPayload.vatCertificate = payload;
+        } else if (docKey === 'commercialRegistration') {
+          documentPayload.commercialRegistration = payload;
+        } else if (docKey === 'nationalId') {
+          documentPayload.nationalId = payload;
+        } else if (docKey === 'bankLetter') {
+          documentPayload.bankLetter = payload;
+        }
       }
 
-      await onSubmit(documentUrls);
+      if (!documentPayload.commercialRegistration || !documentPayload.nationalId || !documentPayload.bankLetter) {
+        throw new Error(submitError);
+      }
+
+      await onSubmit(documentPayload as KYCDocumentsPayload);
     } catch (err) {
       setError(err instanceof Error ? err.message : submitError);
     } finally {

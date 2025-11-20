@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,8 +61,43 @@ export default function MarketplaceNewVendorPage() {
 
   const submit = async () => {
     setSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1100));
-    setSubmitting(false);
+    const toastId = toast.loading(auto('Submitting vendor...', 'actions.submitting'));
+    try {
+      const res = await fetch('/api/fm/marketplace/vendors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName,
+          registrationNumber,
+          website,
+          categories,
+          coverageAreas,
+          deliverySla,
+          notes,
+          contacts,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body?.success) {
+        throw new Error(body?.error || 'Failed to create vendor');
+      }
+      toast.success(auto('Vendor submitted for review', 'actions.success'), { id: toastId });
+      setCompanyName('');
+      setRegistrationNumber('');
+      setWebsite('');
+      setCategories('');
+      setCoverageAreas('');
+      setDeliverySla('');
+      setNotes('');
+      setContacts([
+        { id: crypto.randomUUID(), name: '', title: '', email: '', phone: '' },
+      ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : auto('Failed to create vendor', 'actions.error');
+      toast.error(message, { id: toastId });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!hasOrgContext) {
