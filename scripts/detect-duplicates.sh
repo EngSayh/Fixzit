@@ -11,8 +11,8 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-# Verify Python version (require 3.6+)
-python_version=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo "0.0")
+# Verify Python version (require 3.6+) - use .format() for Python 2 compatibility
+python_version=$(python3 -c 'import sys; print("{0}.{1}".format(sys.version_info.major, sys.version_info.minor))' 2>/dev/null || echo "0.0")
 required_version="3.6"
 if [ "$(printf '%s\n' "$required_version" "$python_version" | sort -V | head -n1)" != "$required_version" ]; then
   echo "❌ Error: Python $python_version detected, but Python $required_version+ is required"
@@ -169,7 +169,7 @@ if [ "$FAIL_ON_DUPLICATES" == "true" ] && [ $exit_code -ne 0 ]; then
   echo "❌ Build failed: Duplicate files exceed ${THRESHOLD_MB}MB threshold"
   echo "   Please run './scripts/cleanup-backups.sh' to clean up duplicates"
   exit 1
-else
-  echo "✓ Duplicate detection passed"
-  exit 0
 fi
+
+echo "✓ Duplicate detection passed"
+exit 0

@@ -52,7 +52,7 @@ for pattern in "${COMPLETION_PATTERNS[@]}"; do
       if command -v bc >/dev/null 2>&1; then
         size_mb=$(echo "scale=2; $size / 1024 / 1024" | bc)
       else
-        size_mb=$(awk "BEGIN {printf \"%.2f\", $size / 1024 / 1024}")
+        size_mb=$(awk "BEGIN {printf \"%.2f\", ${size} / 1024 / 1024}")
       fi
       
       echo "Found: $file ($size_mb MB)"
@@ -100,7 +100,7 @@ if [ -d "docs/current" ]; then
       if command -v bc >/dev/null 2>&1; then
         size_mb=$(echo "scale=2; $size / 1024 / 1024" | bc)
       else
-        size_mb=$(awk "BEGIN {printf \"%.2f\", $size / 1024 / 1024}")
+        size_mb=$(awk "BEGIN {printf \"%.2f\", ${size} / 1024 / 1024}")
       fi
       
       echo "Found completed item: $filename ($size_mb MB)"
