@@ -31,6 +31,10 @@ export async function generateReport(job: ReportJobInput): Promise<GeneratedRepo
     ['DateRange', job.dateRange || '', job.startDate || '', job.endDate || ''],
     ['Notes', job.notes || ''],
     ['GeneratedAt', new Date().toISOString()],
+    [],
+    ['Section', 'Metric', 'Value'],
+    ['Summary', 'Total Records', '0'],
+    ['Summary', 'Total Amount', '0'],
   ];
 
   const csv = rows.map((r) => r.map(escapeCsv).join(',')).join('\n');

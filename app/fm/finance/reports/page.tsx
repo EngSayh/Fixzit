@@ -16,6 +16,8 @@ type ReportJob = {
   status: 'queued' | 'processing' | 'ready' | 'failed';
   updatedAt?: string;
   fileKey?: string;
+  createdAt?: string;
+  notes?: string;
 };
 
 export default function ReportsPage() {
@@ -129,7 +131,11 @@ export default function ReportsPage() {
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {auto('Status', 'fields.status')}: {job.status}
+                    {job.updatedAt ? ` · ${new Date(job.updatedAt).toLocaleString()}` : ''}
                   </p>
+                  {job.notes && (
+                    <p className="text-[11px] text-muted-foreground">{job.notes}</p>
+                  )}
                 </div>
                 {job.status === 'ready' && job.fileKey ? (
                   <Button
