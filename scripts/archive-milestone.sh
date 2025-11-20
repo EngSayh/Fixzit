@@ -38,10 +38,22 @@ total_size=0
 
 for pattern in "${COMPLETION_PATTERNS[@]}"; do
   # Find matching files in root
-  for file in $pattern 2>/dev/null; do
+  shopt -s nullglob  # Handle no matches gracefully
+  for file in $pattern; do
     if [ -f "$file" ]; then
-      size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file")
-      size_mb=$(echo "scale=2; $size / 1024 / 1024" | bc)
+      # Cross-platform stat command
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        size=$(stat -f%z "$file" 2>/dev/null)
+      else
+        size=$(stat -c%s "$file" 2>/dev/null)
+      fi
+      
+      # Check if bc is available, fallback to awk
+      if command -v bc >/dev/null 2>&1; then
+        size_mb=$(echo "scale=2; $size / 1024 / 1024" | bc)
+      else
+        size_mb=$(awk "BEGIN {printf \"%.2f\", $size / 1024 / 1024}")
+      fi
       
       echo "Found: $file ($size_mb MB)"
       
@@ -63,6 +75,7 @@ for pattern in "${COMPLETION_PATTERNS[@]}"; do
       echo ""
     fi
   done
+  shopt -u nullglob  # Reset option
 done
 
 # Also check docs/current for completed items
@@ -70,12 +83,24 @@ if [ -d "docs/current" ]; then
   echo "=== Checking docs/current/ for completed items ==="
   echo ""
   
-  find "docs/current" -type f -name "*.md" | while read -r file; do
+  find "docs/current" -type f -name "*.md" 2>/dev/null | while read -r file; do
     # Check if file contains "COMPLETE" or "DONE" markers
     if grep -qi "COMPLETE\|✅.*complete\|status.*complete" "$file" 2>/dev/null; then
       filename=$(basename "$file")
-      size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file")
-      size_mb=$(echo "scale=2; $size / 1024 / 1024" | bc)
+      
+      # Cross-platform stat command
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        size=$(stat -f%z "$file" 2>/dev/null)
+      else
+        size=$(stat -c%s "$file" 2>/dev/null)
+      fi
+      
+      # Check if bc is available, fallback to awk
+      if command -v bc >/dev/null 2>&1; then
+        size_mb=$(echo "scale=2; $size / 1024 / 1024" | bc)
+      else
+        size_mb=$(awk "BEGIN {printf \"%.2f\", $size / 1024 / 1024}")
+      fi
       
       echo "Found completed item: $filename ($size_mb MB)"
       
@@ -116,7 +141,7 @@ $(ls -1 "$MILESTONE_DIR" | grep -v "MILESTONE_SUMMARY.md" | sed 's/^/- /')
 
 ### Git Commit
 \`\`\`
-$(git log -1 --oneline 2>/dev/null || echo "No git commit available")
+$(git log -1 --oneline 2>/dev/null || echo "No git repository or commits available")
 \`\`\`
 
 ## Next Steps
