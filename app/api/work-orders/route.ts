@@ -11,6 +11,34 @@ import { z } from 'zod';
 import { resolveSlaTarget, WorkOrderPriority } from '@/lib/sla';
 import { WOPriority } from '@/server/work-orders/wo.schema';
 
+const attachmentInputSchema = z.object({
+  key: z.string(),
+  url: z.string().url(),
+  name: z.string().optional(),
+  size: z.number().optional(),
+  type: z.string().optional(),
+  scanStatus: z.enum(['pending','clean','infected','error']).default('pending'),
+});
+
+type AttachmentInput = z.infer<typeof attachmentInputSchema>;
+
+function normalizeAttachments(attachments: AttachmentInput[], userId: string) {
+  return attachments.map((att) => ({
+    key: att.key,
+    fileName: att.name || att.key.split('/').pop() || att.key,
+    originalName: att.name || att.key,
+    fileUrl: att.url,
+    fileType: att.type,
+    fileSize: att.size,
+    uploadedBy: userId,
+    uploadedAt: new Date(),
+    category: 'WORK_ORDER',
+    description: att.scanStatus === 'infected' ? 'Virus detected' : undefined,
+    isPublic: false,
+    scanStatus: att.scanStatus ?? 'pending',
+  }));
+}
+
 /**
  * Work Order Creation Schema
  */
@@ -23,15 +51,7 @@ const createWorkOrderSchema = z.object({
   subcategory: z.string().optional(),
   propertyId: z.string().optional(),
   unitNumber: z.string().optional(),
-  attachments: z.array(
-    z.object({
-      key: z.string(),
-      url: z.string().url(),
-      name: z.string().optional(),
-      size: z.number().optional(),
-      scanStatus: z.enum(['pending','clean','infected','error']).default('pending'),
-    })
-  ).optional(),
+  attachments: z.array(attachmentInputSchema).optional(),
   requester: z.object({
     type: z.enum(["TENANT", "OWNER", "STAFF"]).default("TENANT"),
     id: z.string().optional(),
@@ -111,7 +131,9 @@ export const { GET, POST } = createCrudHandlers({
     delete data.propertyId;
     delete data.unitNumber;
 
-    const attachments = Array.isArray(data.attachments) ? data.attachments : [];
+    const attachments = Array.isArray(data.attachments)
+      ? normalizeAttachments(data.attachments as AttachmentInput[], user.id)
+      : [];
 
     return {
       ...data,

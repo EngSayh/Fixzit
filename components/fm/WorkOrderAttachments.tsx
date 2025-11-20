@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle2, Loader2, ShieldAlert } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, CheckCircle2, Loader2, ShieldAlert, X } from 'lucide-react';
 
 type ScanStatus = 'pending' | 'clean' | 'infected' | 'error';
 
@@ -11,6 +12,7 @@ export interface WorkOrderAttachment {
   url: string;
   name: string;
   size: number;
+  type?: string;
   scanStatus: ScanStatus;
 }
 
@@ -101,6 +103,7 @@ export function WorkOrderAttachments({ workOrderId, onChange }: Props) {
             url: publicUrl,
             name: file.name,
             size: file.size,
+            type: file.type,
             scanStatus,
           });
         } catch (err) {
@@ -112,11 +115,48 @@ export function WorkOrderAttachments({ workOrderId, onChange }: Props) {
     }
 
     if (next.length) {
-      setAttachments((prev) => {
-        const merged = [...prev, ...next];
-        onChange?.(merged);
-        return merged;
+      const merged = [...attachments, ...next];
+      setAttachments(merged);
+      onChange?.(merged);
+      if (workOrderId) {
+        try {
+          const saveRes = await fetch(`/api/work-orders/${workOrderId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ attachments: merged }),
+          });
+          if (!saveRes.ok) {
+            throw new Error('Failed to save attachments to work order');
+          }
+        } catch (persistErr) {
+          setError(persistErr instanceof Error ? persistErr.message : 'Could not save attachments');
+        }
+      }
+    }
+  };
+
+  const handleRemove = async (key: string) => {
+    if (!workOrderId) return;
+    if (!confirm('Remove this attachment?')) return;
+
+    const updated = attachments.filter((att) => att.key !== key);
+    setAttachments(updated);
+    onChange?.(updated);
+
+    try {
+      const res = await fetch(`/api/work-orders/${workOrderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attachments: updated }),
       });
+      if (!res.ok) {
+        throw new Error('Failed to remove attachment');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove attachment');
+      // Revert on error
+      setAttachments(attachments);
+      onChange?.(attachments);
     }
   };
 
@@ -164,11 +204,22 @@ export function WorkOrderAttachments({ workOrderId, onChange }: Props) {
         {attachments.length === 0 && <p className="text-sm text-muted-foreground">No attachments uploaded yet.</p>}
         {attachments.map((att) => (
           <div key={att.key} className="flex items-center justify-between rounded border border-border p-2">
-            <div className="space-y-1">
+            <div className="flex-1 space-y-1">
               <p className="text-sm font-medium">{att.name}</p>
               <p className="text-xs text-muted-foreground">{(att.size / 1024 / 1024).toFixed(2)} MB</p>
             </div>
-            {statusBadge(att.scanStatus)}
+            <div className="flex items-center gap-2">
+              {statusBadge(att.scanStatus)}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleRemove(att.key)}
+                disabled={uploading}
+                className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         ))}
       </div>

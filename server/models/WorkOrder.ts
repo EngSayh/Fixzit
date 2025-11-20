@@ -266,6 +266,7 @@ const WorkOrderSchema = new Schema({
 
   // Attachments and Documentation
   attachments: [{
+    key: String,
     fileName: String,
     originalName: String,
     fileUrl: String,
@@ -275,7 +276,8 @@ const WorkOrderSchema = new Schema({
     uploadedAt: { type: Date, default: Date.now },
     category: String, // BEFORE, AFTER, INVOICE, RECEIPT, etc.
     description: String,
-    isPublic: { type: Boolean, default: false }
+    isPublic: { type: Boolean, default: false },
+    scanStatus: { type: String, enum: ["pending", "clean", "infected", "error"], default: "pending" }
   }],
 
   // Quality and Rating

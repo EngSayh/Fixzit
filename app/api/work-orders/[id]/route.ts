@@ -8,6 +8,34 @@ import { WOPriority } from "@/server/work-orders/wo.schema";
 
 import { createSecureResponse } from '@/server/security/headers';
 
+const attachmentInputSchema = z.object({
+  key: z.string(),
+  url: z.string().url(),
+  name: z.string().optional(),
+  size: z.number().optional(),
+  type: z.string().optional(),
+  scanStatus: z.enum(["pending", "clean", "infected", "error"]).default("pending"),
+});
+
+type AttachmentInput = z.infer<typeof attachmentInputSchema>;
+
+function normalizeAttachments(attachments: AttachmentInput[], userId: string) {
+  return attachments.map((att) => ({
+    key: att.key,
+    fileName: att.name || att.key.split('/').pop() || att.key,
+    originalName: att.name || att.key,
+    fileUrl: att.url,
+    fileType: att.type,
+    fileSize: att.size,
+    uploadedBy: userId,
+    uploadedAt: new Date(),
+    category: 'WORK_ORDER',
+    description: att.scanStatus === 'infected' ? 'Virus detected' : undefined,
+    isPublic: false,
+    scanStatus: att.scanStatus ?? 'pending',
+  }));
+}
+
 /**
  * @openapi
  * /api/work-orders/[id]:
@@ -39,7 +67,8 @@ const patchSchema = z.object({
   priority: WOPriority.optional(),
   category: z.string().optional(),
   subcategory: z.string().optional(),
-  dueAt: z.string().datetime().optional()
+  dueAt: z.string().datetime().optional(),
+  attachments: z.array(attachmentInputSchema).optional()
 });
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }>}): Promise<NextResponse> {
@@ -60,6 +89,10 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
   if (updates.dueAt) {
     updatePayload.dueAt = new Date(updates.dueAt);
+  }
+
+  if (updates.attachments) {
+    updatePayload.attachments = normalizeAttachments(updates.attachments as AttachmentInput[], user.id);
   }
 
   const wo = (await WorkOrder.findOneAndUpdate(
