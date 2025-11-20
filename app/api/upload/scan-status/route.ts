@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
     const result = await getStatusForKey(key);
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
-    logger.error('[ScanStatus] Failed to read status', error as Error);
+    logger.error('[ScanStatus] Failed to read status', { error: error as Error, key });
     return NextResponse.json({ error: 'Failed to read status' }, { status: 500 });
   }
 }
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     logger.info('[ScanStatus] Read status', { key, status: result.status });
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
-    logger.error('[ScanStatus] Failed to read status', error as Error);
+    logger.error('[ScanStatus] Failed to read status', { error: error as Error, key });
     return NextResponse.json({ error: 'Failed to read status' }, { status: 500 });
   }
 }

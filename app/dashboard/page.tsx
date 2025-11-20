@@ -14,7 +14,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="p-6">
+    <main className="p-6" role="main">
       {/* Page Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground">{t('dashboard.title', 'Dashboard')}</h1>
@@ -87,6 +87,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-    </div>
+    </main>
   );
 }

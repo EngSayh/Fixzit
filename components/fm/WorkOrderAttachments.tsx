@@ -45,7 +45,7 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
     if (keysChanged) {
       setAttachments(normalized);
     }
-  }, [initialAttachments]);
+  }, [initialAttachments, attachments]);
 
   // Poll AV scan status for pending items to allow UI badges to refresh
   useEffect(() => {
@@ -119,7 +119,6 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
     try {
       for (const file of safeFiles) {
         try {
-          const presignRes = await fetch(`/api/work-orders/${workOrderId}/attachments/presign`, {
           const presignRes = await fetch(`/api/work-orders/${targetWorkOrderId}/attachments/presign`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -213,9 +212,9 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
       const merged = [...attachments, ...next];
       setAttachments(merged);
       onChange?.(merged);
-      if (workOrderId) {
+      if (targetWorkOrderId) {
         try {
-          const saveRes = await fetch(`/api/work-orders/${workOrderId}`, {
+          const saveRes = await fetch(`/api/work-orders/${targetWorkOrderId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ attachments: merged }),
@@ -225,6 +224,9 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
           }
         } catch (persistErr) {
           setError(persistErr instanceof Error ? persistErr.message : 'Could not save attachments');
+          // Rollback on failure
+          setAttachments(attachments);
+          onChange?.(attachments);
         }
       }
     }
@@ -297,7 +299,7 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
           type="file"
           multiple
           onChange={(e) => handleFiles(e.target.files)}
-          disabled={uploading || !workOrderId}
+          disabled={uploading || (!workOrderId && !draftCreator)}
           className="max-w-xs"
         />
       </div>

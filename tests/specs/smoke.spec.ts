@@ -29,12 +29,14 @@ const CORE_PAGES = [
   { path: '/system', name: 'System Management' }
 ];
 
-const SIDEBAR_ITEMS = [
-  'Dashboard',
-  'Work Orders',
-  'Properties',
-  'Finance'
+const SIDEBAR_ITEMS: Array<{ labels: string[] }> = [
+  { labels: ['Dashboard', 'لوحة التحكم'] },
+  { labels: ['Work Orders', 'أوامر العمل', 'طلبات الصيانة'] },
+  { labels: ['Properties', 'العقارات'] },
+  { labels: ['Finance', 'المالية'] }
 ];
+
+const escapeRegex = (input: string) => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 test.describe('Global Layout & Navigation - All Pages', () => {
   for (const page of CORE_PAGES) {
@@ -42,6 +44,8 @@ test.describe('Global Layout & Navigation - All Pages', () => {
       const errors: string[] = [];
       const warnings: string[] = [];
       const networkFailures: Array<{ method: string; url: string; status: number }> = [];
+      const projectName = test.info().project.name;
+      const isArabicProject = projectName.includes(':AR:') || projectName.startsWith('AR:');
 
       // Capture console errors and warnings
       browser.on('pageerror', (error) => {
@@ -96,8 +100,9 @@ test.describe('Global Layout & Navigation - All Pages', () => {
 
       // Sidebar navigation - check for key items
       for (const item of SIDEBAR_ITEMS) {
-        const sidebarItem = browser.getByRole('link', { name: new RegExp(item, 'i') }).or(
-          browser.getByRole('button', { name: new RegExp(item, 'i') })
+        const labelPattern = new RegExp(item.labels.map(escapeRegex).join('|'), 'i');
+        const sidebarItem = browser.getByRole('link', { name: labelPattern }).or(
+          browser.getByRole('button', { name: labelPattern })
         );
         await expect.soft(sidebarItem.first()).toBeVisible({ timeout: 5000 });
       }
@@ -115,9 +120,8 @@ test.describe('Global Layout & Navigation - All Pages', () => {
       // ============ RTL/LTR DIRECTION ============
       
       const htmlDir = await browser.evaluate(() => document.documentElement.getAttribute('dir'));
-      const projectName = test.info().project.name;
       
-      if (projectName.startsWith('AR:')) {
+      if (isArabicProject) {
         expect(htmlDir).toBe('rtl');
       } else {
         expect(htmlDir).toBe('ltr');
