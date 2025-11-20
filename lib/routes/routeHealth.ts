@@ -38,7 +38,10 @@ export async function loadRouteHealthData(): Promise<RouteHealthEntry[]> {
     } catch (_error) {
       const error = _error instanceof Error ? _error : new Error(String(_error));
       void error;
-      console.error('Failed to fetch route health endpoint', error);
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('Failed to fetch route health endpoint', error);
+      }
     }
   }
 

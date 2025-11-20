@@ -60,24 +60,33 @@ export function loadTranslations(): Record<LanguageCode, Record<string, string>>
           // Dictionaries are pre-flattened at build time (no runtime processing needed)
           loaded[locale] = dict;
         } catch (err) {
-          console.error(`❌ Failed to parse ${locale} dictionary:`, err);
+          if (process.env.NODE_ENV !== 'production') {
+            // eslint-disable-next-line no-console
+            console.error(`❌ Failed to parse ${locale} dictionary:`, err);
+          }
           loaded[locale] = {}; // Fallback on parse error
         }
       }
       
       if (missing.length > 0) {
-        console.warn(
-          `⚠️  Missing translation artifacts for: ${missing.join(', ')}\n` +
-          `   Generate all locales with: pnpm i18n:build\n` +
-          `   Falling back to empty dictionaries for missing locales`
-        );
+        if (process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `⚠️  Missing translation artifacts for: ${missing.join(', ')}\n` +
+            `   Generate all locales with: pnpm i18n:build\n` +
+            `   Falling back to empty dictionaries for missing locales`
+          );
+        }
       }
       
       cachedTranslations = loaded as Record<LanguageCode, Record<string, string>>;
       return cachedTranslations;
       
     } catch (err) {
-      console.error('❌ Failed to load translations:', err);
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('❌ Failed to load translations:', err);
+      }
       throw err; // Don't silently fail - app needs translations
     }
   }

@@ -110,7 +110,10 @@ function loadDictionary(locale: SupportedTranslationLocale): TranslationDictiona
     DICTIONARY_CACHE[locale] = parsed;
     return parsed;
   } catch (err) {
-    console.error(`[i18n] Failed to load dictionary ${locale}:`, err);
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.error(`[i18n] Failed to load dictionary ${locale}:`, err);
+    }
     if (locale !== 'en') {
       return loadDictionary('en');
     }

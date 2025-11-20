@@ -39,11 +39,17 @@ export default function ChatWidget() {
       
       // Check HTTP status before parsing
       if (!res.ok) {
-        console.error('[ChatWidget] API error:', res.status, res.statusText);
+        if (process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line no-console
+          console.error('[ChatWidget] API error:', res.status, res.statusText);
+        }
         let errorMsg = 'حدث خطأ، يرجى المحاولة لاحقًا.';
         try {
           const errorData = await res.json();
-          console.error('[ChatWidget] Error details:', errorData);
+          if (process.env.NODE_ENV !== 'production') {
+            // eslint-disable-next-line no-console
+            console.error('[ChatWidget] Error details:', errorData);
+          }
           errorMsg = errorData.error || errorMsg;
         } catch {
           // Failed to parse error JSON, use default message
@@ -58,7 +64,10 @@ export default function ChatWidget() {
       const botReplyId = `bot-${generateId()}`;
       setMessages((prev) => [...prev, { id: botReplyId, from: 'bot', text: reply }]);
     } catch (error) {
-      console.error('[ChatWidget] Network error:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('[ChatWidget] Network error:', error);
+      }
       const botNetworkErrorId = `bot-${generateId()}`;
       setMessages((prev) => [...prev, { id: botNetworkErrorId, from: 'bot', text: 'تعذر إرسال الرسالة، حاول مرة أخرى.' }]);
     } finally {

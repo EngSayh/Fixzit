@@ -120,7 +120,10 @@ export default function ClaimReviewPanel() {
         setClaims(claimsWithDefaults);
       }
     } catch (error) {
-      console.error('Failed to fetch claims:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('Failed to fetch claims:', error);
+      }
     } finally {
       setLoading(false);
     }

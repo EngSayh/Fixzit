@@ -137,7 +137,10 @@ export default function ClaimDetails({ claimId, userRole, onActionRequired }: Cl
         setClaim(data.claim || data);
       }
     } catch (error) {
-      console.error('Failed to fetch claim:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('Failed to fetch claim:', error);
+      }
     } finally {
       setLoading(false);
     }
