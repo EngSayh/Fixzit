@@ -31,18 +31,6 @@ import userEvent from '@testing-library/user-event'
 // Use conditional jest/vi globals without importing to fit either runner
 const jestLike = (global as any).vi ?? (global as any).jest
 
-// Mock LoginPrompt to a minimal, accessible replacement
-jestLike.mock('@/components/LoginPrompt', () => {
-  return {
-    __esModule: true,
-    default: ({ isOpen, title = 'Sign in to continue' }: any) => (
-      <div aria-label="login-prompt" data-open={isOpen ? 'true' : 'false'}>
-        {isOpen ? title : null}
-      </div>
-    ),
-  }
-})
-
 // Keep a reference we can update per-test to control SWR responses
 type SWRProductsState = {
   data?: any
@@ -56,14 +44,30 @@ type SWRCategoriesState = {
   error?: any
   isLoading?: boolean
 }
-const productsState: SWRProductsState = {}
-const categoriesState: SWRCategoriesState = {}
+
+// Use a getter function to ensure we always get the current state
+let _productsState: SWRProductsState = {}
+let _categoriesState: SWRCategoriesState = {}
+
+const getProductsState = () => _productsState
+const getCategoriesState = () => _categoriesState
 
 // Capture useSWR calls to assert query key recomputation
 const useSWRCalls: Array<{ key: any; fetcher: any; opts: any }> = []
 
+function mockLoginPromptModule() {
+  return {
+    __esModule: true,
+    default: ({ isOpen, title = 'Sign in to continue' }: any) => (
+      <div aria-label="login-prompt" data-open={isOpen ? 'true' : 'false'}>
+        {isOpen ? title : null}
+      </div>
+    ),
+  }
+}
+
 // Mock swr default export - returns different state based on the key
-jestLike.mock('swr', () => {
+function mockSWRModule() {
   return {
     __esModule: true,
     default: (key: any, fetcher: any, opts: any) => {
@@ -71,39 +75,53 @@ jestLike.mock('swr', () => {
       
       // If the key is for categories, return categories state
       if (typeof key === 'string' && key.includes('/api/marketplace/categories')) {
-        return {
-          data: categoriesState.data,
-          error: categoriesState.error,
-          isLoading: categoriesState.isLoading !== undefined ? categoriesState.isLoading : false,
+        const state = getCategoriesState()
+        const result = {
+          data: state.data,
+          error: state.error,
+          isLoading: state.isLoading !== undefined ? state.isLoading : false,
           mutate: jestLike.fn(),
         }
+        return result
       }
       
       // Otherwise return products state
-      return {
-        data: productsState.data,
-        error: productsState.error,
-        isLoading: productsState.isLoading !== undefined ? productsState.isLoading : false,
-        mutate: productsState.mutate ?? jestLike.fn(),
+      const state = getProductsState()
+      const result = {
+        data: state.data,
+        error: state.error,
+        isLoading: state.isLoading !== undefined ? state.isLoading : false,
+        mutate: state.mutate ?? jestLike.fn(),
       }
+      return result
     },
   }
-})
+}
+
+if ((global as any).vi) {
+  // vitest exposes `vi`
+  vi.mock('@/components/LoginPrompt', mockLoginPromptModule)
+  vi.mock('swr', mockSWRModule)
+} else if ((global as any).jest) {
+  // jest fallback if these tests are run there
+  jest.mock('@/components/LoginPrompt', mockLoginPromptModule)
+  jest.mock('swr', mockSWRModule)
+}
 
 // After SWR mock is set up above, import component under test
 import CatalogView from '@/components/marketplace/CatalogView'
 
 // Utility: set SWR states for a given test
 function setSWRProducts(state: Partial<SWRProductsState>) {
-  productsState.data = state.data
-  productsState.error = state.error
-  productsState.isLoading = state.isLoading
-  productsState.mutate = state.mutate as any
+  if ('data' in state) _productsState.data = state.data
+  if ('error' in state) _productsState.error = state.error
+  if ('isLoading' in state) _productsState.isLoading = state.isLoading
+  if ('mutate' in state) _productsState.mutate = state.mutate as any
 }
 function setSWRCategories(state: Partial<SWRCategoriesState>) {
-  categoriesState.data = state.data
-  categoriesState.error = state.error
-  categoriesState.isLoading = state.isLoading
+  if ('data' in state) _categoriesState.data = state.data
+  if ('error' in state) _categoriesState.error = state.error
+  if ('isLoading' in state) _categoriesState.isLoading = state.isLoading
 }
 
 function makeProduct(overrides: Partial<any> = {}) {
@@ -149,9 +167,9 @@ function makeCategories(cats: any[]) {
 }
 
 beforeEach(() => {
-  // Reset SWR mocks
+  // Reset SWR mocks - set all properties explicitly
   setSWRProducts({ data: makeCatalog([]), isLoading: false, error: undefined, mutate: jestLike.fn() })
-  setSWRCategories({ data: makeCategories([{ id: 'c1', name: 'Materials', slug: 'materials' }]) })
+  setSWRCategories({ data: makeCategories([{ id: 'c1', name: 'Materials', slug: 'materials' }]), isLoading: false, error: undefined })
   useSWRCalls.length = 0
 
   // Reset cookies/localStorage
@@ -221,7 +239,7 @@ describe('CatalogView - product rendering and formatting', () => {
     expect(screen.getByText(/Stock:\s*42/i)).toBeInTheDocument()
 
     // Category badge
-    expect(screen.getByText(product.category.name)).toBeInTheDocument()
+    expect(screen.getByText(product.category.name, { selector: 'div' })).toBeInTheDocument()
 
     // Rating and reviews
     expect(screen.getByText(/4\.2\s*·\s*10 reviews/i)).toBeInTheDocument()
@@ -368,4 +386,3 @@ describe('CatalogView - interactions', () => {
 
 // Time-based feedback message auto-dismiss is covered implicitly by rendering assertion immediately after actions.
 // If desired, we could advance timers with fake timers here, but it is optional for unit verification purpose.
-
