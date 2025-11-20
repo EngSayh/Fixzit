@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger';
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { buildRateLimitKey } from '@/server/security/rateLimitKey';
+import { getSessionUser } from '@/server/middleware/withAuthRbac';
 
 type ScanStatus = 'pending' | 'clean' | 'infected' | 'error';
 
@@ -50,7 +51,10 @@ async function getStatusForKey(key: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const rl = rateLimit(buildRateLimitKey(req), 60, 60_000);
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
   if (!rl.allowed) return rateLimitError();
 
   const { searchParams } = new URL(req.url);
@@ -69,7 +73,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const rl = rateLimit(buildRateLimitKey(req), 60, 60_000);
+  const user = await getSessionUser(req).catch(() => null);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const rl = rateLimit(buildRateLimitKey(req, user.id), 60, 60_000);
   if (!rl.allowed) return rateLimitError();
 
   try {
