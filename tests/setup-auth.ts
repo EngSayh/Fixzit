@@ -1,6 +1,7 @@
 import { chromium, FullConfig, BrowserContext } from '@playwright/test';
-import { mkdir } from 'fs/promises';
+import { mkdir, writeFile } from 'fs/promises';
 import { URLSearchParams } from 'url';
+import { encode as encodeJwt } from 'next-auth/jwt';
 
 type RoleConfig = {
   name: string;
@@ -21,6 +22,23 @@ async function globalSetup(config: FullConfig) {
 
   const baseURL = config.projects[0].use.baseURL || 'http://localhost:3000';
   const offlineMode = process.env.ALLOW_OFFLINE_MONGODB === 'true';
+  const nextAuthSecret =
+    process.env.NEXTAUTH_SECRET ||
+    process.env.AUTH_SECRET ||
+    'playwright-secret';
+  const baseOrigin = (() => {
+    try {
+      return new URL(baseURL).origin;
+    } catch {
+      return 'http://localhost:3000';
+    }
+  })();
+  const cookieName = baseOrigin.startsWith('https')
+    ? '__Secure-next-auth.session-token'
+    : 'next-auth.session-token';
+  const altCookieName = baseOrigin.startsWith('https')
+    ? '__Secure-authjs.session-token'
+    : 'authjs.session-token';
 
   const roles: RoleConfig[] = [
     {
@@ -85,14 +103,73 @@ async function globalSetup(config: FullConfig) {
   const browser = await chromium.launch();
 
   if (offlineMode) {
-    console.warn('\n⚠️  Offline mode detected - skipping OTP bootstrap and writing guest states.\n');
+    console.warn('\n⚠️  Offline mode detected - creating signed NextAuth session cookies for each role.\n');
     for (const role of roles) {
       const context = await browser.newContext();
-      await context.storageState({ path: role.statePath });
-      await context.close();
+      try {
+        const normalizedRole =
+          role.name === 'SuperAdmin'
+            ? 'SUPER_ADMIN'
+            : role.name.toUpperCase();
+
+        const token = await encodeJwt({
+          secret: nextAuthSecret,
+          maxAge: 30 * 24 * 60 * 60,
+          token: {
+            name: `${role.name} (Offline)`,
+            email:
+              process.env[role.identifierEnv] ||
+              `${role.name.toLowerCase()}@offline.test`,
+            role: normalizedRole,
+            roles: [normalizedRole],
+            orgId: 'offline-org',
+            isSuperAdmin: role.name === 'SuperAdmin',
+            permissions: [],
+            sub: `offline-${role.name.toLowerCase()}`,
+          },
+        });
+
+        await context.addCookies([
+          {
+            name: cookieName,
+            value: token,
+            url: baseOrigin,
+            httpOnly: true,
+            sameSite: 'Lax',
+            path: '/',
+            secure: baseOrigin.startsWith('https'),
+          },
+          {
+            name: altCookieName,
+            value: token,
+            url: baseOrigin,
+            httpOnly: true,
+            sameSite: 'Lax',
+            path: '/',
+            secure: baseOrigin.startsWith('https'),
+          },
+        ]);
+
+        const state = await context.storageState();
+        const origins = Array.isArray(state.origins) ? state.origins : [];
+        const filteredOrigins = origins.filter(origin => origin.origin !== baseOrigin);
+        filteredOrigins.push({
+          origin: baseOrigin,
+          localStorage: [
+            { name: 'fixzit-role', value: normalizedRole.toLowerCase() },
+          ],
+        });
+
+        state.origins = filteredOrigins;
+        await writeFile(role.statePath, JSON.stringify(state, null, 2), 'utf-8');
+      } catch (err) {
+        console.error(`❌ Failed to create offline session for ${role.name}:`, err);
+      } finally {
+        await context.close();
+      }
     }
     await browser.close();
-    console.log('\n✅ Offline auth states ready\n');
+    console.log('\n✅ Offline auth states ready (signed JWT sessions)\n');
     return;
   }
 
