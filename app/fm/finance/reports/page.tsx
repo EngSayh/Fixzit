@@ -144,7 +144,9 @@ export default function ReportsPage() {
                   </Button>
                 ) : (
                   <span className="text-xs text-muted-foreground">
-                    {job.status === 'failed' ? auto('Failed', 'status.failed') : auto('Processing', 'status.processing')}
+                    {job.status === 'failed'
+                      ? auto('Failed (scan or generation)', 'status.failed')
+                      : auto('Processing', 'status.processing')}
                   </span>
                 )}
               </div>

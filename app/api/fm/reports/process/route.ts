@@ -6,6 +6,7 @@ import { requireFmPermission } from '@/app/api/fm/permissions';
 import { resolveTenantId } from '@/app/api/fm/utils/tenant';
 import { FMErrors } from '@/app/api/fm/errors';
 import { getPresignedGetUrl, putObjectBuffer } from '@/lib/storage/s3';
+import { scanS3Object } from '@/lib/security/av-scan';
 
 type ReportJob = {
   _id: { toString(): string };
@@ -56,14 +57,16 @@ export async function POST(req: NextRequest) {
       try {
         await collection.updateOne({ _id: job._id }, { $set: { status: 'processing' } });
         await putObjectBuffer(key, Buffer.from(content, 'utf-8'), 'text/csv');
+        const clean = await scanS3Object(key).catch(() => false);
         await collection.updateOne(
           { _id: job._id },
           {
             $set: {
-              status: 'ready',
+              status: clean ? 'ready' : 'failed',
               fileKey: key,
               fileMime: 'text/csv',
               updatedAt: new Date(),
+              notes: clean ? job.notes : 'AV scan failed',
             },
           }
         );
