@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { getDatabase } from '@/lib/mongodb-unified';
 import { ObjectId } from 'mongodb';
+import { getDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 import type { WorkOrderComment } from '@/types/fm';
-import { buildWorkOrderUser } from '../../utils';
+import {
+  assertWorkOrderQuota,
+  buildWorkOrderUser,
+  getCanonicalUserId,
+  recordTimelineEntry,
+  WorkOrderQuotaError,
+  WORK_ORDER_COMMENT_LIMIT,
+} from '../../utils';
+import { resolveTenantId } from '../../../utils/tenant';
+import { requireFmAbility } from '../../../utils/auth';
+import { FMErrors } from '../../../errors';
 
 const COMMENT_TYPES = new Set<WorkOrderComment['type']>(['comment', 'internal']);
 
@@ -13,19 +22,15 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tenantId = req.headers.get('x-tenant-id');
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Missing x-tenant-id header' }, { status: 400 });
-    }
+    const actor = await requireFmAbility('VIEW')(req);
+    if (actor instanceof NextResponse) return actor;
+    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId);
+    if ('error' in tenantResult) return tenantResult.error;
+    const { tenantId } = tenantResult;
 
     const workOrderId = params.id;
     if (!ObjectId.isValid(workOrderId)) {
-      return NextResponse.json({ error: 'Invalid work order ID' }, { status: 400 });
+      return FMErrors.invalidId('work order');
     }
 
     const { searchParams } = new URL(req.url);
@@ -61,7 +66,7 @@ export async function GET(
     });
   } catch (error) {
     logger.error('FM Work Order Comments GET error', error as Error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return FMErrors.internalError();
   }
 }
 
@@ -70,19 +75,19 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tenantId = req.headers.get('x-tenant-id');
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Missing x-tenant-id header' }, { status: 400 });
+    const actor = await requireFmAbility('COMMENT')(req);
+    if (actor instanceof NextResponse) return actor;
+    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId);
+    if ('error' in tenantResult) return tenantResult.error;
+    const { tenantId } = tenantResult;
+    const actorId = getCanonicalUserId(actor);
+    if (!actorId) {
+      return FMErrors.validationError('User identifier is required');
     }
 
     const workOrderId = params.id;
     if (!ObjectId.isValid(workOrderId)) {
-      return NextResponse.json({ error: 'Invalid work order ID' }, { status: 400 });
+      return FMErrors.invalidId('work order');
     }
 
     const body = await req.json();
@@ -92,10 +97,17 @@ export async function POST(
       : 'comment';
 
     if (!comment) {
-      return NextResponse.json({ error: 'Comment text is required' }, { status: 400 });
+      return FMErrors.validationError('Comment text is required');
     }
 
     const db = await getDatabase();
+    await assertWorkOrderQuota(
+      db,
+      'workorder_comments',
+      tenantId,
+      workOrderId,
+      WORK_ORDER_COMMENT_LIMIT
+    );
     const now = new Date();
     const commentDoc = {
       tenantId,
@@ -106,15 +118,15 @@ export async function POST(
       attachments: body?.attachments ?? [],
       createdAt: now,
       createdBy: {
-        id: session.user.id || session.user.email,
-        name: session.user.name,
-        email: session.user.email,
+        id: actorId,
+        name: actor.name ?? undefined,
+        email: actor.email ?? undefined,
       },
     };
 
     const result = await db.collection('workorder_comments').insertOne(commentDoc);
 
-    await db.collection('workorder_timeline').insertOne({
+    await recordTimelineEntry(db, {
       workOrderId,
       tenantId,
       action: 'comment_added',
@@ -123,7 +135,7 @@ export async function POST(
         commentId: result.insertedId.toString(),
         type,
       },
-      performedBy: session.user.id || session.user.email,
+      performedBy: actorId,
       performedAt: now,
     });
 
@@ -137,8 +149,14 @@ export async function POST(
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof WorkOrderQuotaError) {
+      return FMErrors.rateLimited(error.message, {
+        limit: error.limit,
+        resource: 'comments',
+      });
+    }
     logger.error('FM Work Order Comments POST error', error as Error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return FMErrors.internalError();
   }
 }
 

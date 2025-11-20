@@ -155,8 +155,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('kycStatus');
     const tier = searchParams.get('tier');
     const search = searchParams.get('search');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
     
     const query: Record<string, unknown> = { org_id: orgId };
     
@@ -169,11 +169,12 @@ export async function GET(request: NextRequest) {
     }
     
     if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       query.$or = [
-        { legalName: { $regex: search, $options: 'i' } },
-        { tradeName: { $regex: search, $options: 'i' } },
-        { contactEmail: { $regex: search, $options: 'i' } },
-        { sellerId: { $regex: search, $options: 'i' } },
+        { legalName: { $regex: escapedSearch, $options: 'i' } },
+        { tradeName: { $regex: escapedSearch, $options: 'i' } },
+        { contactEmail: { $regex: escapedSearch, $options: 'i' } },
+        { sellerId: { $regex: escapedSearch, $options: 'i' } },
       ];
     }
     

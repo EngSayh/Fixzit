@@ -33,7 +33,7 @@ const PERMISSIONS = [
 export default function NewRolePage() {
   const auto = useAutoTranslator('fm.system.roles.new');
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'system' });
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'system' });
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [permissions, setPermissions] = useState<string[]>([]);

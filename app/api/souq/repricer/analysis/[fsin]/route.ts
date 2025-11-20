@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { AutoRepricerService } from '@/services/souq/auto-repricer-service';
 
 interface RouteContext {
@@ -37,7 +38,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Get competitor analysis error:', error);
+    logger.error('Get competitor analysis error', { error });
     return NextResponse.json(
       { 
         error: 'Failed to get competitor analysis',

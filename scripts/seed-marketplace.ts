@@ -54,15 +54,16 @@ export async function main() {
 
   synonyms.forEach((synonym) => {
     upsert(
-      COLLECTIONS.SYNONYMS,
+      COLLECTIONS.SEARCH_SYNONYMS ?? COLLECTIONS.SYNONYMS ?? COLLECTIONS.SEARCH_SYNONYMS,
       (entry: Record<string, unknown>) => entry.locale === synonym.locale && entry.term === synonym.term,
       synonym,
     );
   });
 
   products.forEach((product) => {
+    const productCollection = 'marketplaceproducts';
     upsert(
-      COLLECTIONS.PRODUCTS,
+      productCollection,
       (entry: Record<string, unknown>) => entry.tenantId === tenantId && entry.slug === product.slug,
       product,
     );

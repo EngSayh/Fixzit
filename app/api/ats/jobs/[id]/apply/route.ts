@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     await connectToDatabase();
 
     const formData = await req.formData();
-    const job = await (Job as any).findById(params.id);
+    const job = await Job.findById(params.id);
 
     if (!job) {
       return NextResponse.json({ success: false, error: 'Job not found' }, { status: 404 });

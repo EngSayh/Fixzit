@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-import { connectToDatabase } from "@/lib/mongodb-unified";
-
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { getClientIP } from '@/server/security/headers';
+
+type ConnectFn = () => Promise<any>;
+
+async function getDatabaseConnection() {
+  const override = (globalThis as any).__connectToDatabaseMock as ConnectFn | undefined;
+  if (typeof override === 'function') {
+    return override();
+  }
+  const { connectToDatabase } = await import('@/lib/mongodb-unified');
+  return connectToDatabase();
+}
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -46,7 +55,7 @@ export async function GET(req: NextRequest) {
 
   // Check database connectivity
   try {
-    const mongoose = await connectToDatabase();
+    const mongoose = await getDatabaseConnection();
     healthStatus.database = 'connected';
 
     const db = mongoose?.connection?.db;
@@ -101,7 +110,7 @@ export async function POST(req: NextRequest) {
 
   // Force database reconnection
   try {
-    await connectToDatabase();
+    await getDatabaseConnection();
     return NextResponse.json({
       success: true,
       message: 'Database reconnected',

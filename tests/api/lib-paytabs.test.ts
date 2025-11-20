@@ -18,19 +18,18 @@ interface PayTabsHelpers {
 }
 let lib: PayTabsHelpers;
 // Define the exact path to the PayTabs helpers module here.
-const PAYTABS_HELPERS_MODULE_PATH = '../../lib-paytabs'; // <-- Update this path as needed
-function loadModule() {
-   
+const PAYTABS_HELPERS_MODULE_PATH = '@/lib/paytabs'; // <-- Update this path as needed
+async function loadModule() {
   try {
-    return require(PAYTABS_HELPERS_MODULE_PATH);
+    return await import(PAYTABS_HELPERS_MODULE_PATH);
   } catch (e) {
     throw new Error(`Could not resolve module for PayTabs helpers at "${PAYTABS_HELPERS_MODULE_PATH}". Please adjust PAYTABS_HELPERS_MODULE_PATH in qa/tests/lib-paytabs.spec.ts`);
   }
 }
 
 // Lazy-load once for all tests
-beforeAll(() => {
-  lib = loadModule();
+beforeAll(async () => {
+  lib = await loadModule();
 });
 
 // Helpers to stub global fetch and crypto.subtle
@@ -290,19 +289,24 @@ describe('verifyPayment', () => {
 });
 
 describe('validateCallbackRaw (HMAC SHA-256 verification)', () => {
-  const restoreEnv = setEnv({ PAYTABS_API_SERVER_KEY: 'server_key', PAYTABS_SERVER_KEY: undefined });
-  afterAll(restoreEnv);
+  let restoreEnv: (() => void) | undefined;
+  beforeAll(() => {
+    restoreEnv = setEnv({ PAYTABS_API_SERVER_KEY: 'server_key', PAYTABS_SERVER_KEY: undefined });
+  });
+  afterAll(() => {
+    restoreEnv?.();
+  });
 
   // Minimal mock for WebCrypto subtle.sign producing deterministic bytes
   function setCryptoMock(signatureBytes: Uint8Array) {
-    (global as any).crypto = {
+    vi.stubGlobal('crypto', {
       subtle: {
         importKey: vi.fn(async () => ({} as CryptoKey)),
         sign: vi.fn(async (_algo: string, _key: any, _data: ArrayBuffer) => {
           return signatureBytes.buffer as ArrayBuffer;
         }),
       } as any,
-    };
+    });
   }
 
   it('returns false when server key missing or signature missing', async () => {
@@ -348,12 +352,12 @@ describe('validateCallbackRaw (HMAC SHA-256 verification)', () => {
   it('returns false on crypto error', async () => {
     const { validateCallbackRaw } = lib as any;
     // Force subtle.sign to throw
-    (global as any).crypto = {
+    vi.stubGlobal('crypto', {
       subtle: {
         importKey: vi.fn(async () => ({} as CryptoKey)),
         sign: vi.fn(async () => { throw new Error('subtle failed'); }),
       } as any,
-    };
+    });
     const res = await validateCallbackRaw('raw', '00');
     expect(res).toBe(false);
   });

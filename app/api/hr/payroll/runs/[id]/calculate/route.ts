@@ -103,7 +103,7 @@ export async function POST(
       const overtimeComponent = calculation.earnings.find((earning) => earning.code === 'OVERTIME');
 
       payrollLines.push({
-        employeeId: employee._id as any,
+        employeeId: employee._id,
         employeeCode: employee.employeeCode,
         employeeName: `${employee.firstName} ${employee.lastName}`,
         iban: employee.bankDetails?.iban,

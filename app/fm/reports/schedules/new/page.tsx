@@ -41,7 +41,7 @@ export default function NewSchedulePage() {
   const auto = useAutoTranslator('fm.reports.schedules.new');
   const { data: session } = useSession();
   const router = useRouter();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'reports' });
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'reports' });
   const [reportType, setReportType] = useState('');
   const [title, setTitle] = useState('');
   const [frequency, setFrequency] = useState('monthly');

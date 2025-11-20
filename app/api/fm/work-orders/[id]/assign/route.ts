@@ -1,37 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { getDatabase } from '@/lib/mongodb-unified';
 import { ObjectId } from 'mongodb';
+import { getDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
-import { mapWorkOrderDocument } from '../../utils';
+import {
+  getCanonicalUserId,
+  mapWorkOrderDocument,
+  recordTimelineEntry,
+  type WorkOrderDocument,
+} from '../../utils';
+import { resolveTenantId } from '../../../utils/tenant';
+import { requireFmAbility } from '../../../utils/auth';
+import { FMErrors } from '../../../errors';
 
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tenantId = req.headers.get('x-tenant-id');
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Missing x-tenant-id header' }, { status: 400 });
+    const actor = await requireFmAbility('ASSIGN')(req);
+    if (actor instanceof NextResponse) return actor;
+    const tenantResult = resolveTenantId(req, actor.orgId || actor.tenantId);
+    if ('error' in tenantResult) return tenantResult.error;
+    const { tenantId } = tenantResult;
+    const actorId = getCanonicalUserId(actor);
+    if (!actorId) {
+      return FMErrors.validationError('User identifier is required');
     }
 
     const workOrderId = params.id;
     if (!ObjectId.isValid(workOrderId)) {
-      return NextResponse.json({ error: 'Invalid work order ID' }, { status: 400 });
+      return FMErrors.invalidId('work order');
     }
 
     const body = await req.json();
     const { assigneeId, technicianId, notes } = body ?? {};
     if (!assigneeId && !technicianId) {
-      return NextResponse.json(
-        { error: 'assigneeId or technicianId is required' },
-        { status: 400 }
-      );
+      return FMErrors.validationError('assigneeId or technicianId is required');
     }
 
     const db = await getDatabase();
@@ -39,7 +43,7 @@ export async function POST(
     const update: Record<string, unknown> = {
       updatedAt: now,
       assignment: {
-        assignedBy: session.user.id || session.user.email,
+        assignedBy: actorId,
         assignedAt: now,
         notes,
       },
@@ -52,29 +56,25 @@ export async function POST(
       update.technicianId = technicianId;
     }
 
-    const result = await db.collection('workorders').findOneAndUpdate(
+    const collection = db.collection<WorkOrderDocument>('workorders');
+    const result = await collection.findOneAndUpdate(
       { _id: new ObjectId(workOrderId), tenantId },
       { $set: update },
       { returnDocument: 'after' }
     );
 
-    const updated = result.value;
+    const updated = result?.value;
     if (!updated) {
-      return NextResponse.json({ error: 'Work order not found' }, { status: 404 });
+      return FMErrors.notFound('Work order');
     }
 
-    await db.collection('workorder_timeline').insertOne({
+    await recordTimelineEntry(db, {
       workOrderId,
       tenantId,
       action: 'assigned',
-      description: notes
-        ? `Assigned with note: ${notes}`
-        : `Assignment updated`,
-      metadata: {
-        assigneeId,
-        technicianId,
-      },
-      performedBy: session.user.id || session.user.email,
+      description: notes ? `Assigned with note: ${notes}` : 'Assignment updated',
+      metadata: { assigneeId, technicianId },
+      performedBy: actorId,
       performedAt: now,
     });
 
@@ -85,9 +85,6 @@ export async function POST(
     });
   } catch (error) {
     logger.error('FM Work Order Assignment API error', error as Error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return FMErrors.internalError();
   }
 }

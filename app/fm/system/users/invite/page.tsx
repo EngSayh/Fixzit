@@ -17,7 +17,7 @@ import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 export default function InviteUserPage() {
   const auto = useAutoTranslator('fm.system.users.invite');
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'system' });
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'system' });
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');

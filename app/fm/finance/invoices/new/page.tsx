@@ -31,7 +31,7 @@ export default function FinanceInvoiceCreatePage() {
   const auto = useAutoTranslator('fm.finance.invoices.new');
   const { t } = useTranslation();
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'finance' });
   
   if (!hasOrgContext || !orgId) {
     return guard;

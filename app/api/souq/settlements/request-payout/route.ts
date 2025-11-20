@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { SellerBalanceService } from '@/services/souq/settlements/balance-service';
 import { PayoutProcessorService } from '@/services/souq/settlements/payout-processor';
 
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ payout }, { status: 201 });
   } catch (error) {
-    console.error('Error requesting payout:', error);
+    logger.error('Error requesting payout:, { error });
     const message = error instanceof Error ? error.message : 'Failed to request payout';
     return NextResponse.json({ error: message }, { status: 500 });
   }

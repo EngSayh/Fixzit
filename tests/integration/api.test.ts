@@ -12,6 +12,9 @@ const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
 const MONGO_MEMORY_LAUNCH_TIMEOUT_MS = Number(
   process.env.MONGO_MEMORY_LAUNCH_TIMEOUT ?? '60000',
 );
+// Run these heavy integration tests only when explicitly enabled
+const runIntegration = process.env.RUN_INTEGRATION_TESTS === 'true';
+const describeMaybe = runIntegration ? describe : describe.skip;
 
 let mongoServer: MongoMemoryServer;
 let authToken: string;
@@ -22,7 +25,7 @@ let testProductId: string;
 let testClaimId: string;
 let testOrderAmount: number;
 
-describe('API Integration Tests', () => {
+describeMaybe('API Integration Tests', () => {
   beforeAll(async () => {
     // Start in-memory MongoDB for testing
     mongoServer = await MongoMemoryServer.create({

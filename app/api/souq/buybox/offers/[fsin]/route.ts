@@ -39,7 +39,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Get product offers error:', error);
+    logger.error('Get product offers error', { error });
     return NextResponse.json(
       { 
         error: 'Failed to get product offers',

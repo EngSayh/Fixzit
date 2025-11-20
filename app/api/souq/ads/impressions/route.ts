@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AuctionEngine } from '@/services/souq/ads/auction-engine';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/souq/ads/impressions
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
       message: 'Impression recorded',
     });
   } catch (error) {
-    console.error('[Ad API] Record impression failed:', error);
+    logger.error('[Ad API] Record impression failed:, { error });
     
     return NextResponse.json(
       {

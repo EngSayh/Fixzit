@@ -19,13 +19,9 @@ vi.mock('@/lib/mongodb-unified', () => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined)
 }));
 
-vi.mock('@/lib/ats/rbac', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/ats/rbac')>('@/lib/ats/rbac');
-  return {
-    ...actual,
-    atsRBAC: vi.fn()
-  };
-});
+vi.mock('@/lib/ats/rbac', () => ({
+  atsRBAC: vi.fn(),
+}));
 
 vi.mock('@/server/security/rateLimit', () => ({
   rateLimit: vi.fn().mockReturnValue({ allowed: true })

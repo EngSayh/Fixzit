@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 
 import { logger } from '@/lib/logger';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
+import { useTranslation } from '@/contexts/TranslationContext';
+
 interface PartItem {
   id: string;
   name: string;
@@ -24,69 +26,228 @@ interface SelectedPartItem {
   quantity: number;
 }
 
+type MarketplaceProductPayload = {
+  _id?: string;
+  id?: string;
+  sku?: string;
+  slug?: string;
+  title?: Record<string, unknown> | string | null;
+  name?: string;
+  summary?: string;
+  buy?: { price?: number };
+  stock?: { onHand?: number };
+  category?: { name?: string } | string | null;
+  categoryName?: string;
+};
+
+type MarketplaceProductsResponse = {
+  ok?: boolean;
+  data?: { items?: MarketplaceProductPayload[] };
+  error?: string;
+  message?: string;
+};
+
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim().length > 0;
+
+const pickLocalizedString = (value: unknown, preferredKey?: string): string | undefined => {
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+  const record = value as Record<string, unknown>;
+  if (preferredKey) {
+    const candidate = record[preferredKey];
+    if (isNonEmptyString(candidate)) {
+      return candidate;
+    }
+  }
+  for (const candidate of Object.values(record)) {
+    if (isNonEmptyString(candidate)) {
+      return candidate;
+    }
+  }
+  return undefined;
+};
+
+const resolveProductId = (product: MarketplaceProductPayload): string | undefined => {
+  const candidates = [product._id, product.id, product.sku, product.slug];
+  return candidates.find(isNonEmptyString);
+};
+
+const resolveProductTitle = (product: MarketplaceProductPayload, preferredLanguage?: string): string | undefined => {
+  const localized = pickLocalizedString(product.title, preferredLanguage);
+  if (localized) {
+    return localized;
+  }
+  if (isNonEmptyString(product.name)) {
+    return product.name;
+  }
+  if (isNonEmptyString(product.summary)) {
+    return product.summary;
+  }
+  if (isNonEmptyString(product.slug)) {
+    return product.slug;
+  }
+  if (isNonEmptyString(product.sku)) {
+    return product.sku;
+  }
+  return undefined;
+};
+
+const resolveCategoryLabel = (product: MarketplaceProductPayload): string | undefined => {
+  if (isNonEmptyString(product.categoryName)) {
+    return product.categoryName;
+  }
+  if (isNonEmptyString(product.category as string)) {
+    return product.category as string;
+  }
+  if (product.category && typeof product.category === 'object') {
+    const candidate = (product.category as Record<string, unknown>).name;
+    if (isNonEmptyString(candidate)) {
+      return candidate;
+    }
+  }
+  return undefined;
+};
+
+const resolveStock = (product: MarketplaceProductPayload): number =>
+  typeof product.stock?.onHand === 'number' ? product.stock.onHand : 0;
+
+const resolvePrice = (product: MarketplaceProductPayload): number =>
+  typeof product.buy?.price === 'number' ? product.buy.price : 0;
+
 export default function WorkOrderPartsPage() {
-  const params = useParams();
-  const workOrderId = params.id;
+  const params = useParams<{ id?: string | string[] }>();
+  const rawWorkOrderId = params?.id;
+  const workOrderId = Array.isArray(rawWorkOrderId) ? rawWorkOrderId[0] : rawWorkOrderId;
   const auto = useAutoTranslator('workOrders.parts');
+  const { language: activeLanguage } = useTranslation();
   
   const [search, setSearch] = useState('');
   const [parts, setParts] = useState<PartItem[]>([]);
   const [selectedParts, setSelectedParts] = useState<SelectedPartItem[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const emptyStateTitle = auto('No marketplace parts published yet', 'list.emptyStateTitle');
+  const emptyStateSubtitle = auto('Adjust your search or onboard vendors to see products here.', 'list.emptyStateSubtitle');
+  const fallbackProductName = auto('Unnamed marketplace item', 'list.fallbackProductName');
+  const fallbackCategoryLabel = auto('Uncategorized', 'list.fallbackCategory');
+  const fetchErrorMessage = auto('Unable to load marketplace parts. Please try again.', 'errors.fetchFailed');
+  const noSelectionMessage = auto('Add at least one part before creating a purchase order.', 'toast.noSelection');
   
-  const searchParts = useCallback(async () => {
+  const searchParts = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/marketplace/products?q=${search}&limit=10`);
-      const data = await res.json();
-      if (data.ok) {
-        setParts(data.data.products);
+      const params = new URLSearchParams({ limit: '10' });
+      const trimmed = search.trim();
+      if (trimmed) {
+        params.set('q', trimmed);
+      }
+      const response = await fetch(`/api/marketplace/products?${params.toString()}`, {
+        signal,
+        credentials: 'include',
+      });
+      let payload: MarketplaceProductsResponse | null = null;
+      try {
+        payload = await response.json();
+      } catch {
+        payload = null;
+      }
+      if (!response.ok) {
+        const message = (payload && (payload.error || payload.message)) || `Request failed (${response.status})`;
+        throw new Error(message);
+      }
+      const rawItems = Array.isArray(payload?.data?.items) ? payload.data.items : [];
+      const normalized = rawItems
+        .map((item) => {
+          const id = resolveProductId(item);
+          if (!id) {
+            return null;
+          }
+          const title = resolveProductTitle(item, activeLanguage) ?? fallbackProductName;
+          const category = resolveCategoryLabel(item) ?? fallbackCategoryLabel;
+          return {
+            id,
+            name: title,
+            title,
+            price: resolvePrice(item),
+            stock: resolveStock(item),
+            category,
+          } as PartItem;
+        })
+        .filter((item): item is PartItem => Boolean(item));
+      if (!signal?.aborted) {
+        setParts(normalized);
       }
     } catch (error) {
+      if (signal?.aborted) {
+        return;
+      }
       logger.error('Failed to search parts:', error);
+      toast.error(fetchErrorMessage);
+      setParts([]);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
-  }, [search]);
+  }, [activeLanguage, fallbackCategoryLabel, fallbackProductName, fetchErrorMessage, search]);
 
   useEffect(() => {
-    searchParts();
-  }, [searchParts]);
+    const controller = new AbortController();
+    const delay = search.trim().length > 0 ? 300 : 0;
+    const timeout = window.setTimeout(() => {
+      searchParts(controller.signal);
+    }, delay);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [search, searchParts]);
   
   const addPart = (part: PartItem) => {
-    const existing = selectedParts.find(p => p.id === part.id);
-    if (existing) {
-      setSelectedParts(selectedParts.map(p => 
-        p.id === part.id 
-          ? { ...p, quantity: p.quantity + 1 }
-          : p
-      ));
-    } else {
-      setSelectedParts([...selectedParts, { 
-        id: part.id,
-        name: part.name,
-        title: part.name, // Map name to title
-        price: part.price,
-        quantity: 1 
-      }]);
-    }
+    setSelectedParts((prev) => {
+      const existing = prev.find(p => p.id === part.id);
+      if (existing) {
+        return prev.map(p => 
+          p.id === part.id 
+            ? { ...p, quantity: p.quantity + 1 }
+            : p
+        );
+      }
+      return [
+        ...prev,
+        {
+          id: part.id,
+          name: part.name,
+          title: part.title,
+          price: part.price,
+          quantity: 1,
+        },
+      ];
+    });
   };
   
   const removePart = (partId: string) => {
-    setSelectedParts(selectedParts.filter(p => p.id !== partId));
+    setSelectedParts((prev) => prev.filter(p => p.id !== partId));
   };
   
   const updateQuantity = (partId: string, quantity: number) => {
-    if (quantity <= 0) {
-      removePart(partId);
-    } else {
-      setSelectedParts(selectedParts.map(p => 
+    setSelectedParts((prev) => {
+      if (quantity <= 0) {
+        return prev.filter(p => p.id !== partId);
+      }
+      return prev.map(p => 
         p.id === partId ? { ...p, quantity } : p
-      ));
-    }
+      );
+    });
   };
   
   const createPurchaseOrder = async () => {
+    if (selectedParts.length === 0) {
+      toast.error(noSelectionMessage);
+      return;
+    }
     // Create PO from selected parts
     const po = {
       workOrderId,
@@ -135,6 +296,11 @@ export default function WorkOrderPartsPage() {
               {loading ? (
                 <div className="text-center py-8">
                   {auto('Loading...', 'state.loading')}
+                </div>
+              ) : parts.length === 0 ? (
+                <div className="border border-dashed border-border rounded-2xl text-center py-12 text-muted-foreground">
+                  <p className="font-medium text-foreground">{emptyStateTitle}</p>
+                  <p className="text-sm">{emptyStateSubtitle}</p>
                 </div>
               ) : (
                 <div className="grid gap-4">

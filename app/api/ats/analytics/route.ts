@@ -68,17 +68,17 @@ export async function GET(req: NextRequest) {
       if (jobId) filter.jobId = new Types.ObjectId(jobId);
     
       // Get applications by stage
-      const applicationsByStage = await (Application as any).aggregate([
+      const applicationsByStage = await Application.aggregate([
         { $match: filter },
         { $group: { _id: '$stage', count: { $sum: 1 } } },
         { $sort: { _id: 1 } }
       ]);
       
       // Get total applications
-      const totalApplications = await (Application as any).countDocuments(filter);
+      const totalApplications = await Application.countDocuments(filter);
       
       // Get applications over time (last 7 days)
-      const applicationsOverTime = await (Application as any).aggregate([
+      const applicationsOverTime = await Application.aggregate([
         { $match: filter },
         {
           $group: {
@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
       ]);
       
       // Get conversion rates
-      const stageTransitions = await (Application as any).aggregate([
+      const stageTransitions = await Application.aggregate([
         { $match: filter },
         {
           $group: {
@@ -116,7 +116,7 @@ export async function GET(req: NextRequest) {
       };
       
       // Get average time in stage
-      const avgTimeInStage = await (Application as any).aggregate([
+      const avgTimeInStage = await Application.aggregate([
         { $match: filter },
         {
           $project: {
@@ -138,7 +138,7 @@ export async function GET(req: NextRequest) {
       ]);
       
       // Get top performing jobs
-      const topJobs = await (Application as any).aggregate([
+      const topJobs = await Application.aggregate([
         { $match: { orgId, createdAt: { $gte: startDate } } },
         {
           $group: {
@@ -168,7 +168,7 @@ export async function GET(req: NextRequest) {
       ]);
       
       // Get interview statistics
-      const interviewStats = await (Interview as any).aggregate([
+      const interviewStats = await Interview.aggregate([
         { $match: { orgId, createdAt: { $gte: startDate } } },
         {
           $group: {
@@ -178,13 +178,13 @@ export async function GET(req: NextRequest) {
         }
       ]);
       
-      const totalInterviews = await (Interview as any).countDocuments({
+      const totalInterviews = await Interview.countDocuments({
         orgId,
         createdAt: { $gte: startDate }
       });
       
       // Get active jobs count
-      const activeJobs = await (Job as any).countDocuments({
+      const activeJobs = await Job.countDocuments({
         orgId,
         status: 'published'
       });

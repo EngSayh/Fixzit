@@ -47,6 +47,33 @@ export async function ensureCoreIndexes(): Promise<void> {
         { key: { orgId: 1, status: 1, createdAt: -1 } }
       ]
     },
+    // Work Order Comments
+    {
+      collection: 'workorder_comments',
+      indexes: [
+        { key: { tenantId: 1, workOrderId: 1, createdAt: -1 } },
+        { key: { workOrderId: 1, createdAt: -1 } },
+        { key: { createdAt: -1 } }
+      ]
+    },
+    // Work Order Attachments
+    {
+      collection: 'workorder_attachments',
+      indexes: [
+        { key: { tenantId: 1, workOrderId: 1, uploadedAt: -1 } },
+        { key: { workOrderId: 1, uploadedAt: -1 } },
+        { key: { uploadedAt: -1 } }
+      ]
+    },
+    // Work Order Timeline
+    {
+      collection: 'workorder_timeline',
+      indexes: [
+        { key: { tenantId: 1, workOrderId: 1, performedAt: -1 } },
+        { key: { workOrderId: 1, performedAt: -1 } },
+        { key: { performedAt: -1 } }
+      ]
+    },
     // Properties
     {
       collection: 'properties',
@@ -110,8 +137,12 @@ export async function ensureCoreIndexes(): Promise<void> {
       
       for (const indexSpec of collIndexes) {
         try {
+          const isUnique =
+            'unique' in indexSpec && typeof indexSpec.unique === 'boolean'
+              ? indexSpec.unique
+              : false;
           await coll.createIndex(indexSpec.key as unknown as Record<string, 1 | -1>, {
-            unique: indexSpec.unique || false,
+            unique: isUnique,
             background: true
           });
         } catch (_error: unknown) {

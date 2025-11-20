@@ -55,18 +55,14 @@ describe("Candidate with Mock DB", () => {
 
     const records: any[] = [];
     class MockCandidateRepo {
-      private collection: string;
-      constructor(collection: string) {
-        this.collection = collection;
-      }
-      async find(query: Record<string, any>) {
+      static async find(query: Record<string, any>) {
         return records.filter(
           (r) =>
             (query.orgId === undefined || r.orgId === query.orgId) &&
             (query.emailLower === undefined || r.emailLower === query.emailLower)
         );
       }
-      async create(doc: any) {
+      static async create(doc: any) {
         const now = new Date();
         const withDefaults = {
           skills: [],
@@ -213,4 +209,3 @@ describe.skip('Candidate with Real Mongoose Model', () => {
     expect(doc).toBeNull();
   });
 });
-

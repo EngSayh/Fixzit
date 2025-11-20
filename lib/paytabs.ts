@@ -14,11 +14,12 @@ const REGIONS: Record<string,string> = {
 export function paytabsBase(region='GLOBAL'){ return REGIONS[region] || REGIONS.GLOBAL; }
 
 export async function createHppRequest(region:string, payload:Record<string, unknown>) {
+  const authHeader = process.env.PAYTABS_SERVER_KEY || process.env.PAYTABS_API_SERVER_KEY || '';
   const response = await fetchWithRetry(`${paytabsBase(region)}/payment/request`, {
     method:'POST',
     headers: {
       'Content-Type':'application/json',
-      'authorization': process.env.PAYTABS_SERVER_KEY!},
+      'authorization': authHeader},
     body: JSON.stringify(payload)
   }, {
     timeoutMs: paytabsResilience.timeouts.paymentMs,
@@ -44,22 +45,36 @@ export type SimplePaymentRequest = {
 
 export type SimplePaymentResponse = { success: true; paymentUrl: string; transactionId: string } | { success: false; error: string };
 
-// PayTabs configuration - validation happens lazily at runtime
-const PAYTABS_CONFIG = {
-  profileId: process.env.PAYTABS_PROFILE_ID,
-  serverKey: process.env.PAYTABS_SERVER_KEY,
-  baseUrl: process.env.PAYTABS_BASE_URL || paytabsBase('GLOBAL')
-};
-
 const paytabsResilience = SERVICE_RESILIENCE.paytabs;
 const paytabsBreaker = getCircuitBreaker('paytabs');
+
+const getPaytabsConfig = () => {
+  const override = (global as any)?.PAYTABS_CONFIG as
+    | { profileId?: string; serverKey?: string; baseUrl?: string }
+    | undefined;
+
+  if (override) {
+    return {
+      profileId: override.profileId,
+      serverKey: override.serverKey,
+      baseUrl: override.baseUrl || paytabsBase('GLOBAL'),
+    };
+  }
+
+  return {
+    profileId: process.env.PAYTABS_PROFILE_ID,
+    serverKey: process.env.PAYTABS_SERVER_KEY || process.env.PAYTABS_API_SERVER_KEY,
+    baseUrl: process.env.PAYTABS_BASE_URL || paytabsBase('GLOBAL'),
+  };
+};
 
 /**
  * Validates that PayTabs credentials are configured
  * @throws Error if credentials are missing
  */
 function validatePayTabsConfig(): void {
-  if (!PAYTABS_CONFIG.profileId || !PAYTABS_CONFIG.serverKey) {
+  const config = getPaytabsConfig();
+  if (!config.profileId || !config.serverKey) {
     throw new Error(
       'PayTabs credentials not configured. Please set PAYTABS_PROFILE_ID and PAYTABS_SERVER_KEY environment variables. ' +
       'See documentation: https://docs.paytabs.com/setup'
@@ -70,15 +85,17 @@ function validatePayTabsConfig(): void {
 export async function createPaymentPage(request: SimplePaymentRequest): Promise<SimplePaymentResponse> {
   // Validate credentials before making API call
   validatePayTabsConfig();
+  const config = getPaytabsConfig();
   
   try {
+    const cartAmount = (Math.round(request.amount * 100) / 100).toFixed(2);
     const payload = {
-      profile_id: PAYTABS_CONFIG.profileId,
+      profile_id: config.profileId,
       tran_type: 'sale',
       tran_class: 'ecom',
       cart_id: request.invoiceId || `CART-${Date.now()}`,
       cart_currency: request.currency,
-      cart_amount: request.amount.toFixed(2),
+      cart_amount: cartAmount,
       cart_description: request.description,
       
       // URLs
@@ -104,10 +121,10 @@ export async function createPaymentPage(request: SimplePaymentRequest): Promise<
       paypage_lang: 'ar'
     };
 
-    const response = await fetchWithRetry(`${PAYTABS_CONFIG.baseUrl}/payment/request`, {
+    const response = await fetchWithRetry(`${config.baseUrl}/payment/request`, {
       method: 'POST',
       headers: {
-        'Authorization': PAYTABS_CONFIG.serverKey!,
+        'Authorization': config.serverKey!,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
@@ -148,16 +165,17 @@ export async function createPaymentPage(request: SimplePaymentRequest): Promise<
 export async function verifyPayment(tranRef: string): Promise<unknown> {
   // Validate credentials before making API call
   validatePayTabsConfig();
+  const config = getPaytabsConfig();
   
   try {
-    const response = await fetchWithRetry(`${PAYTABS_CONFIG.baseUrl}/payment/query`, {
+    const response = await fetchWithRetry(`${config.baseUrl}/payment/query`, {
       method: 'POST',
       headers: {
-        'Authorization': PAYTABS_CONFIG.serverKey!,
+        'Authorization': config.serverKey!,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        profile_id: PAYTABS_CONFIG.profileId,
+        profile_id: config.profileId,
         tran_ref: tranRef
       })
     }, {
@@ -178,11 +196,12 @@ export async function verifyPayment(tranRef: string): Promise<unknown> {
 }
 
 export function validateCallback(payload: Record<string, unknown>, signature: string): boolean {
+  const config = getPaytabsConfig();
   if (!payload || typeof payload !== 'object') {
     return false;
   }
 
-  if (!PAYTABS_CONFIG.serverKey) {
+  if (!config.serverKey) {
     logger.warn('PayTabs server key missing - skipping signature validation in development');
     return true;
   }
@@ -194,7 +213,7 @@ export function validateCallback(payload: Record<string, unknown>, signature: st
   }
 
   // Implement signature validation according to PayTabs documentation
-  const calculatedSignature = generateSignature(payload);
+  const calculatedSignature = generateSignature(payload, config.serverKey);
   
   // Use timing-safe comparison to prevent timing attacks
   try {
@@ -208,9 +227,36 @@ export function validateCallback(payload: Record<string, unknown>, signature: st
   }
 }
 
-function generateSignature(payload: Record<string, unknown>): string {
+export async function validateCallbackRaw(payload: unknown, signature?: string | null): Promise<boolean> {
+  const config = getPaytabsConfig();
+  const serverKey = config.serverKey;
+
+  if (!serverKey || !signature) {
+    return false;
+  }
+
+  try {
+    const encoder = new TextEncoder();
+    const data = typeof payload === 'string' ? payload : JSON.stringify(payload);
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(serverKey),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const digest = new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(data ?? '')));
+    const computed = Buffer.from(digest).toString('hex');
+    return timingSafeEqual(Buffer.from(computed, 'hex'), Buffer.from(String(signature), 'hex'));
+  } catch (error) {
+    logger.error('PayTabs raw callback validation error', { error });
+    return false;
+  }
+}
+
+function generateSignature(payload: Record<string, unknown>, serverKey?: string): string {
   // Ensure server key is configured
-  if (!PAYTABS_CONFIG.serverKey) {
+  if (!serverKey) {
     throw new Error('PayTabs server key is required for signature generation');
   }
 
@@ -233,7 +279,7 @@ function generateSignature(payload: Record<string, unknown>): string {
     .join('&');
 
   // Compute HMAC-SHA256 hex digest using the server key
-  const hmac = createHmac('sha256', PAYTABS_CONFIG.serverKey);
+  const hmac = createHmac('sha256', serverKey);
   hmac.update(canonicalString);
   return hmac.digest('hex');
 }
@@ -243,7 +289,8 @@ function generateSignature(payload: Record<string, unknown>): string {
  * Useful for local testing utilities and the signing script.
  */
 export function generateCallbackSignature(payload: Record<string, unknown>): string {
-  return generateSignature(payload);
+  const config = getPaytabsConfig();
+  return generateSignature(payload, config.serverKey);
 }
 
 export interface PaytabsPayoutRequest {
@@ -266,9 +313,10 @@ export type PaytabsPayoutResult =
 
 export async function createPayout(input: PaytabsPayoutRequest): Promise<PaytabsPayoutResult> {
   validatePayTabsConfig();
+  const config = getPaytabsConfig();
 
   const payload = {
-    profile_id: PAYTABS_CONFIG.profileId,
+    profile_id: config.profileId,
     payout_reference: input.reference,
     payout_amount: input.amount.toFixed(2),
     payout_currency: input.currency,
@@ -283,10 +331,10 @@ export async function createPayout(input: PaytabsPayoutRequest): Promise<Paytabs
   };
 
   try {
-    const response = await fetchWithRetry(`${PAYTABS_CONFIG.baseUrl}/payment/payouts`, {
+    const response = await fetchWithRetry(`${config.baseUrl}/payment/payouts`, {
       method: 'POST',
       headers: {
-        Authorization: PAYTABS_CONFIG.serverKey!,
+        Authorization: config.serverKey!,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
@@ -323,15 +371,16 @@ export async function createPayout(input: PaytabsPayoutRequest): Promise<Paytabs
 
 export async function queryPayoutStatus(payoutId: string): Promise<Record<string, unknown>> {
   validatePayTabsConfig();
+  const config = getPaytabsConfig();
 
-  const response = await fetchWithRetry(`${PAYTABS_CONFIG.baseUrl}/payment/payouts/query`, {
+  const response = await fetchWithRetry(`${config.baseUrl}/payment/payouts/query`, {
     method: 'POST',
     headers: {
-      Authorization: PAYTABS_CONFIG.serverKey!,
+      Authorization: config.serverKey!,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      profile_id: PAYTABS_CONFIG.profileId,
+      profile_id: config.profileId,
       payout_id: payoutId,
     }),
   }, {

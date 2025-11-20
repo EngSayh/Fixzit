@@ -11,58 +11,59 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 
 describe('useFormTracking', () => {
   it('should register and unregister the form on mount/unmount', () => {
-    const { result: contextResult } = renderHook(() => useFormState(), { wrapper });
     const onSave = vi.fn(() => Promise.resolve());
 
-    const { unmount } = renderHook(
-      () =>
+    const { result, unmount, rerender } = renderHook(
+      ({ isDirty }) => {
+        const ctx = useFormState();
         useFormTracking({
           formId: 'test-form',
-          isDirty: false,
+          isDirty,
           onSave,
-        }),
-      { wrapper },
+        });
+        return ctx;
+      },
+      { wrapper, initialProps: { isDirty: false } },
     );
 
-    // The form should be tracked in the context (via markFormDirty/markFormClean)
-    // Note: The context doesn't auto-register forms, it tracks their dirty state
-    // So we can't directly assert formStates here unless we trigger dirty state
+    expect(result.current.isFormDirty('test-form')).toBe(false);
 
     act(() => {
-      unmount();
+      rerender({ isDirty: true });
     });
+    expect(result.current.isFormDirty('test-form')).toBe(true);
 
-    // After unmount, the form should be unregistered
-    // Verify using context API that form is no longer tracked
-    expect(contextResult.current.isFormDirty('test-form')).toBe(false);
+    act(() => unmount());
   });
 
   it('should mark form as dirty in context when isDirty prop becomes true', () => {
-    const { result: contextResult } = renderHook(() => useFormState(), { wrapper });
     const onSave = vi.fn(() => Promise.resolve());
 
-    const { rerender } = renderHook(
-      (props) => useFormTracking(props),
+    const { result, rerender } = renderHook(
+      ({ isDirty }) => {
+        const ctx = useFormState();
+        useFormTracking({
+          formId: 'dirty-form',
+          isDirty,
+          onSave,
+        });
+        return ctx;
+      },
       {
         wrapper,
         initialProps: {
-          formId: 'dirty-form',
           isDirty: false,
-          onSave,
         },
       },
     );
 
-    // Initially not dirty
-    // Note: The FormStateContext uses a Map structure, so we need to check differently
-    // The context doesn't expose formStates directly in the consolidated version
+    expect(result.current.isFormDirty('dirty-form')).toBe(false);
 
     act(() => {
-      rerender({ formId: 'dirty-form', isDirty: true, onSave });
+      rerender({ isDirty: true });
     });
 
-    // Verify through context API that form is now marked as dirty
-    expect(contextResult.current.isFormDirty('dirty-form')).toBe(true);
+    expect(result.current.isFormDirty('dirty-form')).toBe(true);
   });
 
   it('should call onSave when global save is triggered', async () => {

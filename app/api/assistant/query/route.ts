@@ -106,7 +106,9 @@ function isMyTickets(question: string) {
 export async function POST(req: NextRequest) {
   try {
     await connectToDatabase(); // ensure DB/init (real or mock)
-  } catch {}
+  } catch (error) {
+    logger.warn('[Assistant] Database connection failed, continuing without DB', { error });
+  }
 
   let user: SessionUser | null = null;
   try {
@@ -241,7 +243,9 @@ export async function POST(req: NextRequest) {
         .limit?.(20) || [];
       const s = q.toLowerCase();
       docs = docs.filter(d => (d.title || "").toLowerCase().includes(s) || (d.content || "").toLowerCase().includes(s)).slice(0, 5);
-    } catch {}
+    } catch (error) {
+      logger.warn('[Assistant] Help article search failed', { error, query: q });
+    }
   }
 
   const citations: Citation[] = (docs || []).map((d: HelpArticleDoc) => ({ title: d.title, slug: d.slug })).slice(0, 5);

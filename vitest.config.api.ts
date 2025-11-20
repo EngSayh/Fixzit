@@ -9,6 +9,7 @@ const baseExcludes = [
   'e2e/**',
   'qa/**',
   'playwright/**',
+  'tests/unit/api/qa/log.route.playwright.test.ts',
   // Exclude model tests that require MongoDB Memory Server (run those via test:models)
   'tests/unit/models/**',
 ];
@@ -17,9 +18,9 @@ const sharedProjectConfig = {
   globals: true,
   reporters: ['default'],
   pool: 'threads',
-  testTimeout: 30000,
-  hookTimeout: 15000,
-  teardownTimeout: 5000,
+  testTimeout: 600000, // 10 minutes - MongoMemoryServer tests need extended timeout
+  hookTimeout: 120000, // 2 minutes - MongoDB Memory Server setup/teardown
+  teardownTimeout: 30000, // 30 seconds - cleanup connections
 };
 
 const sharedViteConfig = {

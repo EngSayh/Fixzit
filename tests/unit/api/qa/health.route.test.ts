@@ -6,7 +6,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as mongodbUnified from '@/lib/mongodb-unified';
 
-vi.mock('@/lib/mongodb-unified');
+vi.mock('@/lib/mongodb-unified', () => {
+  const connectToDatabase = vi.fn();
+  return { connectToDatabase };
+});
 vi.mock('@/lib/logger', () => ({
   logger: {
     error: vi.fn(),
@@ -29,10 +32,12 @@ function createMockRequest() {
 describe('api/qa/health route - GET', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (globalThis as any).__connectToDatabaseMock = vi.mocked(mongodbUnified).connectToDatabase;
   });
 
   afterEach(() => {
     delete (process as any).env.npm_package_version;
+    delete (globalThis as any).__connectToDatabaseMock;
   });
 
   it('returns healthy with database status when DB connects successfully', async () => {
@@ -87,6 +92,11 @@ describe('api/qa/health route - GET', () => {
 describe('api/qa/health route - POST', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (globalThis as any).__connectToDatabaseMock = vi.mocked(mongodbUnified).connectToDatabase;
+  });
+
+  afterEach(() => {
+    delete (globalThis as any).__connectToDatabaseMock;
   });
 
   it('returns success when DB reconnects successfully', async () => {

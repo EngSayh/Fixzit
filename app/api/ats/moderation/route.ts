@@ -49,7 +49,7 @@ export async function PUT(req: NextRequest) {
     const { jobId, action } = body;
     if (!jobId || !['approve', 'reject'].includes(action)) return validationError("Invalid request");
 
-    const job = await (Job as any).findById(jobId);
+    const job = await Job.findById(jobId);
     if (!job) return notFoundError("Job");
 
     if (action === 'approve') {

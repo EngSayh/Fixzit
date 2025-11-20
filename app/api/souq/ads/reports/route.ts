@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CampaignService } from '@/services/souq/ads/campaign-service';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
       data: report,
     });
   } catch (error) {
-    console.error('[Ad API] Get performance report failed:', error);
+    logger.error('[Ad API] Get performance report failed:, { error });
 
     return NextResponse.json(
       {

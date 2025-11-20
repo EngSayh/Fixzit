@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('GET /api/souq/inventory error:', error);
+    logger.error('GET /api/souq/inventory error', { error });
     return NextResponse.json({ 
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error'
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     }
     
   } catch (error) {
-    console.error('POST /api/souq/inventory error:', error);
+    logger.error('POST /api/souq/inventory error', { error });
     return NextResponse.json({ 
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error'

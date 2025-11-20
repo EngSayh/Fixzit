@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user is super admin
-    const isSuperAdmin = (session.user as any).role === 'SUPER_ADMIN';
+    const isSuperAdmin = session.user.role === 'SUPER_ADMIN';
     if (!isSuperAdmin) {
       return NextResponse.json(
         { success: false, error: 'Forbidden: Super admin access required' },
@@ -131,12 +131,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (searchValue) {
+      const escapedSearch = searchValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       matchStage.$or = [
-        { recipient: { $regex: searchValue, $options: 'i' } },
-        { subject: { $regex: searchValue, $options: 'i' } },
-        { message: { $regex: searchValue, $options: 'i' } },
-        { 'metadata.email': { $regex: searchValue, $options: 'i' } },
-        { 'metadata.phone': { $regex: searchValue, $options: 'i' } },
+        { recipient: { $regex: escapedSearch, $options: 'i' } },
+        { subject: { $regex: escapedSearch, $options: 'i' } },
+        { message: { $regex: escapedSearch, $options: 'i' } },
+        { 'metadata.email': { $regex: escapedSearch, $options: 'i' } },
+        { 'metadata.phone': { $regex: escapedSearch, $options: 'i' } },
       ];
     }
 

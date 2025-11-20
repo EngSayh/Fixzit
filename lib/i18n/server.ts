@@ -145,8 +145,11 @@ function createTranslator(dictionary: TranslationDictionary): TFn {
 }
 
 export async function getServerTranslation(request: NextRequest) {
-  // Get locale from cookie or Accept-Language header
-  const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value;
+  // Get locale from cookie or Accept-Language header (match getServerI18n cookie keys)
+  const cookieLocale =
+    request.cookies.get('fxz.lang')?.value ||
+    request.cookies.get('fxz.locale')?.value ||
+    request.cookies.get('locale')?.value;
   const headerLocale = request.headers.get('accept-language')?.split(',')[0];
   const locale = resolveLocale(cookieLocale || headerLocale);
 

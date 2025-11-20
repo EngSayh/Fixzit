@@ -117,7 +117,7 @@ export async function POST(
       evidence: updated?.evidence ?? [],
     });
   } catch (error) {
-    console.error('[Claims API] Upload evidence failed:', error);
+    logger.error('[Claims API] Upload evidence failed', { error });
     return NextResponse.json(
       {
         error: 'Failed to upload evidence',

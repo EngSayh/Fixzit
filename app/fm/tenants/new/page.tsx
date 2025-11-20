@@ -15,7 +15,7 @@ export default function NewTenantPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'tenants' });
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'tenants' });
 
   if (!session) {
     return <CardGridSkeleton count={4} />;

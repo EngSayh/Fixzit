@@ -94,6 +94,13 @@ function createUpsert(db) {
     const timestamp = Date.now();
     const normalizedDoc = normalizeDocument(doc);
 
+    // Surface predicate errors even when the collection is empty so callers can catch issues early.
+    try {
+      predicate(normalizedDoc);
+    } catch (error) {
+      throw error;
+    }
+
     if (idx >= 0) {
       const { _id: _ignoreId, createdAt: _ignoreCreatedAt, ...rest } = normalizedDoc;
       const updated = { ...data[idx], ...rest, updatedAt: new Date(timestamp) };

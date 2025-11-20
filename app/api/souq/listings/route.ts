@@ -176,8 +176,8 @@ export async function GET(request: NextRequest) {
     const sellerId = searchParams.get('sellerId');
     const status = searchParams.get('status');
     const condition = searchParams.get('condition');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
     
     const query: Record<string, unknown> = {
       org_id: session.user.orgId,

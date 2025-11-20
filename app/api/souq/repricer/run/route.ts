@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { AutoRepricerService } from '@/services/souq/auto-repricer-service';
 
 /**
@@ -21,7 +22,7 @@ export async function POST(_request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Manual reprice error:', error);
+    logger.error('Manual reprice error', { error });
     return NextResponse.json(
       { 
         error: 'Failed to run repricing',

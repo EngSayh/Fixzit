@@ -52,7 +52,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Buy Box fetch error:', error);
+    logger.error('Buy Box fetch error', { error });
     return NextResponse.json(
       { error: 'Failed to fetch Buy Box data' },
       { status: 500 }

@@ -7,6 +7,16 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 
+type GetDbFn = () => Promise<any>;
+
+async function resolveDatabase() {
+  const override = (globalThis as any).__mockGetDatabase as GetDbFn | undefined;
+  if (typeof override === 'function') {
+    return override();
+  }
+  return getDatabase();
+}
+
 /**
  * @openapi
  * /api/qa/alert:
@@ -37,7 +47,7 @@ export async function POST(req: NextRequest) {
     const { event, data } = body;
 
     // Log the alert to database
-    const native = await getDatabase();
+    const native = await resolveDatabase();
     await native.collection('qa_alerts').insertOne({
       event,
       data,
@@ -48,10 +58,16 @@ export async function POST(req: NextRequest) {
 
     logger.warn(`🚨 QA Alert: ${event}`, data);
 
-    return createSecureResponse({ success: true }, 200, req);
+    const successBody = { success: true };
+    return createSecureResponse(successBody, 200, req);
   } catch (error) {
+    if (process.env.NODE_ENV === 'test') {
+      // eslint-disable-next-line no-console
+      console.error('[QA alert debug]', error);
+    }
     logger.error('Failed to process QA alert:', error instanceof Error ? error.message : 'Unknown error');
-    return createSecureResponse({ error: 'Failed to process alert' }, 500, req);
+    const errorBody = { error: 'Failed to process alert' };
+    return createSecureResponse(errorBody, 500, req);
   }
 }
 
@@ -64,7 +80,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const native = await getDatabase();
+    const native = await resolveDatabase();
     const alerts = await native.collection('qa_alerts')
       .find({})
       .sort({ timestamp: -1 })

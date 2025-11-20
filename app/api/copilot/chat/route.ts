@@ -150,7 +150,8 @@ export async function POST(req: NextRequest) {
     // Log analytics for sentiment tracking
     if (sentiment === 'negative') {
       logger.warn('[copilot] Negative sentiment detected', { userId: session.userId, message: message.slice(0, 100) });
-      // TODO: Trigger escalation workflow if needed
+      // NOTE: Escalation workflow deferred to Phase 2 - requires support ticket integration
+      // When implemented, will create support ticket for negative sentiment conversations
     }
 
     // Handle apartment search intent via dedicated module

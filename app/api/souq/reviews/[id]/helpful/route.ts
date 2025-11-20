@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { reviewService } from '@/services/souq/reviews/review-service';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { connectDb } from '@/lib/mongodb-unified';
 import { z } from 'zod';
 
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       );
     }
 
-    console.error('[POST /api/souq/reviews/[id]/helpful]', error);
+    logger.error('[POST /api/souq/reviews/[id]/helpful]', { error });
     return NextResponse.json(
       { error: 'Failed to mark review as helpful' },
       { status: 500 }

@@ -54,7 +54,7 @@ export async function DELETE(
     // Decrement analytics after successful deletion (with error handling)
     if (favorite.targetType === 'LISTING') {
       try {
-        await (AqarListing as any).findByIdAndUpdate(
+        await AqarListing.findByIdAndUpdate(
           favorite.targetId, 
           [
             { 
@@ -74,7 +74,7 @@ export async function DELETE(
       }
     } else if (favorite.targetType === 'PROJECT') {
       try {
-        await (AqarProject as any).findByIdAndUpdate(
+        await AqarProject.findByIdAndUpdate(
           favorite.targetId, 
           [
             { 

@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
       filter.scheduledAt = scheduledAt;
     }
     
-    const interviews = await (Interview as any)
+    const interviews = await Interview
       .find(filter)
       .select('jobId candidateId applicationId scheduledAt duration stage status feedback interviewers location notes createdAt updatedAt')
       .populate('jobId', 'title department')
@@ -129,7 +129,7 @@ export async function GET(req: NextRequest) {
       .limit(limit)
       .lean();
     
-    const total = await (Interview as any).countDocuments(filter);
+    const total = await Interview.countDocuments(filter);
     
     return NextResponse.json({ 
       success: true,
@@ -185,7 +185,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const application = await (Application as any)
+    const application = await Application
       .findOne({ _id: body.applicationId, orgId })
       .select('jobId candidateId orgId')
       .lean();
@@ -233,7 +233,7 @@ export async function POST(req: NextRequest) {
       interviewPayload.feedback = feedback;
     }
 
-    const interview = await (Interview as any).create(interviewPayload);
+    const interview = await Interview.create(interviewPayload);
     
     return NextResponse.json({ success: true, data: interview }, { status: 201 });
   } catch (error) {

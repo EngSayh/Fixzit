@@ -77,11 +77,12 @@ export async function GET(request: NextRequest) {
     };
     
     if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       query.$or = [
-        { email: { $regex: search, $options: 'i' } },
-        { username: { $regex: search, $options: 'i' } },
-        { 'personal.firstName': { $regex: search, $options: 'i' } },
-        { 'personal.lastName': { $regex: search, $options: 'i' } },
+        { email: { $regex: escapedSearch, $options: 'i' } },
+        { username: { $regex: escapedSearch, $options: 'i' } },
+        { 'personal.firstName': { $regex: escapedSearch, $options: 'i' } },
+        { 'personal.lastName': { $regex: escapedSearch, $options: 'i' } },
       ];
     }
     
@@ -89,14 +90,14 @@ export async function GET(request: NextRequest) {
       query['professional.role'] = role;
     }
     
-    const users = await (UserModel as any).find(query)
+    const users = await UserModel.find(query)
       .select('code username email phone personal professional security status createdAt')
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip(skip)
       .lean();
     
-    const total = await (UserModel as any).countDocuments(query);
+    const total = await UserModel.countDocuments(query);
     
     return NextResponse.json({ users, total });
   } catch (error) {
@@ -163,7 +164,7 @@ export async function POST(request: NextRequest) {
     const UserModel = models.User || model('User', UserSchema);
     
     // Check if user already exists
-    const existing = await (UserModel as any).findOne({
+    const existing = await UserModel.findOne({
       orgId: session.user.orgId || 'default',
       $or: [
         { email: body.email },
@@ -190,7 +191,7 @@ export async function POST(request: NextRequest) {
     
     const hashedPassword = await bcrypt.hash(body.password, 12); // 12 rounds = industry standard
     
-    const newUser = await (UserModel as any).create({
+    const newUser = await UserModel.create({
       orgId: session.user.orgId || 'default',
       code: body.code || `USER-${crypto.randomUUID()}`, // SECURITY: Use crypto instead of Date.now()
       username: body.username,

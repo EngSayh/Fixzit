@@ -85,12 +85,13 @@ function buildTenantFilter(searchParams: URLSearchParams, orgId: string) {
 
   const search = searchParams.get('search');
   if (search) {
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     filter.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { code: { $regex: search, $options: 'i' } },
-      { 'contact.primary.name': { $regex: search, $options: 'i' } },
-      { 'contact.primary.email': { $regex: search, $options: 'i' } },
-      { 'contact.primary.phone': { $regex: search, $options: 'i' } },
+      { name: { $regex: escapedSearch, $options: 'i' } },
+      { code: { $regex: escapedSearch, $options: 'i' } },
+      { 'contact.primary.name': { $regex: escapedSearch, $options: 'i' } },
+      { 'contact.primary.email': { $regex: escapedSearch, $options: 'i' } },
+      { 'contact.primary.phone': { $regex: escapedSearch, $options: 'i' } },
     ];
   }
 

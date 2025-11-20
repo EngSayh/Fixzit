@@ -18,6 +18,9 @@ export type SessionUser = {
   role: UserRoleType;
   orgId: string;
   tenantId: string;
+  email?: string;
+  name?: string;
+  subscriptionPlan?: string | null;
   isSuperAdmin?: boolean;
   permissions?: string[];
   roles?: string[];
@@ -162,6 +165,9 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
   let realOrgId: string | undefined;
   let impersonatedOrgId: string | null = null;
   let sessionIsSuperAdmin = false;
+  let email: string | undefined;
+  let name: string | undefined;
+  let subscriptionPlan: string | null | undefined;
   
   // Try NextAuth session first (proper way)
   try {
@@ -172,6 +178,14 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
       const sessionOrgId = session.user.orgId || '';
       realOrgId = sessionOrgId || undefined;
       sessionIsSuperAdmin = Boolean((session.user as { isSuperAdmin?: boolean }).isSuperAdmin);
+      const sessionEmail = typeof session.user.email === 'string' ? session.user.email : undefined;
+      const sessionName = typeof session.user.name === 'string' ? session.user.name : undefined;
+      const sessionPlan = (session.user as { subscriptionPlan?: string | null }).subscriptionPlan;
+      email = sessionEmail ?? email;
+      name = sessionName ?? name;
+      if (sessionPlan !== undefined) {
+        subscriptionPlan = sessionPlan;
+      }
       const supportOrgOverride =
         sessionIsSuperAdmin ? req.cookies.get('support_org_id')?.value ?? undefined : undefined;
       if (supportOrgOverride) {
@@ -222,6 +236,15 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
       if (parsed.isSuperAdmin) {
         sessionIsSuperAdmin = true;
       }
+      if (!email && typeof parsed.email === 'string') {
+        email = parsed.email;
+      }
+      if (!name && typeof parsed.name === 'string') {
+        name = parsed.name;
+      }
+      if (subscriptionPlan === undefined && typeof parsed.subscriptionPlan === 'string') {
+        subscriptionPlan = parsed.subscriptionPlan;
+      }
     } catch (e) {
       logger.error('Failed to parse x-user header', { error: e });
     }
@@ -253,6 +276,19 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
             orgId = tenantValue;
             role = roleValue as UserRoleType;
           }
+          if (!email && typeof payload.email === 'string') {
+            email = payload.email;
+          }
+          if (!name && typeof payload.name === 'string') {
+            name = payload.name;
+          }
+          const payloadWithPlan = payload as { subscriptionPlan?: string | null };
+          if (
+            subscriptionPlan === undefined &&
+            typeof payloadWithPlan.subscriptionPlan === 'string'
+          ) {
+            subscriptionPlan = payloadWithPlan.subscriptionPlan;
+          }
         }
       } catch (error) {
         logger.error('Legacy token verification failed', { error });
@@ -282,6 +318,9 @@ export async function getSessionUser(req: NextRequest): Promise<SessionUser> {
     role: role,
     orgId: orgId,
     tenantId: orgId,
+    email,
+    name,
+    subscriptionPlan: subscriptionPlan ?? null,
     isSuperAdmin,
     permissions,
     roles,

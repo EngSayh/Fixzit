@@ -9,6 +9,8 @@ const baseExcludes = [
   'e2e/**',
   'qa/**',
   'playwright/**',
+  'tests/unit/api/qa/log.route.playwright.test.ts',
+  'tests/unit/contexts/TranslationContext (1).test.tsx',
 ];
 
 const sharedProjectConfig = {
@@ -16,9 +18,9 @@ const sharedProjectConfig = {
   setupFiles: ['./vitest.setup.ts'], // MongoDB Memory Server for model tests (no mongoose mocks)
   reporters: ['default'],
   pool: 'threads',
-  testTimeout: 30000,
-  hookTimeout: 15000,
-  teardownTimeout: 5000,
+  testTimeout: 600000, // 10 minutes - MongoMemoryServer initialization takes time
+  hookTimeout: 120000, // 2 minutes - beforeAll/afterAll with MongoDB setup
+  teardownTimeout: 30000, // 30 seconds - cleanup
 };
 
 const sharedViteConfig = {

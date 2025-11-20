@@ -6,7 +6,7 @@ import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 
 export default function ReportsPage() {
   const auto = useAutoTranslator('fm.reports');
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'finance' });
 
   if (!hasOrgContext || !orgId) {
     return guard;

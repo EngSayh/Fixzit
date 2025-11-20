@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { AtsSettings } from '@/server/models/AtsSettings';
+import { logger } from '@/lib/logger';
 import { atsRBAC } from '@/lib/ats/rbac';
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
@@ -52,7 +53,7 @@ export async function GET(req: NextRequest) {
       }
     });
   } catch (error: unknown) {
-    console.error('Error fetching ATS settings:', error);
+    logger.error('Error fetching ATS settings:, { error });
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { error: 'Internal server error', message },
@@ -149,7 +150,7 @@ export async function PATCH(req: NextRequest) {
       }
     });
   } catch (error: unknown) {
-    console.error('Error updating ATS settings:', error);
+    logger.error('Error updating ATS settings', { error });
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { error: 'Internal server error', message },

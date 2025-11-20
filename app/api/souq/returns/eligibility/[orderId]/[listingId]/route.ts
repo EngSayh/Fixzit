@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { returnsService } from '@/services/souq/returns-service';
 
 /**
@@ -27,7 +28,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Check eligibility error:', error);
+    logger.error('Check eligibility error', { error });
     return NextResponse.json({ 
       error: 'Failed to check eligibility',
       message: error instanceof Error ? error.message : 'Unknown error'

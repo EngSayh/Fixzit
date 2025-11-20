@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('POST /api/souq/inventory/convert error:', error);
+    logger.error('POST /api/souq/inventory/convert error', { error });
     return NextResponse.json({ 
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error'

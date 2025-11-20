@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, useId } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useId } from 'react';
 import { Globe, Search, Check } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { LANGUAGE_OPTIONS, type LanguageOption, type LanguageCode } from '@/config/language-options';
@@ -109,7 +109,7 @@ export default function LanguageSelector({ variant = 'default' }: LanguageSelect
   };
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative" ref={containerRef} data-testid="language-selector">
       <button
         type="button"
         aria-expanded={open}

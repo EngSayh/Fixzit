@@ -58,13 +58,13 @@ export async function POST(req: NextRequest) {
         });
       } catch (ddError) {
         // Silent fail - don't break app if DataDog is unreachable
-        console.error('Failed to send log to DataDog:', ddError);
+        logger.error('Failed to send log to DataDog:, { error: ddError });
       }
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Logging endpoint error:', error);
+    logger.error('Logging endpoint error:, { error });
     return NextResponse.json(
       { error: 'Failed to process log' },
       { status: 500 }

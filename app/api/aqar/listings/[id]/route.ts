@@ -38,7 +38,7 @@ export async function GET(
         return badRequest('Invalid listing ID', { correlationId });
       }
       
-      const listing = await (AqarListing as any).findById(id)
+      const listing = await AqarListing.findById(id)
         .select(
           '_id title price areaSqm city status media amenities location intent propertyType analytics rnplEligible auction proptech immersive pricingInsights pricing ai fmLifecycle iotFeatures'
         )
@@ -49,7 +49,7 @@ export async function GET(
       }
       
       // Best-effort analytics increment with error capture (no await to avoid blocking response)
-      (AqarListing as any).findByIdAndUpdate(
+      AqarListing.findByIdAndUpdate(
         id, 
         { 
           $inc: { 'analytics.views': 1 }, 
@@ -82,7 +82,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid listing ID' }, { status: 400 });
     }
     
-    const listing = await (AqarListing as any).findById(id);
+    const listing = await AqarListing.findById(id);
     
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
@@ -202,7 +202,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid listing ID' }, { status: 400 });
     }
     
-    const listing = await (AqarListing as any).findById(id);
+    const listing = await AqarListing.findById(id);
     
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });

@@ -4,7 +4,7 @@ import { render, screen, act } from '@testing-library/react';
 
 import NewPaymentPage from '@/app/fm/finance/payments/new/page';
 
-const mockUseOrgGuard = vi.fn();
+const mockUseFmOrgGuard = vi.fn();
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), back: vi.fn() }),
@@ -23,8 +23,8 @@ vi.mock('@/contexts/TranslationContext', () => ({
   }),
 }));
 
-vi.mock('@/hooks/fm/useOrgGuard', () => ({
-  useOrgGuard: () => mockUseOrgGuard(),
+vi.mock('@/components/fm/useFmOrgGuard', () => ({
+  useFmOrgGuard: () => mockUseFmOrgGuard(),
 }));
 
 vi.mock('@/components/fm/ModuleViewTabs', () => ({
@@ -55,7 +55,8 @@ vi.mock('@/lib/logger', () => ({
 describe('NewPaymentPage org guard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseOrgGuard.mockReturnValue({
+    mockUseFmOrgGuard.mockReturnValue({
+      hasOrgContext: true,
       orgId: 'org-test',
       guard: null,
       supportBanner: <div data-testid="support-banner">banner</div>,
@@ -63,7 +64,8 @@ describe('NewPaymentPage org guard', () => {
   });
 
   test('renders guard content when organization is missing', async () => {
-    mockUseOrgGuard.mockReturnValue({
+    mockUseFmOrgGuard.mockReturnValue({
+      hasOrgContext: false,
       orgId: null,
       guard: <div data-testid="org-guard" />,
       supportBanner: null,

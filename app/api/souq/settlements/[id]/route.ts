@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { connectDb } from '@/lib/mongodb-unified';
 
 export async function GET(
@@ -45,7 +46,7 @@ export async function GET(
 
     return NextResponse.json({ statement });
   } catch (error) {
-    console.error('Error fetching settlement:', error);
+    logger.error('Error fetching settlement', { error });
     return NextResponse.json(
       { error: 'Failed to fetch settlement' },
       { status: 500 }

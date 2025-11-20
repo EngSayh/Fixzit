@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { FormWithNavigation } from '@/components/ui/navigation-buttons';
 import { useAutoTranslator } from '@/i18n/useAutoTranslator';
@@ -131,6 +132,7 @@ export default function SupportTicketPage() {
             saving={isSubmitting}
             showBack
             showHome
+            showSave={false}
             position="both"
           >
             {/* Subject */}
@@ -275,6 +277,7 @@ export default function SupportTicketPage() {
                 className="px-6 py-3 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50"
                 disabled={isSubmitting}
               >
+                {isSubmitting && <Loader2 className="inline me-2 h-4 w-4 animate-spin align-middle" />}
                 {auto('Submit Ticket', 'actions.submit')}
               </button>
             </div>

@@ -38,7 +38,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Get Buy Box winner error:', error);
+    logger.error('Get Buy Box winner error', { error });
     return NextResponse.json(
       { 
         error: 'Failed to get Buy Box winner',

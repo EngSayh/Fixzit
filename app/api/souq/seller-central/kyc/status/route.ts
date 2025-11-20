@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { sellerKYCService } from '@/services/souq/seller-kyc-service';
 
 /**
@@ -22,7 +23,7 @@ export async function GET(_request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get KYC status error:', error);
+    logger.error('Get KYC status error', { error });
     return NextResponse.json({ 
       error: 'Failed to get KYC status',
       message: error instanceof Error ? error.message : 'Unknown error'

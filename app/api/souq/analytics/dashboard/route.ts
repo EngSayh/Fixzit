@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { analyticsService } from '@/services/souq/analytics/analytics-service';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/souq/analytics/dashboard
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get analytics dashboard error:', error);
+    logger.error('Get analytics dashboard error', { error });
     return NextResponse.json({ 
       error: 'Failed to get analytics dashboard',
       message: error instanceof Error ? error.message : 'Unknown error'

@@ -81,7 +81,7 @@ export default function EditVendorPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const auto = useAutoTranslator('fm.vendors.edit');
-  const { orgId, guard, supportBanner } = useOrgGuard();
+  const { hasOrgContext, orgId, guard, supportBanner } = useFmOrgGuard({ moduleId: 'vendors' });
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -195,10 +195,11 @@ export default function EditVendorPage() {
   };
 
   if (!session) return <CardGridSkeleton count={1} />;
-  if (!orgId) {
+  if (!hasOrgContext || !orgId) {
     return (
       <div className="space-y-6">
         <ModuleViewTabs moduleId="vendors" />
+        {supportBanner}
         {guard}
       </div>
     );

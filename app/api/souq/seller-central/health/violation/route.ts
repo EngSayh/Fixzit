@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { accountHealthService } from '@/services/souq/account-health-service';
 
 /**
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Record violation error:', error);
+    logger.error('Record violation error', { error });
     return NextResponse.json({ 
       error: 'Failed to record violation',
       message: error instanceof Error ? error.message : 'Unknown error'

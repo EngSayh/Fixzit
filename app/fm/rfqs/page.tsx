@@ -56,7 +56,7 @@ interface RFQItem {
 export default function RFQsPage() {
   const auto = useAutoTranslator('fm.rfqs');
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'administration' });
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'administration' });
   
   if (!hasOrgContext || !orgId) {
     return guard;

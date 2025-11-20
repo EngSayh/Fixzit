@@ -302,9 +302,9 @@ export async function POST(request: NextRequest) {
       const bcrypt = await import('bcryptjs');
 
       if (loginType === 'personal') {
-        user = (await User.findOne({ email: loginIdentifier })) as any;
+        user = (await User.findOne({ email: loginIdentifier }));
       } else {
-        user = (await User.findOne({ username: loginIdentifier })) as any;
+        user = (await User.findOne({ username: loginIdentifier }));
       }
 
       if (!user && DEMO_AUTH_ENABLED && isDemoIdentifier(loginIdentifier)) {

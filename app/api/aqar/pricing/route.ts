@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok: true, insight });
   } catch (err) {
-    console.error('GET /api/aqar/pricing error', err);
+    logger.error('GET /api/aqar/pricing error', { error: err });
     return NextResponse.json({ ok: false, error: 'Server error' }, { status: 500 });
   }
 }

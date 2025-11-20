@@ -25,7 +25,7 @@ interface TicketItem {
 export default function SupportTicketsPage() {
   const auto = useAutoTranslator('fm.supportTickets');
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'support' });
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'support' });
   
   if (!hasOrgContext || !orgId) {
     return guard;

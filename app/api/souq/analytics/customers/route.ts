@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { analyticsService } from '@/services/souq/analytics/analytics-service';
 
 /**
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get customer insights error:', error);
+    logger.error('Get customer insights error', { error });
     return NextResponse.json({ 
       error: 'Failed to get customer insights',
       message: error instanceof Error ? error.message : 'Unknown error'

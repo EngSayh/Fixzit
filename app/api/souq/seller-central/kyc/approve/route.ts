@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { sellerKYCService } from '@/services/souq/seller-kyc-service';
 
 /**
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Approve/reject KYC error:', error);
+    logger.error('Approve/reject KYC error', { error });
     return NextResponse.json({ 
       error: 'Failed to process KYC approval',
       message: error instanceof Error ? error.message : 'Unknown error'

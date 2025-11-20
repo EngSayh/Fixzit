@@ -42,7 +42,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   await requireSuperAdmin(req);
   const body = await req.json();
 
-  const doc = await (PriceBook as any).findByIdAndUpdate(params.id, body, { new: true });
+  const doc = await PriceBook.findByIdAndUpdate(params.id, body, { new: true });
   if (!doc) {
     return createSecureResponse({ error: 'NOT_FOUND' }, 404, req);
   }

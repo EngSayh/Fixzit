@@ -61,12 +61,13 @@ function buildProjectFilter(searchParams: URLSearchParams, orgId: string) {
 
   const search = searchParams.get('search');
   if (search) {
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     filter.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { code: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-      { 'location.address': { $regex: search, $options: 'i' } },
-      { 'location.city': { $regex: search, $options: 'i' } },
+      { name: { $regex: escapedSearch, $options: 'i' } },
+      { code: { $regex: escapedSearch, $options: 'i' } },
+      { description: { $regex: escapedSearch, $options: 'i' } },
+      { 'location.address': { $regex: escapedSearch, $options: 'i' } },
+      { 'location.city': { $regex: escapedSearch, $options: 'i' } },
     ];
   }
 

@@ -260,7 +260,7 @@ export const ROLE_ACTIONS: Record<Role, ActionsBySubmodule> = {
  * 4) ABAC Guard (scope + plan + ownership)
  * ========================= */
 
-type ResourceCtx = {
+export type ResourceCtx = {
   orgId: string;
   propertyId?: string;
   unitId?: string;
@@ -272,6 +272,7 @@ type ResourceCtx = {
   role: Role;
   userId: string;
   isOrgMember: boolean;
+  isSuperAdmin?: boolean;
   isOwnerOfProperty?: boolean;
   isTechnicianAssigned?: boolean;
   uploadedMedia?: Array<'BEFORE' | 'DURING' | 'AFTER' | 'QUOTE'>;
@@ -299,7 +300,9 @@ export function can(
 
   // Property owners/deputies must own the property being accessed
   if (ctx.role === Role.PROPERTY_OWNER || ctx.role === Role.OWNER_DEPUTY) {
-    if (ctx.propertyId && !ctx.isOwnerOfProperty) return false;
+    if (ctx.propertyId && !(ctx.isOwnerOfProperty || ctx.isSuperAdmin)) {
+      return false;
+    }
   }
 
   if (ctx.role === Role.TECHNICIAN && TECHNICIAN_ASSIGNED_ACTIONS.includes(action)) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { Job } from '@/server/models/Job';
+import { logger } from '@/lib/logger';
 import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { getClientIP } from '@/server/security/headers';
@@ -148,7 +149,7 @@ export async function GET(req: NextRequest) {
       ...result
     });
   } catch (error: unknown) {
-    console.error('Error fetching public jobs:', error);
+    logger.error('Error fetching public jobs:, { error });
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { error: 'Internal server error', message },

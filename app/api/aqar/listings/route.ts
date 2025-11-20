@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
         delete listingPayload.immersive;
       }
 
-      const created = await (AqarListing as any).create(listingPayload);
+      const created = await AqarListing.create(listingPayload);
       
       // Sanitize response
       const {

@@ -4,24 +4,38 @@
  */
 
 import { NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { nanoid } from 'nanoid';
+import { Types } from 'mongoose';
+import { logger } from '@/lib/logger';
+import { connectDb } from '@/lib/mongodb-unified';
+import { SouqErrors } from '../errors';
+import { auth } from '@/auth';
 import { SouqOrder } from '@/server/models/souq/Order';
 import { SouqListing } from '@/server/models/souq/Listing';
-import { connectDb } from '@/lib/mongodb-unified';
-import { nanoid } from 'nanoid';
+
+const objectIdSchema = z
+  .string()
+  .regex(/^[a-f\d]{24}$/i, 'Invalid identifier format');
+
+const getDocumentId = (value: any) => {
+  if (value && typeof value === 'object' && '_id' in value) {
+    return (value as { _id: Types.ObjectId })._id;
+  }
+  return value;
+};
 
 const orderCreateSchema = z.object({
-  customerId: z.string(),
+  customerId: objectIdSchema,
   customerEmail: z.string().email(),
   customerPhone: z.string().min(10),
   items: z.array(
     z.object({
-      listingId: z.string(),
+      listingId: objectIdSchema,
       quantity: z.number().int().positive(),
     })
-  ),
+  ).min(1, 'At least one item is required'),
   shippingAddress: z.object({
     name: z.string().min(2),
     phone: z.string().min(10),
@@ -48,19 +62,106 @@ const orderCreateSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  type Reservation = {
+    listing: any;
+    quantity: number;
+    manualFallback: boolean;
+  };
+
+  const reservations: Reservation[] = [];
+
+  const releaseReservations = async () => {
+    if (!reservations.length) return;
+    await Promise.all(
+      reservations.map(async ({ listing, quantity, manualFallback }) => {
+        try {
+          if (typeof listing.releaseStock === 'function') {
+            await listing.releaseStock(quantity);
+            return;
+          }
+          if (manualFallback) {
+            const currentReserved =
+              typeof listing.reservedQuantity === 'number' ? listing.reservedQuantity : 0;
+            const currentAvailable =
+              typeof listing.availableQuantity === 'number' ? listing.availableQuantity : 0;
+            listing.reservedQuantity = Math.max(0, currentReserved - quantity);
+            listing.availableQuantity = currentAvailable + quantity;
+            await listing.save?.();
+          }
+        } catch (releaseError) {
+          logger.error('Failed to release reserved stock', releaseError as Error, {
+            listingId: listing?._id?.toString?.(),
+          });
+        }
+      })
+    );
+    reservations.length = 0;
+  };
+
+  const reserveStockForListing = async (listingDoc: any, quantity: number) => {
+    if (typeof listingDoc.reserveStock === 'function') {
+      const success = await listingDoc.reserveStock(quantity);
+      return { success, manualFallback: false };
+    }
+
+    const available =
+      typeof listingDoc.availableQuantity === 'number' ? listingDoc.availableQuantity : 0;
+    if (available < quantity) {
+      return { success: false, manualFallback: false };
+    }
+    const currentReserved =
+      typeof listingDoc.reservedQuantity === 'number' ? listingDoc.reservedQuantity : 0;
+    listingDoc.availableQuantity = available - quantity;
+    listingDoc.reservedQuantity = currentReserved + quantity;
+    await listingDoc.save?.();
+    return { success: true, manualFallback: true };
+  };
+
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return SouqErrors.unauthorized();
+    }
+    const sellerOrgId = (session.user as { orgId?: string }).orgId;
+    if (!sellerOrgId) {
+      return SouqErrors.forbidden('Seller organization context required');
+    }
+
     await connectDb();
 
     const body = await request.json();
     const validatedData = orderCreateSchema.parse(body);
+    const customerObjectId = new Types.ObjectId(validatedData.customerId);
+    const listingObjectIds = validatedData.items.map(
+      (item) => new Types.ObjectId(item.listingId)
+    );
 
-    const listingIds = validatedData.items.map((item) => item.listingId);
-    const listings = await SouqListing.find({
-      _id: { $in: listingIds },
-    }).populate('productId sellerId');
+    if (process.env.NODE_ENV === 'test') {
+      // eslint-disable-next-line no-console
+      console.error('[Souq orders debug] SouqListing.find type', typeof SouqListing.find);
+    }
+    const listingsQuery = SouqListing.find({
+      _id: { $in: listingObjectIds },
+    }) as any;
+    const listingsResult =
+      typeof listingsQuery?.populate === 'function'
+        ? await listingsQuery.populate('productId sellerId')
+        : await listingsQuery;
+    const listings: any[] = Array.isArray(listingsResult) ? listingsResult : [];
 
     if (listings.length !== validatedData.items.length) {
-      return NextResponse.json({ error: 'Some listings not found' }, { status: 404 });
+      if (process.env.NODE_ENV === 'test') {
+        // eslint-disable-next-line no-console
+        console.error('[Souq orders debug] listings mismatch', {
+          requestedIds: listingObjectIds.map((id) => id.toString()),
+          resultLength: listings.length,
+          rawResult: listingsResult,
+        });
+      }
+      const missingListingIds = listingObjectIds
+        .map((id) => id.toString())
+        .filter((id) => !listings.some((listing) => listing._id.toString() === id));
+      return SouqErrors.notFound('Listing', { missingListingIds });
     }
 
     const orderItems = [];
@@ -70,17 +171,28 @@ export async function POST(request: NextRequest) {
       const listing = listings.find((l: any) => l._id.toString() === itemRequest.listingId);
 
       if (!listing) {
-        return NextResponse.json(
-          { error: `Listing ${itemRequest.listingId} not found` },
-          { status: 404 }
-        );
+        await releaseReservations();
+        return SouqErrors.notFound('Listing', { listingId: itemRequest.listingId });
+      }
+
+      const listingSellerId =
+        (listing.sellerId && typeof listing.sellerId === 'object'
+          ? listing.sellerId.toString?.()
+          : typeof listing.sellerId === 'string'
+          ? listing.sellerId
+          : null) ?? null;
+      if (listingSellerId && listingSellerId !== sellerOrgId) {
+        await releaseReservations();
+        return SouqErrors.forbidden('Cannot create orders for another seller');
       }
 
       if (listing.availableQuantity < itemRequest.quantity) {
-        return NextResponse.json(
-          { error: `Insufficient stock for ${listing.sku || 'product'}` },
-          { status: 400 }
-        );
+        await releaseReservations();
+        return SouqErrors.conflict('Insufficient stock', {
+          listingId: listing._id.toString(),
+          requested: itemRequest.quantity,
+          available: listing.availableQuantity,
+        });
       }
 
       const listingDoc = listing as unknown as {
@@ -88,36 +200,38 @@ export async function POST(request: NextRequest) {
         availableQuantity?: number;
         reservedQuantity?: number;
         save?: () => Promise<unknown>;
+        releaseStock?: (_quantity: number) => Promise<void>;
       };
-      let reserved = true;
-      if (typeof listingDoc.reserveStock === 'function') {
-        reserved = await listingDoc.reserveStock(itemRequest.quantity);
-      } else {
-        const available = listingDoc.availableQuantity ?? listing.availableQuantity;
-        if (available < itemRequest.quantity) {
-          reserved = false;
-        } else {
-          listingDoc.availableQuantity = available - itemRequest.quantity;
-          listingDoc.reservedQuantity = (listingDoc.reservedQuantity ?? listing.reservedQuantity ?? 0) + itemRequest.quantity;
-          await listingDoc.save?.();
-        }
+      const { success, manualFallback } = await reserveStockForListing(
+        listingDoc,
+        itemRequest.quantity
+      );
+      if (!success) {
+        await releaseReservations();
+        return SouqErrors.conflict('Unable to reserve stock', {
+          listingId: listing._id.toString(),
+        });
       }
-      if (!reserved) {
-        return NextResponse.json(
-          { error: `Failed to reserve stock for ${listing.sku || 'product'}` },
-          { status: 400 }
-        );
-      }
+      reservations.push({
+        listing: listingDoc,
+        quantity: itemRequest.quantity,
+        manualFallback,
+      });
 
       const itemSubtotal = listing.price * itemRequest.quantity;
       subtotal += itemSubtotal;
 
       orderItems.push({
         listingId: listing._id,
-        productId: listing.productId,
+        productId: getDocumentId(listing.productId),
         fsin: listing.fsin,
-        sellerId: listing.sellerId,
-        title: (typeof listing.productId === 'object' && listing.productId !== null && 'title' in listing.productId) ? (listing.productId as { title?: string }).title : 'Product',
+        sellerId: getDocumentId(listing.sellerId),
+        title:
+          typeof listing.productId === 'object' &&
+          listing.productId !== null &&
+          'title' in listing.productId
+            ? (listing.productId as { title?: string }).title ?? 'Product'
+            : 'Product',
         quantity: itemRequest.quantity,
         pricePerUnit: listing.price,
         subtotal: itemSubtotal,
@@ -135,7 +249,7 @@ export async function POST(request: NextRequest) {
 
     const order = await SouqOrder.create({
       orderId,
-      customerId: validatedData.customerId,
+      customerId: customerObjectId,
       customerEmail: validatedData.customerEmail,
       customerPhone: validatedData.customerPhone,
       items: orderItems,
@@ -154,6 +268,7 @@ export async function POST(request: NextRequest) {
         status: validatedData.paymentMethod === 'cod' ? 'authorized' : 'pending',
       },
       status: 'pending',
+      orgId: sellerOrgId,
     });
 
     return NextResponse.json({
@@ -161,35 +276,70 @@ export async function POST(request: NextRequest) {
       data: order,
     });
   } catch (error) {
+    await releaseReservations();
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validation failed', issues: error.issues }, { status: 400 });
+      return SouqErrors.validationError('Invalid order payload', { issues: error.issues });
     }
 
     logger.error('Order creation error:', error as Error);
-    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
+    const debugDetails =
+      process.env.NODE_ENV === 'test'
+        ? { message: (error as Error)?.message ?? 'unknown error' }
+        : undefined;
+    return SouqErrors.internalError('Failed to create order', debugDetails);
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return SouqErrors.unauthorized();
+    }
+    const sellerOrgId = (session.user as { orgId?: string }).orgId;
+    if (!sellerOrgId) {
+      return SouqErrors.forbidden('Seller organization context required');
+    }
+    const isSuperAdmin = Boolean((session.user as { isSuperAdmin?: boolean }).isSuperAdmin);
+
     await connectDb();
 
     const { searchParams } = new URL(request.url);
     const customerId = searchParams.get('customerId');
     const sellerId = searchParams.get('sellerId');
     const status = searchParams.get('status');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const pageParam = Number(searchParams.get('page'));
+    const limitParam = Number(searchParams.get('limit'));
+    const page = Number.isFinite(pageParam) && pageParam > 0 ? Math.floor(pageParam) : 1;
+    const limitCandidate =
+      Number.isFinite(limitParam) && limitParam > 0 ? Math.floor(limitParam) : 20;
+    const limit = Math.min(Math.max(limitCandidate, 1), 100);
 
     const query: Record<string, unknown> = {};
 
     if (customerId) {
-      query.customerId = customerId;
+      if (!Types.ObjectId.isValid(customerId)) {
+        return SouqErrors.validationError('Invalid customerId');
+      }
+      query.customerId = new Types.ObjectId(customerId);
     }
 
-    if (sellerId) {
-      query['items.sellerId'] = sellerId;
+    if (!Types.ObjectId.isValid(sellerOrgId)) {
+      return SouqErrors.validationError('Seller organization context is invalid');
     }
+    let sellerFilterId: Types.ObjectId = new Types.ObjectId(sellerOrgId);
+    if (sellerId) {
+      if (!Types.ObjectId.isValid(sellerId)) {
+        return SouqErrors.validationError('Invalid sellerId');
+      }
+      if (sellerId !== sellerOrgId && !isSuperAdmin) {
+        return SouqErrors.forbidden('Cannot access orders for other sellers');
+      }
+      if (sellerId !== sellerOrgId && isSuperAdmin) {
+        sellerFilterId = new Types.ObjectId(sellerId);
+      }
+    }
+    query['items.sellerId'] = sellerFilterId;
 
     if (status) {
       query.status = status;
@@ -220,6 +370,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     logger.error('Order fetch error:', error as Error);
-    return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
+    return SouqErrors.internalError('Failed to fetch orders');
   }
 }

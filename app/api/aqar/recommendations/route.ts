@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
 
     return createSecureResponse({ ok: true, items }, 200, req);
   } catch (err) {
-    console.error('GET /api/aqar/recommendations error', err);
+    logger.error('GET /api/aqar/recommendations error, { error: err });
     return createSecureResponse({ ok: false, error: 'Server error' }, 500, req);
   }
 }

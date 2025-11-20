@@ -55,11 +55,12 @@ function buildWorkOrderFilter(searchParams: URLSearchParams, orgId: string) {
 
   const search = searchParams.get('search') || searchParams.get('q');
   if (search) {
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     filter.$or = [
-      { workOrderNumber: { $regex: search, $options: 'i' } },
-      { title: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-      { category: { $regex: search, $options: 'i' } },
+      { workOrderNumber: { $regex: escapedSearch, $options: 'i' } },
+      { title: { $regex: escapedSearch, $options: 'i' } },
+      { description: { $regex: escapedSearch, $options: 'i' } },
+      { category: { $regex: escapedSearch, $options: 'i' } },
     ];
   }
 

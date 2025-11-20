@@ -61,14 +61,14 @@ export async function GET(req: NextRequest) {
     if (jobType) filter.jobType = jobType;
     if (q) filter.$text = { $search: q };
     
-    const jobs = await (Job as any)
+    const jobs = await Job
       .find(filter, q ? { score: { $meta: 'textScore' } } : {})
       .sort(q ? { score: { $meta: 'textScore' } } : { publishedAt: -1, createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .lean();
     
-    const total = await (Job as any).countDocuments(filter);
+    const total = await Job.countDocuments(filter);
     
     return NextResponse.json({ 
       success: true,
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
     const jobPostLimit = atsModule?.jobPostLimit ?? Number.MAX_SAFE_INTEGER;
     const shouldEnforceLimit = Number.isFinite(jobPostLimit) && jobPostLimit !== Number.MAX_SAFE_INTEGER;
     if (shouldEnforceLimit) {
-      const activeJobCount = await (Job as any).countDocuments({
+      const activeJobCount = await Job.countDocuments({
         orgId,
         status: { $in: ['pending', 'published'] },
       });
@@ -136,11 +136,11 @@ export async function POST(req: NextRequest) {
     const baseSlug = generateSlug(body.title);
     let slug = baseSlug;
     let counter = 1;
-    while (await (Job as any).findOne({ orgId, slug })) {
+    while (await Job.findOne({ orgId, slug })) {
       slug = `${baseSlug}-${counter++}`;
     }
     
-    const job = await (Job as any).create({
+    const job = await Job.create({
       ...body,
       orgId,
       slug,

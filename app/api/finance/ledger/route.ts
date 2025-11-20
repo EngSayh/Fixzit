@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
         const unitId = searchParams.get('unitId');
         const workOrderId = searchParams.get('workOrderId');
         const page = parseInt(searchParams.get('page') || '1', 10);
-        const limit = parseInt(searchParams.get('limit') || '100', 10);
+        const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 100);
         const skip = (page - 1) * limit;
         
         // Build query
@@ -108,12 +108,12 @@ export async function GET(req: NextRequest) {
         
         // Execute query with pagination
         const [entries, total] = await Promise.all([
-          (LedgerEntry as any).find(query)
+          LedgerEntry.find(query)
             .sort({ date: -1, createdAt: -1 })
             .skip(skip)
             .limit(limit)
             .lean(),
-          (LedgerEntry as any).countDocuments(query)
+          LedgerEntry.countDocuments(query)
         ]);
         
         return NextResponse.json({

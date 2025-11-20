@@ -148,10 +148,14 @@ const PURCHASE_ORDERS: PurchaseOrder[] = [
 
 export default function FMPage() {
   const { t } = useTranslation();
-  const { orgId, guard, supportBanner } = useOrgGuard();
+  const { hasOrgContext, orgId, guard, supportBanner } = useFmOrgGuard({ moduleId: 'marketplace' });
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   
+  if (!hasOrgContext || !orgId) {
+    return guard;
+  }
+
   // Track initial state for dirty detection
   const [initialState] = useState({ searchTerm: '', statusFilter: 'all' });
   

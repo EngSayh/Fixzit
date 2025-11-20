@@ -49,12 +49,8 @@ export default function NewPaymentPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { registerForm, unregisterForm } = useFormState();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'finance' });
   const missingOrg = !hasOrgContext || !orgId;
-  
-  if (missingOrg) {
-    return guard;
-  }
 
   // Core payment fields
   const [paymentType, setPaymentType] = useState<string>('RECEIVED');

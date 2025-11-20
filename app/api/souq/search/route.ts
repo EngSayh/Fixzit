@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { searchClient, INDEXES } from '@/lib/meilisearch';
 import { withMeiliResilience } from '@/lib/meilisearch-resilience';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const searchQuerySchema = z.object({
   q: z.string().optional().default(''),
@@ -207,7 +208,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.error('[Souq Search] Search failed:', error);
+    logger.error('[Souq Search] Search failed', { error });
     
     return NextResponse.json(
       {

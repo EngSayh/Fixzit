@@ -19,8 +19,9 @@ vi.mock('@/lib/logger', () => ({
   }
 }));
 
-// Import route handlers AFTER mocking dependencies
-import { POST, GET } from "@/app/api/qa/alert/route";
+// Route handlers will be dynamically imported per-test to avoid module cache leakage across suites
+let POST: typeof import('@/app/api/qa/alert/route').POST;
+let GET: typeof import('@/app/api/qa/alert/route').GET;
 import { logger } from '@/lib/logger';
 
 // Type helper for building minimal NextRequest-like object
@@ -59,9 +60,17 @@ describe('QA Alert Route', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
+    (globalThis as any).__mockGetDatabase = vi.mocked(mongodbUnified).getDatabase;
 
     // Save original env
     originalEnv = process.env.NEXT_PUBLIC_USE_MOCK_DB;
+
+    // Re-import handlers with fresh module cache so mocks are applied even if other suites touched the module
+    return import('@/app/api/qa/alert/route').then(mod => {
+      POST = mod.POST;
+      GET = mod.GET;
+    });
   });
 
   afterEach(() => {
@@ -71,6 +80,7 @@ describe('QA Alert Route', () => {
     } else {
       process.env.NEXT_PUBLIC_USE_MOCK_DB = originalEnv;
     }
+    delete (globalThis as any).__mockGetDatabase;
   });
 
   describe('POST /api/qa/alert', () => {

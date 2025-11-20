@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { returnsService } from '@/services/souq/returns-service';
 
 /**
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Initiate return error:', error);
+    logger.error('Initiate return error', { error });
     return NextResponse.json({ 
       error: 'Failed to initiate return',
       message: error instanceof Error ? error.message : 'Unknown error'

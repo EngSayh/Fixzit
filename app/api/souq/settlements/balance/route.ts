@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { SellerBalanceService } from '@/services/souq/settlements/balance-service';
 
 export async function GET(request: NextRequest) {
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ balance });
   } catch (error) {
-    console.error('Error fetching balance:', error);
+    logger.error('Error fetching balance', { error });
     return NextResponse.json(
       { error: 'Failed to fetch balance' },
       { status: 500 }

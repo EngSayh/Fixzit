@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CampaignService } from '@/services/souq/ads/campaign-service';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/souq/ads/campaigns/[id]
@@ -42,7 +43,7 @@ export async function GET(
       data: campaign,
     });
   } catch (error) {
-    console.error('[Ad API] Get campaign failed:', error);
+    logger.error('[Ad API] Get campaign failed:, { error });
     
     return NextResponse.json(
       {
@@ -117,7 +118,7 @@ export async function PUT(
       data: updated,
     });
   } catch (error) {
-    console.error('[Ad API] Update campaign failed:', error);
+    logger.error('[Ad API] Update campaign failed', { error });
     
     return NextResponse.json(
       {
@@ -172,7 +173,7 @@ export async function DELETE(
       message: 'Campaign deleted successfully',
     });
   } catch (error) {
-    console.error('[Ad API] Delete campaign failed:', error);
+    logger.error('[Ad API] Delete campaign failed', { error });
     
     return NextResponse.json(
       {

@@ -46,7 +46,7 @@ interface ProjectItem {
 
 export default function ProjectsPage() {
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'administration' });
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'administration' });
   const auto = useAutoTranslator('fm.projects');
   
   if (!hasOrgContext || !orgId) {

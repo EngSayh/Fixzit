@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Assign Fast Badge error:', error);
+    logger.error('Assign Fast Badge error', { error });
     return NextResponse.json({ 
       error: 'Failed to assign Fast Badge',
       message: error instanceof Error ? error.message : 'Unknown error'

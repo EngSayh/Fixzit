@@ -45,7 +45,7 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
     }
     const { orgId, isSuperAdmin } = authResult;
     
-    const application = await (Application as any)
+    const application = await Application
       .findById(params.id)
       .populate('jobId')
       .populate('candidateId')
@@ -84,7 +84,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     }
     const { userId, orgId, isSuperAdmin } = authResult;
     
-    const application = await (Application as any).findById(params.id);
+    const application = await Application.findById(params.id);
     if (!application) return notFoundError("Application");
     
     // Resource ownership check

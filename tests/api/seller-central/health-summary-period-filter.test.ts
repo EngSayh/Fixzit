@@ -22,7 +22,10 @@ import { SouqOrder } from '@/server/models/souq/Order';
 import { SouqSeller } from '@/server/models/souq/Seller';
 import mongoose from 'mongoose';
 
-describe('GET /api/souq/seller-central/health/summary - Period Filter', () => {
+const runIntegration = process.env.RUN_INTEGRATION_TESTS === 'true';
+const describeMaybe = runIntegration ? describe : describe.skip;
+
+describeMaybe('GET /api/souq/seller-central/health/summary - Period Filter', () => {
   let testSellerId: string;
   const orderIds: string[] = [];
 

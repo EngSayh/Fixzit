@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/souq/returns/[rmaId]
@@ -44,7 +45,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Get RMA error:', error);
+    logger.error('Get RMA error', { error });
     return NextResponse.json({ 
       error: 'Failed to get RMA',
       message: error instanceof Error ? error.message : 'Unknown error'

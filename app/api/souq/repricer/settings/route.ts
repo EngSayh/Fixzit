@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { AutoRepricerService } from '@/services/souq/auto-repricer-service';
 
 /**
@@ -21,7 +22,7 @@ export async function GET(_request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get repricer settings error:', error);
+    logger.error('Get repricer settings error', { error });
     return NextResponse.json(
       { 
         error: 'Failed to get repricer settings',
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Update repricer settings error:', error);
+    logger.error('Update repricer settings error', { error });
     return NextResponse.json(
       { 
         error: 'Failed to update repricer settings',
@@ -91,7 +92,7 @@ export async function DELETE(_request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Disable repricer error:', error);
+    logger.error('Disable repricer error', { error });
     return NextResponse.json(
       { 
         error: 'Failed to disable repricer',

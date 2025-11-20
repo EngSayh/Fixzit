@@ -94,12 +94,13 @@ function buildPropertyFilter(searchParams: URLSearchParams, orgId: string) {
 
   const search = searchParams.get('search');
   if (search) {
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     filter.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { code: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-      { 'address.street': { $regex: search, $options: 'i' } },
-      { 'address.city': { $regex: search, $options: 'i' } },
+      { name: { $regex: escapedSearch, $options: 'i' } },
+      { code: { $regex: escapedSearch, $options: 'i' } },
+      { description: { $regex: escapedSearch, $options: 'i' } },
+      { 'address.street': { $regex: escapedSearch, $options: 'i' } },
+      { 'address.city': { $regex: escapedSearch, $options: 'i' } },
     ];
   }
 

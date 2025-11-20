@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, buffer);
 
     // Update or create platform settings
-    const settings = await (PlatformSettings as any).findOneAndUpdate(
+    const settings = await PlatformSettings.findOneAndUpdate(
       { orgId: user.orgId },
       {
         logoUrl: publicUrl,

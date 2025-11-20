@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, useId } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useId } from 'react';
 import { CircleDollarSign, Search } from 'lucide-react';
 import { useCurrency, type CurrencyOption } from '@/contexts/CurrencyContext';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -101,7 +101,7 @@ export default function CurrencySelector({ variant = 'default' }: CurrencySelect
   };
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative" ref={containerRef} data-testid="currency-selector">
       <button
         type="button"
         aria-expanded={open}

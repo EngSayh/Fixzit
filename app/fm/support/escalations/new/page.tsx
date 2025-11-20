@@ -38,7 +38,7 @@ type EscalationForm = {
 
 export default function NewEscalationPage() {
   const auto = useAutoTranslator('fm.support.escalations');
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'support' });
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'support' });
   
   if (!hasOrgContext || !orgId) {
     return guard;

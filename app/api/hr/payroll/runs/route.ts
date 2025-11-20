@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
     const runs = await PayrollService.list({
       orgId: session.user.orgId,
-      status: (status as any) || undefined,
+      status: status || undefined,
     });
 
     return NextResponse.json({ runs });

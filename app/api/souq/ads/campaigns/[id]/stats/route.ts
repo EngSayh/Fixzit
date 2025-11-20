@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CampaignService } from '@/services/souq/ads/campaign-service';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/souq/ads/campaigns/[id]/stats
@@ -44,7 +45,7 @@ export async function GET(
       data: stats,
     });
   } catch (error) {
-    console.error('[Ad API] Get campaign stats failed:', error);
+    logger.error('[Ad API] Get campaign stats failed:, { error });
     
     return NextResponse.json(
       {

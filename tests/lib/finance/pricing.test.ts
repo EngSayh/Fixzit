@@ -10,20 +10,15 @@ import PriceBook from '@/server/models/PriceBook';
 import DiscountRule from '@/server/models/DiscountRule';
 
 const TEST_ORG_ID = new mongoose.Types.ObjectId();
+const CREATOR_ID = new mongoose.Types.ObjectId();
 
 describe('Pricing Service Unit Tests', () => {
   let priceBookId: mongoose.Types.ObjectId;
   let discountRuleId: mongoose.Types.ObjectId;
-
-  beforeAll(async () => {
-    // Connect to test database (reuse existing connection if available)
-    if (mongoose.connection.readyState === 0) {
-      const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit-test';
-      await mongoose.connect(MONGODB_URI);
-    }
-
-    // Create test price book with multiple tiers
+  const seedPriceBooks = async () => {
     const priceBook = await PriceBook.create({
+      name: 'USD Price Book',
+      createdBy: CREATOR_ID,
       orgId: TEST_ORG_ID,
       currency: 'USD',
       active: true,
@@ -62,8 +57,9 @@ describe('Pricing Service Unit Tests', () => {
     });
     priceBookId = priceBook._id as mongoose.Types.ObjectId;
 
-    // Create SAR price book
     await PriceBook.create({
+      name: 'SAR Price Book',
+      createdBy: CREATOR_ID,
       orgId: TEST_ORG_ID,
       currency: 'SAR',
       active: true,
@@ -80,14 +76,22 @@ describe('Pricing Service Unit Tests', () => {
       ],
     });
 
-    // Create annual discount rule
     const discountRule = await DiscountRule.create({
       orgId: TEST_ORG_ID,
+      createdBy: CREATOR_ID,
       key: 'ANNUAL_PREPAY',
       percentage: 0.15, // 15% discount for annual prepayment
       active: true,
     });
     discountRuleId = discountRule._id as mongoose.Types.ObjectId;
+  };
+
+  beforeAll(async () => {
+    // Connect to test database (reuse existing connection if available)
+    if (mongoose.connection.readyState === 0) {
+      const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fixzit-test';
+      await mongoose.connect(MONGODB_URI);
+    }
   });
 
   afterAll(async () => {
@@ -101,6 +105,7 @@ describe('Pricing Service Unit Tests', () => {
   beforeEach(() => {
     // Clear any mocks
     vi.clearAllMocks();
+    return seedPriceBooks();
   });
 
   describe('Input Validation', () => {
@@ -325,9 +330,12 @@ describe('Pricing Service Unit Tests', () => {
 
     it('should throw error for seats outside all tiers', async () => {
       // Create price book with gap (no tier for 11-20 seats)
+      await PriceBook.updateMany({ currency: 'SAR' }, { active: false });
       await PriceBook.create({
         orgId: TEST_ORG_ID,
-        currency: 'EUR',
+        name: 'SAR Gap Price Book',
+        createdBy: CREATOR_ID,
+        currency: 'SAR',
         active: true,
         tiers: [
           {
@@ -347,7 +355,7 @@ describe('Pricing Service Unit Tests', () => {
 
       try {
         await quotePrice({
-          priceBookCurrency: 'EUR' as any,
+          priceBookCurrency: 'SAR',
           seats: 15, // Falls in gap
           modules: ['TEST'],
           billingCycle: 'MONTHLY',
@@ -510,6 +518,7 @@ describe('Pricing Service Unit Tests', () => {
       // Restore discount rule
       await DiscountRule.create({
         orgId: TEST_ORG_ID,
+        createdBy: CREATOR_ID,
         key: 'ANNUAL_PREPAY',
         percentage: 0.15,
         active: true,
@@ -554,10 +563,7 @@ describe('Pricing Service Unit Tests', () => {
 
     it('should throw error for inactive price book', async () => {
       // Deactivate USD price book
-      await PriceBook.updateOne(
-        { currency: 'USD', orgId: TEST_ORG_ID },
-        { active: false }
-      );
+      await PriceBook.updateMany({ currency: 'USD' }, { active: false });
 
       try {
         await quotePrice({

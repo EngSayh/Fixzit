@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
       filter.candidateId = new Types.ObjectId(candidateId);
     }
     
-    const applications = await (Application as any)
+    const applications = await Application
       .find(filter)
       .populate('jobId', 'title department location')
       .populate('candidateId', 'firstName lastName email phone skills experience')
@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
       .limit(limit)
       .lean();
     
-    const total = await (Application as any).countDocuments(filter);
+    const total = await Application.countDocuments(filter);
     
     return NextResponse.json({ 
       success: true,

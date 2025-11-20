@@ -42,7 +42,7 @@ export default function PropertyDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'properties' });
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'properties' });
   const { t } = useTranslation();
   
   if (!hasOrgContext || !orgId) {

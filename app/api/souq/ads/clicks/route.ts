@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AuctionEngine } from '@/services/souq/ads/auction-engine';
 import { BudgetManager } from '@/services/souq/ads/budget-manager';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/souq/ads/clicks
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
       charged: cpc,
     });
   } catch (error) {
-    console.error('[Ad API] Record click failed:', error);
+    logger.error('[Ad API] Record click failed', { error });
     
     return NextResponse.json(
       {

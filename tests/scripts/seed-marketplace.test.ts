@@ -61,11 +61,13 @@ let consoleSpy: ReturnType<typeof vi.spyOn>
 beforeEach(() => {
   // Reset the singleton state between tests
   InMemoryMockDatabase.getInstance().reset()
+  ;(globalThis as any).__FIXZIT_MARKETPLACE_DB_MOCK__ = InMemoryMockDatabase
   consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 })
 
 afterEach(() => {
   consoleSpy.mockRestore()
+  delete (globalThis as any).__FIXZIT_MARKETPLACE_DB_MOCK__
 })
 
 async function importTargetModule() {
@@ -182,14 +184,16 @@ describe('seed-marketplace script', () => {
       tenantId: 'demo-tenant',
       sku: 'CEM-001-50',
       slug: 'portland-cement-type-1-2-50kg',
-      title: 'Portland Cement Type I/II — 50kg',
+      title: expect.objectContaining({ en: 'Portland Cement Type I/II — 50kg' }),
       brand: 'Fixzit Materials',
       prices: [{ currency: 'SAR', listPrice: 16.5 }],
       inventories: [{ onHand: 200, leadDays: 2 }],
       rating: { avg: 4.6, count: 123 },
     })
     expect(Array.isArray(product.images)).toBe(true)
-    expect(product.searchable).toContain('Portland Cement')
+    expect(product.searchable).toEqual(
+      expect.objectContaining({ en: expect.stringContaining('Portland Cement') })
+    )
     expect(product._id).toBeDefined()
     expect(product.createdAt).toBeDefined()
     expect(product.updatedAt).toBeDefined()

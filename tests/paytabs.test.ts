@@ -8,6 +8,17 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
+const loggerMock = {
+  error: vi.fn(),
+  warn: vi.fn(),
+  info: vi.fn(),
+  debug: vi.fn(),
+};
+
+vi.mock('@/lib/logger', () => ({
+  logger: loggerMock,
+}));
+
 // Keep a pristine copy of the environment
 const ORIGINAL_ENV = { ...process.env };
 
@@ -21,6 +32,7 @@ beforeEach(() => {
 afterEach(() => {
   process.env = { ...ORIGINAL_ENV };
   vi.restoreAllMocks();
+  Object.values(loggerMock).forEach((fn) => fn.mockClear());
 });
 
 function setEnv(overrides?: Partial<NodeJS.ProcessEnv>) {
@@ -315,22 +327,24 @@ describe('verifyPayment', () => {
     const mod = await importPaytabs();
     const { verifyPayment } = mod as any;
 
-    vi.spyOn(console, 'error').mockImplementation(() => {});
     (globalThis as any).fetch = vi.fn().mockRejectedValue(new Error('Server 500'));
 
     await expect(verifyPayment('TR-ERR')).rejects.toThrow('Server 500');
-    expect(console.error).toHaveBeenCalled();
+    expect(loggerMock.error).toHaveBeenCalled();
   });
 });
 
 describe('validateCallback', () => {
   it('returns true only when provided signature matches generated one (placeholder implementation)', async () => {
+    setEnv({ PAYTABS_SERVER_KEY: 'server_key_SIG' });
     const mod = await importPaytabs();
-    const { validateCallback } = mod as any;
+    const { validateCallback, generateCallbackSignature } = mod as any;
 
-    // With current placeholder generateSignature = '', only an empty signature will match.
-    expect(validateCallback({ any: 'payload' }, '')).toBe(true);
-    expect(validateCallback({ any: 'payload' }, 'non-empty')).toBe(false);
+    const payload = { any: 'payload', amount: '100' };
+    const sig = generateCallbackSignature(payload);
+
+    expect(validateCallback(payload, sig)).toBe(true);
+    expect(validateCallback(payload, 'non-matching')).toBe(false);
   });
 });
 

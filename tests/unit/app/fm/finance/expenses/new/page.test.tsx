@@ -23,8 +23,8 @@ vi.mock('@/contexts/TranslationContext', () => ({
   }),
 }));
 
-vi.mock('@/hooks/fm/useOrgGuard', () => ({
-  useOrgGuard: () => mockUseOrgGuard(),
+vi.mock('@/components/fm/useFmOrgGuard', () => ({
+  useFmOrgGuard: () => mockUseOrgGuard(),
 }));
 
 vi.mock('@/components/fm/ModuleViewTabs', () => ({
@@ -51,6 +51,7 @@ describe('NewExpensePage org guard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseOrgGuard.mockReturnValue({
+      hasOrgContext: true,
       orgId: 'org-test',
       guard: null,
       supportBanner: <div data-testid="support-banner">banner</div>,
@@ -59,6 +60,7 @@ describe('NewExpensePage org guard', () => {
 
   test('returns guard when no org context is present', async () => {
     mockUseOrgGuard.mockReturnValue({
+      hasOrgContext: false,
       orgId: null,
       guard: <div data-testid="org-guard" />,
       supportBanner: null,

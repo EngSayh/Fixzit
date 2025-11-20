@@ -236,9 +236,10 @@ export async function GET(req: NextRequest) {
     if (status) match.status = status;
     if (type) match.type = type;
     if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       match.$or = [
-        { number: { $regex: search, $options: 'i' } },
-        { 'recipient.name': { $regex: search, $options: 'i' } }
+        { number: { $regex: escapedSearch, $options: 'i' } },
+        { 'recipient.name': { $regex: escapedSearch, $options: 'i' } }
       ];
     }
 

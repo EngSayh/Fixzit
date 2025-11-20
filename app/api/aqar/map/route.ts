@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
       rnpl?: number;
     }
 
-    const rows = await (AqarListing as any).aggregate(pipeline);
+    const rows = await AqarListing.aggregate(pipeline);
     const clusters = (rows as unknown as ClusterRow[]).map((r) => ({
       id: `${r._id.gx}:${r._id.gy}`,
       lat: r.lat,

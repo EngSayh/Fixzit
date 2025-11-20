@@ -41,7 +41,7 @@ interface AssetItem {
 
 export default function AssetsPage() {
   const { data: session } = useSession();
-  const { hasOrgContext, guard: guardView, orgId, supportOrg: supportBannerView } = useFmOrgGuard({ moduleId: 'administration' });
+  const { hasOrgContext, guard: guardView, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'administration' });
   const auto = useAutoTranslator('fm.assets');
   
   if (!hasOrgContext || !orgId) {
@@ -80,7 +80,7 @@ export default function AssetsPage() {
   if (!orgId) {
     return (
       <div className="space-y-6">
-        {supportBannerView}
+        {supportBanner}
         {guardView}
       </div>
     );
@@ -88,7 +88,7 @@ export default function AssetsPage() {
 
   return (
     <div className="space-y-6">
-      {supportBannerView}
+      {supportBanner}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

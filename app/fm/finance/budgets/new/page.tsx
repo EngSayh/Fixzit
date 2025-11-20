@@ -16,13 +16,9 @@ export default function NewBudgetPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { registerForm, unregisterForm } = useFormState();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'finance' });
   const missingOrg = !hasOrgContext || !orgId;
   
-  if (missingOrg) {
-    return guard;
-  }
-
   // Form state
   const [budgetName, setBudgetName] = useState('');
   const [periodType, setPeriodType] = useState('');

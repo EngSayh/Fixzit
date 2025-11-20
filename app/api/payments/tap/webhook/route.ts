@@ -455,11 +455,11 @@ async function ensurePaymentForCharge(
   };
 
   if (transaction.paymentContext?.partyId && Types.ObjectId.isValid(transaction.paymentContext.partyId)) {
-    paymentPayload.partyId = new Types.ObjectId(transaction.paymentContext.partyId) as any;
+    paymentPayload.partyId = new Types.ObjectId(transaction.paymentContext.partyId);
   }
 
   const payment = await Payment.create(paymentPayload as Record<string, unknown>);
-  transaction.paymentId = payment._id as any;
+  transaction.paymentId = payment._id;
   await transaction.save();
 
   await allocateInvoicePayment(transaction, payment, charge, amountSAR, correlationId);

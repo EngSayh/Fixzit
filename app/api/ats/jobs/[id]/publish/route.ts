@@ -45,7 +45,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
     }
     const { orgId, isSuperAdmin } = authResult;
     
-    const job = await (Job as any).findById(params.id);
+    const job = await Job.findById(params.id);
     if (!job) return notFoundError("Job");
     
     // Resource ownership check

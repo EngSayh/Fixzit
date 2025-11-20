@@ -110,7 +110,7 @@ export async function POST(
       sellerResponse,
     });
   } catch (error) {
-    console.error('[Claims API] Seller response failed:', error);
+    logger.error('[Claims API] Seller response failed', { error });
     return NextResponse.json(
       {
         error: 'Failed to submit response',

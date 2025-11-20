@@ -63,7 +63,7 @@ export default function OrdersPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { data: session } = useSession();
-  const { orgId, guard, supportBanner } = useOrgGuard();
+  const { hasOrgContext, orgId, guard, supportBanner } = useFmOrgGuard({ moduleId: 'marketplace' });
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -173,7 +173,7 @@ export default function OrdersPage() {
 
   // Loading state
   if (!session) return <CardGridSkeleton count={4} />;
-  if (!orgId) {
+  if (!hasOrgContext || !orgId) {
     return (
       <div className="space-y-6">
         {supportBanner}

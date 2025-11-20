@@ -5,7 +5,7 @@ import { render, screen } from '@testing-library/react';
 import VendorsPage from '@/app/fm/vendors/page';
 
 const mockUseSession = vi.fn();
-const mockUseOrgGuard = vi.fn();
+const mockUseFmOrgGuard = vi.fn();
 const mockUseSWR = vi.fn();
 
 vi.mock('next-auth/react', () => ({
@@ -21,8 +21,8 @@ vi.mock('swr', () => ({
   default: (...args: any[]) => mockUseSWR(...args),
 }));
 
-vi.mock('@/hooks/fm/useOrgGuard', () => ({
-  useOrgGuard: () => mockUseOrgGuard(),
+vi.mock('@/components/fm/useFmOrgGuard', () => ({
+  useFmOrgGuard: () => mockUseFmOrgGuard(),
 }));
 
 vi.mock('@/components/fm/ModuleViewTabs', () => ({
@@ -43,7 +43,7 @@ vi.mock('sonner', () => {
 beforeEach(() => {
   vi.clearAllMocks();
   mockUseSession.mockReturnValue({ data: { user: {} } });
-  mockUseOrgGuard.mockReturnValue({
+  mockUseFmOrgGuard.mockReturnValue({
     orgId: 'org-test',
     guard: null,
     supportBanner: null,
@@ -58,7 +58,7 @@ beforeEach(() => {
 
 describe('VendorsPage org guard behavior', () => {
   test('renders guard when org context missing', () => {
-    mockUseOrgGuard.mockReturnValue({
+    mockUseFmOrgGuard.mockReturnValue({
       orgId: null,
       guard: <div data-testid="org-guard" />,
       supportBanner: null,
@@ -71,7 +71,7 @@ describe('VendorsPage org guard behavior', () => {
   });
 
   test('renders vendor list when org context available', () => {
-    mockUseOrgGuard.mockReturnValue({
+    mockUseFmOrgGuard.mockReturnValue({
       orgId: 'org-456',
       guard: null,
       supportBanner: <div data-testid="support-banner" />,

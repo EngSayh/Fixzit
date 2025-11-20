@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { reviewService } from '@/services/souq/reviews/review-service';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { connectDb } from '@/lib/mongodb-unified';
 import { z } from 'zod';
 
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       );
     }
 
-    console.error('[POST /api/souq/seller-central/reviews/[id]/respond]', error);
+    logger.error('[POST /api/souq/seller-central/reviews/[id]/respond], { error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to respond to review' },
       { status: 500 }

@@ -333,6 +333,7 @@ export default function TopBar() {
       if (savedLocale) localStorage.setItem(STORAGE_KEYS.locale, savedLocale ?? '');
 
       await signOut({ callbackUrl: '/login', redirect: true });
+      router.push('/login');
     } catch (error) {
       try {
         const { logError } = await import('../lib/logger');
@@ -598,7 +599,7 @@ function NotificationPopup({
           setNotifOpen(next);
         }}
         className="relative"
-        aria-label={t('nav.notifications')}
+        aria-label={t('nav.notifications', 'Toggle notifications')}
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
@@ -610,7 +611,7 @@ function NotificationPopup({
         <div 
           role="dialog"
           aria-modal="true"
-          aria-label={t('nav.notifications')}
+          aria-label={t('nav.notifications', 'Notifications')}
           dir={isRTL ? 'rtl' : 'ltr'}
           className="fixed bg-popover text-popover-foreground rounded-2xl shadow-2xl border border-border z-[100] animate-in slide-in-from-top-2 duration-200"
           style={{ 

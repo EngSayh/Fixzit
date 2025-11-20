@@ -109,7 +109,7 @@ export async function GET(
         }).lean();
         
         // Get current balance from most recent ledger entry
-        const latestEntry = await (LedgerEntry as any).findOne({
+        const latestEntry = await LedgerEntry.findOne({
           orgId: new Types.ObjectId(user.orgId),
           accountId: account._id
         }).sort({ date: -1, createdAt: -1 }).lean();
@@ -196,7 +196,7 @@ export async function PUT(
         // Apply same safeguards as DELETE when deactivating
         if (validated.isActive !== undefined && !validated.isActive && account.isActive) {
           // Check for ledger entries
-          const hasEntries = await (LedgerEntry as any).exists({
+          const hasEntries = await LedgerEntry.exists({
             orgId: new Types.ObjectId(user.orgId),
             accountId: account._id
           });
@@ -298,7 +298,7 @@ export async function DELETE(
         }
         
         // Prevent deletion if ledger entries exist for this account
-        const hasEntries = await (LedgerEntry as any).exists({
+        const hasEntries = await LedgerEntry.exists({
           orgId: new Types.ObjectId(user.orgId),
           accountId: account._id
         });

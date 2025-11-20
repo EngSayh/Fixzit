@@ -79,8 +79,8 @@ export async function POST(req: NextRequest) {
     const baseSlug = generateSlug(validatedBody.title || "job");
     let slug = baseSlug;
     let counter = 1;
-    while (await (Job as any).findOne({ orgId: platformOrg, slug })) slug = `${baseSlug}-${counter++}`;
-    const job = await (Job as any).create({
+    while (await Job.findOne({ orgId: platformOrg, slug })) slug = `${baseSlug}-${counter++}`;
+    const job = await Job.create({
       orgId: platformOrg,
       title: validatedBody.title,
       department: validatedBody.department || "General",

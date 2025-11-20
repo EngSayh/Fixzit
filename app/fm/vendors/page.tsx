@@ -67,7 +67,7 @@ export default function FMVendorsPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { data: session } = useSession();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'vendors' });
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'vendors' });
   
   if (!hasOrgContext || !orgId) {
     return guard;

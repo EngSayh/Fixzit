@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error) {
-    console.error('POST /api/souq/inventory/reserve error:', error);
+    logger.error('POST /api/souq/inventory/reserve error', { error });
     return NextResponse.json({ 
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error'

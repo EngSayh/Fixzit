@@ -44,7 +44,7 @@ export default function NewReportPage() {
   const auto = useAutoTranslator('fm.reports.new');
   const { data: session } = useSession();
   const router = useRouter();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'reports' });
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'reports' });
   
   if (!hasOrgContext || !orgId) {
     return guard;

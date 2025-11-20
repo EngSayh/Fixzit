@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { analyticsService } from '@/services/souq/analytics/analytics-service';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/souq/analytics/products
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get product performance error:', error);
+    logger.error('Get product performance error', { error });
     return NextResponse.json({ 
       error: 'Failed to get product performance',
       message: error instanceof Error ? error.message : 'Unknown error'

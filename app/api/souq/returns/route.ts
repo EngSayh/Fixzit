@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { returnsService } from '@/services/souq/returns-service';
 
 /**
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('List returns error:', error);
+    logger.error('List returns error', { error });
     return NextResponse.json({ 
       error: 'Failed to list returns',
       message: error instanceof Error ? error.message : 'Unknown error'

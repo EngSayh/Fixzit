@@ -18,8 +18,8 @@ import {
   ClipboardList,
   ChevronRight, Plus, Bell
 } from 'lucide-react';
-import type { WorkOrder } from '@/lib/models';
-import { WOStatus } from '@/lib/models';
+import type { WorkOrder } from '@/types/fm';
+import { WOStatus } from '@/types/fm';
 import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 
 interface User {
@@ -66,7 +66,7 @@ export default function DashboardPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
-  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'dashboard' });
+  const { hasOrgContext, guard, orgId, supportBanner } = useFmOrgGuard({ moduleId: 'dashboard' });
   const userRole = (session?.user as { role?: string })?.role;
   
   if (!hasOrgContext || !orgId) {

@@ -42,7 +42,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('SLA check error:', error);
+    logger.error('SLA check error', { error });
     return NextResponse.json({ 
       error: 'Failed to check SLA',
       message: error instanceof Error ? error.message : 'Unknown error'

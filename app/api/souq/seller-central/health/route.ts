@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { accountHealthService } from '@/services/souq/account-health-service';
 
 /**
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get account health error:', error);
+    logger.error('Get account health error', { error });
     return NextResponse.json({ 
       error: 'Failed to get account health',
       message: error instanceof Error ? error.message : 'Unknown error'

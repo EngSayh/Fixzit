@@ -6,6 +6,7 @@ import { reviewService } from '@/services/souq/reviews/review-service';
 import { auth } from '@/auth';
 import { connectDb } from '@/lib/mongodb-unified';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const sellerReviewFiltersSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.error('[GET /api/souq/seller-central/reviews]', error);
+    logger.error('[GET /api/souq/seller-central/reviews]', { error });
     return NextResponse.json(
       { error: 'Failed to fetch reviews' },
       { status: 500 }

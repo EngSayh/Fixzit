@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     const { applicationId } = await req.json();
     if (!applicationId) return validationError("applicationId is required");
 
-    const app = await (Application as any).findById(applicationId).lean();
+    const app = await Application.findById(applicationId).lean();
     if (!app) return notFoundError("Application");
 
     // Verify org authorization (only SUPER_ADMIN can access cross-org)
@@ -62,8 +62,8 @@ export async function POST(req: NextRequest) {
     if (app.stage !== 'hired') return validationError("Application status must be hired");
 
     const [cand, job] = await Promise.all([
-      (Candidate as any).findById(app.candidateId).lean(),
-      (Job as any).findById(app.jobId).lean()
+      Candidate.findById(app.candidateId).lean(),
+      Job.findById(app.jobId).lean()
     ]);
     if (!cand || !job) return validationError("Candidate or Job missing");
 
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
         currency: job.currency || 'SAR',
       },
       meta: { source: 'ats', jobId: job._id.toString(), applicationId: app._id.toString(), convertedBy: user?.id || 'system' }
-    } as any);
+    });
     return NextResponse.json({ success: true, data: employee });
   } catch (error) {
     logger.error('Convert to employee error:', error instanceof Error ? error.message : 'Unknown error');

@@ -8,6 +8,7 @@ import { reviewService } from '@/services/souq/reviews/review-service';
 import { auth } from '@/auth';
 import { connectDb } from '@/lib/mongodb-unified';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 type RouteContext = {
   params: Promise<{
@@ -63,7 +64,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
     return NextResponse.json(review);
   } catch (error) {
-    console.error('[GET /api/souq/reviews/[id]]', error);
+    logger.error('[GET /api/souq/reviews/[id]]', { error });
     return NextResponse.json(
       { error: 'Failed to fetch review' },
       { status: 500 }
@@ -99,7 +100,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
       );
     }
 
-    console.error('[PUT /api/souq/reviews/[id]]', error);
+    logger.error('[PUT /api/souq/reviews/[id]]', { error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to update review' },
       { status: 500 }
@@ -121,7 +122,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[DELETE /api/souq/reviews/[id]]', error);
+    logger.error('[DELETE /api/souq/reviews/[id]]', { error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to delete review' },
       { status: 500 }

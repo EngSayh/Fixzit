@@ -83,7 +83,7 @@ export async function GET(
         const endDate = searchParams.get('endDate');
         const sourceType = searchParams.get('sourceType');
         const page = parseInt(searchParams.get('page') || '1', 10);
-        const limit = parseInt(searchParams.get('limit') || '50', 10);
+        const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
         
         // Build query filter based on LedgerEntry schema fields
         const queryFilter: {
@@ -107,7 +107,7 @@ export async function GET(
         // Calculate opening balance (balance before startDate if provided)
         let openingBalance = 0;
         if (startDate) {
-          const entriesBeforeStart = await (LedgerEntry as any).find({
+          const entriesBeforeStart = await LedgerEntry.find({
             orgId: new Types.ObjectId(user.orgId),
             accountId: new Types.ObjectId(params.accountId),
             journalDate: { $lt: new Date(startDate) }
@@ -119,11 +119,11 @@ export async function GET(
         }
         
         // Get total count for pagination
-        const totalTransactions = await (LedgerEntry as any).countDocuments(queryFilter);
+        const totalTransactions = await LedgerEntry.countDocuments(queryFilter);
         
         // Get paginated transactions with running balance calculation
         const skip = (page - 1) * limit;
-        const transactions = await (LedgerEntry as any).find(queryFilter)
+        const transactions = await LedgerEntry.find(queryFilter)
           .sort({ journalDate: 1, createdAt: 1 })
           .skip(skip)
           .limit(limit)
@@ -134,7 +134,7 @@ export async function GET(
         
         // If not on first page, need to calculate balance up to this page
         if (page > 1) {
-          const previousEntries = await (LedgerEntry as any).find(queryFilter)
+          const previousEntries = await LedgerEntry.find(queryFilter)
             .sort({ journalDate: 1, createdAt: 1 })
             .limit(skip)
             .lean();
@@ -167,7 +167,7 @@ export async function GET(
         }
         
         // Calculate totals for the filtered period
-        const allTransactions = await (LedgerEntry as any).find(queryFilter)
+        const allTransactions = await LedgerEntry.find(queryFilter)
           .sort({ journalDate: 1, createdAt: 1 })
           .lean();
         

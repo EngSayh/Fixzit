@@ -6,6 +6,7 @@ import { reviewService } from '@/services/souq/reviews/review-service';
 import { ratingAggregationService } from '@/services/souq/reviews/rating-aggregation-service';
 import { connectDb } from '@/lib/mongodb-unified';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 type RouteContext = {
   params: Promise<{
@@ -63,7 +64,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
       );
     }
 
-    console.error('[GET /api/souq/products/[id]/reviews]', error);
+    logger.error('[GET /api/souq/products/[id]/reviews], { error });
     return NextResponse.json(
       { error: 'Failed to fetch product reviews' },
       { status: 500 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { returnsService } from '@/services/souq/returns-service';
 
 /**
@@ -39,7 +40,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error('Get return stats error:', error);
+    logger.error('Get return stats error', { error });
     return NextResponse.json({ 
       error: 'Failed to get return stats',
       message: error instanceof Error ? error.message : 'Unknown error'

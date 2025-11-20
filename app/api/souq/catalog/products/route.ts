@@ -137,14 +137,14 @@ export async function POST(request: NextRequest) {
     try {
       const { indexProduct } = await import('@/lib/meilisearch-client');
       // TODO(type-safety): Verify indexProduct function signature
-      await (indexProduct as any)({
+      await indexProduct({
         id: product._id.toString(),
         fsin: product.fsin,
-        title: (product as any).title,
-        description: (product as any).description,
+        title: product.title,
+        description: product.description,
         categoryId: product.categoryId,
         brandId: product.brandId,
-        searchKeywords: (product as any).searchKeywords,
+        searchKeywords: product.searchKeywords,
         isActive: product.isActive,
         orgId,
       });
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
           categoryId: product.categoryId,
           brandId: product.brandId,
           title: product.title,
-          price: (product as any).pricing?.basePrice || 0,  // TODO(type-safety): Verify pricing structure
+          price: product.pricing?.basePrice || 0,  // TODO(type-safety): Verify pricing structure
           timestamp: new Date().toISOString(),
         });
       }
@@ -215,8 +215,8 @@ export async function GET(request: NextRequest) {
     await connectDb();
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
     const categoryId = searchParams.get('categoryId');
     const brandId = searchParams.get('brandId');
     const sellerId = searchParams.get('sellerId');

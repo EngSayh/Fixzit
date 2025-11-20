@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { sellerKYCService } from '@/services/souq/seller-kyc-service';
 
 /**
@@ -28,7 +29,7 @@ export async function GET(_request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Get pending KYC error:', error);
+    logger.error('Get pending KYC error', { error });
     return NextResponse.json({ 
       error: 'Failed to get pending KYC submissions',
       message: error instanceof Error ? error.message : 'Unknown error'

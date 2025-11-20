@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { sellerKYCService } from '@/services/souq/seller-kyc-service';
 
 /**
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Verify document error:', error);
+    logger.error('Verify document error', { error });
     return NextResponse.json({ 
       error: 'Failed to verify document',
       message: error instanceof Error ? error.message : 'Unknown error'

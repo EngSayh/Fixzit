@@ -77,13 +77,14 @@ function buildAssetFilter(searchParams: URLSearchParams, orgId: string) {
 
   const search = searchParams.get('search');
   if (search) {
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     filter.$or = [
-      { name: { $regex: search, $options: 'i' } },
-      { code: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } },
-      { manufacturer: { $regex: search, $options: 'i' } },
-      { model: { $regex: search, $options: 'i' } },
-      { serialNumber: { $regex: search, $options: 'i' } },
+      { name: { $regex: escapedSearch, $options: 'i' } },
+      { code: { $regex: escapedSearch, $options: 'i' } },
+      { description: { $regex: escapedSearch, $options: 'i' } },
+      { manufacturer: { $regex: escapedSearch, $options: 'i' } },
+      { model: { $regex: escapedSearch, $options: 'i' } },
+      { serialNumber: { $regex: escapedSearch, $options: 'i' } },
     ];
   }
 

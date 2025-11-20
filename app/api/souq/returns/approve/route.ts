@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { logger } from '@/lib/logger';
 import { returnsService } from '@/services/souq/returns-service';
 
 /**
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Approve/reject return error:', error);
+    logger.error('Approve/reject return error', { error });
     return NextResponse.json({ 
       error: 'Failed to process return approval',
       message: error instanceof Error ? error.message : 'Unknown error'

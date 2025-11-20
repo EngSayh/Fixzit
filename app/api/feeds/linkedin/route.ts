@@ -44,7 +44,7 @@ export async function GET() {
   }
 
   await connectToDatabase();
-  const jobs = await (Job as any).find({ status: 'published', visibility: 'public' })
+  const jobs = await Job.find({ status: 'published', visibility: 'public' })
     .sort({ publishedAt: -1 })
     .lean() as JobFeedDoc[];
 

@@ -1,3 +1,5 @@
+import type { ObjectId } from 'mongodb';
+
 /**
  * FM Module - Unified Work Order Types
  * 
@@ -200,7 +202,7 @@ export interface WorkOrderUnit {
 export interface WorkOrder {
   // IDs
   id: string;
-  _id?: string; // MongoDB compatibility
+  _id?: string | ObjectId; // MongoDB compatibility
   tenantId: string;
   orgId?: string; // Frontend org context
   
@@ -389,35 +391,3 @@ export function toUIPriority(priority: WOPriority): WorkOrderPriority {
   };
   return mapping[priority] || 'medium';
 }
-
-// =============================================================================
-// EXPORTS
-// =============================================================================
-
-// Re-export everything for easy imports
-export type {
-  WorkOrderStatus,
-  WorkOrderPriority,
-  WorkOrderCategory,
-  WorkOrderUser,
-  WorkOrderPhoto,
-  WorkOrderComment,
-  WorkOrderTimeline,
-  WorkOrderProperty,
-  WorkOrderUnit,
-  WorkOrder,
-  WorkOrderFormData,
-  WorkOrderFilters,
-  WorkOrderStats,
-};
-
-export {
-  WOStatus,
-  WOPriority,
-  WOCategory,
-  isFinalStatus,
-  toEnumStatus,
-  toUIStatus,
-  toEnumPriority,
-  toUIPriority,
-};
