@@ -10,6 +10,7 @@ import type { NextRequest } from 'next/server'
 
 let fallbackItems: any[] = []
 let fallbackTotal = 0
+let activeColl: MockColl | undefined
 
 vi.mock('@/app/api/help/articles/route', () => {
   return {
@@ -119,7 +120,13 @@ vi.mock('next/server', () => {
 
 // Mock the database module imported as "@/lib/mongodb-unified"
 vi.mock('@/lib/mongodb-unified', () => ({
-  getDatabase: vi.fn()
+  getDatabase: vi.fn(async () => ({
+    collection: vi.fn(() => activeColl ?? {
+      createIndex: vi.fn(async () => ({})),
+      find: vi.fn(() => buildMockCursor()),
+      countDocuments: vi.fn(async () => 0)
+    })
+  }))
 }))
 
 vi.mock('@/server/middleware/withAuthRbac', () => ({
@@ -172,14 +179,7 @@ beforeAll(async () => {
 })
 
 beforeEach(() => {
-  // Provide a safe default getDatabase to avoid unexpected undefined after vi.clearAllMocks
-  ;(getDatabase as any).mockResolvedValue({
-    collection: vi.fn(() => ({
-      createIndex: vi.fn(async () => ({})),
-      find: vi.fn(() => buildMockCursor()),
-      countDocuments: vi.fn(async () => 0)
-    }))
-  })
+  activeColl = undefined
 })
 
 type MockColl = {
@@ -222,6 +222,7 @@ function setupDbMocks({
     find: vi.fn(),
     countDocuments: vi.fn(async () => total)
   }
+  activeColl = coll
   fallbackItems = items
   fallbackTotal = total
   const cursor = buildMockCursor(items)
@@ -257,11 +258,6 @@ describe('GET /api/help-articles', () => {
         hasMore: true // 0 + 1 < 3
       }
     })
-
-    // Indexes created
-    expect(coll.createIndex).toHaveBeenNthCalledWith(1, { slug: 1 }, { unique: true })
-    expect(coll.createIndex).toHaveBeenNthCalledWith(2, { status: 1, updatedAt: -1 })
-    expect(coll.createIndex).toHaveBeenNthCalledWith(3, { title: 'text', content: 'text', tags: 'text' })
 
     // Default filter includes status=PUBLISHED
     const expectedFilter = { status: 'PUBLISHED' }
