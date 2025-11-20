@@ -11,6 +11,7 @@ import { useAutoTranslator } from '@/i18n/useAutoTranslator';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Plug, Check, X, Settings } from 'lucide-react';
 import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
+import { useEffect } from 'react';
 
 const INTEGRATIONS = [
   {
@@ -62,6 +63,32 @@ export default function IntegrationsPage() {
   const { data: session } = useSession();
   const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'system' });
   const [integrations, setIntegrations] = useState(INTEGRATIONS);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchIntegrations = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/fm/system/integrations'); // optional future endpoint to list
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json?.data)) {
+            setIntegrations((prev) =>
+              prev.map((int) => {
+                const remote = json.data.find((x: any) => x.id === int.id);
+                return remote ? { ...int, status: remote.status } : int;
+              })
+            );
+          }
+        }
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchIntegrations();
+  }, []);
 
   if (!session) {
     return <CardGridSkeleton count={6} />;
@@ -78,21 +105,24 @@ export default function IntegrationsPage() {
     );
 
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
+      const res = await fetch(`/api/fm/system/integrations/${integrationId}/toggle`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || 'Failed to toggle integration');
+      }
+      const json = await res.json();
+      const newStatus = json?.data?.status ?? (action === 'connect' ? 'connected' : 'disconnected');
+
       setIntegrations((prev) =>
-        prev.map((int) =>
-          int.id === integrationId
-            ? { ...int, status: action === 'connect' ? 'connected' : 'disconnected' }
-            : int
-        )
+        prev.map((int) => (int.id === integrationId ? { ...int, status: newStatus } : int))
       );
 
       toast.success(
         auto(
-          action === 'connect' ? 'Connected successfully' : 'Disconnected successfully',
-          `toast.${action}Success`
+          newStatus === 'connected' ? 'Connected successfully' : 'Disconnected successfully',
+          `toast.${newStatus === 'connected' ? 'connectSuccess' : 'disconnectSuccess'}`
         ),
         { id: toastId }
       );
@@ -130,6 +160,9 @@ export default function IntegrationsPage() {
         </div>
       </div>
 
+      {loading ? (
+        <CardGridSkeleton count={6} />
+      ) : (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {integrations.map((integration) => (
           <Card key={integration.id}>
@@ -181,9 +214,10 @@ export default function IntegrationsPage() {
 
       <div className="p-6 border border-dashed border-border rounded-lg text-center">
         <p className="text-sm text-muted-foreground">
-          {auto('Integration data will be managed via /api/integrations', 'info.apiEndpoint')}
+          {auto('Integration data will be managed via /api/fm/system/integrations', 'info.apiEndpoint')}
         </p>
       </div>
+      )}
     </div>
   );
 }
