@@ -84,14 +84,14 @@ test.describe('Global Layout & Navigation - All Pages', () => {
       
       // Header must exist
       const header = browser.locator('header');
-      await expect(header).toBeVisible({ timeout: 10000 });
+      await expect.soft(header).toBeVisible({ timeout: 10000 });
 
       // Footer must exist (may be at bottom, need to scroll)
       const footer = browser.locator('footer');
       const footerVisible = await footer.isVisible().catch(() => false);
       if (!footerVisible) {
         await browser.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-        await expect(footer).toBeVisible({ timeout: 5000 });
+        await expect.soft(footer).toBeVisible({ timeout: 5000 });
       }
 
       // Sidebar navigation - check for key items
@@ -99,18 +99,18 @@ test.describe('Global Layout & Navigation - All Pages', () => {
         const sidebarItem = browser.getByRole('link', { name: new RegExp(item, 'i') }).or(
           browser.getByRole('button', { name: new RegExp(item, 'i') })
         );
-        await expect(sidebarItem.first()).toBeVisible({ timeout: 5000 });
+        await expect.soft(sidebarItem.first()).toBeVisible({ timeout: 5000 });
       }
 
       // ============ LANGUAGE & CURRENCY SELECTORS ============
       
       // Language selector (English/عربي)
       const langSelector = browser.getByRole('button', { name: /language|lang|عربي|english|en|ar/i });
-      await expect(langSelector.first()).toBeVisible({ timeout: 5000 });
+      await expect.soft(langSelector.first()).toBeVisible({ timeout: 5000 });
 
       // Currency selector (SAR/USD)
       const currencySelector = browser.getByRole('button', { name: /currency|sar|usd|riyal|dollar/i });
-      await expect(currencySelector.first()).toBeVisible({ timeout: 5000 });
+      await expect.soft(currencySelector.first()).toBeVisible({ timeout: 5000 });
 
       // ============ RTL/LTR DIRECTION ============
       
@@ -171,9 +171,9 @@ test.describe('Branding & Theme Consistency', () => {
     });
 
     // Expect brand colors to be defined (exact values may vary based on theme)
-    expect(styles.primary).toBeTruthy();
-    expect(styles.secondary).toBeTruthy();
-    expect(styles.accent).toBeTruthy();
+    expect.soft(styles.primary).toBeTruthy();
+    expect.soft(styles.secondary).toBeTruthy();
+    expect.soft(styles.accent).toBeTruthy();
   });
 
   test('Logo and brand elements are visible', async ({ page }) => {
@@ -181,7 +181,7 @@ test.describe('Branding & Theme Consistency', () => {
 
     // Logo in header
     const logo = page.locator('header img[alt*="Fixzit"], header svg[class*="logo"]').first();
-    await expect(logo).toBeVisible({ timeout: 10000 });
+    await expect.soft(logo).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -191,11 +191,11 @@ test.describe('Accessibility Basics', () => {
 
     // Main content area
     const main = page.locator('main');
-    await expect(main).toBeVisible();
+    await expect.soft(main).toBeVisible();
 
     // At least one h1 heading
     const h1 = page.locator('h1');
-    expect(await h1.count()).toBeGreaterThan(0);
+    expect.soft(await h1.count()).toBeGreaterThan(0);
   });
 
   test('Skip to content link for keyboard navigation', async ({ page }) => {
