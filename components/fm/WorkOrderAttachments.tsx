@@ -148,18 +148,21 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
               xhr.send(file);
             });
 
+          const delays = [0, 500, 1500];
           let uploaded = false;
-          try {
-            await uploadOnce();
-            uploaded = true;
-          } catch (firstErr) {
-            // retry once
-            await uploadOnce();
-            uploaded = true;
-          }
-
-          if (!uploaded) {
-            throw new Error('Upload failed');
+          for (let attempt = 0; attempt < delays.length; attempt += 1) {
+            if (attempt > 0) {
+              await new Promise((r) => setTimeout(r, delays[attempt]));
+            }
+            try {
+              await uploadOnce();
+              uploaded = true;
+              break;
+            } catch (err) {
+              if (attempt === delays.length - 1) {
+                throw err instanceof Error ? err : new Error('Upload failed');
+              }
+            }
           }
 
           const publicUrl = String(presign.putUrl).split('?')[0];
@@ -314,11 +317,17 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
                 })()}
               </p>
               {progress[att.key] !== undefined && progress[att.key] < 100 && (
-                <div className="h-1.5 w-full rounded bg-muted">
-                  <div
-                    className="h-1.5 rounded bg-primary transition-all"
-                    style={{ width: `${progress[att.key]}%` }}
-                  />
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Uploading</span>
+                    <span>{progress[att.key]}%</span>
+                  </div>
+                  <div className="h-1.5 w-full rounded bg-muted">
+                    <div
+                      className="h-1.5 rounded bg-primary transition-all"
+                      style={{ width: `${progress[att.key]}%` }}
+                    />
+                  </div>
                 </div>
               )}
             </div>

@@ -13,6 +13,7 @@ const ALLOWED_TYPES = new Set([
   'image/jpg',
   'application/pdf',
 ]);
+const ALLOWED_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'pdf']);
 
 const MAX_SIZE_BYTES = 15 * 1024 * 1024; // 15MB
 /**
@@ -55,6 +56,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   const { name, type, size } = await req.json().catch(() => ({} as Record<string, unknown>));
   if (!name || !type || typeof size !== 'number') {
     return createSecureResponse({ error: 'Missing name/type/size' }, 400, req);
+  }
+  const ext = String(name).split('.').pop()?.toLowerCase();
+  if (!ext || !ALLOWED_EXTENSIONS.has(ext)) {
+    return createSecureResponse({ error: 'Unsupported file extension' }, 400, req);
   }
   if (!ALLOWED_TYPES.has(type as string)) {
     return createSecureResponse({ error: 'Unsupported type' }, 400, req);

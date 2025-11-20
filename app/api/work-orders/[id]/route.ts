@@ -7,6 +7,7 @@ import { resolveSlaTarget, WorkOrderPriority } from "@/lib/sla";
 import { WOPriority } from "@/server/work-orders/wo.schema";
 
 import { createSecureResponse } from '@/server/security/headers';
+import { deleteObject } from '@/lib/storage/s3';
 
 const attachmentInputSchema = z.object({
   key: z.string(),
@@ -91,8 +92,17 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     updatePayload.dueAt = new Date(updates.dueAt);
   }
 
+  let removedKeys: string[] = [];
   if (updates.attachments) {
-    updatePayload.attachments = normalizeAttachments(updates.attachments as AttachmentInput[], user.id);
+    // Fetch existing to calculate removed attachments for cleanup
+    const existing = await WorkOrder.findOne({ _id: params.id, tenantId: user.tenantId })
+      .select({ attachments: 1 })
+      .lean<{ attachments?: { key?: string }[] } | null>();
+    const existingKeys = new Set((existing?.attachments || []).map((att) => att.key).filter(Boolean) as string[]);
+    const next = normalizeAttachments(updates.attachments as AttachmentInput[], user.id);
+    updatePayload.attachments = next;
+    const nextKeys = new Set(next.map((att) => att.key));
+    removedKeys = [...existingKeys].filter((k) => !nextKeys.has(k));
   }
 
   const wo = (await WorkOrder.findOneAndUpdate(
@@ -101,5 +111,10 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     { new: true }
   ));
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
+
+  if (removedKeys.length) {
+    void Promise.allSettled(removedKeys.map((key) => deleteObject(key).catch(() => undefined)));
+  }
+
   return createSecureResponse(wo, 200, req);
 }
