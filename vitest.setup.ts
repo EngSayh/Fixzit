@@ -36,6 +36,34 @@ if (typeof globalThis !== 'undefined') {
   globalThis.jest = vi;
 }
 
+// Prevent jsdom "navigation to another Document" warnings in tests that click anchors
+const originalLocation = typeof window !== 'undefined' ? window.location : undefined;
+const originalOpen = typeof window !== 'undefined' ? window.open : undefined;
+
+beforeAll(() => {
+  if (typeof window !== 'undefined') {
+    Object.defineProperty(window, 'location', {
+      value: {
+        ...originalLocation,
+        assign: vi.fn(),
+        replace: vi.fn(),
+        href: '',
+      },
+      writable: true,
+    });
+    vi.stubGlobal('open', vi.fn());
+  }
+});
+
+afterAll(() => {
+  if (typeof window !== 'undefined' && originalLocation) {
+    Object.defineProperty(window, 'location', { value: originalLocation, writable: true });
+  }
+  if (originalOpen) {
+    vi.stubGlobal('open', originalOpen);
+  }
+});
+
 // --- Mock Modules ---
 
 // NOTE: We used to mock 'mongoose' here to work around some plugin/type issues
