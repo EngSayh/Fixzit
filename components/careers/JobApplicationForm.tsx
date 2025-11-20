@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent, useRef } from 'react';
+import { useState, FormEvent, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -28,10 +28,30 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [resumeKey, setResumeKey] = useState<string | null>(null);
+  const [resumeStatus, setResumeStatus] = useState<'pending' | 'clean' | 'infected' | 'error' | null>(null);
   // Honeypot (bots only)
   const honeypotRef = useRef<HTMLInputElement>(null);
 
   const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
+
+  // Poll AV status after upload so UI can surface clean/infected badge
+  useEffect(() => {
+    if (!resumeKey || resumeStatus !== 'pending') return undefined;
+    const interval = window.setInterval(async () => {
+      try {
+        const res = await fetch(`/api/upload/scan-status?key=${encodeURIComponent(resumeKey)}`);
+        if (!res.ok) return;
+        const json = await res.json().catch(() => ({}));
+        if (typeof json.status === 'string' && ['pending', 'clean', 'infected', 'error'].includes(json.status)) {
+          setResumeStatus(json.status as typeof resumeStatus);
+        }
+      } catch {
+        /* ignore */
+      }
+    }, 7000);
+    return () => window.clearInterval(interval);
+  }, [resumeKey, resumeStatus]);
 
   const focusFirstError = (form: HTMLFormElement, fieldOrder: string[], fieldErrors: FieldErrors) => {
     for (const f of fieldOrder) {
@@ -135,11 +155,11 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
       }
 
       const resume = formData.get('resume');
-      if (resume instanceof File) {
-        // Presign + upload to S3 with required headers
-        const presignRes = await fetch('/api/files/resumes/presign', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+    if (resume instanceof File) {
+      // Presign + upload to S3 with required headers
+      const presignRes = await fetch('/api/files/resumes/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ fileName: resume.name, contentType: resume.type || 'application/pdf' }),
         });
         if (!presignRes.ok) {
@@ -150,21 +170,35 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
           ...(presign.headers || {}),
           'Content-Type': resume.type || 'application/pdf',
         };
-        const putRes = await fetch(presign.url, {
-          method: 'PUT',
-          headers: putHeaders,
-          body: resume,
-        });
-        if (!putRes.ok) {
-          throw new Error(t('careers.uploadFailed', 'Failed to upload resume'));
-        }
-        const publicUrl = String(presign.url).split('?')[0];
-        formData.set('resumeKey', presign.key);
-        formData.set('resumeUrl', publicUrl);
-        formData.set('resumeMimeType', resume.type || 'application/pdf');
-        formData.set('resumeSize', String(resume.size));
-        formData.delete('resume'); // do not post the raw file
+      const putRes = await fetch(presign.url, {
+        method: 'PUT',
+        headers: putHeaders,
+        body: resume,
+      });
+      if (!putRes.ok) {
+        throw new Error(t('careers.uploadFailed', 'Failed to upload resume'));
       }
+      const publicUrl = String(presign.url).split('?')[0];
+      formData.set('resumeKey', presign.key);
+      formData.set('resumeUrl', publicUrl);
+      formData.set('resumeMimeType', resume.type || 'application/pdf');
+      formData.set('resumeSize', String(resume.size));
+      formData.delete('resume'); // do not post the raw file
+      setResumeKey(presign.key);
+      setResumeStatus('pending');
+      try {
+        const statusRes = await fetch(`/api/upload/scan-status?key=${encodeURIComponent(presign.key)}`);
+        if (statusRes.ok) {
+          const statusJson = await statusRes.json().catch(() => ({}));
+          if (typeof statusJson.status === 'string') {
+            const normalized = statusJson.status as typeof resumeStatus;
+            setResumeStatus(['pending', 'clean', 'infected', 'error'].includes(normalized || '') ? normalized : 'pending');
+          }
+        }
+      } catch {
+        /* best-effort only */
+      }
+    }
 
       const res = await fetch(`/api/careers/apply`, {
         method: 'POST',
@@ -402,8 +436,13 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
         <p className="text-xs text-muted-foreground mt-1">
           {t('careers.resumeHint', 'PDF only · Max 5MB')}
         </p>
-        <p className="text-xs text-muted-foreground">
-          {t('careers.resumeUploadNote', 'Uploaded resumes are virus-scanned (status: pending after upload).')}
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          {t('careers.resumeUploadNote', 'Uploaded resumes are virus-scanned.')}
+          {resumeStatus && (
+            <span className="font-semibold capitalize">
+              {t('careers.resumeScanStatus', 'Scan status')}: {resumeStatus}
+            </span>
+          )}
         </p>
         {errors.resume && (
           <p className="mt-1 text-xs text-destructive">{errors.resume}</p>

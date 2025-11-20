@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -19,15 +19,67 @@ export interface WorkOrderAttachment {
 interface Props {
   workOrderId?: string;
   onChange?: (attachments: WorkOrderAttachment[]) => void;
+  initialAttachments?: WorkOrderAttachment[];
 }
 
 const ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'application/pdf']);
+const ALLOWED_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'pdf']);
 const MAX_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB (aligned with API guard)
 
-export function WorkOrderAttachments({ workOrderId, onChange }: Props) {
-  const [attachments, setAttachments] = useState<WorkOrderAttachment[]>([]);
+export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments }: Props) {
+  const [attachments, setAttachments] = useState<WorkOrderAttachment[]>(() =>
+    (initialAttachments || []).map((att) => ({ ...att, scanStatus: att.scanStatus || 'pending' }))
+  );
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<Record<string, number>>({});
+
+  // Sync incoming attachments (e.g., edit/detail pages)
+  useEffect(() => {
+    if (!initialAttachments) return;
+    const normalized = initialAttachments.map((att) => ({ ...att, scanStatus: att.scanStatus || 'pending' }));
+    const currentKeys = new Set(attachments.map((a) => a.key));
+    const incomingKeys = new Set(normalized.map((a) => a.key));
+    const keysChanged = currentKeys.size !== incomingKeys.size || [...currentKeys].some((k) => !incomingKeys.has(k));
+    if (keysChanged) {
+      setAttachments(normalized);
+    }
+  }, [initialAttachments]);
+
+  // Poll AV scan status for pending items to allow UI badges to refresh
+  useEffect(() => {
+    const pending = attachments.filter((att) => att.scanStatus === 'pending');
+    if (pending.length === 0) return undefined;
+
+    const interval = window.setInterval(async () => {
+      const updates = await Promise.all(
+        pending.map(async (att) => {
+          try {
+            const res = await fetch(`/api/upload/scan-status?key=${encodeURIComponent(att.key)}`);
+            if (!res.ok) return att;
+            const json = await res.json().catch(() => ({}));
+            const nextStatus = typeof json.status === 'string' ? (json.status as ScanStatus) : 'pending';
+            if (!['pending', 'clean', 'infected', 'error'].includes(nextStatus)) return att;
+            return { ...att, scanStatus: nextStatus };
+          } catch {
+            return att;
+          }
+        })
+      );
+
+      setAttachments((curr) => {
+        const map = new Map(curr.map((a) => [a.key, a] as const));
+        for (const updated of updates) {
+          map.set(updated.key, { ...map.get(updated.key), ...updated });
+        }
+        const next = Array.from(map.values());
+        if (onChange) onChange(next);
+        return next;
+      });
+    }, 7000);
+
+    return () => window.clearInterval(interval);
+  }, [attachments, onChange]);
 
   const handleFiles = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
@@ -37,6 +89,11 @@ export function WorkOrderAttachments({ workOrderId, onChange }: Props) {
     }
 
     const safeFiles = Array.from(fileList).filter((file) => {
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (!ext || !ALLOWED_EXTENSIONS.has(ext)) {
+        setError(`Unsupported file extension: .${ext || 'unknown'} (png, jpg, jpeg, pdf only)`);
+        return false;
+      }
       if (!ALLOWED_TYPES.has(file.type)) {
         setError(`Unsupported file type: ${file.type || 'unknown'} (PNG, JPG, PDF only)`);
         return false;
@@ -71,8 +128,37 @@ export function WorkOrderAttachments({ workOrderId, onChange }: Props) {
             'Content-Type': file.type || 'application/octet-stream',
           };
 
-          const uploadRes = await fetch(presign.putUrl, { method: 'PUT', headers, body: file });
-          if (!uploadRes.ok) {
+          const uploadOnce = () =>
+            new Promise<void>((resolve, reject) => {
+              const xhr = new XMLHttpRequest();
+              xhr.open('PUT', presign.putUrl);
+              Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+              xhr.upload.onprogress = (evt) => {
+                if (evt.lengthComputable) {
+                  const pct = Math.round((evt.loaded / evt.total) * 100);
+                  setProgress((prev) => ({ ...prev, [presign.key]: pct }));
+                }
+              };
+              xhr.onload = () => {
+                setProgress((prev) => ({ ...prev, [presign.key]: 100 }));
+                if (xhr.status >= 200 && xhr.status < 300) resolve();
+                else reject(new Error(`Upload failed (${xhr.status})`));
+              };
+              xhr.onerror = () => reject(new Error('Upload failed'));
+              xhr.send(file);
+            });
+
+          let uploaded = false;
+          try {
+            await uploadOnce();
+            uploaded = true;
+          } catch (firstErr) {
+            // retry once
+            await uploadOnce();
+            uploaded = true;
+          }
+
+          if (!uploaded) {
             throw new Error('Upload failed');
           }
 
@@ -111,6 +197,7 @@ export function WorkOrderAttachments({ workOrderId, onChange }: Props) {
       }
     } finally {
       setUploading(false);
+      setProgress({});
     }
 
     if (next.length) {
@@ -150,6 +237,18 @@ export function WorkOrderAttachments({ workOrderId, onChange }: Props) {
       });
       if (!res.ok) {
         throw new Error('Failed to remove attachment');
+      }
+
+      // Best-effort delete from S3 to avoid orphaned files
+      try {
+        await fetch('/api/upload/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key }),
+        });
+      } catch (deleteErr) {
+        const msg = deleteErr instanceof Error ? deleteErr.message : 'Could not delete file from storage';
+        setError(msg);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove attachment');
@@ -205,7 +304,23 @@ export function WorkOrderAttachments({ workOrderId, onChange }: Props) {
           <div key={att.key} className="flex items-center justify-between rounded border border-border p-2">
             <div className="flex-1 space-y-1">
               <p className="text-sm font-medium">{att.name}</p>
-              <p className="text-xs text-muted-foreground">{(att.size / 1024 / 1024).toFixed(2)} MB</p>
+              <p className="text-xs text-muted-foreground">
+                {(() => {
+                  const bytes = att.size ?? (att as any).fileSize;
+                  if (typeof bytes === 'number' && !Number.isNaN(bytes)) {
+                    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+                  }
+                  return 'Size unknown';
+                })()}
+              </p>
+              {progress[att.key] !== undefined && progress[att.key] < 100 && (
+                <div className="h-1.5 w-full rounded bg-muted">
+                  <div
+                    className="h-1.5 rounded bg-primary transition-all"
+                    style={{ width: `${progress[att.key]}%` }}
+                  />
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2">
               {statusBadge(att.scanStatus)}

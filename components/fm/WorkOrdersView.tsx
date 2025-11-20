@@ -404,6 +404,28 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
                         const status = att.scanStatus as string;
                         const name = att.name || (att as any).fileName || (att as any).originalName || 'Attachment';
                         const url = att.url || (att as any).fileUrl;
+                        const content = (
+                          <>
+                            <span className="truncate flex-1">{name}</span>
+                            {status === 'clean' && <CheckCircle2 className="h-3 w-3 text-emerald-600" />}
+                            {(!status || status === 'pending') && <Loader2 className="h-3 w-3 animate-spin text-amber-600" />}
+                            {status === 'infected' && <ShieldAlert className="h-3 w-3 text-red-600" />}
+                            {status === 'error' && <AlertCircle className="h-3 w-3 text-slate-600" />}
+                          </>
+                        );
+
+                        if (!url) {
+                          return (
+                            <div
+                              key={att.key || idx}
+                              className="flex items-center gap-2 rounded border border-border bg-muted/30 px-2 py-1.5 text-xs opacity-70"
+                              title={t('workOrders.attachments.missingUrl', 'Attachment URL unavailable')}
+                            >
+                              {content}
+                            </div>
+                          );
+                        }
+
                         return (
                           <a
                             key={att.key || idx}
@@ -412,11 +434,7 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 rounded border border-border bg-muted/30 px-2 py-1.5 text-xs hover:bg-muted/50"
                           >
-                            <span className="truncate flex-1">{name}</span>
-                            {status === 'clean' && <CheckCircle2 className="h-3 w-3 text-emerald-600" />}
-                            {(!status || status === 'pending') && <Loader2 className="h-3 w-3 animate-spin text-amber-600" />}
-                            {status === 'infected' && <ShieldAlert className="h-3 w-3 text-red-600" />}
-                            {status === 'error' && <AlertCircle className="h-3 w-3 text-slate-600" />}
+                            {content}
                           </a>
                         );
                       })}

@@ -1,4 +1,35 @@
 {
-  "cookies": [],
-  "origins": []
+  "cookies": [
+    {
+      "name": "authjs.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..nLk-x9TD3xRLsNBYd6-Ilg.AP_4wqtduhxJC1ZqsvSCmK5mdTCMRsXxq_SCixO5Lcr_9uy7jeTX4qUfwYH3v6kA6fRsoNtr1QYotAbvgOOg24IbI7v0uQs92fNMLeZC_MLFfI2WyfjPBeCgaxfEyEvXBZMJMcGdPwRDsKFertUY2G8eY25kjwHu_SSIzVbtxpkg08_Vwvu9XGqsy0fn98Z9Us5ErEOddfD0ruIVnsmc7LdmEakLY1FqGn1A207eyQx6EjhdqWaBs4kYPzlbIO8QmObXiUZ75mMIRKEiiMJjnEnNFCK7gHt7bv17ouIkvSPYRY5o6mlelhmbp4xkFnW5wFR0fjLvq_Waejc1vAmiEvxMKcnaAXCFHxqAnpoeDms.cgsa5l1fyBgpHCaFtnk-ZaWne0EoPojGf5Db4s5hUSg",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "next-auth.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..nLk-x9TD3xRLsNBYd6-Ilg.AP_4wqtduhxJC1ZqsvSCmK5mdTCMRsXxq_SCixO5Lcr_9uy7jeTX4qUfwYH3v6kA6fRsoNtr1QYotAbvgOOg24IbI7v0uQs92fNMLeZC_MLFfI2WyfjPBeCgaxfEyEvXBZMJMcGdPwRDsKFertUY2G8eY25kjwHu_SSIzVbtxpkg08_Vwvu9XGqsy0fn98Z9Us5ErEOddfD0ruIVnsmc7LdmEakLY1FqGn1A207eyQx6EjhdqWaBs4kYPzlbIO8QmObXiUZ75mMIRKEiiMJjnEnNFCK7gHt7bv17ouIkvSPYRY5o6mlelhmbp4xkFnW5wFR0fjLvq_Waejc1vAmiEvxMKcnaAXCFHxqAnpoeDms.cgsa5l1fyBgpHCaFtnk-ZaWne0EoPojGf5Db4s5hUSg",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "fixzit-role",
+          "value": "manager"
+        }
+      ]
+    }
+  ]
 }

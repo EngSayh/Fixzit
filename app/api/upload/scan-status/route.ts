@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
-import { getSessionUser } from '@/server/middleware/withAuthRbac';
+import { rateLimit } from '@/server/security/rateLimit';
+import { rateLimitError } from '@/server/utils/errorResponses';
+import { buildRateLimitKey } from '@/server/security/rateLimitKey';
+import { getClientIP } from '@/server/security/headers';
 
 type ScanStatus = 'pending' | 'clean' | 'infected' | 'error';
 
@@ -48,10 +51,8 @@ async function getStatusForKey(key: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const user = await getSessionUser(req).catch(() => null);
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const rl = rateLimit(buildRateLimitKey(req, getClientIP(req)), 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
 
   const { searchParams } = new URL(req.url);
   const key = searchParams.get('key');
@@ -69,10 +70,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getSessionUser(req).catch(() => null);
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const rl = rateLimit(buildRateLimitKey(req, getClientIP(req)), 60, 60_000);
+  if (!rl.allowed) return rateLimitError();
 
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
@@ -81,6 +80,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing key' }, { status: 400 });
     }
     const result = await getStatusForKey(key);
+    logger.info('[ScanStatus] Read status', { key, status: result.status });
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
     logger.error('[ScanStatus] Failed to read status', error as Error);

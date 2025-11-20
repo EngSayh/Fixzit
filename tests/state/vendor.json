@@ -1,4 +1,35 @@
 {
-  "cookies": [],
-  "origins": []
+  "cookies": [
+    {
+      "name": "authjs.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..JiDIgDeRzl61-NmGysC9Ug.RjQpZHBScAaeGtLQ5xBi8A4pbg6xPgD2Gdx1zywYMcHltMSiaOXf4KDiiCiX4k00rY7dMq_IkEpTL_FfYsHfgGmpzpTyLY0g_ycuxyrUDg-QTkPsnVa542cU07qVlgHovfbV8uG4Z3VWsEb4b4_-WLyZYrAaKx3qkI_zmaAXIU827kBLN6ktEhtfQcImv6HNaHJn6PSVIH3z2v20P9mS3hYQpXWgHSZxoMZtsgWq3LGWPANELl7M_UNtWyP-sGMhYxAGcjNx0t6Dx9z4gb4QALbaI-Cm3roRoZDn6DwQ6DEudM-056Bc17GG8pLxNZ8iw-TY62P3v2kvi2Y1Kyow8LvlQdVYWcN-3SCF6ZJCfRk.3SZ1SEoBhBq1bIhilXoT0-E2no_SBZkjlKIIbNN4Vcg",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "next-auth.session-token",
+      "value": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2Q0JDLUhTNTEyIiwia2lkIjoidUU5ekxWSDdmWnlqR0RyNEFRYVl6Z0I0TFgzdzlVV0JsUmNSaDF5YVRfU1poNmNqU3pxXzVjaUszN0VsemJHdDh6ajR2R2V4MExQeV83eDM0MzNYMWcifQ..JiDIgDeRzl61-NmGysC9Ug.RjQpZHBScAaeGtLQ5xBi8A4pbg6xPgD2Gdx1zywYMcHltMSiaOXf4KDiiCiX4k00rY7dMq_IkEpTL_FfYsHfgGmpzpTyLY0g_ycuxyrUDg-QTkPsnVa542cU07qVlgHovfbV8uG4Z3VWsEb4b4_-WLyZYrAaKx3qkI_zmaAXIU827kBLN6ktEhtfQcImv6HNaHJn6PSVIH3z2v20P9mS3hYQpXWgHSZxoMZtsgWq3LGWPANELl7M_UNtWyP-sGMhYxAGcjNx0t6Dx9z4gb4QALbaI-Cm3roRoZDn6DwQ6DEudM-056Bc17GG8pLxNZ8iw-TY62P3v2kvi2Y1Kyow8LvlQdVYWcN-3SCF6ZJCfRk.3SZ1SEoBhBq1bIhilXoT0-E2no_SBZkjlKIIbNN4Vcg",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "fixzit-role",
+          "value": "vendor"
+        }
+      ]
+    }
+  ]
 }

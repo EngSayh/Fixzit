@@ -33,12 +33,15 @@ async function globalSetup(config: FullConfig) {
       return 'http://localhost:3000';
     }
   })();
-  const cookieName = baseOrigin.startsWith('https')
-    ? '__Secure-next-auth.session-token'
-    : 'next-auth.session-token';
-  const altCookieName = baseOrigin.startsWith('https')
-    ? '__Secure-authjs.session-token'
-    : 'authjs.session-token';
+  const cookieName =
+    baseOrigin.startsWith('https')
+      ? '__Secure-authjs.session-token'
+      : 'authjs.session-token';
+  const legacyCookieName =
+    baseOrigin.startsWith('https')
+      ? '__Secure-next-auth.session-token'
+      : 'next-auth.session-token';
+  const sessionSalt = cookieName;
 
   const roles: RoleConfig[] = [
     {
@@ -115,6 +118,7 @@ async function globalSetup(config: FullConfig) {
         const token = await encodeJwt({
           secret: nextAuthSecret,
           maxAge: 30 * 24 * 60 * 60,
+          salt: sessionSalt,
           token: {
             name: `${role.name} (Offline)`,
             email:
@@ -129,23 +133,25 @@ async function globalSetup(config: FullConfig) {
           },
         });
 
+        const { hostname } = new URL(baseOrigin);
         await context.addCookies([
           {
             name: cookieName,
             value: token,
-            url: baseOrigin,
+            domain: hostname,
+            path: '/',
             httpOnly: true,
             sameSite: 'Lax',
-            path: '/',
             secure: baseOrigin.startsWith('https'),
           },
           {
-            name: altCookieName,
+            // Backwards compatibility for old NextAuth cookie name
+            name: legacyCookieName,
             value: token,
-            url: baseOrigin,
+            domain: hostname,
+            path: '/',
             httpOnly: true,
             sameSite: 'Lax',
-            path: '/',
             secure: baseOrigin.startsWith('https'),
           },
         ]);

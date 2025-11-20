@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, type PutObjectCommandInput } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, type PutObjectCommandInput } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const REGION = process.env.AWS_REGION || 'us-east-1';
@@ -80,6 +80,12 @@ export async function putObjectBuffer(key: string, buffer: Buffer, contentType: 
     ...buildPutCommandInput(key, contentType),
     Body: buffer,
   });
+  await client.send(cmd);
+}
+
+export async function deleteObject(key: string) {
+  const client = getS3Client();
+  const cmd = new DeleteObjectCommand({ Bucket: BUCKET, Key: key });
   await client.send(cmd);
 }
 
