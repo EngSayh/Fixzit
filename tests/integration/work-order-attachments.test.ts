@@ -102,7 +102,6 @@ describe('Work Order Attachment Flow', () => {
     };
 
     // 3. PATCH work order with attachment (mimics frontend PATCH after upload)
-    const WorkOrderModel = testConnection.models.WorkOrder;
     const updated = await WorkOrderModel.findByIdAndUpdate(
       workOrderId,
       { $set: { attachments: [attachment] } },
@@ -174,7 +173,6 @@ describe('Work Order Attachment Flow', () => {
       },
     ];
 
-    const WorkOrderModel = testConnection.models.WorkOrder;
     const updated = await WorkOrderModel.findByIdAndUpdate(
       workOrder._id,
       { $set: { attachments } },
@@ -239,7 +237,6 @@ describe('Work Order Attachment Flow', () => {
       (att) => att.key !== 's3://bucket/remove.pdf'
     );
 
-    const WorkOrderModel = testConnection.models.WorkOrder;
     const updated = await WorkOrderModel.findByIdAndUpdate(
       workOrder._id,
       { $set: { attachments: remainingAttachments } },
@@ -285,7 +282,6 @@ describe('Work Order Attachment Flow', () => {
       scanStatus: 'infected' as const,
     };
 
-    const WorkOrderModel = testConnection.models.WorkOrder;
     const updated = await WorkOrderModel.findByIdAndUpdate(
       workOrder._id,
       { $set: { attachments: [infectedAttachment] } },
@@ -320,7 +316,6 @@ describe('Work Order Attachment Flow', () => {
     // Test all valid scanStatus values
     const validStatuses = ['pending', 'clean', 'infected', 'error'] as const;
     
-    const WorkOrderModel = testConnection.models.WorkOrder;
     for (const status of validStatuses) {
       const attachment = {
         key: `s3://bucket/${status}.pdf`,
