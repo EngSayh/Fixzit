@@ -20,6 +20,7 @@ export default function NewWorkOrderPage() {
   const [unitNumber, setUnitNumber] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   if (!hasOrgContext) {
     return guard;
@@ -46,17 +47,21 @@ export default function NewWorkOrderPage() {
               setCreating(true);
               setError(null);
               try {
+                if (!propertyId || !title) {
+                  throw new Error(t('workOrders.new.requiredFields', 'Title and property are required'));
+                }
+                // NOTE: Attachments are NOT sent here. They're uploaded AFTER WO creation
+                // via WorkOrderAttachments component which PATCHes the WO once files are uploaded to S3.
                 const res = await fetch('/api/work-orders', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
-                    orgId,
                     title: title || 'New Work Order',
                     priority,
                     description,
                     propertyId: propertyId || undefined,
                     unitNumber: unitNumber || undefined,
-                    attachments,
+                    // attachments deliberately omitted - uploaded separately after WO exists
                   }),
                 });
                 const json = await res.json().catch(() => ({}));
@@ -64,19 +69,36 @@ export default function NewWorkOrderPage() {
                   throw new Error(json?.error || 'Failed to create work order');
                 }
                 setWorkOrderId(json.data._id as string);
+                setSuccess(true);
               } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to create work order');
               } finally {
                 setCreating(false);
               }
             }}
-            disabled={creating}
+            disabled={creating || !title || !propertyId}
           >
             {creating ? t('common.saving', 'Saving...') : t('workOrders.board.createWO', 'Create Work Order')}
           </button>
         </div>
       </div>
-      {error && <p className="text-destructive text-sm">{error}</p>}
+      {error && (
+        <div className="rounded-lg border border-destructive bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <p className="font-medium">{t('common.error', 'Error')}</p>
+          <p>{error}</p>
+        </div>
+      )}
+      {success && workOrderId && (
+        <div className="rounded-lg border border-success bg-success/10 px-4 py-3 text-sm text-success-dark">
+          <p className="font-medium">{t('workOrders.new.success', 'Work order created successfully!')}</p>
+          <p className="mt-1">
+            {t('workOrders.new.woNumber', 'Work Order ID:')} <span className="font-mono font-semibold">{workOrderId}</span>
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {t('workOrders.new.uploadHint', 'You can now upload attachments using the panel on the right.')}
+          </p>
+        </div>
+      )}
           {/* Form */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Form */}

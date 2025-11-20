@@ -79,15 +79,14 @@ export function WorkOrderAttachments({ workOrderId, onChange }: Props) {
           const publicUrl = String(presign.putUrl).split('?')[0];
           let scanStatus: ScanStatus = 'pending';
           try {
-            const scanRes = await fetch('/api/upload/scan-status', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ key: presign.key }),
+            const scanRes = await fetch(`/api/upload/scan-status?key=${encodeURIComponent(presign.key)}`, {
+              method: 'GET',
             });
             if (scanRes.ok) {
               const scanJson = await scanRes.json().catch(() => ({}));
-              if (typeof scanJson.clean === 'boolean') {
-                scanStatus = scanJson.clean ? 'clean' : 'infected';
+              if (typeof scanJson.status === 'string') {
+                const normalized = scanJson.status as ScanStatus;
+                scanStatus = ['pending', 'clean', 'infected', 'error'].includes(normalized) ? normalized : 'pending';
               }
             } else {
               scanStatus = 'error';
