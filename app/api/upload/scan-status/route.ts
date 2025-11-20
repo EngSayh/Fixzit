@@ -65,7 +65,14 @@ export async function GET(req: NextRequest) {
 
   try {
     const result = await getStatusForKey(key);
-    return NextResponse.json(result, { status: 200 });
+    // Cache for 5 seconds to reduce DB load from polling (7s interval client-side)
+    return NextResponse.json(result, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'private, max-age=5',
+        'CDN-Cache-Control': 'no-store'
+      }
+    });
   } catch (error) {
     logger.error('[ScanStatus] Failed to read status', { error: error as Error, key });
     return NextResponse.json({ error: 'Failed to read status' }, { status: 500 });
@@ -87,7 +94,14 @@ export async function POST(req: NextRequest) {
     }
     const result = await getStatusForKey(key);
     logger.info('[ScanStatus] Read status', { key, status: result.status });
-    return NextResponse.json(result, { status: 200 });
+    // Cache for 5 seconds to reduce DB load from polling
+    return NextResponse.json(result, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'private, max-age=5',
+        'CDN-Cache-Control': 'no-store'
+      }
+    });
   } catch (error) {
     logger.error('[ScanStatus] Failed to read status', { error: error as Error, key });
     return NextResponse.json({ error: 'Failed to read status' }, { status: 500 });

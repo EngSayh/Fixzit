@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       data: campaign,
     });
   } catch (error) {
-    logger.error('[Ad API] Create campaign failed:, { error });
+    logger.error('[Ad API] Create campaign failed', { error });
     
     return NextResponse.json(
       {

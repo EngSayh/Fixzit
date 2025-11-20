@@ -43,7 +43,7 @@ export async function GET(
       data: campaign,
     });
   } catch (error) {
-    logger.error('[Ad API] Get campaign failed:, { error });
+    logger.error('[Ad API] Get campaign failed', { error });
     
     return NextResponse.json(
       {

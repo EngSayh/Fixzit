@@ -166,60 +166,62 @@ export default function IntegrationsPage() {
       {loading ? (
         <CardGridSkeleton count={6} />
       ) : (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {integrations.map((integration) => (
-          <Card key={integration.id}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">{integration.icon}</span>
-                  <div>
-                    <CardTitle className="text-lg">{integration.name}</CardTitle>
-                    <Badge
-                      variant={integration.status === 'connected' ? 'default' : 'secondary'}
-                      className="mt-1"
-                    >
-                      {integration.status === 'connected' ? (
-                        <Check className="w-3 h-3 me-1" />
-                      ) : (
-                        <X className="w-3 h-3 me-1" />
-                      )}
-                      {auto(integration.status, `status.${integration.status}`)}
-                    </Badge>
+        <>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {integrations.map((integration) => (
+              <Card key={integration.id}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl">{integration.icon}</span>
+                      <div>
+                        <CardTitle className="text-lg">{integration.name}</CardTitle>
+                        <Badge
+                          variant={integration.status === 'connected' ? 'default' : 'secondary'}
+                          className="mt-1"
+                        >
+                          {integration.status === 'connected' ? (
+                            <Check className="w-3 h-3 me-1" />
+                          ) : (
+                            <X className="w-3 h-3 me-1" />
+                          )}
+                          {auto(integration.status, `status.${integration.status}`)}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">{integration.description}</p>
-              
-              <div className="flex gap-2">
-                <Button
-                  variant={integration.status === 'connected' ? 'destructive' : 'default'}
-                  size="sm"
-                  onClick={() => handleToggle(integration.id, integration.status)}
-                  className="flex-1"
-                >
-                  {integration.status === 'connected'
-                    ? auto('Disconnect', 'actions.disconnect')
-                    : auto('Connect', 'actions.connect')}
-                </Button>
-                {integration.status === 'connected' && (
-                  <Button variant="outline" size="sm">
-                    <Settings className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">{integration.description}</p>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      variant={integration.status === 'connected' ? 'destructive' : 'default'}
+                      size="sm"
+                      onClick={() => handleToggle(integration.id, integration.status)}
+                      className="flex-1"
+                    >
+                      {integration.status === 'connected'
+                        ? auto('Disconnect', 'actions.disconnect')
+                        : auto('Connect', 'actions.connect')}
+                    </Button>
+                    {integration.status === 'connected' && (
+                      <Button variant="outline" size="sm">
+                        <Settings className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-      <div className="p-6 border border-dashed border-border rounded-lg text-center">
-        <p className="text-sm text-muted-foreground">
-          {auto('Integration data will be managed via /api/fm/system/integrations', 'info.apiEndpoint')}
-        </p>
-      </div>
+          <div className="p-6 border border-dashed border-border rounded-lg text-center">
+            <p className="text-sm text-muted-foreground">
+              {auto('Integration data will be managed via /api/fm/system/integrations', 'info.apiEndpoint')}
+            </p>
+          </div>
+        </>
       )}
     </div>
   );

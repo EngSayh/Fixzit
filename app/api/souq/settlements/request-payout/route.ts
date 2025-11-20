@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ payout }, { status: 201 });
   } catch (error) {
-    logger.error('Error requesting payout:, { error });
+    logger.error('Error requesting payout', { error });
     const message = error instanceof Error ? error.message : 'Failed to request payout';
     return NextResponse.json({ error: message }, { status: 500 });
   }

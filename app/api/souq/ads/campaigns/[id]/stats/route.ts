@@ -45,7 +45,7 @@ export async function GET(
       data: stats,
     });
   } catch (error) {
-    logger.error('[Ad API] Get campaign stats failed:, { error });
+    logger.error('[Ad API] Get campaign stats failed', { error });
     
     return NextResponse.json(
       {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,12 @@ interface Props {
 const ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'application/pdf']);
 const ALLOWED_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'pdf']);
 const MAX_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB (aligned with API guard)
+const EXTENSION_MIME_MAP: Record<string, string[]> = {
+  pdf: ['application/pdf', 'application/x-pdf'],
+  jpg: ['image/jpeg'],
+  jpeg: ['image/jpeg'],
+  png: ['image/png'],
+};
 
 export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments, draftCreator }: Props) {
   const [attachments, setAttachments] = useState<WorkOrderAttachment[]>(() =>
@@ -34,6 +40,10 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<Record<string, number>>({});
+  const uploadControllers = useRef<Record<string, XMLHttpRequest>>({});
+  const [uploadingFiles, setUploadingFiles] = useState<
+    { key: string; name: string; size: number; status: 'uploading' | 'error' | 'canceled' }[]
+  >([]);
 
   // Sync incoming attachments (e.g., edit/detail pages)
   useEffect(() => {
@@ -97,6 +107,10 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
       const ext = file.name.split('.').pop()?.toLowerCase();
       if (!ext || !ALLOWED_EXTENSIONS.has(ext)) {
         setError(`Unsupported file extension: .${ext || 'unknown'} (png, jpg, jpeg, pdf only)`);
+        return false;
+      }
+      if (ext && EXTENSION_MIME_MAP[ext] && !EXTENSION_MIME_MAP[ext].includes(file.type)) {
+        setError(`File type does not match extension (${file.type || 'unknown'} for .${ext})`);
         return false;
       }
       if (!ALLOWED_TYPES.has(file.type)) {

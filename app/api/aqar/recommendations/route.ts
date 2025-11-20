@@ -6,6 +6,7 @@ import { getSessionUser } from '@/server/middleware/withAuthRbac';
 import { rateLimit } from '@/server/security/rateLimit';
 import { createSecureResponse } from '@/server/security/headers';
 import { buildRateLimitKey } from '@/server/security/rateLimitKey';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
 
     return createSecureResponse({ ok: true, items }, 200, req);
   } catch (err) {
-    logger.error('GET /api/aqar/recommendations error, { error: err });
+    logger.error('GET /api/aqar/recommendations error', { error: err });
     return createSecureResponse({ ok: false, error: 'Server error' }, 500, req);
   }
 }

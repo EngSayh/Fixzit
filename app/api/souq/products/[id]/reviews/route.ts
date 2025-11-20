@@ -64,7 +64,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
       );
     }
 
-    logger.error('[GET /api/souq/products/[id]/reviews], { error });
+    logger.error('[GET /api/souq/products/[id]/reviews]', { error });
     return NextResponse.json(
       { error: 'Failed to fetch product reviews' },
       { status: 500 }

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       message: 'Impression recorded',
     });
   } catch (error) {
-    logger.error('[Ad API] Record impression failed:, { error });
+    logger.error('[Ad API] Record impression failed', { error });
     
     return NextResponse.json(
       {

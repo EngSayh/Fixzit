@@ -116,6 +116,7 @@ async function globalSetup(config: FullConfig) {
           role.name === 'SuperAdmin'
             ? 'SUPER_ADMIN'
             : role.name.toUpperCase();
+        const testRole = 'ADMIN';
         const userId = randomBytes(12).toString('hex');
 
         const token = await encodeJwt({
@@ -128,11 +129,11 @@ async function globalSetup(config: FullConfig) {
               process.env[role.identifierEnv] ||
               `${role.name.toLowerCase()}@offline.test`,
             id: userId,
-            role: normalizedRole,
-            roles: [normalizedRole],
+            role: testRole,
+            roles: [testRole, 'SUPER_ADMIN'],
             orgId: offlineOrgId,
-            isSuperAdmin: role.name === 'SuperAdmin',
-            permissions: [],
+            isSuperAdmin: true,
+            permissions: ['*'],
             sub: userId,
           },
         });

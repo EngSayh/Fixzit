@@ -69,6 +69,13 @@ const patchSchema = z.object({
   category: z.string().optional(),
   subcategory: z.string().optional(),
   dueAt: z.string().datetime().optional(),
+  propertyId: z.string().optional(),
+  unitNumber: z.string().optional(),
+  assignment: z.object({
+    assignedTo: z.object({
+      userId: z.string().optional()
+    }).optional()
+  }).optional(),
   attachments: z.array(attachmentInputSchema).optional()
 });
 
@@ -80,6 +87,53 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   const updates = patchSchema.parse(await req.json());
   const updatePayload: Record<string, unknown> = { ...updates };
 
+  // Validate property existence if provided
+  if (updates.propertyId) {
+    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { ObjectId } = await import('mongodb');
+    const db = await getDatabase();
+    const propertyExists = await db.collection('properties').countDocuments({
+      _id: new ObjectId(updates.propertyId),
+      org_id: user.tenantId
+    });
+    if (!propertyExists) {
+      return createSecureResponse({ error: 'Invalid propertyId: property not found' }, 422, req);
+    }
+  }
+
+  // Validate assignee existence if provided
+  if (updates.assignment?.assignedTo?.userId) {
+    const { getDatabase } = await import('@/lib/mongodb-unified');
+    const { ObjectId } = await import('mongodb');
+    const db = await getDatabase();
+    const userExists = await db.collection('users').countDocuments({
+      _id: new ObjectId(updates.assignment.assignedTo.userId),
+      orgId: user.tenantId
+    });
+    if (!userExists) {
+      return createSecureResponse({ error: 'Invalid assignee: user not found' }, 422, req);
+    }
+  }
+
+  // Handle location fields
+  if (updates.propertyId || updates.unitNumber) {
+    updatePayload.location = {
+      ...(updates.propertyId ? { propertyId: updates.propertyId } : {}),
+      ...(updates.unitNumber ? { unitNumber: updates.unitNumber } : {})
+    };
+    delete updatePayload.propertyId;
+    delete updatePayload.unitNumber;
+  }
+
+  // Handle assignment with timestamp
+  if (updates.assignment?.assignedTo?.userId) {
+    updatePayload.assignment = {
+      assignedTo: { userId: updates.assignment.assignedTo.userId },
+      assignedAt: new Date()
+    };
+  }
+
+  // Recalculate SLA on priority change
   if (updates.priority) {
     const { slaMinutes, dueAt } = resolveSlaTarget(updates.priority as WorkOrderPriority);
     updatePayload.slaMinutes = slaMinutes;
@@ -113,7 +167,31 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   if (!wo) return createSecureResponse({ error: "Not found" }, 404, req);
 
   if (removedKeys.length) {
-    void Promise.allSettled(removedKeys.map((key) => deleteObject(key).catch(() => undefined)));
+    const { logger } = await import('@/lib/logger');
+    // Delete removed attachments from S3 with observability
+    const deleteResults = await Promise.allSettled(
+      removedKeys.map((key) => deleteObject(key))
+    );
+    
+    // Log failures for monitoring
+    deleteResults.forEach((result, idx) => {
+      if (result.status === 'rejected') {
+        logger.error('[WorkOrder PATCH] S3 cleanup failed', {
+          workOrderId: params.id,
+          key: removedKeys[idx],
+          error: result.reason
+        });
+      }
+    });
+    
+    const failedCount = deleteResults.filter(r => r.status === 'rejected').length;
+    if (failedCount > 0) {
+      logger.warn('[WorkOrder PATCH] S3 cleanup partial failure', {
+        workOrderId: params.id,
+        total: removedKeys.length,
+        failed: failedCount
+      });
+    }
   }
 
   return createSecureResponse(wo, 200, req);

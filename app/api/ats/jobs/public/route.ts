@@ -149,7 +149,7 @@ export async function GET(req: NextRequest) {
       ...result
     });
   } catch (error: unknown) {
-    logger.error('Error fetching public jobs:, { error });
+    logger.error('Error fetching public jobs', { error });
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { error: 'Internal server error', message },

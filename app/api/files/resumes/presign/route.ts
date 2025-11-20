@@ -45,7 +45,11 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: 'Bucket policy/encryption invalid' }, 503, req);
     }
 
-    const rl = rateLimit(buildRateLimitKey(req, user?.id), 60, 60_000);
+    const rl = rateLimit(
+      buildRateLimitKey(req, user?.id),
+      user ? 60 : 20, // tighter window for anonymous callers
+      60_000
+    );
     if (!rl.allowed) {
       return rateLimitError();
     }
