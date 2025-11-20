@@ -133,7 +133,7 @@ if (!conn) {
       collection: () => {
         throw new Error('MongoDB disabled via DISABLE_MONGODB_FOR_BUILD');
       },
-    } as unknown as DatabaseHandle);
+    } as DatabaseHandle);
   } else {
     const connectionUri = resolveMongoUri();
     validateMongoUri(connectionUri);
@@ -152,7 +152,7 @@ if (!conn) {
         w: 'majority',
       })
       .then((m) => {
-        return m.connection.db as unknown as DatabaseHandle;
+        return m.connection.db as DatabaseHandle;
       })
       .catch((err) => {
         const errorObj = err instanceof Error ? err : new Error(String(err));
