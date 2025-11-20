@@ -82,6 +82,7 @@ type WorkOrderRecord = {
   assigneeUserId?: string;
   assigneeVendorId?: string;
   category?: string;
+  attachments?: { key: string; url: string; name?: string; size?: number; scanStatus?: string }[];
 };
 
 type ApiResponse = {
@@ -285,6 +286,7 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
           const propertyId = workOrder.location?.propertyId || workOrder.propertyId;
           const workOrderKey = workOrder.id || workOrder.workOrderNumber || workOrder.code || `work-order-${index}`;
           const priorityName = getPriorityLabelText(t, workOrder.priority);
+          const attachmentCount = workOrder.attachments?.length || 0;
           return (
             <Card key={workOrderKey} className="border border-border shadow-sm">
               <CardHeader className="flex flex-col gap-2 pb-4 sm:flex-row sm:items-start sm:justify-between">
@@ -297,6 +299,11 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
                     <Badge className={statusStyles[workOrder.status] || 'bg-muted text-foreground border border-border'}>
                       {getWorkOrderStatusLabel(t, workOrder.status)}
                     </Badge>
+                    {attachmentCount > 0 && (
+                      <Badge variant="secondary" className="gap-1">
+                        📎 {attachmentCount} {attachmentCount === 1 ? 'file' : 'files'}
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground">{codeLabel} {code}</p>
                 </div>

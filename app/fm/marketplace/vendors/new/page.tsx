@@ -24,7 +24,7 @@ type Contact = {
 export default function MarketplaceNewVendorPage() {
   const auto = useAutoTranslator('fm.marketplace.vendors.new');
   const { t } = useTranslation();
-  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'marketplace' });
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'marketplace' });
   const [companyName, setCompanyName] = useState('');
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [website, setWebsite] = useState('');
@@ -67,6 +67,7 @@ export default function MarketplaceNewVendorPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          orgId,
           companyName,
           registrationNumber,
           website,

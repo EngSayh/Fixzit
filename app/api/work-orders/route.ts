@@ -23,6 +23,15 @@ const createWorkOrderSchema = z.object({
   subcategory: z.string().optional(),
   propertyId: z.string().optional(),
   unitNumber: z.string().optional(),
+  attachments: z.array(
+    z.object({
+      key: z.string(),
+      url: z.string().url(),
+      name: z.string().optional(),
+      size: z.number().optional(),
+      scanStatus: z.enum(['pending','clean','infected','error']).default('pending'),
+    })
+  ).optional(),
   requester: z.object({
     type: z.enum(["TENANT", "OWNER", "STAFF"]).default("TENANT"),
     id: z.string().optional(),
@@ -102,6 +111,8 @@ export const { GET, POST } = createCrudHandlers({
     delete data.propertyId;
     delete data.unitNumber;
 
+    const attachments = Array.isArray(data.attachments) ? data.attachments : [];
+
     return {
       ...data,
       orgId: user.orgId,
@@ -122,6 +133,7 @@ export const { GET, POST } = createCrudHandlers({
         resolutionDeadline: dueAt,
         status: "ON_TIME",
       },
+      attachments,
       createdAt,
     };
   }

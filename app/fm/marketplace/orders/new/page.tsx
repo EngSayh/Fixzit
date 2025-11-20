@@ -24,7 +24,7 @@ interface OrderItem {
 export default function MarketplaceNewOrderPage() {
   const auto = useAutoTranslator('fm.marketplace.orders.new');
   const { t } = useTranslation();
-  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'marketplace' });
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'marketplace' });
   const [requester, setRequester] = useState('');
   const [department, setDepartment] = useState('');
   const [justification, setJustification] = useState('');
@@ -65,6 +65,7 @@ export default function MarketplaceNewOrderPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          orgId,
           requester,
           department,
           justification,

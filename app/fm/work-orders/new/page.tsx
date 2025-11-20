@@ -4,10 +4,22 @@ import React from 'react';
 import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { WorkOrderAttachments } from '@/components/fm/WorkOrderAttachments';
+import { useState } from 'react';
+import type { WorkOrderAttachment } from '@/components/fm/WorkOrderAttachments';
 
 export default function NewWorkOrderPage() {
   const { t } = useTranslation();
-  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'work_orders' });
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'work_orders' });
+  const [attachments, setAttachments] = useState<WorkOrderAttachment[]>([]);
+  const [workOrderId, setWorkOrderId] = useState<string | null>(null);
+  const [title, setTitle] = useState('');
+  const [priority, setPriority] = useState('MEDIUM');
+  const [description, setDescription] = useState('');
+  const [propertyId, setPropertyId] = useState('');
+  const [unitNumber, setUnitNumber] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!hasOrgContext) {
     return guard;
@@ -28,10 +40,43 @@ export default function NewWorkOrderPage() {
           <p className="text-muted-foreground">{t('workOrders.new.subtitle', 'Create a new work order for maintenance or services')}</p>
         </div>
         <div className="flex gap-2">
-          <button className="btn-secondary">{t('common.save', 'Save Draft')}</button>
-          <button className="btn-primary">{t('workOrders.board.createWO', 'Create Work Order')}</button>
+          <button
+            className="btn-primary"
+            onClick={async () => {
+              setCreating(true);
+              setError(null);
+              try {
+                const res = await fetch('/api/work-orders', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    orgId,
+                    title: title || 'New Work Order',
+                    priority,
+                    description,
+                    propertyId: propertyId || undefined,
+                    unitNumber: unitNumber || undefined,
+                    attachments,
+                  }),
+                });
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok || !json?.data?._id) {
+                  throw new Error(json?.error || 'Failed to create work order');
+                }
+                setWorkOrderId(json.data._id as string);
+              } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to create work order');
+              } finally {
+                setCreating(false);
+              }
+            }}
+            disabled={creating}
+          >
+            {creating ? t('common.saving', 'Saving...') : t('workOrders.board.createWO', 'Create Work Order')}
+          </button>
         </div>
-          </div>
+      </div>
+      {error && <p className="text-destructive text-sm">{error}</p>}
           {/* Form */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Form */}
@@ -47,18 +92,23 @@ export default function NewWorkOrderPage() {
                   type="text"
                   placeholder={t('workOrders.new.titlePlaceholder', 'Enter work order title...')}
                   className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   {t('workOrders.priority', 'Priority')} *
                 </label>
-                <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
-                  <option value="">{t('workOrders.selectPriority', 'Select Priority')}</option>
-                  <option value="P1">{t('workOrders.priority.p1', 'P1 - Critical')}</option>
-                  <option value="P2">{t('workOrders.priority.p2', 'P2 - High')}</option>
-                  <option value="P3">{t('workOrders.priority.p3', 'P3 - Medium')}</option>
-                  <option value="P4">{t('workOrders.priority.p4', 'P4 - Low')}</option>
+                <select
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                >
+                  <option value="CRITICAL">{t('workOrders.priority.p1', 'P1 - Critical')}</option>
+                  <option value="HIGH">{t('workOrders.priority.p2', 'P2 - High')}</option>
+                  <option value="MEDIUM">{t('workOrders.priority.p3', 'P3 - Medium')}</option>
+                  <option value="LOW">{t('workOrders.priority.p4', 'P4 - Low')}</option>
                 </select>
               </div>
             </div>
@@ -71,7 +121,11 @@ export default function NewWorkOrderPage() {
                 <label className="block text-sm font-medium text-foreground mb-2">
                   {t('common.property', 'Property')} *
                 </label>
-                <select className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent">
+                <select
+                  className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                  value={propertyId}
+                  onChange={(e) => setPropertyId(e.target.value)}
+                >
                   <option value="">{t('common.selectProperty', 'Select Property')}</option>
                   <option value="tower-a">Tower A</option>
                   <option value="tower-b">Tower B</option>
@@ -86,6 +140,8 @@ export default function NewWorkOrderPage() {
                   type="text"
                   placeholder={t('workOrders.new.locationPlaceholder', 'Unit number or specific location...')}
                   className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                  value={unitNumber}
+                  onChange={(e) => setUnitNumber(e.target.value)}
                 />
               </div>
             </div>
@@ -101,6 +157,8 @@ export default function NewWorkOrderPage() {
                 rows={4}
                 placeholder={t('workOrders.new.descriptionPlaceholder', 'Describe the work that needs to be done...')}
                 className="w-full px-3 py-2 border border-border rounded-2xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
               />
             </div>
           </div>
@@ -136,13 +194,14 @@ export default function NewWorkOrderPage() {
         <div className="space-y-6">
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('workOrders.attachments', 'Attachments')}</h3>
-            <div className="border-2 border-dashed border-border rounded-2xl p-6 text-center">
-              <div className="text-muted-foreground mb-2">📎</div>
-              <p className="text-sm text-muted-foreground">{t('workOrders.dropFiles', 'Drop files here or click to upload')}</p>
-              <button className="mt-2 text-sm text-primary hover:underline">
-                {t('common.chooseFiles', 'Choose Files')}
-              </button>
-            </div>
+            <WorkOrderAttachments workOrderId={workOrderId ?? undefined} onChange={setAttachments} />
+            {attachments.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-2">
+                {t('workOrders.attachmentsCount', '{{count}} attachment(s) ready for submission', {
+                  count: attachments.length,
+                })}
+              </p>
+            )}
           </div>
 
           <div className="card">

@@ -44,6 +44,7 @@ export default function CreateInspectionPage() {
         method: 'POST',
         headers,
         body: JSON.stringify({
+          orgId,
           name: form.property,
           type: 'COMMERCIAL',
           subtype: form.type,

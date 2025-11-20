@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 export default function PayrollRunWizardPage() {
   const auto = useAutoTranslator('fm.hr.payrollRun');
   const { t } = useTranslation();
-  const { hasOrgContext, guard, supportOrg } = useFmOrgGuard({ moduleId: 'hr' });
+  const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'hr' });
   const steps = useMemo(
     () => [
       {
@@ -61,6 +61,7 @@ export default function PayrollRunWizardPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        orgId,
         name: formData.name,
         periodStart: formData.periodStart,
         periodEnd: formData.periodEnd,

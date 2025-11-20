@@ -113,6 +113,7 @@ export default function NewBudgetPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            orgId,
             budgetName,
             periodType,
             startDate,
@@ -175,6 +176,7 @@ export default function NewBudgetPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            orgId,
             budgetName,
             periodType,
             startDate,

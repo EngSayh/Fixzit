@@ -57,6 +57,7 @@ export default function CreateCrmAccountPage() {
           'x-tenant-id': orgId,
         },
         body: JSON.stringify({
+          orgId,
           type: 'ACCOUNT',
           company: values.company.trim(),
           segment: values.segment.trim(),

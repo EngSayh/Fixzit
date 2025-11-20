@@ -541,6 +541,7 @@ function CreateInvoiceForm({ onCreated }: { onCreated: () => void }) {
         method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+              orgId,
               type: formData.type,
               issueDate: formData.issueDate,
               dueDate: formData.dueDate,

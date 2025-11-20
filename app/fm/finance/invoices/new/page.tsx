@@ -60,6 +60,7 @@ export default function FinanceInvoiceCreatePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          orgId,
           amount: Number(formData.amount),
           currency: 'SAR',
           description: formData.description || `Invoice for ${formData.customer}`,

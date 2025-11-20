@@ -94,6 +94,7 @@ export default function NewSupportTicketPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          orgId,
           ...form,
           ccList: form.ccList,
         }),
