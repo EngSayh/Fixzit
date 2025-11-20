@@ -154,14 +154,12 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
             });
 
           const delays = [0, 500, 1500];
-          let uploaded = false;
           for (let attempt = 0; attempt < delays.length; attempt += 1) {
             if (attempt > 0) {
               await new Promise((r) => setTimeout(r, delays[attempt]));
             }
             try {
               await uploadOnce();
-              uploaded = true;
               break;
             } catch (err) {
               if (attempt === delays.length - 1) {
@@ -233,7 +231,8 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
   };
 
   const handleRemove = async (key: string) => {
-    if (!workOrderId) return;
+    const targetId = workOrderId;
+    if (!targetId) return;
     if (!confirm('Remove this attachment?')) return;
 
     const updated = attachments.filter((att) => att.key !== key);
@@ -241,25 +240,13 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
     onChange?.(updated);
 
     try {
-      const res = await fetch(`/api/work-orders/${workOrderId}`, {
+      const res = await fetch(`/api/work-orders/${targetId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ attachments: updated }),
       });
       if (!res.ok) {
         throw new Error('Failed to remove attachment');
-      }
-
-      // Best-effort delete from S3 to avoid orphaned files
-      try {
-        await fetch('/api/upload/delete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key }),
-        });
-      } catch (deleteErr) {
-        const msg = deleteErr instanceof Error ? deleteErr.message : 'Could not delete file from storage';
-        setError(msg);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove attachment');
