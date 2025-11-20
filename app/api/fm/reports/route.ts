@@ -20,6 +20,7 @@ type ReportJobDocument = {
   status: 'queued' | 'processing' | 'ready' | 'failed';
   fileKey?: string;
   fileMime?: string;
+  clean?: boolean;
   createdBy?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -73,6 +74,7 @@ const mapJob = (doc: ReportJobDocument) => ({
   status: doc.status,
   fileKey: doc.fileKey,
   fileMime: doc.fileMime,
+  clean: doc.clean,
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt,
 });

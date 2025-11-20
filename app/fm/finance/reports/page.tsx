@@ -18,6 +18,7 @@ type ReportJob = {
   fileKey?: string;
   createdAt?: string;
   notes?: string;
+  clean?: boolean;
 };
 
 export default function ReportsPage() {
@@ -132,6 +133,7 @@ export default function ReportsPage() {
                   <p className="text-xs text-muted-foreground">
                     {auto('Status', 'fields.status')}: {job.status}
                     {job.updatedAt ? ` · ${new Date(job.updatedAt).toLocaleString()}` : ''}
+                    {job.clean === false ? ` · ${auto('Failed scan', 'status.scanFailed')}` : ''}
                   </p>
                   {job.notes && (
                     <p className="text-[11px] text-muted-foreground">{job.notes}</p>

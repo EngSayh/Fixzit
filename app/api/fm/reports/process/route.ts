@@ -22,6 +22,7 @@ type ReportJob = {
   status: 'queued' | 'processing' | 'ready' | 'failed';
   fileKey?: string;
   fileMime?: string;
+  clean?: boolean;
 };
 
 const COLLECTION = 'fm_report_jobs';
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
               fileKey: key,
               fileMime: report.mime,
               fileSize: report.size,
+              clean,
               updatedAt: new Date(),
               notes: clean ? job.notes : 'AV scan failed',
             },
