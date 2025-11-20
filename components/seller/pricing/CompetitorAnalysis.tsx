@@ -31,11 +31,14 @@ export default function CompetitorAnalysis({ fsin }: CompetitorAnalysisProps) {
         
         const data = await response.json();
         setAnalysis(data.analysis);
-      } catch (error) {
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
         console.error('Failed to fetch competitor analysis:', error);
-      } finally {
-        setLoading(false);
       }
+    } finally {
+      setLoading(false);
+    }
     };
     
     fetchAnalysis();

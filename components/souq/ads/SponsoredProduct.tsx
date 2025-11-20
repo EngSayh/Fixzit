@@ -98,7 +98,10 @@ export function SponsoredProduct({
         }),
       });
     } catch (error) {
-      console.error('[SponsoredProduct] Failed to track impression:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('[SponsoredProduct] Failed to track impression:', error);
+      }
     }
   };
 
@@ -127,13 +130,19 @@ export function SponsoredProduct({
       });
 
       if (!response.ok) {
-        console.error('[SponsoredProduct] Click tracking failed:', response.statusText);
+        if (process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line no-console
+          console.error('[SponsoredProduct] Click tracking failed:', response.statusText);
+        }
       }
 
       // Navigate to product page
       window.location.href = `/souq/products/${winner.productId}`;
     } catch (error) {
-      console.error('[SponsoredProduct] Failed to track click:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('[SponsoredProduct] Failed to track click:', error);
+      }
       // Still navigate even if tracking fails
       window.location.href = `/souq/products/${winner.productId}`;
     } finally {

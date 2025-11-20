@@ -119,7 +119,10 @@ export function SponsoredBrandBanner({
         }),
       });
     } catch (error) {
-      console.error('[SponsoredBrandBanner] Failed to track impression:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('[SponsoredBrandBanner] Failed to track impression:', error);
+      }
     }
   };
 
@@ -146,7 +149,10 @@ export function SponsoredBrandBanner({
 
       window.location.href = `/souq/products/${productId}`;
     } catch (error) {
-      console.error('[SponsoredBrandBanner] Failed to track click:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('[SponsoredBrandBanner] Failed to track click:', error);
+      }
       window.location.href = `/souq/products/${productId}`;
     }
   };

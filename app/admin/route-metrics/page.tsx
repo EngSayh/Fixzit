@@ -244,7 +244,10 @@ export default function RouteMetricsPage() {
       }
     } catch (err) {
       if (process.env.NODE_ENV === 'development') {
-        console.error(err);
+        if (process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line no-console
+          console.error(err);
+        }
       }
       toast.error(auto('Failed to load history', 'history.error'));
     }

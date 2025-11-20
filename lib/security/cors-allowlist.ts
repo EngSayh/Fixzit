@@ -22,18 +22,27 @@ function parseOrigins(value?: string | null): string[] {
         const url = new URL(origin);
         // Only allow http/https protocols
         if (!['http:', 'https:'].includes(url.protocol)) {
-          console.warn(`[CORS] Invalid protocol in origin: ${origin}`);
+          if (process.env.NODE_ENV !== 'production') {
+            // eslint-disable-next-line no-console
+            console.warn(`[CORS] Invalid protocol in origin: ${origin}`);
+          }
           return false;
         }
         // Disallow localhost in production CORS_ORIGINS
         if (process.env.NODE_ENV === 'production' && 
             (url.hostname === 'localhost' || url.hostname === '127.0.0.1')) {
-          console.warn(`[CORS] Localhost not allowed in production CORS_ORIGINS: ${origin}`);
+          if (process.env.NODE_ENV !== 'production') {
+            // eslint-disable-next-line no-console
+            console.warn(`[CORS] Localhost not allowed in production CORS_ORIGINS: ${origin}`);
+          }
           return false;
         }
         return true;
       } catch (err) {
-        console.warn(`[CORS] Invalid URL in CORS_ORIGINS: ${origin}`, err);
+        if (process.env.NODE_ENV !== 'production') {
+          // eslint-disable-next-line no-console
+          console.warn(`[CORS] Invalid URL in CORS_ORIGINS: ${origin}`, err);
+        }
         return false;
       }
     });

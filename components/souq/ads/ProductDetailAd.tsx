@@ -96,7 +96,10 @@ export function ProductDetailAd({
         }),
       });
     } catch (error) {
-      console.error('[ProductDetailAd] Failed to track impression:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('[ProductDetailAd] Failed to track impression:', error);
+      }
     }
   };
 
@@ -122,7 +125,10 @@ export function ProductDetailAd({
 
       window.location.href = `/souq/products/${winner.productId}`;
     } catch (error) {
-      console.error('[ProductDetailAd] Failed to track click:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('[ProductDetailAd] Failed to track click:', error);
+      }
       window.location.href = `/souq/products/${winner.productId}`;
     }
   };

@@ -133,7 +133,10 @@ export function PerformanceReport({ campaignId }: PerformanceReportProps) {
       setKeywordData(report.keywords || []);
       setProductData(report.products || []);
     } catch (error) {
-      console.error('Failed to load performance data:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.error('Failed to load performance data:', error);
+      }
     } finally {
       setIsLoading(false);
     }

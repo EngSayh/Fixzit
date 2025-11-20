@@ -55,7 +55,8 @@ export function enforceRateLimit(
     }).catch(err => {
       // Silently fail logging to avoid blocking rate limit enforcement
       // Error is already handled by logSecurityEvent internal logging
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
         console.error('[RateLimit] Failed to log security event:', err);
       }
     });
