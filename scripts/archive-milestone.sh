@@ -137,7 +137,7 @@ This milestone archive was created on $TIMESTAMP.
 
 ### Files Archived
 - Total files: $files_archived
-- Total size: $(if command -v bc >/dev/null 2>&1; then echo "scale=2; $total_size / 1024 / 1024" | bc; else awk "BEGIN {printf \"%.2f\", $total_size / 1024 / 1024}"; fi) MB
+- Total size: $(if command -v bc >/dev/null 2>&1; then echo "scale=2; $total_size / 1024 / 1024" | bc; else awk "BEGIN {printf \"%.2f\", ${total_size} / 1024 / 1024}"; fi) MB
 
 ### Files in Archive
 $(ls -1 "$MILESTONE_DIR" | grep -v "MILESTONE_SUMMARY.md" | sed 's/^/- /')
@@ -173,6 +173,9 @@ if [ "$files_archived" -gt 0 ]; then
   echo "  3. Push: git push origin main"
 else
   echo "ℹ️  No files were archived for this milestone"
+  echo "   Removing empty milestone directory..."
+  rm -rf "$MILESTONE_DIR"
+  echo "   ✓ Cleaned up empty directory"
 fi
 
 echo ""

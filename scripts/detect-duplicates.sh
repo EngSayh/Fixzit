@@ -4,21 +4,38 @@
 
 set -e
 
+# Check Python availability and version
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "❌ Error: python3 not found"
+  echo "   Please install Python 3.6+ to run duplicate detection"
+  exit 1
+fi
+
+# Verify Python version (require 3.6+)
+python_version=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null || echo "0.0")
+required_version="3.6"
+if [ "$(printf '%s\n' "$required_version" "$python_version" | sort -V | head -n1)" != "$required_version" ]; then
+  echo "❌ Error: Python $python_version detected, but Python $required_version+ is required"
+  exit 1
+fi
+
 FAIL_ON_DUPLICATES=false
 if [ "$1" == "--fail-on-duplicates" ]; then
   FAIL_ON_DUPLICATES=true
 fi
 
 REPORT_FILE="duplicate-detection-report.json"
-THRESHOLD_MB=1  # Fail if duplicates exceed this threshold
+THRESHOLD_MB=${THRESHOLD_MB:-1}  # Fail if duplicates exceed this threshold
+export THRESHOLD_MB
 
 echo "=== Duplicate File Detection for CI/CD ==="
+echo "Python: $python_version"
 echo "Date: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "Mode: $([ "$FAIL_ON_DUPLICATES" == "true" ] && echo "Strict (will fail build)" || echo "Report only")"
 echo ""
 
-# Create Python script for duplicate detection
-python3 - << 'PYEOF'
+# Create Python script for duplicate detection (logs to stderr, JSON to stdout)
+python3 - << 'PYEOF' > "$REPORT_FILE"
 import os
 import hashlib
 import json
@@ -121,7 +138,8 @@ if duplicates:
         'duplicates': results
     }
     
-    print(json.dumps(output, indent=2))
+    json_output = json.dumps(output, indent=2)
+    print(json_output)
     
     # Exit code based on threshold
     sys.exit(1 if wasted_mb > float(os.environ.get('THRESHOLD_MB', '1')) else 0)
@@ -139,62 +157,8 @@ else:
     sys.exit(0)
 PYEOF
 
+# Capture exit code from Python
 exit_code=$?
-
-# Save report
-python3 - << 'PYEOF' > "$REPORT_FILE" 2>/dev/null || true
-import os
-import hashlib
-import json
-from collections import defaultdict
-from pathlib import Path
-
-def get_file_hash(filepath):
-    try:
-        with open(filepath, 'rb') as f:
-            return hashlib.md5(f.read()).hexdigest()
-    except:
-        return None
-
-def should_skip(path):
-    skip_dirs = {'node_modules', '.next', 'dist', '.git', 'playwright-report', 'test-results', '__pycache__', 'logs', 'coverage', '.archive'}
-    skip_files = {'tsconfig.tsbuildinfo', 'pnpm-lock.yaml', 'package-lock.json', '.DS_Store', 'yarn.lock'}
-    parts = Path(path).parts
-    if any(d in parts for d in skip_dirs): return True
-    if Path(path).name in skip_files: return True
-    return False
-
-file_hashes = defaultdict(list)
-total_files = 0
-
-for root, dirs, files in os.walk('.'):
-    dirs[:] = [d for d in dirs if not should_skip(os.path.join(root, d))]
-    for filename in files:
-        filepath = os.path.join(root, filename)
-        if should_skip(filepath): continue
-        total_files += 1
-        file_hash = get_file_hash(filepath)
-        if file_hash:
-            file_hashes[file_hash].append({'path': filepath, 'size': os.path.getsize(filepath)})
-
-duplicates = {h: files for h, files in file_hashes.items() if len(files) > 1}
-results = []
-total_waste = 0
-
-for hash_val, files in sorted(duplicates.items(), key=lambda x: -x[1][0]['size']):
-    wasted = files[0]['size'] * (len(files) - 1)
-    total_waste += wasted
-    results.append({'hash': hash_val, 'size': files[0]['size'], 'count': len(files), 'wasted_space': wasted, 'files': [f['path'] for f in files]})
-
-print(json.dumps({
-    'timestamp': os.popen('date -u +"%Y-%m-%dT%H:%M:%SZ"').read().strip(),
-    'total_files_scanned': total_files,
-    'duplicate_groups': len(duplicates),
-    'total_wasted_bytes': total_waste,
-    'total_wasted_mb': round(total_waste / 1024 / 1024, 2),
-    'duplicates': results
-}, indent=2))
-PYEOF
 
 echo ""
 echo "=== Detection Complete ==="

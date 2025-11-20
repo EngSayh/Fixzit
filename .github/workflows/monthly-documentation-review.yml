@@ -20,7 +20,7 @@ jobs:
           set -e
           chmod +x scripts/review-docs.sh
           ./scripts/review-docs.sh > doc-review-report.txt || {
-            echo "Error running documentation review" >&2
+            echo "::error title=Documentation Review Failed::Check that docs/current/ exists and is accessible" >&2
             exit 1
           }
           
@@ -58,6 +58,6 @@ jobs:
           set -e
           chmod +x scripts/cleanup-backups.sh
           ./scripts/cleanup-backups.sh || {
-            echo "Warning: Backup cleanup encountered issues" >&2
+            echo "::warning title=Backup Cleanup Issues::Check that backup directories (i18n/dictionaries/backup, .archive) are accessible" >&2
             exit 0
           }

@@ -17,16 +17,6 @@ for dir in "${BACKUP_DIRS[@]}"; do
   if [ -d "$dir" ]; then
     echo "Checking: $dir"
     
-    # Find backup files (various patterns)
-    find "$dir" -type f \( \
-      -name "*.backup*" -o \
-      -name "*.bak" -o \
-      -name "*.old" -o \
-      -name "*.orig" \
-    \) -print0 | while IFS= read -r -d '' file; do
-      echo "  Found: $file"
-    done | head -20
-    
     # Get backup files sorted by modification time (newest first)
     backup_files=$(find "$dir" -type f \( \
       -name "*.backup*" -o \

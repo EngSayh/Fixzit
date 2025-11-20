@@ -32,6 +32,7 @@ jobs:
           chmod +x scripts/detect-duplicates.sh
           if ! ./scripts/detect-duplicates.sh --fail-on-duplicates; then
             echo "duplicates_found=true" >> $GITHUB_OUTPUT
+            echo "::notice title=Duplicates Detected::Run './scripts/cleanup-backups.sh' to remove backup duplicates"
             exit 0
           else
             echo "duplicates_found=false" >> $GITHUB_OUTPUT
@@ -84,12 +85,27 @@ jobs:
             
             comment += `\n</details>`;
             
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
+            // Retry logic for network resilience
+            const maxRetries = 3;
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+              try {
+                await github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: comment
+                });
+                console.log(`✓ Comment posted successfully on attempt ${attempt}`);
+                break;
+              } catch (error) {
+                console.log(`⚠️  Attempt ${attempt}/${maxRetries} failed: ${error.message}`);
+                if (attempt === maxRetries) {
+                  core.warning('Failed to post PR comment after 3 attempts. Duplicate detection results available in artifacts.');
+                } else {
+                  await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                }
+              }
+            }
       
       - name: Fail if duplicates exceed threshold
         if: steps.detect.outputs.duplicates_found == 'true'
