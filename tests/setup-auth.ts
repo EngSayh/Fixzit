@@ -2,6 +2,7 @@ import { chromium, FullConfig, BrowserContext } from '@playwright/test';
 import { mkdir, writeFile } from 'fs/promises';
 import { URLSearchParams } from 'url';
 import { encode as encodeJwt } from 'next-auth/jwt';
+import { randomBytes } from 'crypto';
 
 type RoleConfig = {
   name: string;
@@ -42,6 +43,7 @@ async function globalSetup(config: FullConfig) {
       ? '__Secure-next-auth.session-token'
       : 'next-auth.session-token';
   const sessionSalt = cookieName;
+  const offlineOrgId = 'ffffffffffffffffffffffff';
 
   const roles: RoleConfig[] = [
     {
@@ -114,6 +116,7 @@ async function globalSetup(config: FullConfig) {
           role.name === 'SuperAdmin'
             ? 'SUPER_ADMIN'
             : role.name.toUpperCase();
+        const userId = randomBytes(12).toString('hex');
 
         const token = await encodeJwt({
           secret: nextAuthSecret,
@@ -124,12 +127,13 @@ async function globalSetup(config: FullConfig) {
             email:
               process.env[role.identifierEnv] ||
               `${role.name.toLowerCase()}@offline.test`,
+            id: userId,
             role: normalizedRole,
             roles: [normalizedRole],
-            orgId: 'offline-org',
+            orgId: offlineOrgId,
             isSuperAdmin: role.name === 'SuperAdmin',
             permissions: [],
-            sub: `offline-${role.name.toLowerCase()}`,
+            sub: userId,
           },
         });
 

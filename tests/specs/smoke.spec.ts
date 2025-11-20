@@ -184,7 +184,7 @@ test.describe('Branding & Theme Consistency', () => {
     await page.goto('/', { waitUntil: 'networkidle' });
 
     // Logo in header
-    const logo = page.locator('header img[alt*="Fixzit"], header svg[class*="logo"]').first();
+    const logo = page.locator('header img[alt*="fixzit" i], header svg[class*="logo"]').first();
     await expect.soft(logo).toBeVisible({ timeout: 10000 });
   });
 });

@@ -59,9 +59,10 @@ export default function NewWorkOrderPage() {
                   body: JSON.stringify({
                     title: title || 'New Work Order',
                     priority,
-                    description,
+                    description: description || undefined,
                     propertyId: propertyId || undefined,
                     unitNumber: unitNumber || undefined,
+                    status: 'SUBMITTED',
                     // attachments deliberately omitted - uploaded separately after WO exists
                   }),
                 });
@@ -228,15 +229,15 @@ export default function NewWorkOrderPage() {
                   const res = await fetch('/api/work-orders', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      title: title || 'Untitled Work Order',
-                      priority,
-                      description: description || undefined,
-                      propertyId: propertyId || undefined,
-                      unitNumber: unitNumber || undefined,
-                      status: 'DRAFT',
-                    }),
-                  });
+                      body: JSON.stringify({
+                        title: title || 'Untitled Work Order',
+                        priority,
+                        description: description || 'Draft work order',
+                        propertyId: propertyId || undefined,
+                        unitNumber: unitNumber || undefined,
+                        status: 'DRAFT',
+                      }),
+                    });
                   const json = await res.json().catch(() => ({}));
                   if (!res.ok || !json?.data?._id) {
                     throw new Error(json?.error || 'Failed to save draft work order');

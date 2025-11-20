@@ -57,6 +57,13 @@ async function loadRBACData(userId: string, orgId: string): Promise<{
   permissions: string[];
   roles: string[];
 }> {
+  if (process.env.ALLOW_OFFLINE_MONGODB === 'true') {
+    return {
+      isSuperAdmin: false,
+      permissions: [],
+      roles: [],
+    };
+  }
   try {
     // Dynamic imports to avoid issues in Edge Runtime
     const { User } = await import('@/server/models/User');

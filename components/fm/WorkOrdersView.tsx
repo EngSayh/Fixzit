@@ -336,46 +336,6 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
                 {workOrder.description && (
                   <p className="text-sm text-foreground">{workOrder.description}</p>
                 )}
-                {attachmentCount > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-foreground">Attachments</p>
-                    <div className="space-y-1">
-                      {(workOrder.attachments || []).slice(0, 4).map((att, idx) => {
-                        const status = (att.scanStatus as string) || 'pending';
-                        const name = att.name || (att as any).fileName || (att as any).originalName || att.key;
-                        const url = att.url || (att as any).fileUrl;
-                        const size = typeof att.size === 'number' ? att.size : (att as any).fileSize;
-                        let icon = <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-500" />;
-                        if (status === 'clean') icon = <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />;
-                        if (status === 'infected') icon = <ShieldAlert className="h-3.5 w-3.5 text-destructive" />;
-                        if (status === 'error') icon = <AlertCircle className="h-3.5 w-3.5 text-muted-foreground" />;
-
-                        return (
-                          <div key={`${att.key}-${idx}`} className="flex items-center gap-2 text-xs text-muted-foreground">
-                            {icon}
-                            <a
-                              href={url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="underline-offset-4 hover:underline text-foreground"
-                            >
-                              {name}
-                            </a>
-                            {typeof size === 'number' && (
-                              <span className="text-[11px] text-muted-foreground">
-                                {(size / 1024 / 1024).toFixed(2)} MB
-                              </span>
-                            )}
-                            <span className="text-[11px] text-muted-foreground capitalize">{status}</span>
-                          </div>
-                        );
-                      })}
-                      {attachmentCount > 4 && (
-                        <p className="text-[11px] text-muted-foreground">+{attachmentCount - 4} more</p>
-                      )}
-                    </div>
-                  </div>
-                )}
                 <div className="grid grid-cols-1 gap-3 text-sm text-muted-foreground md:grid-cols-2">
                   <div>
                     <span className="font-medium text-foreground">{propertyLabel}</span>{' '}

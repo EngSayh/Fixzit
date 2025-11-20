@@ -155,50 +155,73 @@ export function JobApplicationForm({ jobId }: JobApplicationFormProps) {
       }
 
       const resume = formData.get('resume');
-    if (resume instanceof File) {
-      // Presign + upload to S3 with required headers
-      const presignRes = await fetch('/api/files/resumes/presign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fileName: resume.name, contentType: resume.type || 'application/pdf' }),
-        });
-        if (!presignRes.ok) {
-          throw new Error(t('careers.presignFailed', 'Failed to prepare resume upload'));
-        }
-        const presign = await presignRes.json();
-        const putHeaders: Record<string, string> = {
-          ...(presign.headers || {}),
-          'Content-Type': resume.type || 'application/pdf',
-        };
-      const putRes = await fetch(presign.url, {
-        method: 'PUT',
-        headers: putHeaders,
-        body: resume,
-      });
-      if (!putRes.ok) {
-        throw new Error(t('careers.uploadFailed', 'Failed to upload resume'));
-      }
-      const publicUrl = String(presign.url).split('?')[0];
-      formData.set('resumeKey', presign.key);
-      formData.set('resumeUrl', publicUrl);
-      formData.set('resumeMimeType', resume.type || 'application/pdf');
-      formData.set('resumeSize', String(resume.size));
-      formData.delete('resume'); // do not post the raw file
-      setResumeKey(presign.key);
-      setResumeStatus('pending');
-      try {
-        const statusRes = await fetch(`/api/upload/scan-status?key=${encodeURIComponent(presign.key)}`);
-        if (statusRes.ok) {
-          const statusJson = await statusRes.json().catch(() => ({}));
-          if (typeof statusJson.status === 'string') {
-            const normalized = statusJson.status as typeof resumeStatus;
-            setResumeStatus(['pending', 'clean', 'infected', 'error'].includes(normalized || '') ? normalized : 'pending');
+      if (resume instanceof File) {
+        let uploadedViaPresign = false;
+        try {
+          const presignRes = await fetch('/api/files/resumes/presign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName: resume.name,
+              contentType: resume.type || 'application/pdf',
+              size: resume.size,
+            }),
+          });
+
+          if (presignRes.ok) {
+            const presign = await presignRes.json();
+            const putHeaders: Record<string, string> = {
+              ...(presign.headers || {}),
+              'Content-Type': resume.type || 'application/pdf',
+            };
+            const putRes = await fetch(presign.url, {
+              method: 'PUT',
+              headers: putHeaders,
+              body: resume,
+            });
+            if (!putRes.ok) {
+              throw new Error(t('careers.uploadFailed', 'Failed to upload resume'));
+            }
+            const publicUrl = String(presign.url).split('?')[0];
+            formData.set('resumeKey', presign.key);
+            formData.set('resumeUrl', publicUrl);
+            formData.set('resumeMimeType', resume.type || 'application/pdf');
+            formData.set('resumeSize', String(resume.size));
+            formData.delete('resume'); // do not post the raw file
+            setResumeKey(presign.key);
+            setResumeStatus('pending');
+            uploadedViaPresign = true;
+
+            try {
+              const statusRes = await fetch(`/api/upload/scan-status?key=${encodeURIComponent(presign.key)}`);
+              if (statusRes.ok) {
+                const statusJson = await statusRes.json().catch(() => ({}));
+                if (typeof statusJson.status === 'string') {
+                  const normalized = statusJson.status as typeof resumeStatus;
+                  setResumeStatus(['pending', 'clean', 'infected', 'error'].includes(normalized || '') ? normalized : 'pending');
+                }
+              }
+            } catch {
+              /* best-effort only */
+            }
+          } else if (![401, 403].includes(presignRes.status)) {
+            const msg = await presignRes.text().catch(() => '') || t('careers.presignFailed', 'Failed to prepare resume upload');
+            throw new Error(msg);
           }
+        } catch (uploadErr) {
+          const msg =
+            uploadErr instanceof Error ? uploadErr.message : t('careers.uploadFailed', 'Failed to upload resume');
+          setErrors((prev) => ({ ...prev, general: msg }));
+          toast.error(msg);
+          return;
         }
-      } catch {
-        /* best-effort only */
+
+        // If presign failed due to auth (401/403), fall back to posting the file directly with the form.
+        if (!uploadedViaPresign) {
+          setResumeStatus(null);
+          setResumeKey(null);
+        }
       }
-    }
 
       const res = await fetch(`/api/careers/apply`, {
         method: 'POST',

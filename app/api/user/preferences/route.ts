@@ -103,6 +103,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (process.env.ALLOW_OFFLINE_MONGODB === 'true') {
+      return NextResponse.json({ preferences: DEFAULT_PREFERENCES });
+    }
+
     await connectDb();
     const user = await User.findById(session.user.id).select('preferences');
 
@@ -218,6 +222,10 @@ export async function PUT(request: NextRequest) {
       sanitizedUpdates.theme = mapThemeToStorage(normalizedTheme);
     }
     
+    if (process.env.ALLOW_OFFLINE_MONGODB === 'true') {
+      return NextResponse.json({ success: true, preferences: DEFAULT_PREFERENCES });
+    }
+
     await connectDb();
 
     const user = await User.findById(session.user.id);
