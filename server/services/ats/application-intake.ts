@@ -8,6 +8,7 @@ import { Job } from '@/server/models/Job';
 import { parseResumePDF } from '@/lib/ats/resume-parser';
 import { scoreApplication, extractSkillsFromText, calculateExperienceFromText } from '@/lib/ats/scoring';
 import { logger } from '@/lib/logger';
+import { buildResumeKey, putObjectBuffer } from '@/lib/storage/s3';
 
 export interface ResumeFileInput {
   buffer: Buffer;
@@ -279,14 +280,14 @@ async function extractResumeDetails(resumeFile?: ResumeFileInput): Promise<{
 }
 
 async function persistResumeFile(file: ResumeFileInput): Promise<string> {
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'resumes');
-  await fs.mkdir(uploadDir, { recursive: true });
   const safeName = file.filename.replace(/[^a-zA-Z0-9.-]+/g, '_');
-  const fileName = `${Date.now()}-${safeName}`;
-  const filePath = path.join(uploadDir, fileName);
-  await fs.writeFile(filePath, file.buffer);
-  // TODO: replace with pre-signed S3 upload flow once storage service is ready
-  return `/uploads/resumes/${fileName}`;
+  const key = buildResumeKey(null, `${Date.now()}-${safeName}`);
+
+  await putObjectBuffer(key, file.buffer, file.mimeType || 'application/octet-stream');
+
+  const region = process.env.AWS_REGION || 'us-east-1';
+  const bucket = process.env.AWS_S3_BUCKET || '';
+  return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
 }
 
 function normalizeOrgId(value: unknown): string | null {

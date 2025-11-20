@@ -90,14 +90,41 @@ export default function DocumentUploadForm({ onSubmit, onBack }: Props) {
         }
       }
 
-      // In production, upload to S3 and get URLs
-      // For now, simulate upload
       const documentUrls: Record<string, string> = {};
       for (const [key, docFile] of Object.entries(documents)) {
-        if (docFile) {
-          // TODO: Upload to S3 and get presigned URL
-          documentUrls[key] = `/uploads/kyc/${Date.now()}-${docFile.file.name}`;
+        if (!docFile) continue;
+
+        // Step 1: Request presigned URL
+        const presignRes = await fetch('/api/upload/presigned-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: docFile.file.name,
+            fileType: docFile.file.type,
+            fileSize: docFile.file.size,
+            category: 'kyc',
+          }),
+        });
+        if (!presignRes.ok) {
+          throw new Error(await presignRes.text());
         }
+        const presign = await presignRes.json();
+
+        // Step 2: Upload file to S3 using PUT presigned URL
+        const putRes = await fetch(presign.uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': docFile.file.type || 'application/octet-stream',
+          },
+          body: docFile.file,
+        });
+        if (!putRes.ok) {
+          throw new Error('Failed to upload document');
+        }
+
+        // Store public URL (strip query params)
+        const publicUrl = presign.uploadUrl.split('?')[0];
+        documentUrls[key] = publicUrl;
       }
 
       await onSubmit(documentUrls);
