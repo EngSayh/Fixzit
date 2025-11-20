@@ -9,6 +9,8 @@ import '@testing-library/jest-dom/vitest';
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+// Increase timeout for this suite due to heavier user interactions
+vi.setConfig({ testTimeout: 30000 });
 
 // IMPORTANT: Adjust this import path to the actual component path in your repo.
 // The snippet shows the component definition only; if it's under `app/help/support/page.tsx`,

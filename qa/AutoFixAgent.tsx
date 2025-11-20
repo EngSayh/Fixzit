@@ -27,7 +27,15 @@ export function AutoFixAgent() {
   const [lastNote, setLastNote] = useState<string>('');
   const [halted, setHalted] = useState(false);
   const [pos, setPos] = useState<{x:number,y:number}>(() => {
-    try { return JSON.parse(localStorage.getItem(HUD_POS_KEY)!) || { x: 16, y: 16 }; } catch { return { x:16, y:16 }; }
+    try { 
+      return JSON.parse(localStorage.getItem(HUD_POS_KEY)!) || { x: 16, y: 16 }; 
+    } catch (e) {
+      // Silently use default position if localStorage unavailable or invalid JSON
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to restore HUD position:', e);
+      }
+      return { x:16, y:16 }; 
+    }
   });
 
   // Get from context or localStorage
@@ -178,7 +186,14 @@ export function AutoFixAgent() {
     if (process.env.NEXT_PUBLIC_QA_AUTOFIX !== '1') return { note: 'Auto-heal disabled' };
     for (const h of heuristics) {
       if (h.test({ message })) {
-        try { return await h.apply(); } catch { /* ignore */ }
+        try { 
+          return await h.apply(); 
+        } catch (e) {
+          // Heuristic failed to apply - continue to next heuristic
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Heuristic application failed:', h, e);
+          }
+        }
       }
     }
     return { note: 'No heuristic matched; logged for follow-up.' };
@@ -194,7 +209,12 @@ export function AutoFixAgent() {
         route: window.location.pathname, role, orgId, ts: Date.now(),
         meta: { phase, errors }, screenshot: data
       });
-    } catch {}
+    } catch (e) {
+      // Screenshot capture failed - log but don't crash QA agent
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to capture screenshot:', e);
+      }
+    }
   };
 
   const bufferConsole = (rec: ConsoleRecord) => {

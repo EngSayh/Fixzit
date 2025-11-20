@@ -63,7 +63,12 @@ async function walk(dir: string) {
         }
       }
     }
-  } catch {}
+  } catch (e) {
+    // Silently skip directories that can't be read (permissions, deleted, etc.)
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`Failed to scan directory ${dir}:`, e);
+    }
+  }
 }
 
 (async () => {

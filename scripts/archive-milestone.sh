@@ -125,6 +125,10 @@ fi
 
 # Create milestone summary
 SUMMARY_FILE="$MILESTONE_DIR/MILESTONE_SUMMARY.md"
+archive_listing=$(ls -1 "$MILESTONE_DIR" 2>/dev/null | grep -v "MILESTONE_SUMMARY.md" | sed 's/^/- /' || true)
+if [ -z "$archive_listing" ]; then
+  archive_listing="- None"
+fi
 cat > "$SUMMARY_FILE" << EOF
 # Milestone: $MILESTONE_NAME
 
@@ -140,7 +144,7 @@ This milestone archive was created on $TIMESTAMP.
 - Total size: $(if command -v bc >/dev/null 2>&1; then echo "scale=2; $total_size / 1024 / 1024" | bc; else awk "BEGIN {printf \"%.2f\", ${total_size} / 1024 / 1024}"; fi) MB
 
 ### Files in Archive
-$(ls -1 "$MILESTONE_DIR" | grep -v "MILESTONE_SUMMARY.md" | sed 's/^/- /')
+$archive_listing
 
 ### Git Commit
 \`\`\`

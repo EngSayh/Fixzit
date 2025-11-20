@@ -1,7 +1,7 @@
 {
-  "timestamp": "2025-11-20T09:03:07Z",
-  "total_files_scanned": 3851,
-  "duplicate_groups": 2,
+  "timestamp": "2025-11-20T11:08:51Z",
+  "total_files_scanned": 3850,
+  "duplicate_groups": 1,
   "total_wasted_bytes": 180,
   "total_wasted_mb": 0.0,
   "duplicates": [
@@ -17,16 +17,6 @@
         "./tests/state/superadmin.json",
         "./tests/state/admin.json",
         "./tests/state/manager.json"
-      ]
-    },
-    {
-      "hash": "d41d8cd98f00b204e9800998ecf8427e",
-      "size": 0,
-      "count": 2,
-      "wasted_space": 0,
-      "files": [
-        "./duplicate-detection-report.json",
-        "./docs/archived/TODO_RESOLUTION_FINAL_SUMMARY.md"
       ]
     }
   ]

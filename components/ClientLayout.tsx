@@ -174,7 +174,12 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
     const translationContext = useTranslation();
     language = translationContext.language;
     isRTL = translationContext.isRTL;
-  } catch {}
+  } catch (e) {
+    // Expected: TranslationContext may not be available in some routes
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug('TranslationContext unavailable, using defaults:', e);
+    }
+  }
 
   // Early lang/dir update
   useEffect(() => {
@@ -276,12 +281,26 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
       const valid: UserRoleType[] = Object.values(UserRole);
       const validRole = valid.includes(userRole as UserRoleType) ? (userRole as UserRoleOrGuest) : 'guest';
       setRole(validRole);
-      try { localStorage.setItem('fixzit-role', validRole); } catch {}
+      try { 
+        localStorage.setItem('fixzit-role', validRole); 
+      } catch (e) {
+        // Silently fail - localStorage may be unavailable (private browsing, quota exceeded)
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn('localStorage.setItem failed:', e);
+        }
+      }
       setLoading(false);
     } else if (status !== 'loading') {
       // Not authenticated and not loading -> guest
       setRole('guest');
-      try { localStorage.removeItem('fixzit-role'); } catch {}
+      try { 
+        localStorage.removeItem('fixzit-role'); 
+      } catch (e) {
+        // Silently fail - localStorage may be unavailable (private browsing)
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn('localStorage.removeItem failed:', e);
+        }
+      }
       setLoading(false);
     }
     // If still loading, keep loading state (don't set guest prematurely)

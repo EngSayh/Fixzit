@@ -35,6 +35,7 @@ echo "Mode: $([ "$FAIL_ON_DUPLICATES" == "true" ] && echo "Strict (will fail bui
 echo ""
 
 # Create Python script for duplicate detection (logs to stderr, JSON to stdout)
+set +e  # Temporarily disable strict error handling to capture Python exit code
 python3 - << 'PYEOF' > "$REPORT_FILE"
 import os
 import hashlib
@@ -58,7 +59,8 @@ def should_skip(path):
     }
     skip_files = {
         'tsconfig.tsbuildinfo', 'pnpm-lock.yaml', 
-        'package-lock.json', '.DS_Store', 'yarn.lock'
+        'package-lock.json', '.DS_Store', 'yarn.lock',
+        'duplicate-detection-report.json'
     }
     
     parts = Path(path).parts
@@ -156,19 +158,52 @@ else:
     print(json.dumps(output, indent=2))
     sys.exit(0)
 PYEOF
+scan_exit_code=$?
+set -e  # Restore strict error handling
 
-# Capture exit code from Python
-exit_code=$?
+if [ ! -s "$REPORT_FILE" ]; then
+  echo "❌ Duplicate scan failed: report file not generated"
+  exit 2
+fi
+
+if ! duplicate_groups=$(python3 - << 'PYEOF'
+import json
+from pathlib import Path
+try:
+    data = json.loads(Path("duplicate-detection-report.json").read_text())
+    print(data.get("duplicate_groups", 0))
+except Exception as exc:
+    import sys
+    sys.stderr.write(f"Failed to parse duplicate-detection-report.json: {exc}\n")
+    sys.exit(1)
+PYEOF
+); then
+  echo "❌ Duplicate scan failed: could not parse report JSON"
+  exit 2
+fi
 
 echo ""
 echo "=== Detection Complete ==="
 echo "Report saved: $REPORT_FILE"
 
-if [ "$FAIL_ON_DUPLICATES" == "true" ] && [ $exit_code -ne 0 ]; then
+if [ $scan_exit_code -gt 1 ]; then
+  echo "❌ Duplicate scan failed with exit code $scan_exit_code (see logs above)"
+  exit $scan_exit_code
+fi
+
+if [ "$FAIL_ON_DUPLICATES" == "true" ] && [ $scan_exit_code -eq 1 ]; then
   echo ""
   echo "❌ Build failed: Duplicate files exceed ${THRESHOLD_MB}MB threshold"
   echo "   Please run './scripts/cleanup-backups.sh' to clean up duplicates"
   exit 1
+fi
+
+if [ "$duplicate_groups" -gt 0 ] && [ $scan_exit_code -eq 0 ]; then
+  echo "ℹ️ Duplicates detected (${duplicate_groups} groups) but total waste is under ${THRESHOLD_MB}MB threshold; build allowed"
+fi
+
+if [ $scan_exit_code -eq 1 ]; then
+  echo "⚠️ Duplicates exceed ${THRESHOLD_MB}MB threshold (report saved), but build allowed (no --fail-on-duplicates)"
 fi
 
 echo "✓ Duplicate detection passed"

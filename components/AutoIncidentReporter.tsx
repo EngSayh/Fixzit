@@ -15,7 +15,17 @@ export default function AutoIncidentReporter(){
       // Security Note: Only extracts user ID and tenant ID from localStorage
       // Does not log sensitive data like tokens or PII
       // Backend must handle this data securely and in compliance with privacy regulations
-      try { return localStorage.getItem(STORAGE_KEYS.userSession) ? JSON.parse(localStorage.getItem(STORAGE_KEYS.userSession) as string) : null; } catch { return null; }
+      try { 
+        return localStorage.getItem(STORAGE_KEYS.userSession) 
+          ? JSON.parse(localStorage.getItem(STORAGE_KEYS.userSession) as string) 
+          : null; 
+      } catch (e) {
+        // Silently return null - invalid JSON or localStorage unavailable
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Failed to parse user session from localStorage:', e);
+        }
+        return null;
+      }
     };
     const buildCtx = () => ({
       url: typeof window !== 'undefined' ? window.location.href : '',

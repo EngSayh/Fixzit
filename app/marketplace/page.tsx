@@ -12,7 +12,8 @@ interface Category {
 }
 
 interface Product {
-  id: string;
+  id?: string;
+  _id?: string;
   slug: string;
   title: { en: string };
   media?: Array<{ url: string; alt?: string }>;
@@ -137,13 +138,20 @@ export default async function MarketplaceHome() {
             </a>
           </div>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {featured.map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+            {featured.map((product) => {
+              const key = product.id ?? product._id ?? product.slug;
+              const normalized = { ...product, id: product.id ?? product._id ?? product.slug };
+              return (
+                <ProductCard
+                  key={key}
+                  product={normalized}
+                />
+              );
+            })}
           </div>
         </section>
 
-        {carousels.map(carousel => (
+        {carousels.map((carousel) => (
           <section key={carousel.category.slug} className="mt-12 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-semibold text-foreground">
@@ -157,9 +165,16 @@ export default async function MarketplaceHome() {
               </a>
             </div>
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {carousel.items.map((product: Product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+              {carousel.items.map((product: Product) => {
+                const key = product.id ?? product._id ?? product.slug;
+                const normalized = { ...product, id: product.id ?? product._id ?? product.slug };
+                return (
+                  <ProductCard
+                    key={key}
+                    product={normalized}
+                  />
+                );
+              })}
             </div>
           </section>
         ))}

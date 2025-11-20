@@ -30,12 +30,21 @@ jobs:
         run: |
           set -e
           chmod +x scripts/detect-duplicates.sh
-          if ! ./scripts/detect-duplicates.sh --fail-on-duplicates; then
+          
+          set +e
+          ./scripts/detect-duplicates.sh --fail-on-duplicates
+          scan_exit=$?
+          set -e
+          
+          if [ $scan_exit -eq 0 ]; then
+            echo "duplicates_found=false" >> $GITHUB_OUTPUT
+          elif [ $scan_exit -eq 1 ]; then
             echo "duplicates_found=true" >> $GITHUB_OUTPUT
             echo "::notice title=Duplicates Detected::Run './scripts/cleanup-backups.sh' to remove backup duplicates"
             exit 0
           else
-            echo "duplicates_found=false" >> $GITHUB_OUTPUT
+            echo "::error title=Duplicate Detection Failed::Script exited with unexpected code $scan_exit"
+            exit $scan_exit
           fi
         env:
           THRESHOLD_MB: 5  # Fail if duplicates exceed 5MB
