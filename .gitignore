@@ -49,6 +49,7 @@ Thumbs.db
 *.final
 *.final3
 *.emergency-bak
+duplicate-detection-report.json
 
 # Temp directory (prevent tracking large patch files)
 /tmp/
