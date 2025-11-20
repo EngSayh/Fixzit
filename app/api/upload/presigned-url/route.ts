@@ -13,6 +13,8 @@ const ALLOWED_TYPES = new Set([
   'image/jpg',
 ]);
 
+const ALLOWED_EXTENSIONS = new Set(['pdf', 'png', 'jpg', 'jpeg']);
+
 const MAX_SIZE_BYTES: Record<string, number> = {
   'application/pdf': 25 * 1024 * 1024, // 25MB
   'image/png': 10 * 1024 * 1024,       // 10MB
@@ -24,7 +26,8 @@ type PresignCategory = 'kyc' | 'resume' | 'invoice' | 'document';
 
 function sanitizeFileName(name: string): string {
   // Remove path separators and limit to safe characters
-  return name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const sanitized = name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return sanitized.slice(-128); // cap length to avoid overly long keys
 }
 
 function buildKey(
@@ -62,6 +65,11 @@ export async function POST(req: NextRequest) {
       return createSecureResponse({ error: 'Unsupported file type' }, 400, req);
     }
 
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    if (!ext || !ALLOWED_EXTENSIONS.has(ext)) {
+      return createSecureResponse({ error: 'Unsupported file extension' }, 400, req);
+    }
+
     const maxSize = MAX_SIZE_BYTES[fileType] ?? 10 * 1024 * 1024;
     if (fileSize > maxSize) {
       return createSecureResponse({ error: `File too large. Max ${Math.round(maxSize / (1024 * 1024))}MB` }, 400, req);
@@ -75,7 +83,15 @@ export async function POST(req: NextRequest) {
     const uploadUrl = await getPresignedPutUrl(key, fileType, 900); // 15 minutes
     const expiresAt = new Date(Date.now() + 900_000).toISOString();
 
-    return NextResponse.json({ uploadUrl, key, expiresAt });
+    // Surface metadata for downstream AV scan
+    return NextResponse.json({
+      uploadUrl,
+      key,
+      expiresAt,
+      scanRequired: true,
+      maxSizeBytes: maxSize,
+      allowedTypes: Array.from(ALLOWED_TYPES),
+    });
   } catch (err) {
     if (process.env.NODE_ENV !== 'production') {
       // eslint-disable-next-line no-console
