@@ -50,7 +50,10 @@ const parseValidTtl = (envVar: string | undefined, defaultValue: number, name: s
   if (!envVar || envVar.trim() === '') return defaultValue;
   const parsed = parseInt(envVar, 10);
   if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed <= 0) {
-    console.error(`[NotificationLog] Invalid ${name}: "${envVar}" - falling back to ${defaultValue}`);
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.error(`[NotificationLog] Invalid ${name}: "${envVar}" - falling back to ${defaultValue}`);
+    }
     return defaultValue;
   }
   return parsed;
