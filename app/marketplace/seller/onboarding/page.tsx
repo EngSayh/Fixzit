@@ -148,7 +148,10 @@ export default function SellerOnboarding() {
       
       router.push('/marketplace/vendor/portal');
     } catch (error) {
-      console.error('Onboarding error:', error);
+      // Log error for debugging while preserving user experience
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Onboarding error:', error);
+      }
       setSubmitError(
         error instanceof Error
           ? error.message

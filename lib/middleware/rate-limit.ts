@@ -52,7 +52,13 @@ export function enforceRateLimit(
         keyPrefix: prefix,
         remaining: result.remaining,
       },
-    }).catch(err => console.error('[RateLimit] Failed to log security event:', err));
+    }).catch(err => {
+      // Silently fail logging to avoid blocking rate limit enforcement
+      // Error is already handled by logSecurityEvent internal logging
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[RateLimit] Failed to log security event:', err);
+      }
+    });
 
     const response = rateLimitError();
     response.headers.set('Retry-After', String(Math.ceil(windowMs / 1000)));

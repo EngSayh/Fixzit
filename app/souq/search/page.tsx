@@ -80,7 +80,9 @@ export default function SearchPage() {
         const data = await response.json();
         setResults(data.data);
       } catch (err) {
-        console.error('Search failed:', err);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Search failed:', err);
+        }
         setError(auto('Failed to load search results. Please try again.', 'errors.loadFailed'));
       } finally {
         setLoading(false);

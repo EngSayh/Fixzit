@@ -40,7 +40,9 @@ export default function SellerSettlementsPage() {
         setBalance(data.balance);
       }
     } catch (error) {
-      console.error('Error fetching balance:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching balance:', error);
+      }
     } finally {
       setLoading(false);
     }

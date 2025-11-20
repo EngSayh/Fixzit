@@ -113,7 +113,9 @@ export default function AdvertisingPage() {
       // Calculate overview metrics
       calculateOverviewMetrics(apiCampaigns, statsMap);
     } catch (error) {
-      console.error('Failed to load campaigns:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to load campaigns:', error);
+      }
       alert(auto('Failed to load campaigns. Please try again.', 'alerts.loadCampaigns'));
     } finally {
       setIsLoading(false);
@@ -161,7 +163,9 @@ export default function AdvertisingPage() {
 
       loadCampaigns();
     } catch (error) {
-      console.error('Failed to toggle campaign status:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to toggle campaign status:', error);
+      }
       alert(auto('Failed to update campaign status. Please try again.', 'alerts.toggleCampaign'));
     }
   };
@@ -184,7 +188,9 @@ export default function AdvertisingPage() {
 
       loadCampaigns();
     } catch (error) {
-      console.error('Failed to delete campaign:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to delete campaign:', error);
+      }
       alert(auto('Failed to delete campaign. Please try again.', 'alerts.deleteCampaign'));
     }
   };

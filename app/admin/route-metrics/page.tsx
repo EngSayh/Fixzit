@@ -243,7 +243,9 @@ export default function RouteMetricsPage() {
         setDuplicationTrend({ current: null, previous: null });
       }
     } catch (err) {
-      console.error(err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error(err);
+      }
       toast.error(auto('Failed to load history', 'history.error'));
     }
   }, [auto]);
