@@ -12,6 +12,18 @@ import userEvent from '@testing-library/user-event';
 // Increase timeout for this suite due to heavier user interactions
 vi.setConfig({ testTimeout: 30000 });
 
+// Simplify navigation wrapper to avoid router side‑effects in tests
+vi.mock('@/components/ui/navigation-buttons', () => ({
+  FormWithNavigation: ({ children, onSubmit, saving }: any) => (
+    <form onSubmit={onSubmit}>
+      {children}
+      <button type="submit" disabled={saving}>
+        {saving ? 'Submitting…' : 'Submit Ticket'}
+      </button>
+    </form>
+  ),
+}));
+
 // IMPORTANT: Adjust this import path to the actual component path in your repo.
 // The snippet shows the component definition only; if it's under `app/help/support/page.tsx`,
 // or similar, change accordingly. For now, we import from a relative inline path assumption.

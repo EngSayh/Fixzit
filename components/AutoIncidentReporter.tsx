@@ -44,6 +44,7 @@ export default function AutoIncidentReporter(){
         const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
         if ('sendBeacon' in navigator && typeof navigator.sendBeacon === 'function' && navigator.sendBeacon(url, blob)) return;
       } catch {}
+      // Fire-and-forget: Incident reporting must never crash the app, even if API fails
       fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch(()=>{});
     };
 

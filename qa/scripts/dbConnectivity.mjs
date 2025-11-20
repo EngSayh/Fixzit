@@ -18,6 +18,7 @@ async function tryRealMongo() {
     await db.collection('work_orders').createIndex({ org_id: 1 });
     console.log(pc.green('✔ Index check (org_id) ensured on work_orders.'));
   } finally {
+    // Cleanup: Silently ignore close errors (already in finally block)
     await client.close().catch(()=>{});
   }
 }
