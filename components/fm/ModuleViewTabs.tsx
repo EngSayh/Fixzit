@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useMemo, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';

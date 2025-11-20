@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { SessionProvider, signOut } from 'next-auth/react';
 import TopBar from '@/components/TopBar';
@@ -194,16 +194,20 @@ vi.mock('@/contexts/ResponsiveContext', () => ({
 
 // Helper function to wrap component with providers
 const renderWithProviders = (component: React.ReactElement, options = {}) => {
-  return render(
-    <SessionProvider session={mockSession}>
-      <TranslationProvider>
-        <ResponsiveProvider>
-          <FormStateProvider>{component}</FormStateProvider>
-        </ResponsiveProvider>
-      </TranslationProvider>
-    </SessionProvider>,
-    options
-  );
+  let utils;
+  act(() => {
+    utils = render(
+      <SessionProvider session={mockSession}>
+        <TranslationProvider>
+          <ResponsiveProvider>
+            <FormStateProvider>{component}</FormStateProvider>
+          </ResponsiveProvider>
+        </TranslationProvider>
+      </SessionProvider>,
+      options
+    );
+  });
+  return utils!;
 };
 
 describe('TopBar Component', () => {

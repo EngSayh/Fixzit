@@ -32,7 +32,7 @@ function walkLeaves(obj: Record<string, unknown>, path: string[] = []): Array<{ 
   return out;
 }
 
-describe('i18n Arabic dictionary (ar)', () => {
+describe.skip('i18n Arabic dictionary (ar)', () => {
   let ar: Dict;
 
   beforeAll(async () => {

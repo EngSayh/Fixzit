@@ -44,6 +44,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockUseSession.mockReturnValue({ data: { user: {} } });
   mockUseFmOrgGuard.mockReturnValue({
+    hasOrgContext: true,
     orgId: 'org-test',
     guard: null,
     supportBanner: null,
@@ -59,6 +60,7 @@ beforeEach(() => {
 describe('VendorsPage org guard behavior', () => {
   test('renders guard when org context missing', () => {
     mockUseFmOrgGuard.mockReturnValue({
+      hasOrgContext: false,
       orgId: null,
       guard: <div data-testid="org-guard" />,
       supportBanner: null,
@@ -66,12 +68,13 @@ describe('VendorsPage org guard behavior', () => {
 
     render(<VendorsPage />);
 
-    expect(screen.getByTestId('module-tabs')).toHaveTextContent('vendors');
     expect(screen.getByTestId('org-guard')).toBeInTheDocument();
+    expect(screen.queryByTestId('module-tabs')).not.toBeInTheDocument();
   });
 
   test('renders vendor list when org context available', () => {
     mockUseFmOrgGuard.mockReturnValue({
+      hasOrgContext: true,
       orgId: 'org-456',
       guard: null,
       supportBanner: <div data-testid="support-banner" />,

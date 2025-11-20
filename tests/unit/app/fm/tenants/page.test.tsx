@@ -38,6 +38,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockUseSession.mockReturnValue({ data: { user: {} } });
   mockUseOrgGuard.mockReturnValue({
+    hasOrgContext: true,
     orgId: 'org-test',
     guard: null,
     supportBanner: null,
@@ -53,6 +54,7 @@ beforeEach(() => {
 describe('TenantsPage org guard behavior', () => {
   test('renders guard when no organization selected', () => {
     mockUseOrgGuard.mockReturnValue({
+      hasOrgContext: false,
       orgId: null,
       guard: <div data-testid="org-guard" />,
       supportBanner: null,
@@ -60,12 +62,13 @@ describe('TenantsPage org guard behavior', () => {
 
     render(<TenantsPage />);
 
-    expect(screen.getByTestId('module-tabs')).toHaveTextContent('tenants');
     expect(screen.getByTestId('org-guard')).toBeInTheDocument();
+    expect(screen.queryByTestId('module-tabs')).not.toBeInTheDocument();
   });
 
   test('renders tenant layout when organization context exists', () => {
     mockUseOrgGuard.mockReturnValue({
+      hasOrgContext: true,
       orgId: 'org-123',
       guard: null,
       supportBanner: <div data-testid="support-banner">banner</div>,

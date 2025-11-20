@@ -1,0 +1,68 @@
+{
+  "summary": {
+    "total_files": 3855,
+    "total_size_mb": 46.95299530029297,
+    "duplicate_groups": 4,
+    "wasted_space_mb": 2.9990901947021484
+  },
+  "categories": {
+    "documentation": 686,
+    "test": 222,
+    "other": 322,
+    "code": 1302,
+    "config": 1275,
+    "styles": 11,
+    "assets": 37
+  },
+  "duplicates": [
+    {
+      "hash": "0858b02061bd287fd9276544da152bab",
+      "size": 1138364,
+      "count": 3,
+      "wasted_space": 2276728,
+      "category": "other",
+      "files": [
+        "./i18n/dictionaries/ar.ts.old",
+        "./i18n/dictionaries/backup/ar.ts.backup.1763449190588",
+        "./i18n/dictionaries/backup/ar.ts.backup.1763449004383"
+      ]
+    },
+    {
+      "hash": "f0eed7aafc0b157ce384926acc6f0dfe",
+      "size": 865975,
+      "count": 2,
+      "wasted_space": 865975,
+      "category": "other",
+      "files": [
+        "./i18n/dictionaries/backup/en.ts.backup.1763449004383",
+        "./i18n/dictionaries/backup/en.ts.backup.1763449190588"
+      ]
+    },
+    {
+      "hash": "c549b4c89b91119993d412ea71c8d2f4",
+      "size": 1891,
+      "count": 2,
+      "wasted_space": 1891,
+      "category": "config",
+      "files": [
+        "./_artifacts/route-aliases.json",
+        "./reports/route-metrics/history/route-aliases-2025-11-19T06-27-01-226Z.json"
+      ]
+    },
+    {
+      "hash": "3d2989c1cc405c93dedd8236fd341655",
+      "size": 36,
+      "count": 6,
+      "wasted_space": 180,
+      "category": "config",
+      "files": [
+        "./tests/state/technician.json",
+        "./tests/state/tenant.json",
+        "./tests/state/vendor.json",
+        "./tests/state/superadmin.json",
+        "./tests/state/admin.json",
+        "./tests/state/manager.json"
+      ]
+    }
+  ]
+}
