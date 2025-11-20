@@ -38,8 +38,20 @@ export default function InviteUserPage() {
     const toastId = toast.loading(auto('Sending invitation...', 'toast.loading'));
 
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const res = await fetch('/api/fm/system/users/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          firstName,
+          lastName,
+          role,
+        }),
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || 'Failed to send invitation');
+      }
       toast.success(auto('Invitation sent successfully', 'toast.success'), { id: toastId });
       setEmail('');
       setFirstName('');
