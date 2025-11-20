@@ -61,8 +61,19 @@ export default function NewRolePage() {
     const toastId = toast.loading(auto('Creating role...', 'toast.loading'));
 
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const res = await fetch('/api/fm/system/roles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          description,
+          permissions,
+        }),
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || 'Failed to create role');
+      }
       toast.success(auto('Role created successfully', 'toast.success'), { id: toastId });
       setName('');
       setDescription('');
