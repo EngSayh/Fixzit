@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Plus, RefreshCcw, Search } from 'lucide-react';
+import { Loader2, Plus, RefreshCcw, Search, CheckCircle2, AlertCircle, ShieldAlert } from 'lucide-react';
 import { WorkOrderPriority } from '@/lib/sla';
 import ClientDate from '@/components/ClientDate';
 import { getWorkOrderStatusLabel } from '@/lib/work-orders/status';
@@ -342,6 +342,35 @@ export function WorkOrdersView({ heading, description, orgId }: WorkOrdersViewPr
                     {workOrder.createdAt ? <ClientDate date={workOrder.createdAt} format="medium" /> : unknownText}
                   </div>
                 </div>
+                {attachmentCount > 0 && workOrder.attachments && (
+                  <div className="mt-3 space-y-2 border-t border-border pt-3">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {t('workOrders.attachments', 'Attachments')} ({attachmentCount})
+                    </p>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {workOrder.attachments.slice(0, 4).map((att, idx) => (
+                        <a
+                          key={att.key || idx}
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 rounded border border-border bg-muted/30 px-2 py-1.5 text-xs hover:bg-muted/50"
+                        >
+                          <span className="truncate flex-1">{att.name || 'Attachment'}</span>
+                          {att.scanStatus === 'clean' && <CheckCircle2 className="h-3 w-3 text-emerald-600" />}
+                          {att.scanStatus === 'pending' && <Loader2 className="h-3 w-3 animate-spin text-amber-600" />}
+                          {att.scanStatus === 'infected' && <ShieldAlert className="h-3 w-3 text-red-600" />}
+                          {att.scanStatus === 'error' && <AlertCircle className="h-3 w-3 text-slate-600" />}
+                        </a>
+                      ))}
+                      {attachmentCount > 4 && (
+                        <span className="text-xs text-muted-foreground">
+                          +{attachmentCount - 4} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
