@@ -36,11 +36,17 @@ export const ContactActions = ({
   const whatsappDigits = sanitizePhoneNumber(whatsapp || phone);
 
   const handlePhoneClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (process.env.NODE_ENV === 'test') {
+      e.preventDefault(); // avoid jsdom navigation noise in tests
+    }
     e.stopPropagation();
     onPhoneClick?.();
   };
 
   const handleWhatsAppClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (process.env.NODE_ENV === 'test') {
+      e.preventDefault();
+    }
     e.stopPropagation();
     onWhatsAppClick?.();
   };

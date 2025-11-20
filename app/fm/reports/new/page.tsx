@@ -84,12 +84,30 @@ export default function NewReportPage() {
     const toastId = toast.loading(auto('Generating report...', 'toast.loading'));
 
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const res = await fetch('/api/fm/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          reportType,
+          dateRange,
+          startDate: dateRange === 'custom' ? startDate : undefined,
+          endDate: dateRange === 'custom' ? endDate : undefined,
+          format,
+          notes,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || 'Failed to generate report');
+      }
+
       toast.success(auto('Report generated successfully', 'toast.success'), { id: toastId });
       router.push('/fm/reports');
-    } catch (_error) {
-      toast.error(auto('Failed to generate report', 'toast.error'), { id: toastId });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : auto('Failed to generate report', 'toast.error');
+      toast.error(message, { id: toastId });
     } finally {
       setGenerating(false);
     }

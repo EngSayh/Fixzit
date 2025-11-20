@@ -183,7 +183,8 @@ describe('MarketplacePage', () => {
     const links = screen.getAllByTestId('next-link-mock');
     expect(links.length).toBeGreaterThanOrEqual(1);
     const link = links[0];
-    expect(link).toHaveAttribute('href', '/marketplace/product/undefined');
+    // href falls back to a generated key when slug/id are missing
+    expect(link.getAttribute('href')).toMatch(/\/marketplace\/product\/(undefined|featured-\d+)/);
     expect(within(link).getByText('Unknown Cement')).toBeInTheDocument();
     expect(within(link).getByText(/⭐\s*0\s*·\s*0/)).toBeInTheDocument();
     expect(within(link).getByText(/Lead\s*3\s*days/)).toBeInTheDocument();

@@ -3,6 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { ContactActions } from '@/components/aqar/ContactActions';
 
+const ORIGINAL_LOCATION = window.location;
+
 // Mock the translation context
 vi.mock('@/contexts/TranslationContext', () => ({
   useTranslation: () => ({
@@ -16,6 +18,22 @@ vi.mock('lucide-react', () => ({
   Phone: () => <div data-testid="phone-icon" />,
   MessageSquare: () => <div data-testid="whatsapp-icon" />,
 }));
+
+beforeAll(() => {
+  Object.defineProperty(window, 'location', {
+    value: {
+      ...ORIGINAL_LOCATION,
+      assign: vi.fn(),
+      replace: vi.fn(),
+      href: '',
+    },
+    writable: true,
+  });
+});
+
+afterAll(() => {
+  Object.defineProperty(window, 'location', { value: ORIGINAL_LOCATION, writable: true });
+});
 
 describe('ContactActions', () => {
   describe('Full Variant (Buttons)', () => {

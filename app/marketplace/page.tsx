@@ -138,9 +138,9 @@ export default async function MarketplaceHome() {
             </a>
           </div>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            {featured.map((product) => {
-              const key = product.id ?? product._id ?? product.slug;
-              const normalized = { ...product, id: product.id ?? product._id ?? product.slug };
+            {featured.map((product, idx) => {
+              const key = product.id ?? product._id ?? product.slug ?? `featured-${idx}`;
+              const normalized = { ...product, id: product.id ?? product._id ?? product.slug ?? key };
               return (
                 <ProductCard
                   key={key}
@@ -165,9 +165,9 @@ export default async function MarketplaceHome() {
               </a>
             </div>
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {carousel.items.map((product: Product) => {
-                const key = product.id ?? product._id ?? product.slug;
-                const normalized = { ...product, id: product.id ?? product._id ?? product.slug };
+              {carousel.items.map((product: Product, idx: number) => {
+                const key = product.id ?? product._id ?? product.slug ?? `carousel-${carousel.category.slug}-${idx}`;
+                const normalized = { ...product, id: product.id ?? product._id ?? product.slug ?? key };
                 return (
                   <ProductCard
                     key={key}

@@ -64,12 +64,29 @@ export default function NewSchedulePage() {
     const toastId = toast.loading(auto('Creating schedule...', 'toast.loading'));
 
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const res = await fetch('/api/fm/reports/schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          reportType,
+          frequency,
+          format,
+          recipients,
+          startDate,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || 'Failed to create schedule');
+      }
+
       toast.success(auto('Schedule created successfully', 'toast.success'), { id: toastId });
       router.push('/fm/reports');
-    } catch (_error) {
-      toast.error(auto('Failed to create schedule', 'toast.error'), { id: toastId });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : auto('Failed to create schedule', 'toast.error');
+      toast.error(message, { id: toastId });
     } finally {
       setCreating(false);
     }
