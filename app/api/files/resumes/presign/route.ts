@@ -6,6 +6,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { buildRateLimitKey } from '@/server/security/rateLimitKey';
+import { validateBucketPolicies } from '@/lib/security/s3-policy';
 
 /**
  * @openapi
@@ -28,6 +29,17 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser(req).catch(() => null);
     if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
+    if (!process.env.AWS_S3_BUCKET || !process.env.AWS_REGION) {
+      return createSecureResponse({ error: 'Storage not configured' }, 500, req);
+    }
+    const scanEnforced = process.env.S3_SCAN_REQUIRED === 'true';
+    if (scanEnforced && !process.env.AV_SCAN_ENDPOINT) {
+      return createSecureResponse({ error: 'AV scanning not configured' }, 503, req);
+    }
+    const policiesOk = await validateBucketPolicies();
+    if (!policiesOk) {
+      return createSecureResponse({ error: 'Bucket policy/encryption invalid' }, 503, req);
+    }
     const role = user.role || '';
     const allowed = new Set(['SUPER_ADMIN','ADMIN','HR']);
     if (!allowed.has(role)) return createSecureResponse({ error: 'Forbidden' }, 403, req);
@@ -44,8 +56,12 @@ export async function POST(req: NextRequest) {
       user: user.id,
       tenant: user.tenantId || 'global',
     });
-    return NextResponse.json({ url, key, headers });
-  } catch {
+    return NextResponse.json({ url, key, headers, scanRequired: scanEnforced });
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.error('[Resumes Presign] error', err);
+    }
     return createSecureResponse({ error: 'Failed to presign' }, 500, req);
   }
 }

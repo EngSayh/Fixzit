@@ -5,6 +5,7 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 import { createSecureResponse } from '@/server/security/headers';
+import { validateBucketPolicies } from '@/lib/security/s3-policy';
 
 const ALLOWED_TYPES = new Set([
   'image/png',
@@ -36,6 +37,18 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   const user = await getSessionUser(req).catch(() => null);
   if (!user) return createSecureResponse({ error: 'Unauthorized' }, 401, req);
 
+  if (!process.env.AWS_S3_BUCKET || !process.env.AWS_REGION) {
+    return createSecureResponse({ error: 'Storage not configured' }, 500, req);
+  }
+  const scanEnforced = process.env.S3_SCAN_REQUIRED === 'true';
+  if (scanEnforced && !process.env.AV_SCAN_ENDPOINT) {
+    return createSecureResponse({ error: 'AV scanning not configured' }, 503, req);
+  }
+  const policiesOk = await validateBucketPolicies();
+  if (!policiesOk) {
+    return createSecureResponse({ error: 'Bucket policy/encryption invalid' }, 503, req);
+  }
+
   const rl = rateLimit(buildRateLimitKey(req, user.id), 30, 60_000);
   if (!rl.allowed) return rateLimitError();
 
@@ -60,5 +73,5 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
   });
   const expiresAt = new Date(Date.now() + 900_000).toISOString();
 
-  return NextResponse.json({ putUrl, key, expiresAt, headers });
+  return NextResponse.json({ putUrl, key, expiresAt, headers, scanRequired: scanEnforced });
 }
