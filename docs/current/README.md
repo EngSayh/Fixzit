@@ -44,7 +44,7 @@ Use it as the first stop before diving into deeper folders.
 - [Workspace status dashboard](../WORKSPACE_STATUS.md)
 - [Workspace organization summary](../WORKSPACE_ORGANIZATION_SUMMARY.md)
 - [Notification credentials guide](../NOTIFICATION_CREDENTIALS_GUIDE.md)
-- [File organization plan](../FILE_ORGANIZATION_PLAN.md)
+- [File organization plan](../archived/workspace-org/FILE_ORGANIZATION_PLAN.md)
 
 ## Historical Material
 

@@ -83,7 +83,8 @@ if [ -d "docs/current" ]; then
   echo "=== Checking docs/current/ for completed items ==="
   echo ""
   
-  find "docs/current" -type f -name "*.md" 2>/dev/null | while read -r file; do
+  # Use process substitution instead of pipe to avoid subshell
+  while IFS= read -r file; do
     # Check if file contains "COMPLETE" or "DONE" markers
     if grep -qi "COMPLETE\|✅.*complete\|status.*complete" "$file" 2>/dev/null; then
       filename=$(basename "$file")
@@ -114,10 +115,12 @@ if [ -d "docs/current" ]; then
       fi
       
       mv -v "$file" "$MILESTONE_DIR/"
+      files_archived=$((files_archived + 1))
+      total_size=$((total_size + size))
       echo "  ✓ Archived"
       echo ""
     fi
-  done
+  done < <(find docs/current -type f -name "*.md" 2>/dev/null)
 fi
 
 # Create milestone summary
@@ -134,7 +137,7 @@ This milestone archive was created on $TIMESTAMP.
 
 ### Files Archived
 - Total files: $files_archived
-- Total size: $(echo "scale=2; $total_size / 1024 / 1024" | bc) MB
+- Total size: $(if command -v bc >/dev/null 2>&1; then echo "scale=2; $total_size / 1024 / 1024" | bc; else awk "BEGIN {printf \"%.2f\", $total_size / 1024 / 1024}"; fi) MB
 
 ### Files in Archive
 $(ls -1 "$MILESTONE_DIR" | grep -v "MILESTONE_SUMMARY.md" | sed 's/^/- /')

@@ -17,8 +17,12 @@ jobs:
       - name: Run documentation review
         id: review
         run: |
+          set -e
           chmod +x scripts/review-docs.sh
-          ./scripts/review-docs.sh > doc-review-report.txt
+          ./scripts/review-docs.sh > doc-review-report.txt || {
+            echo "Error running documentation review" >&2
+            exit 1
+          }
           
           # Extract key metrics
           needs_review=$(grep -c "⚠️" doc-review-report.txt || echo "0")
@@ -32,7 +36,7 @@ jobs:
           retention-days: 90
       
       - name: Create issue if docs need review
-        if: steps.review.outputs.needs_review > 0
+        if: steps.review.outputs.needs_review != '0'
         uses: actions/github-script@v7
         with:
           script: |
@@ -51,5 +55,9 @@ jobs:
       
       - name: Run backup cleanup
         run: |
+          set -e
           chmod +x scripts/cleanup-backups.sh
-          ./scripts/cleanup-backups.sh
+          ./scripts/cleanup-backups.sh || {
+            echo "Warning: Backup cleanup encountered issues" >&2
+            exit 0
+          }

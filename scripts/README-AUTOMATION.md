@@ -320,7 +320,6 @@ Check workflow logs in GitHub Actions:
 
 ## Related Documentation
 
-- [File Organization Report](../FILE_ORGANIZATION_AND_DUPLICATES_REPORT.md)
 - [Technical Debt Backlog](../docs/current/TECHNICAL_DEBT_BACKLOG.md)
 - [Contributing Guidelines](../CONTRIBUTING.md)
 
