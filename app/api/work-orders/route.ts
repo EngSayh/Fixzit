@@ -10,6 +10,7 @@ import { WorkOrder } from '@/server/models/WorkOrder';
 import { z } from 'zod';
 import { resolveSlaTarget, WorkOrderPriority } from '@/lib/sla';
 import { WOPriority } from '@/server/work-orders/wo.schema';
+import { deleteObject } from '@/lib/storage/s3';
 
 const attachmentInputSchema = z.object({
   key: z.string(),
@@ -52,6 +53,7 @@ const createWorkOrderSchema = z.object({
   propertyId: z.string().optional(),
   unitNumber: z.string().optional(),
   attachments: z.array(attachmentInputSchema).optional(),
+  status: z.enum(["DRAFT", "SUBMITTED", "ASSIGNED", "IN_PROGRESS", "ON_HOLD", "PENDING_APPROVAL", "COMPLETED", "VERIFIED", "CLOSED", "CANCELLED"]).default("DRAFT"),
   requester: z.object({
     type: z.enum(["TENANT", "OWNER", "STAFF"]).default("TENANT"),
     id: z.string().optional(),
@@ -139,10 +141,10 @@ export const { GET, POST } = createCrudHandlers({
       ...data,
       orgId: user.orgId,
       workOrderNumber: generateWorkOrderNumber(),
-      status: "SUBMITTED",
+      status: data.status === "DRAFT" ? "DRAFT" : "SUBMITTED",
       statusHistory: [{
         fromStatus: "DRAFT",
-        toStatus: "SUBMITTED",
+        toStatus: data.status === "DRAFT" ? "DRAFT" : "SUBMITTED",
         changedBy: user.id,
         changedAt: createdAt,
         notes: "Created via API",
@@ -158,5 +160,22 @@ export const { GET, POST } = createCrudHandlers({
       attachments,
       createdAt,
     };
+  },
+  onUpdate: async (id: string, updates: Record<string, unknown>, user) => {
+    // best-effort cleanup of removed attachment keys
+    if (!Array.isArray(updates.attachments)) {
+      return updates;
+    }
+    const existing = await WorkOrder.findOne({ _id: id, orgId: user.orgId })
+      .select({ attachments: 1 })
+      .lean<{ attachments?: { key?: string }[] } | null>();
+    if (!existing?.attachments) return updates;
+    const existingKeys = new Set((existing.attachments || []).map((a) => a.key).filter(Boolean) as string[]);
+    const nextKeys = new Set((updates.attachments as any[]).map((a) => a.key).filter(Boolean) as string[]);
+    const removed = [...existingKeys].filter((k) => !nextKeys.has(k));
+    if (removed.length) {
+      void Promise.allSettled(removed.map((key) => deleteObject(key).catch(() => undefined)));
+    }
+    return updates;
   }
 });

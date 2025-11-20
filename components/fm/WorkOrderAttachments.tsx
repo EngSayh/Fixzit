@@ -20,13 +20,14 @@ interface Props {
   workOrderId?: string;
   onChange?: (attachments: WorkOrderAttachment[]) => void;
   initialAttachments?: WorkOrderAttachment[];
+  draftCreator?: () => Promise<string | undefined>;
 }
 
 const ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'application/pdf']);
 const ALLOWED_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'pdf']);
 const MAX_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB (aligned with API guard)
 
-export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments }: Props) {
+export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments, draftCreator }: Props) {
   const [attachments, setAttachments] = useState<WorkOrderAttachment[]>(() =>
     (initialAttachments || []).map((att) => ({ ...att, scanStatus: att.scanStatus || 'pending' }))
   );
@@ -83,7 +84,11 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
 
   const handleFiles = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
-    if (!workOrderId) {
+    let targetWorkOrderId = workOrderId;
+    if (!targetWorkOrderId && draftCreator) {
+      targetWorkOrderId = await draftCreator();
+    }
+    if (!targetWorkOrderId) {
       setError('Save the work order first to enable attachments.');
       return;
     }
@@ -115,6 +120,7 @@ export function WorkOrderAttachments({ workOrderId, onChange, initialAttachments
       for (const file of safeFiles) {
         try {
           const presignRes = await fetch(`/api/work-orders/${workOrderId}/attachments/presign`, {
+          const presignRes = await fetch(`/api/work-orders/${targetWorkOrderId}/attachments/presign`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: file.name, type: file.type || 'application/octet-stream', size: file.size }),

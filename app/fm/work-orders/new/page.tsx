@@ -21,6 +21,7 @@ export default function NewWorkOrderPage() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [draftSaving, setDraftSaving] = useState(false);
 
   if (!hasOrgContext) {
     return guard;
@@ -100,7 +101,7 @@ export default function NewWorkOrderPage() {
         </div>
       )}
           {/* Form */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Form */}
             <div className="lg:col-span-2 space-y-6">
               <div className="card">
@@ -216,7 +217,40 @@ export default function NewWorkOrderPage() {
         <div className="space-y-6">
           <div className="card">
             <h3 className="text-lg font-semibold mb-4">{t('workOrders.attachments', 'Attachments')}</h3>
-            <WorkOrderAttachments workOrderId={workOrderId ?? undefined} onChange={setAttachments} />
+            <WorkOrderAttachments
+              workOrderId={workOrderId ?? undefined}
+              onChange={setAttachments}
+              draftCreator={async () => {
+                if (workOrderId || draftSaving) return workOrderId;
+                setDraftSaving(true);
+                setError(null);
+                try {
+                  const res = await fetch('/api/work-orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      title: title || 'Untitled Work Order',
+                      priority,
+                      description: description || undefined,
+                      propertyId: propertyId || undefined,
+                      unitNumber: unitNumber || undefined,
+                      status: 'DRAFT',
+                    }),
+                  });
+                  const json = await res.json().catch(() => ({}));
+                  if (!res.ok || !json?.data?._id) {
+                    throw new Error(json?.error || 'Failed to save draft work order');
+                  }
+                  setWorkOrderId(json.data._id as string);
+                  return json.data._id as string;
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : 'Failed to save draft work order');
+                  return undefined;
+                } finally {
+                  setDraftSaving(false);
+                }
+              }}
+            />
             {attachments.length > 0 && (
               <p className="text-xs text-muted-foreground mt-2">
                 {t('workOrders.attachmentsCount', '{{count}} attachment(s) ready for submission', {
