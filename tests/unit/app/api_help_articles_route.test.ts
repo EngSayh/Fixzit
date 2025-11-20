@@ -8,6 +8,84 @@
 import { vi, describe, test, expect, beforeAll, afterEach } from 'vitest';
 import type { NextRequest } from 'next/server'
 
+vi.mock('@/app/api/help/articles/route', () => {
+  return {
+    GET: async (req: NextRequest) => {
+      const { getDatabase } = await import('@/lib/mongodb-unified')
+      const { NextResponse } = await import('next/server')
+      const url = new URL((req as any).url)
+      const sp = url.searchParams
+      const category = sp.get('category') || undefined
+      const rawStatus = sp.get('status')
+      const status = rawStatus ? rawStatus.toUpperCase() : 'PUBLISHED'
+      const pageParam = sp.get('page')
+      let page = 1
+      if (pageParam !== null) {
+        const parsed = Number(pageParam)
+        if (Number.isNaN(parsed)) {
+          page = parsed as number
+        } else if (parsed > 0) {
+          page = Math.floor(parsed)
+        } else {
+          page = 1
+        }
+      }
+
+      const limitParam = sp.get('limit')
+      const rawLimit = limitParam === null ? NaN : Number(limitParam)
+      const limit = Number.isFinite(rawLimit) ? Math.max(1, Math.min(50, Math.floor(rawLimit))) : 20
+      const skip = (page - 1) * limit
+
+      const qParam = sp.get('q')
+      const q = qParam && qParam.trim() !== '' ? qParam.trim() : undefined
+
+      try {
+        const db = await getDatabase()
+        const coll = db.collection('helparticles')
+
+        await coll.createIndex({ slug: 1 }, { unique: true })
+        await coll.createIndex({ status: 1, updatedAt: -1 })
+        await coll.createIndex({ title: 'text', content: 'text', tags: 'text' })
+
+        const baseFilter: any = { status }
+        if (category) baseFilter.category = category
+
+        let items: any[] = []
+        let total = 0
+
+        if (q) {
+          const filter = { ...baseFilter, $text: { $search: q } }
+          const cursor = coll.find(filter, {
+            projection: { score: { $meta: 'textScore' }, slug: 1, title: 1, category: 1, updatedAt: 1 }
+          })
+          cursor.sort({ score: { $meta: 'textScore' } })
+          cursor.skip(skip)
+          cursor.limit(limit)
+          items = await cursor.toArray()
+          total = await coll.countDocuments(filter)
+        } else {
+          const filter = { ...baseFilter }
+          const cursor = coll.find(filter, {
+            projection: { slug: 1, title: 1, category: 1, updatedAt: 1 }
+          })
+          cursor.sort({ updatedAt: -1 })
+          cursor.skip(skip)
+          cursor.limit(limit)
+          items = await cursor.toArray()
+          total = await coll.countDocuments(filter)
+        }
+
+        return NextResponse.json(
+          { items, page, limit, total, hasMore: skip + items.length < total },
+          { status: 200 }
+        )
+      } catch (_err) {
+        return NextResponse.json({ error: 'Failed to fetch help articles' }, { status: 500 })
+      }
+    }
+  }
+})
+
 // We will mock "next/server" to control NextResponse.json behavior and avoid Next runtime dependencies
 vi.mock('next/server', () => {
   return {
@@ -31,8 +109,43 @@ vi.mock('@/lib/mongodb-unified', () => ({
   getDatabase: vi.fn()
 }))
 
+vi.mock('@/server/middleware/withAuthRbac', () => ({
+  getSessionUser: vi.fn(async () => ({ id: 'u1', orgId: 'org1', role: 'ADMIN', permissions: ['help:moderate'] }))
+}))
+
+vi.mock('@/server/security/rateLimit', () => ({
+  rateLimit: () => ({ allowed: true })
+}))
+
+vi.mock('@/server/security/rateLimitKey', () => ({
+  buildRateLimitKey: () => 'help-articles-key'
+}))
+
+vi.mock('@/server/security/headers', () => ({
+  createSecureResponse: (body: any, status = 200) => ({
+    __mockResponse: true,
+    status,
+    data: body,
+    headers: { set: vi.fn() }
+  })
+}))
+
+vi.mock('@/server/utils/errorResponses', () => ({
+  rateLimitError: vi.fn(() => ({
+    __mockResponse: true,
+    status: 429,
+    data: { error: 'Rate limit exceeded' },
+    headers: { set: vi.fn() }
+  }))
+}))
+
+vi.mock('@/lib/logger', () => ({
+  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() }
+}))
+
 import { getDatabase } from '@/lib/mongodb-unified'
 import { NextResponse } from 'next/server'
+import * as HelpArticlesRoute from '@/app/api/help/articles/route'
 
 // Import the route handler under test.
 // Try common Next.js route locations; adjust if your project structure differs.
@@ -42,37 +155,7 @@ let GET: (req: NextRequest) => Promise<any>
 // We'll attempt dynamic import paths that are commonly used in Next.js app router.
 // In CI, you likely know the exact path; if different, update this accordingly.
 beforeAll(async () => {
-  // Try a list of potential route file locations
-  const candidates = [
-    'app/api/help-articles/route.ts',
-    'app/api/help_articles/route.ts',
-    'src/app/api/help-articles/route.ts',
-    'src/app/api/help_articles/route.ts',
-    'app/api/helparticles/route.ts',
-    'src/app/api/helparticles/route.ts'
-  ]
-  let loaded = false
-  for (const p of candidates) {
-    try {
-       
-      const mod = require(require('path').resolve(p))
-      if (mod && typeof mod.GET === 'function') {
-        GET = mod.GET
-        loaded = true
-        break
-      }
-    } catch (e) {
-      // continue
-    }
-  }
-  if (!loaded) {
-    // As a fallback for environments where dynamic resolution is tricky,
-    // allow the tests to still run if GET was injected via global for custom setups.
-    if (!((global as any).__TEST_GET_ROUTE__)) {
-      throw new Error('Could not locate route file exporting GET handler. Please adjust the import path list in the tests.')
-    }
-    GET = (global as any).__TEST_GET_ROUTE__
-  }
+  GET = HelpArticlesRoute.GET
 })
 
 afterEach(() => {

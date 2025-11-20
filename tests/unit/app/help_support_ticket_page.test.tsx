@@ -12,15 +12,14 @@ import userEvent from '@testing-library/user-event';
 // Increase timeout for this suite due to heavier user interactions
 vi.setConfig({ testTimeout: 30000 });
 
+vi.mock('next-auth/react', () => ({
+  useSession: () => ({ data: null, status: 'unauthenticated' }),
+}));
+
 // Simplify navigation wrapper to avoid router side‑effects in tests
 vi.mock('@/components/ui/navigation-buttons', () => ({
-  FormWithNavigation: ({ children, onSubmit, saving }: any) => (
-    <form onSubmit={onSubmit}>
-      {children}
-      <button type="submit" disabled={saving}>
-        {saving ? 'Submitting…' : 'Submit Ticket'}
-      </button>
-    </form>
+  FormWithNavigation: ({ children, onSubmit }: any) => (
+    <form onSubmit={onSubmit}>{children}</form>
   ),
 }));
 
@@ -55,23 +54,25 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function fillRequiredFields() {
+async function fillRequiredFields(user = userEvent.setup()) {
   const subject = screen.getByLabelText(/subject \*/i);
   const description = screen.getByLabelText(/description \*/i);
   const name = screen.getByLabelText(/your name \*/i);
   const email = screen.getByLabelText(/email \*/i);
 
-  userEvent.clear(subject);
-  userEvent.type(subject, 'App crashes on login');
+  await user.clear(subject);
+  await user.type(subject, 'App crashes on login');
 
-  userEvent.clear(description);
-  userEvent.type(description, 'Steps to reproduce: 1) Open app 2) Click login 3) Crash');
+  await user.clear(description);
+  await user.type(description, 'Steps to reproduce: 1) Open app 2) Click login 3) Crash');
 
-  userEvent.clear(name);
-  userEvent.type(name, 'Jane Tester');
+  await user.clear(name);
+  await user.type(name, 'Jane Tester');
 
-  userEvent.clear(email);
-  userEvent.type(email, 'jane@example.com');
+  await user.clear(email);
+  await user.type(email, 'jane@example.com');
+
+  return user;
 }
 
 describe('SupportTicketPage', () => {
@@ -110,40 +111,42 @@ describe('SupportTicketPage', () => {
 
   test('allows selecting different module, type, and priority values', async () => {
     render(<SupportTicketPage />);
+    const user = userEvent.setup();
 
     const moduleSelect = screen.getByLabelText(/module/i);
-    await userEvent.selectOptions(moduleSelect, 'Billing');
+    await user.selectOptions(moduleSelect, 'Billing');
     expect((moduleSelect as HTMLSelectElement).value).toBe('Billing');
 
     const typeSelect = screen.getByLabelText(/^type$/i);
-    await userEvent.selectOptions(typeSelect, 'Feature');
+    await user.selectOptions(typeSelect, 'Feature');
     expect((typeSelect as HTMLSelectElement).value).toBe('Feature');
 
     const prioritySelect = screen.getByLabelText(/priority/i);
-    await userEvent.selectOptions(prioritySelect, 'High');
+    await user.selectOptions(prioritySelect, 'High');
     expect((prioritySelect as HTMLSelectElement).value).toBe('High');
   });
 
   test('submits successfully with required fields and resets form, shows success alert', async () => {
     render(<SupportTicketPage />);
 
-    fillRequiredFields();
+    const user = userEvent.setup();
+    await fillRequiredFields(user);
 
     // Optional phone provided
     const phone = screen.getByLabelText(/phone \(optional\)/i);
-    await userEvent.type(phone, '+966 55 555 5555');
+    await user.type(phone, '+966 55 555 5555');
 
     // Change some selects to non-defaults to assert payload mapping
-    await userEvent.selectOptions(screen.getByLabelText(/module/i), 'Souq');
-    await userEvent.selectOptions(screen.getByLabelText(/^type$/i), 'Complaint');
-    await userEvent.selectOptions(screen.getByLabelText(/priority/i), 'Urgent');
+    await user.selectOptions(screen.getByLabelText(/module/i), 'Souq');
+    await user.selectOptions(screen.getByLabelText(/^type$/i), 'Complaint');
+    await user.selectOptions(screen.getByLabelText(/priority/i), 'Urgent');
 
     const submit = screen.getByRole('button', { name: /submit ticket/i });
-    await userEvent.click(submit);
+    await user.click(submit);
 
     // Button should go into submitting state
-    expect(submit).toBeDisabled();
-    expect(submit).toHaveTextContent(/submitting/i);
+    await waitFor(() => expect(submit).toBeDisabled());
+    await waitFor(() => expect(submit).toHaveTextContent(/submitting/i));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
@@ -198,10 +201,11 @@ describe('SupportTicketPage', () => {
 
   test('omits phone from payload when left empty (sends undefined)', async () => {
     render(<SupportTicketPage />);
-    fillRequiredFields();
+    const user = userEvent.setup();
+    await fillRequiredFields(user);
 
     const submit = screen.getByRole('button', { name: /submit ticket/i });
-    await userEvent.click(submit);
+    await user.click(submit);
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledTimes(1);
@@ -218,10 +222,11 @@ describe('SupportTicketPage', () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: false, json: async () => ({}) });
 
     render(<SupportTicketPage />);
-    fillRequiredFields();
+    const user = userEvent.setup();
+    await fillRequiredFields(user);
 
     const submit = screen.getByRole('button', { name: /submit ticket/i });
-    await userEvent.click(submit);
+    await user.click(submit);
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalled();
@@ -234,7 +239,9 @@ describe('SupportTicketPage', () => {
     });
 
     // Button should be re-enabled and label restored
-    expect(screen.getByRole('button', { name: /submit ticket/i })).toBeEnabled();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /submit ticket/i })).toBeEnabled()
+    );
   });
 
   test('shows error alert if fetch throws', async () => {
@@ -242,9 +249,9 @@ describe('SupportTicketPage', () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('network down'));
 
     render(<SupportTicketPage />);
-    fillRequiredFields();
+    const user = await fillRequiredFields();
 
-    await userEvent.click(screen.getByRole('button', { name: /submit ticket/i }));
+    await user.click(screen.getByRole('button', { name: /submit ticket/i }));
 
     await waitFor(() => {
       expect(global.alert).toHaveBeenCalledWith(
@@ -255,11 +262,12 @@ describe('SupportTicketPage', () => {
 
   test('does not submit when required fields are missing (native required validation)', async () => {
     render(<SupportTicketPage />);
+    const user = userEvent.setup();
 
     // Only fill subject to simulate missing others
-    await userEvent.type(screen.getByLabelText(/subject \*/i), 'Partial input');
+    await user.type(screen.getByLabelText(/subject \*/i), 'Partial input');
     const submit = screen.getByRole('button', { name: /submit ticket/i });
-    await userEvent.click(submit);
+    await user.click(submit);
 
     // Native form required should prevent submission; fetch should not be called
     await waitFor(() => {
@@ -275,10 +283,10 @@ describe('SupportTicketPage', () => {
     (global.fetch as ReturnType<typeof vi.fn>).mockImplementationOnce(() => pending);
 
     render(<SupportTicketPage />);
-    fillRequiredFields();
+    const user = await fillRequiredFields();
 
     const button = screen.getByRole('button', { name: /submit ticket/i });
-    await userEvent.click(button);
+    await user.click(button);
 
     // While pending, button should reflect submitting state and be disabled
     expect(button).toBeDisabled();

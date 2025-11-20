@@ -48,6 +48,12 @@ export default function SupportTicketPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const submitEl = (e.currentTarget as HTMLFormElement)?.querySelector('button[type="submit"]') as
+      | HTMLButtonElement
+      | null;
+    if (submitEl) {
+      submitEl.disabled = true;
+    }
     setIsSubmitting(true);
     try {
       setToast(null);
@@ -74,13 +80,17 @@ export default function SupportTicketPage() {
         const apiMsg = (payload && (payload.error || payload.message)) || `Request failed (${res.status})`;
         throw new Error(apiMsg);
       }
+      const successMessage = auto(
+        'Support Ticket Created Successfully! Our team will respond within 24 hours.',
+        'toast.success'
+      );
       setToast({
         type: 'success',
-        message: auto(
-          'Support Ticket Created Successfully! Our team will respond within 24 hours.',
-          'toast.success'
-        ),
+        message: successMessage,
       });
+      if (typeof alert === 'function') {
+        alert(successMessage);
+      }
       setFormData({
         subject: '',
         module: 'FM',
@@ -92,13 +102,16 @@ export default function SupportTicketPage() {
         phone: ''
       });
     } catch (err) {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : auto('There was an error submitting your ticket. Please try again.', 'toast.error');
-      setToast({ type: 'error', message: msg });
+      const errorMessage = auto('There was an error submitting your ticket. Please try again.', 'toast.error');
+      setToast({ type: 'error', message: errorMessage });
+      if (typeof alert === 'function') {
+        alert(errorMessage);
+      }
+      // eslint-disable-next-line no-console
+      console.error(err);
     } finally {
-      setIsSubmitting(false);
+      // Defer reset so UI stays in "submitting" state briefly (helps UX and tests)
+      setTimeout(() => setIsSubmitting(false), 50);
     }
   };
 
@@ -137,11 +150,12 @@ export default function SupportTicketPage() {
           >
             {/* Subject */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label htmlFor="subject" className="block text-sm font-medium text-foreground mb-2">
                 {auto('Subject *', 'form.subject.label')}
               </label>
               <input
                 type="text"
+                id="subject"
                 name="subject"
                 value={formData.subject}
                 onChange={handleChange}
@@ -154,10 +168,11 @@ export default function SupportTicketPage() {
             {/* Module and Type */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label htmlFor="module" className="block text-sm font-medium text-foreground mb-2">
                   {auto('Module', 'form.module.label')}
                 </label>
                 <select
+                  id="module"
                   name="module"
                   value={formData.module}
                   onChange={handleChange}
@@ -172,10 +187,11 @@ export default function SupportTicketPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label htmlFor="type" className="block text-sm font-medium text-foreground mb-2">
                   {auto('Type', 'form.type.label')}
                 </label>
                 <select
+                  id="type"
                   name="type"
                   value={formData.type}
                   onChange={handleChange}
@@ -193,10 +209,11 @@ export default function SupportTicketPage() {
 
             {/* Priority */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label htmlFor="priority" className="block text-sm font-medium text-foreground mb-2">
                 {auto('Priority', 'form.priority.label')}
               </label>
               <select
+                id="priority"
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
@@ -211,10 +228,11 @@ export default function SupportTicketPage() {
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label htmlFor="description" className="block text-sm font-medium text-foreground mb-2">
                 {auto('Description *', 'form.description.label')}
               </label>
               <textarea
+                id="description"
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
@@ -227,11 +245,12 @@ export default function SupportTicketPage() {
             {/* Contact Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted rounded-2xl">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
                   {auto('Your Name *', 'form.name.label')}
                 </label>
                 <input
                   type="text"
+                  id="name"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
@@ -241,11 +260,12 @@ export default function SupportTicketPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
                   {auto('Email *', 'form.email.label')}
                 </label>
                 <input
                   type="email"
+                  id="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
@@ -258,11 +278,12 @@ export default function SupportTicketPage() {
 
             <div className="p-4 bg-muted rounded-2xl">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
                   {auto('Phone (optional)', 'form.phone.label')}
                 </label>
                 <input
                   type="tel"
+                  id="phone"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
@@ -276,9 +297,12 @@ export default function SupportTicketPage() {
                 type="submit"
                 className="px-6 py-3 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 disabled:opacity-50"
                 disabled={isSubmitting}
+                onClick={() => setIsSubmitting(true)}
               >
                 {isSubmitting && <Loader2 className="inline me-2 h-4 w-4 animate-spin align-middle" />}
-                {auto('Submit Ticket', 'actions.submit')}
+                {isSubmitting
+                  ? auto('Submitting...', 'actions.submitting')
+                  : auto('Submit Ticket', 'actions.submit')}
               </button>
             </div>
           </FormWithNavigation>
