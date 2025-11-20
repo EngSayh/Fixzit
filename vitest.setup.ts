@@ -320,6 +320,8 @@ beforeAll(async () => {
       instance: {
         dbName: 'fixzit-test',
         launchTimeout: MONGO_MEMORY_LAUNCH_TIMEOUT_MS,
+        // Explicitly request a random available port to avoid collisions
+        port: 0,
       },
     });
     

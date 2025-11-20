@@ -84,7 +84,8 @@ async function main(){
       try {
         dev.kill();
       } catch (e) {
-        // Process may have already exited
+        // Process may have already exited - log if kill failed for debugging
+        console.log(pc.gray(`ℹ Dev server cleanup: ${e.message || 'already exited'}`));
       }
     }
   }

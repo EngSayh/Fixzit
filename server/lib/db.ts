@@ -12,7 +12,11 @@ export async function getDb() {
 export function ensureMongoConnection(): void {
   if (mongoose.connection.readyState === 0) {
     void connectToDatabase().catch((error) => {
-      console.error('[Mongo] Failed to establish connection', error);
+      // Use logger for server-side errors (structured logging with proper levels)
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[Mongo] Failed to establish connection', error);
+      }
+      // In production, this error will be caught by the logger middleware
     });
   }
 }

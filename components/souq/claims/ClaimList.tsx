@@ -110,7 +110,10 @@ export default function ClaimList({ view, onSelectClaim }: ClaimListProps) {
         setTotalPages(data.totalPages);
       }
     } catch (error) {
-      console.error('Failed to fetch claims:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Failed to fetch claims:', error);
+      }
+      // TODO: Show user-friendly error toast/notification
     } finally {
       setLoading(false);
     }

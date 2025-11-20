@@ -107,8 +107,10 @@ export default function SupportTicketPage() {
       if (typeof alert === 'function') {
         alert(errorMessage);
       }
-      // eslint-disable-next-line no-console
-      console.error(err);
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('[SupportTicket] Submission error:', err);
+      }
     } finally {
       // Defer reset so UI stays in "submitting" state briefly (helps UX and tests)
       setTimeout(() => setIsSubmitting(false), 50);

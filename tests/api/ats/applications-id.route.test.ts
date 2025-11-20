@@ -14,6 +14,19 @@ vi.mock('next/server', () => ({
   }
 }));
 
+vi.mock('next-auth', () => ({
+  __esModule: true,
+  default: vi.fn(() => ({
+    handlers: {},
+    auth: vi.fn(),
+    signIn: vi.fn(),
+    signOut: vi.fn()
+  })),
+  getServerSession: vi.fn(async () => ({
+    user: { id: 'user-1', role: 'ADMIN', orgId: 'org-1' }
+  }))
+}));
+
 vi.mock('@/lib/mongodb-unified', () => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined)
 }));

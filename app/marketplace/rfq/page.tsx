@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { logger } from '@/lib/logger';
 import RFQBoard from '@/components/marketplace/RFQBoard';
 import { serverFetchJsonWithTenant } from '@/lib/marketplace/serverFetch';

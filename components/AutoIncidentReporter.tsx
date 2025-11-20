@@ -43,9 +43,19 @@ export default function AutoIncidentReporter(){
       try {
         const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
         if ('sendBeacon' in navigator && typeof navigator.sendBeacon === 'function' && navigator.sendBeacon(url, blob)) return;
-      } catch {}
+      } catch (e) {
+        // Blob creation or sendBeacon may fail in restrictive environments
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[Telemetry] sendBeacon failed, falling back to fetch:', e);
+        }
+      }
       // Fire-and-forget: Incident reporting must never crash the app, even if API fails
-      fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch(()=>{});
+      fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch((err)=>{
+        // Log fetch failures in development for debugging telemetry pipeline
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[Telemetry] Incident report fetch failed:', err);
+        }
+      });
     };
 
     const onErr = (ev: ErrorEvent) => {

@@ -1,5 +1,5 @@
 import type { NextRequest } from 'next/server';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockDbConnect = vi.fn().mockResolvedValue(undefined);
 vi.mock('@/db/mongoose', () => ({
@@ -68,23 +68,7 @@ vi.mock('@/server/utils/errorResponses', () => ({
   handleApiError: (...args: unknown[]) => mockHandleApiError(...args),
 }));
 
-let POST: (req: NextRequest) => Promise<Response>;
-const candidateImports = ['app/api/paytabs/callback/route', 'pages/api/paytabs/callback'];
-
-async function resolvePOST(): Promise<void> {
-  for (const modPath of candidateImports) {
-    try {
-      const mod = await import(`../../${modPath}`);
-      if (typeof mod.POST === 'function') {
-        POST = mod.POST as (req: NextRequest) => Promise<Response>;
-        return;
-      }
-    } catch {
-      continue;
-    }
-  }
-  throw new Error('Unable to resolve PayTabs callback route handler');
-}
+import { POST } from '@/app/api/paytabs/callback/route';
 
 function makeRequest(
   rawBody: string,
@@ -101,10 +85,6 @@ function makeRequest(
 }
 
 describe('API PayTabs callback route', () => {
-  beforeAll(async () => {
-    await resolvePOST();
-  });
-
   beforeEach(() => {
     vi.clearAllMocks();
     mockValidateCallback.mockReturnValue(true);

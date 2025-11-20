@@ -400,7 +400,14 @@ export default function ClientSidebar() {
 
   useEffect(() => {
     if (!orgId) return;
-    fetchCounters(orgId).then(setCounters).catch(() => {});
+    fetchCounters(orgId).then(setCounters).catch((error) => {
+      // Log counter fetch failures for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[Sidebar] Failed to fetch notification counters:', error);
+      }
+      // Set empty counters as fallback
+      setCounters({});
+    });
 
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
     if (!wsUrl) return;
