@@ -8,6 +8,7 @@ import { FMErrors } from '@/app/api/fm/errors';
 import { getPresignedGetUrl, putObjectBuffer } from '@/lib/storage/s3';
 import { scanS3Object } from '@/lib/security/av-scan';
 import { generateReport } from '@/lib/reports/generator';
+import { validateBucketPolicies } from '@/lib/security/s3-policy';
 
 type ReportJob = {
   _id: { toString(): string };
@@ -35,6 +36,11 @@ export async function POST(req: NextRequest) {
     const { tenantId } = tenantResolution;
 
     const db = await getDatabase();
+
+    const policiesOk = await validateBucketPolicies();
+    if (!policiesOk) {
+      return NextResponse.json({ success: false, error: 'Bucket policy/encryption invalid' }, { status: 503 });
+    }
     const collection = db.collection<ReportJob>(COLLECTION);
     const queued = await collection.find({ org_id: tenantId, status: 'queued' }).limit(5).toArray();
 
