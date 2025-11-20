@@ -1,23 +1,8 @@
 {
-  "timestamp": "2025-11-20T11:08:51Z",
-  "total_files_scanned": 3850,
-  "duplicate_groups": 1,
-  "total_wasted_bytes": 180,
-  "total_wasted_mb": 0.0,
-  "duplicates": [
-    {
-      "hash": "3d2989c1cc405c93dedd8236fd341655",
-      "size": 36,
-      "count": 6,
-      "wasted_space": 180,
-      "files": [
-        "./tests/state/technician.json",
-        "./tests/state/tenant.json",
-        "./tests/state/vendor.json",
-        "./tests/state/superadmin.json",
-        "./tests/state/admin.json",
-        "./tests/state/manager.json"
-      ]
-    }
-  ]
+  "timestamp": "2025-11-20T11:20:17Z",
+  "total_files_scanned": 3846,
+  "duplicate_groups": 0,
+  "total_wasted_bytes": 0,
+  "total_wasted_mb": 0,
+  "duplicates": []
 }

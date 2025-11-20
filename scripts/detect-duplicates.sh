@@ -63,6 +63,10 @@ def should_skip(path):
         'duplicate-detection-report.json'
     }
     
+    normalized = str(Path(path)).replace("\\", "/")
+    if normalized in {"tests/state", "tests/state/"} or "tests/state/" in normalized:
+        return True  # Known fixture duplicates; skip to reduce noise
+    
     parts = Path(path).parts
     if any(d in parts for d in skip_dirs):
         return True
