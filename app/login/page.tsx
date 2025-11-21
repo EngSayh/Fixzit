@@ -100,7 +100,8 @@ export default function LoginPage() {
   const { t, isRTL } = useTranslation();
 
   const redirectTarget = searchParams.get('next') || searchParams.get('callbackUrl') || null;
-  const showDemoCredentials = process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true' || process.env.NODE_ENV === 'development';
+  // Only show demo credentials in development, never in production
+  const showDemoCredentials = process.env.NODE_ENV === 'development';
 
   const emailRegex = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
   const empRegex = useMemo(() => /^EMP\d+$/i, []);
