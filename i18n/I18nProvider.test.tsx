@@ -10,17 +10,20 @@ import { vi, beforeEach, afterEach, describe, test, expect } from 'vitest';
  * Mock config and dictionaries BEFORE importing the module under test
  * to ensure DICTIONARIES and meta are built from predictable values.
  */
+vi.mock('./config', () => ({
+  DEFAULT_LOCALE: 'ar',
+  SUPPORTED_LOCALES: ['en', 'ar'],
+  LOCALE_META: {
+    en: { dir: 'ltr' },
+    ar: { dir: 'rtl' },
+  } as const,
+}));
+
 const DEFAULT_LOCALE = 'ar';
 const LOCALE_META = {
   en: { dir: 'ltr' },
   ar: { dir: 'rtl' },
 } as const;
-
-vi.mock('./config', () => ({
-  DEFAULT_LOCALE,
-  SUPPORTED_LOCALES: ['en', 'ar'],
-  LOCALE_META,
-}));
 
 vi.mock('./dictionaries/en', () => ({
   default: { greeting: 'Hello', code: 'en' },

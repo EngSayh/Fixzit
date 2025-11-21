@@ -1,200 +1,97 @@
-// NOTE: Test framework: Vitest
-// Tests use Vitest APIs (describe, it, expect) for test execution.
-// SKIPPED: Uses require() which doesn't resolve @ path aliases
-// TODO: Refactor to use dynamic import() instead of require()
+import { describe, it, expect, beforeAll } from 'vitest';
+import mongoose from 'mongoose';
 
-import path from 'path';
-import { vi } from 'vitest';
+type MarketplaceProductModel = mongoose.Model<any>;
 
- // We will import the model using the project alias if available, otherwise attempt relative resolution.
- // Adjust the import below if your project keeps the model in a different path.
-let MarketplaceProduct: any;
+const candidateImports = [
+  '@/server/models/MarketplaceProduct',
+  '@/server/models/marketplace/Product',
+  '../server/models/MarketplaceProduct',
+  '../server/models/marketplace/Product',
+];
 
- // Utilities to load the module under different env configurations
-const loadModelWithEnv = async (env: Partial<NodeJS.ProcessEnv>) => {
+async function loadMarketplaceProduct(): Promise<MarketplaceProductModel> {
+  // Use real mongoose implementation (disable jsdom mongoose mock)
+  vi.unmock('mongoose');
   const originalEnv = { ...process.env };
-  Object.assign(process.env, env);
-  vi.resetModules();
+  Object.assign(process.env, { NODE_ENV: 'test' });
+  let lastError: unknown;
   try {
-    // Attempt common locations
-    let loadedModule: any = null;
-    const candidates = [
-      '../server/models/MarketplaceProduct',
-      '@/server/models/MarketplaceProduct',
-      'server/models/MarketplaceProduct',
-      path.posix.join(process.cwd(), 'server/models/MarketplaceProduct'),
-      '@/models/MarketplaceProduct',
-      'models/MarketplaceProduct',
-    ];
-    let lastError: any = null;
-    for (const c of candidates) {
+    for (const mod of candidateImports) {
       try {
-         
-        loadedModule = require(c);
-        break;
-      } catch (e) {
-        lastError = e;
+        const imported = await import(mod);
+        return (imported as any).MarketplaceProduct || (imported as any).default || imported;
+      } catch (err) {
+        lastError = err;
         continue;
       }
     }
-    if (!loadedModule) {
-      throw lastError ?? new Error('Could not locate MarketplaceProduct module. Adjust import path in tests.');
-    }
-    return loadedModule.MarketplaceProduct;
   } finally {
-    // Restore env for caller to control further
     Object.assign(process.env, originalEnv);
   }
-};
+  throw lastError ?? new Error('Unable to load MarketplaceProduct model');
+}
 
-describe.skip('MarketplaceProduct Schema', () => {
+describe('MarketplaceProduct model', () => {
+  let MarketplaceProduct: MarketplaceProductModel;
+
   beforeAll(async () => {
-    MarketplaceProduct = await loadModelWithEnv({ NODE_ENV: 'test', MONGODB_URI: 'mongodb://not-local/ci' });
+    MarketplaceProduct = await loadMarketplaceProduct();
   });
 
-  it('defines required fields (tenantId, sku, slug, title)', () => {
+  const baseProduct = () => ({
+    orgId: new mongoose.Types.ObjectId(),
+    categoryId: new mongoose.Types.ObjectId(),
+    sku: 'SKU-123',
+    slug: 'sku-123',
+    title: { en: 'Test product' },
+    buy: { price: 99, currency: 'SAR', uom: 'unit' },
+  });
+
+  it('enforces required fields', () => {
     const doc = new MarketplaceProduct({});
     const err = doc.validateSync();
-    expect(err).toBeTruthy();
-    const messages = Object.values((err as any).errors || {}).map((e: any) => e.path);
-    expect(messages).toEqual(expect.arrayContaining(['tenantId', 'sku', 'slug', 'title']));
+    const paths = Object.keys(err?.errors ?? {});
+
+    expect(paths).toEqual(
+      expect.arrayContaining(['categoryId', 'sku', 'slug', 'title.en', 'buy.price', 'buy.currency', 'buy.uom'])
+    );
   });
 
-  it('applies defaults for nested rating when provided as empty object', () => {
-    const doc = new MarketplaceProduct({
-      tenantId: 't1',
-      sku: 'SKU1',
-      slug: 'slug-1',
-      title: 'Product 1',
-      rating: {}
-    });
-    expect(doc.rating).toBeDefined();
+  it('applies defaults for rating, stock, and status', () => {
+    const doc = new MarketplaceProduct(baseProduct());
     expect(doc.rating.avg).toBe(0);
     expect(doc.rating.count).toBe(0);
+    expect(doc.stock?.onHand).toBe(0);
+    expect(doc.stock?.reserved).toBe(0);
+    expect(doc.status).toBe('ACTIVE');
   });
 
-  it('applies defaults for Inventory subdocuments', () => {
-    const doc = new MarketplaceProduct({
-      tenantId: 't1',
-      sku: 'SKU1',
-      slug: 'slug-1',
-      title: 'Product 1',
-      inventories: [{}]
-    });
-    expect(Array.isArray(doc.inventories)).toBe(true);
-    expect(doc.inventories.length).toBe(1);
-    const inv = doc.inventories[0];
-    expect(inv.onHand).toBe(0);
-    expect(inv.onOrder).toBe(0);
-    expect(inv.leadDays).toBe(3);
-  });
+  it('exposes tenant-scoped unique indexes and text search index', () => {
+    const indexes = MarketplaceProduct.schema.indexes();
+    const specs = indexes.map(([spec]) => spec);
 
-  it('sets default currency "SAR" on Price subdocuments', () => {
-    const doc = new MarketplaceProduct({
-      tenantId: 't1',
-      sku: 'SKU1',
-      slug: 'slug-1',
-      title: 'Product 1',
-      prices: [{ listPrice: 99 }]
-    });
-    expect(Array.isArray(doc.prices)).toBe(true);
-    expect(doc.prices[0].currency).toBe('SAR');
-  });
-
-  it('does not assign _id to embedded subdocuments marked with { _id: false }', () => {
-    const doc = new MarketplaceProduct({
-      tenantId: 't1',
-      sku: 'SKU1',
-      slug: 'slug-1',
-      title: 'Product 1',
-      prices: [{ listPrice: 10 }],
-      inventories: [{}],
-      attributes: [{ key: 'color', value: 'red' }]
-    });
-    // AttributeSchema, PriceSchema, InventorySchema are created with { _id: false }
-    for (const p of doc.prices) {
-      expect(p._id).toBeUndefined();
-      expect(p.id).toBeUndefined();
-    }
-    for (const inv of doc.inventories) {
-      expect(inv._id).toBeUndefined();
-      expect(inv.id).toBeUndefined();
-    }
-    for (const attr of doc.attributes) {
-      expect(attr._id).toBeUndefined();
-      expect(attr.id).toBeUndefined();
-    }
-  });
-
-  it('includes expected indexes on the schema', () => {
-    // Access schema via the model (works without DB connection)
-    const schema = MarketplaceProduct.schema;
-    const indexes = schema.indexes ? schema.indexes() : [];
-    // Convert to comparable strings to avoid deep diffs on options
-    const normalized: Array<{ spec: Record<string, any>; unique: boolean; text: boolean }> = indexes.map(([spec, opts]: [Record<string, any>, Record<string, any>]) => ({
-      spec,
-      unique: Boolean(opts && (opts as Record<string, any>).unique),
-      text: Object.values(spec).some((v: any) => v === 'text'),
-    }));
-
-    // Unique compound indexes
-    expect(normalized).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ spec: { tenantId: 1, sku: 1 }, unique: true }),
-        expect.objectContaining({ spec: { tenantId: 1, slug: 1 }, unique: true }),
-      ])
+    expect(specs).toEqual(expect.arrayContaining([{ orgId: 1, sku: 1 }, { orgId: 1, slug: 1 }]));
+    const textIndex = specs.find(
+      (spec) =>
+        spec.orgId === 1 &&
+        spec.title === 'text' &&
+        spec.summary === 'text' &&
+        spec.brand === 'text' &&
+        spec.standards === 'text'
     );
-
-    // Text index over title, brand, searchable, attributes.value
-    const hasTextIndex = normalized.some(
-      (idx: { spec: Record<string, any>; text: boolean }) =>
-        idx.text &&
-        idx.spec['title'] === 'text' &&
-        idx.spec['brand'] === 'text' &&
-        idx.spec['searchable'] === 'text' &&
-        idx.spec['attributes.value'] === 'text'
-    );
-    expect(hasTextIndex).toBe(true);
+    expect(textIndex).toBeDefined();
   });
 
-  it('does not set tierPrices by default when omitted in Price subdoc', () => {
+  it('preserves provided media and specs structures', () => {
     const doc = new MarketplaceProduct({
-      tenantId: 't1',
-      sku: 'SKU1',
-      slug: 'slug-1',
-      title: 'Product 1',
-      prices: [{ listPrice: 55 }]
+      ...baseProduct(),
+      media: [{ url: 'https://cdn.example.com/img.png', role: 'GALLERY' }],
+      specs: { color: 'red', weight: 2 },
     });
-    expect(doc.prices[0].tierPrices === undefined || Array.isArray(doc.prices[0].tierPrices)).toBe(true);
-  });
 
-  it('accepts images and attributes arrays and preserves values', () => {
-    const doc = new MarketplaceProduct({
-      tenantId: 't1',
-      sku: 'SKU1',
-      slug: 'slug-1',
-      title: 'Product 1',
-      images: ['a.jpg', 'b.jpg'],
-      attributes: [{ key: 'size', value: 'M' }]
-    });
-    expect(doc.images).toEqual(['a.jpg', 'b.jpg']);
-    expect(doc.attributes).toEqual([expect.objectContaining({ key: 'size', value: 'M' })]);
-  });
-
-  it('validates required fields within Price subdoc (listPrice required)', () => {
-    const doc = new MarketplaceProduct({
-      tenantId: 't1',
-      sku: 'SKU1',
-      slug: 'slug-1',
-      title: 'Product 1',
-      prices: [{}]
-    });
-    const err = doc.validateSync();
-    // listPrice is required inside PriceSchema
-    const priceErrorPaths = Object.values((err?.errors ?? {})).map((e: any) => e.path);
-    // Mongoose error path for nested array required commonly looks like 'prices.0.listPrice'
-    const hasListPriceError = priceErrorPaths.some((p: any) => String(p).endsWith('.listPrice') || String(p).includes('prices.0.listPrice'));
-    expect(hasListPriceError).toBe(true);
+    expect(doc.media).toEqual([expect.objectContaining({ url: 'https://cdn.example.com/img.png', role: 'GALLERY' })]);
+    expect(doc.specs.color).toBe('red');
+    expect(doc.specs.weight).toBe(2);
   });
 });
-

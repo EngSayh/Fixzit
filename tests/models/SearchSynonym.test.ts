@@ -1,235 +1,137 @@
-// Tests for SearchSynonym model selection and schema behavior
-// Framework: Vitest by replacing jest with vi and expect APIs as needed)
-// NOTE: These tests are SKIPPED - they use require() with @ alias which doesn't work
-// TODO: Refactor to use dynamic import() instead of require()
+import { describe, it, expect, vi, afterEach } from 'vitest';
 
-import path from "path"
-import { vi, describe, test, expect, afterEach } from "vitest"
+const modulePath = '@/server/models/SearchSynonym';
 
-// Utilities to load module fresh with controlled env and mocks
-function withIsolatedModule<T>(env: Record<string, string | undefined>, mocks: { [k: string]: any }, loader: () => T): T {
-  const oldEnv = { ...process.env }
-  Object.keys(env).forEach(k => {
-    const v = env[k]
-    if (typeof v === "undefined") delete (process.env as any)[k]
-    else (process.env as any)[k] = v as string
-  })
-
-  vi.resetModules()
-  // Apply require mocks
-  Object.entries(mocks).forEach(([mod, impl]) => {
-    vi.doMock(mod, () => impl)
-  })
-
-  try {
-    return loader()
-  } finally {
-    vi.unmock("mongoose")
-    process.env = oldEnv
+async function loadWithMocks(
+  options: {
+    mongooseMock?: any;
+  } = {}
+) {
+  vi.resetModules();
+  if (options.mongooseMock) {
+    const mocked = options.mongooseMock;
+    const value = { ...(mocked as Record<string, unknown>) };
+    (value as any).default = value;
+    if (!value.__esModule) value.__esModule = true;
+    vi.doMock('mongoose', () => value);
   }
+  return import(modulePath);
 }
 
-// Helper to resolve module under test.
-// Adjust path if the model file resides elsewhere; tests rely on path alias "@"
-const modulePath = "@/server/models/SearchSynonym"
+afterEach(() => {
+  vi.resetModules();
+  vi.restoreAllMocks();
+  vi.clearAllMocks();
+  vi.unmock('mongoose');
+});
 
-describe.skip("models/SearchSynonym - environment-based model selection", () => {
-  afterEach(() => {
-    vi.resetModules()
-    vi.restoreAllMocks()
-    vi.clearAllMocks()
-    vi.unmock("mongoose")
-  })
-
-  test("uses mock DB when NODE_ENV=development and MONGODB_URI is undefined", () => {
-    const { SearchSynonym } = withIsolatedModule(
-      { NODE_ENV: "development", MONGODB_URI: undefined },
-      {
-        mongoose: {
-          Schema: class {},
-          model: vi.fn(),
-          models: {}
-        }
-      },
-      () => require(modulePath)
-    )
-    expect(SearchSynonym).toBeDefined()
-    expect(SearchSynonym.name).toBe("searchsynonyms")
-  })
-
-  test("uses mock DB when NODE_ENV=development and MONGODB_URI is localhost", () => {
-    const { SearchSynonym } = withIsolatedModule(
-      { NODE_ENV: "development", MONGODB_URI: "mongodb://localhost:27017/db" },
-      {
-        mongoose: {
-          Schema: class {},
-          model: vi.fn(),
-          models: {}
-        }
-      },
-      () => require(modulePath)
-    )
-    expect(SearchSynonym).toBeDefined()
-    expect(SearchSynonym.name).toBe("searchsynonyms")
-  })
-
-  test("uses real mongoose model when NODE_ENV!=development (e.g., test) even if MONGODB_URI undefined", () => {
-    const fakeSchema = {}
-    const fakeModelInst = { __kind: "MongooseModel", modelName: "SearchSynonym" }
-    const mockIndex = vi.fn()
-    const mockSchemaCtor = vi.fn().mockImplementation(() => {
-      const instance = Object.create({ index: mockIndex })
-      Object.assign(instance, fakeSchema)
-      return instance
-    })
-
-    const { SearchSynonym } = withIsolatedModule(
-      { NODE_ENV: "test", MONGODB_URI: undefined },
-      {
-        mongoose: {
-          Schema: mockSchemaCtor,
-          model: vi.fn().mockReturnValue(fakeModelInst)
-        }
-      },
-      () => require(modulePath)
-    )
-    expect(SearchSynonym).toBe(fakeModelInst)
-    expect(mockSchemaCtor).toHaveBeenCalledTimes(1)
-    expect(mockIndex).toHaveBeenCalledWith({ locale: 1, term: 1 }, { unique: true })
-  })
-
-  test("reuses existing mongoose model if models.SearchSynonym exists", () => {
-    const fakeSchema = {}
-    const existingModel = { __kind: "ExistingMongooseModel", modelName: "SearchSynonym" }
-    const mockIndex = vi.fn()
-    const mockSchemaCtor = vi.fn().mockImplementation(() => {
-      const instance = Object.create({ index: mockIndex })
-      Object.assign(instance, fakeSchema)
-      return instance
-    })
-
-    const { SearchSynonym } = withIsolatedModule(
-      { NODE_ENV: "production", MONGODB_URI: "mongodb+srv://cluster/some" },
-      {
-        mongoose: {
-          Schema: mockSchemaCtor,
-          model: vi.fn(), // should not be called because models.SearchSynonym exists
-          models: { SearchSynonym: existingModel }
-        }
-      },
-      () => require(modulePath)
-    )
-
-    expect(SearchSynonym).toBe(existingModel)
-  })
-})
-
-describe.skip("models/SearchSynonym - schema constraints", () => {
-  afterEach(() => {
-    vi.resetModules()
-    vi.restoreAllMocks()
-    vi.clearAllMocks()
-    vi.unmock("mongoose")
-  })
-
-  test("defines locale enum ['en','ar'], term required, synonyms array of string, timestamps enabled", () => {
-    const schemaOptsRef: any = { timestamps: true }
-    const schemaArgRef: any = {
-      locale: { type: String, enum: ['en','ar'], required: true, index: true },
-      term: { type: String, required: true },
-      synonyms: [String]
-    }
-
-    const indexSpy = vi.fn()
+describe('SearchSynonym model registration', () => {
+  it('reuses existing mongoose model when available', async () => {
+    const existingModel = { __kind: 'ExistingModel' };
+    const indexSpy = vi.fn();
     class FakeSchema {
-      public def: any
-      public opts: any
-      constructor(def: any, opts: any) {
-        this.def = def
-        this.opts = opts
+      public definition: unknown;
+      public opts: unknown;
+      constructor(def: unknown, opts: unknown) {
+        this.definition = def;
+        this.opts = opts;
       }
-      index = indexSpy
+      index = indexSpy;
+      plugin = vi.fn();
     }
 
-    const { default: mongooseDefault, SearchSynonym: _ } = withIsolatedModule(
-      { NODE_ENV: "test" },
-      {
-        mongoose: {
-          Schema: FakeSchema as any,
-          model: vi.fn().mockReturnValue({}),
-          models: {}
-        }
+    const { SearchSynonym } = await loadWithMocks({
+      mongooseMock: {
+        __esModule: true,
+        Schema: FakeSchema as any,
+        model: vi.fn(),
+        models: { SearchSynonym: existingModel },
       },
-      () => require(modulePath)
-    )
+    });
 
-    // Access the constructed schema instance via the last FakeSchema instance
-    // We cannot directly access it, but we can assert what index was called with,
-    // and confirm constructor received expected def/opts via a spy.
-    // To inspect constructor args, we wrap FakeSchema with a jest spy.
-  })
+    expect(SearchSynonym).toBe(existingModel);
+    expect(indexSpy).toHaveBeenCalledWith({ locale: 1, term: 1 }, { unique: true });
+  });
 
-  test("index on (locale, term) is unique", () => {
-    const indexSpy = vi.fn()
-    const ctorSpy = vi.fn()
+  it('registers a new model with timestamps and locale/term schema', async () => {
+    const indexSpy = vi.fn();
+    const constructorSpy = vi.fn();
     class FakeSchema {
+      public definition: any;
+      public opts: any;
       constructor(def: any, opts: any) {
-        ctorSpy(def, opts)
+        constructorSpy(def, opts);
+        this.definition = def;
+        this.opts = opts;
       }
-      index = indexSpy
+      index = indexSpy;
+      plugin = vi.fn();
     }
+    const modelSpy = vi.fn().mockReturnValue({ __kind: 'NewModel' });
 
-    withIsolatedModule(
-      { NODE_ENV: "test" },
-      {
-        mongoose: {
-          Schema: FakeSchema as any,
-          model: vi.fn().mockReturnValue({}),
-          models: {}
-        }
+    const { SearchSynonym } = await loadWithMocks({
+      mongooseMock: {
+        __esModule: true,
+        Schema: FakeSchema as any,
+        model: modelSpy,
+        models: {},
       },
-      () => require(modulePath)
-    )
+    });
 
-    expect(indexSpy).toHaveBeenCalledWith({ locale: 1, term: 1 }, { unique: true })
-    // Validate core field shape
-    const [defArg, optsArg] = (ctorSpy.mock.calls[0] ?? [])
-    expect(optsArg).toEqual({ timestamps: true })
+    expect(SearchSynonym).toEqual({ __kind: 'NewModel' });
+    const [defArg, optsArg] = constructorSpy.mock.calls[0] || [];
+    expect(optsArg).toMatchObject({ timestamps: true });
     expect(defArg).toMatchObject({
-      locale: { type: expect.any(Function), enum: ['en','ar'], required: true, index: true },
+      locale: { type: expect.any(Function), enum: ['en', 'ar'], required: true },
       term: { type: expect.any(Function), required: true },
-      synonyms: [expect.any(Function)]
-    })
-  })
-})
+      synonyms: [expect.any(Function)],
+    });
+    expect(indexSpy).toHaveBeenCalledWith({ locale: 1, term: 1 }, { unique: true });
+  });
+});
 
-describe.skip("models/SearchSynonym - negative and edge behaviors without DB", () => {
-  afterEach(() => {
-    vi.resetModules()
-    vi.restoreAllMocks()
-    vi.clearAllMocks()
-  })
-
-  test("invalid environment combination: NODE_ENV=development with remote MONGODB_URI uses real model", () => {
-    const fakeSchema = {}
-    const fakeModelInst = { __kind: "MongooseModel", modelName: "SearchSynonym" }
-    const mockIndex = vi.fn()
-    const mockSchemaCtor = vi.fn().mockImplementation(() => {
-      const instance = Object.create({ index: mockIndex })
-      Object.assign(instance, fakeSchema)
-      return instance
-    })
-
-    const { SearchSynonym } = withIsolatedModule(
-      { NODE_ENV: "development", MONGODB_URI: "mongodb+srv://prod/uri" },
-      {
-        mongoose: {
-          Schema: mockSchemaCtor,
-          model: vi.fn().mockReturnValue(fakeModelInst)
+describe('SearchSynonym schema defaults (real import)', () => {
+  it('allows storing synonyms for a locale/term pair', async () => {
+    vi.unmock('mongoose');
+    await vi.resetModules();
+    const candidates = [modulePath, '../server/models/SearchSynonym', '@/server/models/SearchSynonym', 'server/models/SearchSynonym'];
+    let SearchSynonym: any;
+    let schemaExport: any;
+    const attempts: string[] = [];
+    for (const p of candidates) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const mod = await import(p);
+        const candidateKeys = Object.keys(mod).join(',');
+        const candidate = (mod as any).SearchSynonym || (mod as any).default || mod;
+        schemaExport = schemaExport || (mod as any).SearchSynonymSchema;
+        const hasSchema = Boolean((candidate as any)?.schema);
+        attempts.push(`${p}:${candidateKeys}:schema=${hasSchema}`);
+        if (candidate && (candidate as any).schema) {
+          SearchSynonym = candidate;
+          break;
         }
-      },
-      () => require(modulePath)
-    )
-    expect(SearchSynonym).toBe(fakeModelInst)
-  })
-})
+      } catch {
+        attempts.push(`${p}:ERR`);
+        continue;
+      }
+    }
+    if (!SearchSynonym && schemaExport) {
+      // Fall back to direct schema export when model is mocked without schema prop
+      SearchSynonym = { schema: schemaExport };
+    }
+    if (!SearchSynonym) {
+      throw new Error(`Could not resolve SearchSynonym model. Attempts: ${attempts.join(' | ')}`);
+    }
+    const schema = (SearchSynonym as any)?.schema || schemaExport;
+    expect(schema).toBeDefined();
+    if (!schema) return;
+
+    const shape = (schema as any).obj || (schema as any).definition || schema;
+    expect(shape).toMatchObject({
+      locale: { type: expect.any(Function), enum: ['en', 'ar'], required: true },
+      term: { type: expect.any(Function), required: true },
+      synonyms: [expect.any(Function)],
+    });
+  });
+});
