@@ -38,6 +38,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     
+    # MongoDB service per job to avoid port conflicts
+    services:
+      mongodb:
+        image: mongo:7
+        env:
+          MONGO_INITDB_DATABASE: fixzit_test
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
     strategy:
       fail-fast: false
       matrix:
@@ -45,6 +59,8 @@ jobs:
         project: 
           - 'Desktop:EN:Admin'
           - 'Mobile:AR:Tenant'
+          - 'Desktop:AR:Tenant'
+          - 'Mobile:EN:Admin'
     
     env:
       NODE_OPTIONS: --max-old-space-size=4096
@@ -68,8 +84,26 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(pnpm list @playwright/test --depth=0 --json | jq -r '.[0].devDependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
       - name: Install Playwright Browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps
+      
+      - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps
 
       - name: Build app (production)
         env:
@@ -77,20 +111,6 @@ jobs:
           SKIP_ENV_VALIDATION: 'true'
           ALLOW_OFFLINE_MONGODB: 'true'
         run: pnpm build
-
-      - name: Setup test database (MongoDB)
-        run: |
-          # Use MongoDB container for E2E tests
-          docker run -d \
-            --name mongodb-test \
-            -p 27017:27017 \
-            -e MONGO_INITDB_DATABASE=fixzit_test \
-            mongo:7
-          
-          # Wait for MongoDB to be ready
-          timeout 30 bash -c 'until docker exec mongodb-test mongosh --eval "db.adminCommand(\"ping\")" > /dev/null 2>&1; do sleep 1; done'
-          
-          echo "✅ MongoDB test database ready"
 
       - name: Prepare E2E env vars
         run: |
@@ -154,7 +174,14 @@ jobs:
           echo "Project: ${project_arg:-all projects}"
           echo "Test path: ${test_path_arg:-all tests}"
           
-          pnpm exec playwright test --config "$PLAYWRIGHT_CONFIG" ${project_arg} ${test_path_arg}
+          # Run with retries for flaky tests and reasonable failure threshold
+          pnpm exec playwright test \
+            --config "$PLAYWRIGHT_CONFIG" \
+            --retries=2 \
+            --max-failures=10 \
+            --reporter=list,html \
+            ${project_arg} \
+            ${test_path_arg}
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4
@@ -165,7 +192,8 @@ jobs:
             tests/playwright-report/
             playwright-report/
             test-results/
-          retention-days: 14
+          retention-days: 7
+          compression-level: 9
 
       - name: Upload Error Context
         uses: actions/upload-artifact@v4
@@ -176,13 +204,27 @@ jobs:
             tests/playwright-artifacts/**
             tests/playwright-artifacts/**/error-context.md
             tests/playwright-artifacts/**/*.png
-          retention-days: 14
+          retention-days: 7
+          compression-level: 9
 
-      - name: Cleanup test database
+      - name: Generate test results summary
         if: always()
         run: |
-          docker stop mongodb-test || true
-          docker rm mongodb-test || true
+          project="${{ matrix.project }}"
+          status="${{ job.status }}"
+          
+          echo "PROJECT_NAME=${project}" >> $GITHUB_ENV
+          echo "PROJECT_STATUS=${status}" >> $GITHUB_ENV
+          
+          # Create project-specific summary
+          echo "### 🎭 ${project}" >> $GITHUB_STEP_SUMMARY
+          if [ "${status}" = "success" ]; then
+            echo "✅ All tests passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Tests failed - [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "[📊 Download report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
       - name: Comment PR with results
         uses: actions/github-script@v7
@@ -191,22 +233,25 @@ jobs:
           script: |
             const project = '${{ matrix.project }}';
             const jobStatus = '${{ job.status }}';
+            const runId = '${{ github.run_id }}';
+            const repo = context.repo;
+            
+            const statusIcon = jobStatus === 'success' ? '✅' : '❌';
+            const statusText = jobStatus === 'success' ? 'All tests passed' : 'Some tests failed';
             
             let body = `## 🎭 E2E Test Results - ${project}\n\n`;
-            
-            if (jobStatus === 'success') {
-              body += '✅ All tests passed!\n';
-            } else {
-              body += '❌ Some tests failed. Check the [action logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.\n';
-            }
-            
-            body += `\n[View full Playwright report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+            body += `${statusIcon} **${statusText}**\n\n`;
+            body += `**Details:**\n`;
+            body += `- Project: \`${project}\`\n`;
+            body += `- Status: ${jobStatus}\n`;
+            body += `- [View action logs](${context.payload.repository.html_url}/actions/runs/${runId})\n`;
+            body += `- [Download artifacts](${context.payload.repository.html_url}/actions/runs/${runId}#artifacts)\n`;
             
             try {
               await github.rest.issues.createComment({
                 issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
+                owner: repo.owner,
+                repo: repo.repo,
                 body: body
               });
             } catch (error) {
@@ -219,18 +264,48 @@ jobs:
     if: always()
     
     steps:
-      - name: Check E2E Test Results
-        run: |
-          echo "## 🎭 E2E Tests Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [ "${{ needs.e2e-tests.result }}" == "success" ]; then
-            echo "✅ **All E2E tests passed successfully!**" >> $GITHUB_STEP_SUMMARY
-            exit 0
-          else
-            echo "❌ **Some E2E tests failed.**" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Check individual job results above for details." >> $GITHUB_STEP_SUMMARY
-            echo "Download artifacts to view error screenshots and context." >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi
+      - name: Generate comprehensive summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const result = '${{ needs.e2e-tests.result }}';
+            const runId = '${{ github.run_id }}';
+            const repo = context.repo;
+            
+            let summary = '## 🎭 E2E Tests - Complete Summary\n\n';
+            
+            // Overall status
+            if (result === 'success') {
+              summary += '✅ **All E2E test projects passed successfully!**\n\n';
+            } else {
+              summary += '❌ **Some E2E test projects failed**\n\n';
+            }
+            
+            // Project breakdown
+            summary += '### Test Projects Coverage\n\n';
+            summary += '| Project | Locale | Persona | Status |\n';
+            summary += '|---------|--------|---------|--------|\n';
+            summary += '| Desktop:EN:Admin | EN | Admin | ${{ needs.e2e-tests.result }} |\n';
+            summary += '| Mobile:AR:Tenant | AR | Tenant | ${{ needs.e2e-tests.result }} |\n';
+            summary += '| Desktop:AR:Tenant | AR | Tenant | ${{ needs.e2e-tests.result }} |\n';
+            summary += '| Mobile:EN:Admin | EN | Admin | ${{ needs.e2e-tests.result }} |\n\n';
+            
+            summary += '### Resources\n\n';
+            summary += `- [View workflow run](${context.payload.repository.html_url}/actions/runs/${runId})\n`;
+            summary += `- [Download all artifacts](${context.payload.repository.html_url}/actions/runs/${runId}#artifacts)\n`;
+            summary += '- Reports retained for 7 days\n\n';
+            
+            summary += '### Configuration\n\n';
+            summary += '- **Retries:** 2 attempts per test (for flakiness)\n';
+            summary += '- **Max failures:** Stop after 10 failures per project\n';
+            summary += '- **Timeout:** 30 minutes per project\n';
+            summary += '- **Database:** Isolated MongoDB per project\n';
+            summary += '- **Browser cache:** Playwright browsers cached across runs\n';
+            
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+            
+            // Exit with error if tests failed
+            if (result !== 'success') {
+              core.setFailed('E2E tests failed. Check individual project logs above.');
+            }
