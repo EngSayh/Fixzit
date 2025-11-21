@@ -116,13 +116,16 @@ export async function GET(
         // Calculate opening balance (balance before startDate if provided)
         let openingBalance = 0;
         if (startDate) {
-          const entriesBeforeStart = await LedgerEntry.find({
+          const entriesBeforeStart = (await LedgerEntry.find({
             orgId: new Types.ObjectId(user.orgId),
             accountId: new Types.ObjectId(params.accountId),
             journalDate: { $lt: new Date(startDate) }
-          }).sort({ journalDate: 1, createdAt: 1 });
+          })
+            .sort({ journalDate: 1, createdAt: 1 })
+            .lean<LedgerEntryDocument>()
+            .exec()) as unknown as LedgerEntryDocument[];
           
-          openingBalance = (entriesBeforeStart as LedgerEntryDocument[]).reduce((balance: number, entry) => {
+          openingBalance = entriesBeforeStart.reduce((balance: number, entry) => {
             return balance + entry.debit - entry.credit;
           }, 0);
         }

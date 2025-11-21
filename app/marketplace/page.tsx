@@ -27,6 +27,19 @@ interface Product {
     onHand: number;
     reserved: number;
   };
+  [key: string]: unknown;
+}
+
+interface MarketplaceProductCard {
+  id: string;
+  slug?: string;
+  title: { en: string };
+  buy: {
+    price: number;
+    currency: string;
+    uom: string;
+  };
+  [key: string]: unknown;
 }
 
 const offlineMarketplaceEnabled = process.env.ALLOW_OFFLINE_MONGODB === 'true';
@@ -140,9 +153,12 @@ export default async function MarketplaceHome() {
           </div>
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {featured.map((product, idx) => {
-              const p = product as any;
-              const key = p?.id ?? p?._id ?? p?.slug ?? `featured-${idx}`;
-              const normalized = { ...p, id: key };
+              const p = product as unknown as Product;
+              const idFromObject = typeof p?._id === 'object' && p._id && 'toString' in p._id 
+                ? (p._id as { toString: () => string }).toString() 
+                : String(p?._id ?? '');
+              const key = p?.id || idFromObject || p?.slug || `featured-${idx}`;
+              const normalized: MarketplaceProductCard = { ...p, id: key, title: p.title, buy: p.buy };
               return (
                 <ProductCard
                   key={key}

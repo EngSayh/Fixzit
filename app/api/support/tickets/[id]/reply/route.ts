@@ -10,6 +10,13 @@ import {rateLimitError} from '@/server/utils/errorResponses';
 import { createSecureResponse } from '@/server/security/headers';
 import { buildRateLimitKey } from '@/server/security/rateLimitKey';
 
+interface TicketDocument {
+  createdBy?: { toString?: () => string } | string;
+  messages?: Array<{ byUserId?: string; byRole: string; text: string; at: Date }>;
+  status?: string;
+  [key: string]: unknown;
+}
+
 const schema = z.object({ text: z.string().min(1) });
 
 /**

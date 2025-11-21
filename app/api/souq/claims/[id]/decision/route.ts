@@ -79,7 +79,8 @@ export async function POST(
     const counterEvidence = claim.sellerResponse?.counterEvidence;
     let sellerProtected = false;
     if (Array.isArray(counterEvidence)) {
-      const evidenceTypes = (counterEvidence as CounterEvidenceEntry[]).map((entry) =>
+      const entries = counterEvidence as unknown as CounterEvidenceEntry[];
+      const evidenceTypes = entries.map((entry) =>
         (entry?.type || '').toString().toLowerCase()
       );
       sellerProtected = evidenceTypes.includes('tracking') && evidenceTypes.includes('signature');

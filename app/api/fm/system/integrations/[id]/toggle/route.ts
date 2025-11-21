@@ -67,13 +67,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     );
 
     interface MongoResult<T> { value?: T; ok?: number; }
-    const mongoResult = result as MongoResult<Record<string, unknown>> | Record<string, unknown>;
-    const doc = 'value' in mongoResult ? mongoResult.value : mongoResult;
+    const mongoResult = result as MongoResult<IntegrationDocument> | IntegrationDocument | null;
+    const doc = mongoResult && 'value' in mongoResult ? mongoResult.value : mongoResult;
     if (!doc) {
       return FMErrors.internalError();
     }
 
-    return NextResponse.json({ success: true, data: mapIntegration(doc) });
+    return NextResponse.json({ success: true, data: mapIntegration(doc as IntegrationDocument) });
   } catch (error) {
     logger.error('FM Integrations toggle API error', error as Error);
     return FMErrors.internalError();

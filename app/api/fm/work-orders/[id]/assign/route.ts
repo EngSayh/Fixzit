@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
+import { ModifyResult, ObjectId } from 'mongodb';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 import {
@@ -63,7 +63,7 @@ export async function POST(
       { returnDocument: 'after' }
     );
 
-    const updated = result?.value;
+    const updated = (result as ModifyResult<WorkOrderDocument> | null)?.value;
     if (!updated) {
       return FMErrors.notFound('Work order');
     }

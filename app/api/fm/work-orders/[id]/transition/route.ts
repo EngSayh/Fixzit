@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
+import { ModifyResult, ObjectId } from 'mongodb';
 import { logger } from '@/lib/logger';
 import { getDatabase } from '@/lib/mongodb-unified';
 import { FMErrors } from '@/app/api/fm/errors';
@@ -29,6 +29,7 @@ import {
 } from '../../utils';
 import { resolveTenantId } from '../../../utils/tenant';
 import { getSessionUser, UnauthorizedError, type SessionUser } from '@/server/middleware/withAuthRbac';
+import type { WorkOrderUser } from '@/types/fm/work-order';
 
 interface AttachmentWithCategory {
   category?: string;
@@ -42,7 +43,7 @@ interface WorkOrderForTransition {
   requesterId?: string;
   ownerUserId?: string;
   location?: string | { propertyId?: string };
-  requester?: { userId?: string };
+  requester?: WorkOrderUser | { userId?: string; [key: string]: unknown };
   assignment?: {
     assignedTo?: {
       userId?: string;
@@ -50,7 +51,7 @@ interface WorkOrderForTransition {
       technicianId?: string;
     };
   };
-  attachments?: AttachmentWithCategory[];
+  attachments?: Array<AttachmentWithCategory | string>;
   [key: string]: unknown;
 }
 import { requireFmAbility } from '../../../utils/auth';
@@ -152,11 +153,11 @@ export async function POST(
     }
 
     // Apply update
-    const result = await collection.findOneAndUpdate(
+    const result = (await collection.findOneAndUpdate(
       { _id: new ObjectId(id), tenantId },
       { $set: update },
       { returnDocument: 'after' }
-    );
+    )) as unknown as ModifyResult<WorkOrderDocument>;
     const updated = result?.value;
 
     if (!updated) {
@@ -374,9 +375,19 @@ function buildResourceContext(
 ): ResourceCtx {
   const userId = (user?.id ?? user?.email ?? 'unknown').toString();
   const orgId = workOrder.orgId?.toString?.() ?? tenantId;
-  const propertyId = workOrder.propertyId ?? workOrder.location?.propertyId;
-  const requesterId = workOrder.requesterId ?? workOrder.requester?.userId;
-  const ownerId = workOrder.ownerUserId ?? workOrder.requester?.userId ?? requesterId;
+  const propertyId =
+    workOrder.propertyId ??
+    (typeof workOrder.location === 'object' ? workOrder.location?.propertyId : undefined);
+  const requesterUser = workOrder.requester as WorkOrderUser | { userId?: string } | undefined;
+  const requesterId =
+    workOrder.requesterId ??
+    (requesterUser && 'userId' in requesterUser ? requesterUser.userId : undefined) ??
+    (requesterUser && 'id' in requesterUser ? requesterUser.id : undefined);
+  const ownerId =
+    workOrder.ownerUserId ??
+    (requesterUser && 'userId' in requesterUser ? requesterUser.userId : undefined) ??
+    (requesterUser && 'id' in requesterUser ? requesterUser.id : undefined) ??
+    requesterId;
 
   const isOwnerOfProperty = ownerId ? String(ownerId) === userId : false;
   const isSuperAdmin = Boolean(user?.isSuperAdmin);
@@ -401,16 +412,18 @@ function buildResourceContext(
   };
 }
 
-function collectUploadedMedia(attachments: AttachmentWithCategory[] | undefined): ResourceCtx['uploadedMedia'] {
+function collectUploadedMedia(
+  attachments: Array<AttachmentWithCategory | string> | undefined
+): ResourceCtx['uploadedMedia'] {
   if (!attachments?.length) return [];
   const allowed = new Set(['BEFORE', 'AFTER', 'DURING', 'QUOTE']);
   const collected = attachments
-    .map((attachment) => attachment?.category ?? attachment?.type)
+    .map((attachment) =>
+      typeof attachment === 'string' ? undefined : attachment?.category ?? attachment?.type
+    )
     .filter((cat): cat is string => Boolean(cat))
     .map((category) => category.toString().toUpperCase());
-  return Array.from(
-    new Set(collected.filter((value) => allowed.has(value)))
-  ) as ResourceCtx['uploadedMedia'];
+  return Array.from(new Set(collected.filter((value) => allowed.has(value)))) as ResourceCtx['uploadedMedia'];
 }
 
 function isActorAssignedToWorkOrder(workOrder: WorkOrderForTransition, user: SessionUser): boolean {

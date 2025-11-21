@@ -135,12 +135,15 @@ export async function GET(request: NextRequest) {
     
     // Only add price filter if we have valid numbers
     if (minPrice !== undefined || maxPrice !== undefined) {
-      query['price.amount'] = {};
+      const priceRange: { $gte?: number; $lte?: number } = {};
       if (minPrice !== undefined && minPrice > 0) {
-        query['price.amount'].$gte = minPrice;
+        priceRange.$gte = minPrice;
       }
       if (maxPrice !== undefined && maxPrice > 0) {
-        query['price.amount'].$lte = maxPrice;
+        priceRange.$lte = maxPrice;
+      }
+      if (Object.keys(priceRange).length > 0) {
+        query['price.amount'] = priceRange;
       }
     }
     

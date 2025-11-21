@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
     // Authenticate user
     let user: SessionUser;
     try {
-      user = await getSessionUser(req) as SessionUser;
+      user = (await getSessionUser(req)) as unknown as SessionUser;
     } catch (_error) {
       logger.warn('[POST /api/payments/tap/checkout] Unauthenticated request', { correlationId });
       return NextResponse.json(
@@ -356,7 +356,7 @@ export async function GET(req: NextRequest) {
     // Authenticate user
     let user: SessionUser;
     try {
-      user = await getSessionUser(req) as SessionUser;
+      user = (await getSessionUser(req)) as unknown as SessionUser;
     } catch (_error) {
       logger.warn('[GET /api/payments/tap/checkout] Unauthenticated request', { correlationId });
       return NextResponse.json(

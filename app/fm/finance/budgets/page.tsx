@@ -21,7 +21,9 @@ export default function BudgetsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [budgets, setBudgets] = useState<BudgetCardProps[]>([]);
   const [loading, setLoading] = useState(false);
-  const resolvedOrgId = orgId || (supportOrg as any)?.orgId || (session?.user as any)?.orgId;
+  const supportOrgTyped = supportOrg as unknown as { orgId?: string } | undefined;
+  const sessionUserTyped = session?.user as unknown as { orgId?: string } | undefined;
+  const resolvedOrgId = orgId || supportOrgTyped?.orgId || sessionUserTyped?.orgId;
 
   useEffect(() => {
     const fetchBudgets = async () => {

@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
       return unauthorizedError();
     }
     await connectToDatabase();
-    const cart = await getOrCreateCart(context.orgId, context.userId) as CartDocument;
+    const cart = (await getOrCreateCart(context.orgId, context.userId)) as unknown as CartDocument;
     const productIds = cart.lines.map((line) => line.productId);
     const products = await Product.find({ _id: { $in: productIds } }).lean();
     const productMap = new Map(
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       return notFoundError('Product');
     }
 
-    const cart = await getOrCreateCart(context.orgId, context.userId) as CartDocument;
+    const cart = (await getOrCreateCart(context.orgId, context.userId)) as unknown as CartDocument;
     const lineIndex = cart.lines.findIndex((line) => line.productId.toString() === productId.toString());
 
     if (lineIndex >= 0) {
@@ -126,7 +126,9 @@ export async function POST(request: NextRequest) {
     }
 
     recalcCartTotals(cart);
-    await cart.save();
+    if (typeof cart.save === 'function') {
+      await cart.save();
+    }
 
     return NextResponse.json({
       ok: true,
@@ -140,5 +142,3 @@ export async function POST(request: NextRequest) {
     return createSecureResponse({ error: 'Unable to update cart' }, 500, request);
   }
 }
-
-

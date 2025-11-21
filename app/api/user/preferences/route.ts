@@ -7,6 +7,17 @@ import { logger } from '@/lib/logger';
 
 type ThemePreference = 'light' | 'dark' | 'system';
 
+interface UserPreferences {
+  language?: string;
+  theme?: ThemePreference;
+  notifications?: {
+    email?: boolean;
+    push?: boolean;
+    sms?: boolean;
+  };
+  [key: string]: unknown;
+}
+
 const DEFAULT_NOTIFICATIONS = {
   email: true,
   push: true,

@@ -75,7 +75,9 @@ export default function InvoicesPage() {
   const { t } = useTranslation();
   const { data: session } = useSession();
   const { hasOrgContext, guard, orgId, supportOrg } = useFmOrgGuard({ moduleId: 'finance' });
-  const resolvedOrgId = orgId || (supportOrg as any)?.orgId || (session?.user as any)?.orgId;
+  const supportOrgTyped = supportOrg as unknown as { orgId?: string } | undefined;
+  const sessionUserTyped = session?.user as unknown as { orgId?: string } | undefined;
+  const resolvedOrgId = orgId || supportOrgTyped?.orgId || sessionUserTyped?.orgId;
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');

@@ -464,7 +464,7 @@ export async function POST(request: NextRequest) {
       otp,
       expiresAt,
       attempts: 0,
-      userId: user._id.toString(),
+      userId: user._id?.toString?.() || loginIdentifier,
       phone: userPhone,
     });
 
@@ -498,7 +498,7 @@ export async function POST(request: NextRequest) {
     if (!smsResult.success) {
       otpStore.delete(loginIdentifier);
       logger.error('[OTP] Failed to send SMS', {
-        userId: user._id.toString(),
+        userId: user._id?.toString?.() || loginIdentifier,
         error: smsResult.error,
       });
       return NextResponse.json(
@@ -511,7 +511,7 @@ export async function POST(request: NextRequest) {
     }
 
     logger.info('[OTP] OTP sent successfully', {
-      userId: user._id.toString(),
+      userId: user._id?.toString?.() || loginIdentifier,
       identifier: loginIdentifier,
       phone: userPhone.slice(-4),
     });

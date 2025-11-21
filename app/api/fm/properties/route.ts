@@ -314,7 +314,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: mapProperty(doc),
+      data: mapProperty(doc as PropertyDocument),
       message: 'Property updated successfully',
     });
   } catch (error) {

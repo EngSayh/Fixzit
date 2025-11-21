@@ -3,19 +3,8 @@ import { auth } from '@/auth';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 import { LeaveService } from '@/server/services/hr/leave.service';
-import type { LeaveRequestStatus } from '@/server/models/hr.models';
-
-interface LeaveRequestInput {
-  orgId: string;
-  employeeId: string;
-  leaveTypeId: string;
-  startDate: Date;
-  endDate: Date;
-  numberOfDays: number;
-  status: string;
-  reason?: string;
-  approvalHistory: unknown[];
-}
+import type { LeaveRequestDoc, LeaveRequestStatus } from '@/server/models/hr.models';
+import { Types } from 'mongoose';
 
 export async function GET(req: NextRequest) {
   try {
@@ -52,17 +41,17 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase();
 
-    const leaveInput: LeaveRequestInput = {
-      orgId: session.user.orgId,
-      employeeId: body.employeeId,
-      leaveTypeId: body.leaveTypeId,
+    const leaveInput = {
+      orgId: new Types.ObjectId(session.user.orgId),
+      employeeId: new Types.ObjectId(body.employeeId),
+      leaveTypeId: new Types.ObjectId(body.leaveTypeId),
       startDate: new Date(body.startDate),
       endDate: new Date(body.endDate),
       numberOfDays: body.numberOfDays,
       status: 'PENDING',
       reason: body.reason,
       approvalHistory: [],
-    };
+    } as unknown as Omit<LeaveRequestDoc, 'createdAt' | 'updatedAt' | 'isDeleted'>;
     const requestDoc = await LeaveService.request(leaveInput);
 
     return NextResponse.json(requestDoc, { status: 201 });

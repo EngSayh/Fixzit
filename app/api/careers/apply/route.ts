@@ -7,8 +7,16 @@ import { rateLimit } from '@/server/security/rateLimit';
 import { rateLimitError } from '@/server/utils/errorResponses';
 import { getClientIP } from '@/server/security/headers';
 
+import { Types } from 'mongoose';
+
 interface JobWithScreening {
-  screeningRules?: unknown;
+  _id: string | Types.ObjectId;
+  orgId?: string | Types.ObjectId | null;
+  status?: string;
+  visibility?: string;
+  skills?: string[];
+  requirements?: string[];
+  screeningRules?: { minYears?: number };
   [key: string]: unknown;
 }
 
@@ -80,7 +88,11 @@ export async function POST(req: NextRequest) {
     const phoneE164 = String(formData.get('phoneE164') || '').trim();
 
     const jobTyped = job as unknown as JobWithScreening;
-    const normalizedJob = { ...jobTyped, screeningRules: jobTyped.screeningRules ?? undefined };
+    const normalizedJob: JobWithScreening = {
+      ...jobTyped,
+      _id: jobTyped?._id ?? (job as { _id?: string | Types.ObjectId })?._id ?? '',
+      screeningRules: jobTyped?.screeningRules ?? undefined,
+    };
 
     try {
       const result = await submitApplicationFromForm({

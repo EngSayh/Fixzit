@@ -1,5 +1,4 @@
 'use client';
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
@@ -13,6 +12,12 @@ import ModuleViewTabs from '@/components/fm/ModuleViewTabs';
 import { Plug, Check, X, Settings } from 'lucide-react';
 import { useFmOrgGuard } from '@/components/fm/useFmOrgGuard';
 import { useEffect } from 'react';
+
+interface RemoteIntegration {
+  id: string;
+  status: string;
+  [key: string]: unknown;
+}
 
 const INTEGRATIONS = [
   {
@@ -74,9 +79,10 @@ export default function IntegrationsPage() {
         if (res.ok) {
           const json = await res.json();
           if (Array.isArray(json?.data)) {
+            const remoteIntegrations = json.data as RemoteIntegration[];
             setIntegrations((prev) =>
               prev.map((int) => {
-                const remote = json.data.find((x: any) => x.id === int.id);
+                const remote = remoteIntegrations.find((x) => x.id === int.id);
                 return remote ? { ...int, status: remote.status } : int;
               })
             );

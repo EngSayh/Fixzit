@@ -82,14 +82,20 @@ export async function POST(
 
     if (Array.isArray(counterEvidence) && counterEvidence.length) {
       interface EvidenceInput { type: string; url: string; description?: string; [key: string]: unknown }
-      sellerResponse.counterEvidence = (counterEvidence as EvidenceInput[]).map((item, idx: number): Evidence => ({
-        evidenceId: `SR-${params.id}-${idx + 1}`,
-        uploadedBy: 'seller',
-        type: item.type,
-        url: item.url,
-        description: item.description,
-        uploadedAt: new Date(),
-      }));
+      const allowedTypes = new Set<Evidence['type']>(['video', 'image', 'photo', 'document', 'tracking_info', 'message_screenshot']);
+      sellerResponse.counterEvidence = (counterEvidence as EvidenceInput[]).map((item, idx: number): Evidence => {
+        const normalizedType = allowedTypes.has(item.type as Evidence['type'])
+          ? (item.type as Evidence['type'])
+          : 'document';
+        return {
+          evidenceId: `SR-${params.id}-${idx + 1}`,
+          uploadedBy: 'seller',
+          type: normalizedType,
+          url: item.url,
+          description: item.description,
+          uploadedAt: new Date(),
+        };
+      });
     }
 
     const newStatus = action === 'accept' ? 'approved' : 'under_review';
