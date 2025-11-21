@@ -21,6 +21,7 @@ type InviteDocument = {
   status: 'pending' | 'sent';
   createdAt: Date;
   updatedAt: Date;
+  jobId?: string;
 };
 
 type InvitePayload = {
@@ -116,7 +117,31 @@ export async function POST(req: NextRequest) {
 
     await collection.insertOne(doc);
 
-    // TODO: enqueue email invitation job
+    // Enqueue email invitation job for background processing
+    try {
+      const { JobQueue } = await import('@/lib/jobs/queue');
+      const jobId = await JobQueue.enqueue('email-invitation', {
+        inviteId: doc._id.toString(),
+        email: doc.email,
+        firstName: doc.firstName,
+        lastName: doc.lastName,
+        role: doc.role,
+        orgId: tenantId,
+      });
+      
+      // Update invite status to 'sent' immediately (will be processed in background)
+      await collection.updateOne(
+        { _id: doc._id },
+        { $set: { status: 'sent', jobId, updatedAt: new Date() } }
+      );
+      doc.status = 'sent';
+      doc.jobId = jobId;
+    } catch (error) {
+      logger.error('Failed to enqueue invitation email', error as Error, {
+        inviteId: doc._id.toString(),
+      });
+      // Don't fail the request if job queue fails - invitation is still created
+    }
 
     return NextResponse.json({ success: true, data: mapInvite(doc) }, { status: 201 });
   } catch (error) {

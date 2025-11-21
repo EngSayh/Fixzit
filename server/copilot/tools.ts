@@ -6,6 +6,7 @@ import { WorkOrder, WorkOrderDoc } from "@/server/models/WorkOrder";
 import { OwnerStatement } from "@/server/models/OwnerStatement";
 import { CopilotSession } from "./session";
 import { getPermittedTools } from "./policy";
+import { recordAudit } from "./audit";
 import { logger } from "@/lib/logger";
 import { Types } from "mongoose";
 
@@ -27,6 +28,19 @@ const DEFAULT_RESPONSE_MINUTES = 120;
 const DEFAULT_RESOLUTION_MINUTES = 72 * 60;
 
 type RequesterType = "TENANT" | "OWNER" | "STAFF" | "EXTERNAL";
+
+// Shared lean type for FMApproval documents
+type ApprovalLean = {
+  _id?: Types.ObjectId | string;
+  approverId?: Types.ObjectId | string;
+  approverName?: string;
+  approverEmail?: string;
+  status?: string;
+  stages?: Array<{
+    approvers?: Array<{ toString(): string } | string>;
+    status?: string;
+  }>;
+};
 
 async function ensureToolAllowed(session: CopilotSession, tool: string) {
   const allowed = getPermittedTools(session.role);
@@ -168,6 +182,20 @@ async function listMyWorkOrders(session: CopilotSession): Promise<ToolExecutionR
   };
 
   let leanResults: LeanWorkOrder[] = [];
+  type QuotationLean = {
+    _id?: Types.ObjectId | string;
+    status?: string;
+    work_order_id?: Types.ObjectId | string;
+  };
+  type ApprovalLean = {
+    _id?: Types.ObjectId | string;
+    approverId?: Types.ObjectId | string;
+    approverName?: string;
+    approverEmail?: string;
+    status?: string;
+    stages?: Array<{ approvers?: Array<{ toString(): string } | string> }>;
+  };
+
   try {
     leanResults = (await WorkOrder.find(filter)
       .sort({ updatedAt: -1 })
@@ -369,36 +397,275 @@ async function approveQuotation(session: CopilotSession, input: Record<string, u
   await ensureToolAllowed(session, "approveQuotation");
   await db;
 
-  const quotationId = input.quotationId as string;
-  if (!quotationId) {
+  const intent = 'approveQuotation';
+  const quotationId = typeof input.quotationId === 'string' ? input.quotationId.trim() : '';
+
+  if (!quotationId || !Types.ObjectId.isValid(quotationId)) {
+    const message = session.locale === 'ar'
+      ? 'معرف عرض السعر غير صالح'
+      : 'A valid quotation ID is required';
+    await recordAudit({
+      session,
+      intent,
+      tool: intent,
+      status: "DENIED",
+      message,
+      metadata: { quotationId }
+    });
     return {
       success: false,
-      message: session.locale === 'ar' 
-        ? 'معرف عرض السعر مطلوب' 
-        : 'Quotation ID is required',
-      intent: 'approveQuotation'
+      message,
+      intent,
     };
   }
 
-  // Find quotation (placeholder - implement with actual Quotation model)
-  logger.info(`[approveQuotation] Approving quotation ${quotationId} for org ${session.tenantId}`);
-  
-  // TODO: Implement actual quotation approval logic:
-  // 1. Verify quotation exists and belongs to orgId
-  // 2. Check user has permission (owner/finance/admin)
-  // 3. Update quotation status to 'approved'
-  // 4. Create work order from approved quotation
-  // 5. Send notification to vendor
-  // 6. Log audit trail
-
-  return {
-    success: true,
-    message: session.locale === 'ar'
-      ? `تمت الموافقة على عرض السعر ${quotationId} بنجاح`
-      : `Quotation ${quotationId} approved successfully`,
-    intent: 'approveQuotation',
-    data: { quotationId, status: 'approved' }
+  type QuotationLean = {
+    _id?: Types.ObjectId | string;
+    status?: string;
+    work_order_id?: Types.ObjectId | string;
   };
+  type ApprovalLean = {
+    _id?: Types.ObjectId | string;
+    approverId?: Types.ObjectId | string;
+    approverName?: string;
+    approverEmail?: string;
+    status?: string;
+    stages?: Array<{ approvers?: Array<{ toString(): string } | string> }>;
+  };
+
+  try {
+    const [{ FMQuotation }, { FMApproval }, { User }] = await Promise.all([
+      import('@/domain/fm/fm.behavior'),
+      import('@/server/models/FMApproval'),
+      import('@/server/models/User'),
+    ]);
+
+    const quotationObjectId = new Types.ObjectId(quotationId);
+    const quotation = await FMQuotation.findOne({
+      _id: quotationObjectId,
+      org_id: session.tenantId,
+    }).lean<QuotationLean | null>();
+
+    if (!quotation) {
+      const message = session.locale === 'ar'
+        ? 'لم يتم العثور على عرض السعر في المستأجر الخاص بك'
+        : 'Quotation not found for your organization';
+      await recordAudit({
+        session,
+        intent,
+        tool: intent,
+        status: "DENIED",
+        message,
+        metadata: { quotationId }
+      });
+      return {
+        success: false,
+        message,
+        intent,
+      };
+    }
+
+    if (quotation.status === 'APPROVED') {
+      const message = session.locale === 'ar'
+        ? 'تمت الموافقة على هذا العرض مسبقاً'
+        : 'This quotation has already been approved';
+      await recordAudit({
+        session,
+        intent,
+        tool: intent,
+        status: "SUCCESS",
+        message,
+        metadata: { quotationId, status: quotation.status }
+      });
+      return {
+        success: true,
+        message,
+        intent,
+        data: { quotationId, status: 'approved' }
+      };
+    }
+
+    const approval = await FMApproval.findOne({
+      orgId: session.tenantId,
+      entityId: quotationObjectId,
+      $or: [{ entityType: 'Quotation' }, { type: 'QUOTATION' }],
+      status: 'PENDING',
+    }).lean<ApprovalLean | null>();
+
+    const privilegedRoles = new Set([
+      'SUPER_ADMIN',
+      'ADMIN',
+      'CORPORATE_ADMIN',
+      'FINANCE',
+      'FM_MANAGER',
+      'PROCUREMENT',
+      'PROPERTY_MANAGER',
+      'OWNER',
+    ]);
+    const isPrivileged = privilegedRoles.has(session.role);
+
+    const isStageApprover = approval
+      ? approval.approverId?.toString() === session.userId ||
+        (Array.isArray(approval.stages) &&
+          approval.stages.some((stage: ApprovalLean['stages'][number]) => {
+            const stageApprovers = stage?.approvers ?? [];
+            return stageApprovers.some((approver) => {
+              const approverId = typeof approver === 'string' ? approver : approver?.toString?.();
+              return approverId === session.userId;
+            });
+          }))
+      : false;
+
+    if (approval && !isPrivileged && !isStageApprover) {
+      const message = session.locale === 'ar'
+        ? 'ليست لديك صلاحية اعتماد هذا العرض'
+        : 'You are not authorized to approve this quotation';
+      await recordAudit({
+        session,
+        intent,
+        tool: intent,
+        status: "DENIED",
+        message,
+        metadata: { quotationId, approvalId: approval?._id ? approval._id.toString() : undefined }
+      });
+      return {
+        success: false,
+        message,
+        intent,
+      };
+    }
+
+    const now = new Date();
+    const updatedQuotation = await FMQuotation.findOneAndUpdate(
+      { _id: quotationObjectId, org_id: session.tenantId },
+      {
+        $set: {
+          status: 'APPROVED',
+          approved_by_user_id: Types.ObjectId.isValid(session.userId)
+            ? new Types.ObjectId(session.userId)
+            : session.userId,
+          approved_at: now,
+        },
+      },
+      { new: true }
+    ).lean<QuotationLean | null>();
+
+    if (!updatedQuotation) {
+      throw new Error('Failed to update quotation status');
+    }
+
+    if (approval) {
+      const historyEntry = {
+        timestamp: now,
+        action: 'APPROVED',
+        actorId: Types.ObjectId.isValid(session.userId)
+          ? new Types.ObjectId(session.userId)
+          : session.userId,
+        actorName: session.name ?? 'Copilot User',
+        previousStatus: approval.status,
+        newStatus: 'APPROVED',
+        notes: 'Approved via Copilot assistant',
+      };
+
+      await FMApproval.findByIdAndUpdate(approval._id, {
+        $set: {
+          status: 'APPROVED',
+          decision: 'APPROVE',
+          decisionDate: now,
+          approverId: Types.ObjectId.isValid(session.userId)
+            ? new Types.ObjectId(session.userId)
+            : session.userId,
+          approverName: session.name ?? approval.approverName,
+          approverEmail: session.email ?? approval.approverEmail,
+        },
+        $push: { history: historyEntry },
+      });
+    }
+
+    // Notify requester (best-effort, background)
+    void (async () => {
+      try {
+        if (!quotation.work_order_id) return;
+
+        const workOrder = await WorkOrder.findById(quotation.work_order_id)
+          .select(['requester'])
+          .lean<{ requester?: { userId?: unknown } } | null>();
+
+        const requesterId = workOrder?.requester?.userId
+          ? typeof workOrder.requester.userId === 'string'
+            ? workOrder.requester.userId
+            : (workOrder.requester.userId as { toString(): string }).toString()
+          : undefined;
+
+        if (!requesterId) return;
+
+        const requester = await User.findById(requesterId)
+          .select(['email', 'personal.firstName', 'personal.lastName'])
+          .lean<{ email?: string; personal?: { firstName?: string; lastName?: string } } | null>();
+
+        if (!requester?.email) return;
+
+        const { JobQueue } = await import('@/lib/jobs/queue');
+        await JobQueue.enqueue('email-notification', {
+          to: requester.email,
+          subject: `Quotation ${quotationId} approved`,
+          html: `
+            <p>Hello ${[requester.personal?.firstName, requester.personal?.lastName].filter(Boolean).join(' ') || 'there'},</p>
+            <p>Quotation #${quotationId} has been approved and is ready for processing.</p>
+            <p>Approved by: ${session.name || 'Approver'}.</p>
+          `,
+        });
+      } catch (error) {
+        logger.error('[approveQuotation] Failed to enqueue approval notification', error as Error, {
+          quotationId,
+        });
+      }
+    })();
+
+    const successMessage = session.locale === 'ar'
+      ? `تمت الموافقة على عرض السعر ${quotationId} بنجاح`
+      : `Quotation ${quotationId} approved successfully`;
+
+    await recordAudit({
+      session,
+      intent,
+      tool: intent,
+      status: "SUCCESS",
+      message: successMessage,
+      metadata: {
+        quotationId,
+        approvalId: approval?._id?.toString(),
+        workOrderId: quotation.work_order_id?.toString?.(),
+      },
+    });
+
+    return {
+      success: true,
+      message: successMessage,
+      intent,
+      data: { quotationId, status: 'approved' }
+    };
+  } catch (error) {
+    const message = session.locale === 'ar'
+      ? 'تعذر اعتماد عرض السعر'
+      : 'Unable to approve the quotation';
+
+    logger.error('[approveQuotation] Failed to approve quotation', error as Error, { quotationId });
+    await recordAudit({
+      session,
+      intent,
+      tool: intent,
+      status: "ERROR",
+      message,
+      metadata: { quotationId, error: error instanceof Error ? error.message : String(error) },
+    });
+
+    return {
+      success: false,
+      message,
+      intent,
+    };
+  }
 }
 
 async function ownerStatements(session: CopilotSession, input: Record<string, unknown>): Promise<ToolExecutionResult> {

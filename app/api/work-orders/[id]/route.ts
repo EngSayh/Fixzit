@@ -172,7 +172,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const deleteResults = await Promise.allSettled(
       removedKeys.map((key) => deleteObject(key))
     );
-    
+
     // Log failures for monitoring
     deleteResults.forEach((result, idx) => {
       if (result.status === 'rejected') {
@@ -183,14 +183,42 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         });
       }
     });
-    
-    const failedCount = deleteResults.filter(r => r.status === 'rejected').length;
-    if (failedCount > 0) {
+
+    const failedKeys = deleteResults
+      .map((result, idx) => (result.status === 'rejected' ? removedKeys[idx] : null))
+      .filter((key): key is string => Boolean(key));
+
+    if (failedKeys.length === 0) {
+      logger.info('[WorkOrder PATCH] S3 cleanup success', {
+        workOrderId: params.id,
+        total: removedKeys.length
+      });
+    } else {
       logger.warn('[WorkOrder PATCH] S3 cleanup partial failure', {
         workOrderId: params.id,
         total: removedKeys.length,
-        failed: failedCount
+        failed: failedKeys.length
       });
+
+      try {
+        const { JobQueue } = await import('@/lib/jobs/queue');
+        const jobId = await JobQueue.enqueue('s3-cleanup', {
+          keys: failedKeys,
+          workOrderId: params.id,
+          source: 'work-order-patch'
+        });
+
+        logger.info('[WorkOrder PATCH] S3 cleanup retry enqueued', {
+          workOrderId: params.id,
+          failedKeys: failedKeys.length,
+          jobId
+        });
+      } catch (error) {
+        logger.error('[WorkOrder PATCH] Failed to enqueue cleanup retry', error as Error, {
+          workOrderId: params.id,
+          failedKeys
+        });
+      }
     }
   }
 

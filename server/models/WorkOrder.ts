@@ -238,6 +238,13 @@ const WorkOrderSchema = new Schema({
     paymentDate: Date
   },
 
+  // Finance integration tracking
+  financePosted: { type: Boolean, default: false },
+  journalEntryId: { type: Schema.Types.ObjectId, ref: 'JournalEntry' },
+  journalNumber: String,
+  financePostedDate: Date,
+  financePostedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+
   // Communication and Updates
   communication: {
     comments: [{

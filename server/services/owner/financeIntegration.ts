@@ -136,7 +136,6 @@ export async function postFinanceOnClose(
     }
 
     // Check if finance already posted for this work order
-    // TODO(schema-migration): Add financePosted, journalEntryId, journalNumber to WorkOrder schema
     const workOrderFinance = workOrder as WorkOrderDoc & WorkOrderFinanceMeta;
     if (workOrderFinance.financePosted) {
       const existingJournalId =

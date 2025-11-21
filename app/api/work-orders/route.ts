@@ -193,10 +193,32 @@ export const { GET, POST } = createCrudHandlers({
               error: (res as PromiseRejectedResult).reason,
             });
           });
-          logger.info('[WorkOrder PATCH] S3 cleanup retry not implemented', {
-            workOrderId: id,
-            todo: 'enqueue cleanup retry job when queue available',
-          });
+          
+          // Enqueue cleanup retry job for failed deletions
+          const failedKeys = results
+            .map((res, idx) => (res.status === 'rejected' ? removed[idx] : null))
+            .filter((key): key is string => Boolean(key));
+          
+          if (failedKeys.length > 0) {
+            try {
+              const { JobQueue } = await import('@/lib/jobs/queue');
+              const jobId = await JobQueue.enqueue('s3-cleanup', {
+                keys: failedKeys,
+                workOrderId: id,
+                retryReason: 'partial-cleanup-failure',
+              });
+              logger.info('[WorkOrder PATCH] S3 cleanup retry job enqueued', {
+                workOrderId: id,
+                failedCount: failedKeys.length,
+                jobId,
+              });
+            } catch (error) {
+              logger.error('[WorkOrder PATCH] Failed to enqueue cleanup retry', {
+                workOrderId: id,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              });
+            }
+          }
         } else {
           logger.info('[WorkOrder PATCH] S3 cleanup success', {
             workOrderId: id,
