@@ -86,18 +86,22 @@ jobs:
           echo "✅ MongoDB test database ready"
 
       - name: Prepare E2E env vars
+        env:
+          NEXTAUTH_SECRET_VAL: ${{ secrets.NEXTAUTH_SECRET }}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork || 'false' }}" = "true" ]; then
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
             echo "Using safe defaults for forked PR (GitHub secrets are unavailable)."
             echo "NEXTAUTH_SECRET=e2e-test-secret-do-not-use-in-production" >> "$GITHUB_ENV"
             echo "AUTH_SECRET=e2e-test-secret-do-not-use-in-production" >> "$GITHUB_ENV"
             echo "GOOGLE_CLIENT_ID=" >> "$GITHUB_ENV"
             echo "GOOGLE_CLIENT_SECRET=" >> "$GITHUB_ENV"
           else
-            echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET || 'e2e-test-secret-do-not-use-in-production' }}" >> "$GITHUB_ENV"
-            echo "AUTH_SECRET=${{ secrets.NEXTAUTH_SECRET || 'e2e-test-secret-do-not-use-in-production' }}" >> "$GITHUB_ENV"
-            echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID || '' }}" >> "$GITHUB_ENV"
-            echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET || '' }}" >> "$GITHUB_ENV"
+            # Use secrets if available, otherwise use test defaults
+            echo "NEXTAUTH_SECRET=${NEXTAUTH_SECRET_VAL:-e2e-test-secret-do-not-use-in-production}" >> "$GITHUB_ENV"
+            echo "AUTH_SECRET=${NEXTAUTH_SECRET_VAL:-e2e-test-secret-do-not-use-in-production}" >> "$GITHUB_ENV"
+            # Google OAuth is optional - leave empty if not configured
+            echo "GOOGLE_CLIENT_ID=" >> "$GITHUB_ENV"
+            echo "GOOGLE_CLIENT_SECRET=" >> "$GITHUB_ENV"
           fi
 
       - name: Run Playwright E2E Tests
