@@ -10,6 +10,7 @@ import { EscrowState, type EscrowStateValue } from '@/server/models/finance/Escr
 export interface IOrder extends Document {
   _id: mongoose.Types.ObjectId;
   orderId: string;
+  orgId?: mongoose.Types.ObjectId;
   
   customerId: mongoose.Types.ObjectId;
   customerEmail: string;
@@ -119,6 +120,11 @@ const OrderSchema = new Schema<IOrder>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+      index: true,
+    },
+    orgId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Organization',
       index: true,
     },
     customerEmail: {

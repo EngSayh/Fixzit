@@ -110,6 +110,7 @@
     "mongo:normalize": "tsx scripts/mongo/normalize_org_ids.ts",
     "mongo:normalize:apply": "tsx scripts/mongo/normalize_org_ids.ts --apply",
     "guardrails:all": "npm run sidebar:snapshot && npm run ui:freeze:check && npm run i18n:check && npm run consolidate:dry",
+    "check:mock-flags": "node scripts/check-mock-flags.js",
     "lint:md": "markdownlint \"**/*.md\" \"!node_modules\" \"!.next\"",
     "lint:md:fix": "markdownlint --fix \"**/*.md\" \"!node_modules\" \"!.next\""
   },

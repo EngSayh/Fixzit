@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server';
 import type { NextResponse } from 'next/server';
-import { FMErrors } from '../errors';
+import { FMErrors, fmErrorContext } from '../errors';
 
 type TenantResolutionSuccess = {
   tenantId: string;
@@ -49,13 +49,13 @@ export function resolveTenantId(
 
   for (const [first, second] of conflictPairs) {
     if (first && second && first !== second) {
-      return { error: FMErrors.forbidden('Tenant context mismatch detected') };
+      return { error: FMErrors.forbidden('Tenant context mismatch detected', fmErrorContext(req)) };
     }
   }
 
   const tenantId = headerTenant ?? queryTenant ?? sessionTenant;
   if (!tenantId) {
-    return { error: FMErrors.missingTenant() };
+    return { error: FMErrors.missingTenant(fmErrorContext(req)) };
   }
 
   return {

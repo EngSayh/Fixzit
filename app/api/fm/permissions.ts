@@ -15,6 +15,7 @@ import {
   UnauthorizedError,
   type SessionUser,
 } from '@/server/middleware/withAuthRbac';
+import { fmErrorContext } from './errors';
 
 type PermissionOptions = {
   module?: ModuleKey;
@@ -109,29 +110,30 @@ export async function requireFmPermission(
   options: PermissionOptions
 ): Promise<PermissionSuccess | NextResponse> {
   try {
+    const errorContext = fmErrorContext(req);
     const sessionUser = await getSessionUser(req);
     const fmRole = normalizeRole(sessionUser.role);
 
     if (!fmRole) {
-      return FMErrors.forbidden('Role is not authorized for FM module');
+      return FMErrors.forbidden('Role is not authorized for FM module', errorContext);
     }
 
     const plan = normalizePlan(sessionUser.subscriptionPlan);
 
     if (!sessionUser.isSuperAdmin) {
       if (!hasModuleAccess(fmRole, options.module)) {
-        return FMErrors.forbidden('Module access denied');
+        return FMErrors.forbidden('Module access denied', errorContext);
       }
 
       if (!hasSubmoduleAccess(fmRole, plan, options.submodule)) {
-        return FMErrors.forbidden('Submodule not enabled for this role/plan');
+        return FMErrors.forbidden('Submodule not enabled for this role/plan', errorContext);
       }
 
       if (
         options.submodule &&
         !hasActionAccess(fmRole, options.submodule, options.action)
       ) {
-        return FMErrors.forbidden('Insufficient permissions for requested action');
+        return FMErrors.forbidden('Insufficient permissions for requested action', errorContext);
       }
     }
 
@@ -143,8 +145,8 @@ export async function requireFmPermission(
     };
   } catch (error) {
     if (error instanceof UnauthorizedError) {
-      return FMErrors.unauthorized();
+      return FMErrors.unauthorized('Authentication required', fmErrorContext(req));
     }
-    return FMErrors.internalError();
+    return FMErrors.internalError('Internal server error', fmErrorContext(req));
   }
 }

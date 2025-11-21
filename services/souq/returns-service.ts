@@ -26,7 +26,6 @@ interface OrderWithDates extends IOrder {
 // Helper type for order with referenced IDs
 interface OrderWithRefs extends IOrder {
   buyerId: mongoose.Types.ObjectId;
-  sellerId: mongoose.Types.ObjectId;
 }
 
 interface InitiateReturnParams {
@@ -64,6 +63,25 @@ interface ProcessRefundParams {
 }
 
 class ReturnsService {
+  /**
+   * Resolve seller for requested return items. Enforces single seller per RMA to avoid cross-seller returns.
+   */
+  private resolveSellerForItems(order: IOrder, items: InitiateReturnParams['items']): mongoose.Types.ObjectId {
+    const sellerIds = new Set<string>();
+    for (const item of items) {
+      const orderItem = order.items.find((oi) => oi.listingId.toString() === item.listingId);
+      if (!orderItem?.sellerId) {
+        throw new Error(`Seller not found for listing ${item.listingId}`);
+      }
+      sellerIds.add(orderItem.sellerId.toString());
+    }
+    if (sellerIds.size !== 1) {
+      throw new Error('Returns cannot span multiple sellers; split the request per seller');
+    }
+    const sellerId = Array.from(sellerIds)[0];
+    return new mongoose.Types.ObjectId(sellerId);
+  }
+
   /**
    * Check if an order item is eligible for return
    */
@@ -126,6 +144,8 @@ class ReturnsService {
       throw new Error('Unauthorized: Not your order');
     }
 
+    const sellerId = this.resolveSellerForItems(order, items);
+
     // Validate eligibility for all items
     for (const item of items) {
       const eligibility = await this.checkEligibility(orderId, item.listingId);
@@ -138,7 +158,7 @@ class ReturnsService {
     const rma = await RMA.create({
       orderId: new mongoose.Types.ObjectId(orderId),
       buyerId: new mongoose.Types.ObjectId(buyerId),
-      sellerId: orderWithRefs.sellerId,
+      sellerId: sellerId.toString(),
       items: items.map(item => ({
         listingId: new mongoose.Types.ObjectId(item.listingId),
         quantity: item.quantity,
@@ -165,7 +185,7 @@ class ReturnsService {
     // Notify seller
     await addJob(QUEUE_NAMES.NOTIFICATIONS, 'send-email', {
       type: 'email',
-      to: orderWithRefs.sellerId.toString(),
+      to: sellerId.toString(),
       template: 'return_initiated',
       data: { rmaId: rma._id.toString(), orderId, items }
     });
@@ -540,7 +560,7 @@ class ReturnsService {
     const startDate = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
 
     const returns = await RMA.find({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      sellerId: sellerId.toString(),
       createdAt: { $gte: startDate }
     });
 
@@ -548,7 +568,7 @@ class ReturnsService {
 
     // Calculate return rate (returns / total orders)
     const totalOrders = await Order.countDocuments({
-      sellerId: new mongoose.Types.ObjectId(sellerId),
+      'items.sellerId': new mongoose.Types.ObjectId(sellerId),
       status: 'delivered',
       deliveredAt: { $gte: startDate }
     });

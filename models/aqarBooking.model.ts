@@ -478,27 +478,33 @@ BookingSchema.statics.createWithAvailability = async function (
   const { escrowService } = await import('@/services/souq/settlements/escrow-service');
   const { logger } = await import('@/lib/logger');
   try {
-    const account = await escrowService.createEscrowAccount({
-      source: EscrowSource.AQAR_BOOKING,
-      sourceId: bookingDoc._id,
-      bookingId: bookingDoc._id,
-      orgId: bookingDoc.orgId,
-      buyerId: bookingDoc.guestId,
-      sellerId: bookingDoc.hostId,
-      expectedAmount: bookingDoc.totalPrice,
-      currency: 'SAR',
-      releaseAfter: bookingDoc.checkOutDate,
-      idempotencyKey: bookingDoc._id.toString(),
-      riskHold: false,
-    });
+    if (process.env.FEATURE_ESCROW_ENABLED !== 'false') {
+      const account = await escrowService.createEscrowAccount({
+        source: EscrowSource.AQAR_BOOKING,
+        sourceId: bookingDoc._id,
+        bookingId: bookingDoc._id,
+        orgId: bookingDoc.orgId,
+        buyerId: bookingDoc.guestId,
+        sellerId: bookingDoc.hostId,
+        expectedAmount: bookingDoc.totalPrice,
+        currency: 'SAR',
+        releaseAfter: bookingDoc.checkOutDate,
+        idempotencyKey: bookingDoc._id.toString(),
+        riskHold: false,
+      });
 
-    bookingDoc.escrow = {
-      accountId: account._id,
-      status: account.status,
-      releaseAfter: account.releasePolicy?.autoReleaseAt,
-      idempotencyKey: account.idempotencyKeys?.[0],
-    };
-    await bookingDoc.save();
+      bookingDoc.escrow = {
+        accountId: account._id,
+        status: account.status,
+        releaseAfter: account.releasePolicy?.autoReleaseAt,
+        idempotencyKey: account.idempotencyKeys?.[0],
+      };
+      await bookingDoc.save();
+    } else {
+      logger.info('[Escrow] Skipping escrow creation for booking (feature flag disabled)', {
+        bookingId: bookingDoc._id.toString(),
+      });
+    }
   } catch (error) {
     logger.error('[Escrow] Failed to create account for booking', {
       bookingId: bookingDoc._id.toString(),

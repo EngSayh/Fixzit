@@ -57,6 +57,8 @@ interface SettlementOrder {
   orderId: string;
   listingId: string;
   sellerId: string;
+  orgId?: string;
+  escrowAccountId?: string;
   orderValue: number; // Total amount buyer paid
   itemPrice: number; // Item price
   shippingFee: number; // Shipping fee
@@ -136,6 +138,115 @@ interface SettlementStatement {
   paidAt?: Date;
   notes?: string;
 }
+
+type RawOrderItem = {
+  sellerId?: unknown;
+  listingId?: unknown;
+  subtotal?: number;
+  pricePerUnit?: number;
+  quantity?: number;
+};
+
+type RawOrder = {
+  _id?: { toString?: () => string } | string;
+  items?: unknown;
+  listingId?: unknown;
+  pricing?: {
+    shippingFee?: number;
+    tax?: number;
+    discount?: number;
+    total?: number;
+  };
+  shippingFee?: number;
+  deliveredAt?: unknown;
+  completedAt?: unknown;
+  updatedAt?: unknown;
+  createdAt?: unknown;
+  returnRequest?: { refundAmount?: number };
+  refundAmount?: number;
+  hasDispute?: boolean;
+  chargebackAmount?: number;
+  escrow?: { accountId?: unknown };
+  escrowAccountId?: unknown;
+  orgId?: { toString?: () => string } | string;
+  status?: SettlementOrder['status'] | string;
+};
+
+const computeSellerOrderSnapshot = (
+  order: RawOrder,
+  sellerId: string
+): SettlementOrder | null => {
+  const items = Array.isArray(order.items) ? (order.items as RawOrderItem[]) : [];
+  const sellerItems = items.filter((item) => {
+    const itemSellerId = item?.sellerId;
+    if (!itemSellerId) return false;
+    if (typeof itemSellerId === 'string') return itemSellerId === sellerId;
+    if (typeof itemSellerId === 'object' && itemSellerId !== null && 'toString' in itemSellerId && typeof itemSellerId.toString === 'function') {
+      return itemSellerId.toString() === sellerId;
+    }
+    return String(itemSellerId) === sellerId;
+  });
+
+  if (sellerItems.length === 0) {
+    return null;
+  }
+
+  const listingId = sellerItems[0]?.listingId
+    ? sellerItems[0].listingId.toString()
+    : order.listingId?.toString?.() ?? '';
+
+  const subtotal = sellerItems.reduce((sum: number, item: RawOrderItem) => {
+    if (typeof item.subtotal === 'number') return sum + item.subtotal;
+    const price = typeof item.pricePerUnit === 'number' ? item.pricePerUnit : 0;
+    const qty = typeof item.quantity === 'number' ? item.quantity : 1;
+    return sum + price * qty;
+  }, 0);
+
+  const pricing = order.pricing ?? {};
+  const shippingFee = typeof pricing.shippingFee === 'number' ? pricing.shippingFee : order.shippingFee ?? 0;
+  const tax = typeof pricing.tax === 'number' ? pricing.tax : 0;
+  const discount = typeof pricing.discount === 'number' ? pricing.discount : 0;
+  const orderValue =
+    typeof pricing.total === 'number' ? pricing.total : Math.max(0, subtotal + shippingFee + tax - discount);
+
+  const deliveredAtRaw =
+    order.deliveredAt ??
+    order.completedAt ??
+    order.updatedAt ??
+    order.createdAt ??
+    null;
+  const deliveredAt =
+    deliveredAtRaw instanceof Date
+      ? deliveredAtRaw
+      : deliveredAtRaw
+      ? new Date(deliveredAtRaw as unknown as string | number | Date)
+      : new Date();
+
+  const refundAmount = order.returnRequest?.refundAmount ?? order.refundAmount ?? 0;
+  const hasDispute = Boolean(order.hasDispute || order.chargebackAmount);
+
+  const escrowAccountId =
+    order.escrow?.accountId?.toString?.() ??
+    order.escrowAccountId?.toString?.();
+
+  return {
+    orderId: order._id?.toString?.() ?? '',
+    listingId,
+    sellerId,
+    orgId: order.orgId?.toString?.(),
+    escrowAccountId,
+    orderValue,
+    itemPrice: subtotal,
+    shippingFee,
+    deliveredAt: deliveredAt instanceof Date ? deliveredAt : new Date(deliveredAt),
+    status: typeof order.status === 'string' && ['pending', 'eligible', 'processed', 'held', 'disputed'].includes(order.status)
+      ? (order.status as SettlementOrder['status'])
+      : 'pending',
+    hasDispute,
+    refundAmount,
+    chargebackAmount: order.chargebackAmount ?? 0,
+  };
+};
 
 /**
  * Adjustment input
@@ -229,34 +340,20 @@ export class SettlementCalculatorService {
     // Fetch eligible orders for the period
     const orders = await ordersCollection
       .find({
-        sellerId: new ObjectId(sellerId),
+        'items.sellerId': new ObjectId(sellerId),
         deliveredAt: { $gte: startDate, $lte: endDate },
         status: 'delivered',
       })
       .toArray();
 
     // Convert to settlement orders
-    const settlementOrders: SettlementOrder[] = orders.map(order => {
-      const baseOrder: SettlementOrder = {
-        orderId: order._id.toString(),
-        listingId: order.listingId,
-        sellerId: order.sellerId.toString(),
-        orderValue: order.totalAmount,
-        itemPrice: order.itemPrice,
-        shippingFee: order.shippingFee || 0,
-        deliveredAt: order.deliveredAt,
-        status: 'pending',
-        hasDispute: order.hasDispute || false,
-        refundAmount: order.refundAmount || 0,
-        chargebackAmount: order.chargebackAmount || 0,
-      };
-
-      const eligible = this.isOrderEligible({ ...baseOrder, status: 'eligible' });
-      return {
-        ...baseOrder,
-        status: eligible ? 'eligible' : 'pending',
-      };
-    });
+    const settlementOrders: SettlementOrder[] = orders
+      .map((order) => computeSellerOrderSnapshot(order, sellerId))
+      .filter((order): order is SettlementOrder => Boolean(order))
+      .map((order) => {
+        const eligible = this.isOrderEligible({ ...order, status: 'eligible' });
+        return { ...order, status: eligible ? 'eligible' : 'pending' as SettlementOrder['status'] };
+      });
 
     // Calculate totals
     let totalSales = 0;
@@ -395,6 +492,8 @@ export class SettlementCalculatorService {
     const statement: SettlementStatement = {
       statementId,
       sellerId,
+      orgId: period.orders[0]?.orgId,
+      escrowAccountId: period.orders.find((o: SettlementOrder) => o.escrowAccountId)?.escrowAccountId,
       period: {
         start: startDate,
         end: endDate,
@@ -477,7 +576,7 @@ export class SettlementCalculatorService {
 
     const orders = await ordersCollection
       .find({
-        sellerId: new ObjectId(sellerId),
+        'items.sellerId': new ObjectId(sellerId),
         deliveredAt: { $lte: reservePeriodEnd },
         'settlement.reserveReleased': { $ne: true },
       })
@@ -485,12 +584,14 @@ export class SettlementCalculatorService {
 
     let totalReleased = 0;
 
-    for (const order of orders) {
+    for (const rawOrder of orders) {
+      const order = computeSellerOrderSnapshot(rawOrder, sellerId);
+      if (!order) continue;
       const fees = this.calculateOrderFees({
-        orderId: order._id.toString(),
+        orderId: order.orderId,
         listingId: order.listingId,
-        sellerId: order.sellerId.toString(),
-        orderValue: order.totalAmount,
+        sellerId: order.sellerId,
+        orderValue: order.orderValue,
         itemPrice: order.itemPrice,
         shippingFee: order.shippingFee || 0,
         deliveredAt: order.deliveredAt,
@@ -501,7 +602,7 @@ export class SettlementCalculatorService {
 
       // Mark reserve as released
       await ordersCollection.updateOne(
-        { _id: order._id },
+        { _id: rawOrder._id },
         {
           $set: {
             'settlement.reserveReleased': true,
@@ -533,7 +634,7 @@ export class SettlementCalculatorService {
     // Calculate available balance (orders past hold period)
     const availableOrders = await ordersCollection
       .find({
-        sellerId: new ObjectId(sellerId),
+        'items.sellerId': new ObjectId(sellerId),
         status: 'delivered',
         deliveredAt: {
           $lte: new Date(Date.now() - FEE_CONFIG.holdPeriodDays * 24 * 60 * 60 * 1000),
@@ -543,12 +644,14 @@ export class SettlementCalculatorService {
       .toArray();
 
     let availableBalance = 0;
-    for (const order of availableOrders) {
+    for (const rawOrder of availableOrders) {
+      const order = computeSellerOrderSnapshot(rawOrder, sellerId);
+      if (!order) continue;
       const fees = this.calculateOrderFees({
-        orderId: order._id.toString(),
+        orderId: order.orderId,
         listingId: order.listingId,
-        sellerId: order.sellerId.toString(),
-        orderValue: order.totalAmount,
+        sellerId: order.sellerId,
+        orderValue: order.orderValue,
         itemPrice: order.itemPrice,
         shippingFee: order.shippingFee || 0,
         deliveredAt: order.deliveredAt,
@@ -560,7 +663,7 @@ export class SettlementCalculatorService {
     // Calculate reserved balance (orders within hold period)
     const reservedOrders = await ordersCollection
       .find({
-        sellerId: new ObjectId(sellerId),
+        'items.sellerId': new ObjectId(sellerId),
         status: 'delivered',
         deliveredAt: {
           $gt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
@@ -569,12 +672,14 @@ export class SettlementCalculatorService {
       .toArray();
 
     let reservedBalance = 0;
-    for (const order of reservedOrders) {
+    for (const rawOrder of reservedOrders) {
+      const order = computeSellerOrderSnapshot(rawOrder, sellerId);
+      if (!order) continue;
       const fees = this.calculateOrderFees({
-        orderId: order._id.toString(),
+        orderId: order.orderId,
         listingId: order.listingId,
-        sellerId: order.sellerId.toString(),
-        orderValue: order.totalAmount,
+        sellerId: order.sellerId,
+        orderValue: order.orderValue,
         itemPrice: order.itemPrice,
         shippingFee: order.shippingFee || 0,
         deliveredAt: order.deliveredAt,
@@ -586,18 +691,20 @@ export class SettlementCalculatorService {
     // Calculate pending balance (orders not yet delivered)
     const pendingOrders = await ordersCollection
       .find({
-        sellerId: new ObjectId(sellerId),
+        'items.sellerId': new ObjectId(sellerId),
         status: { $in: ['pending', 'processing', 'shipped'] },
       })
       .toArray();
 
     let pendingBalance = 0;
-    for (const order of pendingOrders) {
+    for (const rawOrder of pendingOrders) {
+      const order = computeSellerOrderSnapshot(rawOrder, sellerId);
+      if (!order) continue;
       const fees = this.calculateOrderFees({
-        orderId: order._id.toString(),
+        orderId: order.orderId,
         listingId: order.listingId,
-        sellerId: order.sellerId.toString(),
-        orderValue: order.totalAmount,
+        sellerId: order.sellerId,
+        orderValue: order.orderValue,
         itemPrice: order.itemPrice,
         shippingFee: order.shippingFee || 0,
         deliveredAt: new Date(),

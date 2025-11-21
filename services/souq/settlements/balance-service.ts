@@ -179,13 +179,62 @@ export class SellerBalanceService {
     const ordersCollection = db.collection('souq_orders');
     const pendingOrders = await ordersCollection
       .find({
-        sellerId: new ObjectId(sellerId),
+        'items.sellerId': new ObjectId(sellerId),
         status: { $in: ['pending', 'processing', 'shipped'] },
       })
       .toArray();
 
+    type PendingOrderItem = {
+      sellerId?: unknown;
+      subtotal?: number;
+      pricePerUnit?: number;
+      quantity?: number;
+    };
+
+    type PendingOrder = {
+      items?: unknown;
+      pricing?: {
+        shippingFee?: number;
+        tax?: number;
+        discount?: number;
+        total?: number;
+      };
+      shippingFee?: number;
+    };
+
+    const computePendingAmount = (order: PendingOrder, sellerIdStr: string): number => {
+      const items = Array.isArray(order.items) ? (order.items as PendingOrderItem[]) : [];
+      const sellerItems = items.filter((item: PendingOrderItem) => {
+        const id = item?.sellerId;
+        if (!id) return false;
+        if (typeof id === 'string') return id === sellerIdStr;
+        if (typeof id === 'object' && id !== null && 'toString' in id && typeof id.toString === 'function') {
+          return id.toString() === sellerIdStr;
+        }
+        return String(id) === sellerIdStr;
+      });
+      if (sellerItems.length === 0) return 0;
+
+      const subtotal = sellerItems.reduce((sum: number, item: PendingOrderItem) => {
+        if (typeof item.subtotal === 'number') return sum + item.subtotal;
+        const price = typeof item.pricePerUnit === 'number' ? item.pricePerUnit : 0;
+        const qty = typeof item.quantity === 'number' ? item.quantity : 1;
+        return sum + price * qty;
+      }, 0);
+
+      const pricing = order.pricing ?? {};
+      const shippingFee = typeof pricing.shippingFee === 'number' ? pricing.shippingFee : order.shippingFee ?? 0;
+      const tax = typeof pricing.tax === 'number' ? pricing.tax : 0;
+      const discount = typeof pricing.discount === 'number' ? pricing.discount : 0;
+
+      if (typeof pricing.total === 'number') {
+        return pricing.total;
+      }
+      return Math.max(0, subtotal + shippingFee + tax - discount);
+    };
+
     for (const order of pendingOrders) {
-      pending += order.totalAmount || 0;
+      pending += computePendingAmount(order as PendingOrder, sellerId);
     }
 
     return {

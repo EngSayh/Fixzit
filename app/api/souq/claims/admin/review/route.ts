@@ -11,12 +11,27 @@ const STATUS_MAP: Record<string, string[]> = {
   'under-appeal': ['escalated'],
 };
 
+const normalizeAmount = (amount: unknown): number => {
+  if (typeof amount === 'number' && Number.isFinite(amount)) return amount;
+  const parsed = Number(amount);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const extractEvidenceCounts = (claim: any) => {
+  const buyerEvidenceCount = Array.isArray(claim.buyerEvidence) ? claim.buyerEvidence.length : 0;
+  const sellerEvidenceCount = Array.isArray(claim.sellerEvidence) ? claim.sellerEvidence.length : 0;
+  const totalEvidence = buyerEvidenceCount + sellerEvidenceCount;
+  return { buyerEvidenceCount, sellerEvidenceCount, totalEvidence };
+};
+
 /**
  * Fraud Detection Scoring Engine
- * 
+ *
  * Analyzes claim patterns and calculates fraud risk score (0-100)
  */
-function calculateFraudScore(claim: any): { score: number; riskLevel: 'low' | 'medium' | 'high'; flags: string[] } {
+function calculateFraudScore(
+  claim: any
+): { score: number; riskLevel: 'low' | 'medium' | 'high'; flags: string[] } {
   let score = 0;
   const flags: string[] = [];
 
@@ -30,42 +45,47 @@ function calculateFraudScore(claim: any): { score: number; riskLevel: 'low' | 'm
     flags.push('moderate-claim-frequency');
   }
 
-  // 2. Check claim amount relative to order
-  const claimToOrderRatio = claim.orderAmount ? (claim.claimAmount / claim.orderAmount) : 1;
+  // 2. Check claim amount relative to order (fallback to requested amount when order total is unknown)
+  const claimAmount = normalizeAmount(claim.requestedAmount ?? claim.claimAmount);
+  const orderAmount = normalizeAmount(claim.orderAmount ?? claim.requestedAmount ?? claimAmount);
+  const claimToOrderRatio = orderAmount > 0 ? claimAmount / orderAmount : 1;
   if (claimToOrderRatio > 0.9) {
     score += 15;
     flags.push('high-claim-amount');
   }
 
-  // 3. Check evidence quality
-  const evidenceCount = claim.evidence?.length || 0;
-  if (evidenceCount === 0) {
+  // 3. Check evidence quality (use buyer + seller evidence arrays from the schema)
+  const { buyerEvidenceCount, sellerEvidenceCount, totalEvidence } = extractEvidenceCounts(claim);
+  if (totalEvidence === 0) {
     score += 25;
     flags.push('no-evidence');
-  } else if (evidenceCount < 2) {
+  } else if (totalEvidence < 2) {
     score += 10;
     flags.push('insufficient-evidence');
   }
 
-  // 4. Check time since order
-  const daysSinceOrder = claim.createdAt && claim.orderDate 
-    ? Math.floor((new Date(claim.createdAt).getTime() - new Date(claim.orderDate).getTime()) / (1000 * 60 * 60 * 24))
-    : 0;
+  // 4. Check time since order (only when order date is available)
+  const filedAt = claim.createdAt ? new Date(claim.createdAt) : null;
+  const orderDate = claim.orderDate ? new Date(claim.orderDate) : null;
+  const daysSinceOrder =
+    filedAt && orderDate
+      ? Math.floor((filedAt.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
   if (daysSinceOrder > 60) {
     score += 15;
     flags.push('late-filing');
   }
 
-  // 5. Check seller response
-  if (claim.sellerResponse?.provided && claim.sellerResponse?.evidence?.length > evidenceCount) {
+  // 5. Check seller defense strength (e.g., more seller evidence than buyer evidence)
+  if (sellerEvidenceCount > buyerEvidenceCount) {
     score += 10;
     flags.push('strong-seller-defense');
   }
 
   // 6. Pattern matching for common fraud indicators
-  const description = (claim.description || '').toLowerCase();
+  const description = (claim.buyerDescription || claim.description || '').toLowerCase();
   const fraudKeywords = ['never received', 'never arrived', 'empty box', 'wrong item', 'damaged'];
-  const matchedKeywords = fraudKeywords.filter(keyword => description.includes(keyword));
+  const matchedKeywords = fraudKeywords.filter((keyword) => description.includes(keyword));
   if (matchedKeywords.length > 2) {
     score += 10;
     flags.push('generic-description');
@@ -113,8 +133,10 @@ function generateRecommendation(claim: any, fraudAnalysis: ReturnType<typeof cal
   }
 
   // Low fraud risk - check evidence quality
-  const evidenceCount = claim.evidence?.length || 0;
-  const hasSellerResponse = claim.sellerResponse?.provided || false;
+  const { totalEvidence, sellerEvidenceCount } = extractEvidenceCounts(claim);
+  const hasSellerResponse =
+    Boolean(claim.sellerRespondedAt || claim.sellerResponse) || sellerEvidenceCount > 0;
+  const evidenceCount = totalEvidence;
 
   if (evidenceCount >= 3 && !hasSellerResponse) {
     return {
@@ -206,7 +228,8 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       query.$or = [
-        { claimNumber: { $regex: search, $options: 'i' } },
+        { claimId: { $regex: search, $options: 'i' } },
+        { orderNumber: { $regex: search, $options: 'i' } },
         { orderId: { $regex: search, $options: 'i' } },
       ];
     }
@@ -214,7 +237,7 @@ export async function GET(request: NextRequest) {
     // Fetch claims with pagination
     const skip = (page - 1) * limit;
     const claims = await SouqClaim.find(query)
-      .sort({ priority: -1, createdAt: -1 })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate('buyerId', 'name email')
@@ -225,6 +248,7 @@ export async function GET(request: NextRequest) {
 
     // Enrich claims with fraud detection and recommendations
     const enrichedClaims = claims.map((claim: any) => {
+      const claimAmount = normalizeAmount(claim.requestedAmount ?? claim.orderAmount ?? 0);
       // Calculate fraud score
       const fraudAnalysis = calculateFraudScore(claim);
       
@@ -232,22 +256,26 @@ export async function GET(request: NextRequest) {
       const recommendation = generateRecommendation(claim, fraudAnalysis);
 
       // Determine priority based on fraud score and claim amount
+      const evidenceCounts = extractEvidenceCounts(claim);
+
       let priority: 'high' | 'medium' | 'low' = 'medium';
-      if (fraudAnalysis.score >= 70 || claim.claimAmount > 5000) {
+      if (fraudAnalysis.score >= 70 || claimAmount > 5000) {
         priority = 'high';
-      } else if (fraudAnalysis.score < 40 && claim.claimAmount < 500) {
+      } else if (fraudAnalysis.score < 40 && claimAmount < 500) {
         priority = 'low';
       }
 
+      const claimNumber = claim.claimNumber || claim.claimId || claim.orderNumber;
+
       return {
-        claimId: claim._id,
-        claimNumber: claim.claimNumber,
+        claimId: claim._id?.toString?.() ?? claim.claimId,
+        claimNumber,
         orderId: claim.orderId,
         claimType: claim.claimType,
         status: claim.status,
-        claimAmount: claim.claimAmount,
-        buyerName: claim.buyerId?.name || 'Unknown',
-        sellerName: claim.sellerId?.name || 'Unknown',
+        claimAmount,
+        buyerName: claim.buyerId?.name || claim.buyerName || 'Unknown',
+        sellerName: claim.sellerId?.name || claim.sellerName || 'Unknown',
         
         // Fraud detection data
         fraudScore: fraudAnalysis.score,
@@ -260,7 +288,7 @@ export async function GET(request: NextRequest) {
         reasoning: recommendation.reasoning,
         
         // Metadata
-        evidenceCount: claim.evidence?.length || 0,
+        evidenceCount: evidenceCounts.totalEvidence,
         priority,
         createdAt: claim.createdAt,
         updatedAt: claim.updatedAt,
@@ -282,12 +310,12 @@ export async function GET(request: NextRequest) {
       ),
       highPriority: filteredClaims.filter(c => c.priority === 'high').length,
       highRisk: filteredClaims.filter(c => c.fraudScore >= 70).length,
-      totalAmount: filteredClaims.reduce((sum, c) => sum + c.claimAmount, 0),
+      totalAmount: filteredClaims.reduce((sum, c) => sum + (c.claimAmount || 0), 0),
     };
 
     const totalForPagination =
       riskLevel && riskLevel !== 'all' ? filteredClaims.length : totalClaims;
-    const totalPages = totalForPagination > 0 ? Math.ceil(totalForPagination / limit) : 0;
+    const totalPages = totalForPagination > 0 ? Math.ceil(totalForPagination / limit) : 1;
 
     return NextResponse.json({
       success: true,

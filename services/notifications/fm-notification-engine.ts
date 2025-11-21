@@ -705,7 +705,7 @@ async function sendEmailNotifications(
 
   await sgMail.send({
     to: emails,
-    from: process.env.SENDGRID_FROM_EMAIL || 'notifications@fixizit.com',
+    from: process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM || 'noreply@fixzit.sa',
     subject: escapedTitle,
     text: notification.body,
     html: `

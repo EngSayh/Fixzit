@@ -1,12 +1,13 @@
 import { Types } from 'mongoose';
-import { EscrowAccount, EscrowSource, EscrowState, type EscrowStateValue } from '@/server/models/finance/EscrowAccount';
+import { EscrowAccount, EscrowSource, EscrowState } from '@/server/models/finance/EscrowAccount';
 import { EscrowTransaction, EscrowTransactionStatus, EscrowTransactionType } from '@/server/models/finance/EscrowTransaction';
 import { EscrowRelease, EscrowReleaseStatus } from '@/server/models/finance/EscrowRelease';
-import { connectDb } from '@/lib/mongodb-unified';
+import { connectDb, getDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 import { addJob, QUEUE_NAMES } from '@/lib/queues/setup';
 import { metricsRegistry } from '@/lib/monitoring/metrics-registry';
 import { Counter, Histogram } from 'prom-client';
+import { validateEscrowEventPayload } from './escrow-events.contract';
 
 export type EscrowEventName =
   | 'escrow.created'
@@ -66,19 +67,20 @@ function assertEscrowEnabled() {
 }
 
 async function emitEscrowEvent(event: EscrowEventName, payload: Record<string, unknown>): Promise<void> {
+  const validatedPayload = validateEscrowEventPayload(event, payload);
   escrowEventCounter.inc({ event });
   const idempotencyKey =
-    (payload.idempotencyKey as string | undefined) ??
-    `${event}-${payload.escrowAccountId ?? ''}-${payload.transactionId ?? ''}`;
+    (validatedPayload.idempotencyKey as string | undefined) ??
+    `${event}-${validatedPayload.escrowAccountId ?? ''}-${validatedPayload.transactionId ?? ''}`;
 
   try {
-    const db = await connectDb();
+    const db = await getDatabase();
     await db.collection('finance_escrow_events').updateOne(
       { event, idempotencyKey },
       {
         $setOnInsert: { createdAt: new Date() },
         $set: {
-          payload,
+          payload: validatedPayload,
           status: 'queued',
           updatedAt: new Date(),
         },
@@ -90,18 +92,18 @@ async function emitEscrowEvent(event: EscrowEventName, payload: Record<string, u
     logger.warn('[Escrow] Failed to persist event outbox', {
       event,
       error: storeError.message,
-      payload,
+      payload: validatedPayload,
     });
   }
 
   try {
-    await addJob(QUEUE_NAMES.SETTLEMENT, event, payload, {
+    await addJob(QUEUE_NAMES.SETTLEMENT, event, validatedPayload, {
       jobId: idempotencyKey,
     });
     await addJob(
       QUEUE_NAMES.NOTIFICATIONS,
       'escrow.notification',
-      { event, payload, idempotencyKey },
+      { event, payload: validatedPayload, idempotencyKey },
       { jobId: `notify-${idempotencyKey}` }
     );
   } catch (_error) {
@@ -109,10 +111,10 @@ async function emitEscrowEvent(event: EscrowEventName, payload: Record<string, u
     logger.warn('[Escrow] Failed to enqueue event, falling back to log-only', {
       event,
       error: error.message,
-      payload,
+      payload: validatedPayload,
     });
   }
-  logger.info(`[Escrow] Event emitted ${event}`, payload);
+  logger.info(`[Escrow] Event emitted ${event}`, validatedPayload);
 }
 
 export class EscrowService {
