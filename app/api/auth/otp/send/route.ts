@@ -337,9 +337,11 @@ export async function POST(request: NextRequest) {
 
       // 6. Verify password via bcrypt (demo users may bypass)
       let isValid = false;
-      if (user.password) {
+      const hashedPassword = typeof user.password === 'string' ? user.password : '';
+      if (hashedPassword) {
         try {
-          isValid = await bcrypt.compare(password, user.password);
+          const compareResult = await bcrypt.compare(password, hashedPassword);
+          isValid = !!compareResult;
         } catch (compareError) {
           logger.error('[OTP] Password comparison failed', compareError as Error);
         }

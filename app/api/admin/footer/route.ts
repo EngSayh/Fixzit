@@ -4,6 +4,15 @@ import { FooterContent } from '@/server/models/FooterContent';
 import { connectToDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 
+interface FooterDocument {
+  page: string;
+  contentEn: string;
+  contentAr: string;
+  updatedAt: Date | null;
+  updatedBy?: string | null;
+  [key: string]: unknown;
+}
+
 /**
  * POST /api/admin/footer
  * Super Admin only endpoint to update footer content
@@ -61,14 +70,15 @@ export async function POST(request: NextRequest) {
       }
     );
 
+    const footerTyped = footerContent as unknown as FooterDocument;
     return NextResponse.json({
       success: true,
       data: {
-        page: footerContent.page,
-        contentEn: footerContent.contentEn,
-        contentAr: footerContent.contentAr,
-        updatedAt: footerContent.updatedAt,
-        updatedBy: (footerContent as any)?.updatedBy ?? null
+        page: footerTyped.page,
+        contentEn: footerTyped.contentEn,
+        contentAr: footerTyped.contentAr,
+        updatedAt: footerTyped.updatedAt,
+        updatedBy: footerTyped.updatedBy ?? null
       }
     });
 
@@ -138,12 +148,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all footer pages
-    const allContent = await FooterContent.find({}).lean();
+    const allContent = await FooterContent.find({}).lean() as unknown as FooterDocument[];
 
     // Ensure all three pages exist (return defaults if missing)
     const pages = ['about', 'privacy', 'terms'];
     const result = pages.map((p: string) => {
-      const existing = allContent.find((c: any) => c.page === p);
+      const existing = allContent.find((c) => c.page === p);
       return existing || {
         page: p,
         contentEn: '',

@@ -18,6 +18,16 @@ import { requireSubscription } from '@/server/middleware/subscriptionCheck';
 import { setTenantContext } from '@/server/plugins/tenantIsolation';
 import { logger } from '@/lib/logger';
 
+interface PropertyUnit {
+  status: string;
+  [key: string]: unknown;
+}
+
+interface PropertyDocument {
+  units?: PropertyUnit[];
+  [key: string]: unknown;
+}
+
 export async function GET(req: NextRequest) {
   try {
     // Check subscription
@@ -81,11 +91,12 @@ export async function GET(req: NextRequest) {
     .lean());
     
     // Calculate summary statistics
+    const typedProperties = properties as unknown as PropertyDocument[];
     const summary = {
-      totalProperties: properties.length,
-      totalUnits: properties.reduce((sum: number, p: any) => sum + (p.units?.length || 0), 0),
-      occupiedUnits: properties.reduce((sum: number, p: any) => 
-        sum + (p.units?.filter((u: { status: string }) => u.status === 'OCCUPIED').length || 0), 0
+      totalProperties: typedProperties.length,
+      totalUnits: typedProperties.reduce((sum: number, p) => sum + (p.units?.length || 0), 0),
+      occupiedUnits: typedProperties.reduce((sum: number, p) => 
+        sum + (p.units?.filter((u) => u.status === 'OCCUPIED').length || 0), 0
       ),
       averageOccupancy: 0
     };

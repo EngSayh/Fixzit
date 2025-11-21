@@ -26,6 +26,57 @@ import { Property } from '@/server/models/Property';
 import { setTenantContext } from '@/server/plugins/tenantIsolation';
 import { logger } from '@/lib/logger';
 
+interface PropertyUnit {
+  unitNumber: string;
+  type: string;
+  area?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  status?: string;
+  tenant?: {
+    name?: string;
+    contact?: string;
+    leaseStart?: Date;
+    leaseEnd?: Date;
+    monthlyRent?: number;
+  };
+  [key: string]: unknown;
+}
+
+interface PropertyDocument {
+  _id: unknown;
+  units?: PropertyUnit[];
+  [key: string]: unknown;
+}
+
+interface WorkOrderDocument {
+  workOrderNumber?: string;
+  title?: string;
+  category?: string;
+  priority?: string;
+  financial?: {
+    costBreakdown?: { total?: number };
+    actualCost?: number;
+  };
+  work?: {
+    actualEndTime?: Date;
+  };
+  updatedAt?: Date;
+  assignment?: {
+    assignedTo?: { name?: string };
+  };
+  [key: string]: unknown;
+}
+
+interface PaymentDocument {
+  amount?: number;
+  paymentDate?: Date;
+  method?: string;
+  reference?: string;
+  tenantName?: string;
+  [key: string]: unknown;
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { unitId: string } }
@@ -80,9 +131,8 @@ export async function GET(
       );
     }
     
-    type PropertyUnit = { unitNumber: string; type: string; area?: number; bedrooms?: number; bathrooms?: number; status?: string; [key: string]: unknown };
-    // TODO(type-safety): Verify Property.units schema structure
-    const unit = ((property as any).units as PropertyUnit[] | undefined)?.find((u: PropertyUnit) => u.unitNumber === params.unitId);
+    const propertyTyped = property as unknown as PropertyDocument;
+    const unit = propertyTyped.units?.find((u) => u.unitNumber === params.unitId);
     
     if (!unit) {
       return NextResponse.json(
@@ -135,7 +185,8 @@ export async function GET(
         .limit(50)
         .lean();
       
-      historyData.maintenance = workOrders.map((wo: any) => ({
+      const workOrdersTyped = workOrders as unknown as WorkOrderDocument[];
+      historyData.maintenance = workOrdersTyped.map((wo) => ({
         workOrderNumber: wo.workOrderNumber,
         title: wo.title,
         category: wo.category,
@@ -197,11 +248,12 @@ export async function GET(
         .limit(50)
         .lean();
       
-      const totalRevenue = payments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+      const paymentsTyped = payments as unknown as PaymentDocument[];
+      const totalRevenue = paymentsTyped.reduce((sum: number, p) => sum + (p.amount || 0), 0);
       
       historyData.revenue = {
         total: totalRevenue,
-        payments: payments.map((p: any) => ({
+        payments: paymentsTyped.map((p) => ({
           amount: p.amount,
           date: p.paymentDate,
           method: p.method,

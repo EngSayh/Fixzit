@@ -7,6 +7,15 @@ import path from 'path';
 import { existsSync } from 'fs';
 import { logger } from '@/lib/logger';
 
+interface PlatformSettingsDocument {
+  logoUrl?: string;
+  logoFileName?: string;
+  logoFileSize?: number;
+  logoMimeType?: string;
+  updatedAt?: Date;
+  [key: string]: unknown;
+}
+
 /**
  * POST /api/admin/logo/upload
  * Super Admin only endpoint to upload platform logo
@@ -96,14 +105,15 @@ export async function POST(request: NextRequest) {
       }
     );
 
+    const settingsTyped = settings as unknown as PlatformSettingsDocument;
     return NextResponse.json({
       success: true,
       data: {
-        logoUrl: settings.logoUrl,
-        fileName: settings.logoFileName,
-        fileSize: settings.logoFileSize,
-        mimeType: settings.logoMimeType,
-        updatedAt: settings.updatedAt
+        logoUrl: settingsTyped.logoUrl,
+        fileName: settingsTyped.logoFileName,
+        fileSize: settingsTyped.logoFileSize,
+        mimeType: settingsTyped.logoMimeType,
+        updatedAt: settingsTyped.updatedAt
       }
     });
 

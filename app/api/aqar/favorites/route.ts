@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
       .lean()
       .exec();
 
-    const favorites = favoritesRaw as Array<{ _id: mongoose.Types.ObjectId } & AqarFavoriteDocument>;
+    const favorites = favoritesRaw as unknown as Array<{ _id: mongoose.Types.ObjectId } & AqarFavoriteDocument>;
     const total = await AqarFavorite.countDocuments(query);
     
     // Batch-fetch targets to eliminate N+1 queries

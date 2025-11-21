@@ -75,11 +75,11 @@ export async function PATCH(
       );
     }
 
-    const plan = (await (FMPMPlan as any).findByIdAndUpdate(
+    const plan = await FMPMPlan.findByIdAndUpdate(
       id,
       { $set: updateData },
       { new: true, runValidators: true }
-    ));
+    );
     
     if (!plan) {
       return NextResponse.json(

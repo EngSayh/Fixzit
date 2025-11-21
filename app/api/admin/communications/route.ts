@@ -4,6 +4,26 @@ import { connectToDatabase, getDatabase } from '@/lib/mongodb-unified';
 import { logger } from '@/lib/logger';
 import { ObjectId } from 'mongodb';
 
+interface MatchStage {
+  userId?: ObjectId;
+  channel?: string;
+  status?: string;
+  createdAt?: { $gte?: Date; $lte?: Date };
+  $or?: Array<Record<string, { $regex: string; $options: string }>>;
+  [key: string]: unknown;
+}
+
+type PipelineStage =
+  | { $match: MatchStage }
+  | { $lookup: Record<string, unknown> }
+  | { $unwind: Record<string, unknown> | string }
+  | { $addFields: Record<string, unknown> }
+  | { $sort: Record<string, number> }
+  | { $skip: number }
+  | { $limit: number }
+  | { $facet: Record<string, PipelineStage[]> }
+  | { $project: Record<string, number | string | Record<string, unknown>> };
+
 /**
  * GET /api/admin/communications
  * 
@@ -97,10 +117,10 @@ export async function GET(request: NextRequest) {
     const db = await getDatabase();
 
     // 4. Build aggregation pipeline
-    const pipeline: any[] = [];
+    const pipeline: PipelineStage[] = [];
 
     // Match stage - filter by criteria
-    const matchStage: any = {};
+    const matchStage: MatchStage = {};
 
     if (userId) {
       if (!ObjectId.isValid(userId)) {
