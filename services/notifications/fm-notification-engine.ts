@@ -572,7 +572,22 @@ async function sendPushNotifications(
   const batchSize = 500;
   for (let i = 0; i < tokens.length; i += batchSize) {
     const batch = tokens.slice(i, i + batchSize);
-    // @ts-expect-error - sendMulticast method exists in firebase-admin@11+
+    /**
+     * @ts-expect-error - Type safety suppression for firebase-admin version compatibility
+     * 
+     * The sendMulticast() method exists and works correctly in firebase-admin@11.0.0+,
+     * but TypeScript types may be outdated or incomplete in the installed @types package.
+     * 
+     * Method signature: admin.messaging().sendMulticast(message: MulticastMessage): Promise<BatchResponse>
+     * Reference: https://firebase.google.com/docs/reference/admin/node/firebase-admin.messaging.messaging.md#messagingsendmulticast
+     * 
+     * This is safe to suppress because:
+     * 1. Runtime API is stable and documented
+     * 2. firebase-admin version is pinned in package.json
+     * 3. Method has been available since v11.0.0 (2021)
+     * 
+     * Alternative: Update @types/firebase-admin if newer types become available
+     */
     const response = await admin.messaging().sendMulticast({
       tokens: batch,
       notification: {

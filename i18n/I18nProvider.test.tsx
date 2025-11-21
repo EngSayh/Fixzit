@@ -32,6 +32,13 @@ vi.mock('./dictionaries/ar', () => ({
 
 import { I18nProvider, I18nContext } from './I18nProvider';
 
+interface I18nContextValue {
+  locale: string;
+  dir: string;
+  dict: Record<string, string>;
+  setLocale: (locale: string, options?: { persist?: boolean }) => Promise<void>;
+}
+
 function resetCookies() {
   // Expire cookies we know I18nProvider writes
   const past = 'Thu, 01 Jan 1970 00:00:00 GMT';
@@ -46,14 +53,21 @@ beforeEach(() => {
   resetCookies();
   vi.clearAllMocks();
   // Provide a default fetch mock
-  (global as any).fetch = vi.fn().mockResolvedValue({ ok: true });
+  global.fetch = vi.fn().mockResolvedValue({ ok: true } as Response);
 });
 
 afterEach(() => {
   cleanup();
 });
 
-function CaptureContext(props: { onValue?: (v: any) => void }) {
+interface I18nContextValue {
+  locale: string;
+  dir: string;
+  dict: Record<string, string>;
+  setLocale: (locale: string, options?: { persist?: boolean }) => Promise<void>;
+}
+
+function CaptureContext(props: { onValue?: (v: I18nContextValue | null) => void }) {
   const ctx = useContext(I18nContext);
   if (props.onValue) props.onValue(ctx);
   return (
@@ -119,7 +133,7 @@ describe('I18nProvider', () => {
   });
 
   test('setLocale updates state, persists to storage and cookies, and POSTs to /api/i18n', async () => {
-    let ctxRef: any;
+    let ctxRef: I18nContextValue | null = null;
     render(
       <I18nProvider>
         <CaptureContext onValue={(v) => (ctxRef = v)} />
@@ -156,7 +170,7 @@ describe('I18nProvider', () => {
     const handler = vi.fn();
     window.addEventListener('fixzit:language-change', handler);
     await act(async () => {
-      ctxRef.setLocale('en');
+      ctxRef?.setLocale('en');
     });
 
     // Check document updates for LTR
@@ -177,7 +191,7 @@ describe('I18nProvider', () => {
   });
 
   test('setLocale with { persist: false } updates context and DOM but does not touch storage/cookies/fetch', async () => {
-    let ctxRef: any;
+    let ctxRef: I18nContextValue | null = null;
     render(
       <I18nProvider>
         <CaptureContext onValue={(v) => (ctxRef = v)} />
@@ -187,10 +201,10 @@ describe('I18nProvider', () => {
     // Ensure clean baseline for cookies and storage
     localStorage.clear();
     resetCookies();
-    (global as any).fetch = vi.fn().mockResolvedValue({ ok: true });
+    global.fetch = vi.fn().mockResolvedValue({ ok: true } as Response);
 
     await act(async () => {
-      ctxRef.setLocale('ar', { persist: false });
+      ctxRef?.setLocale('ar', { persist: false });
     });
 
     // State updated
@@ -222,7 +236,7 @@ describe('I18nProvider', () => {
       throw new Error('storage-fail');
     });
 
-    let ctxRef: any;
+    let ctxRef: I18nContextValue | null = null;
     render(
       <I18nProvider>
         <CaptureContext onValue={(v) => (ctxRef = v)} />
@@ -230,7 +244,7 @@ describe('I18nProvider', () => {
     );
 
     await act(async () => {
-      ctxRef.setLocale('ar');
+      ctxRef?.setLocale('ar');
     });
 
     // State still updates
@@ -295,7 +309,7 @@ describe('I18nProvider', () => {
   });
 
   test('dict re-computes when locale changes', async () => {
-    let ctxRef: any;
+    let ctxRef: I18nContextValue | null = null;
     render(
       <I18nProvider initialLocale="en">
         <CaptureContext onValue={(v) => (ctxRef = v)} />
@@ -309,7 +323,7 @@ describe('I18nProvider', () => {
     });
 
     await act(async () => {
-      ctxRef.setLocale('ar');
+      ctxRef?.setLocale('ar');
     });
 
     // Wait for Arabic dictionary to load

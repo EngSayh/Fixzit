@@ -46,10 +46,17 @@ const escapeRegex = (input: string) => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$
 test.describe('Global Layout & Navigation - All Pages', () => {
   for (const page of CORE_PAGES) {
     test(`${page.name} (${page.path}): Layout integrity + no errors`, async ({ page: browser }) => {
+      const projectName = test.info().project.name;
+      const roleName = projectName.split(':').pop()?.toLowerCase() || '';
+      const financeRestricted = ['tenant', 'vendor', 'technician'].includes(roleName);
+
+      if (financeRestricted && page.path === '/finance') {
+        test.skip(true, 'Finance not available to this role');
+      }
+
       const errors: string[] = [];
       const warnings: string[] = [];
       const networkFailures: Array<{ method: string; url: string; status: number }> = [];
-      const projectName = test.info().project.name;
       const isArabicProject = projectName.includes(':AR:') || projectName.startsWith('AR:');
 
       // Capture console errors and warnings
@@ -148,31 +155,19 @@ test.describe('Global Layout & Navigation - All Pages', () => {
 
       // ============ ERROR VALIDATION ============
       
-      // Console errors should be empty (allowlist finance 403 noise in test mode)
-      const filteredErrors = errors.filter(err => {
-        if (process.env.PLAYWRIGHT_TESTS === 'true' && /403/i.test(err)) {
-          return false;
-        }
-        return true;
-      });
-
-      if (filteredErrors.length > 0) {
+      // Console errors should be empty
+      if (errors.length > 0) {
         console.error(`\n❌ Console Errors on ${page.path}:`);
-        filteredErrors.forEach(err => console.error(`   ${err}`));
+        errors.forEach(err => console.error(`   ${err}`));
       }
-      expect(filteredErrors, `Console errors found:\n${filteredErrors.join('\n')}`).toHaveLength(0);
+      expect(errors, `Console errors found:\n${errors.join('\n')}`).toHaveLength(0);
 
       // Network failures should be empty (except 404s for optional resources)
-      const criticalFailures = networkFailures.filter(f => {
-        if (process.env.PLAYWRIGHT_TESTS === 'true' && f.status === 403 && f.url.includes('/api/finance')) {
-          return false;
-        }
-        return (
-          f.status >= 500 || // Server errors
-          (f.status === 404 && !f.url.includes('favicon') && !f.url.includes('.map')) || // Missing critical resources
-          f.status === 401 || f.status === 403 // Auth failures
-        );
-      });
+      const criticalFailures = networkFailures.filter(f =>
+        f.status >= 500 || // Server errors
+        (f.status === 404 && !f.url.includes('favicon') && !f.url.includes('.map')) || // Missing critical resources
+        f.status === 401 || f.status === 403 // Auth failures
+      );
       
       if (criticalFailures.length > 0) {
         console.error(`\n❌ Network Failures on ${page.path}:`);

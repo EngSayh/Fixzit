@@ -99,7 +99,22 @@ export async function getRecommendedListings({
     if (propertyType) {
       baseQuery.propertyType = propertyType;
     }
-    // TODO: For userId personalization, integrate viewing/favorites history.
+    /**
+     * TODO(feature): User personalization for recommendations
+     * 
+     * Future enhancement to integrate viewing and favorites history for personalized recommendations.
+     * When implemented, use userId to fetch:
+     * - User's viewed listings (from analytics/tracking collection)
+     * - User's favorite properties (from favorites collection)
+     * - User's search history patterns
+     * 
+     * Algorithm should:
+     * 1. Weight recommendations based on user's past interactions
+     * 2. Include similar properties to previously viewed/favorited items
+     * 3. Consider user's price range and location preferences
+     * 
+     * Related: Personalization service module (to be created)
+     */
     void userId;
   }
 
