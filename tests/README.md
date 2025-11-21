@@ -168,11 +168,49 @@ workers: 4, // Increase/decrease based on CPU cores
 
 ## Troubleshooting
 
-### Authentication Fails
+### Authentication Fails (401 Errors)
+
+If tests fail with 401 Unauthorized errors or timeouts on protected routes:
 
 ```bash
-# Regenerate storage states
+# Method 1: Use the regeneration script (recommended)
+./scripts/regenerate-test-auth.sh
+
+# Method 2: Run setup manually
 pnpm test:e2e:setup
+```
+
+**Root Cause**: Session tokens in `tests/state/*.json` are encrypted JWTs with expiration. They need regeneration when:
+- NEXTAUTH_SECRET or AUTH_SECRET changes
+- Test user credentials change
+- Tokens expire (typically after 30 days)
+- globalSetup didn't run with correct environment
+
+**The regeneration script will**:
+1. Validate `.env.test` exists
+2. Check app is running on BASE_URL
+3. Execute `tests/setup-auth.ts` to regenerate all 6 role states
+4. Verify each state file is valid (>100 bytes)
+5. Report success or troubleshooting steps
+
+### Auth Regeneration Not Working
+
+**Symptom**: Script fails with "App not running" or "Setup failed"
+
+**Fix**:
+```bash
+# 1. Ensure dev server is running with proper env vars
+ALLOW_OFFLINE_MONGODB=true SKIP_ENV_VALIDATION=true \\
+  NEXTAUTH_SECRET=dev-secret AUTH_SECRET=dev-secret \\
+  BASE_URL=http://localhost:3000 \\
+  pnpm dev
+
+# 2. In another terminal, run regeneration
+./scripts/regenerate-test-auth.sh
+
+# 3. Verify state files
+ls -lh tests/state/*.json
+# Each should be >100 bytes and recently modified
 ```
 
 ### Dev Server Not Starting
